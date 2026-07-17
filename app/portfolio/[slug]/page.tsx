@@ -7,6 +7,7 @@ import Footer from "@/app/components/Footer";
 import { MEDIA_COLLECTIONS } from "@/lib/media-collections";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
+import { getAbsoluteUrl } from "@/lib/site";
 
 import PortfolioGallery from "./PortfolioGallery";
 
@@ -157,10 +158,14 @@ export async function generateMetadata({
   return {
     title,
     description,
+    alternates: {
+      canonical: `/portfolio/${slug}`,
+    },
     openGraph: {
       title,
       description,
       type: "article",
+      url: `/portfolio/${slug}`,
       images: image
         ? [
             {
@@ -196,6 +201,40 @@ export default async function PortfolioProjectPage({
   const activeServices = project.services.filter(
     ({ service }) => service.active,
   );
+  const projectUrl = getAbsoluteUrl(`/portfolio/${project.slug}`);
+  const structuredImages = [
+    project.heroMedia?.storageKey
+      ? getPublicAssetUrl(project.heroMedia.storageKey)
+      : null,
+    ...project.media.map((media) =>
+      media.storageKey ? getPublicAssetUrl(media.storageKey) : null,
+    ),
+  ].filter((url): url is string => Boolean(url));
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "CreativeWork",
+    "@id": projectUrl,
+    url: projectUrl,
+    name: project.title,
+    description:
+      project.seoDescription ||
+      project.shortDescription ||
+      project.description ||
+      `A real estate media project by Helios Real Estate Media.`,
+    image: [...new Set(structuredImages)],
+    contentLocation: location
+      ? {
+          "@type": "Place",
+          name: location,
+        }
+      : undefined,
+    creator: {
+      "@type": "Organization",
+      name: "Helios Real Estate Media",
+      url: getAbsoluteUrl("/"),
+    },
+    keywords: activeServices.map(({ service }) => service.name).join(", "),
+  };
   const visibleMedia = project.media.filter(
     (media) => media.id !== project.heroMediaId,
   );
@@ -250,6 +289,12 @@ export default async function PortfolioProjectPage({
 
   return (
     <main className="min-h-screen bg-[#090909] text-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
+        }}
+      />
       <header className="absolute inset-x-0 top-0 z-30 border-b border-white/[0.1] bg-black/20 backdrop-blur-xl">
         <div className="container-shell flex min-h-24 items-center justify-between gap-6 py-5">
           <Link href="/" aria-label="Helios Real Estate Media home">

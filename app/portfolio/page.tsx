@@ -12,6 +12,9 @@ export const metadata: Metadata = {
   title: "Portfolio | Helios Real Estate Media",
   description:
     "Explore photography, cinematic films, aerial media, agent branding, and social content created by Helios Real Estate Media.",
+  alternates: {
+    canonical: "/portfolio",
+  },
 };
 
 type PortfolioPageProps = {

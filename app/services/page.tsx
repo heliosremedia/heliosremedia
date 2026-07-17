@@ -12,6 +12,9 @@ export const metadata: Metadata = {
   title: "Real Estate Media Services | Helios",
   description:
     "Explore photography, cinematic film, aerial media, agent branding, social content, floor plans, Matterport, and property websites from Helios Real Estate Media.",
+  alternates: {
+    canonical: "/services",
+  },
 };
 
 export default async function ServicesPage() {

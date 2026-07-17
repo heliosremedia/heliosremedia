@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   title: "About Helios | Real Estate Media in Northern Colorado",
   description:
     "Meet Helios Real Estate Media—a Northern Colorado studio creating intentional photography, cinematic film, aerial media, and marketing content for properties and real estate professionals.",
+  alternates: {
+    canonical: "/about",
+  },
 };
 
 const principles = [
