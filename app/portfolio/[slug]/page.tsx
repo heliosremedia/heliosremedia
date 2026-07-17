@@ -4,13 +4,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import Footer from "@/app/components/Footer";
-import {
-  MEDIA_COLLECTIONS,
-  getMediaCollection,
-  isMediaCategory,
-} from "@/lib/media-collections";
+import { MEDIA_COLLECTIONS } from "@/lib/media-collections";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
+
+import PortfolioGallery from "./PortfolioGallery";
 
 export const dynamic = "force-dynamic";
 
@@ -420,72 +418,31 @@ export default async function PortfolioProjectPage({
             </p>
           </div>
 
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:gap-7">
-            {collection.media.map((media, mediaIndex) => {
-              const collectionDetails = isMediaCategory(media.mediaCategory)
-                ? getMediaCollection(media.mediaCategory)
-                : collection;
-              const imageUrl = media.storageKey
+          <PortfolioGallery
+            projectTitle={project.title}
+            collectionLabel={collection.label}
+            items={collection.media.map((media) => ({
+              id: media.id,
+              imageUrl: media.storageKey
                 ? getPublicAssetUrl(media.storageKey)
-                : "";
-              const isWide = media.aspectRatio
+                : null,
+              externalUrl: media.externalUrl,
+              alt:
+                media.altText ||
+                media.originalFilename ||
+                `${project.title} ${collection.label}`,
+              caption: media.caption,
+              focalX: media.focalX,
+              focalY: media.focalY,
+              isWide: media.aspectRatio
                 ? media.aspectRatio >= 1.35
-                : media.width && media.height
-                  ? media.width / media.height >= 1.35
-                  : false;
-
-              return (
-                <figure
-                  key={media.id}
-                  className={`group ${
-                    isWide || mediaIndex % 5 === 0 ? "sm:col-span-2" : ""
-                  }`}
-                >
-                  <div
-                    className={`relative overflow-hidden bg-white/[0.03] ${
-                      isWide || mediaIndex % 5 === 0
-                        ? "aspect-[16/10]"
-                        : "aspect-[4/5]"
-                    }`}
-                  >
-                    {imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={imageUrl}
-                        alt={
-                          media.altText ||
-                          media.originalFilename ||
-                          `${project.title} ${collectionDetails.label}`
-                        }
-                        loading="lazy"
-                        className="h-full w-full object-cover transition duration-1000 ease-[var(--ease-luxury)] group-hover:scale-[1.02]"
-                        style={{
-                          objectPosition: `${media.focalX * 100}% ${media.focalY * 100}%`,
-                        }}
-                      />
-                    ) : media.externalUrl ? (
-                      <a
-                        href={media.externalUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex h-full items-center justify-center border border-white/[0.08] text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-white/45 transition hover:text-white"
-                      >
-                        Open {collectionDetails.label}
-                      </a>
-                    ) : (
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_25%,rgba(217,107,43,0.15),transparent_35%),#111]" />
-                    )}
-                  </div>
-
-                  {media.caption && (
-                    <figcaption className="mt-4 max-w-2xl text-xs leading-6 text-white/35">
-                      {media.caption}
-                    </figcaption>
-                  )}
-                </figure>
-              );
-            })}
-          </div>
+                : Boolean(
+                    media.width &&
+                    media.height &&
+                    media.width / media.height >= 1.35,
+                  ),
+            }))}
+          />
         </section>
       ))}
 
