@@ -7,7 +7,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 const navigation = [
   { label: "Portfolio", href: "/portfolio" },
   { label: "Services", href: "/services" },
-  { label: "Our Approach", href: "/#our-approach" },
+  { label: "About Helios", href: "/about" },
 ];
 
 const ease = [0.22, 1, 0.36, 1] as const;

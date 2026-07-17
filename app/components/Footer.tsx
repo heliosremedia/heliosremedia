@@ -8,7 +8,7 @@ const ease = [0.22, 1, 0.36, 1] as const;
 const exploreLinks = [
   { label: "Our Work", href: "/portfolio" },
   { label: "Services", href: "/services" },
-  { label: "Our Approach", href: "/#our-approach" },
+  { label: "About Helios", href: "/about" },
   { label: "Client Stories", href: "/#testimonials" },
 ];
 
