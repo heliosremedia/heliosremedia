@@ -1,26 +1,237 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Helios";
+  src: url("/fonts/helios.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Helios";
+  src: url("/fonts/heliosbold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Helios";
+  src: url("/fonts/heliosbolditalic.ttf") format("truetype");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0f0f10;
+  --foreground: #f5f1ea;
+
+  --helios-orange: #d96b2b;
+  --helios-orange-hover: #ed7a3c;
+  --helios-muted: #b8b2aa;
+  --helios-border: rgba(245, 241, 234, 0.16);
+  --helios-border-strong: rgba(245, 241, 234, 0.28);
+
+  --font-helios: "Helios", Arial, Helvetica, sans-serif;
+
+  --container-width: 80rem;
+  --container-padding: clamp(1.5rem, 4vw, 4rem);
+
+  --section-space: clamp(6rem, 11vw, 11rem);
+  --section-space-compact: clamp(4.5rem, 8vw, 8rem);
+
+  --display-xl: clamp(3.6rem, 7.2vw, 7rem);
+  --display-lg: clamp(3rem, 5.8vw, 5.75rem);
+  --display-md: clamp(2.5rem, 4.5vw, 4.5rem);
+
+  --heading-lg: clamp(2rem, 3vw, 3rem);
+  --heading-md: clamp(1.5rem, 2vw, 2.25rem);
+
+  --body-lg: clamp(1rem, 1.25vw, 1.125rem);
+  --body-base: 1rem;
+  --body-sm: 0.875rem;
+
+  --ease-luxury: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 300ms;
+  --duration-medium: 600ms;
+  --duration-slow: 900ms;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  min-width: 320px;
+  scroll-behavior: smooth;
+  background: var(--background);
 }
 
 body {
+  margin: 0;
+  min-width: 320px;
+  overflow-x: hidden;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+main {
+  overflow: clip;
+}
+
+h1,
+h2,
+h3,
+h4,
+.font-display {
+  font-family: var(--font-cormorant), Georgia, serif;
+}
+
+.font-helios {
+  font-family: var(--font-helios);
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+img,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+.container-shell {
+  width: min(100%, var(--container-width));
+  margin-inline: auto;
+  padding-inline: var(--container-padding);
+}
+
+.section-space {
+  padding-block: var(--section-space);
+}
+
+.section-space-compact {
+  padding-block: var(--section-space-compact);
+}
+
+.display-xl {
+  font-family: var(--font-cormorant), Georgia, serif;
+  font-size: var(--display-xl);
+  font-weight: 300;
+  line-height: 0.88;
+  letter-spacing: -0.045em;
+}
+
+.display-lg {
+  font-family: var(--font-cormorant), Georgia, serif;
+  font-size: var(--display-lg);
+  font-weight: 300;
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+}
+
+.display-md {
+  font-family: var(--font-cormorant), Georgia, serif;
+  font-size: var(--display-md);
+  font-weight: 300;
+  line-height: 0.96;
+  letter-spacing: -0.035em;
+}
+
+.body-lg {
+  font-size: var(--body-lg);
+  line-height: 1.8;
+}
+
+.body-base {
+  font-size: var(--body-base);
+  line-height: 1.75;
+}
+
+.eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+.hero-grain {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='.75'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 180px;
+}
+
+::selection {
+  background: var(--helios-orange);
+  color: var(--foreground);
+}
+
+:focus-visible {
+  outline: 2px solid var(--helios-orange);
+  outline-offset: 4px;
+}
+
+@media (max-width: 767px) {
+  :root {
+    --container-padding: 1.25rem;
+    --display-xl: clamp(3rem, 14vw, 4.5rem);
+    --display-lg: clamp(2.75rem, 12vw, 4rem);
+    --display-md: clamp(2.25rem, 10vw, 3.4rem);
+  }
+
+  .display-xl {
+    line-height: 0.92;
+    letter-spacing: -0.038em;
+  }
+}
+
+@media (max-width: 380px) {
+  :root {
+    --container-padding: 1rem;
+    --display-xl: 2.8rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

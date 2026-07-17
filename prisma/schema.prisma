@@ -1,0 +1,210 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ProjectStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum MediaSourceType {
+  UPLOADED_IMAGE
+  UPLOADED_VIDEO
+  VIDEO_EMBED
+  EXTERNAL_LINK
+  TOUR_EMBED
+}
+
+enum MediaCategory {
+  PHOTOGRAPHY
+  DRONE_PHOTOGRAPHY
+  CINEMATIC_FILM
+  VERTICAL_REEL
+  AGENT_BRANDING
+  SOCIAL_CONTENT
+  FLOOR_PLAN
+  PROPERTY_WEBSITE
+  MATTERPORT
+  OTHER
+}
+
+enum MediaVisibility {
+  VISIBLE
+  HIDDEN
+}
+
+enum ExternalProvider {
+  YOUTUBE
+  VIMEO
+  MATTERPORT
+  PROPERTY_WEBSITE
+  OTHER
+}
+
+model Project {
+  id               String  @id @default(cuid())
+  title            String
+  slug             String  @unique
+  shortDescription String?
+  description      String?
+
+  city          String?
+  state         String?
+  locationLabel String?
+  projectType   String?
+  propertyType  String?
+
+  status       ProjectStatus @default(DRAFT)
+  featured     Boolean       @default(false)
+  displayOrder Int           @default(0)
+
+  heroMediaId      String? @unique
+  thumbnailMediaId String? @unique
+
+  seoTitle       String?
+  seoDescription String?
+
+  publishedAt DateTime?
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  heroMedia      Media? @relation("ProjectHeroMedia", fields: [heroMediaId], references: [id], onDelete: SetNull)
+  thumbnailMedia Media? @relation("ProjectThumbnailMedia", fields: [thumbnailMediaId], references: [id], onDelete: SetNull)
+
+  media    Media[]          @relation("ProjectMedia")
+  details  ProjectDetails?
+  services ProjectService[]
+  tags     ProjectTag[]
+
+  @@index([status])
+  @@index([featured])
+  @@index([displayOrder])
+  @@index([publishedAt])
+  @@index([status, displayOrder])
+}
+
+model ProjectDetails {
+  id        String  @id @default(cuid())
+  projectId String  @unique
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  listingAgent     String?
+  brokerage        String?
+  builder          String?
+  architect        String?
+  interiorDesigner String?
+
+  price        Decimal? @db.Decimal(14, 2)
+  squareFeet   Int?
+  bedrooms     Float?
+  bathrooms    Float?
+  lotSize      String?
+  neighborhood String?
+
+  propertyWebsiteUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Media {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation("ProjectMedia", fields: [projectId], references: [id], onDelete: Cascade)
+
+  sourceType    MediaSourceType
+  mediaCategory MediaCategory
+  provider      ExternalProvider?
+
+  storageKey       String?
+  originalFilename String?
+  mimeType         String?
+  externalUrl      String?
+  externalId       String?
+
+  altText String?
+  caption String?
+
+  width       Int?
+  height      Int?
+  aspectRatio Float?
+  fileSize    Int?
+
+  focalX Float @default(0.5)
+  focalY Float @default(0.5)
+
+  displayOrder Int             @default(0)
+  visibility   MediaVisibility @default(VISIBLE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  heroForProject      Project? @relation("ProjectHeroMedia")
+  thumbnailForProject Project? @relation("ProjectThumbnailMedia")
+
+  @@index([projectId])
+  @@index([projectId, displayOrder])
+  @@index([projectId, visibility])
+  @@index([mediaCategory])
+  @@index([sourceType])
+}
+
+model Service {
+  id           String  @id @default(cuid())
+  name         String
+  slug         String  @unique
+  description  String?
+  displayOrder Int     @default(0)
+  active       Boolean @default(true)
+
+  projects ProjectService[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, displayOrder])
+}
+
+model ProjectService {
+  projectId String
+  serviceId String
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([projectId, serviceId])
+  @@index([serviceId])
+}
+
+model Tag {
+  id   String @id @default(cuid())
+  name String
+  slug String @unique
+
+  projects ProjectTag[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProjectTag {
+  projectId String
+  tagId     String
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([projectId, tagId])
+  @@index([tagId])
+}
