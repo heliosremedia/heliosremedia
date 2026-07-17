@@ -5,9 +5,9 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 const navigation = [
-  { label: "Portfolio", href: "#work" },
-  { label: "About Us", href: "#about" },
-  { label: "Client Login", href: "#login" },
+  { label: "Portfolio", href: "/portfolio" },
+  { label: "Services", href: "/services" },
+  { label: "Our Approach", href: "/#our-approach" },
 ];
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -87,7 +87,7 @@ export default function Navbar() {
             ))}
 
             <motion.a
-              href="#booking"
+              href="tel:+19706825533"
               className="flex min-h-14 items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-8 text-[11px] font-semibold uppercase tracking-[0.23em] text-white shadow-[0_10px_30px_rgba(0,0,0,0.22)] lg:px-9"
               whileHover={
                 shouldReduceMotion
@@ -130,9 +130,7 @@ export default function Navbar() {
             <span className="relative block h-4 w-5">
               <motion.span
                 className="absolute left-0 top-[3px] h-px w-5 bg-white"
-                animate={
-                  menuOpen ? { y: 5, rotate: 45 } : { y: 0, rotate: 0 }
-                }
+                animate={menuOpen ? { y: 5, rotate: 45 } : { y: 0, rotate: 0 }}
                 transition={{
                   duration: shouldReduceMotion ? 0 : 0.4,
                   ease,
@@ -190,9 +188,7 @@ export default function Navbar() {
                   <motion.span
                     className="h-px bg-[var(--helios-orange)]"
                     initial={
-                      shouldReduceMotion
-                        ? false
-                        : { width: 0, opacity: 0 }
+                      shouldReduceMotion ? false : { width: 0, opacity: 0 }
                     }
                     animate={{ width: 48, opacity: 1 }}
                     exit={{ width: 0, opacity: 0 }}
@@ -205,11 +201,7 @@ export default function Navbar() {
 
                   <motion.span
                     className="eyebrow text-white/50"
-                    initial={
-                      shouldReduceMotion
-                        ? false
-                        : { opacity: 0, y: 8 }
-                    }
+                    initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
                     transition={{
@@ -249,9 +241,7 @@ export default function Navbar() {
                       }}
                       transition={{
                         duration: shouldReduceMotion ? 0 : 0.65,
-                        delay: shouldReduceMotion
-                          ? 0
-                          : 0.22 + index * 0.07,
+                        delay: shouldReduceMotion ? 0 : 0.22 + index * 0.07,
                         ease,
                       }}
                       onClick={closeMenu}
@@ -270,9 +260,7 @@ export default function Navbar() {
                 <motion.a
                   href="#booking"
                   className="mt-10 flex min-h-14 w-full items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-8 text-xs font-semibold uppercase tracking-[0.23em] text-white"
-                  initial={
-                    shouldReduceMotion ? false : { opacity: 0, y: 24 }
-                  }
+                  initial={shouldReduceMotion ? false : { opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 12 }}
                   transition={{
@@ -288,9 +276,7 @@ export default function Navbar() {
 
               <motion.div
                 className="flex items-end justify-between gap-6 pt-10"
-                initial={
-                  shouldReduceMotion ? false : { opacity: 0, y: 14 }
-                }
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{

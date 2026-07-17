@@ -127,7 +127,7 @@ export default function PrimaryConversion() {
               </p>
 
               <Link
-                href="/book"
+                href="tel:+19706825533"
                 className="group mt-12 flex min-h-[4.75rem] w-full items-center justify-between border border-[#f06b24] px-7 transition-all duration-500 hover:bg-[#f06b24] focus-visible:bg-[#f06b24] focus-visible:outline-none sm:mt-14 sm:px-8"
               >
                 <span className="text-[0.7rem] font-medium uppercase tracking-[0.32em] text-white">
@@ -147,7 +147,6 @@ export default function PrimaryConversion() {
                 className="group mt-7 inline-flex items-center gap-4 text-[0.57rem] font-medium uppercase tracking-[0.28em] text-white/32 transition-colors duration-300 hover:text-white focus-visible:outline-none focus-visible:text-white"
               >
                 Explore Services
-
                 <span
                   aria-hidden="true"
                   className="h-px w-8 bg-white/16 transition-all duration-500 group-hover:w-12 group-hover:bg-[#f06b24]"

@@ -8,13 +8,13 @@ const ease = [0.22, 1, 0.36, 1] as const;
 const exploreLinks = [
   { label: "Our Work", href: "/portfolio" },
   { label: "Services", href: "/services" },
-  { label: "About Helios", href: "/about" },
-  { label: "Resources", href: "/resources" },
+  { label: "Our Approach", href: "/#our-approach" },
+  { label: "Client Stories", href: "/#testimonials" },
 ];
 
 const connectLinks = [
-  { label: "Book Your Shoot", href: "/book" },
-  { label: "Contact", href: "/contact" },
+  { label: "Book Your Shoot", href: "tel:+19706825533" },
+  { label: "Call 970.682.5533", href: "tel:+19706825533" },
 ];
 
 export default function Footer() {

@@ -277,7 +277,7 @@ export default async function PortfolioProjectPage({
             </Link>
 
             <Link
-              href="/#booking"
+              href="tel:+19706825533"
               className="inline-flex min-h-11 items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-5 text-[0.58rem] font-semibold uppercase tracking-[0.17em] text-white transition hover:bg-[var(--helios-orange-hover)]"
             >
               Book now
