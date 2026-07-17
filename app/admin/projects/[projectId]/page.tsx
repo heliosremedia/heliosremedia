@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
 
+import ProjectDetailsEditor from "./ProjectDetailsEditor";
 import ProjectMediaManager from "./ProjectMediaManager";
 import ProjectWorkflowManager from "./ProjectWorkflowManager";
 
@@ -44,11 +45,14 @@ export default async function ProjectEditorPage({
         title: true,
         slug: true,
         shortDescription: true,
+        description: true,
         city: true,
         state: true,
         locationLabel: true,
         projectType: true,
         propertyType: true,
+        seoTitle: true,
+        seoDescription: true,
         status: true,
         featured: true,
         heroMediaId: true,
@@ -60,6 +64,21 @@ export default async function ProjectEditorPage({
         publishedAt: true,
         createdAt: true,
         updatedAt: true,
+        details: {
+          select: {
+            listingAgent: true,
+            brokerage: true,
+            builder: true,
+            architect: true,
+            interiorDesigner: true,
+            squareFeet: true,
+            bedrooms: true,
+            bathrooms: true,
+            lotSize: true,
+            neighborhood: true,
+            propertyWebsiteUrl: true,
+          },
+        },
         media: {
           where: {
             visibility: "VISIBLE",
@@ -104,10 +123,6 @@ export default async function ProjectEditorPage({
   if (!project) {
     notFound();
   }
-
-  const location =
-    project.locationLabel ||
-    [project.city, project.state].filter(Boolean).join(", ");
 
   return (
     <div className="space-y-7">
@@ -181,7 +196,12 @@ export default async function ProjectEditorPage({
 
       <section className="grid gap-4 md:grid-cols-4">
         {[
-          ["01", "Details", "Complete", true],
+          [
+            "01",
+            "Details",
+            project.shortDescription ? "Ready" : "Add summary",
+            Boolean(project.shortDescription),
+          ],
           [
             "02",
             "Media",
@@ -231,39 +251,34 @@ export default async function ProjectEditorPage({
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02]">
-          <div className="border-b border-white/[0.08] px-5 py-5 sm:px-6">
-            <h2 className="text-2xl font-normal text-white">Project details</h2>
-
-            <p className="mt-1 text-sm text-white/35">
-              The initial information saved for this project.
-            </p>
-          </div>
-
-          <dl className="grid gap-px bg-white/[0.06] sm:grid-cols-2">
-            {[
-              ["Title", project.title],
-              ["Location", location || "Not specified"],
-              ["Project type", project.projectType || "Not specified"],
-              ["Property type", project.propertyType || "Not specified"],
-              ["Description", project.shortDescription || "Not provided"],
-              ["Status", formatStatus(project.status)],
-            ].map(([label, value]) => (
-              <div
-                key={label as string}
-                className="bg-[#0c0c0d] px-5 py-5 sm:px-6"
-              >
-                <dt className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-white/25">
-                  {label}
-                </dt>
-
-                <dd className="mt-2 text-sm leading-6 text-white/65">
-                  {value}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
+        <ProjectDetailsEditor
+          projectId={project.id}
+          statusLabel={formatStatus(project.status)}
+          initialData={{
+            title: project.title,
+            slug: project.slug,
+            shortDescription: project.shortDescription || "",
+            description: project.description || "",
+            city: project.city || "",
+            state: project.state || "",
+            locationLabel: project.locationLabel || "",
+            projectType: project.projectType || "",
+            propertyType: project.propertyType || "",
+            seoTitle: project.seoTitle || "",
+            seoDescription: project.seoDescription || "",
+            listingAgent: project.details?.listingAgent || "",
+            brokerage: project.details?.brokerage || "",
+            builder: project.details?.builder || "",
+            architect: project.details?.architect || "",
+            interiorDesigner: project.details?.interiorDesigner || "",
+            squareFeet: project.details?.squareFeet?.toString() || "",
+            bedrooms: project.details?.bedrooms?.toString() || "",
+            bathrooms: project.details?.bathrooms?.toString() || "",
+            lotSize: project.details?.lotSize || "",
+            neighborhood: project.details?.neighborhood || "",
+            propertyWebsiteUrl: project.details?.propertyWebsiteUrl || "",
+          }}
+        />
 
         <aside className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5 xl:self-start">
           <p className="text-[0.62rem] font-semibold uppercase tracking-[0.19em] text-[var(--helios-orange)]">
@@ -343,6 +358,7 @@ export default async function ProjectEditorPage({
             : null
         }
         visibleMediaCount={project.media.length}
+        hasProjectSummary={Boolean(project.shortDescription)}
         services={services}
         initialServiceIds={project.services.map(
           (projectService) => projectService.serviceId,

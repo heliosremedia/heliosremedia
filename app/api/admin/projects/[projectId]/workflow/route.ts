@@ -56,6 +56,7 @@ export async function PATCH(
         status: true,
         featured: true,
         heroMediaId: true,
+        shortDescription: true,
         heroMedia: {
           select: {
             visibility: true,
@@ -237,6 +238,10 @@ export async function PATCH(
 
     if (action === "publish") {
       const blockers: string[] = [];
+
+      if (!project.shortDescription) {
+        blockers.push("Add a short project description.");
+      }
 
       if (!project.heroMediaId || project.heroMedia?.visibility !== "VISIBLE") {
         blockers.push("Select a visible hero image.");

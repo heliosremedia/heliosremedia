@@ -22,6 +22,7 @@ type ProjectWorkflowManagerProps = {
   initialPublishedAt: string | null;
   heroMediaId: string | null;
   visibleMediaCount: number;
+  hasProjectSummary: boolean;
   services: AssignableService[];
   initialServiceIds: string[];
 };
@@ -61,6 +62,7 @@ export default function ProjectWorkflowManager({
   initialPublishedAt,
   heroMediaId,
   visibleMediaCount,
+  hasProjectSummary,
   services,
   initialServiceIds,
 }: ProjectWorkflowManagerProps) {
@@ -99,6 +101,13 @@ export default function ProjectWorkflowManager({
   const publishingRequirements = useMemo(
     () => [
       {
+        label: "Project summary added",
+        complete: hasProjectSummary,
+        detail: hasProjectSummary
+          ? "The public project has a concise introduction."
+          : "Add a short description in project details.",
+      },
+      {
         label: "Hero image selected",
         complete: Boolean(heroMediaId),
         detail: heroMediaId
@@ -126,7 +135,12 @@ export default function ProjectWorkflowManager({
             : "Assign and save at least one active service.",
       },
     ],
-    [activeSavedServiceCount, heroMediaId, visibleMediaCount],
+    [
+      activeSavedServiceCount,
+      hasProjectSummary,
+      heroMediaId,
+      visibleMediaCount,
+    ],
   );
 
   const canPublish = publishingRequirements.every(
