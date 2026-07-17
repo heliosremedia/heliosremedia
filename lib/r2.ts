@@ -1,19 +1,13 @@
 import { S3Client } from "@aws-sdk/client-s3";
 
-const requiredEnvironmentVariables = [
-  "R2_ACCOUNT_ID",
-  "R2_ACCESS_KEY_ID",
-  "R2_SECRET_ACCESS_KEY",
-  "R2_BUCKET_NAME",
-  "R2_PUBLIC_URL",
-] as const;
-
 type R2EnvironmentVariable =
-  (typeof requiredEnvironmentVariables)[number];
+  | "R2_ACCOUNT_ID"
+  | "R2_ACCESS_KEY_ID"
+  | "R2_SECRET_ACCESS_KEY"
+  | "R2_BUCKET_NAME"
+  | "R2_PUBLIC_URL";
 
-function getRequiredEnvironmentVariable(
-  name: R2EnvironmentVariable,
-): string {
+function getRequiredEnvironmentVariable(name: R2EnvironmentVariable): string {
   const value = process.env[name]?.trim();
 
   if (!value) {
@@ -26,9 +20,7 @@ function getRequiredEnvironmentVariable(
 export const r2Config = {
   accountId: getRequiredEnvironmentVariable("R2_ACCOUNT_ID"),
   accessKeyId: getRequiredEnvironmentVariable("R2_ACCESS_KEY_ID"),
-  secretAccessKey: getRequiredEnvironmentVariable(
-    "R2_SECRET_ACCESS_KEY",
-  ),
+  secretAccessKey: getRequiredEnvironmentVariable("R2_SECRET_ACCESS_KEY"),
   bucketName: getRequiredEnvironmentVariable("R2_BUCKET_NAME"),
   publicUrl: getRequiredEnvironmentVariable("R2_PUBLIC_URL").replace(
     /\/+$/,
