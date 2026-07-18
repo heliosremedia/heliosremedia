@@ -2,7 +2,8 @@ import { prisma } from "@/lib/prisma";
 
 export type PublicSiteSettings = {
   id: string; businessName: string; phoneDisplay: string; phoneE164: string;
-  email: string | null; bookingUrl: string | null; locationLabel: string;
+  email: string | null; bookingUrl: string | null;
+  heroVideoUrl: string | null; heroPosterUrl: string | null; locationLabel: string;
   serviceArea: string; serviceAreaDescription: string | null;
   footerDescription: string | null; availabilityMessage: string | null;
   websiteUrl: string | null; instagramUrl: string | null; facebookUrl: string | null;
@@ -17,6 +18,8 @@ export const defaultSiteSettings: PublicSiteSettings = {
   phoneE164: "+19706825533",
   email: null,
   bookingUrl: null,
+  heroVideoUrl: null,
+  heroPosterUrl: "/work/featured-estate.jpg",
   locationLabel: "Fort Collins, Colorado",
   serviceArea: "Northern Colorado",
   serviceAreaDescription: "Serving Fort Collins, Loveland, Windsor, Timnath, Greeley, Wellington, Berthoud, Boulder, and surrounding Northern Colorado communities.",
