@@ -119,6 +119,31 @@ const navigation: NavigationItem[] = [
       </svg>
     ),
   },
+  {
+    label: "FAQs",
+    href: "/admin/faqs",
+    icon: (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        fill="none"
+        className="h-5 w-5"
+      >
+        <path
+          d="M5 5.5A2.5 2.5 0 0 1 7.5 3h9A2.5 2.5 0 0 1 19 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.8 4v-4A2.5 2.5 0 0 1 4 13.5v-8Z"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M9.5 8.2a2.6 2.6 0 0 1 5 1c0 1.8-2.5 1.8-2.5 3.3M12 14.6v.1"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
+  },
 ];
 
 function isActivePath(pathname: string, href: string) {

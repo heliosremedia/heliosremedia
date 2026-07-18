@@ -208,3 +208,37 @@ model ProjectTag {
   @@id([projectId, tagId])
   @@index([tagId])
 }
+
+model FaqCategory {
+  id           String  @id @default(cuid())
+  name         String
+  slug         String  @unique
+  description  String?
+  displayOrder Int     @default(0)
+  active       Boolean @default(true)
+
+  faqs Faq[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, displayOrder])
+}
+
+model Faq {
+  id         String      @id @default(cuid())
+  categoryId String
+  category   FaqCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  question     String
+  answer       String
+  displayOrder Int     @default(0)
+  published    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId, displayOrder])
+  @@index([published])
+  @@index([published, categoryId])
+}

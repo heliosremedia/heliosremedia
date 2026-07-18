@@ -9,6 +9,7 @@ const exploreLinks = [
   { label: "Our Work", href: "/portfolio" },
   { label: "Services", href: "/services" },
   { label: "About Helios", href: "/about" },
+  { label: "FAQs", href: "/faq" },
   { label: "Client Stories", href: "/#testimonials" },
 ];
 

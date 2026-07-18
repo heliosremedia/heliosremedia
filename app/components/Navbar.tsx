@@ -8,6 +8,7 @@ const navigation = [
   { label: "Portfolio", href: "/portfolio" },
   { label: "Services", href: "/services" },
   { label: "About Helios", href: "/about" },
+  { label: "FAQs", href: "/faq" },
 ];
 
 const ease = [0.22, 1, 0.36, 1] as const;
