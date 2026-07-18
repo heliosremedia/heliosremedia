@@ -64,7 +64,7 @@ export default function Hero() {
       <div className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-7xl items-center px-6 pb-24 pt-48 md:px-10 md:pt-52 lg:px-16">
         <div className="max-w-[58rem] translate-y-5">
           <motion.h1
-            className="font-display text-[clamp(4rem,7.2vw,7rem)] font-light leading-[0.84] tracking-[-0.045em] text-[var(--foreground)]"
+            className="font-display text-[clamp(4rem,7.2vw,7rem)] font-light leading-[0.92] tracking-[-0.045em] text-[var(--foreground)]"
             variants={reveal}
             initial={shouldReduceMotion ? false : "hidden"}
             animate="visible"
@@ -135,7 +135,7 @@ export default function Hero() {
             </motion.a>
 
             <motion.a
-              href="#work"
+              href="/portfolio"
               className="flex min-h-14 items-center justify-center rounded-[3px] border border-white/40 bg-black/10 px-10 text-xs font-semibold uppercase tracking-[0.23em] text-white backdrop-blur-sm"
               whileHover={
                 shouldReduceMotion

@@ -84,7 +84,7 @@ export default function OurApproach() {
         className="pointer-events-none absolute -left-72 bottom-0 h-[40rem] w-[40rem] rounded-full bg-[radial-gradient(circle,rgba(112,27,18,0.04)_0%,transparent_70%)] blur-[120px]"
       />
 
-      <div className="relative mx-auto max-w-[1440px] px-6 pb-24 pt-28 sm:px-8 sm:pb-32 sm:pt-32 lg:px-12 lg:pb-36 lg:pt-36 xl:px-16">
+      <div className="relative mx-auto max-w-[1440px] px-6 pb-32 pt-20 sm:px-8 sm:pb-36 sm:pt-24 lg:px-12 lg:pb-40 lg:pt-28 xl:px-16">
         <motion.header
           initial={{
             opacity: 0,
@@ -99,7 +99,7 @@ export default function OurApproach() {
             duration: prefersReducedMotion ? 0 : 0.95,
             ease,
           }}
-          className="grid gap-12 lg:grid-cols-[0.92fr_1px_1.08fr] lg:items-center lg:gap-16 xl:gap-20"
+          className="grid gap-10 lg:grid-cols-[0.92fr_1px_1.08fr] lg:items-center lg:gap-14 xl:gap-16"
         >
           <div className="lg:pr-6">
             <div className="flex items-center gap-5">
@@ -110,7 +110,7 @@ export default function OurApproach() {
               </span>
             </div>
 
-            <p className="mt-8 max-w-[35rem] text-sm leading-7 text-white/56 sm:text-base sm:leading-8">
+            <p className="mt-6 max-w-[35rem] text-sm leading-7 text-white/56 sm:text-base sm:leading-8">
               Every listing is treated like a campaign. Every image, frame, and
               film is shaped to capture attention, create emotion, and elevate
               the way a property is perceived.
@@ -128,7 +128,7 @@ export default function OurApproach() {
           </h2>
         </motion.header>
 
-        <div className="mt-12 sm:mt-14 lg:mt-16">
+        <div className="mt-10 sm:mt-12 lg:mt-14">
           <div className="grid border-b border-white/10 lg:grid-cols-3">
             {principles.map((principle, index) => {
               const isActive = activePrinciple === index;
@@ -155,7 +155,7 @@ export default function OurApproach() {
                   onFocus={() => setActivePrinciple(index)}
                   onBlur={() => setActivePrinciple(null)}
                   tabIndex={0}
-                  className={`group relative isolate min-h-[30rem] overflow-hidden border-white/10 px-7 py-12 outline-none sm:min-h-[31rem] sm:px-9 sm:py-14 lg:min-h-[32rem] lg:border-l lg:px-10 lg:py-16 first:lg:border-l-0 xl:px-12 ${
+                  className={`group relative isolate min-h-[27rem] overflow-hidden border-white/10 px-7 py-10 outline-none sm:min-h-[28rem] sm:px-9 sm:py-12 lg:min-h-[29rem] lg:border-l lg:px-10 lg:py-14 first:lg:border-l-0 xl:px-12 ${
                     index > 0 ? "border-t lg:border-t-0" : ""
                   }`}
                 >
@@ -255,7 +255,7 @@ export default function OurApproach() {
             duration: prefersReducedMotion ? 0 : 0.9,
             ease,
           }}
-          className="pt-20 text-center sm:pt-24"
+          className="relative z-10 pt-16 text-center sm:pt-20"
         >
           <motion.p
             style={

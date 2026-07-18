@@ -8,8 +8,13 @@ import { portfolioItems } from "./portfolio";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-export default function WorkShowcase({ items = portfolioItems }: { items?: typeof portfolioItems }) {
+type FeaturedFilm = { enabled: boolean; videoSrc: string | null; poster: string | null; href: string | null };
+
+export default function WorkShowcase({ items = portfolioItems, featuredFilm }: { items?: typeof portfolioItems; featuredFilm?: FeaturedFilm }) {
   const shouldReduceMotion = useReducedMotion();
+  const displayItems = featuredFilm?.enabled && featuredFilm.videoSrc
+    ? [{ ...items[0], title: "Cinematic Films", href: featuredFilm.href || "/portfolio?service=cinematic-films", image: featuredFilm.poster || portfolioItems[0].image }, ...items.slice(1)]
+    : items;
 
   return (
     <section
@@ -17,7 +22,7 @@ export default function WorkShowcase({ items = portfolioItems }: { items?: typeo
       className="relative overflow-hidden bg-[var(--background)]"
     >
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-x-0 top-0 h-[24rem] bg-gradient-to-b from-[rgba(10,10,10,0.88)] via-[var(--background)] to-[var(--background)]" />
+        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[var(--background)] to-transparent" />
 
         <div className="absolute right-[-18rem] top-[10rem] h-[34rem] w-[34rem] rounded-full bg-[rgba(217,107,43,0.035)] blur-[160px]" />
 
@@ -26,7 +31,7 @@ export default function WorkShowcase({ items = portfolioItems }: { items?: typeo
         <div className="hero-grain absolute inset-0 opacity-[0.018] mix-blend-soft-light" />
       </div>
 
-      <div className="relative z-10 pb-[clamp(10rem,14vw,14rem)] pt-[clamp(8rem,12vw,11rem)]">
+      <div className="relative z-10 pb-[clamp(7rem,9vw,9.5rem)] pt-[clamp(7rem,10vw,9rem)]">
         <div className="mx-auto w-full max-w-[68rem] px-6 sm:px-8 lg:px-10">
           <div className="grid gap-10 lg:grid-cols-[1.1fr_1px_0.9fr] lg:items-center lg:gap-14">
             <motion.h2
@@ -172,7 +177,8 @@ export default function WorkShowcase({ items = portfolioItems }: { items?: typeo
           }}
         >
           <WorkCard
-            {...items[0]}
+            {...displayItems[0]}
+            videoSrc={featuredFilm?.enabled ? featuredFilm.videoSrc : null}
             priority
             className="h-[clamp(28rem,56vw,42rem)] rounded-[4px]"
           />
@@ -180,7 +186,7 @@ export default function WorkShowcase({ items = portfolioItems }: { items?: typeo
 
         <div className="mx-auto mt-[clamp(1.5rem,2.5vw,2.25rem)] w-full max-w-[76rem] px-5 sm:px-8 lg:px-10">
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-            {items.slice(1).map((item, index) => (
+            {displayItems.slice(1).map((item, index) => (
               <motion.div
                 key={item.title}
                 className="relative"
@@ -268,7 +274,7 @@ export default function WorkShowcase({ items = portfolioItems }: { items?: typeo
 
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 z-[5] h-[30rem]"
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-[5] h-[20rem]"
       >
         <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_0%,rgba(16,16,16,0.12)_20%,rgba(16,16,16,0.34)_46%,rgba(17,17,17,0.72)_76%,#111111_100%)]" />
 

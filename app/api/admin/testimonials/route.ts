@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { deleteContentImage, verifyContentImage } from "@/lib/content-image-storage";
 import { prisma } from "@/lib/prisma";
+import { TESTIMONIAL_CHARACTER_LIMIT } from "@/lib/testimonials";
 
 const testimonialSelect = {
   id: true,
@@ -42,7 +43,7 @@ function validateBody(body: Record<string, unknown>) {
   const agentName = typeof body.agentName === "string" ? body.agentName.trim() : "";
   const testimonial = typeof body.testimonial === "string" ? body.testimonial.trim() : "";
   if (!agentName || agentName.length > 120) throw new Error("INVALID_NAME");
-  if (!testimonial || testimonial.length > 2000) throw new Error("INVALID_TESTIMONIAL");
+  if (!testimonial || testimonial.length > TESTIMONIAL_CHARACTER_LIMIT) throw new Error("INVALID_TESTIMONIAL");
   const rating = typeof body.rating === "number" ? Math.round(body.rating) : 5;
   if (rating < 1 || rating > 5) throw new Error("INVALID_RATING");
   const photoStorageKey = optionalText(body.photoStorageKey, 1000);
@@ -72,7 +73,7 @@ function validationResponse(error: unknown) {
   if (!(error instanceof Error)) return null;
   const messages: Record<string, string> = {
     INVALID_NAME: "An agent name between 1 and 120 characters is required.",
-    INVALID_TESTIMONIAL: "A testimonial between 1 and 2,000 characters is required.",
+    INVALID_TESTIMONIAL: `A testimonial between 1 and ${TESTIMONIAL_CHARACTER_LIMIT} characters is required.`,
     INVALID_RATING: "The rating must be between one and five stars.",
     INVALID_URL: "The review source must be a valid web address.",
     INVALID_PHOTO_KEY: "The testimonial photo location is invalid.",

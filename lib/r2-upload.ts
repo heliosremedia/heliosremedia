@@ -154,6 +154,25 @@ export function createSiteHeroKey(
   return `site/homepage/hero/${kind}-${timestamp}-${id}.${extension}`;
 }
 
+export function createBrandLogoKey(mimeType: string) {
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\..+/, "")
+    .replace("T", "-");
+  const id = randomUUID().slice(0, 8);
+
+  return `site/brand/logo-${timestamp}-${id}.${extensionFromMime(mimeType)}`;
+}
+
+export function createFeaturedFilmKey(kind: "video" | "poster", mimeType: string) {
+  const timestamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "-");
+  const id = randomUUID().slice(0, 8);
+  const extension = mimeType === "video/mp4" ? "mp4" : mimeType === "video/webm" ? "webm" : extensionFromMime(mimeType);
+
+  return `site/homepage/featured-film/${kind}-${timestamp}-${id}.${extension}`;
+}
+
 export async function createPresignedUploadUrl(
   key: string,
   contentType: string,

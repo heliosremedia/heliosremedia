@@ -4,6 +4,10 @@ export type PublicSiteSettings = {
   id: string; businessName: string; phoneDisplay: string; phoneE164: string;
   email: string | null; bookingUrl: string | null;
   heroVideoUrl: string | null; heroPosterUrl: string | null; locationLabel: string;
+  brandLogoStorageKey: string | null; brandLogoUrl: string | null; brandLogoAlt: string | null;
+  featuredFilmEnabled: boolean; featuredFilmVideoStorageKey: string | null;
+  featuredFilmVideoUrl: string | null; featuredFilmPosterStorageKey: string | null;
+  featuredFilmPosterUrl: string | null; featuredFilmDestination: string | null;
   serviceArea: string; serviceAreaDescription: string | null;
   footerDescription: string | null; availabilityMessage: string | null;
   websiteUrl: string | null; instagramUrl: string | null; facebookUrl: string | null;
@@ -20,6 +24,15 @@ export const defaultSiteSettings: PublicSiteSettings = {
   bookingUrl: null,
   heroVideoUrl: null,
   heroPosterUrl: "/work/featured-estate.jpg",
+  brandLogoStorageKey: null,
+  brandLogoUrl: null,
+  brandLogoAlt: "Helios Real Estate Media",
+  featuredFilmEnabled: false,
+  featuredFilmVideoStorageKey: null,
+  featuredFilmVideoUrl: null,
+  featuredFilmPosterStorageKey: null,
+  featuredFilmPosterUrl: null,
+  featuredFilmDestination: "/portfolio?service=cinematic-films",
   locationLabel: "Fort Collins, Colorado",
   serviceArea: "Northern Colorado",
   serviceAreaDescription: "Serving Fort Collins, Loveland, Windsor, Timnath, Greeley, Wellington, Berthoud, Boulder, and surrounding Northern Colorado communities.",

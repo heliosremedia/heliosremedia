@@ -3,10 +3,10 @@
 import { useState } from "react";
 import type { PublicSiteSettings } from "@/lib/site-settings";
 
-type HeroMediaKind = "video" | "poster";
+type UploadKind = "video" | "poster" | "logo";
 
 type UploadState = {
-  kind: HeroMediaKind;
+  kind: UploadKind;
   progress: number;
 } | null;
 
@@ -103,7 +103,7 @@ export default function SiteSettingsForm({
     }
   }
 
-  async function uploadHeroMedia(kind: HeroMediaKind, file: File) {
+  async function uploadHeroMedia(kind: Exclude<UploadKind, "logo">, file: File) {
     setUploading({ kind, progress: 0 });
     setMessage(
       kind === "video"
@@ -155,6 +155,54 @@ export default function SiteSettingsForm({
       );
     } finally {
       setUploading(null);
+    }
+  }
+
+  async function uploadBrandLogo(file: File) {
+    setUploading({ kind: "logo", progress: 0 });
+    setMessage("Preparing managed brand logo…");
+
+    try {
+      const response = await fetch("/api/admin/site-settings/brand-logo/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: file.name, fileType: file.type, fileSize: file.size }),
+      });
+      const data = (await response.json()) as PresignResponse & { upload?: PresignResponse["upload"] & { key: string } };
+
+      if (!response.ok || !data.success || !data.upload) {
+        throw new Error(data.error || "Unable to prepare this logo upload.");
+      }
+
+      await uploadToR2(file, data.upload.uploadUrl, data.upload.contentType, (progress) =>
+        setUploading({ kind: "logo", progress }),
+      );
+
+      await persist(
+        {
+          ...settings,
+          brandLogoStorageKey: data.upload.key,
+          brandLogoUrl: data.upload.publicUrl,
+          brandLogoAlt: settings.brandLogoAlt || settings.businessName,
+        },
+        "Brand logo uploaded and published across the website.",
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "The brand logo could not be uploaded.");
+    } finally {
+      setUploading(null);
+    }
+  }
+
+  async function clearBrandLogo() {
+    const previous = settings;
+    const nextSettings = { ...settings, brandLogoStorageKey: null, brandLogoUrl: null };
+    setSettings(nextSettings);
+
+    try {
+      await persist(nextSettings, "Using the default Helios logo.");
+    } catch {
+      setSettings(previous);
     }
   }
 
@@ -318,6 +366,37 @@ export default function SiteSettingsForm({
                   />
                 </label>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-6 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111]">
+        <div className="grid gap-8 p-6 lg:grid-cols-[0.8fr_1.2fr] lg:p-8">
+          <div>
+            <p className="text-[0.54rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">Brand identity</p>
+            <h2 className="mt-3 text-2xl font-light text-white">Primary website logo</h2>
+            <p className="mt-3 max-w-lg text-sm leading-6 text-white/40">This single asset powers the public header and the larger footer lockup. Use a transparent, tightly cropped horizontal logo so it scales cleanly across the site.</p>
+          </div>
+
+          <div className="rounded-2xl border border-white/[0.08] bg-black/25 p-5">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-h-28 flex-1 items-center justify-center rounded-xl border border-white/[0.06] bg-black/35 p-6">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={settings.brandLogoUrl || "/brand/helios-logo.png"} alt={settings.brandLogoAlt || settings.businessName} className="max-h-20 w-auto max-w-full object-contain" />
+              </div>
+              <div className="sm:w-64">
+                <p className="text-[0.55rem] font-semibold uppercase tracking-[0.16em] text-white/45">Recommended file</p>
+                <p className="mt-3 text-sm leading-6 text-white/70">Transparent PNG, WebP, or AVIF · at least 800 px wide · under 10 MB</p>
+                {uploading?.kind === "logo" ? <div className="mt-4"><div className="h-1 overflow-hidden rounded-full bg-white/10"><div className="h-full bg-[var(--helios-orange)] transition-[width]" style={{ width: `${uploading.progress}%` }} /></div><p className="mt-2 text-xs text-white/40">Uploading {uploading.progress}%</p></div> : null}
+              </div>
+            </div>
+
+            <label className="mt-5 block text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Logo alt text<input value={settings.brandLogoAlt ?? ""} onChange={(event) => update("brandLogoAlt", event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <label className={`cursor-pointer rounded-full bg-[var(--helios-orange)] px-5 py-3 text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-black ${uploadBusy ? "pointer-events-none opacity-40" : ""}`}>{settings.brandLogoUrl ? "Replace logo" : "Upload logo"}<input type="file" accept="image/png,image/webp,image/avif" className="sr-only" disabled={uploadBusy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadBrandLogo(file); event.target.value = ""; }} /></label>
+              {settings.brandLogoUrl ? <button type="button" disabled={uploadBusy} onClick={() => void clearBrandLogo()} className="rounded-full border border-white/10 px-5 py-3 text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-white/55 disabled:opacity-40">Use default</button> : null}
             </div>
           </div>
         </div>
