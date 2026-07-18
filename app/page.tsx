@@ -9,11 +9,12 @@ import PrimaryConversion from "./components/PrimaryConversion";
 import Footer from "./components/Footer";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
+import { defaultHomeCta, getCtaForSlot } from "@/lib/ctas";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [testimonials, trustedLogos, homepageProjects] = await Promise.all([
+  const [testimonials, trustedLogos, homepageProjects, homepageCta] = await Promise.all([
     prisma.testimonial.findMany({
       where: { published: true, featured: true },
       orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
@@ -34,6 +35,7 @@ export default async function Home() {
       take: 5,
       select: { titleOverride: true, project: { select: { title: true, slug: true, heroMedia: { select: { storageKey: true, altText: true } } } } },
     }),
+    getCtaForSlot("HOME_PRIMARY"),
   ]);
   const curatedWorkItems = homepageProjects
     .filter((item) => item.project.heroMedia?.storageKey)
@@ -76,7 +78,7 @@ export default async function Home() {
         rating: item.rating,
         sourceUrl: item.sourceUrl,
       }))} />
-      <PrimaryConversion />
+      <PrimaryConversion cta={homepageCta ?? defaultHomeCta} />
       <Footer />
     </main>
   );

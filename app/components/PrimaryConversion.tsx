@@ -4,10 +4,18 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 import { useSiteSettings } from "./SiteSettingsProvider";
+import type { PublicCta } from "@/lib/ctas";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-export default function PrimaryConversion() {
+function resolveAction(type: PublicCta["primaryActionType"] | null, value: string | null, settings: ReturnType<typeof useSiteSettings>) {
+  if (type === "BOOKING") return settings.bookingUrl || `tel:${settings.phoneE164}`;
+  if (type === "PHONE") return `tel:${settings.phoneE164}`;
+  if (type === "EMAIL") return value ? `mailto:${value}` : settings.email ? `mailto:${settings.email}` : `tel:${settings.phoneE164}`;
+  return value || "#";
+}
+
+export default function PrimaryConversion({ cta }: { cta: PublicCta }) {
   const settings = useSiteSettings();
   const prefersReducedMotion = useReducedMotion();
 
@@ -116,24 +124,19 @@ export default function PrimaryConversion() {
                 id="primary-conversion-heading"
                 className="font-serif text-[clamp(2.85rem,4.35vw,4.85rem)] leading-[0.93] tracking-[-0.048em] text-[#f2ede7]"
               >
-                <span className="block">The showing begins</span>
-
-                <span className="mt-[0.04em] block italic text-white">
-                  before the front door opens.
-                </span>
+                {cta.headline}
               </h2>
 
               <p className="mt-12 max-w-[28rem] text-[0.97rem] leading-[1.85] text-white/62 sm:mt-14 sm:text-[1.05rem]">
-                Professional photography and cinematic storytelling that shape
-                first impressions long before buyers step inside.
+                {cta.body}
               </p>
 
               <Link
-                href={settings.bookingUrl || `tel:${settings.phoneE164}`}
+                href={resolveAction(cta.primaryActionType, cta.primaryValue, settings)}
                 className="group mt-12 flex min-h-[4.75rem] w-full items-center justify-between border border-[#f06b24] px-7 transition-all duration-500 hover:bg-[#f06b24] focus-visible:bg-[#f06b24] focus-visible:outline-none sm:mt-14 sm:px-8"
               >
                 <span className="text-[0.7rem] font-medium uppercase tracking-[0.32em] text-white">
-                  Book Your Shoot
+                  {cta.primaryLabel}
                 </span>
 
                 <span
@@ -144,16 +147,16 @@ export default function PrimaryConversion() {
                 </span>
               </Link>
 
-              <Link
-                href="/services"
+              {cta.secondaryLabel && cta.secondaryActionType && <Link
+                href={resolveAction(cta.secondaryActionType, cta.secondaryValue, settings)}
                 className="group mt-7 inline-flex items-center gap-4 text-[0.57rem] font-medium uppercase tracking-[0.28em] text-white/32 transition-colors duration-300 hover:text-white focus-visible:outline-none focus-visible:text-white"
               >
-                Explore Services
+                {cta.secondaryLabel}
                 <span
                   aria-hidden="true"
                   className="h-px w-8 bg-white/16 transition-all duration-500 group-hover:w-12 group-hover:bg-[#f06b24]"
                 />
-              </Link>
+              </Link>}
 
               <div className="mt-12 border-t border-white/[0.08] pt-7">
                 <p className="text-[0.56rem] font-medium uppercase leading-[1.9] tracking-[0.25em] text-white/27">

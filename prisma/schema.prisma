@@ -47,6 +47,22 @@ enum ExternalProvider {
   OTHER
 }
 
+enum CtaActionType {
+  BOOKING
+  PHONE
+  EMAIL
+  INTERNAL
+  EXTERNAL
+}
+
+enum CtaPlacementSlot {
+  HOME_PRIMARY
+  ABOUT_FOOTER
+  SERVICES_FOOTER
+  FAQ_FOOTER
+  PORTFOLIO_FOOTER
+}
+
 model Project {
   id               String  @id @default(cuid())
   title            String
@@ -336,4 +352,42 @@ model SiteSettings {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model CallToAction {
+  id String @id @default(cuid())
+
+  internalName String
+  eyebrow      String?
+  headline     String
+  body         String?
+
+  primaryLabel      String
+  primaryActionType CtaActionType
+  primaryValue      String?
+
+  secondaryLabel      String?
+  secondaryActionType CtaActionType?
+  secondaryValue      String?
+
+  published Boolean @default(false)
+
+  placements CtaPlacement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published])
+}
+
+model CtaPlacement {
+  id    String           @id @default(cuid())
+  slot  CtaPlacementSlot @unique
+  ctaId String
+  cta   CallToAction     @relation(fields: [ctaId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ctaId])
 }

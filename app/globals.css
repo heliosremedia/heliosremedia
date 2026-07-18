@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@utility input {
+  @apply mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)];
+}
+
 @font-face {
   font-family: "Helios";
   src: url("/fonts/helios.otf") format("opentype");
