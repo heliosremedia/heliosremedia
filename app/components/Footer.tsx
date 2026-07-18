@@ -149,9 +149,30 @@ export default function Footer() {
 
         <div className="mt-20 border-t border-white/[0.08] pt-7 sm:mt-24">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <p className="max-w-[52rem] text-[0.53rem] uppercase leading-[1.9] tracking-[0.2em] text-white/20">
-              {settings.serviceAreaDescription}
-            </p>
+            <div className="flex items-end gap-5">
+              <Link
+                href="/login"
+                aria-label="Admin sign in"
+                title="Admin sign in"
+                className="group shrink-0 opacity-[0.14] transition-opacity duration-500 hover:opacity-65 focus-visible:opacity-65 focus-visible:outline-none"
+              >
+                <span className="relative block h-8 w-8 overflow-hidden rounded-full border border-white/30">
+                  <Image
+                    src={settings.brandLogoUrl || "/brand/helios-logo.png"}
+                    alt=""
+                    aria-hidden="true"
+                    width={352}
+                    height={92}
+                    unoptimized={Boolean(settings.brandLogoUrl?.startsWith("http"))}
+                    className="absolute left-0 top-1/2 h-7 w-auto max-w-none -translate-y-1/2"
+                  />
+                </span>
+              </Link>
+
+              <p className="max-w-[52rem] text-[0.53rem] uppercase leading-[1.9] tracking-[0.2em] text-white/20">
+                {settings.serviceAreaDescription}
+              </p>
+            </div>
 
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
               <p className="text-[0.53rem] uppercase tracking-[0.21em] text-white/20">
