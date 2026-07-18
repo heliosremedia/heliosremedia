@@ -16,7 +16,7 @@ const exploreLinks = [
 
 export default function Footer() {
   const settings = useSiteSettings();
-  const bookingHref = settings.bookingUrl || `tel:${settings.phoneE164}`;
+  const bookingHref = settings.bookingUrl || "/inquire";
   const connectLinks = [
     { label: "Book Your Shoot", href: bookingHref },
     { label: `Call ${settings.phoneDisplay}`, href: `tel:${settings.phoneE164}` },

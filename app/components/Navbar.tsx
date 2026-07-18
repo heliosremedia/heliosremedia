@@ -16,7 +16,7 @@ const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function Navbar() {
   const settings = useSiteSettings();
-  const bookingHref = settings.bookingUrl || `tel:${settings.phoneE164}`;
+  const bookingHref = settings.bookingUrl || "/inquire";
   const [menuOpen, setMenuOpen] = useState(false);
   const shouldReduceMotion = useReducedMotion();
 

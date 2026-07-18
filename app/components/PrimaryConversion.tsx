@@ -9,7 +9,7 @@ import type { PublicCta } from "@/lib/ctas";
 const ease = [0.22, 1, 0.36, 1] as const;
 
 function resolveAction(type: PublicCta["primaryActionType"] | null, value: string | null, settings: ReturnType<typeof useSiteSettings>) {
-  if (type === "BOOKING") return settings.bookingUrl || `tel:${settings.phoneE164}`;
+  if (type === "BOOKING") return settings.bookingUrl || "/inquire";
   if (type === "PHONE") return `tel:${settings.phoneE164}`;
   if (type === "EMAIL") return value ? `mailto:${value}` : settings.email ? `mailto:${settings.email}` : `tel:${settings.phoneE164}`;
   return value || "#";

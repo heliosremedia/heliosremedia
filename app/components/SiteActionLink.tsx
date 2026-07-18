@@ -5,7 +5,7 @@ import type { CtaActionType } from "@/app/generated/prisma/client";
 import { useSiteSettings } from "./SiteSettingsProvider";
 
 export function resolveSiteAction(type: CtaActionType, value: string | null, settings: ReturnType<typeof useSiteSettings>) {
-  if (type === "BOOKING") return settings.bookingUrl || `tel:${settings.phoneE164}`;
+  if (type === "BOOKING") return settings.bookingUrl || "/inquire";
   if (type === "PHONE") return `tel:${settings.phoneE164}`;
   if (type === "EMAIL") return value ? `mailto:${value}` : settings.email ? `mailto:${settings.email}` : `tel:${settings.phoneE164}`;
   return value || "#";

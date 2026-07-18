@@ -70,6 +70,15 @@ enum AdminRole {
   VIEWER
 }
 
+enum InquiryStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  BOOKED
+  CLOSED
+  SPAM
+}
+
 model Project {
   id               String  @id @default(cuid())
   title            String
@@ -188,7 +197,8 @@ model Service {
   displayOrder Int     @default(0)
   active       Boolean @default(true)
 
-  projects ProjectService[]
+  projects  ProjectService[]
+  inquiries InquiryService[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -411,12 +421,99 @@ model AdminUser {
   lockedUntil      DateTime?
   lastLoginAt      DateTime?
 
-  auditEvents AuditEvent[]
+  auditEvents       AuditEvent[]
+  assignedInquiries Inquiry[]         @relation("InquiryAssignee")
+  inquiryNotes      InquiryNote[]
+  inquiryActivities InquiryActivity[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([active, role])
+}
+
+model Inquiry {
+  id String @id @default(cuid())
+
+  status InquiryStatus @default(NEW)
+  name   String
+  email  String
+  phone  String?
+
+  propertyAddress String?
+  city            String?
+  state           String?
+  postalCode      String?
+  desiredDate     DateTime?
+  message         String?
+
+  sourcePage  String?
+  referrer    String?
+  ctaName     String?
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  utmContent  String?
+  utmTerm     String?
+
+  ipHash    String?
+  userAgent String?
+  consent   Boolean @default(false)
+
+  assignedToId String?
+  assignedTo   AdminUser? @relation("InquiryAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  followUpAt   DateTime?
+
+  requestedServices InquiryService[]
+  notes             InquiryNote[]
+  activities        InquiryActivity[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  lastActivityAt DateTime @default(now())
+
+  @@index([status, createdAt])
+  @@index([assignedToId, status])
+  @@index([followUpAt])
+  @@index([ipHash, createdAt])
+}
+
+model InquiryService {
+  inquiryId String
+  serviceId String
+  inquiry   Inquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  @@id([inquiryId, serviceId])
+  @@index([serviceId])
+}
+
+model InquiryNote {
+  id        String    @id @default(cuid())
+  inquiryId String
+  inquiry   Inquiry   @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    AdminUser @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  body      String
+  createdAt DateTime  @default(now())
+
+  @@index([inquiryId, createdAt])
+  @@index([authorId])
+}
+
+model InquiryActivity {
+  id        String     @id @default(cuid())
+  inquiryId String
+  inquiry   Inquiry    @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  actorId   String?
+  actor     AdminUser? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action    String
+  summary   String
+  metadata  Json?
+  createdAt DateTime   @default(now())
+
+  @@index([inquiryId, createdAt])
+  @@index([actorId])
 }
 
 model AuditEvent {

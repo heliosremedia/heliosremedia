@@ -32,8 +32,8 @@ export default async function AdminPage() {
     totalProjects,
     draftProjects,
     publishedProjects,
-    archivedProjects,
     recentProjects,
+    newInquiries,
   ] = await Promise.all([
     prisma.project.count(),
     prisma.project.count({
@@ -44,11 +44,6 @@ export default async function AdminPage() {
     prisma.project.count({
       where: {
         status: "PUBLISHED",
-      },
-    }),
-    prisma.project.count({
-      where: {
-        status: "ARCHIVED",
       },
     }),
     prisma.project.findMany({
@@ -66,6 +61,7 @@ export default async function AdminPage() {
         updatedAt: true,
       },
     }),
+    prisma.inquiry.count({ where: { status: "NEW" } }),
   ]);
 
   const statistics = [
@@ -85,9 +81,9 @@ export default async function AdminPage() {
       detail: "Waiting for completion",
     },
     {
-      label: "Archived",
-      value: archivedProjects,
-      detail: "Removed from public view",
+      label: "New inquiries",
+      value: newInquiries,
+      detail: "Waiting for follow-up",
     },
   ];
 
