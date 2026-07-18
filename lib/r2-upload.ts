@@ -165,6 +165,17 @@ export function createBrandLogoKey(mimeType: string) {
   return `site/brand/logo-${timestamp}-${id}.${extensionFromMime(mimeType)}`;
 }
 
+export function createBrandMonogramKey(mimeType: string) {
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\..+/, "")
+    .replace("T", "-");
+  const id = randomUUID().slice(0, 8);
+
+  return `site/brand/monogram-${timestamp}-${id}.${extensionFromMime(mimeType)}`;
+}
+
 export function createFeaturedFilmKey(kind: "video" | "poster", mimeType: string) {
   const timestamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "-");
   const id = randomUUID().slice(0, 8);

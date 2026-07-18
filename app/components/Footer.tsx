@@ -157,15 +157,27 @@ export default function Footer() {
                 className="group shrink-0 opacity-[0.14] transition-opacity duration-500 hover:opacity-65 focus-visible:opacity-65 focus-visible:outline-none"
               >
                 <span className="relative block h-8 w-8 overflow-hidden rounded-full border border-white/30">
-                  <Image
-                    src={settings.brandLogoUrl || "/brand/helios-logo.png"}
-                    alt=""
-                    aria-hidden="true"
-                    width={352}
-                    height={92}
-                    unoptimized={Boolean(settings.brandLogoUrl?.startsWith("http"))}
-                    className="absolute left-0 top-1/2 h-7 w-auto max-w-none -translate-y-1/2"
-                  />
+                  {settings.brandMonogramUrl ? (
+                    <Image
+                      src={settings.brandMonogramUrl}
+                      alt=""
+                      aria-hidden="true"
+                      fill
+                      sizes="32px"
+                      unoptimized={settings.brandMonogramUrl.startsWith("http")}
+                      className="object-contain p-1"
+                    />
+                  ) : (
+                    <Image
+                      src={settings.brandLogoUrl || "/brand/helios-logo.png"}
+                      alt=""
+                      aria-hidden="true"
+                      width={352}
+                      height={92}
+                      unoptimized={Boolean(settings.brandLogoUrl?.startsWith("http"))}
+                      className="absolute left-0 top-1/2 h-7 w-auto max-w-none -translate-y-1/2"
+                    />
+                  )}
                 </span>
               </Link>
 
