@@ -98,7 +98,7 @@ type AssetDraft = {
 type MediaViewMode = "comfortable" | "compact";
 
 const MEDIA_BADGE_CLASS =
-  "inline-flex h-5 shrink-0 items-center justify-center rounded-full px-2.5 text-[0.5rem] font-semibold uppercase leading-none tracking-[0.12em]";
+  "inline-flex h-5 shrink-0 items-center justify-center rounded-full px-2.5 !text-[0.5rem] font-semibold uppercase leading-none !tracking-[0.12em]";
 
 type SortableMediaCardProps = {
   item: ProjectMediaItem;
