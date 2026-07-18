@@ -61,7 +61,7 @@ export default function Hero() {
       <div className="hero-grain pointer-events-none absolute inset-0 opacity-[0.045] mix-blend-soft-light" />
 
       <div className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-7xl items-center px-6 pb-24 pt-48 md:px-10 md:pt-52 lg:px-16">
-        <div className="max-w-3xl translate-y-5">
+        <div className="max-w-[58rem] translate-y-5">
           <motion.h1
             className="font-display text-[clamp(4rem,7.2vw,7rem)] font-light leading-[0.84] tracking-[-0.045em] text-[var(--foreground)]"
             variants={reveal}
