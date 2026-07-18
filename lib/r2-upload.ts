@@ -122,6 +122,17 @@ export function createTestimonialImageKey(mimeType: string) {
   return `testimonials/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
 }
 
+export function createTrustedLogoKey(mimeType: string) {
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\..+/, "")
+    .replace("T", "-");
+  const id = randomUUID().slice(0, 8);
+
+  return `trusted-logos/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
+}
+
 export async function createPresignedUploadUrl(
   key: string,
   contentType: string,

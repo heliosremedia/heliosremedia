@@ -153,6 +153,15 @@ const navigation: NavigationItem[] = [
       </svg>
     ),
   },
+  {
+    label: "Trusted By",
+    href: "/admin/trusted-logos",
+    icon: (
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+        <path d="M12 3 15 9l6.5.9-4.7 4.6 1.1 6.5-5.9-3.1L6.1 21l1.1-6.5-4.7-4.6L9 9l3-6Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
 ];
 
 function isActivePath(pathname: string, href: string) {

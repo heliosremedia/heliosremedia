@@ -12,23 +12,22 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const testimonials = await prisma.testimonial.findMany({
-    where: { published: true, featured: true },
-    orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
-    select: {
-      id: true,
-      agentName: true,
-      jobTitle: true,
-      brokerage: true,
-      testimonial: true,
-      photoUrl: true,
-      photoAlt: true,
-      focalX: true,
-      focalY: true,
-      rating: true,
-      sourceUrl: true,
-    },
-  });
+  const [testimonials, trustedLogos] = await Promise.all([
+    prisma.testimonial.findMany({
+      where: { published: true, featured: true },
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+      select: {
+        id: true, agentName: true, jobTitle: true, brokerage: true,
+        testimonial: true, photoUrl: true, photoAlt: true, focalX: true,
+        focalY: true, rating: true, sourceUrl: true,
+      },
+    }),
+    prisma.trustedLogo.findMany({
+      where: { published: true, logoUrl: { not: null } },
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+      select: { id: true, organizationName: true, logoUrl: true, logoAlt: true, websiteUrl: true },
+    }),
+  ]);
 
   return (
     <main>
@@ -37,7 +36,13 @@ export default async function Home() {
       <HeliosStandard />
       <WorkShowcase />
       <OurApproach />
-      <TrustedBy />
+      <TrustedBy logos={trustedLogos.map((logo) => ({
+        id: logo.id,
+        organizationName: logo.organizationName,
+        src: logo.logoUrl!,
+        alt: logo.logoAlt || logo.organizationName,
+        websiteUrl: logo.websiteUrl,
+      }))} />
       <InTheirWords testimonials={testimonials.map((item) => ({
         id: item.id,
         quote: item.testimonial,

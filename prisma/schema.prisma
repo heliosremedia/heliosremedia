@@ -270,3 +270,21 @@ model Testimonial {
   @@index([published, displayOrder])
   @@index([featured])
 }
+
+model TrustedLogo {
+  id String @id @default(cuid())
+
+  organizationName String
+  logoStorageKey   String?
+  logoUrl          String?
+  logoAlt          String?
+  websiteUrl       String?
+
+  displayOrder Int     @default(0)
+  published    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, displayOrder])
+}

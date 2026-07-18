@@ -1,9 +1,8 @@
-import { DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
+import { deleteContentImage, verifyContentImage } from "@/lib/content-image-storage";
 import { prisma } from "@/lib/prisma";
-import { r2Client, r2Config } from "@/lib/r2";
 
 const testimonialSelect = {
   id: true,
@@ -64,22 +63,6 @@ function validateBody(body: Record<string, unknown>) {
   };
 }
 
-async function verifyPhoto(key: string | null) {
-  if (!key) return;
-  await r2Client.send(new HeadObjectCommand({ Bucket: r2Config.bucketName, Key: key }));
-}
-
-async function cleanupPhoto(key: string | null) {
-  if (!key) return false;
-  try {
-    await r2Client.send(new DeleteObjectCommand({ Bucket: r2Config.bucketName, Key: key }));
-    return false;
-  } catch (error) {
-    console.error("Unable to remove testimonial photo from R2:", error);
-    return true;
-  }
-}
-
 function refreshTestimonials() {
   revalidatePath("/");
   revalidatePath("/admin/testimonials");
@@ -102,7 +85,7 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Record<string, unknown>;
     const data = validateBody(body);
-    await verifyPhoto(data.photoStorageKey);
+    await verifyContentImage(data.photoStorageKey);
     const order = await prisma.testimonial.aggregate({ _max: { displayOrder: true } });
     const testimonial = await prisma.testimonial.create({
       data: { ...data, displayOrder: (order._max.displayOrder ?? -1) + 1, published: body.published === true, featured: body.featured === true },
@@ -151,7 +134,7 @@ export async function PATCH(request: Request) {
       const existing = await prisma.testimonial.findUnique({ where: { id: testimonialId }, select: { photoStorageKey: true } });
       if (!existing) return NextResponse.json({ success: false, error: "The testimonial was not found." }, { status: 404 });
       const data = validateBody(body);
-      if (data.photoStorageKey !== existing.photoStorageKey) await verifyPhoto(data.photoStorageKey);
+      if (data.photoStorageKey !== existing.photoStorageKey) await verifyContentImage(data.photoStorageKey);
       const testimonial = await prisma.testimonial.update({
         where: { id: testimonialId },
         data: {
@@ -161,7 +144,7 @@ export async function PATCH(request: Request) {
         },
         select: testimonialSelect,
       });
-      const storageCleanupPending = data.photoStorageKey !== existing.photoStorageKey ? await cleanupPhoto(existing.photoStorageKey) : false;
+      const storageCleanupPending = data.photoStorageKey !== existing.photoStorageKey ? await deleteContentImage(existing.photoStorageKey) : false;
       refreshTestimonials();
       return NextResponse.json({ success: true, testimonial, storageCleanupPending });
     }
@@ -180,7 +163,7 @@ export async function DELETE(request: Request) {
     const testimonialId = new URL(request.url).searchParams.get("testimonialId")?.trim();
     if (!testimonialId) return NextResponse.json({ success: false, error: "A testimonial ID is required." }, { status: 400 });
     const testimonial = await prisma.testimonial.delete({ where: { id: testimonialId }, select: { id: true, photoStorageKey: true } });
-    const storageCleanupPending = await cleanupPhoto(testimonial.photoStorageKey);
+    const storageCleanupPending = await deleteContentImage(testimonial.photoStorageKey);
     refreshTestimonials();
     return NextResponse.json({ success: true, deletedTestimonialId: testimonial.id, storageCleanupPending });
   } catch (error) {
