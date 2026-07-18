@@ -10,11 +10,12 @@ import Footer from "./components/Footer";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { defaultHomeCta, getCtaForSlot } from "@/lib/ctas";
+import { getSiteSettings } from "@/lib/site-settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [testimonials, trustedLogos, homepageProjects, homepageCta] = await Promise.all([
+  const [testimonials, trustedLogos, homepageProjects, homepageCta, settings] = await Promise.all([
     prisma.testimonial.findMany({
       where: { published: true, featured: true },
       orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
@@ -36,6 +37,7 @@ export default async function Home() {
       select: { titleOverride: true, project: { select: { title: true, slug: true, heroMedia: { select: { storageKey: true, altText: true } } } } },
     }),
     getCtaForSlot("HOME_PRIMARY"),
+    getSiteSettings(),
   ]);
   const curatedWorkItems = homepageProjects
     .filter((item) => item.project.heroMedia?.storageKey)
@@ -52,7 +54,7 @@ export default async function Home() {
       <Navbar />
       <Hero />
       <HeliosStandard />
-      <WorkShowcase items={curatedWorkItems.length > 0 ? curatedWorkItems : undefined} />
+      <WorkShowcase items={curatedWorkItems.length > 0 ? curatedWorkItems : undefined} featuredFilm={{ enabled: settings.featuredFilmEnabled, videoSrc: settings.featuredFilmVideoUrl, poster: settings.featuredFilmPosterUrl, href: settings.featuredFilmDestination }} />
       <OurApproach />
       <TrustedBy logos={trustedLogos.map((logo) => ({
         id: logo.id,

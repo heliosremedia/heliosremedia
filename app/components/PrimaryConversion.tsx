@@ -127,7 +127,7 @@ export default function PrimaryConversion({ cta }: { cta: PublicCta }) {
                 {cta.headline}
               </h2>
 
-              <p className="mt-12 max-w-[28rem] text-[0.97rem] leading-[1.85] text-white/62 sm:mt-14 sm:text-[1.05rem]">
+              <p className="mt-16 max-w-[28rem] text-[0.97rem] leading-[1.85] text-white/62 sm:mt-20 sm:text-[1.05rem]">
                 {cta.body}
               </p>
 

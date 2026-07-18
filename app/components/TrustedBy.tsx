@@ -27,7 +27,7 @@ export default function TrustedBy({ logos }: { logos: TrustedLogoItem[] }) {
   return (
     <section
       aria-labelledby="trusted-by-heading"
-      className="relative -mt-32 overflow-hidden bg-[var(--background)] pb-20 pt-16 sm:-mt-36 sm:pb-24 sm:pt-20 lg:-mt-40 lg:pb-28 lg:pt-24"
+      className="relative -mt-12 overflow-hidden bg-[var(--background)] pb-20 pt-16 sm:-mt-16 sm:pb-24 sm:pt-20 lg:-mt-20 lg:pb-28 lg:pt-24"
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-transparent via-[var(--background)]/70 to-[var(--background)] sm:h-48 lg:h-56" />
 

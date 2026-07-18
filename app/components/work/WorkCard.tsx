@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { motion, useReducedMotion } from "motion/react";
+import { useEffect, useRef } from "react";
+import { motion, useInView, useReducedMotion } from "motion/react";
 
 type WorkCardProps = {
   title: string;
@@ -11,6 +12,7 @@ type WorkCardProps = {
   className?: string;
   priority?: boolean;
   imageAlt?: string;
+  videoSrc?: string | null;
 };
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -23,8 +25,19 @@ export default function WorkCard({
   className = "",
   priority = false,
   imageAlt,
+  videoSrc,
 }: WorkCardProps) {
   const shouldReduceMotion = useReducedMotion();
+  const mediaRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const mediaInView = useInView(mediaRef, { amount: 0.2 });
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || shouldReduceMotion) return;
+    if (mediaInView) void video.play().catch(() => undefined);
+    else video.pause();
+  }, [mediaInView, shouldReduceMotion]);
 
   const imageSizes =
     size === "hero"
@@ -77,6 +90,7 @@ export default function WorkCard({
           duration: shouldReduceMotion ? 0 : 1.05,
           ease,
         }}
+        ref={mediaRef}
         className="absolute inset-0 will-change-transform"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -87,6 +101,7 @@ export default function WorkCard({
           sizes={imageSizes}
           className="absolute inset-0 h-full w-full object-cover"
         />
+        {videoSrc && !shouldReduceMotion ? <video ref={videoRef} muted loop playsInline preload="metadata" poster={image} aria-label={`${title} featured film`} className="absolute inset-0 h-full w-full object-cover"><source src={videoSrc} /></video> : null}
       </motion.div>
 
       <motion.div

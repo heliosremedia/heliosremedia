@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
+import { displayTestimonial } from "@/lib/testimonials";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -208,8 +209,8 @@ export default function InTheirWords({ testimonials }: { testimonials: Testimoni
                 className={`absolute top-0 h-[25.75rem] cursor-pointer overflow-hidden rounded-[1.25rem] border border-white/[0.08] bg-[#0d0d0d] shadow-[0_26px_76px_rgba(0,0,0,0.4)] sm:h-[27rem] lg:h-[28.5rem] ${positionClasses[position]}`}
               >
                 <div className="grid h-full md:grid-cols-[0.95fr_1.05fr]">
-                  <div className="relative order-2 flex flex-col justify-between p-6 sm:p-7 md:order-1 lg:p-8">
-                    <div>
+                  <div className="relative order-2 flex min-h-0 flex-col p-6 sm:p-7 md:order-1 lg:p-8">
+                    <div className="min-h-0 flex-1 overflow-hidden">
                       <div
                         aria-hidden="true"
                         className="font-serif text-[2.9rem] leading-none text-[#f06b24]"
@@ -217,12 +218,12 @@ export default function InTheirWords({ testimonials }: { testimonials: Testimoni
                         “
                       </div>
 
-                      <blockquote className="-mt-3 max-w-[25rem] font-serif text-[clamp(1.35rem,1.85vw,2.05rem)] leading-[1.05] tracking-[-0.032em] text-[#f2ede7]">
-                        {testimonial.quote}
+                      <blockquote className="-mt-3 max-w-[25rem] overflow-hidden font-serif text-[clamp(1.35rem,1.85vw,2.05rem)] leading-[1.05] tracking-[-0.032em] text-[#f2ede7] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:8]">
+                        {displayTestimonial(testimonial.quote)}
                       </blockquote>
                     </div>
 
-                    <div className="mt-5">
+                    <div className="mt-5 shrink-0">
                       <span
                         aria-hidden="true"
                         className="block h-px w-7 bg-white/36"

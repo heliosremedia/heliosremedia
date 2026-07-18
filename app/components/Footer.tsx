@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 import { useSiteSettings } from "./SiteSettingsProvider";
@@ -7,7 +8,7 @@ import { useSiteSettings } from "./SiteSettingsProvider";
 const ease = [0.22, 1, 0.36, 1] as const;
 
 const exploreLinks = [
-  { label: "Our Work", href: "/portfolio" },
+  { label: "Portfolio", href: "/portfolio" },
   { label: "Services", href: "/services" },
   { label: "About Helios", href: "/about" },
   { label: "FAQs", href: "/faq" },
@@ -58,16 +59,15 @@ export default function Footer() {
               aria-label="Helios Real Estate Media home"
               className="group inline-block focus-visible:outline-none"
             >
-              <span
+              <Image
                 id="footer-heading"
-                className="font-helios block text-[clamp(5.25rem,9vw,8rem)] font-normal leading-[0.9] tracking-[0.035em] text-[var(--helios-orange)] transition-colors duration-500 group-hover:text-[var(--helios-orange-hover)]"
-              >
-                HELIOS
-              </span>
-
-              <span className="mt-2 ml-[0.12em] block text-[0.88rem] font-medium uppercase tracking-[0.42em] text-white/60">
-                Real Estate Media
-              </span>
+                src={settings.brandLogoUrl || "/brand/helios-logo.png"}
+                alt={settings.brandLogoAlt || settings.businessName}
+                width={520}
+                height={180}
+                unoptimized={Boolean(settings.brandLogoUrl?.startsWith("http"))}
+                className="h-auto w-[clamp(17rem,28vw,22rem)] transition-opacity duration-500 group-hover:opacity-80"
+              />
             </Link>
 
             <p className="mt-8 max-w-[31rem] font-serif text-[clamp(1.55rem,2.4vw,2.5rem)] leading-[1.08] tracking-[-0.035em] text-white/72">
@@ -139,7 +139,7 @@ export default function Footer() {
                   {settings.phoneDisplay}
                 </a>
 
-                <p className="mt-5 whitespace-nowrap text-[0.55rem] font-medium uppercase tracking-[0.25em] text-white/28">
+                <p className="mt-8 whitespace-nowrap text-[0.55rem] font-medium uppercase tracking-[0.25em] text-white/28">
                   {settings.locationLabel}
                 </p>
               </div>

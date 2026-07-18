@@ -84,11 +84,12 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
               onClick={closeMenu}
             >
               <Image
-                src="/brand/helios-logo.png"
-                alt="Helios Real Estate Media"
+                src={settings.brandLogoUrl || "/brand/helios-logo.png"}
+                alt={settings.brandLogoAlt || settings.businessName}
                 width={260}
                 height={90}
                 priority
+                unoptimized={Boolean(settings.brandLogoUrl?.startsWith("http"))}
                 className="h-auto w-36 sm:w-40 md:w-48 lg:w-[13rem]"
               />
             </Link>

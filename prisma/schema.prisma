@@ -356,6 +356,17 @@ model SiteSettings {
   heroVideoUrl  String?
   heroPosterUrl String? @default("/work/featured-estate.jpg")
 
+  brandLogoStorageKey String?
+  brandLogoUrl        String?
+  brandLogoAlt        String? @default("Helios Real Estate Media")
+
+  featuredFilmEnabled          Boolean @default(false)
+  featuredFilmVideoStorageKey  String?
+  featuredFilmVideoUrl         String?
+  featuredFilmPosterStorageKey String?
+  featuredFilmPosterUrl        String?
+  featuredFilmDestination      String? @default("/portfolio?service=cinematic-films")
+
   locationLabel          String  @default("Fort Collins, Colorado")
   serviceArea            String  @default("Northern Colorado")
   serviceAreaDescription String?
