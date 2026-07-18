@@ -35,6 +35,17 @@ export default function PortfolioGallery({
     () => items.filter((item) => Boolean(item.imageUrl)),
     [items],
   );
+  const [showcaseMediaId, setShowcaseMediaId] = useState<string | null>(
+    previewItems[0]?.id ?? null,
+  );
+  const showcaseIndex = useMemo(() => {
+    const selectedIndex = previewItems.findIndex(
+      (item) => item.id === showcaseMediaId,
+    );
+
+    return selectedIndex >= 0 ? selectedIndex : 0;
+  }, [previewItems, showcaseMediaId]);
+  const showcaseMedia = previewItems[showcaseIndex] ?? null;
   const activeIndex = useMemo(
     () => previewItems.findIndex((item) => item.id === activeMediaId),
     [activeMediaId, previewItems],
@@ -193,33 +204,124 @@ export default function PortfolioGallery({
         </div>
       </div>
 
-      <div
-        className={`mt-5 grid ${
-          galleryView === "gallery"
-            ? "grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 lg:gap-3"
-            : galleryView === "list"
-              ? "grid-cols-1 gap-7"
-              : "gap-5 sm:grid-cols-2 lg:gap-7"
-        }`}
-      >
-        {items.map((item, itemIndex) => {
-          const featureItem =
-            galleryView === "showcase" && itemIndex % 5 === 0;
-
-          return (
-            <figure
-              key={item.id}
-              className={`group ${featureItem ? "sm:col-span-2" : ""}`}
+      {galleryView === "showcase" && showcaseMedia?.imageUrl ? (
+        <section className="mt-5" aria-label={`${collectionLabel} showcase`}>
+          <div className="group relative flex h-[clamp(28rem,68vh,54rem)] items-center justify-center overflow-hidden bg-white/[0.025]">
+            <button
+              type="button"
+              onClick={(event) => {
+                triggerRef.current = event.currentTarget;
+                setActiveMediaId(showcaseMedia.id);
+              }}
+              aria-label={`Open ${showcaseMedia.alt} in fullscreen`}
+              className="relative flex h-full w-full cursor-zoom-in items-center justify-center"
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={showcaseMedia.imageUrl}
+                alt={showcaseMedia.alt}
+                className="h-full w-full object-contain"
+                style={{
+                  objectPosition: `${showcaseMedia.focalX * 100}% ${showcaseMedia.focalY * 100}%`,
+                }}
+              />
+              <span className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
+            </button>
+
+            {previewItems.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowcaseMediaId(
+                      previewItems[
+                        (showcaseIndex - 1 + previewItems.length) %
+                          previewItems.length
+                      ].id,
+                    )
+                  }
+                  aria-label="Show previous image"
+                  className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/40 text-white/55 opacity-0 backdrop-blur-md transition hover:border-white/30 hover:text-white group-hover:opacity-100 focus:opacity-100"
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+                    <path d="m15 6-6 6 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowcaseMediaId(
+                      previewItems[(showcaseIndex + 1) % previewItems.length].id,
+                    )
+                  }
+                  aria-label="Show next image"
+                  className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/40 text-white/55 opacity-0 backdrop-blur-md transition hover:border-white/30 hover:text-white group-hover:opacity-100 focus:opacity-100"
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+                    <path d="m9 6 6 6-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              </>
+            )}
+
+            <p
+              aria-live="polite"
+              className="absolute bottom-4 right-4 rounded-full border border-white/10 bg-black/40 px-3 py-1.5 text-[0.55rem] font-semibold uppercase tracking-[0.14em] text-white/50 backdrop-blur-md"
+            >
+              {showcaseIndex + 1} / {previewItems.length}
+            </p>
+          </div>
+
+          {showcaseMedia.caption && (
+            <p className="mt-3 text-xs leading-6 text-white/35">
+              {showcaseMedia.caption}
+            </p>
+          )}
+
+          <div
+            className="mt-3 flex gap-2 overflow-x-auto pb-3 [scrollbar-color:rgba(255,255,255,0.18)_transparent] [scrollbar-width:thin]"
+            aria-label={`${collectionLabel} thumbnails`}
+          >
+            {previewItems.map((item, itemIndex) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setShowcaseMediaId(item.id)}
+                aria-label={`Show image ${itemIndex + 1}: ${item.alt}`}
+                aria-current={item.id === showcaseMedia.id ? "true" : undefined}
+                className={`relative h-20 w-28 flex-none overflow-hidden border transition sm:h-24 sm:w-36 ${
+                  item.id === showcaseMedia.id
+                    ? "border-[var(--helios-orange)] opacity-100"
+                    : "border-white/[0.08] opacity-45 hover:border-white/30 hover:opacity-85"
+                }`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item.imageUrl!}
+                  alt=""
+                  loading="lazy"
+                  className="h-full w-full object-cover"
+                  style={{
+                    objectPosition: `${item.focalX * 100}% ${item.focalY * 100}%`,
+                  }}
+                />
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <div
+          className={`mt-5 grid ${
+            galleryView === "gallery"
+              ? "grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 lg:gap-3"
+              : "grid-cols-1 gap-7"
+          }`}
+        >
+          {items.map((item) => (
+            <figure key={item.id} className="group">
               <div
                 className={`relative overflow-hidden bg-white/[0.03] ${
-                  galleryView === "gallery"
-                    ? "aspect-[4/3]"
-                    : galleryView === "list"
-                      ? "aspect-[16/10]"
-                    : featureItem
-                      ? "aspect-[16/10]"
-                      : "aspect-[4/3]"
+                  galleryView === "gallery" ? "aspect-[4/3]" : "aspect-[16/10]"
                 }`}
               >
                 {item.imageUrl ? (
@@ -285,15 +387,15 @@ export default function PortfolioGallery({
                 )}
               </div>
 
-              {item.caption && galleryView !== "gallery" && (
+              {item.caption && galleryView === "list" && (
                 <figcaption className="mt-4 max-w-2xl text-xs leading-6 text-white/35">
                   {item.caption}
                 </figcaption>
               )}
             </figure>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
 
       {activeMedia && activeMedia.imageUrl && (
         <div
