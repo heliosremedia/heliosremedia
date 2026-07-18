@@ -1,17 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { useSiteSettings } from "./SiteSettingsProvider";
 
 const reveal = {
-  hidden: {
-    opacity: 0,
-    y: 24,
-  },
-  visible: {
-    opacity: 1,
-    y: 0,
-  },
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0 },
 };
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -19,25 +14,39 @@ const ease = [0.22, 1, 0.36, 1] as const;
 export default function Hero() {
   const settings = useSiteSettings();
   const shouldReduceMotion = useReducedMotion();
+  const [videoReady, setVideoReady] = useState(false);
+  const poster = settings.heroPosterUrl || undefined;
 
   return (
     <section className="relative min-h-[100svh] overflow-hidden bg-[var(--background)]">
-      <video
-        className="absolute inset-0 h-full w-full object-cover"
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="metadata"
-        aria-hidden="true"
-      >
-        <source src="/media/hero-video.mp4" type="video/mp4" />
-      </video>
+      {poster ? (
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${JSON.stringify(poster)})` }}
+        />
+      ) : null}
+
+      {settings.heroVideoUrl && !shouldReduceMotion ? (
+        <video
+          key={settings.heroVideoUrl}
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${videoReady ? "opacity-100" : "opacity-0"}`}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          poster={poster}
+          aria-hidden="true"
+          onCanPlay={() => setVideoReady(true)}
+          onError={() => setVideoReady(false)}
+        >
+          <source src={settings.heroVideoUrl} />
+        </video>
+      ) : null}
 
       <div className="pointer-events-none absolute inset-0 bg-black/25" />
-
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-black/5" />
-
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent" />
 
       <div
@@ -49,7 +58,6 @@ export default function Hero() {
       />
 
       <div className="pointer-events-none absolute inset-x-0 -bottom-px h-2 bg-[var(--background)]" />
-
       <div className="hero-grain pointer-events-none absolute inset-0 opacity-[0.045] mix-blend-soft-light" />
 
       <div className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-7xl items-center px-6 pb-24 pt-48 md:px-10 md:pt-52 lg:px-16">
@@ -71,18 +79,8 @@ export default function Hero() {
 
           <motion.div
             className="mt-10 h-px bg-[var(--helios-orange)]"
-            initial={
-              shouldReduceMotion
-                ? false
-                : {
-                    width: 0,
-                    opacity: 0,
-                  }
-            }
-            animate={{
-              width: 104,
-              opacity: 1,
-            }}
+            initial={shouldReduceMotion ? false : { width: 0, opacity: 0 }}
+            animate={{ width: 104, opacity: 1 }}
             transition={{
               duration: shouldReduceMotion ? 0 : 0.85,
               delay: shouldReduceMotion ? 0 : 0.95,
@@ -130,11 +128,7 @@ export default function Hero() {
                     }
               }
               whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
-              transition={{
-                type: "spring",
-                stiffness: 320,
-                damping: 24,
-              }}
+              transition={{ type: "spring", stiffness: 320, damping: 24 }}
             >
               Book Now
             </motion.a>
@@ -155,11 +149,7 @@ export default function Hero() {
                     }
               }
               whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
-              transition={{
-                type: "spring",
-                stiffness: 320,
-                damping: 24,
-              }}
+              transition={{ type: "spring", stiffness: 320, damping: 24 }}
             >
               View Portfolio
             </motion.a>
@@ -181,21 +171,10 @@ export default function Hero() {
         <span className="mb-2 block text-[9px] font-semibold uppercase tracking-[0.38em] text-white/65">
           Scroll
         </span>
-
         <motion.span
           className="block text-3xl font-light text-[var(--helios-orange)]"
-          animate={
-            shouldReduceMotion
-              ? undefined
-              : {
-                  y: [0, 8, 0],
-                }
-          }
-          transition={{
-            duration: 1.8,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
+          animate={shouldReduceMotion ? undefined : { y: [0, 8, 0] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
         >
           ↓
         </motion.span>
