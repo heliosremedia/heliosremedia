@@ -13,7 +13,6 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import {
-  arrayMove,
   rectSortingStrategy,
   SortableContext,
   sortableKeyboardCoordinates,
@@ -92,6 +91,14 @@ type AssetDraft = {
   visibility: "VISIBLE" | "HIDDEN";
 };
 
+type GalleryDensity = "comfortable" | "compact";
+
+type MediaSelection = {
+  mediaCategory: MediaCategory | null;
+  mediaIds: Set<string>;
+  anchorId: string | null;
+};
+
 type SortableMediaCardProps = {
   item: ProjectMediaItem;
   itemIndex: number;
@@ -101,7 +108,11 @@ type SortableMediaCardProps = {
   isHeroUpdateLocked: boolean;
   isAssetUpdating: boolean;
   isMenuOpen: boolean;
+  density: GalleryDensity;
+  isSelected: boolean;
+  selectedCount: number;
   onOpenPreview: (mediaId: string) => void;
+  onToggleSelection: (mediaId: string, extendRange: boolean) => void;
   onSetHero: (mediaId: string) => void;
   onToggleMenu: (mediaId: string) => void;
   onEdit: (mediaId: string) => void;
@@ -146,7 +157,11 @@ function SortableMediaCard({
   isHeroUpdateLocked,
   isAssetUpdating,
   isMenuOpen,
+  density,
+  isSelected,
+  selectedCount,
   onOpenPreview,
+  onToggleSelection,
   onSetHero,
   onToggleMenu,
   onEdit,
@@ -173,10 +188,15 @@ function SortableMediaCard({
         transform: CSS.Transform.toString(transform),
         transition,
         zIndex: isDragging ? 20 : undefined,
+        willChange: isDragging ? "transform" : undefined,
       }}
-      className={`group relative overflow-hidden rounded-2xl border bg-black/25 transition-[border-color,box-shadow,opacity] duration-300 ${
+      className={`group relative overflow-hidden border bg-black/25 transition-[border-color,box-shadow,opacity] duration-200 ${
+        density === "compact" ? "rounded-xl" : "rounded-2xl"
+      } ${
         isDragging
           ? "border-[var(--helios-orange)]/70 opacity-75 shadow-[0_30px_80px_rgba(0,0,0,0.55)]"
+          : isSelected
+            ? "border-[var(--helios-orange)]/70 shadow-[0_0_0_1px_rgba(255,107,0,0.2),0_18px_45px_rgba(0,0,0,0.4)]"
           : item.isHero
             ? "border-[var(--helios-orange)]/50 shadow-[0_0_30px_rgba(255,107,0,0.08)]"
             : "border-white/[0.08] hover:border-white/[0.18] hover:shadow-[0_24px_60px_rgba(0,0,0,0.35)]"
@@ -192,16 +212,20 @@ function SortableMediaCard({
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={item.publicUrl}
+          src={`/api/admin/media-thumbnails/${item.id}?width=${
+            density === "compact" ? 360 : 640
+          }`}
           alt={
             item.altText || item.originalFilename || `${collectionLabel} asset`
           }
-          className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.035]"
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-cover transition duration-500 ease-out group-hover:scale-[1.025]"
         />
 
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/5 to-black/15 opacity-75 transition duration-300 group-hover:opacity-90" />
 
-        <div className="absolute left-3 top-3 flex items-center gap-2">
+        <div className="absolute left-12 top-3 flex items-center gap-2">
           <span className="rounded-full border border-white/10 bg-black/55 px-3 py-1 text-[0.55rem] font-semibold uppercase tracking-[0.14em] text-white/55 backdrop-blur-md">
             {String(itemIndex + 1).padStart(2, "0")}
           </span>
@@ -257,6 +281,31 @@ function SortableMediaCard({
       </button>
 
       <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggleSelection(item.id, event.shiftKey);
+        }}
+        aria-pressed={isSelected}
+        aria-label={`${isSelected ? "Remove" : "Add"} ${
+          item.originalFilename || `${collectionLabel} asset`
+        } ${isSelected ? "from" : "to"} selection`}
+        className={`absolute left-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border shadow-lg backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] ${
+          isSelected
+            ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] text-black"
+            : "border-white/15 bg-black/70 text-white/45 hover:border-[var(--helios-orange)]/60 hover:text-white"
+        }`}
+      >
+        {isSelected ? (
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+            <path d="m6.5 12.5 3.25 3.25 7.75-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        ) : (
+          <span className="h-3 w-3 rounded-[0.2rem] border border-current" />
+        )}
+      </button>
+
+      <button
         ref={setActivatorNodeRef}
         type="button"
         {...attributes}
@@ -265,7 +314,11 @@ function SortableMediaCard({
         className="absolute right-3 top-3 z-10 flex h-8 w-8 touch-none items-center justify-center rounded-full border border-white/15 bg-black/70 text-white/55 shadow-lg backdrop-blur-md transition hover:border-[var(--helios-orange)]/50 hover:bg-[var(--helios-orange)] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] disabled:cursor-wait disabled:opacity-40"
         aria-label={`Reorder ${
           item.originalFilename || `${collectionLabel} asset`
-        }, currently position ${itemIndex + 1}`}
+        }, currently position ${itemIndex + 1}${
+          isSelected && selectedCount > 1
+            ? `, moving ${selectedCount} selected assets`
+            : ""
+        }`}
       >
         <svg
           aria-hidden="true"
@@ -282,16 +335,20 @@ function SortableMediaCard({
         </svg>
       </button>
 
-      <div className="flex items-center justify-between gap-4 px-4 py-4">
+      <div
+        className={`flex items-center justify-between gap-3 ${
+          density === "compact" ? "px-3 py-3" : "px-4 py-4"
+        }`}
+      >
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-white/70">
             {item.originalFilename || "Untitled asset"}
           </p>
 
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/25">
+          <div className={`${density === "compact" ? "mt-1 text-[0.65rem]" : "mt-2 text-xs"} flex flex-wrap items-center gap-x-3 gap-y-1 text-white/25`}>
             <span>{formatFileSize(item.fileSize)}</span>
 
-            {item.width && item.height && (
+            {density === "comfortable" && item.width && item.height && (
               <>
                 <span aria-hidden="true">·</span>
 
@@ -315,7 +372,9 @@ function SortableMediaCard({
               }
             }}
             disabled={item.isHero || isHeroUpdateLocked}
-            className={`inline-flex min-h-10 shrink-0 items-center justify-center rounded-full px-4 text-[0.55rem] font-semibold uppercase tracking-[0.14em] transition ${
+            className={`inline-flex shrink-0 items-center justify-center rounded-full text-[0.55rem] font-semibold uppercase tracking-[0.14em] transition ${
+              density === "compact" ? "min-h-9 px-3" : "min-h-10 px-4"
+            } ${
               item.isHero
                 ? "cursor-default border border-[var(--helios-orange)]/25 bg-[var(--helios-orange)]/10 text-[var(--helios-orange-hover)]"
                 : "border border-white/10 text-white/40 hover:border-[var(--helios-orange)]/40 hover:bg-[var(--helios-orange)] hover:text-black disabled:cursor-wait disabled:opacity-40"
@@ -337,7 +396,7 @@ function SortableMediaCard({
             aria-label={`Open actions for ${
               item.originalFilename || "untitled asset"
             }`}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/40 transition hover:border-white/25 hover:bg-white/[0.06] hover:text-white disabled:cursor-wait disabled:opacity-40"
+            className={`${density === "compact" ? "h-9 w-9" : "h-10 w-10"} flex items-center justify-center rounded-full border border-white/10 text-white/40 transition hover:border-white/25 hover:bg-white/[0.06] hover:text-white disabled:cursor-wait disabled:opacity-40`}
           >
             {isAssetUpdating ? (
               <span className="h-3.5 w-3.5 animate-spin rounded-full border border-white/20 border-t-white/70" />
@@ -428,6 +487,13 @@ export default function ProjectMediaManager({
   const [reorderErrors, setReorderErrors] = useState<
     Partial<Record<MediaCategory, string>>
   >({});
+  const [galleryDensity, setGalleryDensity] =
+    useState<GalleryDensity>("comfortable");
+  const [selection, setSelection] = useState<MediaSelection>({
+    mediaCategory: null,
+    mediaIds: new Set(),
+    anchorId: null,
+  });
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -456,6 +522,141 @@ export default function ProjectMediaManager({
       })).filter((group) => group.items.length > 0),
     [media],
   );
+
+  useEffect(() => {
+    const savedDensity = window.localStorage.getItem(
+      "helios-admin-media-density",
+    );
+
+    if (savedDensity === "comfortable" || savedDensity === "compact") {
+      setGalleryDensity(savedDensity);
+    }
+  }, []);
+
+  const changeGalleryDensity = useCallback((density: GalleryDensity) => {
+    setGalleryDensity(density);
+    window.localStorage.setItem("helios-admin-media-density", density);
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelection({
+      mediaCategory: null,
+      mediaIds: new Set(),
+      anchorId: null,
+    });
+  }, []);
+
+  const toggleMediaSelection = useCallback(
+    (
+      mediaCategory: MediaCategory,
+      mediaId: string,
+      extendRange: boolean,
+    ) => {
+      const collectionItems = media
+        .filter((item) => item.mediaCategory === mediaCategory)
+        .sort(sortMediaItems);
+
+      setSelection((current) => {
+        if (current.mediaCategory !== mediaCategory) {
+          return {
+            mediaCategory,
+            mediaIds: new Set([mediaId]),
+            anchorId: mediaId,
+          };
+        }
+
+        const nextIds = new Set(current.mediaIds);
+
+        if (extendRange && current.anchorId) {
+          const anchorIndex = collectionItems.findIndex(
+            (item) => item.id === current.anchorId,
+          );
+          const targetIndex = collectionItems.findIndex(
+            (item) => item.id === mediaId,
+          );
+
+          if (anchorIndex >= 0 && targetIndex >= 0) {
+            const startIndex = Math.min(anchorIndex, targetIndex);
+            const endIndex = Math.max(anchorIndex, targetIndex);
+
+            collectionItems
+              .slice(startIndex, endIndex + 1)
+              .forEach((item) => nextIds.add(item.id));
+          }
+        } else if (nextIds.has(mediaId)) {
+          nextIds.delete(mediaId);
+        } else {
+          nextIds.add(mediaId);
+        }
+
+        return nextIds.size > 0
+          ? {
+              mediaCategory,
+              mediaIds: nextIds,
+              anchorId: mediaId,
+            }
+          : {
+              mediaCategory: null,
+              mediaIds: new Set(),
+              anchorId: null,
+            };
+      });
+    },
+    [media],
+  );
+
+  const selectCollection = useCallback(
+    (mediaCategory: MediaCategory) => {
+      const mediaIds = new Set(
+        media
+          .filter((item) => item.mediaCategory === mediaCategory)
+          .map((item) => item.id),
+      );
+
+      setSelection({
+        mediaCategory,
+        mediaIds,
+        anchorId: mediaIds.values().next().value ?? null,
+      });
+    },
+    [media],
+  );
+
+  useEffect(() => {
+    setSelection((current) => {
+      if (!current.mediaCategory || current.mediaIds.size === 0) {
+        return current;
+      }
+
+      const availableIds = new Set(
+        media
+          .filter((item) => item.mediaCategory === current.mediaCategory)
+          .map((item) => item.id),
+      );
+      const validIds = new Set(
+        [...current.mediaIds].filter((mediaId) => availableIds.has(mediaId)),
+      );
+
+      if (validIds.size === current.mediaIds.size) {
+        return current;
+      }
+
+      return validIds.size > 0
+        ? {
+            ...current,
+            mediaIds: validIds,
+            anchorId:
+              current.anchorId && validIds.has(current.anchorId)
+                ? current.anchorId
+                : (validIds.values().next().value ?? null),
+          }
+        : {
+            mediaCategory: null,
+            mediaIds: new Set(),
+            anchorId: null,
+          };
+    });
+  }, [media]);
 
   const activeMedia = useMemo(
     () => media.find((item) => item.id === activeMediaId) ?? null,
@@ -785,26 +986,44 @@ export default function ProjectMediaManager({
         .filter((item) => item.mediaCategory === mediaCategory)
         .sort(sortMediaItems);
 
-      const oldIndex = collectionItems.findIndex(
+      const activeIndex = collectionItems.findIndex(
         (item) => item.id === activeId,
       );
-      const newIndex = collectionItems.findIndex((item) => item.id === overId);
+      const overIndex = collectionItems.findIndex((item) => item.id === overId);
+      const selectedIds =
+        selection.mediaCategory === mediaCategory &&
+        selection.mediaIds.has(activeId)
+          ? selection.mediaIds
+          : new Set([activeId]);
 
       if (
-        oldIndex < 0 ||
-        newIndex < 0 ||
-        oldIndex === newIndex ||
+        activeIndex < 0 ||
+        overIndex < 0 ||
+        selectedIds.has(overId) ||
         savingCollections.includes(mediaCategory)
       ) {
         return;
       }
 
-      const reorderedItems = arrayMove(collectionItems, oldIndex, newIndex).map(
-        (item, index) => ({
+      const movingItems = collectionItems.filter((item) =>
+        selectedIds.has(item.id),
+      );
+      const stationaryItems = collectionItems.filter(
+        (item) => !selectedIds.has(item.id),
+      );
+      const stationaryOverIndex = stationaryItems.findIndex(
+        (item) => item.id === overId,
+      );
+      const insertIndex =
+        stationaryOverIndex + (activeIndex < overIndex ? 1 : 0);
+      const reorderedItems = [
+        ...stationaryItems.slice(0, insertIndex),
+        ...movingItems,
+        ...stationaryItems.slice(insertIndex),
+      ].map((item, index) => ({
           ...item,
           displayOrder: index,
-        }),
-      );
+        }));
 
       const reorderedOrderById = new Map(
         reorderedItems.map((item) => [item.id, item.displayOrder]),
@@ -892,7 +1111,7 @@ export default function ProjectMediaManager({
         );
       }
     },
-    [media, projectId, savingCollections],
+    [media, projectId, savingCollections, selection],
   );
 
   const handleDragEnd = useCallback(
@@ -1020,17 +1239,74 @@ export default function ProjectMediaManager({
               </p>
             </div>
 
-            <div className="flex items-center gap-3 text-xs text-white/25">
-              <span>
-                {groupedCollections.length}{" "}
-                {groupedCollections.length === 1 ? "collection" : "collections"}
-              </span>
+            <div className="flex flex-wrap items-center gap-4">
+              <div
+                role="group"
+                aria-label="Asset card size"
+                className="inline-flex rounded-xl border border-white/[0.09] bg-black/30 p-1"
+              >
+                <button
+                  type="button"
+                  onClick={() => changeGalleryDensity("comfortable")}
+                  aria-pressed={galleryDensity === "comfortable"}
+                  className={`flex h-9 w-9 items-center justify-center rounded-lg transition ${
+                    galleryDensity === "comfortable"
+                      ? "bg-white/[0.11] text-white"
+                      : "text-white/30 hover:text-white/65"
+                  }`}
+                  aria-label="Use comfortable asset cards"
+                  title="Comfortable cards"
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+                    <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.5" />
+                    <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.5" />
+                    <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.5" />
+                    <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.5" />
+                  </svg>
+                </button>
 
-              <span aria-hidden="true">·</span>
+                <button
+                  type="button"
+                  onClick={() => changeGalleryDensity("compact")}
+                  aria-pressed={galleryDensity === "compact"}
+                  className={`flex h-9 w-9 items-center justify-center rounded-lg transition ${
+                    galleryDensity === "compact"
+                      ? "bg-white/[0.11] text-white"
+                      : "text-white/30 hover:text-white/65"
+                  }`}
+                  aria-label="Use compact asset thumbnails"
+                  title="Compact thumbnails"
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+                    {Array.from({ length: 9 }).map((_, index) => (
+                      <rect
+                        key={index}
+                        x={3 + (index % 3) * 7}
+                        y={3 + Math.floor(index / 3) * 7}
+                        width="4"
+                        height="4"
+                        rx="0.6"
+                        fill="currentColor"
+                      />
+                    ))}
+                  </svg>
+                </button>
+              </div>
 
-              <span>
-                {media.length} {media.length === 1 ? "asset" : "assets"}
-              </span>
+              <div className="flex items-center gap-3 text-xs text-white/25">
+                <span>
+                  {groupedCollections.length}{" "}
+                  {groupedCollections.length === 1
+                    ? "collection"
+                    : "collections"}
+                </span>
+
+                <span aria-hidden="true">·</span>
+
+                <span>
+                  {media.length} {media.length === 1 ? "asset" : "assets"}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -1167,13 +1443,39 @@ export default function ProjectMediaManager({
 
                             {items.length > 1 && (
                               <p className="mt-1.5 text-xs leading-5 text-white/25">
-                                Drag the handle to arrange this collection.
+                                Select assets to move them together, then drag
+                                any selected handle. Shift-select adds a range.
                               </p>
                             )}
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center justify-end gap-3">
+                          {selection.mediaCategory === collection.value &&
+                            selection.mediaIds.size > 0 && (
+                              <span className="rounded-full border border-[var(--helios-orange)]/25 bg-[var(--helios-orange)]/[0.08] px-4 py-2 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-[var(--helios-orange-hover)]">
+                                {selection.mediaIds.size} selected
+                              </span>
+                            )}
+
+                          {items.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                selection.mediaCategory === collection.value &&
+                                selection.mediaIds.size === items.length
+                                  ? clearSelection()
+                                  : selectCollection(collection.value)
+                              }
+                              className="text-[0.56rem] font-semibold uppercase tracking-[0.15em] text-white/35 transition hover:text-white/70"
+                            >
+                              {selection.mediaCategory === collection.value &&
+                              selection.mediaIds.size === items.length
+                                ? "Clear selection"
+                                : "Select all"}
+                            </button>
+                          )}
+
                           {isCollectionSaving && (
                             <span
                               role="status"
@@ -1223,7 +1525,13 @@ export default function ProjectMediaManager({
                           items={items.map((item) => item.id)}
                           strategy={rectSortingStrategy}
                         >
-                          <div className="grid gap-5 p-5 sm:grid-cols-2 xl:grid-cols-3">
+                          <div
+                            className={`grid p-5 ${
+                              galleryDensity === "compact"
+                                ? "gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
+                                : "gap-5 sm:grid-cols-2 xl:grid-cols-3"
+                            }`}
+                          >
                             {items.map((item, itemIndex) => (
                               <SortableMediaCard
                                 key={item.id}
@@ -1235,7 +1543,24 @@ export default function ProjectMediaManager({
                                 isHeroUpdateLocked={updatingHeroId !== null}
                                 isAssetUpdating={updatingAssetId === item.id}
                                 isMenuOpen={openMenuId === item.id}
+                                density={galleryDensity}
+                                isSelected={
+                                  selection.mediaCategory === collection.value &&
+                                  selection.mediaIds.has(item.id)
+                                }
+                                selectedCount={
+                                  selection.mediaCategory === collection.value
+                                    ? selection.mediaIds.size
+                                    : 0
+                                }
                                 onOpenPreview={setActiveMediaId}
+                                onToggleSelection={(mediaId, extendRange) =>
+                                  toggleMediaSelection(
+                                    collection.value,
+                                    mediaId,
+                                    extendRange,
+                                  )
+                                }
                                 onSetHero={(mediaId) =>
                                   void handleSetHero(mediaId)
                                 }

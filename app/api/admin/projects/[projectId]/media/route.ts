@@ -1,5 +1,13 @@
-import { DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectsCommand,
+  HeadObjectCommand,
+} from "@aws-sdk/client-s3";
 import { NextResponse } from "next/server";
+
+import {
+  ADMIN_MEDIA_THUMBNAIL_WIDTHS,
+  getAdminMediaThumbnailKey,
+} from "@/lib/admin-media-thumbnails";
 
 import {
   DEFAULT_MEDIA_CATEGORY,
@@ -912,9 +920,17 @@ export async function DELETE(request: Request, { params }: MediaRouteProps) {
     if (media.storageKey) {
       try {
         await r2Client.send(
-          new DeleteObjectCommand({
+          new DeleteObjectsCommand({
             Bucket: r2Config.bucketName,
-            Key: media.storageKey,
+            Delete: {
+              Objects: [
+                { Key: media.storageKey },
+                ...ADMIN_MEDIA_THUMBNAIL_WIDTHS.map((width) => ({
+                  Key: getAdminMediaThumbnailKey(media.id, width),
+                })),
+              ],
+              Quiet: true,
+            },
           }),
         );
       } catch (storageError) {
