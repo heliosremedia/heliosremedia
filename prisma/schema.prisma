@@ -353,6 +353,9 @@ model SiteSettings {
   email        String?
   bookingUrl   String?
 
+  heroVideoUrl  String?
+  heroPosterUrl String? @default("/work/featured-estate.jpg")
+
   locationLabel          String  @default("Fort Collins, Colorado")
   serviceArea            String  @default("Northern Colorado")
   serviceAreaDescription String?
