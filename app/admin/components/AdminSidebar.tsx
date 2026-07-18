@@ -144,6 +144,15 @@ const navigation: NavigationItem[] = [
       </svg>
     ),
   },
+  {
+    label: "Testimonials",
+    href: "/admin/testimonials",
+    icon: (
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+        <path d="M7.5 12.5H5.8A2.8 2.8 0 0 1 3 9.7V7.8A2.8 2.8 0 0 1 5.8 5h2.4A2.8 2.8 0 0 1 11 7.8v2.4c0 4-2 6.8-6 8.8M17.5 12.5h-1.7a2.8 2.8 0 0 1-2.8-2.8V7.8A2.8 2.8 0 0 1 15.8 5h2.4A2.8 2.8 0 0 1 21 7.8v2.4c0 4-2 6.8-6 8.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
 ];
 
 function isActivePath(pathname: string, href: string) {

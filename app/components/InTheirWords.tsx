@@ -1,48 +1,31 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-const testimonials = [
-  {
-    quote:
-      "I switched from my previous photographer because I wanted something better. Jake’s work wasn’t just fast—it was absolutely gorgeous.",
-    name: "Heather Washburn",
-    brokerage: "RE/MAX Alliance",
-    image: "/testimonials/testimonial-1.avif",
-    imageAlt: "Heather Washburn",
-    objectPosition: "center 16%",
-  },
-  {
-    quote:
-      "Helios delivered incredible quality with an exceptional turnaround. My photos were back within twelve hours, and the results were beautiful.",
-    name: "Stefanie Erion",
-    brokerage: "Kentwood Real Estate",
-    image: "/testimonials/testimonial-2.avif",
-    imageAlt: "Stefanie Erion",
-    objectPosition: "center 20%",
-  },
-  {
-    quote:
-      "Jake has the eye I’ve been looking for. I trust him to create a beautiful result every time, and he has become an integral part of my team.",
-    name: "Liz Crews",
-    brokerage: "eXp Realty · Ranch & Land",
-    image: "/testimonials/testimonial-3.avif",
-    imageAlt: "Liz Crews",
-    objectPosition: "center 18%",
-  },
-];
+export type TestimonialCard = {
+  id: string;
+  quote: string;
+  name: string;
+  jobTitle: string | null;
+  brokerage: string | null;
+  image: string | null;
+  imageAlt: string;
+  focalX: number;
+  focalY: number;
+  rating: number;
+  sourceUrl: string | null;
+};
 
 type CardPosition = "active" | "left" | "right";
 
 function getRelativePosition(
   index: number,
   activeIndex: number,
+  total: number,
 ): CardPosition {
-  const total = testimonials.length;
   const distance = (index - activeIndex + total) % total;
 
   if (distance === 0) return "active";
@@ -51,7 +34,7 @@ function getRelativePosition(
   return "left";
 }
 
-export default function InTheirWords() {
+export default function InTheirWords({ testimonials }: { testimonials: TestimonialCard[] }) {
   const prefersReducedMotion = useReducedMotion();
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -60,13 +43,13 @@ export default function InTheirWords() {
       (currentIndex) =>
         (currentIndex - 1 + testimonials.length) % testimonials.length,
     );
-  }, []);
+  }, [testimonials.length]);
 
   const showNext = useCallback(() => {
     setActiveIndex(
       (currentIndex) => (currentIndex + 1) % testimonials.length,
     );
-  }, []);
+  }, [testimonials.length]);
 
   useEffect(() => {
     if (prefersReducedMotion) return;
@@ -75,6 +58,10 @@ export default function InTheirWords() {
 
     return () => window.clearInterval(interval);
   }, [prefersReducedMotion, showNext]);
+
+  if (testimonials.length === 0) {
+    return null;
+  }
 
   return (
     <section
@@ -143,7 +130,7 @@ export default function InTheirWords() {
 
         <div className="relative mt-11 h-[29rem] sm:mt-13 sm:h-[30.5rem] lg:h-[31.5rem]">
           {testimonials.map((testimonial, index) => {
-            const position = getRelativePosition(index, activeIndex);
+            const position = getRelativePosition(index, activeIndex, testimonials.length);
             const isActive = position === "active";
 
             const positionClasses: Record<CardPosition, string> = {
@@ -155,7 +142,7 @@ export default function InTheirWords() {
 
             return (
               <motion.article
-                key={testimonial.name}
+                key={testimonial.id}
                 role={isActive ? "group" : "button"}
                 tabIndex={isActive ? -1 : 0}
                 aria-hidden={!isActive}
@@ -245,20 +232,18 @@ export default function InTheirWords() {
                         {testimonial.name}
                       </p>
 
-                      <p className="mt-2 text-[0.54rem] uppercase tracking-[0.23em] text-white/40 sm:text-[0.58rem]">
-                        {testimonial.brokerage}
-                      </p>
+                      {(testimonial.jobTitle || testimonial.brokerage) && <p className="mt-2 text-[0.54rem] uppercase tracking-[0.23em] text-white/40 sm:text-[0.58rem]">{[testimonial.jobTitle, testimonial.brokerage].filter(Boolean).join(" · ")}</p>}
 
                       <p
                         aria-label="Five out of five stars"
                         className="mt-3 text-[0.58rem] tracking-[0.2em] text-[#f06b24]"
                       >
-                        ★★★★★
+                        {"★".repeat(testimonial.rating)}<span className="text-white/15">{"★".repeat(5 - testimonial.rating)}</span>
                       </p>
                     </div>
                   </div>
 
-                  <div className="relative order-1 min-h-[10rem] overflow-hidden md:order-2">
+                  <div className="relative order-1 min-h-[10rem] overflow-hidden bg-white/[0.03] md:order-2">
                     <motion.div
                       animate={{
                         scale: isActive ? 1 : 1.045,
@@ -269,17 +254,10 @@ export default function InTheirWords() {
                       }}
                       className="absolute inset-0"
                     >
-                      <Image
-                        src={testimonial.image}
-                        alt={testimonial.imageAlt}
-                        fill
-                        priority={index === 0}
-                        sizes="(min-width: 1024px) 20rem, 90vw"
-                        style={{
-                          objectPosition: testimonial.objectPosition,
-                        }}
-                        className="object-cover grayscale contrast-[1.04]"
-                      />
+                      {testimonial.image ? <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={testimonial.image} alt={testimonial.imageAlt} loading={index === 0 ? "eager" : "lazy"} style={{ objectPosition: `${testimonial.focalX * 100}% ${testimonial.focalY * 100}%` }} className="absolute inset-0 h-full w-full object-cover grayscale contrast-[1.04]" />
+                      </> : <div className="flex h-full items-center justify-center font-serif text-8xl text-white/10">{testimonial.name.charAt(0)}</div>}
                     </motion.div>
 
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent to-[#0d0d0d]/10 md:from-[#0d0d0d]/14 md:to-transparent" />
@@ -321,7 +299,7 @@ export default function InTheirWords() {
 
               return (
                 <button
-                  key={testimonial.name}
+                  key={testimonial.id}
                   type="button"
                   onClick={() => setActiveIndex(index)}
                   aria-label={`Show testimonial from ${testimonial.name}`}
