@@ -1,11 +1,13 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   closestCenter,
   DndContext,
   KeyboardSensor,
+  MeasuringStrategy,
   MouseSensor,
   TouchSensor,
   useSensor,
@@ -187,6 +189,7 @@ function SortableMediaCard({
         contentVisibility: isDragging ? "visible" : "auto",
         containIntrinsicSize:
           viewMode === "compact" ? "260px 220px" : "420px 390px",
+        willChange: isDragging ? "transform" : undefined,
       }}
       className={`group relative overflow-hidden rounded-2xl border bg-black/25 transition-[border-color,box-shadow,opacity] duration-300 ${
         isDragging
@@ -206,17 +209,18 @@ function SortableMediaCard({
           item.originalFilename || `${collectionLabel} asset`
         } in fullscreen preview`}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={item.publicUrl}
           alt={
             item.altText || item.originalFilename || `${collectionLabel} asset`
           }
-          width={item.width ?? 1600}
-          height={item.height ?? 1200}
-          loading="lazy"
-          decoding="async"
-          fetchPriority="low"
+          fill
+          sizes={
+            viewMode === "compact"
+              ? "(min-width: 1536px) 16vw, (min-width: 1280px) 22vw, (min-width: 1024px) 30vw, (min-width: 640px) 45vw, 100vw"
+              : "(min-width: 1280px) 30vw, (min-width: 640px) 45vw, 100vw"
+          }
+          quality={75}
           draggable={false}
           className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.035]"
         />
@@ -1520,6 +1524,11 @@ export default function ProjectMediaManager({
                       <DndContext
                         sensors={sensors}
                         collisionDetection={closestCenter}
+                        measuring={{
+                          droppable: {
+                            strategy: MeasuringStrategy.BeforeDragging,
+                          },
+                        }}
                         onDragStart={(event) =>
                           handleDragStart(collection.value, event)
                         }
