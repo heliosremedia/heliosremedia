@@ -97,6 +97,9 @@ type AssetDraft = {
 
 type MediaViewMode = "comfortable" | "compact";
 
+const MEDIA_BADGE_CLASS =
+  "inline-flex h-5 shrink-0 items-center justify-center rounded-full px-2.5 text-[0.5rem] font-semibold uppercase leading-none tracking-[0.12em]";
+
 type SortableMediaCardProps = {
   item: ProjectMediaItem;
   itemIndex: number;
@@ -242,25 +245,21 @@ function SortableMediaCard({
 
           {item.isHero && (
             <span
-              className={`inline-flex items-center rounded-full border border-[var(--helios-orange)]/35 bg-[var(--helios-orange)] font-semibold uppercase text-black shadow-lg ${
-                viewMode === "compact"
-                  ? "gap-1 px-2 py-0.5 text-[0.44rem] tracking-[0.08em]"
-                  : "gap-1.5 px-2.5 py-0.5 text-[0.5rem] tracking-[0.12em]"
-              }`}
+              className={`${MEDIA_BADGE_CLASS} gap-1 border border-[var(--helios-orange)]/35 bg-[var(--helios-orange)] text-black shadow-lg`}
               title="Current hero image"
             >
               <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"
                 fill="none"
-                className={viewMode === "compact" ? "h-2.5 w-2.5" : "h-3 w-3"}
+                className="h-2.5 w-2.5"
               >
                 <path
                   d="m12 3 2.75 5.58 6.16.9-4.46 4.34 1.05 6.13L12 17.06l-5.5 2.89 1.05-6.13-4.46-4.34 6.16-.9L12 3Z"
                   fill="currentColor"
                 />
               </svg>
-              {viewMode === "compact" ? "Hero" : "Hero image"}
+              Hero image
             </span>
           )}
         </div>
@@ -297,11 +296,7 @@ function SortableMediaCard({
         type="button"
         onClick={() => onToggleVisibility(item.id)}
         disabled={isAssetUpdating}
-        className={`absolute z-10 rounded-full border font-semibold uppercase leading-none backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] disabled:cursor-wait disabled:opacity-45 ${
-          viewMode === "compact"
-            ? "right-11 top-2.5 px-1.5 py-1 text-[0.38rem] tracking-[0.07em]"
-            : "right-14 top-3 px-2 py-1 text-[0.44rem] tracking-[0.1em]"
-        } ${
+        className={`absolute right-11 top-3 z-10 ${MEDIA_BADGE_CLASS} border backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] disabled:cursor-wait disabled:opacity-45 ${
           item.visibility === "VISIBLE"
             ? "border-white/10 bg-black/60 text-white/60 hover:border-[var(--helios-orange)]/45 hover:text-white"
             : "border-[var(--helios-orange)]/30 bg-[var(--helios-orange)]/12 text-[var(--helios-orange-hover)] hover:bg-[var(--helios-orange)] hover:text-black"
@@ -415,19 +410,17 @@ function SortableMediaCard({
             }}
             disabled={item.isHero || isHeroUpdateLocked}
             aria-label={item.isHero ? "Current hero image" : `Set ${item.originalFilename || "asset"} as hero image`}
-            className={`inline-flex min-h-10 shrink-0 items-center justify-center rounded-full text-[0.55rem] font-semibold uppercase tracking-[0.14em] transition ${
-              viewMode === "compact" ? "h-10 w-10 px-0" : "px-4"
-            } ${
+            className={`${MEDIA_BADGE_CLASS} transition ${
               item.isHero
                 ? "cursor-default border border-[var(--helios-orange)]/25 bg-[var(--helios-orange)]/10 text-[var(--helios-orange-hover)]"
                 : "border border-white/10 text-white/40 hover:border-[var(--helios-orange)]/40 hover:bg-[var(--helios-orange)] hover:text-black disabled:cursor-wait disabled:opacity-40"
             }`}
           >
-            {viewMode === "compact" ? (
-              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-4 w-4">
-                <path d="m12 3 2.75 5.58 6.16.9-4.46 4.34 1.05 6.13L12 17.06l-5.5 2.89 1.05-6.13-4.46-4.34 6.16-.9L12 3Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-              </svg>
-            ) : item.isHero ? "Current hero" : isUpdatingHero ? "Updating" : "Set hero"}
+            {item.isHero
+              ? "Current hero"
+              : isUpdatingHero
+                ? "Updating"
+                : "Set hero"}
           </button>
 
           <button
@@ -516,11 +509,7 @@ function SortableMediaCard({
             disabled={
               isCollectionSaving || (itemIndex === 0 && selectedCount === 1)
             }
-            className={`inline-flex items-center rounded-full border border-[var(--helios-orange)]/20 font-semibold uppercase text-[var(--helios-orange)]/75 transition hover:border-[var(--helios-orange)]/50 hover:bg-[var(--helios-orange)] hover:text-black disabled:cursor-default disabled:opacity-30 ${
-              viewMode === "compact"
-                ? "min-h-5 gap-1 px-1.5 text-[0.38rem] tracking-[0.07em]"
-                : "min-h-8 gap-1.5 px-2.5 text-[0.49rem] tracking-[0.12em]"
-            }`}
+            className={`${MEDIA_BADGE_CLASS} gap-1 border border-[var(--helios-orange)]/20 text-[var(--helios-orange)]/75 transition hover:border-[var(--helios-orange)]/50 hover:bg-[var(--helios-orange)] hover:text-black disabled:cursor-default disabled:opacity-30`}
             aria-label={`Move ${
               selectedCount > 1
                 ? `${selectedCount} selected assets`
@@ -531,7 +520,7 @@ function SortableMediaCard({
               aria-hidden="true"
               viewBox="0 0 24 24"
               fill="none"
-              className={viewMode === "compact" ? "h-2.5 w-2.5" : "h-3.5 w-3.5"}
+              className="h-2.5 w-2.5"
             >
               <path
                 d="M12 19V5m0 0-5 5m5-5 5 5"
@@ -541,21 +530,13 @@ function SortableMediaCard({
                 strokeLinejoin="round"
               />
             </svg>
-            {viewMode === "compact"
-              ? "To top"
-              : selectedCount > 1
-                ? "Move group to top"
-                : "Move to top"}
+            {selectedCount > 1 ? "Move group to top" : "Move to top"}
           </button>
 
           <button
             type="button"
             onClick={onClearSelection}
-            className={`rounded-full font-semibold uppercase text-white/45 transition hover:bg-white/[0.06] hover:text-white ${
-              viewMode === "compact"
-                ? "min-h-5 px-1.5 text-[0.38rem] tracking-[0.07em]"
-                : "min-h-8 px-2.5 text-[0.49rem] tracking-[0.12em]"
-            }`}
+            className={`${MEDIA_BADGE_CLASS} text-white/45 transition hover:bg-white/[0.06] hover:text-white`}
           >
             {selectedCount > 1 ? "Clear all" : "Clear"}
           </button>
