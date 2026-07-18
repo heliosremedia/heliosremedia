@@ -204,7 +204,7 @@ export default function PortfolioGallery({
       >
         {items.map((item, itemIndex) => {
           const featureItem =
-            galleryView === "showcase" && (item.isWide || itemIndex % 5 === 0);
+            galleryView === "showcase" && itemIndex % 5 === 0;
 
           return (
             <figure
@@ -219,7 +219,7 @@ export default function PortfolioGallery({
                       ? "aspect-[16/10]"
                     : featureItem
                       ? "aspect-[16/10]"
-                      : "aspect-[4/5]"
+                      : "aspect-[4/3]"
                 }`}
               >
                 {item.imageUrl ? (
