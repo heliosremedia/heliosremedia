@@ -78,10 +78,11 @@ model Project {
   heroMedia      Media? @relation("ProjectHeroMedia", fields: [heroMediaId], references: [id], onDelete: SetNull)
   thumbnailMedia Media? @relation("ProjectThumbnailMedia", fields: [thumbnailMediaId], references: [id], onDelete: SetNull)
 
-  media    Media[]          @relation("ProjectMedia")
-  details  ProjectDetails?
-  services ProjectService[]
-  tags     ProjectTag[]
+  media             Media[]          @relation("ProjectMedia")
+  details           ProjectDetails?
+  services          ProjectService[]
+  tags              ProjectTag[]
+  homepagePlacement HomepageProject?
 
   @@index([status])
   @@index([featured])
@@ -292,4 +293,19 @@ model TrustedLogo {
   updatedAt DateTime @updatedAt
 
   @@index([published, displayOrder])
+}
+
+model HomepageProject {
+  id        String  @id @default(cuid())
+  projectId String  @unique
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  titleOverride String?
+  displayOrder  Int     @default(0)
+  active        Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, displayOrder])
 }

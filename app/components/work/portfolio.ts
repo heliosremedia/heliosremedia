@@ -3,6 +3,7 @@ export type PortfolioItem = {
   href: string;
   image: string;
   size: "hero" | "supporting";
+  imageAlt?: string;
 };
 
 export const portfolioItems: PortfolioItem[] = [
