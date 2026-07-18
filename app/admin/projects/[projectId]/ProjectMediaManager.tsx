@@ -11,6 +11,7 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -92,6 +93,8 @@ type AssetDraft = {
   visibility: "VISIBLE" | "HIDDEN";
 };
 
+type MediaViewMode = "comfortable" | "compact";
+
 type SortableMediaCardProps = {
   item: ProjectMediaItem;
   itemIndex: number;
@@ -101,7 +104,11 @@ type SortableMediaCardProps = {
   isHeroUpdateLocked: boolean;
   isAssetUpdating: boolean;
   isMenuOpen: boolean;
+  isSelected: boolean;
+  selectedCount: number;
+  viewMode: MediaViewMode;
   onOpenPreview: (mediaId: string) => void;
+  onToggleSelection: (mediaId: string, extendRange: boolean) => void;
   onSetHero: (mediaId: string) => void;
   onToggleMenu: (mediaId: string) => void;
   onEdit: (mediaId: string) => void;
@@ -146,7 +153,11 @@ function SortableMediaCard({
   isHeroUpdateLocked,
   isAssetUpdating,
   isMenuOpen,
+  isSelected,
+  selectedCount,
+  viewMode,
   onOpenPreview,
+  onToggleSelection,
   onSetHero,
   onToggleMenu,
   onEdit,
@@ -173,10 +184,15 @@ function SortableMediaCard({
         transform: CSS.Transform.toString(transform),
         transition,
         zIndex: isDragging ? 20 : undefined,
+        contentVisibility: isDragging ? "visible" : "auto",
+        containIntrinsicSize:
+          viewMode === "compact" ? "260px 220px" : "420px 390px",
       }}
       className={`group relative overflow-hidden rounded-2xl border bg-black/25 transition-[border-color,box-shadow,opacity] duration-300 ${
         isDragging
           ? "border-[var(--helios-orange)]/70 opacity-75 shadow-[0_30px_80px_rgba(0,0,0,0.55)]"
+          : isSelected
+            ? "border-[var(--helios-orange)]/55 shadow-[0_0_0_1px_rgba(255,107,0,0.2),0_20px_55px_rgba(0,0,0,0.4)]"
           : item.isHero
             ? "border-[var(--helios-orange)]/50 shadow-[0_0_30px_rgba(255,107,0,0.08)]"
             : "border-white/[0.08] hover:border-white/[0.18] hover:shadow-[0_24px_60px_rgba(0,0,0,0.35)]"
@@ -196,12 +212,18 @@ function SortableMediaCard({
           alt={
             item.altText || item.originalFilename || `${collectionLabel} asset`
           }
+          width={item.width ?? 1600}
+          height={item.height ?? 1200}
+          loading="lazy"
+          decoding="async"
+          fetchPriority="low"
+          draggable={false}
           className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.035]"
         />
 
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/5 to-black/15 opacity-75 transition duration-300 group-hover:opacity-90" />
 
-        <div className="absolute left-3 top-3 flex items-center gap-2">
+        <div className="absolute left-14 top-3 flex items-center gap-2">
           <span className="rounded-full border border-white/10 bg-black/55 px-3 py-1 text-[0.55rem] font-semibold uppercase tracking-[0.14em] text-white/55 backdrop-blur-md">
             {String(itemIndex + 1).padStart(2, "0")}
           </span>
@@ -257,6 +279,31 @@ function SortableMediaCard({
       </button>
 
       <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggleSelection(item.id, event.shiftKey);
+        }}
+        aria-pressed={isSelected}
+        aria-label={`${isSelected ? "Remove" : "Add"} ${
+          item.originalFilename || `${collectionLabel} asset`
+        } ${isSelected ? "from" : "to"} selection`}
+        className={`absolute left-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border shadow-lg backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] ${
+          isSelected
+            ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] text-black"
+            : "border-white/15 bg-black/70 text-white/55 hover:border-[var(--helios-orange)]/50 hover:text-white"
+        }`}
+      >
+        {isSelected ? (
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+            <path d="m6 12.5 4 4L18.5 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        ) : (
+          <span className="h-3.5 w-3.5 rounded-[0.28rem] border border-current" />
+        )}
+      </button>
+
+      <button
         ref={setActivatorNodeRef}
         type="button"
         {...attributes}
@@ -264,7 +311,9 @@ function SortableMediaCard({
         disabled={isCollectionSaving}
         className="absolute right-3 top-3 z-10 flex h-8 w-8 touch-none items-center justify-center rounded-full border border-white/15 bg-black/70 text-white/55 shadow-lg backdrop-blur-md transition hover:border-[var(--helios-orange)]/50 hover:bg-[var(--helios-orange)] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] disabled:cursor-wait disabled:opacity-40"
         aria-label={`Reorder ${
-          item.originalFilename || `${collectionLabel} asset`
+          isSelected && selectedCount > 1
+            ? `${selectedCount} selected assets`
+            : item.originalFilename || `${collectionLabel} asset`
         }, currently position ${itemIndex + 1}`}
       >
         <svg
@@ -282,13 +331,17 @@ function SortableMediaCard({
         </svg>
       </button>
 
-      <div className="flex items-center justify-between gap-4 px-4 py-4">
+      <div
+        className={`flex items-center justify-between gap-3 ${
+          viewMode === "compact" ? "px-3 py-3" : "px-4 py-4"
+        }`}
+      >
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-white/70">
             {item.originalFilename || "Untitled asset"}
           </p>
 
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/25">
+          <div className={`${viewMode === "compact" ? "hidden" : "mt-2 flex"} flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/25`}>
             <span>{formatFileSize(item.fileSize)}</span>
 
             {item.width && item.height && (
@@ -315,17 +368,20 @@ function SortableMediaCard({
               }
             }}
             disabled={item.isHero || isHeroUpdateLocked}
-            className={`inline-flex min-h-10 shrink-0 items-center justify-center rounded-full px-4 text-[0.55rem] font-semibold uppercase tracking-[0.14em] transition ${
+            aria-label={item.isHero ? "Current hero image" : `Set ${item.originalFilename || "asset"} as hero image`}
+            className={`inline-flex min-h-10 shrink-0 items-center justify-center rounded-full text-[0.55rem] font-semibold uppercase tracking-[0.14em] transition ${
+              viewMode === "compact" ? "h-10 w-10 px-0" : "px-4"
+            } ${
               item.isHero
                 ? "cursor-default border border-[var(--helios-orange)]/25 bg-[var(--helios-orange)]/10 text-[var(--helios-orange-hover)]"
                 : "border border-white/10 text-white/40 hover:border-[var(--helios-orange)]/40 hover:bg-[var(--helios-orange)] hover:text-black disabled:cursor-wait disabled:opacity-40"
             }`}
           >
-            {item.isHero
-              ? "Current hero"
-              : isUpdatingHero
-                ? "Updating"
-                : "Set hero"}
+            {viewMode === "compact" ? (
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+                <path d="m12 3 2.75 5.58 6.16.9-4.46 4.34 1.05 6.13L12 17.06l-5.5 2.89 1.05-6.13-4.46-4.34 6.16-.9L12 3Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+              </svg>
+            ) : item.isHero ? "Current hero" : isUpdatingHero ? "Updating" : "Set hero"}
           </button>
 
           <button
@@ -428,6 +484,11 @@ export default function ProjectMediaManager({
   const [reorderErrors, setReorderErrors] = useState<
     Partial<Record<MediaCategory, string>>
   >({});
+  const [viewMode, setViewMode] = useState<MediaViewMode>("comfortable");
+  const [selectedMediaIds, setSelectedMediaIds] = useState<string[]>([]);
+  const [selectionAnchorId, setSelectionAnchorId] = useState<string | null>(
+    null,
+  );
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -520,6 +581,91 @@ export default function ProjectMediaManager({
   useEffect(() => {
     void loadMedia();
   }, [loadMedia]);
+
+  useEffect(() => {
+    const savedViewMode = window.localStorage.getItem(
+      "helios-project-media-view",
+    );
+
+    if (savedViewMode === "comfortable" || savedViewMode === "compact") {
+      setViewMode(savedViewMode);
+    }
+  }, []);
+
+  const changeViewMode = useCallback((nextViewMode: MediaViewMode) => {
+    setViewMode(nextViewMode);
+    window.localStorage.setItem("helios-project-media-view", nextViewMode);
+  }, []);
+
+  const toggleMediaSelection = useCallback(
+    (mediaId: string, extendRange: boolean) => {
+      const selectedItem = media.find((item) => item.id === mediaId);
+
+      if (!selectedItem) {
+        return;
+      }
+
+      const collectionItems = media
+        .filter(
+          (item) => item.mediaCategory === selectedItem.mediaCategory,
+        )
+        .sort(sortMediaItems);
+      const currentSelectionIsSameCollection = selectedMediaIds.every(
+        (selectedId) =>
+          collectionItems.some((item) => item.id === selectedId),
+      );
+
+      if (extendRange && selectionAnchorId) {
+        const anchorIndex = collectionItems.findIndex(
+          (item) => item.id === selectionAnchorId,
+        );
+        const selectedIndex = collectionItems.findIndex(
+          (item) => item.id === mediaId,
+        );
+
+        if (anchorIndex >= 0 && selectedIndex >= 0) {
+          const rangeIds = collectionItems
+            .slice(
+              Math.min(anchorIndex, selectedIndex),
+              Math.max(anchorIndex, selectedIndex) + 1,
+            )
+            .map((item) => item.id);
+
+          setSelectedMediaIds((current) =>
+            Array.from(
+              new Set([
+                ...(currentSelectionIsSameCollection ? current : []),
+                ...rangeIds,
+              ]),
+            ),
+          );
+          return;
+        }
+      }
+
+      setSelectedMediaIds((current) => {
+        const sameCollectionCurrent = currentSelectionIsSameCollection
+          ? current
+          : [];
+
+        return sameCollectionCurrent.includes(mediaId)
+          ? sameCollectionCurrent.filter((id) => id !== mediaId)
+          : [...sameCollectionCurrent, mediaId];
+      });
+      setSelectionAnchorId(mediaId);
+    },
+    [media, selectedMediaIds, selectionAnchorId],
+  );
+
+  const selectCollection = useCallback((mediaIds: string[]) => {
+    setSelectedMediaIds(mediaIds);
+    setSelectionAnchorId(mediaIds[0] ?? null);
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectedMediaIds([]);
+    setSelectionAnchorId(null);
+  }, []);
 
   const handleMediaUploaded = useCallback((uploadedMedia: ProjectMediaItem) => {
     setMedia((currentMedia) => {
@@ -755,6 +901,9 @@ export default function ProjectMediaManager({
       setMedia((currentMedia) =>
         currentMedia.filter((item) => item.id !== data.deletedMediaId),
       );
+      setSelectedMediaIds((current) =>
+        current.filter((mediaId) => mediaId !== data.deletedMediaId),
+      );
 
       if (activeMediaId === data.deletedMediaId) {
         setActiveMediaId(null);
@@ -780,14 +929,17 @@ export default function ProjectMediaManager({
   }, [activeMediaId, deletingMedia, projectId]);
 
   const handleReorder = useCallback(
-    async (mediaCategory: MediaCategory, activeId: string, overId: string) => {
+    async (
+      mediaCategory: MediaCategory,
+      activeId: string,
+      overId: string,
+      requestedMovingIds: string[] = [activeId],
+    ) => {
       const collectionItems = media
         .filter((item) => item.mediaCategory === mediaCategory)
         .sort(sortMediaItems);
 
-      const oldIndex = collectionItems.findIndex(
-        (item) => item.id === activeId,
-      );
+      const oldIndex = collectionItems.findIndex((item) => item.id === activeId);
       const newIndex = collectionItems.findIndex((item) => item.id === overId);
 
       if (
@@ -799,12 +951,42 @@ export default function ProjectMediaManager({
         return;
       }
 
-      const reorderedItems = arrayMove(collectionItems, oldIndex, newIndex).map(
-        (item, index) => ({
-          ...item,
-          displayOrder: index,
-        }),
+      const requestedMovingIdSet = new Set(requestedMovingIds);
+      const movingItems = collectionItems.filter((item) =>
+        requestedMovingIdSet.has(item.id),
       );
+      const isGroupMove =
+        movingItems.length > 1 && requestedMovingIdSet.has(activeId);
+
+      if (isGroupMove && requestedMovingIdSet.has(overId)) {
+        return;
+      }
+
+      const reorderedCollection = isGroupMove
+        ? (() => {
+            const remainingItems = collectionItems.filter(
+              (item) => !requestedMovingIdSet.has(item.id),
+            );
+            const overIndexInRemaining = remainingItems.findIndex(
+              (item) => item.id === overId,
+            );
+            const insertIndex =
+              oldIndex < newIndex
+                ? overIndexInRemaining + 1
+                : overIndexInRemaining;
+
+            return [
+              ...remainingItems.slice(0, insertIndex),
+              ...movingItems,
+              ...remainingItems.slice(insertIndex),
+            ];
+          })()
+        : arrayMove(collectionItems, oldIndex, newIndex);
+
+      const reorderedItems = reorderedCollection.map((item, index) => ({
+        ...item,
+        displayOrder: index,
+      }));
 
       const reorderedOrderById = new Map(
         reorderedItems.map((item) => [item.id, item.displayOrder]),
@@ -903,9 +1085,47 @@ export default function ProjectMediaManager({
         return;
       }
 
-      void handleReorder(mediaCategory, String(active.id), String(over.id));
+      const activeId = String(active.id);
+      const selectedIdsInCollection = selectedMediaIds.filter((mediaId) =>
+        media.some(
+          (item) =>
+            item.id === mediaId && item.mediaCategory === mediaCategory,
+        ),
+      );
+      const movingIds = selectedIdsInCollection.includes(activeId)
+        ? selectedIdsInCollection
+        : [activeId];
+
+      void handleReorder(
+        mediaCategory,
+        activeId,
+        String(over.id),
+        movingIds,
+      );
     },
-    [handleReorder],
+    [handleReorder, media, selectedMediaIds],
+  );
+
+  const handleDragStart = useCallback(
+    (mediaCategory: MediaCategory, event: DragStartEvent) => {
+      const activeId = String(event.active.id);
+      const activeIsSelected = selectedMediaIds.includes(activeId);
+
+      if (!activeIsSelected) {
+        setSelectedMediaIds([activeId]);
+        setSelectionAnchorId(activeId);
+      } else {
+        setSelectedMediaIds((current) =>
+          current.filter((mediaId) =>
+            media.some(
+              (item) =>
+                item.id === mediaId && item.mediaCategory === mediaCategory,
+            ),
+          ),
+        );
+      }
+    },
+    [media, selectedMediaIds],
   );
 
   const closePreview = useCallback(() => {
@@ -1020,17 +1240,70 @@ export default function ProjectMediaManager({
               </p>
             </div>
 
-            <div className="flex items-center gap-3 text-xs text-white/25">
-              <span>
-                {groupedCollections.length}{" "}
-                {groupedCollections.length === 1 ? "collection" : "collections"}
-              </span>
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-3 text-xs text-white/25">
+                <span>
+                  {groupedCollections.length}{" "}
+                  {groupedCollections.length === 1
+                    ? "collection"
+                    : "collections"}
+                </span>
 
-              <span aria-hidden="true">·</span>
+                <span aria-hidden="true">·</span>
 
-              <span>
-                {media.length} {media.length === 1 ? "asset" : "assets"}
-              </span>
+                <span>
+                  {media.length} {media.length === 1 ? "asset" : "assets"}
+                </span>
+              </div>
+
+              <div
+                role="group"
+                aria-label="Gallery density"
+                className="flex rounded-full border border-white/[0.09] bg-black/25 p-1"
+              >
+                <button
+                  type="button"
+                  onClick={() => changeViewMode("comfortable")}
+                  aria-pressed={viewMode === "comfortable"}
+                  className={`flex h-9 w-9 items-center justify-center rounded-full transition ${
+                    viewMode === "comfortable"
+                      ? "bg-white/[0.1] text-white"
+                      : "text-white/30 hover:text-white/65"
+                  }`}
+                  title="Comfortable three-column view"
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+                    <rect x="3" y="4" width="8" height="7" rx="1" stroke="currentColor" strokeWidth="1.5" />
+                    <rect x="13" y="4" width="8" height="7" rx="1" stroke="currentColor" strokeWidth="1.5" />
+                    <rect x="3" y="13" width="8" height="7" rx="1" stroke="currentColor" strokeWidth="1.5" />
+                    <rect x="13" y="13" width="8" height="7" rx="1" stroke="currentColor" strokeWidth="1.5" />
+                  </svg>
+                  <span className="sr-only">Comfortable view</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => changeViewMode("compact")}
+                  aria-pressed={viewMode === "compact"}
+                  className={`flex h-9 w-9 items-center justify-center rounded-full transition ${
+                    viewMode === "compact"
+                      ? "bg-white/[0.1] text-white"
+                      : "text-white/30 hover:text-white/65"
+                  }`}
+                  title="Compact multi-column view"
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+                    {[
+                      [3, 4], [9, 4], [15, 4],
+                      [3, 10], [9, 10], [15, 10],
+                      [3, 16], [9, 16], [15, 16],
+                    ].map(([x, y]) => (
+                      <rect key={`${x}-${y}`} x={x} y={y} width="4" height="4" rx="0.6" stroke="currentColor" strokeWidth="1.2" />
+                    ))}
+                  </svg>
+                  <span className="sr-only">Compact view</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1144,6 +1417,9 @@ export default function ProjectMediaManager({
                     collection.value,
                   );
                   const reorderError = reorderErrors[collection.value];
+                  const selectedIdsInCollection = selectedMediaIds.filter(
+                    (mediaId) => items.some((item) => item.id === mediaId),
+                  );
 
                   return (
                     <section
@@ -1173,7 +1449,36 @@ export default function ProjectMediaManager({
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center justify-end gap-3">
+                          {selectedIdsInCollection.length > 0 && (
+                            <>
+                              <span className="text-[0.56rem] font-semibold uppercase tracking-[0.15em] text-[var(--helios-orange)]/80">
+                                {selectedIdsInCollection.length} selected
+                              </span>
+
+                              <button
+                                type="button"
+                                onClick={clearSelection}
+                                className="rounded-full border border-white/[0.09] px-3 py-2 text-[0.54rem] font-semibold uppercase tracking-[0.14em] text-white/45 transition hover:border-white/20 hover:text-white"
+                              >
+                                Clear
+                              </button>
+                            </>
+                          )}
+
+                          {items.length > 1 &&
+                            selectedIdsInCollection.length !== items.length && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  selectCollection(items.map((item) => item.id))
+                                }
+                                className="rounded-full border border-white/[0.09] px-3 py-2 text-[0.54rem] font-semibold uppercase tracking-[0.14em] text-white/35 transition hover:border-white/20 hover:text-white"
+                              >
+                                Select all
+                              </button>
+                            )}
+
                           {isCollectionSaving && (
                             <span
                               role="status"
@@ -1215,6 +1520,9 @@ export default function ProjectMediaManager({
                       <DndContext
                         sensors={sensors}
                         collisionDetection={closestCenter}
+                        onDragStart={(event) =>
+                          handleDragStart(collection.value, event)
+                        }
                         onDragEnd={(event) =>
                           handleDragEnd(collection.value, event)
                         }
@@ -1223,7 +1531,13 @@ export default function ProjectMediaManager({
                           items={items.map((item) => item.id)}
                           strategy={rectSortingStrategy}
                         >
-                          <div className="grid gap-5 p-5 sm:grid-cols-2 xl:grid-cols-3">
+                          <div
+                            className={`grid p-5 ${
+                              viewMode === "compact"
+                                ? "gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+                                : "gap-5 sm:grid-cols-2 xl:grid-cols-3"
+                            }`}
+                          >
                             {items.map((item, itemIndex) => (
                               <SortableMediaCard
                                 key={item.id}
@@ -1235,7 +1549,13 @@ export default function ProjectMediaManager({
                                 isHeroUpdateLocked={updatingHeroId !== null}
                                 isAssetUpdating={updatingAssetId === item.id}
                                 isMenuOpen={openMenuId === item.id}
+                                isSelected={selectedIdsInCollection.includes(
+                                  item.id,
+                                )}
+                                selectedCount={selectedIdsInCollection.length}
+                                viewMode={viewMode}
                                 onOpenPreview={setActiveMediaId}
+                                onToggleSelection={toggleMediaSelection}
                                 onSetHero={(mediaId) =>
                                   void handleSetHero(mediaId)
                                 }
