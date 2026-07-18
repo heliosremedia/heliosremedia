@@ -126,6 +126,18 @@ select {
   font: inherit;
 }
 
+.admin-form-scope input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]),
+.admin-form-scope textarea,
+.admin-form-scope select {
+  font-size: 1rem !important;
+  line-height: 1.5rem !important;
+}
+
+.admin-form-scope input::placeholder,
+.admin-form-scope textarea::placeholder {
+  font-size: 1rem;
+}
+
 img,
 video {
   display: block;

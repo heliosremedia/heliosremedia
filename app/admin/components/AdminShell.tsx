@@ -16,7 +16,7 @@ export default function AdminShell({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#09090a] text-[var(--foreground)]">
+    <div className="admin-form-scope min-h-screen bg-[#09090a] text-[var(--foreground)]">
       <AdminSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
