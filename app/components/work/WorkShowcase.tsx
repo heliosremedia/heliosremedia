@@ -8,7 +8,7 @@ import { portfolioItems } from "./portfolio";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-export default function WorkShowcase() {
+export default function WorkShowcase({ items = portfolioItems }: { items?: typeof portfolioItems }) {
   const shouldReduceMotion = useReducedMotion();
 
   return (
@@ -172,7 +172,7 @@ export default function WorkShowcase() {
           }}
         >
           <WorkCard
-            {...portfolioItems[0]}
+            {...items[0]}
             priority
             className="h-[clamp(28rem,56vw,42rem)] rounded-[4px]"
           />
@@ -180,7 +180,7 @@ export default function WorkShowcase() {
 
         <div className="mx-auto mt-[clamp(1.5rem,2.5vw,2.25rem)] w-full max-w-[76rem] px-5 sm:px-8 lg:px-10">
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-            {portfolioItems.slice(1).map((item, index) => (
+            {items.slice(1).map((item, index) => (
               <motion.div
                 key={item.title}
                 className="relative"

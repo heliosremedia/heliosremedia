@@ -59,6 +59,20 @@ const navigation: NavigationItem[] = [
     ),
   },
   {
+    label: "Inquiries",
+    href: "/admin/inquiries",
+    icon: (
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v9a2.5 2.5 0 0 1-2.5 2.5H11l-5 4v-4.2A2.5 2.5 0 0 1 4 14.5v-9Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M8 8h8M8 12h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+    ),
+  },
+  {
+    label: "Homepage",
+    href: "/admin/homepage",
+    icon: (
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><path d="m3 11 9-8 9 8M5.5 9.5V21h13V9.5M9.5 21v-7h5v7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+    ),
+  },
+  {
     label: "Media Library",
     href: "/admin/media",
     icon: (
@@ -118,6 +132,69 @@ const navigation: NavigationItem[] = [
         />
       </svg>
     ),
+  },
+  {
+    label: "FAQs",
+    href: "/admin/faqs",
+    icon: (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        fill="none"
+        className="h-5 w-5"
+      >
+        <path
+          d="M5 5.5A2.5 2.5 0 0 1 7.5 3h9A2.5 2.5 0 0 1 19 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.8 4v-4A2.5 2.5 0 0 1 4 13.5v-8Z"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M9.5 8.2a2.6 2.6 0 0 1 5 1c0 1.8-2.5 1.8-2.5 3.3M12 14.6v.1"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
+  },
+  {
+    label: "Testimonials",
+    href: "/admin/testimonials",
+    icon: (
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+        <path d="M7.5 12.5H5.8A2.8 2.8 0 0 1 3 9.7V7.8A2.8 2.8 0 0 1 5.8 5h2.4A2.8 2.8 0 0 1 11 7.8v2.4c0 4-2 6.8-6 8.8M17.5 12.5h-1.7a2.8 2.8 0 0 1-2.8-2.8V7.8A2.8 2.8 0 0 1 15.8 5h2.4A2.8 2.8 0 0 1 21 7.8v2.4c0 4-2 6.8-6 8.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    label: "Trusted By",
+    href: "/admin/trusted-logos",
+    icon: (
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+        <path d="M12 3 15 9l6.5.9-4.7 4.6 1.1 6.5-5.9-3.1L6.1 21l1.1-6.5-4.7-4.6L9 9l3-6Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    label: "Calls to Action",
+    href: "/admin/ctas",
+    icon: (
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+        <path d="M5 12h14M14 7l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" />
+      </svg>
+    ),
+  },
+  {
+    label: "Site Settings",
+    href: "/admin/settings",
+    icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
+  },
+  {
+    label: "Activity",
+    href: "/admin/activity",
+    icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><circle cx="6" cy="6" r="1" fill="currentColor"/><circle cx="6" cy="12" r="1" fill="currentColor"/><circle cx="6" cy="18" r="1" fill="currentColor"/></svg>,
   },
 ];
 

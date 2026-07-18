@@ -1,17 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import {
-  useActionState,
-  useEffect,
-  useState,
-} from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 
-import {
-  createProject,
-  type CreateProjectState,
-} from "./actions";
+import { createProject, type CreateProjectState } from "./actions";
 
 const initialState: CreateProjectState = {
   error: null,
@@ -43,7 +36,6 @@ function SubmitButton() {
       ) : (
         <>
           Create draft
-
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
@@ -71,20 +63,11 @@ const labelClasses =
   "text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/45";
 
 export default function NewProjectForm() {
-  const [state, formAction] = useActionState(
-    createProject,
-    initialState,
-  );
+  const [state, formAction] = useActionState(createProject, initialState);
 
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [slugEdited, setSlugEdited] = useState(false);
-
-  useEffect(() => {
-    if (!slugEdited) {
-      setSlug(slugify(title));
-    }
-  }, [title, slugEdited]);
 
   return (
     <form action={formAction}>
@@ -114,9 +97,7 @@ export default function NewProjectForm() {
               <label>
                 <span className={labelClasses}>
                   Project title
-                  <span className="ml-1 text-[var(--helios-orange)]">
-                    *
-                  </span>
+                  <span className="ml-1 text-[var(--helios-orange)]">*</span>
                 </span>
 
                 <input
@@ -125,18 +106,14 @@ export default function NewProjectForm() {
                   type="text"
                   name="title"
                   value={title}
-                  onChange={(event) =>
-                    setTitle(event.target.value)
-                  }
+                  onChange={(event) => setTitle(event.target.value)}
                   placeholder="Mountain Modern in Fort Collins"
                   className={inputClasses}
                 />
               </label>
 
               <label>
-                <span className={labelClasses}>
-                  Portfolio URL
-                </span>
+                <span className={labelClasses}>Portfolio URL</span>
 
                 <div className="mt-2 flex min-h-12 overflow-hidden rounded-xl border border-white/[0.08] bg-black/20 transition focus-within:border-[var(--helios-orange)]/45">
                   <span className="flex items-center border-r border-white/[0.08] px-4 text-sm text-white/25">
@@ -146,7 +123,7 @@ export default function NewProjectForm() {
                   <input
                     type="text"
                     name="slug"
-                    value={slug}
+                    value={slugEdited ? slug : slugify(title)}
                     onChange={(event) => {
                       setSlugEdited(true);
                       setSlug(slugify(event.target.value));
@@ -157,15 +134,13 @@ export default function NewProjectForm() {
                 </div>
 
                 <p className="mt-2 text-xs leading-5 text-white/25">
-                  We will automatically make this unique if another
-                  project already uses it.
+                  We will automatically make this unique if another project
+                  already uses it.
                 </p>
               </label>
 
               <label>
-                <span className={labelClasses}>
-                  Short description
-                </span>
+                <span className={labelClasses}>Short description</span>
 
                 <textarea
                   name="shortDescription"
@@ -179,9 +154,7 @@ export default function NewProjectForm() {
 
           <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02]">
             <div className="border-b border-white/[0.08] px-5 py-5 sm:px-6">
-              <h2 className="text-2xl font-normal text-white">
-                Location
-              </h2>
+              <h2 className="text-2xl font-normal text-white">Location</h2>
 
               <p className="mt-1 text-sm leading-6 text-white/35">
                 Add the location information visitors should see.
@@ -213,9 +186,7 @@ export default function NewProjectForm() {
               </label>
 
               <label className="sm:col-span-2">
-                <span className={labelClasses}>
-                  Display location
-                </span>
+                <span className={labelClasses}>Display location</span>
 
                 <input
                   type="text"
@@ -225,8 +196,8 @@ export default function NewProjectForm() {
                 />
 
                 <p className="mt-2 text-xs leading-5 text-white/25">
-                  Optional. This replaces the city and state wherever
-                  the project location is displayed publicly.
+                  Optional. This replaces the city and state wherever the
+                  project location is displayed publicly.
                 </p>
               </label>
             </div>
@@ -239,16 +210,14 @@ export default function NewProjectForm() {
               </h2>
 
               <p className="mt-1 text-sm leading-6 text-white/35">
-                Organize the project for future filtering and
-                portfolio categories.
+                Organize the project for future filtering and portfolio
+                categories.
               </p>
             </div>
 
             <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-6">
               <label>
-                <span className={labelClasses}>
-                  Project type
-                </span>
+                <span className={labelClasses}>Project type</span>
 
                 <select
                   name="projectType"
@@ -256,26 +225,16 @@ export default function NewProjectForm() {
                   className={inputClasses}
                 >
                   <option value="">Select project type</option>
-                  <option value="Listing Media">
-                    Listing Media
-                  </option>
-                  <option value="Agent Branding">
-                    Agent Branding
-                  </option>
-                  <option value="Community Content">
-                    Community Content
-                  </option>
-                  <option value="Commercial">
-                    Commercial
-                  </option>
+                  <option value="Listing Media">Listing Media</option>
+                  <option value="Agent Branding">Agent Branding</option>
+                  <option value="Community Content">Community Content</option>
+                  <option value="Commercial">Commercial</option>
                   <option value="Other">Other</option>
                 </select>
               </label>
 
               <label>
-                <span className={labelClasses}>
-                  Property type
-                </span>
+                <span className={labelClasses}>Property type</span>
 
                 <select
                   name="propertyType"
@@ -283,16 +242,12 @@ export default function NewProjectForm() {
                   className={inputClasses}
                 >
                   <option value="">Select property type</option>
-                  <option value="Single-Family Home">
-                    Single-Family Home
-                  </option>
+                  <option value="Single-Family Home">Single-Family Home</option>
                   <option value="Luxury Home">Luxury Home</option>
                   <option value="Townhome">Townhome</option>
                   <option value="Condominium">Condominium</option>
                   <option value="Land">Land</option>
-                  <option value="Farm and Ranch">
-                    Farm and Ranch
-                  </option>
+                  <option value="Farm and Ranch">Farm and Ranch</option>
                   <option value="Commercial">Commercial</option>
                   <option value="Other">Other</option>
                 </select>
@@ -312,8 +267,8 @@ export default function NewProjectForm() {
             </h2>
 
             <p className="mt-3 text-sm leading-6 text-white/40">
-              This creates a private draft. Nothing will appear on
-              the public website until you publish it.
+              This creates a private draft. Nothing will appear on the public
+              website until you publish it.
             </p>
 
             <div className="mt-6 space-y-3 border-t border-white/[0.08] pt-5">
@@ -323,10 +278,7 @@ export default function NewProjectForm() {
                 ["03", "Services", false],
                 ["04", "Review and publish", false],
               ].map(([number, label, active]) => (
-                <div
-                  key={number as string}
-                  className="flex items-center gap-3"
-                >
+                <div key={number as string} className="flex items-center gap-3">
                   <span
                     className={`flex h-7 w-7 items-center justify-center rounded-full border text-[0.58rem] font-semibold ${
                       active

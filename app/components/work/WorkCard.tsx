@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 
@@ -11,6 +10,7 @@ type WorkCardProps = {
   size?: "hero" | "supporting";
   className?: string;
   priority?: boolean;
+  imageAlt?: string;
 };
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -22,6 +22,7 @@ export default function WorkCard({
   size = "supporting",
   className = "",
   priority = false,
+  imageAlt,
 }: WorkCardProps) {
   const shouldReduceMotion = useReducedMotion();
 
@@ -78,15 +79,13 @@ export default function WorkCard({
         }}
         className="absolute inset-0 will-change-transform"
       >
-        <Image
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           src={image}
-          alt={`${title} portfolio by Helios Real Estate Media`}
-          fill
-          priority={priority}
+          alt={imageAlt || `${title} portfolio by Helios Real Estate Media`}
           loading={priority ? "eager" : "lazy"}
-          quality={95}
           sizes={imageSizes}
-          className="object-cover"
+          className="absolute inset-0 h-full w-full object-cover"
         />
       </motion.div>
 

@@ -3,7 +3,10 @@ import { notFound } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
 
+import ProjectDetailsEditor from "./ProjectDetailsEditor";
 import ProjectMediaManager from "./ProjectMediaManager";
+import ProjectWorkflowManager from "./ProjectWorkflowManager";
+import ProjectPreviewManager from "./ProjectPreviewManager";
 
 export const dynamic = "force-dynamic";
 
@@ -17,44 +20,111 @@ function formatStatus(status: string) {
   return status.charAt(0) + status.slice(1).toLowerCase();
 }
 
+function statusClasses(status: string) {
+  switch (status) {
+    case "PUBLISHED":
+      return "border-emerald-300/20 bg-emerald-300/[0.07] text-emerald-200";
+    case "ARCHIVED":
+      return "border-white/10 bg-white/[0.04] text-white/45";
+    default:
+      return "border-amber-300/20 bg-amber-300/[0.08] text-amber-200";
+  }
+}
+
 export default async function ProjectEditorPage({
   params,
 }: ProjectEditorPageProps) {
   const { projectId } = await params;
 
-  const project = await prisma.project.findUnique({
-    where: {
-      id: projectId,
-    },
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      shortDescription: true,
-      city: true,
-      state: true,
-      locationLabel: true,
-      projectType: true,
-      propertyType: true,
-      status: true,
-      createdAt: true,
-      updatedAt: true,
-      _count: {
-        select: {
-          media: true,
-          services: true,
-        },
+  const [project, services] = await Promise.all([
+    prisma.project.findUnique({
+      where: {
+        id: projectId,
       },
-    },
-  });
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        shortDescription: true,
+        description: true,
+        city: true,
+        state: true,
+        locationLabel: true,
+        projectType: true,
+        propertyType: true,
+        seoTitle: true,
+        seoDescription: true,
+        status: true,
+        featured: true,
+        heroMediaId: true,
+        heroMedia: {
+          select: {
+            visibility: true,
+          },
+        },
+        publishedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        details: {
+          select: {
+            listingAgent: true,
+            brokerage: true,
+            builder: true,
+            architect: true,
+            interiorDesigner: true,
+            squareFeet: true,
+            bedrooms: true,
+            bathrooms: true,
+            lotSize: true,
+            neighborhood: true,
+            propertyWebsiteUrl: true,
+          },
+        },
+        media: {
+          where: {
+            visibility: "VISIBLE",
+          },
+          select: {
+            id: true,
+          },
+        },
+        services: {
+          select: {
+            serviceId: true,
+          },
+        },
+        _count: {
+          select: {
+            media: true,
+            services: true,
+          },
+        },
+        previewLinks: { orderBy: { createdAt: "desc" }, take: 25, select: { id: true, label: true, expiresAt: true, createdAt: true, lastUsedAt: true, revokedAt: true } },
+      },
+    }),
+    prisma.service.findMany({
+      orderBy: [
+        {
+          displayOrder: "asc",
+        },
+        {
+          createdAt: "asc",
+        },
+      ],
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        active: true,
+        displayOrder: true,
+      },
+    }),
+  ]);
 
   if (!project) {
     notFound();
   }
-
-  const location =
-    project.locationLabel ||
-    [project.city, project.state].filter(Boolean).join(", ");
 
   return (
     <div className="space-y-7">
@@ -77,7 +147,6 @@ export default async function ProjectEditorPage({
               strokeLinejoin="round"
             />
           </svg>
-
           Back to projects
         </Link>
 
@@ -88,7 +157,11 @@ export default async function ProjectEditorPage({
                 Project editor
               </p>
 
-              <span className="rounded-full border border-amber-300/20 bg-amber-300/[0.08] px-3 py-1 text-[0.58rem] font-semibold uppercase tracking-[0.14em] text-amber-200">
+              <span
+                className={`rounded-full border px-3 py-1 text-[0.58rem] font-semibold uppercase tracking-[0.14em] ${statusClasses(
+                  project.status,
+                )}`}
+              >
                 {formatStatus(project.status)}
               </span>
             </div>
@@ -102,28 +175,40 @@ export default async function ProjectEditorPage({
             </p>
           </div>
 
-          <p className="text-xs text-white/25">
-            {project._count.media > 0
-              ? `${project._count.media} ${
-                  project._count.media === 1
-                    ? "asset"
-                    : "assets"
-                } saved`
-              : "Ready for project media"}
-          </p>
+          <div className="flex flex-col items-start gap-2 sm:items-end">
+            {project.status === "PUBLISHED" && (
+              <Link
+                href={`/portfolio/${project.slug}`}
+                className="text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-[var(--helios-orange)] transition hover:text-[var(--helios-orange-hover)]"
+              >
+                View live project
+              </Link>
+            )}
+
+            <p className="text-xs text-white/25">
+              {project._count.media > 0
+                ? `${project._count.media} ${
+                    project._count.media === 1 ? "asset" : "assets"
+                  } saved`
+                : "Ready for project media"}
+            </p>
+          </div>
         </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-4">
         {[
-          ["01", "Details", "Complete", true],
+          [
+            "01",
+            "Details",
+            project.shortDescription ? "Ready" : "Add summary",
+            Boolean(project.shortDescription),
+          ],
           [
             "02",
             "Media",
             `${project._count.media} ${
-              project._count.media === 1
-                ? "asset"
-                : "assets"
+              project._count.media === 1 ? "asset" : "assets"
             }`,
             true,
           ],
@@ -131,9 +216,18 @@ export default async function ProjectEditorPage({
             "03",
             "Services",
             `${project._count.services} selected`,
-            false,
+            project._count.services > 0,
           ],
-          ["04", "Publish", "Not published", false],
+          [
+            "04",
+            "Publish",
+            project.status === "PUBLISHED"
+              ? "Live"
+              : project.status === "ARCHIVED"
+                ? "Archived"
+                : "Draft",
+            project.status === "PUBLISHED",
+          ],
         ].map(([number, label, detail, active]) => (
           <article
             key={number as string}
@@ -145,70 +239,48 @@ export default async function ProjectEditorPage({
           >
             <p
               className={`text-[0.6rem] font-semibold uppercase tracking-[0.18em] ${
-                active
-                  ? "text-[var(--helios-orange-hover)]"
-                  : "text-white/25"
+                active ? "text-[var(--helios-orange-hover)]" : "text-white/25"
               }`}
             >
               Step {number}
             </p>
 
-            <h2 className="mt-3 text-xl font-normal text-white">
-              {label}
-            </h2>
+            <h2 className="mt-3 text-xl font-normal text-white">{label}</h2>
 
-            <p className="mt-2 text-xs text-white/30">
-              {detail}
-            </p>
+            <p className="mt-2 text-xs text-white/30">{detail}</p>
           </article>
         ))}
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02]">
-          <div className="border-b border-white/[0.08] px-5 py-5 sm:px-6">
-            <h2 className="text-2xl font-normal text-white">
-              Project details
-            </h2>
-
-            <p className="mt-1 text-sm text-white/35">
-              The initial information saved for this project.
-            </p>
-          </div>
-
-          <dl className="grid gap-px bg-white/[0.06] sm:grid-cols-2">
-            {[
-              ["Title", project.title],
-              ["Location", location || "Not specified"],
-              [
-                "Project type",
-                project.projectType || "Not specified",
-              ],
-              [
-                "Property type",
-                project.propertyType || "Not specified",
-              ],
-              [
-                "Description",
-                project.shortDescription || "Not provided",
-              ],
-              ["Status", formatStatus(project.status)],
-            ].map(([label, value]) => (
-              <div
-                key={label as string}
-                className="bg-[#0c0c0d] px-5 py-5 sm:px-6"
-              >
-                <dt className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-white/25">
-                  {label}
-                </dt>
-
-                <dd className="mt-2 text-sm leading-6 text-white/65">
-                  {value}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
+        <ProjectDetailsEditor
+          projectId={project.id}
+          statusLabel={formatStatus(project.status)}
+          initialData={{
+            title: project.title,
+            slug: project.slug,
+            shortDescription: project.shortDescription || "",
+            description: project.description || "",
+            city: project.city || "",
+            state: project.state || "",
+            locationLabel: project.locationLabel || "",
+            projectType: project.projectType || "",
+            propertyType: project.propertyType || "",
+            seoTitle: project.seoTitle || "",
+            seoDescription: project.seoDescription || "",
+            listingAgent: project.details?.listingAgent || "",
+            brokerage: project.details?.brokerage || "",
+            builder: project.details?.builder || "",
+            architect: project.details?.architect || "",
+            interiorDesigner: project.details?.interiorDesigner || "",
+            squareFeet: project.details?.squareFeet?.toString() || "",
+            bedrooms: project.details?.bedrooms?.toString() || "",
+            bathrooms: project.details?.bathrooms?.toString() || "",
+            lotSize: project.details?.lotSize || "",
+            neighborhood: project.details?.neighborhood || "",
+            propertyWebsiteUrl: project.details?.propertyWebsiteUrl || "",
+          }}
+        />
 
         <aside className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5 xl:self-start">
           <p className="text-[0.62rem] font-semibold uppercase tracking-[0.19em] text-[var(--helios-orange)]">
@@ -216,26 +288,21 @@ export default async function ProjectEditorPage({
           </p>
 
           <h2 className="mt-3 text-2xl font-normal text-white">
-            {project._count.media > 0
-              ? "Media connected"
-              : "Add project media"}
+            {project._count.media > 0 ? "Media connected" : "Add project media"}
           </h2>
 
           <p className="mt-3 text-sm leading-6 text-white/40">
             {project._count.media > 0
               ? `${project._count.media} ${
-                  project._count.media === 1
-                    ? "asset is"
-                    : "assets are"
+                  project._count.media === 1 ? "asset is" : "assets are"
                 } currently connected to this project.`
               : "Upload the project’s first assets and organize them into media collections."}
           </p>
 
           <div className="mt-6 rounded-xl border border-white/[0.08] bg-black/20 p-4">
             <p className="text-xs leading-6 text-white/35">
-              Media uploads directly to Cloudflare R2 and is
-              organized into the selected project collection
-              automatically.
+              Media uploads directly to Cloudflare R2 and is organized into the
+              selected project collection automatically.
             </p>
           </div>
 
@@ -243,9 +310,7 @@ export default async function ProjectEditorPage({
             href="#project-media"
             className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--helios-orange)] px-5 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-[var(--helios-orange-hover)]"
           >
-            {project._count.media > 0
-              ? "Manage assets"
-              : "Upload media"}
+            {project._count.media > 0 ? "Manage assets" : "Upload media"}
           </a>
         </aside>
       </section>
@@ -266,17 +331,14 @@ export default async function ProjectEditorPage({
               </h2>
 
               <p className="mt-2 max-w-2xl text-sm leading-6 text-white/35">
-                Upload, organize, and manage every asset that will
-                appear throughout this project&apos;s portfolio.
+                Upload, organize, and manage every asset that will appear
+                throughout this project&apos;s portfolio.
               </p>
             </div>
 
             <p className="text-xs text-white/25">
               {project._count.media}{" "}
-              {project._count.media === 1
-                ? "asset"
-                : "assets"}{" "}
-              saved
+              {project._count.media === 1 ? "asset" : "assets"} saved
             </p>
           </div>
         </div>
@@ -285,6 +347,26 @@ export default async function ProjectEditorPage({
           <ProjectMediaManager projectId={project.id} />
         </div>
       </section>
+
+      <ProjectWorkflowManager
+        projectId={project.id}
+        projectSlug={project.slug}
+        initialStatus={project.status}
+        initialFeatured={project.featured}
+        initialPublishedAt={project.publishedAt?.toISOString() ?? null}
+        heroMediaId={
+          project.heroMedia?.visibility === "VISIBLE"
+            ? project.heroMediaId
+            : null
+        }
+        visibleMediaCount={project.media.length}
+        hasProjectSummary={Boolean(project.shortDescription)}
+        services={services}
+        initialServiceIds={project.services.map(
+          (projectService) => projectService.serviceId,
+        )}
+      />
+      <ProjectPreviewManager projectId={project.id} initialPreviews={project.previewLinks.map((item) => ({ ...item, expiresAt: item.expiresAt.toISOString(), createdAt: item.createdAt.toISOString(), lastUsedAt: item.lastUsedAt?.toISOString() ?? null, revokedAt: item.revokedAt?.toISOString() ?? null }))} />
     </div>
   );
 }

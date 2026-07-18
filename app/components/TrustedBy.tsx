@@ -1,19 +1,28 @@
 "use client";
 
-import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
+
+import TrustedLogoArtwork from "./TrustedLogoArtwork";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-const logos = Array.from({ length: 9 }, (_, index) => ({
-  src: `/trusted-by/trusted-by-logo-${index + 1}.avif`,
-  alt: `Helios trusted real estate partner ${index + 1}`,
-}));
+export type TrustedLogoItem = {
+  id: string;
+  organizationName: string;
+  src: string;
+  alt: string;
+  websiteUrl: string | null;
+  monochrome: boolean;
+  displayColor: string;
+  displayOpacity: number;
+  displayScale: number;
+};
 
-const marqueeLogos = [...logos, ...logos];
-
-export default function TrustedBy() {
+export default function TrustedBy({ logos }: { logos: TrustedLogoItem[] }) {
   const shouldReduceMotion = useReducedMotion();
+  const marqueeLogos = [...logos, ...logos];
+
+  if (logos.length === 0) return null;
 
   return (
     <section
@@ -83,19 +92,19 @@ export default function TrustedBy() {
 
               return (
                 <div
-                  key={`${logo.src}-${index}`}
+                  key={`${logo.id}-${index}`}
                   aria-hidden={isDuplicate ? true : undefined}
                   className="group flex h-24 w-[13.5rem] shrink-0 items-center justify-center px-7 sm:h-28 sm:w-[16rem] sm:px-9 lg:h-32 lg:w-[18rem] lg:px-11"
                 >
-                  <div className="relative h-[4.25rem] w-full sm:h-[4.75rem] lg:h-[5.25rem]">
-                    <Image
-                      src={logo.src}
-                      alt={isDuplicate ? "" : logo.alt}
-                      fill
-                      sizes="288px"
-                      className="object-contain grayscale opacity-[0.68] transition-[opacity,filter,transform] duration-700 ease-out group-hover:scale-[1.02] group-hover:grayscale-0 group-hover:opacity-95"
-                    />
-                  </div>
+                  {logo.websiteUrl && !isDuplicate ? (
+                    <a href={logo.websiteUrl} target="_blank" rel="noreferrer" aria-label={`Visit ${logo.organizationName}`} className="relative flex h-[4.25rem] w-full items-center justify-center sm:h-[4.75rem] lg:h-[5.25rem]">
+                      <TrustedLogoArtwork src={logo.src} alt={logo.alt} monochrome={logo.monochrome} color={logo.displayColor} opacity={logo.displayOpacity} scale={logo.displayScale} className="transition-opacity duration-700 group-hover:opacity-100" />
+                    </a>
+                  ) : (
+                    <div className="relative flex h-[4.25rem] w-full items-center justify-center sm:h-[4.75rem] lg:h-[5.25rem]">
+                      <TrustedLogoArtwork src={logo.src} alt={logo.alt} decorative={isDuplicate} monochrome={logo.monochrome} color={logo.displayColor} opacity={logo.displayOpacity} scale={logo.displayScale} className="transition-opacity duration-700 group-hover:opacity-100" />
+                    </div>
+                  )}
                 </div>
               );
             })}

@@ -47,6 +47,38 @@ enum ExternalProvider {
   OTHER
 }
 
+enum CtaActionType {
+  BOOKING
+  PHONE
+  EMAIL
+  INTERNAL
+  EXTERNAL
+}
+
+enum CtaPlacementSlot {
+  HOME_PRIMARY
+  ABOUT_FOOTER
+  SERVICES_FOOTER
+  FAQ_FOOTER
+  PORTFOLIO_FOOTER
+}
+
+enum AdminRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum InquiryStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  BOOKED
+  CLOSED
+  SPAM
+}
+
 model Project {
   id               String  @id @default(cuid())
   title            String
@@ -78,10 +110,12 @@ model Project {
   heroMedia      Media? @relation("ProjectHeroMedia", fields: [heroMediaId], references: [id], onDelete: SetNull)
   thumbnailMedia Media? @relation("ProjectThumbnailMedia", fields: [thumbnailMediaId], references: [id], onDelete: SetNull)
 
-  media    Media[]          @relation("ProjectMedia")
-  details  ProjectDetails?
-  services ProjectService[]
-  tags     ProjectTag[]
+  media             Media[]              @relation("ProjectMedia")
+  details           ProjectDetails?
+  services          ProjectService[]
+  tags              ProjectTag[]
+  homepagePlacement HomepageProject?
+  previewLinks      ProjectPreviewLink[]
 
   @@index([status])
   @@index([featured])
@@ -164,7 +198,8 @@ model Service {
   displayOrder Int     @default(0)
   active       Boolean @default(true)
 
-  projects ProjectService[]
+  projects  ProjectService[]
+  inquiries InquiryService[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -207,4 +242,320 @@ model ProjectTag {
 
   @@id([projectId, tagId])
   @@index([tagId])
+}
+
+model FaqCategory {
+  id           String  @id @default(cuid())
+  name         String
+  slug         String  @unique
+  description  String?
+  displayOrder Int     @default(0)
+  active       Boolean @default(true)
+
+  faqs Faq[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, displayOrder])
+}
+
+model Faq {
+  id         String      @id @default(cuid())
+  categoryId String
+  category   FaqCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  question     String
+  answer       String
+  displayOrder Int     @default(0)
+  published    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId, displayOrder])
+  @@index([published])
+  @@index([published, categoryId])
+}
+
+model Testimonial {
+  id String @id @default(cuid())
+
+  agentName   String
+  jobTitle    String?
+  brokerage   String?
+  testimonial String
+
+  photoStorageKey String?
+  photoUrl        String?
+  photoAlt        String?
+  sourceUrl       String?
+
+  focalX Float @default(0.5)
+  focalY Float @default(0.2)
+  rating Int   @default(5)
+
+  displayOrder Int     @default(0)
+  published    Boolean @default(false)
+  featured     Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, displayOrder])
+  @@index([featured])
+}
+
+model TrustedLogo {
+  id String @id @default(cuid())
+
+  organizationName String
+  logoStorageKey   String?
+  logoUrl          String?
+  logoAlt          String?
+  websiteUrl       String?
+
+  monochrome     Boolean @default(true)
+  displayColor   String  @default("#D8D3CC")
+  displayOpacity Float   @default(0.68)
+  displayScale   Float   @default(1)
+
+  displayOrder Int     @default(0)
+  published    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, displayOrder])
+}
+
+model HomepageProject {
+  id        String  @id @default(cuid())
+  projectId String  @unique
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  titleOverride String?
+  displayOrder  Int     @default(0)
+  active        Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, displayOrder])
+}
+
+model SiteSettings {
+  id String @id @default("default")
+
+  businessName String  @default("Helios Real Estate Media")
+  phoneDisplay String  @default("970.682.5533")
+  phoneE164    String  @default("+19706825533")
+  email        String?
+  bookingUrl   String?
+
+  locationLabel          String  @default("Fort Collins, Colorado")
+  serviceArea            String  @default("Northern Colorado")
+  serviceAreaDescription String?
+  footerDescription      String?
+  availabilityMessage    String?
+
+  websiteUrl   String?
+  instagramUrl String?
+  facebookUrl  String?
+  youtubeUrl   String?
+  linkedinUrl  String?
+
+  defaultSeoTitle       String @default("Helios Real Estate Media")
+  defaultSeoDescription String @default("Luxury real estate photography, cinematic films, and branding for Northern Colorado's finest homes.")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CallToAction {
+  id String @id @default(cuid())
+
+  internalName String
+  eyebrow      String?
+  headline     String
+  body         String?
+
+  primaryLabel      String
+  primaryActionType CtaActionType
+  primaryValue      String?
+
+  secondaryLabel      String?
+  secondaryActionType CtaActionType?
+  secondaryValue      String?
+
+  published Boolean @default(false)
+
+  placements CtaPlacement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published])
+}
+
+model CtaPlacement {
+  id    String           @id @default(cuid())
+  slot  CtaPlacementSlot @unique
+  ctaId String
+  cta   CallToAction     @relation(fields: [ctaId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ctaId])
+}
+
+model AdminUser {
+  id String @id @default(cuid())
+
+  email       String    @unique
+  displayName String
+  role        AdminRole @default(EDITOR)
+  active      Boolean   @default(true)
+
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+
+  auditEvents       AuditEvent[]
+  assignedInquiries Inquiry[]            @relation("InquiryAssignee")
+  inquiryNotes      InquiryNote[]
+  inquiryActivities InquiryActivity[]
+  previewLinks      ProjectPreviewLink[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, role])
+}
+
+model ProjectPreviewLink {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  tokenHash String  @unique
+  label     String?
+
+  createdById String
+  createdBy   AdminUser @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([projectId, createdAt])
+  @@index([expiresAt])
+}
+
+model Inquiry {
+  id String @id @default(cuid())
+
+  status InquiryStatus @default(NEW)
+  name   String
+  email  String
+  phone  String?
+
+  propertyAddress String?
+  city            String?
+  state           String?
+  postalCode      String?
+  desiredDate     DateTime?
+  message         String?
+
+  sourcePage  String?
+  referrer    String?
+  ctaName     String?
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  utmContent  String?
+  utmTerm     String?
+
+  ipHash    String?
+  userAgent String?
+  consent   Boolean @default(false)
+
+  assignedToId String?
+  assignedTo   AdminUser? @relation("InquiryAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  followUpAt   DateTime?
+
+  requestedServices InquiryService[]
+  notes             InquiryNote[]
+  activities        InquiryActivity[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  lastActivityAt DateTime @default(now())
+
+  @@index([status, createdAt])
+  @@index([assignedToId, status])
+  @@index([followUpAt])
+  @@index([ipHash, createdAt])
+}
+
+model InquiryService {
+  inquiryId String
+  serviceId String
+  inquiry   Inquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  @@id([inquiryId, serviceId])
+  @@index([serviceId])
+}
+
+model InquiryNote {
+  id        String    @id @default(cuid())
+  inquiryId String
+  inquiry   Inquiry   @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    AdminUser @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  body      String
+  createdAt DateTime  @default(now())
+
+  @@index([inquiryId, createdAt])
+  @@index([authorId])
+}
+
+model InquiryActivity {
+  id        String     @id @default(cuid())
+  inquiryId String
+  inquiry   Inquiry    @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  actorId   String?
+  actor     AdminUser? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action    String
+  summary   String
+  metadata  Json?
+  createdAt DateTime   @default(now())
+
+  @@index([inquiryId, createdAt])
+  @@index([actorId])
+}
+
+model AuditEvent {
+  id String @id @default(cuid())
+
+  actorId    String?
+  actor      AdminUser? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorEmail String?
+
+  action     String
+  entityType String?
+  entityId   String?
+  summary    String
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId])
 }

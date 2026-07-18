@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
+import { useSiteSettings } from "./SiteSettingsProvider";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -9,15 +10,18 @@ const exploreLinks = [
   { label: "Our Work", href: "/portfolio" },
   { label: "Services", href: "/services" },
   { label: "About Helios", href: "/about" },
-  { label: "Resources", href: "/resources" },
-];
-
-const connectLinks = [
-  { label: "Book Your Shoot", href: "/book" },
-  { label: "Contact", href: "/contact" },
+  { label: "FAQs", href: "/faq" },
+  { label: "Client Stories", href: "/#testimonials" },
 ];
 
 export default function Footer() {
+  const settings = useSiteSettings();
+  const bookingHref = settings.bookingUrl || "/inquire";
+  const connectLinks = [
+    { label: "Book Your Shoot", href: bookingHref },
+    { label: `Call ${settings.phoneDisplay}`, href: `tel:${settings.phoneE164}` },
+    ...(settings.email ? [{ label: "Email Helios", href: `mailto:${settings.email}` }] : []),
+  ];
   const prefersReducedMotion = useReducedMotion();
   const currentYear = new Date().getFullYear();
 
@@ -71,8 +75,7 @@ export default function Footer() {
             </p>
 
             <p className="mt-6 max-w-[31rem] text-[0.94rem] leading-[1.8] text-white/38 sm:text-[1rem]">
-              Photography, cinematic film, aerial media, and marketing content
-              created for real estate professionals across Northern Colorado.
+              {settings.footerDescription}
             </p>
           </div>
 
@@ -130,14 +133,14 @@ export default function Footer() {
                 </p>
 
                 <a
-                  href="tel:+19706825533"
+                  href={`tel:${settings.phoneE164}`}
                   className="mt-4 inline-block whitespace-nowrap font-serif text-[clamp(1.7rem,2.25vw,2.4rem)] leading-none tracking-[-0.03em] text-[#f2ede7] transition-colors duration-300 hover:text-[#f06b24] focus-visible:outline-none focus-visible:text-[#f06b24]"
                 >
-                  970.682.5533
+                  {settings.phoneDisplay}
                 </a>
 
                 <p className="mt-5 whitespace-nowrap text-[0.55rem] font-medium uppercase tracking-[0.25em] text-white/28">
-                  Fort Collins, Colorado
+                  {settings.locationLabel}
                 </p>
               </div>
             </nav>
@@ -147,9 +150,7 @@ export default function Footer() {
         <div className="mt-20 border-t border-white/[0.08] pt-7 sm:mt-24">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <p className="max-w-[52rem] text-[0.53rem] uppercase leading-[1.9] tracking-[0.2em] text-white/20">
-              Serving Fort Collins, Loveland, Windsor, Timnath, Greeley,
-              Wellington, Berthoud, Boulder, and surrounding Northern Colorado
-              communities.
+              {settings.serviceAreaDescription}
             </p>
 
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">

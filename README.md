@@ -1,36 +1,24 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Helios Real Estate Media
 
-## Getting Started
+The Helios public portfolio and protected Digital Asset Management workspace, built with Next.js, TypeScript, Prisma, PostgreSQL, and Cloudflare R2.
 
-First, run the development server:
+## Local setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. Install dependencies with `npm install`.
+2. Copy `.env.example` to `.env` and complete the database and R2 values.
+3. Generate a secure admin password hash with `npm run auth:hash-password`, then add the printed value to `.env`.
+4. Create a random `AUTH_SECRET` containing at least 32 characters.
+5. Apply migrations with `npx prisma migrate dev`.
+6. Start the application with `npm run dev`.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The public site is available at `http://localhost:3000`. The protected workspace is available at `http://localhost:3000/admin` and redirects unauthenticated visitors to `/login`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Admin security
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Credentials are configured through `HELIOS_ADMIN_EMAIL` and `HELIOS_ADMIN_PASSWORD_HASH`; plaintext passwords are never stored.
+- Sessions use signed, HTTP-only, same-site cookies and expire after twelve hours.
+- Five failed attempts temporarily lock the account for fifteen minutes.
+- Viewer accounts are blocked from mutating admin APIs.
+- Authentication events are retained in the admin Activity log.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Never commit `.env`, database credentials, R2 secrets, `AUTH_SECRET`, or password hashes.

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
 import {
   motion,
@@ -42,11 +43,7 @@ export default function OurApproach() {
   const signatureColor = useTransform(
     signatureProgress,
     [0, 0.45, 1],
-    [
-      "rgba(255,255,255,0.28)",
-      "rgba(255,255,255,0.6)",
-      "rgba(255,255,255,1)",
-    ],
+    ["rgba(255,255,255,0.28)", "rgba(255,255,255,0.6)", "rgba(255,255,255,1)"],
   );
 
   const signatureLetterSpacing = useTransform(
@@ -286,6 +283,13 @@ export default function OurApproach() {
             }
             className="mx-auto mt-7 block h-10 w-px bg-gradient-to-b from-[#f06b24] to-transparent sm:h-12"
           />
+
+          <Link
+            href="/about"
+            className="mt-8 inline-flex min-h-11 items-center justify-center rounded-full border border-white/12 px-6 text-[0.56rem] font-semibold uppercase tracking-[0.17em] text-white/45 transition hover:border-white/30 hover:text-white"
+          >
+            Discover Helios
+          </Link>
         </motion.footer>
       </div>
     </section>
