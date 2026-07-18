@@ -133,6 +133,27 @@ export function createTrustedLogoKey(mimeType: string) {
   return `trusted-logos/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
 }
 
+export function createSiteHeroKey(
+  kind: "video" | "poster",
+  mimeType: string,
+) {
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\..+/, "")
+    .replace("T", "-");
+  const id = randomUUID().slice(0, 8);
+
+  const extension =
+    mimeType === "video/mp4"
+      ? "mp4"
+      : mimeType === "video/webm"
+        ? "webm"
+        : extensionFromMime(mimeType);
+
+  return `site/homepage/hero/${kind}-${timestamp}-${id}.${extension}`;
+}
+
 export async function createPresignedUploadUrl(
   key: string,
   contentType: string,
