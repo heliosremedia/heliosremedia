@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 
 import Footer from "@/app/components/Footer";
 import ManagedCtaSection from "@/app/components/ManagedCtaSection";
-import { BookingLink } from "@/app/components/SiteActionLink";
+import Navbar from "@/app/components/Navbar";
 import { defaultPageCtas } from "@/lib/ctas";
 
 export const dynamic = "force-dynamic";
@@ -67,43 +66,7 @@ const process = [
 export default function AboutPage() {
   return (
     <main className="min-h-screen bg-[#090909] text-white">
-      <header className="absolute inset-x-0 top-0 z-30 border-b border-white/[0.1] bg-black/20 backdrop-blur-xl">
-        <div className="container-shell flex min-h-24 items-center justify-between gap-6 py-5">
-          <Link href="/" aria-label="Helios Real Estate Media home">
-            <Image
-              src="/brand/helios-logo.png"
-              alt="Helios Real Estate Media"
-              width={260}
-              height={90}
-              priority
-              className="h-auto w-40 sm:w-48"
-            />
-          </Link>
-
-          <nav
-            className="flex items-center gap-5 sm:gap-8"
-            aria-label="About Helios"
-          >
-            <Link
-              href="/portfolio"
-              className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-white/55 transition hover:text-white"
-            >
-              Portfolio
-            </Link>
-            <Link
-              href="/services"
-              className="hidden text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-white/55 transition hover:text-white sm:inline"
-            >
-              Services
-            </Link>
-            <BookingLink
-              className="inline-flex min-h-11 items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-5 text-[0.58rem] font-semibold uppercase tracking-[0.17em] text-white transition hover:bg-[var(--helios-orange-hover)]"
-            >
-              Book now
-            </BookingLink>
-          </nav>
-        </div>
-      </header>
+      <Navbar />
 
       <section className="relative min-h-[88vh] overflow-hidden bg-[#111]">
         <Image

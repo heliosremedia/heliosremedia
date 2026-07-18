@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import Footer from "@/app/components/Footer";
-import { BookingLink } from "@/app/components/SiteActionLink";
+import Navbar from "@/app/components/Navbar";
 import { MEDIA_COLLECTIONS } from "@/lib/media-collections";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
@@ -309,38 +308,7 @@ export default async function PortfolioProjectPage({
           __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
         }}
       />
-      <header className="absolute inset-x-0 top-0 z-30 border-b border-white/[0.1] bg-black/20 backdrop-blur-xl">
-        <div className="container-shell flex min-h-24 items-center justify-between gap-6 py-5">
-          <Link href="/" aria-label="Helios Real Estate Media home">
-            <Image
-              src="/brand/helios-logo.png"
-              alt="Helios Real Estate Media"
-              width={260}
-              height={90}
-              priority
-              className="h-auto w-40 sm:w-48"
-            />
-          </Link>
-
-          <nav
-            className="flex items-center gap-5 sm:gap-8"
-            aria-label="Project"
-          >
-            <Link
-              href="/portfolio"
-              className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-white/55 transition hover:text-white"
-            >
-              All work
-            </Link>
-
-            <BookingLink
-              className="inline-flex min-h-11 items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-5 text-[0.58rem] font-semibold uppercase tracking-[0.17em] text-white transition hover:bg-[var(--helios-orange-hover)]"
-            >
-              Book now
-            </BookingLink>
-          </nav>
-        </div>
-      </header>
+      <Navbar />
 
       <section className="relative min-h-[78vh] overflow-hidden bg-[#111]">
         {heroUrl ? (

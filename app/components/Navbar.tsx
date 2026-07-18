@@ -1,11 +1,14 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useSiteSettings } from "./SiteSettingsProvider";
 
 const navigation = [
+  { label: "Home", href: "/" },
   { label: "Portfolio", href: "/portfolio" },
   { label: "Services", href: "/services" },
   { label: "About Helios", href: "/about" },
@@ -14,8 +17,13 @@ const navigation = [
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-export default function Navbar() {
+type NavbarProps = {
+  variant?: "overlay" | "solid";
+};
+
+export default function Navbar({ variant = "overlay" }: NavbarProps) {
   const settings = useSiteSettings();
+  const pathname = usePathname();
   const bookingHref = settings.bookingUrl || "/inquire";
   const [menuOpen, setMenuOpen] = useState(false);
   const shouldReduceMotion = useReducedMotion();
@@ -39,14 +47,28 @@ export default function Navbar() {
   }, []);
 
   const closeMenu = () => setMenuOpen(false);
+  const isActive = (href: string) =>
+    href === "/"
+      ? pathname === "/"
+      : pathname === href || pathname.startsWith(`${href}/`);
 
   return (
     <>
-      <header className="absolute inset-x-0 top-0 z-50">
-        <div className="flex w-full items-center justify-between px-5 pb-6 pt-[calc(1.5rem+env(safe-area-inset-top))] sm:px-8 md:px-10 md:py-8 lg:px-12 xl:px-14 2xl:px-16">
-          <motion.a
-            href="/"
-            aria-label="Helios Real Estate Media home"
+      <header
+        className={
+          variant === "solid"
+            ? "relative z-50 border-b border-white/[0.08] bg-[#090909]/95 backdrop-blur-xl"
+            : "absolute inset-x-0 top-0 z-50"
+        }
+      >
+        <div
+          className={`mx-auto flex w-full max-w-[1600px] items-center justify-between px-5 sm:px-8 md:px-10 lg:px-12 xl:px-14 ${
+            variant === "solid"
+              ? "py-5"
+              : "pb-6 pt-[calc(1.5rem+env(safe-area-inset-top))] md:py-8"
+          }`}
+        >
+          <motion.div
             className="relative z-50 shrink-0"
             initial={shouldReduceMotion ? false : { opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -55,17 +77,22 @@ export default function Navbar() {
               delay: shouldReduceMotion ? 0 : 1.15,
               ease,
             }}
-            onClick={closeMenu}
           >
-            <Image
-              src="/brand/helios-logo.png"
-              alt="Helios Real Estate Media"
-              width={260}
-              height={90}
-              priority
-              className="h-auto w-36 sm:w-40 md:w-48 lg:w-[13rem]"
-            />
-          </motion.a>
+            <Link
+              href="/"
+              aria-label="Helios Real Estate Media home"
+              onClick={closeMenu}
+            >
+              <Image
+                src="/brand/helios-logo.png"
+                alt="Helios Real Estate Media"
+                width={260}
+                height={90}
+                priority
+                className="h-auto w-36 sm:w-40 md:w-48 lg:w-[13rem]"
+              />
+            </Link>
+          </motion.div>
 
           <motion.nav
             aria-label="Primary navigation"
@@ -78,17 +105,28 @@ export default function Navbar() {
               ease,
             }}
           >
-            {navigation.map((item) => (
-              <a
-                key={item.label}
-                href={item.href}
-                className="group relative py-3 text-[11px] font-semibold uppercase tracking-[0.25em] text-white transition-colors duration-[400ms] hover:text-[var(--helios-orange)]"
-              >
-                {item.label}
+            {navigation.map((item) => {
+              const active = isActive(item.href);
 
-                <span className="absolute bottom-1 left-0 h-px w-0 bg-[var(--helios-orange)] transition-all duration-[400ms] group-hover:w-full" />
-              </a>
-            ))}
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={`group relative py-3 text-[11px] font-semibold uppercase tracking-[0.25em] transition-colors duration-[400ms] hover:text-[var(--helios-orange)] ${
+                    active ? "text-[var(--helios-orange)]" : "text-white"
+                  }`}
+                >
+                  {item.label}
+
+                  <span
+                    className={`absolute bottom-1 left-0 h-px bg-[var(--helios-orange)] transition-all duration-[400ms] group-hover:w-full ${
+                      active ? "w-full" : "w-0"
+                    }`}
+                  />
+                </Link>
+              );
+            })}
 
             <motion.a
               href={bookingHref}
@@ -220,10 +258,9 @@ export default function Navbar() {
 
                 <div className="flex flex-col">
                   {navigation.map((item, index) => (
-                    <motion.a
+                    <motion.div
                       key={item.label}
-                      href={item.href}
-                      className="group border-b border-[var(--helios-border)] py-5 font-display text-[clamp(2.9rem,13vw,4.5rem)] font-light leading-none tracking-[-0.04em] text-[var(--foreground)]"
+                      className="border-b border-[var(--helios-border)]"
                       initial={
                         shouldReduceMotion
                           ? false
@@ -248,21 +285,29 @@ export default function Navbar() {
                         delay: shouldReduceMotion ? 0 : 0.22 + index * 0.07,
                         ease,
                       }}
-                      onClick={closeMenu}
                     >
-                      <span className="flex items-end justify-between gap-6">
+                      <Link
+                        href={item.href}
+                        aria-current={isActive(item.href) ? "page" : undefined}
+                        className={`group flex items-end justify-between gap-6 py-5 font-display text-[clamp(2.9rem,13vw,4.5rem)] font-light leading-none tracking-[-0.04em] ${
+                          isActive(item.href)
+                            ? "text-[var(--helios-orange)]"
+                            : "text-[var(--foreground)]"
+                        }`}
+                        onClick={closeMenu}
+                      >
                         <span>{item.label}</span>
 
                         <span className="mb-1 text-base font-light text-[var(--helios-orange)] transition-transform duration-500 group-hover:translate-x-1">
                           ↗
                         </span>
-                      </span>
-                    </motion.a>
+                      </Link>
+                    </motion.div>
                   ))}
                 </div>
 
                 <motion.a
-                  href="#booking"
+                  href={bookingHref}
                   className="mt-10 flex min-h-14 w-full items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-8 text-xs font-semibold uppercase tracking-[0.23em] text-white"
                   initial={shouldReduceMotion ? false : { opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}

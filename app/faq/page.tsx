@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import Image from "next/image";
-import Link from "next/link";
 
 import Footer from "@/app/components/Footer";
 import ManagedCtaSection from "@/app/components/ManagedCtaSection";
-import { BookingLink, PhoneLink } from "@/app/components/SiteActionLink";
+import Navbar from "@/app/components/Navbar";
+import { PhoneLink } from "@/app/components/SiteActionLink";
 import { prisma } from "@/lib/prisma";
 import { getAbsoluteUrl } from "@/lib/site";
 import { defaultPageCtas } from "@/lib/ctas";
@@ -50,16 +49,7 @@ export default async function FaqPage() {
   return (
     <main className="min-h-screen bg-[#090909] text-white">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} />
-      <header className="border-b border-white/[0.08] bg-[#090909]/95 backdrop-blur-xl">
-        <div className="container-shell flex min-h-24 items-center justify-between gap-6 py-5">
-          <Link href="/" aria-label="Helios Real Estate Media home"><Image src="/brand/helios-logo.png" alt="Helios Real Estate Media" width={260} height={90} priority className="h-auto w-40 sm:w-48" /></Link>
-          <nav className="flex items-center gap-5 sm:gap-8" aria-label="Frequently asked questions">
-            <Link href="/portfolio" className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-white/45 transition hover:text-white">Portfolio</Link>
-            <Link href="/services" className="hidden text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-white/45 transition hover:text-white sm:inline">Services</Link>
-            <BookingLink className="inline-flex min-h-11 items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-5 text-[0.58rem] font-semibold uppercase tracking-[0.17em] text-white transition hover:bg-[var(--helios-orange-hover)]">Book now</BookingLink>
-          </nav>
-        </div>
-      </header>
+      <Navbar variant="solid" />
 
       <section className="relative overflow-hidden border-b border-white/[0.08]">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_18%,rgba(217,107,43,0.17),transparent_34%)]" />
