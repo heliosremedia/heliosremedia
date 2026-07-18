@@ -3,8 +3,11 @@ import Image from "next/image";
 import Link from "next/link";
 
 import Footer from "@/app/components/Footer";
+import ManagedCtaSection from "@/app/components/ManagedCtaSection";
+import { BookingLink, PhoneLink } from "@/app/components/SiteActionLink";
 import { prisma } from "@/lib/prisma";
 import { getAbsoluteUrl } from "@/lib/site";
+import { defaultPageCtas } from "@/lib/ctas";
 
 import FaqExplorer from "./FaqExplorer";
 
@@ -53,7 +56,7 @@ export default async function FaqPage() {
           <nav className="flex items-center gap-5 sm:gap-8" aria-label="Frequently asked questions">
             <Link href="/portfolio" className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-white/45 transition hover:text-white">Portfolio</Link>
             <Link href="/services" className="hidden text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-white/45 transition hover:text-white sm:inline">Services</Link>
-            <a href="tel:+19706825533" className="inline-flex min-h-11 items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-5 text-[0.58rem] font-semibold uppercase tracking-[0.17em] text-white transition hover:bg-[var(--helios-orange-hover)]">Book now</a>
+            <BookingLink className="inline-flex min-h-11 items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-5 text-[0.58rem] font-semibold uppercase tracking-[0.17em] text-white transition hover:bg-[var(--helios-orange-hover)]">Book now</BookingLink>
           </nav>
         </div>
       </header>
@@ -65,19 +68,14 @@ export default async function FaqPage() {
           <p className="eyebrow text-[var(--helios-orange)]">Helpful answers, clearly framed</p>
           <div className="mt-7 grid gap-10 lg:grid-cols-[minmax(0,1fr)_27rem] lg:items-end">
             <h1 className="max-w-5xl font-display text-[clamp(3.7rem,8.8vw,8.5rem)] font-light leading-[0.85] tracking-[-0.06em] text-white">Before the camera arrives.</h1>
-            <div><p className="text-sm leading-7 text-white/42 sm:text-base">Everything you need to know about planning, production, delivery, and making the most of your Helios media.</p><p className="mt-7 text-[0.56rem] font-semibold uppercase tracking-[0.18em] text-white/22">Can&apos;t find your answer? Call 970.682.5533</p></div>
+            <div><p className="text-sm leading-7 text-white/42 sm:text-base">Everything you need to know about planning, production, delivery, and making the most of your Helios media.</p><PhoneLink prefix="Can't find your answer? Call " className="mt-7 block text-[0.56rem] font-semibold uppercase tracking-[0.18em] text-white/22 transition hover:text-white/50" /></div>
           </div>
         </div>
       </section>
 
       <FaqExplorer categories={categories} />
 
-      <section className="border-t border-white/[0.08] bg-[#0d0d0d]">
-        <div className="container-shell flex flex-col gap-8 py-20 sm:py-24 lg:flex-row lg:items-end lg:justify-between">
-          <div><p className="eyebrow text-[var(--helios-orange)]">Still curious?</p><h2 className="mt-5 max-w-3xl font-display text-5xl font-light tracking-[-0.045em] text-white sm:text-6xl">Let&apos;s talk through your project.</h2></div>
-          <a href="tel:+19706825533" className="inline-flex min-h-12 items-center justify-center self-start rounded-[3px] bg-[var(--helios-orange)] px-7 text-[0.58rem] font-semibold uppercase tracking-[0.17em] text-white transition hover:bg-[var(--helios-orange-hover)] lg:self-auto">Call Helios</a>
-        </div>
-      </section>
+      <ManagedCtaSection slot="FAQ_FOOTER" fallback={defaultPageCtas.FAQ_FOOTER} />
       <Footer />
     </main>
   );

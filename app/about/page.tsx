@@ -3,6 +3,11 @@ import Image from "next/image";
 import Link from "next/link";
 
 import Footer from "@/app/components/Footer";
+import ManagedCtaSection from "@/app/components/ManagedCtaSection";
+import { BookingLink } from "@/app/components/SiteActionLink";
+import { defaultPageCtas } from "@/lib/ctas";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "About Helios | Real Estate Media in Northern Colorado",
@@ -91,12 +96,11 @@ export default function AboutPage() {
             >
               Services
             </Link>
-            <a
-              href="tel:+19706825533"
+            <BookingLink
               className="inline-flex min-h-11 items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-5 text-[0.58rem] font-semibold uppercase tracking-[0.17em] text-white transition hover:bg-[var(--helios-orange-hover)]"
             >
               Book now
-            </a>
+            </BookingLink>
           </nav>
         </div>
       </header>
@@ -270,39 +274,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden bg-[#0d0d0d]">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_50%,rgba(217,107,43,0.14),transparent_31%)]" />
-        <div className="hero-grain pointer-events-none absolute inset-0 opacity-[0.025]" />
-        <div className="container-shell relative grid gap-12 py-24 sm:py-32 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-          <div>
-            <p className="eyebrow text-[var(--helios-orange)]">
-              Fort Collins · Northern Colorado
-            </p>
-            <h2 className="mt-6 max-w-4xl font-display text-[clamp(3.1rem,6.5vw,6.5rem)] font-light leading-[0.9] tracking-[-0.055em] text-white">
-              Ready to shape the first impression?
-            </h2>
-            <p className="mt-7 max-w-xl text-sm leading-7 text-white/38">
-              Tell us about the property, the audience, and what the campaign
-              needs to accomplish. We&apos;ll help build the right media plan.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
-            <a
-              href="tel:+19706825533"
-              className="inline-flex min-h-14 items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-8 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-[var(--helios-orange-hover)]"
-            >
-              Call 970.682.5533
-            </a>
-            <Link
-              href="/portfolio"
-              className="inline-flex min-h-14 items-center justify-center rounded-[3px] border border-white/15 px-8 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/55 transition hover:border-white/35 hover:text-white"
-            >
-              Explore the work
-            </Link>
-          </div>
-        </div>
-      </section>
+      <ManagedCtaSection slot="ABOUT_FOOTER" fallback={defaultPageCtas.ABOUT_FOOTER} />
 
       <Footer />
     </main>

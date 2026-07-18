@@ -3,6 +3,9 @@ import Image from "next/image";
 import Link from "next/link";
 
 import Footer from "@/app/components/Footer";
+import ManagedCtaSection from "@/app/components/ManagedCtaSection";
+import { BookingLink } from "@/app/components/SiteActionLink";
+import { defaultPageCtas } from "@/lib/ctas";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 
@@ -89,12 +92,11 @@ export default async function ServicesPage() {
             >
               Portfolio
             </Link>
-            <a
-              href="tel:+19706825533"
+            <BookingLink
               className="inline-flex min-h-11 items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-5 text-[0.58rem] font-semibold uppercase tracking-[0.17em] text-white transition hover:bg-[var(--helios-orange-hover)]"
             >
               Book now
-            </a>
+            </BookingLink>
           </nav>
         </div>
       </header>
@@ -270,25 +272,7 @@ export default async function ServicesPage() {
         </section>
       )}
 
-      <section className="relative overflow-hidden border-b border-white/[0.08] bg-[#0d0d0d]">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_50%,rgba(217,107,43,0.14),transparent_30%)]" />
-        <div className="container-shell relative flex flex-col gap-10 py-24 sm:py-32 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="eyebrow text-[var(--helios-orange)]">
-              Build the right campaign
-            </p>
-            <h2 className="mt-6 max-w-4xl font-display text-[clamp(3rem,6.5vw,6rem)] font-light leading-[0.92] tracking-[-0.052em] text-white">
-              Let&apos;s make the property impossible to overlook.
-            </h2>
-          </div>
-          <a
-            href="tel:+19706825533"
-            className="inline-flex min-h-14 items-center justify-center self-start rounded-[3px] bg-[var(--helios-orange)] px-8 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-[var(--helios-orange-hover)] lg:self-auto"
-          >
-            Call 970.682.5533
-          </a>
-        </div>
-      </section>
+      <ManagedCtaSection slot="SERVICES_FOOTER" fallback={defaultPageCtas.SERVICES_FOOTER} />
 
       <Footer />
     </main>

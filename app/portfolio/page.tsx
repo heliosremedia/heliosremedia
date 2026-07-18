@@ -3,8 +3,11 @@ import Image from "next/image";
 import Link from "next/link";
 
 import Footer from "@/app/components/Footer";
+import ManagedCtaSection from "@/app/components/ManagedCtaSection";
+import { BookingLink } from "@/app/components/SiteActionLink";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
+import { defaultPageCtas } from "@/lib/ctas";
 
 export const dynamic = "force-dynamic";
 
@@ -147,12 +150,11 @@ export default async function PortfolioPage({
               Home
             </Link>
 
-            <Link
-              href="tel:+19706825533"
+            <BookingLink
               className="inline-flex min-h-11 items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-5 text-[0.58rem] font-semibold uppercase tracking-[0.17em] text-white transition hover:bg-[var(--helios-orange-hover)]"
             >
               Book now
-            </Link>
+            </BookingLink>
           </nav>
         </div>
       </header>
@@ -334,6 +336,7 @@ export default async function PortfolioPage({
         )}
       </section>
 
+      <ManagedCtaSection slot="PORTFOLIO_FOOTER" fallback={defaultPageCtas.PORTFOLIO_FOOTER} />
       <Footer />
     </main>
   );

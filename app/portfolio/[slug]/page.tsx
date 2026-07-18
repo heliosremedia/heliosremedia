@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import Footer from "@/app/components/Footer";
+import { BookingLink } from "@/app/components/SiteActionLink";
 import { MEDIA_COLLECTIONS } from "@/lib/media-collections";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
@@ -319,12 +320,11 @@ export default async function PortfolioProjectPage({
               All work
             </Link>
 
-            <Link
-              href="tel:+19706825533"
+            <BookingLink
               className="inline-flex min-h-11 items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-5 text-[0.58rem] font-semibold uppercase tracking-[0.17em] text-white transition hover:bg-[var(--helios-orange-hover)]"
             >
               Book now
-            </Link>
+            </BookingLink>
           </nav>
         </div>
       </header>

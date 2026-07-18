@@ -37,6 +37,13 @@ export const defaultHomeCta: PublicCta = {
   secondaryValue: "/services",
 };
 
+export const defaultPageCtas: Record<Exclude<CtaPlacementSlot, "HOME_PRIMARY">, PublicCta> = {
+  ABOUT_FOOTER: { id: "default-about-cta", internalName: "About footer", eyebrow: "Fort Collins · Northern Colorado", headline: "Ready to shape the first impression?", body: "Tell us about the property, the audience, and what the campaign needs to accomplish. We'll help build the right media plan.", primaryLabel: "Book Your Shoot", primaryActionType: "BOOKING", primaryValue: null, secondaryLabel: "Explore the work", secondaryActionType: "INTERNAL", secondaryValue: "/portfolio" },
+  SERVICES_FOOTER: { id: "default-services-cta", internalName: "Services footer", eyebrow: "Build the right campaign", headline: "Let's make the property impossible to overlook.", body: null, primaryLabel: "Book Your Shoot", primaryActionType: "BOOKING", primaryValue: null, secondaryLabel: "View the portfolio", secondaryActionType: "INTERNAL", secondaryValue: "/portfolio" },
+  FAQ_FOOTER: { id: "default-faq-cta", internalName: "FAQ footer", eyebrow: "Still curious?", headline: "Let's talk through your project.", body: "Tell us what you're planning and we'll help identify the right media package.", primaryLabel: "Book Your Shoot", primaryActionType: "BOOKING", primaryValue: null, secondaryLabel: "Explore services", secondaryActionType: "INTERNAL", secondaryValue: "/services" },
+  PORTFOLIO_FOOTER: { id: "default-portfolio-cta", internalName: "Portfolio footer", eyebrow: "Your property, intentionally presented", headline: "Ready to create the next story?", body: "Build a tailored media campaign designed around the property, the audience, and the result you need.", primaryLabel: "Book Your Shoot", primaryActionType: "BOOKING", primaryValue: null, secondaryLabel: "Explore services", secondaryActionType: "INTERNAL", secondaryValue: "/services" },
+};
+
 export async function getCtaForSlot(slot: CtaPlacementSlot): Promise<PublicCta | null> {
   try {
     const placement = await prisma.ctaPlacement.findUnique({
