@@ -280,6 +280,11 @@ model TrustedLogo {
   logoAlt          String?
   websiteUrl       String?
 
+  monochrome     Boolean @default(true)
+  displayColor   String  @default("#D8D3CC")
+  displayOpacity Float   @default(0.68)
+  displayScale   Float   @default(1)
+
   displayOrder Int     @default(0)
   published    Boolean @default(false)
 

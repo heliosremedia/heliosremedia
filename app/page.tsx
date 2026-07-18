@@ -25,7 +25,7 @@ export default async function Home() {
     prisma.trustedLogo.findMany({
       where: { published: true, logoUrl: { not: null } },
       orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
-      select: { id: true, organizationName: true, logoUrl: true, logoAlt: true, websiteUrl: true },
+      select: { id: true, organizationName: true, logoUrl: true, logoAlt: true, websiteUrl: true, monochrome: true, displayColor: true, displayOpacity: true, displayScale: true },
     }),
   ]);
 
@@ -42,6 +42,10 @@ export default async function Home() {
         src: logo.logoUrl!,
         alt: logo.logoAlt || logo.organizationName,
         websiteUrl: logo.websiteUrl,
+        monochrome: logo.monochrome,
+        displayColor: logo.displayColor,
+        displayOpacity: logo.displayOpacity,
+        displayScale: logo.displayScale,
       }))} />
       <InTheirWords testimonials={testimonials.map((item) => ({
         id: item.id,

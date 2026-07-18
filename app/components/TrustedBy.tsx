@@ -2,6 +2,8 @@
 
 import { motion, useReducedMotion } from "motion/react";
 
+import TrustedLogoArtwork from "./TrustedLogoArtwork";
+
 const ease = [0.22, 1, 0.36, 1] as const;
 
 export type TrustedLogoItem = {
@@ -10,6 +12,10 @@ export type TrustedLogoItem = {
   src: string;
   alt: string;
   websiteUrl: string | null;
+  monochrome: boolean;
+  displayColor: string;
+  displayOpacity: number;
+  displayScale: number;
 };
 
 export default function TrustedBy({ logos }: { logos: TrustedLogoItem[] }) {
@@ -92,13 +98,11 @@ export default function TrustedBy({ logos }: { logos: TrustedLogoItem[] }) {
                 >
                   {logo.websiteUrl && !isDuplicate ? (
                     <a href={logo.websiteUrl} target="_blank" rel="noreferrer" aria-label={`Visit ${logo.organizationName}`} className="relative flex h-[4.25rem] w-full items-center justify-center sm:h-[4.75rem] lg:h-[5.25rem]">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={logo.src} alt={logo.alt} className="max-h-full max-w-full object-contain grayscale opacity-[0.68] transition-[opacity,filter,transform] duration-700 ease-out group-hover:scale-[1.02] group-hover:grayscale-0 group-hover:opacity-95" />
+                      <TrustedLogoArtwork src={logo.src} alt={logo.alt} monochrome={logo.monochrome} color={logo.displayColor} opacity={logo.displayOpacity} scale={logo.displayScale} className="transition-opacity duration-700 group-hover:opacity-100" />
                     </a>
                   ) : (
                     <div className="relative flex h-[4.25rem] w-full items-center justify-center sm:h-[4.75rem] lg:h-[5.25rem]">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={logo.src} alt={isDuplicate ? "" : logo.alt} className="max-h-full max-w-full object-contain grayscale opacity-[0.68] transition-[opacity,filter,transform] duration-700 ease-out group-hover:scale-[1.02] group-hover:grayscale-0 group-hover:opacity-95" />
+                      <TrustedLogoArtwork src={logo.src} alt={logo.alt} decorative={isDuplicate} monochrome={logo.monochrome} color={logo.displayColor} opacity={logo.displayOpacity} scale={logo.displayScale} className="transition-opacity duration-700 group-hover:opacity-100" />
                     </div>
                   )}
                 </div>

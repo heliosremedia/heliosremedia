@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { deleteContentImage, verifyContentImage } from "@/lib/content-image-storage";
 import { prisma } from "@/lib/prisma";
 
-const logoSelect = { id: true, organizationName: true, logoStorageKey: true, logoUrl: true, logoAlt: true, websiteUrl: true, displayOrder: true, published: true, createdAt: true, updatedAt: true } as const;
+const logoSelect = { id: true, organizationName: true, logoStorageKey: true, logoUrl: true, logoAlt: true, websiteUrl: true, monochrome: true, displayColor: true, displayOpacity: true, displayScale: true, displayOrder: true, published: true, createdAt: true, updatedAt: true } as const;
 
 function optionalText(value: unknown, max: number) {
   const text = typeof value === "string" ? value.trim() : "";
@@ -27,14 +27,19 @@ function validate(body: Record<string, unknown>) {
   if (logoStorageKey && !logoStorageKey.startsWith("trusted-logos/")) throw new Error("INVALID_KEY");
   const logoUrl = optionalText(body.logoUrl, 1500);
   if (!logoUrl) throw new Error("MISSING_LOGO");
-  return { organizationName, logoStorageKey, logoUrl, logoAlt: optionalText(body.logoAlt, 240) || organizationName, websiteUrl: validUrl(body.websiteUrl) };
+  const displayColor = typeof body.displayColor === "string" ? body.displayColor.trim().toUpperCase() : "#D8D3CC";
+  if (!/^#[0-9A-F]{6}$/.test(displayColor)) throw new Error("INVALID_COLOR");
+  const displayOpacity = typeof body.displayOpacity === "number" ? body.displayOpacity : 0.68;
+  const displayScale = typeof body.displayScale === "number" ? body.displayScale : 1;
+  if (displayOpacity < 0.2 || displayOpacity > 1 || displayScale < 0.5 || displayScale > 1.5) throw new Error("INVALID_TREATMENT");
+  return { organizationName, logoStorageKey, logoUrl, logoAlt: optionalText(body.logoAlt, 240) || organizationName, websiteUrl: validUrl(body.websiteUrl), monochrome: body.monochrome !== false, displayColor, displayOpacity, displayScale };
 }
 
 function refresh() { revalidatePath("/"); revalidatePath("/admin/trusted-logos"); }
 
 function validationMessage(error: unknown) {
   if (!(error instanceof Error)) return null;
-  return ({ INVALID_NAME: "An organization name between 1 and 160 characters is required.", INVALID_URL: "The organization website must be a valid web address.", INVALID_KEY: "The logo storage location is invalid.", MISSING_LOGO: "A logo image is required.", TEXT_TOO_LONG: "One or more fields exceed the allowed length." } as Record<string, string>)[error.message] ?? null;
+  return ({ INVALID_NAME: "An organization name between 1 and 160 characters is required.", INVALID_URL: "The organization website must be a valid web address.", INVALID_KEY: "The logo storage location is invalid.", MISSING_LOGO: "A logo image is required.", INVALID_COLOR: "Choose a valid six-digit display color.", INVALID_TREATMENT: "The logo scale or opacity is outside the supported range.", TEXT_TOO_LONG: "One or more fields exceed the allowed length." } as Record<string, string>)[error.message] ?? null;
 }
 
 export async function POST(request: Request) {
