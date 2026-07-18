@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import ProjectDetailsEditor from "./ProjectDetailsEditor";
 import ProjectMediaManager from "./ProjectMediaManager";
 import ProjectWorkflowManager from "./ProjectWorkflowManager";
+import ProjectPreviewManager from "./ProjectPreviewManager";
 
 export const dynamic = "force-dynamic";
 
@@ -98,6 +99,7 @@ export default async function ProjectEditorPage({
             services: true,
           },
         },
+        previewLinks: { orderBy: { createdAt: "desc" }, take: 25, select: { id: true, label: true, expiresAt: true, createdAt: true, lastUsedAt: true, revokedAt: true } },
       },
     }),
     prisma.service.findMany({
@@ -364,6 +366,7 @@ export default async function ProjectEditorPage({
           (projectService) => projectService.serviceId,
         )}
       />
+      <ProjectPreviewManager projectId={project.id} initialPreviews={project.previewLinks.map((item) => ({ ...item, expiresAt: item.expiresAt.toISOString(), createdAt: item.createdAt.toISOString(), lastUsedAt: item.lastUsedAt?.toISOString() ?? null, revokedAt: item.revokedAt?.toISOString() ?? null }))} />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { MEDIA_COLLECTIONS } from "@/lib/media-collections";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { getAbsoluteUrl } from "@/lib/site";
+import { validateProjectPreview } from "@/lib/project-preview";
 
 import PortfolioGallery from "./PortfolioGallery";
 
@@ -18,13 +19,15 @@ type ProjectPageProps = {
   params: Promise<{
     slug: string;
   }>;
+  searchParams: Promise<{ preview?: string | string[] }>;
 };
 
-async function getPublishedProject(slug: string) {
+async function getProject(slug: string, previewToken?: string) {
+  const preview = await validateProjectPreview(slug, previewToken);
   return prisma.project.findFirst({
     where: {
       slug,
-      status: "PUBLISHED",
+      ...(preview ? { id: preview.projectId } : { status: "PUBLISHED" as const }),
     },
     select: {
       id: true,
@@ -119,12 +122,16 @@ async function getPublishedProject(slug: string) {
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: ProjectPageProps): Promise<Metadata> {
   const { slug } = await params;
+  const previewValue = (await searchParams).preview;
+  const previewToken = typeof previewValue === "string" ? previewValue : undefined;
+  const preview = await validateProjectPreview(slug, previewToken);
   const project = await prisma.project.findFirst({
     where: {
       slug,
-      status: "PUBLISHED",
+      ...(preview ? { id: preview.projectId } : { status: "PUBLISHED" as const }),
     },
     select: {
       title: true,
@@ -176,6 +183,7 @@ export async function generateMetadata({
           ]
         : undefined,
     },
+    ...(preview ? { robots: { index: false, follow: false } } : {}),
   };
 }
 
@@ -185,9 +193,13 @@ function formatNumber(value: number) {
 
 export default async function PortfolioProjectPage({
   params,
+  searchParams,
 }: ProjectPageProps) {
   const { slug } = await params;
-  const project = await getPublishedProject(slug);
+  const previewValue = (await searchParams).preview;
+  const previewToken = typeof previewValue === "string" ? previewValue : undefined;
+  const preview = await validateProjectPreview(slug, previewToken);
+  const project = await getProject(slug, previewToken);
 
   if (!project) {
     notFound();
@@ -290,6 +302,7 @@ export default async function PortfolioProjectPage({
 
   return (
     <main className="min-h-screen bg-[#090909] text-white">
+      {preview && <div className="fixed inset-x-0 top-0 z-[100] flex min-h-10 items-center justify-center bg-[var(--helios-orange)] px-4 text-center text-[0.54rem] font-semibold uppercase tracking-[0.16em] text-black">Private preview · This project is not necessarily published</div>}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
