@@ -4,7 +4,33 @@ import { prisma } from "@/lib/prisma";
 import { deleteContentImage, verifyContentImage } from "@/lib/content-image-storage";
 
 function text(value: unknown, max: number, required = false) { const result = typeof value === "string" ? value.trim() : ""; if ((required && !result) || result.length > max) throw new Error("INVALID_TEXT"); return result || null; }
-function url(value: unknown) { const result = text(value, 1000); if (!result) return null; const parsed = new URL(result); if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("INVALID_URL"); return parsed.toString(); }
+type UrlKind = "website" | "instagram" | "facebook" | "youtube" | "linkedin";
+
+function url(value: unknown, kind: UrlKind = "website") {
+  const result = text(value, 1000);
+  if (!result) return null;
+
+  let candidate = result;
+  if (!/^https?:\/\//i.test(candidate)) {
+    const handle = candidate.replace(/^@/, "");
+    const looksLikeAddress = candidate.includes(".") || candidate.includes("/");
+
+    if (looksLikeAddress) candidate = `https://${candidate.replace(/^\/+/, "")}`;
+    else if (kind === "instagram") candidate = `https://www.instagram.com/${encodeURIComponent(handle)}/`;
+    else if (kind === "facebook") candidate = `https://www.facebook.com/${encodeURIComponent(handle)}`;
+    else if (kind === "youtube") candidate = `https://www.youtube.com/@${encodeURIComponent(handle)}`;
+    else if (kind === "linkedin") candidate = `https://www.linkedin.com/in/${encodeURIComponent(handle)}`;
+    else candidate = `https://${candidate}`;
+  }
+
+  try {
+    const parsed = new URL(candidate);
+    if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("INVALID_URL");
+    return parsed.toString();
+  } catch {
+    throw new Error("INVALID_URL");
+  }
+}
 function assetUrl(value: unknown) { const result = text(value, 1000); if (!result) return null; if (result.startsWith("/") && !result.startsWith("//")) return result; return url(result); }
 
 export async function PATCH(request: Request) {
@@ -28,7 +54,7 @@ export async function PATCH(request: Request) {
       brandMonogramStorageKey, brandMonogramUrl: assetUrl(body.brandMonogramUrl),
       locationLabel: text(body.locationLabel, 160, true)!, serviceArea: text(body.serviceArea, 160, true)!,
       serviceAreaDescription: text(body.serviceAreaDescription, 500), footerDescription: text(body.footerDescription, 500), availabilityMessage: text(body.availabilityMessage, 240),
-      websiteUrl: url(body.websiteUrl), instagramUrl: url(body.instagramUrl), facebookUrl: url(body.facebookUrl), youtubeUrl: url(body.youtubeUrl), linkedinUrl: url(body.linkedinUrl),
+      websiteUrl: url(body.websiteUrl), instagramUrl: url(body.instagramUrl, "instagram"), facebookUrl: url(body.facebookUrl, "facebook"), youtubeUrl: url(body.youtubeUrl, "youtube"), linkedinUrl: url(body.linkedinUrl, "linkedin"),
       defaultSeoTitle: text(body.defaultSeoTitle, 160, true)!, defaultSeoDescription: text(body.defaultSeoDescription, 320, true)!,
     };
     const settings = await prisma.siteSettings.upsert({ where: { id: "default" }, create: { id: "default", ...data }, update: data });
