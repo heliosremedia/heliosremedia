@@ -288,11 +288,11 @@ export default function SiteSettingsForm({
     {
       title: "Social and website",
       fields: [
-        ["websiteUrl", "Public website URL"],
-        ["instagramUrl", "Instagram URL"],
-        ["facebookUrl", "Facebook URL"],
-        ["youtubeUrl", "YouTube URL"],
-        ["linkedinUrl", "LinkedIn URL"],
+        ["websiteUrl", "Public website address"],
+        ["instagramUrl", "Instagram handle or URL"],
+        ["facebookUrl", "Facebook handle or URL"],
+        ["youtubeUrl", "YouTube handle or URL"],
+        ["linkedinUrl", "LinkedIn handle or URL"],
       ],
     },
     {
