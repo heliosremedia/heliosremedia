@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useSiteSettings } from "./SiteSettingsProvider";
 
 const navigation = [
   { label: "Portfolio", href: "/portfolio" },
@@ -14,6 +15,8 @@ const navigation = [
 const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function Navbar() {
+  const settings = useSiteSettings();
+  const bookingHref = settings.bookingUrl || `tel:${settings.phoneE164}`;
   const [menuOpen, setMenuOpen] = useState(false);
   const shouldReduceMotion = useReducedMotion();
 
@@ -88,7 +91,7 @@ export default function Navbar() {
             ))}
 
             <motion.a
-              href="tel:+19706825533"
+              href={bookingHref}
               className="flex min-h-14 items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-8 text-[11px] font-semibold uppercase tracking-[0.23em] text-white shadow-[0_10px_30px_rgba(0,0,0,0.22)] lg:px-9"
               whileHover={
                 shouldReduceMotion
@@ -287,7 +290,7 @@ export default function Navbar() {
                 }}
               >
                 <p className="max-w-[14rem] text-xs leading-5 text-white/45">
-                  Luxury real estate media crafted in Northern Colorado.
+                  Luxury real estate media crafted in {settings.serviceArea}.
                 </p>
 
                 <span className="eyebrow text-[var(--helios-orange)]">

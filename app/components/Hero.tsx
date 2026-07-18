@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
+import { useSiteSettings } from "./SiteSettingsProvider";
 
 const reveal = {
   hidden: {
@@ -16,6 +17,7 @@ const reveal = {
 const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function Hero() {
+  const settings = useSiteSettings();
   const shouldReduceMotion = useReducedMotion();
 
   return (
@@ -100,7 +102,7 @@ export default function Hero() {
             }}
           >
             Photography, cinematic films, aerial imagery, and branding crafted
-            to elevate Northern Colorado&apos;s most exceptional homes.
+            to elevate {settings.serviceArea}&apos;s most exceptional homes.
           </motion.p>
 
           <motion.div

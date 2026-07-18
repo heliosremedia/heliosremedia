@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 
 import { getSiteUrl } from "@/lib/site";
+import { getSiteSettings } from "@/lib/site-settings";
+import { SiteSettingsProvider } from "@/app/components/SiteSettingsProvider";
 
 import "./globals.css";
 
@@ -16,30 +18,21 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(getSiteUrl()),
-  title: "Helios Real Estate Media",
-  description:
-    "Luxury real estate photography, cinematic films, and branding for Northern Colorado's finest homes.",
-  openGraph: {
-    type: "website",
-    locale: "en_US",
-    siteName: "Helios Real Estate Media",
-    title: "Helios Real Estate Media",
-    description:
-      "Luxury real estate photography, cinematic films, and branding for Northern Colorado's finest homes.",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  return { metadataBase: new URL(getSiteUrl()), title: settings.defaultSeoTitle, description: settings.defaultSeoDescription, openGraph: { type: "website", locale: "en_US", siteName: settings.businessName, title: settings.defaultSeoTitle, description: settings.defaultSeoDescription } };
+}
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const settings = await getSiteSettings();
   return (
     <html lang="en">
       <body className={`${cormorant.variable} ${inter.variable}`}>
-        {children}
+        <SiteSettingsProvider settings={settings}>{children}</SiteSettingsProvider>
       </body>
     </html>
   );

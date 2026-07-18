@@ -3,10 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
+import { useSiteSettings } from "./SiteSettingsProvider";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function PrimaryConversion() {
+  const settings = useSiteSettings();
   const prefersReducedMotion = useReducedMotion();
 
   return (
@@ -127,7 +129,7 @@ export default function PrimaryConversion() {
               </p>
 
               <Link
-                href="tel:+19706825533"
+                href={settings.bookingUrl || `tel:${settings.phoneE164}`}
                 className="group mt-12 flex min-h-[4.75rem] w-full items-center justify-between border border-[#f06b24] px-7 transition-all duration-500 hover:bg-[#f06b24] focus-visible:bg-[#f06b24] focus-visible:outline-none sm:mt-14 sm:px-8"
               >
                 <span className="text-[0.7rem] font-medium uppercase tracking-[0.32em] text-white">

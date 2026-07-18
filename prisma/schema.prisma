@@ -309,3 +309,31 @@ model HomepageProject {
 
   @@index([active, displayOrder])
 }
+
+model SiteSettings {
+  id String @id @default("default")
+
+  businessName String  @default("Helios Real Estate Media")
+  phoneDisplay String  @default("970.682.5533")
+  phoneE164    String  @default("+19706825533")
+  email        String?
+  bookingUrl   String?
+
+  locationLabel          String  @default("Fort Collins, Colorado")
+  serviceArea            String  @default("Northern Colorado")
+  serviceAreaDescription String?
+  footerDescription      String?
+  availabilityMessage    String?
+
+  websiteUrl   String?
+  instagramUrl String?
+  facebookUrl  String?
+  youtubeUrl   String?
+  linkedinUrl  String?
+
+  defaultSeoTitle       String @default("Helios Real Estate Media")
+  defaultSeoDescription String @default("Luxury real estate photography, cinematic films, and branding for Northern Colorado's finest homes.")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
