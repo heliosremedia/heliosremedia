@@ -111,6 +111,8 @@ type SortableMediaCardProps = {
   viewMode: MediaViewMode;
   onOpenPreview: (mediaId: string) => void;
   onToggleSelection: (mediaId: string, extendRange: boolean) => void;
+  onClearSelection: () => void;
+  onMoveToTop: (mediaId: string) => void;
   onSetHero: (mediaId: string) => void;
   onToggleMenu: (mediaId: string) => void;
   onEdit: (mediaId: string) => void;
@@ -160,6 +162,8 @@ function SortableMediaCard({
   viewMode,
   onOpenPreview,
   onToggleSelection,
+  onClearSelection,
+  onMoveToTop,
   onSetHero,
   onToggleMenu,
   onEdit,
@@ -250,10 +254,6 @@ function SortableMediaCard({
           )}
         </div>
 
-        <span className="absolute right-14 top-3 rounded-full border border-white/10 bg-black/55 px-3 py-1 text-[0.55rem] font-semibold uppercase tracking-[0.14em] text-white/55 backdrop-blur-md">
-          {item.visibility.toLowerCase()}
-        </span>
-
         <div className="absolute inset-x-0 bottom-0 flex translate-y-3 items-end justify-between gap-4 p-4 opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
           <div>
             <p className="text-[0.56rem] font-semibold uppercase tracking-[0.16em] text-white/45">
@@ -280,6 +280,29 @@ function SortableMediaCard({
             </svg>
           </span>
         </div>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => onToggleVisibility(item.id)}
+        disabled={isAssetUpdating}
+        className={`absolute right-14 top-3 z-10 rounded-full border px-3 py-1 text-[0.55rem] font-semibold uppercase tracking-[0.14em] shadow-lg backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] disabled:cursor-wait disabled:opacity-45 ${
+          item.visibility === "VISIBLE"
+            ? "border-white/10 bg-black/60 text-white/60 hover:border-[var(--helios-orange)]/45 hover:text-white"
+            : "border-[var(--helios-orange)]/30 bg-[var(--helios-orange)]/12 text-[var(--helios-orange-hover)] hover:bg-[var(--helios-orange)] hover:text-black"
+        }`}
+        aria-label={`${
+          item.visibility === "VISIBLE" ? "Hide" : "Show"
+        } ${item.originalFilename || "asset"} ${
+          item.visibility === "VISIBLE" ? "from" : "in"
+        } the public portfolio`}
+        title={
+          item.visibility === "VISIBLE"
+            ? "Click to hide from portfolio"
+            : "Click to show in portfolio"
+        }
+      >
+        {isAssetUpdating ? "Saving" : item.visibility.toLowerCase()}
       </button>
 
       <button
@@ -461,6 +484,48 @@ function SortableMediaCard({
             <span className="h-3 w-3 animate-spin rounded-full border border-white/20 border-t-white/70" />
             Updating hero image
           </div>
+        </div>
+      )}
+
+      {isSelected && (
+        <div className="flex items-center justify-between gap-3 border-t border-[var(--helios-orange)]/15 bg-[var(--helios-orange)]/[0.045] px-3 py-2.5">
+          <button
+            type="button"
+            onClick={() => onMoveToTop(item.id)}
+            disabled={
+              isCollectionSaving || (itemIndex === 0 && selectedCount === 1)
+            }
+            className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--helios-orange)]/20 px-3 text-[0.54rem] font-semibold uppercase tracking-[0.14em] text-[var(--helios-orange)]/75 transition hover:border-[var(--helios-orange)]/50 hover:bg-[var(--helios-orange)] hover:text-black disabled:cursor-default disabled:opacity-30"
+            aria-label={`Move ${
+              selectedCount > 1
+                ? `${selectedCount} selected assets`
+                : item.originalFilename || "selected asset"
+            } to the top of ${collectionLabel}`}
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              className="h-3.5 w-3.5"
+            >
+              <path
+                d="M12 19V5m0 0-5 5m5-5 5 5"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            {selectedCount > 1 ? "Move group to top" : "Move to top"}
+          </button>
+
+          <button
+            type="button"
+            onClick={onClearSelection}
+            className="min-h-9 rounded-full px-3 text-[0.54rem] font-semibold uppercase tracking-[0.14em] text-white/45 transition hover:bg-white/[0.06] hover:text-white"
+          >
+            {selectedCount > 1 ? "Clear all" : "Clear"}
+          </button>
         </div>
       )}
     </article>
@@ -936,20 +1001,23 @@ export default function ProjectMediaManager({
     async (
       mediaCategory: MediaCategory,
       activeId: string,
-      overId: string,
+      overId: string | null,
       requestedMovingIds: string[] = [activeId],
+      placement: "over" | "top" = "over",
     ) => {
       const collectionItems = media
         .filter((item) => item.mediaCategory === mediaCategory)
         .sort(sortMediaItems);
 
       const oldIndex = collectionItems.findIndex((item) => item.id === activeId);
-      const newIndex = collectionItems.findIndex((item) => item.id === overId);
+      const newIndex = overId
+        ? collectionItems.findIndex((item) => item.id === overId)
+        : -1;
 
       if (
         oldIndex < 0 ||
-        newIndex < 0 ||
-        oldIndex === newIndex ||
+        (placement === "over" && newIndex < 0) ||
+        (placement === "over" && oldIndex === newIndex) ||
         savingCollections.includes(mediaCategory)
       ) {
         return;
@@ -962,30 +1030,51 @@ export default function ProjectMediaManager({
       const isGroupMove =
         movingItems.length > 1 && requestedMovingIdSet.has(activeId);
 
-      if (isGroupMove && requestedMovingIdSet.has(overId)) {
+      if (
+        placement === "over" &&
+        isGroupMove &&
+        overId &&
+        requestedMovingIdSet.has(overId)
+      ) {
         return;
       }
 
-      const reorderedCollection = isGroupMove
-        ? (() => {
-            const remainingItems = collectionItems.filter(
-              (item) => !requestedMovingIdSet.has(item.id),
-            );
-            const overIndexInRemaining = remainingItems.findIndex(
-              (item) => item.id === overId,
-            );
-            const insertIndex =
-              oldIndex < newIndex
-                ? overIndexInRemaining + 1
-                : overIndexInRemaining;
-
-            return [
-              ...remainingItems.slice(0, insertIndex),
+      const reorderedCollection =
+        placement === "top"
+          ? [
               ...movingItems,
-              ...remainingItems.slice(insertIndex),
-            ];
-          })()
-        : arrayMove(collectionItems, oldIndex, newIndex);
+              ...collectionItems.filter(
+                (item) => !requestedMovingIdSet.has(item.id),
+              ),
+            ]
+          : isGroupMove
+            ? (() => {
+                const remainingItems = collectionItems.filter(
+                  (item) => !requestedMovingIdSet.has(item.id),
+                );
+                const overIndexInRemaining = remainingItems.findIndex(
+                  (item) => item.id === overId,
+                );
+                const insertIndex =
+                  oldIndex < newIndex
+                    ? overIndexInRemaining + 1
+                    : overIndexInRemaining;
+
+                return [
+                  ...remainingItems.slice(0, insertIndex),
+                  ...movingItems,
+                  ...remainingItems.slice(insertIndex),
+                ];
+              })()
+            : arrayMove(collectionItems, oldIndex, newIndex);
+
+      if (
+        reorderedCollection.every(
+          (item, index) => item.id === collectionItems[index]?.id,
+        )
+      ) {
+        return;
+      }
 
       const reorderedItems = reorderedCollection.map((item, index) => ({
         ...item,
@@ -1130,6 +1219,29 @@ export default function ProjectMediaManager({
       }
     },
     [media, selectedMediaIds],
+  );
+
+  const handleMoveToTop = useCallback(
+    (mediaCategory: MediaCategory, mediaId: string) => {
+      const selectedIdsInCollection = selectedMediaIds.filter((selectedId) =>
+        media.some(
+          (item) =>
+            item.id === selectedId && item.mediaCategory === mediaCategory,
+        ),
+      );
+      const movingIds = selectedIdsInCollection.includes(mediaId)
+        ? selectedIdsInCollection
+        : [mediaId];
+
+      void handleReorder(
+        mediaCategory,
+        mediaId,
+        null,
+        movingIds,
+        "top",
+      );
+    },
+    [handleReorder, media, selectedMediaIds],
   );
 
   const closePreview = useCallback(() => {
@@ -1565,6 +1677,10 @@ export default function ProjectMediaManager({
                                 viewMode={viewMode}
                                 onOpenPreview={setActiveMediaId}
                                 onToggleSelection={toggleMediaSelection}
+                                onClearSelection={clearSelection}
+                                onMoveToTop={(mediaId) =>
+                                  handleMoveToTop(collection.value, mediaId)
+                                }
                                 onSetHero={(mediaId) =>
                                   void handleSetHero(mediaId)
                                 }
