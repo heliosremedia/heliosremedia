@@ -19,12 +19,15 @@ type PortfolioGalleryProps = {
   items: PortfolioGalleryItem[];
 };
 
+type GalleryView = "list" | "gallery" | "showcase";
+
 export default function PortfolioGallery({
   projectTitle,
   collectionLabel,
   items,
 }: PortfolioGalleryProps) {
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
+  const [galleryView, setGalleryView] = useState<GalleryView>("showcase");
   const touchStartX = useRef<number | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -109,9 +112,99 @@ export default function PortfolioGallery({
 
   return (
     <>
-      <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:gap-7">
+      <div className="mt-8 flex justify-end">
+        <div
+          className="inline-flex items-center rounded-xl border border-white/[0.08] bg-white/[0.025] p-1"
+          role="group"
+          aria-label={`${collectionLabel} gallery view`}
+        >
+          <button
+            type="button"
+            onClick={() => setGalleryView("gallery")}
+            aria-label="Show compact gallery view"
+            aria-pressed={galleryView === "gallery"}
+            title="Gallery view"
+            className={`flex h-10 w-11 items-center justify-center rounded-lg transition ${
+              galleryView === "gallery"
+                ? "bg-white/[0.11] text-white"
+                : "text-white/35 hover:bg-white/[0.05] hover:text-white/65"
+            }`}
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              className="h-[1.1rem] w-[1.1rem]"
+            >
+              <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.5" />
+              <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.5" />
+              <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.5" />
+              <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setGalleryView("list")}
+            aria-label="Show full-width list view"
+            aria-pressed={galleryView === "list"}
+            title="List view"
+            className={`flex h-10 w-11 items-center justify-center rounded-lg transition ${
+              galleryView === "list"
+                ? "bg-white/[0.11] text-white"
+                : "text-white/35 hover:bg-white/[0.05] hover:text-white/65"
+            }`}
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              className="h-[1.1rem] w-[1.1rem]"
+            >
+              <circle cx="4.5" cy="6" r="1" fill="currentColor" />
+              <circle cx="4.5" cy="12" r="1" fill="currentColor" />
+              <circle cx="4.5" cy="18" r="1" fill="currentColor" />
+              <path d="M8 6h13M8 12h13M8 18h13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setGalleryView("showcase")}
+            aria-label="Show large showcase view"
+            aria-pressed={galleryView === "showcase"}
+            title="Showcase view"
+            className={`flex h-10 w-11 items-center justify-center rounded-lg transition ${
+              galleryView === "showcase"
+                ? "bg-white/[0.11] text-white"
+                : "text-white/35 hover:bg-white/[0.05] hover:text-white/65"
+            }`}
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              className="h-[1.15rem] w-[1.15rem]"
+            >
+              <rect x="2.75" y="4" width="18.5" height="16" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M3.5 16.5h17" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div
+        className={`mt-5 grid ${
+          galleryView === "gallery"
+            ? "grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 lg:gap-3"
+            : galleryView === "list"
+              ? "grid-cols-1 gap-7"
+              : "gap-5 sm:grid-cols-2 lg:gap-7"
+        }`}
+      >
         {items.map((item, itemIndex) => {
-          const featureItem = item.isWide || itemIndex % 5 === 0;
+          const featureItem =
+            galleryView === "showcase" && (item.isWide || itemIndex % 5 === 0);
 
           return (
             <figure
@@ -120,7 +213,13 @@ export default function PortfolioGallery({
             >
               <div
                 className={`relative overflow-hidden bg-white/[0.03] ${
-                  featureItem ? "aspect-[16/10]" : "aspect-[4/5]"
+                  galleryView === "gallery"
+                    ? "aspect-[4/3]"
+                    : galleryView === "list"
+                      ? "aspect-[16/10]"
+                    : featureItem
+                      ? "aspect-[16/10]"
+                      : "aspect-[4/5]"
                 }`}
               >
                 {item.imageUrl ? (
@@ -144,7 +243,13 @@ export default function PortfolioGallery({
                       }}
                     />
                     <span className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
-                    <span className="absolute bottom-5 right-5 flex h-11 w-11 translate-y-2 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white/65 opacity-0 backdrop-blur-md transition duration-500 group-hover:translate-y-0 group-hover:opacity-100">
+                    <span
+                      className={`absolute flex translate-y-2 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white/65 opacity-0 backdrop-blur-md transition duration-500 group-hover:translate-y-0 group-hover:opacity-100 ${
+                        galleryView === "gallery"
+                          ? "bottom-3 right-3 h-9 w-9"
+                          : "bottom-5 right-5 h-11 w-11"
+                      }`}
+                    >
                       <svg
                         aria-hidden="true"
                         viewBox="0 0 24 24"
@@ -180,7 +285,7 @@ export default function PortfolioGallery({
                 )}
               </div>
 
-              {item.caption && (
+              {item.caption && galleryView !== "gallery" && (
                 <figcaption className="mt-4 max-w-2xl text-xs leading-6 text-white/35">
                   {item.caption}
                 </figcaption>
