@@ -4,11 +4,14 @@ import { useState } from "react";
 
 import AdminSidebar from "./AdminSidebar";
 import AdminTopbar from "./AdminTopbar";
+import type { AdminSession } from "@/lib/auth/session";
 
 export default function AdminShell({
   children,
+  session,
 }: Readonly<{
   children: React.ReactNode;
+  session: AdminSession;
 }>) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -20,7 +23,7 @@ export default function AdminShell({
       />
 
       <div className="lg:pl-60">
-        <AdminTopbar onMenuOpen={() => setSidebarOpen(true)} />
+        <AdminTopbar onMenuOpen={() => setSidebarOpen(true)} session={session} />
 
         <main className="min-h-[calc(100vh-4.5rem)] overflow-visible px-5 py-7 sm:px-8 lg:px-10 lg:py-8">
           <div className="mx-auto max-w-[96rem]">{children}</div>

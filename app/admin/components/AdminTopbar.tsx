@@ -1,11 +1,15 @@
 import Link from "next/link";
+import type { AdminSession } from "@/lib/auth/session";
+import LogoutButton from "./LogoutButton";
 
 type AdminTopbarProps = {
   onMenuOpen: () => void;
+  session: AdminSession;
 };
 
 export default function AdminTopbar({
   onMenuOpen,
+  session,
 }: AdminTopbarProps) {
   return (
     <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-white/[0.08] bg-[#09090a]/90 px-5 backdrop-blur-xl sm:px-8 lg:px-10">
@@ -42,10 +46,13 @@ export default function AdminTopbar({
         </div>
       </div>
 
-      <Link
-        href="/admin/projects/new"
-        className="group inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[var(--helios-orange)] px-5 text-xs font-semibold uppercase tracking-[0.16em] text-white transition duration-300 hover:bg-[var(--helios-orange-hover)]"
-      >
+      <div className="flex items-center gap-3">
+        <div className="hidden text-right md:block"><p className="text-xs text-white/60">{session.displayName}</p><p className="mt-0.5 text-[0.48rem] uppercase tracking-[0.14em] text-white/25">{session.role}</p></div>
+        <LogoutButton />
+        <Link
+          href="/admin/projects/new"
+          className="group inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[var(--helios-orange)] px-5 text-xs font-semibold uppercase tracking-[0.16em] text-white transition duration-300 hover:bg-[var(--helios-orange-hover)]"
+        >
         <svg
           aria-hidden="true"
           viewBox="0 0 24 24"
@@ -62,7 +69,8 @@ export default function AdminTopbar({
 
         <span className="hidden sm:inline">New Project</span>
         <span className="sm:hidden">New</span>
-      </Link>
+        </Link>
+      </div>
     </header>
   );
 }

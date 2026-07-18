@@ -63,6 +63,13 @@ enum CtaPlacementSlot {
   PORTFOLIO_FOOTER
 }
 
+enum AdminRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
 model Project {
   id               String  @id @default(cuid())
   title            String
@@ -390,4 +397,46 @@ model CtaPlacement {
   updatedAt DateTime @updatedAt
 
   @@index([ctaId])
+}
+
+model AdminUser {
+  id String @id @default(cuid())
+
+  email       String    @unique
+  displayName String
+  role        AdminRole @default(EDITOR)
+  active      Boolean   @default(true)
+
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+
+  auditEvents AuditEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, role])
+}
+
+model AuditEvent {
+  id String @id @default(cuid())
+
+  actorId    String?
+  actor      AdminUser? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorEmail String?
+
+  action     String
+  entityType String?
+  entityId   String?
+  summary    String
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId])
 }
