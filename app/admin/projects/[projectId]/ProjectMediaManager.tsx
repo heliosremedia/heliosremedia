@@ -297,10 +297,10 @@ function SortableMediaCard({
         type="button"
         onClick={() => onToggleVisibility(item.id)}
         disabled={isAssetUpdating}
-        className={`absolute top-3 z-10 rounded-full border font-semibold uppercase shadow-lg backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] disabled:cursor-wait disabled:opacity-45 ${
+        className={`absolute z-10 rounded-full border font-semibold uppercase leading-none backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] disabled:cursor-wait disabled:opacity-45 ${
           viewMode === "compact"
-            ? "right-12 px-2 py-0.5 text-[0.46rem] tracking-[0.1em]"
-            : "right-14 px-2.5 py-0.5 text-[0.5rem] tracking-[0.12em]"
+            ? "right-11 top-2.5 px-1.5 py-1 text-[0.38rem] tracking-[0.07em]"
+            : "right-14 top-3 px-2 py-1 text-[0.44rem] tracking-[0.1em]"
         } ${
           item.visibility === "VISIBLE"
             ? "border-white/10 bg-black/60 text-white/60 hover:border-[var(--helios-orange)]/45 hover:text-white"
@@ -330,18 +330,20 @@ function SortableMediaCard({
         aria-label={`${isSelected ? "Remove" : "Add"} ${
           item.originalFilename || `${collectionLabel} asset`
         } ${isSelected ? "from" : "to"} selection`}
-        className={`absolute left-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border shadow-lg backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] ${
+        className={`absolute z-10 flex items-center justify-center rounded-full border backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] ${
+          viewMode === "compact" ? "left-2.5 top-2.5 h-7 w-7" : "left-3 top-3 h-8 w-8"
+        } ${
           isSelected
             ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] text-black"
             : "border-white/15 bg-black/70 text-white/55 hover:border-[var(--helios-orange)]/50 hover:text-white"
         }`}
       >
         {isSelected ? (
-          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className={viewMode === "compact" ? "h-3.5 w-3.5" : "h-4 w-4"}>
             <path d="m6 12.5 4 4L18.5 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         ) : (
-          <span className="h-3.5 w-3.5 rounded-[0.28rem] border border-current" />
+          <span className={viewMode === "compact" ? "h-3 w-3 rounded-[0.24rem] border border-current" : "h-3.5 w-3.5 rounded-[0.28rem] border border-current"} />
         )}
       </button>
 
@@ -351,7 +353,9 @@ function SortableMediaCard({
         {...attributes}
         {...listeners}
         disabled={isCollectionSaving}
-        className="absolute right-3 top-3 z-10 flex h-8 w-8 touch-none items-center justify-center rounded-full border border-white/15 bg-black/70 text-white/55 shadow-lg backdrop-blur-md transition hover:border-[var(--helios-orange)]/50 hover:bg-[var(--helios-orange)] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] disabled:cursor-wait disabled:opacity-40"
+        className={`absolute z-10 flex touch-none items-center justify-center rounded-full border border-white/15 bg-black/70 text-white/55 backdrop-blur-md transition hover:border-[var(--helios-orange)]/50 hover:bg-[var(--helios-orange)] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] disabled:cursor-wait disabled:opacity-40 ${
+          viewMode === "compact" ? "right-2.5 top-2.5 h-7 w-7" : "right-3 top-3 h-8 w-8"
+        }`}
         aria-label={`Reorder ${
           isSelected && selectedCount > 1
             ? `${selectedCount} selected assets`
@@ -362,7 +366,7 @@ function SortableMediaCard({
           aria-hidden="true"
           viewBox="0 0 24 24"
           fill="none"
-          className="h-4 w-4"
+          className={viewMode === "compact" ? "h-3.5 w-3.5" : "h-4 w-4"}
         >
           <circle cx="8" cy="7" r="1.25" fill="currentColor" />
           <circle cx="16" cy="7" r="1.25" fill="currentColor" />
@@ -504,7 +508,7 @@ function SortableMediaCard({
 
       {isSelected && (
         <div className={`flex items-center justify-between border-t border-[var(--helios-orange)]/15 bg-[var(--helios-orange)]/[0.045] ${
-          viewMode === "compact" ? "gap-1.5 px-2 py-1.5" : "gap-2 px-3 py-2"
+          viewMode === "compact" ? "gap-1 px-1.5 py-1" : "gap-2 px-3 py-2"
         }`}>
           <button
             type="button"
@@ -514,7 +518,7 @@ function SortableMediaCard({
             }
             className={`inline-flex items-center rounded-full border border-[var(--helios-orange)]/20 font-semibold uppercase text-[var(--helios-orange)]/75 transition hover:border-[var(--helios-orange)]/50 hover:bg-[var(--helios-orange)] hover:text-black disabled:cursor-default disabled:opacity-30 ${
               viewMode === "compact"
-                ? "min-h-7 gap-1 px-2 text-[0.45rem] tracking-[0.09em]"
+                ? "min-h-5 gap-1 px-1.5 text-[0.38rem] tracking-[0.07em]"
                 : "min-h-8 gap-1.5 px-2.5 text-[0.49rem] tracking-[0.12em]"
             }`}
             aria-label={`Move ${
@@ -527,7 +531,7 @@ function SortableMediaCard({
               aria-hidden="true"
               viewBox="0 0 24 24"
               fill="none"
-              className={viewMode === "compact" ? "h-3 w-3" : "h-3.5 w-3.5"}
+              className={viewMode === "compact" ? "h-2.5 w-2.5" : "h-3.5 w-3.5"}
             >
               <path
                 d="M12 19V5m0 0-5 5m5-5 5 5"
@@ -549,7 +553,7 @@ function SortableMediaCard({
             onClick={onClearSelection}
             className={`rounded-full font-semibold uppercase text-white/45 transition hover:bg-white/[0.06] hover:text-white ${
               viewMode === "compact"
-                ? "min-h-7 px-2 text-[0.45rem] tracking-[0.09em]"
+                ? "min-h-5 px-1.5 text-[0.38rem] tracking-[0.07em]"
                 : "min-h-8 px-2.5 text-[0.49rem] tracking-[0.12em]"
             }`}
           >

@@ -951,7 +951,7 @@ export default function MediaUploader({
             onClick={() =>
               inputRef.current?.click()
             }
-            className="mt-6 inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--helios-orange)] px-7 text-[0.62rem] font-semibold uppercase tracking-[0.17em] text-black transition hover:bg-[var(--helios-orange-hover)]"
+            className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--helios-orange)] px-7 text-[0.56rem] font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[var(--helios-orange-hover)]"
           >
             Choose images
           </button>
