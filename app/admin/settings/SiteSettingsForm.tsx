@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { PublicSiteSettings } from "@/lib/site-settings";
 
-type UploadKind = "video" | "poster" | "logo";
+type UploadKind = "video" | "poster" | "logo" | "monogram";
 
 type UploadState = {
   kind: UploadKind;
@@ -103,7 +103,7 @@ export default function SiteSettingsForm({
     }
   }
 
-  async function uploadHeroMedia(kind: Exclude<UploadKind, "logo">, file: File) {
+  async function uploadHeroMedia(kind: "video" | "poster", file: File) {
     setUploading({ kind, progress: 0 });
     setMessage(
       kind === "video"
@@ -201,6 +201,53 @@ export default function SiteSettingsForm({
 
     try {
       await persist(nextSettings, "Using the default Helios logo.");
+    } catch {
+      setSettings(previous);
+    }
+  }
+
+  async function uploadBrandMonogram(file: File) {
+    setUploading({ kind: "monogram", progress: 0 });
+    setMessage("Preparing managed brand monogram…");
+
+    try {
+      const response = await fetch("/api/admin/site-settings/brand-monogram/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: file.name, fileType: file.type, fileSize: file.size }),
+      });
+      const data = (await response.json()) as PresignResponse & { upload?: PresignResponse["upload"] & { key: string } };
+
+      if (!response.ok || !data.success || !data.upload) {
+        throw new Error(data.error || "Unable to prepare this monogram upload.");
+      }
+
+      await uploadToR2(file, data.upload.uploadUrl, data.upload.contentType, (progress) =>
+        setUploading({ kind: "monogram", progress }),
+      );
+
+      await persist(
+        {
+          ...settings,
+          brandMonogramStorageKey: data.upload.key,
+          brandMonogramUrl: data.upload.publicUrl,
+        },
+        "Brand monogram uploaded and connected to the admin access shortcut.",
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "The brand monogram could not be uploaded.");
+    } finally {
+      setUploading(null);
+    }
+  }
+
+  async function clearBrandMonogram() {
+    const previous = settings;
+    const nextSettings = { ...settings, brandMonogramStorageKey: null, brandMonogramUrl: null };
+    setSettings(nextSettings);
+
+    try {
+      await persist(nextSettings, "Using the primary-logo fallback for admin access.");
     } catch {
       setSettings(previous);
     }
@@ -375,11 +422,13 @@ export default function SiteSettingsForm({
         <div className="grid gap-8 p-6 lg:grid-cols-[0.8fr_1.2fr] lg:p-8">
           <div>
             <p className="text-[0.54rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">Brand identity</p>
-            <h2 className="mt-3 text-2xl font-light text-white">Primary website logo</h2>
-            <p className="mt-3 max-w-lg text-sm leading-6 text-white/40">This single asset powers the public header and the larger footer lockup. Use a transparent, tightly cropped horizontal logo so it scales cleanly across the site.</p>
+            <h2 className="mt-3 text-2xl font-light text-white">Website logo and monogram</h2>
+            <p className="mt-3 max-w-lg text-sm leading-6 text-white/40">The primary logo powers public brand lockups. The separate square monogram creates a discreet admin-access shortcut today and is ready for future app icons and tenant branding.</p>
           </div>
 
+          <div className="space-y-4">
           <div className="rounded-2xl border border-white/[0.08] bg-black/25 p-5">
+            <p className="mb-4 text-[0.55rem] font-semibold uppercase tracking-[0.16em] text-white/45">Primary website logo</p>
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-h-28 flex-1 items-center justify-center rounded-xl border border-white/[0.06] bg-black/35 p-6">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -398,6 +447,33 @@ export default function SiteSettingsForm({
               <label className={`cursor-pointer rounded-full bg-[var(--helios-orange)] px-5 py-3 text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-black ${uploadBusy ? "pointer-events-none opacity-40" : ""}`}>{settings.brandLogoUrl ? "Replace logo" : "Upload logo"}<input type="file" accept="image/png,image/webp,image/avif" className="sr-only" disabled={uploadBusy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadBrandLogo(file); event.target.value = ""; }} /></label>
               {settings.brandLogoUrl ? <button type="button" disabled={uploadBusy} onClick={() => void clearBrandLogo()} className="rounded-full border border-white/10 px-5 py-3 text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-white/55 disabled:opacity-40">Use default</button> : null}
             </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/[0.08] bg-black/25 p-5">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-h-32 flex-1 items-center justify-center rounded-xl border border-white/[0.06] bg-black/35 p-6">
+                <span className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-[#0b0b0b] p-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={settings.brandMonogramUrl || settings.brandLogoUrl || "/brand/helios-logo.png"}
+                    alt="Brand monogram preview"
+                    className={settings.brandMonogramUrl ? "h-full w-full object-contain" : "absolute left-0 top-1/2 h-16 w-auto max-w-none -translate-y-1/2"}
+                  />
+                </span>
+              </div>
+              <div className="sm:w-64">
+                <p className="text-[0.55rem] font-semibold uppercase tracking-[0.16em] text-white/45">Brand monogram</p>
+                <p className="mt-3 text-sm leading-6 text-white/70">Transparent square PNG, WebP, or AVIF · 512 × 512 px recommended · under 5 MB</p>
+                <p className="mt-2 text-xs leading-5 text-white/35">When empty, Helios crops the mark from the primary logo automatically.</p>
+                {uploading?.kind === "monogram" ? <div className="mt-4"><div className="h-1 overflow-hidden rounded-full bg-white/10"><div className="h-full bg-[var(--helios-orange)] transition-[width]" style={{ width: `${uploading.progress}%` }} /></div><p className="mt-2 text-xs text-white/40">Uploading {uploading.progress}%</p></div> : null}
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <label className={`cursor-pointer rounded-full bg-[var(--helios-orange)] px-5 py-3 text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-black ${uploadBusy ? "pointer-events-none opacity-40" : ""}`}>{settings.brandMonogramUrl ? "Replace monogram" : "Upload monogram"}<input type="file" accept="image/png,image/webp,image/avif" className="sr-only" disabled={uploadBusy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadBrandMonogram(file); event.target.value = ""; }} /></label>
+              {settings.brandMonogramUrl ? <button type="button" disabled={uploadBusy} onClick={() => void clearBrandMonogram()} className="rounded-full border border-white/10 px-5 py-3 text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-white/55 disabled:opacity-40">Use logo fallback</button> : null}
+            </div>
+          </div>
           </div>
         </div>
       </section>
