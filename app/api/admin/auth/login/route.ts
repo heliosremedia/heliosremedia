@@ -12,16 +12,25 @@ function requestContext(request: Request) {
   return { ipAddress: forwarded || request.headers.get("x-real-ip"), userAgent: request.headers.get("user-agent") };
 }
 
-function normalizeEnvironmentValue(value: string | undefined) {
-  const normalized = value?.trim();
+function normalizeEnvironmentValue(value: string | undefined, variableName: string) {
+  let normalized = value?.trim();
   if (!normalized) return undefined;
 
   const startsWithQuote = normalized.startsWith('"') || normalized.startsWith("'");
   const endsWithQuote = normalized.endsWith('"') || normalized.endsWith("'");
 
-  return startsWithQuote && endsWithQuote
-    ? normalized.slice(1, -1).trim()
-    : normalized;
+  if (startsWithQuote && endsWithQuote) normalized = normalized.slice(1, -1).trim();
+
+  const assignmentPrefix = `${variableName}=`;
+  if (normalized.startsWith(assignmentPrefix)) {
+    normalized = normalized.slice(assignmentPrefix.length).trim();
+  }
+
+  const wrappedAfterAssignment =
+    (normalized.startsWith('"') && normalized.endsWith('"')) ||
+    (normalized.startsWith("'") && normalized.endsWith("'"));
+
+  return wrappedAfterAssignment ? normalized.slice(1, -1).trim() : normalized;
 }
 
 export async function POST(request: Request) {
@@ -29,17 +38,18 @@ export async function POST(request: Request) {
     const body = await request.json() as Record<string, unknown>;
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
     const password = typeof body.password === "string" ? body.password : "";
-    const ownerEmail = normalizeEnvironmentValue(process.env.HELIOS_ADMIN_EMAIL)?.toLowerCase();
-    const passwordHash = normalizeEnvironmentValue(process.env.HELIOS_ADMIN_PASSWORD_HASH);
+    const ownerEmail = normalizeEnvironmentValue(process.env.HELIOS_ADMIN_EMAIL, "HELIOS_ADMIN_EMAIL")?.toLowerCase();
+    const passwordHash = normalizeEnvironmentValue(process.env.HELIOS_ADMIN_PASSWORD_HASH, "HELIOS_ADMIN_PASSWORD_HASH");
     if (!ownerEmail || !passwordHash) return NextResponse.json({ success: false, error: "Admin authentication has not been configured." }, { status: 503 });
+    if (!/^scrypt:[a-f0-9]{32}:[a-f0-9]{128}$/i.test(passwordHash)) return NextResponse.json({ success: false, error: "The admin password hash is not valid. Generate and replace it in the deployment settings." }, { status: 503 });
 
     const user = await prisma.adminUser.upsert({ where: { email: ownerEmail }, create: { email: ownerEmail, displayName: process.env.HELIOS_ADMIN_NAME?.trim() || "Helios Owner", role: "OWNER" }, update: {} });
     const context = requestContext(request);
     if (!user.active) return NextResponse.json({ success: false, error: "This account is disabled." }, { status: 403 });
-    if (user.lockedUntil && user.lockedUntil > new Date()) return NextResponse.json({ success: false, error: "Too many attempts. Try again later." }, { status: 429 });
 
     const valid = email === ownerEmail && await verifyPassword(password, passwordHash);
     if (!valid) {
+      if (user.lockedUntil && user.lockedUntil > new Date()) return NextResponse.json({ success: false, error: "Too many attempts. Try again later." }, { status: 429 });
       const failures = user.failedLoginCount + 1;
       const lockedUntil = failures >= MAX_FAILURES ? new Date(Date.now() + LOCK_MINUTES * 60_000) : null;
       await prisma.adminUser.update({ where: { id: user.id }, data: { failedLoginCount: lockedUntil ? 0 : failures, lockedUntil } });
