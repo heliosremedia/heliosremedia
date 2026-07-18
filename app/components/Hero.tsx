@@ -13,6 +13,7 @@ const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function Hero() {
   const settings = useSiteSettings();
+  const bookingHref = settings.bookingUrl || "/inquire";
   const shouldReduceMotion = useReducedMotion();
   const [videoReady, setVideoReady] = useState(false);
   const poster = settings.heroPosterUrl || undefined;
@@ -115,7 +116,7 @@ export default function Hero() {
             }}
           >
             <motion.a
-              href="#booking"
+              href={bookingHref}
               className="flex min-h-14 items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-10 text-xs font-semibold uppercase tracking-[0.23em] text-white shadow-[0_12px_35px_rgba(0,0,0,0.25)]"
               whileHover={
                 shouldReduceMotion
