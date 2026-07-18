@@ -22,8 +22,6 @@ export default function WorkShowcase({ items = portfolioItems, featuredFilm }: {
       className="relative overflow-hidden bg-[var(--background)]"
     >
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[var(--background)] to-transparent" />
-
         <div className="absolute right-[-18rem] top-[10rem] h-[34rem] w-[34rem] rounded-full bg-[rgba(217,107,43,0.035)] blur-[160px]" />
 
         <div className="absolute bottom-[-18rem] left-[-18rem] h-[34rem] w-[34rem] rounded-full bg-white/[0.015] blur-[160px]" />

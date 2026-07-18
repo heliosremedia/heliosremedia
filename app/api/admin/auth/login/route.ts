@@ -12,13 +12,25 @@ function requestContext(request: Request) {
   return { ipAddress: forwarded || request.headers.get("x-real-ip"), userAgent: request.headers.get("user-agent") };
 }
 
+function normalizeEnvironmentValue(value: string | undefined) {
+  const normalized = value?.trim();
+  if (!normalized) return undefined;
+
+  const startsWithQuote = normalized.startsWith('"') || normalized.startsWith("'");
+  const endsWithQuote = normalized.endsWith('"') || normalized.endsWith("'");
+
+  return startsWithQuote && endsWithQuote
+    ? normalized.slice(1, -1).trim()
+    : normalized;
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json() as Record<string, unknown>;
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
     const password = typeof body.password === "string" ? body.password : "";
-    const ownerEmail = process.env.HELIOS_ADMIN_EMAIL?.trim().toLowerCase();
-    const passwordHash = process.env.HELIOS_ADMIN_PASSWORD_HASH;
+    const ownerEmail = normalizeEnvironmentValue(process.env.HELIOS_ADMIN_EMAIL)?.toLowerCase();
+    const passwordHash = normalizeEnvironmentValue(process.env.HELIOS_ADMIN_PASSWORD_HASH);
     if (!ownerEmail || !passwordHash) return NextResponse.json({ success: false, error: "Admin authentication has not been configured." }, { status: 503 });
 
     const user = await prisma.adminUser.upsert({ where: { email: ownerEmail }, create: { email: ownerEmail, displayName: process.env.HELIOS_ADMIN_NAME?.trim() || "Helios Owner", role: "OWNER" }, update: {} });

@@ -280,14 +280,6 @@ export default function HeliosStandard() {
         </div>
       </div>
 
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-full z-20 h-[12rem]"
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-[var(--background)] via-[rgba(10,10,10,0.92)] to-transparent" />
-
-        <div className="hero-grain absolute inset-0 opacity-[0.014] mix-blend-soft-light" />
-      </div>
     </section>
   );
 }
