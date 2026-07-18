@@ -5,6 +5,7 @@ export type PublicSiteSettings = {
   email: string | null; bookingUrl: string | null;
   heroVideoUrl: string | null; heroPosterUrl: string | null; locationLabel: string;
   brandLogoStorageKey: string | null; brandLogoUrl: string | null; brandLogoAlt: string | null;
+  brandMonogramStorageKey: string | null; brandMonogramUrl: string | null;
   featuredFilmEnabled: boolean; featuredFilmVideoStorageKey: string | null;
   featuredFilmVideoUrl: string | null; featuredFilmPosterStorageKey: string | null;
   featuredFilmPosterUrl: string | null; featuredFilmDestination: string | null;
@@ -27,6 +28,8 @@ export const defaultSiteSettings: PublicSiteSettings = {
   brandLogoStorageKey: null,
   brandLogoUrl: null,
   brandLogoAlt: "Helios Real Estate Media",
+  brandMonogramStorageKey: null,
+  brandMonogramUrl: null,
   featuredFilmEnabled: false,
   featuredFilmVideoStorageKey: null,
   featuredFilmVideoUrl: null,
