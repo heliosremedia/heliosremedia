@@ -360,6 +360,9 @@ model SiteSettings {
   brandLogoUrl        String?
   brandLogoAlt        String? @default("Helios Real Estate Media")
 
+  brandMonogramStorageKey String?
+  brandMonogramUrl        String?
+
   featuredFilmEnabled          Boolean @default(false)
   featuredFilmVideoStorageKey  String?
   featuredFilmVideoUrl         String?
