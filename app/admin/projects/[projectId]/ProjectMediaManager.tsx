@@ -231,25 +231,36 @@ function SortableMediaCard({
 
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/5 to-black/15 opacity-75 transition duration-300 group-hover:opacity-90" />
 
-        <div className="absolute left-14 top-3 flex items-center gap-2">
-          <span className="rounded-full border border-white/10 bg-black/55 px-3 py-1 text-[0.55rem] font-semibold uppercase tracking-[0.14em] text-white/55 backdrop-blur-md">
+        <div className={`absolute top-3 flex items-center ${viewMode === "compact" ? "left-12 gap-1.5" : "left-14 gap-2"}`}>
+          <span className={`rounded-full border border-white/10 bg-black/55 font-semibold uppercase text-white/55 backdrop-blur-md ${
+            viewMode === "compact"
+              ? "px-2 py-0.5 text-[0.46rem] tracking-[0.1em]"
+              : "px-2.5 py-0.5 text-[0.5rem] tracking-[0.12em]"
+          }`}>
             {String(itemIndex + 1).padStart(2, "0")}
           </span>
 
           {item.isHero && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--helios-orange)]/35 bg-[var(--helios-orange)] px-3 py-1 text-[0.55rem] font-semibold uppercase tracking-[0.14em] text-black shadow-lg">
+            <span
+              className={`inline-flex items-center rounded-full border border-[var(--helios-orange)]/35 bg-[var(--helios-orange)] font-semibold uppercase text-black shadow-lg ${
+                viewMode === "compact"
+                  ? "gap-1 px-2 py-0.5 text-[0.44rem] tracking-[0.08em]"
+                  : "gap-1.5 px-2.5 py-0.5 text-[0.5rem] tracking-[0.12em]"
+              }`}
+              title="Current hero image"
+            >
               <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"
                 fill="none"
-                className="h-3.5 w-3.5"
+                className={viewMode === "compact" ? "h-2.5 w-2.5" : "h-3 w-3"}
               >
                 <path
                   d="m12 3 2.75 5.58 6.16.9-4.46 4.34 1.05 6.13L12 17.06l-5.5 2.89 1.05-6.13-4.46-4.34 6.16-.9L12 3Z"
                   fill="currentColor"
                 />
               </svg>
-              Hero image
+              {viewMode === "compact" ? "Hero" : "Hero image"}
             </span>
           )}
         </div>
@@ -286,7 +297,11 @@ function SortableMediaCard({
         type="button"
         onClick={() => onToggleVisibility(item.id)}
         disabled={isAssetUpdating}
-        className={`absolute right-14 top-3 z-10 rounded-full border px-3 py-1 text-[0.55rem] font-semibold uppercase tracking-[0.14em] shadow-lg backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] disabled:cursor-wait disabled:opacity-45 ${
+        className={`absolute top-3 z-10 rounded-full border font-semibold uppercase shadow-lg backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] disabled:cursor-wait disabled:opacity-45 ${
+          viewMode === "compact"
+            ? "right-12 px-2 py-0.5 text-[0.46rem] tracking-[0.1em]"
+            : "right-14 px-2.5 py-0.5 text-[0.5rem] tracking-[0.12em]"
+        } ${
           item.visibility === "VISIBLE"
             ? "border-white/10 bg-black/60 text-white/60 hover:border-[var(--helios-orange)]/45 hover:text-white"
             : "border-[var(--helios-orange)]/30 bg-[var(--helios-orange)]/12 text-[var(--helios-orange-hover)] hover:bg-[var(--helios-orange)] hover:text-black"
@@ -488,14 +503,20 @@ function SortableMediaCard({
       )}
 
       {isSelected && (
-        <div className="flex items-center justify-between gap-3 border-t border-[var(--helios-orange)]/15 bg-[var(--helios-orange)]/[0.045] px-3 py-2.5">
+        <div className={`flex items-center justify-between border-t border-[var(--helios-orange)]/15 bg-[var(--helios-orange)]/[0.045] ${
+          viewMode === "compact" ? "gap-1.5 px-2 py-1.5" : "gap-2 px-3 py-2"
+        }`}>
           <button
             type="button"
             onClick={() => onMoveToTop(item.id)}
             disabled={
               isCollectionSaving || (itemIndex === 0 && selectedCount === 1)
             }
-            className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--helios-orange)]/20 px-3 text-[0.54rem] font-semibold uppercase tracking-[0.14em] text-[var(--helios-orange)]/75 transition hover:border-[var(--helios-orange)]/50 hover:bg-[var(--helios-orange)] hover:text-black disabled:cursor-default disabled:opacity-30"
+            className={`inline-flex items-center rounded-full border border-[var(--helios-orange)]/20 font-semibold uppercase text-[var(--helios-orange)]/75 transition hover:border-[var(--helios-orange)]/50 hover:bg-[var(--helios-orange)] hover:text-black disabled:cursor-default disabled:opacity-30 ${
+              viewMode === "compact"
+                ? "min-h-7 gap-1 px-2 text-[0.45rem] tracking-[0.09em]"
+                : "min-h-8 gap-1.5 px-2.5 text-[0.49rem] tracking-[0.12em]"
+            }`}
             aria-label={`Move ${
               selectedCount > 1
                 ? `${selectedCount} selected assets`
@@ -506,7 +527,7 @@ function SortableMediaCard({
               aria-hidden="true"
               viewBox="0 0 24 24"
               fill="none"
-              className="h-3.5 w-3.5"
+              className={viewMode === "compact" ? "h-3 w-3" : "h-3.5 w-3.5"}
             >
               <path
                 d="M12 19V5m0 0-5 5m5-5 5 5"
@@ -516,13 +537,21 @@ function SortableMediaCard({
                 strokeLinejoin="round"
               />
             </svg>
-            {selectedCount > 1 ? "Move group to top" : "Move to top"}
+            {viewMode === "compact"
+              ? "To top"
+              : selectedCount > 1
+                ? "Move group to top"
+                : "Move to top"}
           </button>
 
           <button
             type="button"
             onClick={onClearSelection}
-            className="min-h-9 rounded-full px-3 text-[0.54rem] font-semibold uppercase tracking-[0.14em] text-white/45 transition hover:bg-white/[0.06] hover:text-white"
+            className={`rounded-full font-semibold uppercase text-white/45 transition hover:bg-white/[0.06] hover:text-white ${
+              viewMode === "compact"
+                ? "min-h-7 px-2 text-[0.45rem] tracking-[0.09em]"
+                : "min-h-8 px-2.5 text-[0.49rem] tracking-[0.12em]"
+            }`}
           >
             {selectedCount > 1 ? "Clear all" : "Clear"}
           </button>
