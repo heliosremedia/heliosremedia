@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getPublicAssetUrl } from "@/lib/r2-upload";
 
 import ServiceManager, { type AdminService } from "./ServiceManager";
 
@@ -19,6 +20,8 @@ export default async function ServicesPage() {
       name: true,
       slug: true,
       description: true,
+      heroImageStorageKey: true,
+      heroImageAlt: true,
       displayOrder: true,
       active: true,
       createdAt: true,
@@ -33,6 +36,9 @@ export default async function ServicesPage() {
 
   const serializedServices: AdminService[] = services.map((service) => ({
     ...service,
+    heroImageUrl: service.heroImageStorageKey
+      ? getPublicAssetUrl(service.heroImageStorageKey)
+      : null,
     createdAt: service.createdAt.toISOString(),
     updatedAt: service.updatedAt.toISOString(),
   }));
