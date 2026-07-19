@@ -57,8 +57,8 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
       <header
         className={
           variant === "solid"
-            ? "relative z-50 border-b border-white/[0.08] bg-[#090909]/95 backdrop-blur-xl"
-            : "absolute inset-x-0 top-0 z-50"
+            ? "sticky top-0 z-50 border-b border-white/[0.08] bg-[#090909]/95 backdrop-blur-xl sm:relative"
+            : "fixed inset-x-0 top-0 z-50 sm:absolute"
         }
       >
         <div

@@ -87,6 +87,14 @@ type UpdateAssetResponse = {
   media?: ProjectMediaItem;
 };
 
+type BulkMoveResponse = {
+  success: boolean;
+  error?: string;
+  mediaIds?: string[];
+  mediaCategory?: MediaCategory;
+  startingDisplayOrder?: number;
+};
+
 type DeleteAssetResponse = {
   success: boolean;
   error?: string;
@@ -127,6 +135,7 @@ type SortableMediaCardProps = {
   onSetHero: (mediaId: string) => void;
   onToggleMenu: (mediaId: string) => void;
   onEdit: (mediaId: string) => void;
+  onBulkEdit: () => void;
   onToggleVisibility: (mediaId: string) => void;
   onDelete: (mediaId: string) => void;
 };
@@ -178,6 +187,7 @@ function SortableMediaCard({
   onSetHero,
   onToggleMenu,
   onEdit,
+  onBulkEdit,
   onToggleVisibility,
   onDelete,
 }: SortableMediaCardProps) {
@@ -506,6 +516,17 @@ function SortableMediaCard({
                 Edit asset details
               </button>
 
+              {isSelected && selectedCount > 1 && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={onBulkEdit}
+                  className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-xs text-[var(--helios-orange)]/80 transition hover:bg-[var(--helios-orange)]/[0.08] hover:text-[var(--helios-orange-hover)]"
+                >
+                  Bulk edit {selectedCount} assets
+                </button>
+              )}
+
               <button
                 type="button"
                 role="menuitem"
@@ -604,6 +625,9 @@ export default function ProjectMediaManager({
   const [updatingAssetId, setUpdatingAssetId] = useState<string | null>(null);
   const [assetError, setAssetError] = useState<string | null>(null);
   const [assetDraft, setAssetDraft] = useState<AssetDraft | null>(null);
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [bulkTargetCategory, setBulkTargetCategory] = useState<MediaCategory | null>(null);
+  const [isBulkMoving, setIsBulkMoving] = useState(false);
   const [savingCollections, setSavingCollections] = useState<MediaCategory[]>(
     [],
   );
@@ -797,6 +821,44 @@ export default function ProjectMediaManager({
     setSelectedMediaIds([]);
     setSelectionAnchorId(null);
   }, []);
+
+  const beginBulkEdit = useCallback(() => {
+    const firstSelected = media.find((item) => selectedMediaIds.includes(item.id));
+    setOpenMenuId(null);
+    setBulkTargetCategory(firstSelected?.mediaCategory ?? null);
+    setAssetError(null);
+    setBulkEditOpen(true);
+  }, [media, selectedMediaIds]);
+
+  const saveBulkCategory = useCallback(async () => {
+    if (!bulkTargetCategory || selectedMediaIds.length === 0) return;
+    const selected = [...selectedMediaIds];
+    try {
+      setIsBulkMoving(true);
+      setAssetError(null);
+      const response = await fetch(`/api/admin/projects/${projectId}/media`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "bulk-update-category", mediaIds: selected, mediaCategory: bulkTargetCategory }),
+      });
+      const data = (await response.json()) as BulkMoveResponse;
+      if (!response.ok || !data.success || !data.mediaCategory || data.startingDisplayOrder === undefined) {
+        throw new Error(data.error || "The selected assets could not be moved.");
+      }
+      setMedia((current) => current.map((item) => {
+        const index = selected.indexOf(item.id);
+        return index < 0 ? item : { ...item, mediaCategory: data.mediaCategory!, displayOrder: data.startingDisplayOrder! + index };
+      }));
+      setBulkEditOpen(false);
+      setBulkTargetCategory(null);
+      clearSelection();
+      router.refresh();
+    } catch (bulkError) {
+      setAssetError(bulkError instanceof Error ? bulkError.message : "The selected assets could not be moved.");
+    } finally {
+      setIsBulkMoving(false);
+    }
+  }, [bulkTargetCategory, clearSelection, projectId, router, selectedMediaIds]);
 
   const handleMediaUploaded = useCallback(
     (uploadedMedia: ProjectMediaItem) => {
@@ -1766,6 +1828,7 @@ export default function ProjectMediaManager({
                                   )
                                 }
                                 onEdit={beginEditingAsset}
+                                onBulkEdit={beginBulkEdit}
                                 onToggleVisibility={(mediaId) =>
                                   void toggleAssetVisibility(mediaId)
                                 }
@@ -2003,6 +2066,48 @@ export default function ProjectMediaManager({
               ) : null}
             </div>
           </footer>
+        </div>
+      )}
+
+      {bulkEditOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="bulk-edit-title"
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 px-4 py-8 backdrop-blur-xl"
+        >
+          <button
+            type="button"
+            onClick={() => !isBulkMoving && setBulkEditOpen(false)}
+            className="absolute inset-0 h-full w-full cursor-default"
+            aria-label="Close bulk asset editor"
+          />
+          <div className="relative z-10 max-h-full w-full max-w-3xl overflow-y-auto rounded-3xl border border-white/10 bg-[#111111] shadow-[0_40px_120px_rgba(0,0,0,0.75)]">
+            <div className="flex items-start justify-between gap-6 border-b border-white/[0.08] px-6 py-6 sm:px-8">
+              <div>
+                <p className="text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">Bulk asset management</p>
+                <h3 id="bulk-edit-title" className="mt-3 text-2xl font-normal text-white sm:text-3xl">Move {selectedMediaIds.length} selected assets</h3>
+                <p className="mt-2 text-sm leading-6 text-white/35">Choose the collection where every selected asset should appear.</p>
+              </div>
+              <button type="button" onClick={() => setBulkEditOpen(false)} disabled={isBulkMoving} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 text-white/45 hover:text-white disabled:opacity-40" aria-label="Close bulk editor">×</button>
+            </div>
+            <div className="px-6 py-7 sm:px-8">
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {MEDIA_COLLECTIONS.map((collection) => {
+                  const active = bulkTargetCategory === collection.value;
+                  return <button key={collection.value} type="button" onClick={() => setBulkTargetCategory(collection.value)} aria-pressed={active} className={`min-h-14 rounded-xl border px-4 py-3 text-left text-xs transition ${active ? "border-[var(--helios-orange)]/50 bg-[var(--helios-orange)]/[0.08] text-white" : "border-white/[0.08] bg-white/[0.02] text-white/40 hover:border-white/20 hover:text-white/70"}`}>{collection.label}</button>;
+                })}
+              </div>
+              {assetError && <p className="mt-5 rounded-xl border border-red-300/15 bg-red-300/[0.05] px-4 py-3 text-sm text-red-200/80">{assetError}</p>}
+            </div>
+            <div className="flex flex-col-reverse gap-3 border-t border-white/[0.08] px-6 py-5 sm:flex-row sm:justify-end sm:px-8">
+              <button type="button" onClick={() => setBulkEditOpen(false)} disabled={isBulkMoving} className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 px-6 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-white/45 hover:text-white disabled:opacity-40">Cancel</button>
+              <button type="button" onClick={() => void saveBulkCategory()} disabled={isBulkMoving || !bulkTargetCategory || media.filter((item) => selectedMediaIds.includes(item.id)).every((item) => item.mediaCategory === bulkTargetCategory)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[var(--helios-orange)] px-7 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-black hover:bg-[var(--helios-orange-hover)] disabled:opacity-40">
+                {isBulkMoving && <span className="h-3 w-3 animate-spin rounded-full border border-black/25 border-t-black" />}
+                {isBulkMoving ? "Moving assets" : "Move selected assets"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
