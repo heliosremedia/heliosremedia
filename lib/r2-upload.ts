@@ -184,6 +184,20 @@ export function createFeaturedFilmKey(kind: "video" | "poster", mimeType: string
   return `site/homepage/featured-film/${kind}-${timestamp}-${id}.${extension}`;
 }
 
+export function createHomepageWorkCardKey(
+  cardId: string,
+  kind: "image" | "video",
+  mimeType: string,
+) {
+  const timestamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "-");
+  const id = randomUUID().slice(0, 8);
+  const extension = kind === "video"
+    ? mimeType === "video/mp4" ? "mp4" : "webm"
+    : extensionFromMime(mimeType);
+
+  return `site/homepage/work-cards/${cardId}/${kind}-${timestamp}-${id}.${extension}`;
+}
+
 export async function createPresignedUploadUrl(
   key: string,
   contentType: string,
