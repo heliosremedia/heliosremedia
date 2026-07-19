@@ -127,6 +127,7 @@ model Project {
   tags              ProjectTag[]
   homepagePlacement HomepageProject?
   previewLinks      ProjectPreviewLink[]
+  collectionHeroes ProjectMediaCollectionHero[]
 
   @@index([status])
   @@index([featured])
@@ -194,6 +195,7 @@ model Media {
   heroForProject      Project?           @relation("ProjectHeroMedia")
   thumbnailForProject Project?           @relation("ProjectThumbnailMedia")
   homepageWorkCards   HomepageWorkCard[]
+  collectionHero      ProjectMediaCollectionHero?
 
   @@index([projectId])
   @@index([projectId, displayOrder])
@@ -202,13 +204,26 @@ model Media {
   @@index([sourceType])
 }
 
+model ProjectMediaCollectionHero {
+  projectId     String
+  mediaCategory MediaCategory
+  mediaId       String @unique
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  media   Media   @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([projectId, mediaCategory])
+  @@index([mediaCategory])
+}
+
 model Service {
   id           String  @id @default(cuid())
   name         String
   slug         String  @unique
   description  String?
-  heroImageStorageKey String?
-  heroImageAlt        String?
   displayOrder Int     @default(0)
   active       Boolean @default(true)
 
