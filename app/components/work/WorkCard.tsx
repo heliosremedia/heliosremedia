@@ -13,6 +13,7 @@ type WorkCardProps = {
   priority?: boolean;
   imageAlt?: string;
   videoSrc?: string | null;
+  embedSrc?: string | null;
 };
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -26,6 +27,7 @@ export default function WorkCard({
   priority = false,
   imageAlt,
   videoSrc,
+  embedSrc,
 }: WorkCardProps) {
   const shouldReduceMotion = useReducedMotion();
   const mediaRef = useRef<HTMLDivElement>(null);
@@ -102,6 +104,15 @@ export default function WorkCard({
           className="absolute inset-0 h-full w-full object-cover"
         />
         {videoSrc && !shouldReduceMotion ? <video ref={videoRef} muted loop playsInline preload="metadata" poster={image} aria-label={`${title} featured film`} className="absolute inset-0 h-full w-full object-cover"><source src={videoSrc} /></video> : null}
+        {embedSrc && mediaInView && !shouldReduceMotion ? (
+          <iframe
+            src={embedSrc}
+            title={`${title} featured film`}
+            tabIndex={-1}
+            allow="autoplay; encrypted-media; picture-in-picture"
+            className="pointer-events-none absolute left-1/2 top-1/2 aspect-video h-full min-h-full w-auto min-w-full -translate-x-1/2 -translate-y-1/2 border-0"
+          />
+        ) : null}
       </motion.div>
 
       <motion.div

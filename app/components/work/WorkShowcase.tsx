@@ -10,7 +10,7 @@ const ease = [0.22, 1, 0.36, 1] as const;
 
 type FeaturedFilm = { enabled: boolean; videoSrc: string | null; poster: string | null; href: string | null };
 
-export default function WorkShowcase({ items = portfolioItems, featuredFilm }: { items?: typeof portfolioItems; featuredFilm?: FeaturedFilm }) {
+export default function WorkShowcase({ items = portfolioItems, featuredFilm, featuredProject }: { items?: typeof portfolioItems; featuredFilm?: FeaturedFilm; featuredProject?: (typeof portfolioItems)[number] | null }) {
   const shouldReduceMotion = useReducedMotion();
   const displayItems = featuredFilm?.enabled && featuredFilm.videoSrc
     ? [{ ...items[0], title: "Cinematic Films", href: featuredFilm.href || "/portfolio?service=cinematic-films", image: featuredFilm.poster || portfolioItems[0].image }, ...items.slice(1)]
@@ -151,7 +151,7 @@ export default function WorkShowcase({ items = portfolioItems, featuredFilm }: {
           </div>
         </div>
 
-        <motion.div
+        {featuredProject ? <motion.div
           className="mx-auto mt-[clamp(4rem,7vw,6rem)] w-full max-w-[76rem] px-5 sm:px-8 lg:px-10"
           initial={
             shouldReduceMotion
@@ -174,10 +174,25 @@ export default function WorkShowcase({ items = portfolioItems, featuredFilm }: {
             ease,
           }}
         >
+          <div className="mb-5 flex items-center gap-4"><span className="h-px w-10 bg-[var(--helios-orange)]" /><span className="eyebrow text-[var(--helios-orange)]">Featured Project</span></div>
+          <WorkCard
+            {...featuredProject}
+            priority
+            className="h-[clamp(28rem,56vw,42rem)] rounded-[4px]"
+          />
+        </motion.div> : null}
+
+        <motion.div
+          className={`mx-auto w-full max-w-[76rem] px-5 sm:px-8 lg:px-10 ${featuredProject ? "mt-[clamp(2.5rem,4vw,4rem)]" : "mt-[clamp(4rem,7vw,6rem)]"}`}
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.14 }}
+          transition={{ duration: shouldReduceMotion ? 0 : 0.9, ease }}
+        >
           <WorkCard
             {...displayItems[0]}
-            videoSrc={featuredFilm?.enabled ? featuredFilm.videoSrc : null}
-            priority
+            videoSrc={displayItems[0].videoSrc || (featuredFilm?.enabled ? featuredFilm.videoSrc : null)}
+            priority={!featuredProject}
             className="h-[clamp(28rem,56vw,42rem)] rounded-[4px]"
           />
         </motion.div>

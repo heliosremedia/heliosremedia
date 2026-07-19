@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     const project = await prisma.project.findFirst({ where: { id: projectId, status: "PUBLISHED" }, select: { id: true } });
     if (!project) return NextResponse.json({ success: false, error: "Only published projects can be added to the homepage." }, { status: 400 });
     const count = await prisma.homepageProject.count();
-    if (count >= 5) return NextResponse.json({ success: false, error: "The homepage supports up to five curated projects." }, { status: 409 });
+    if (count >= 1) return NextResponse.json({ success: false, error: "Remove the current Featured Project before selecting another." }, { status: 409 });
     const placement = await prisma.homepageProject.create({ data: { projectId, displayOrder: count }, select });
     refresh(); return NextResponse.json({ success: true, placement }, { status: 201 });
   } catch (error) { console.error("Unable to add homepage project:", error); return NextResponse.json({ success: false, error: "The project could not be added to the homepage." }, { status: 500 }); }

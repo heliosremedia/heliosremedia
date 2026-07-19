@@ -4,6 +4,8 @@ export type PortfolioItem = {
   image: string;
   size: "hero" | "supporting";
   imageAlt?: string;
+  videoSrc?: string | null;
+  embedSrc?: string | null;
 };
 
 export const portfolioItems: PortfolioItem[] = [
