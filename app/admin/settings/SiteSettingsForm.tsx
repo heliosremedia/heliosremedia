@@ -57,8 +57,10 @@ function uploadToR2(
 
 export default function SiteSettingsForm({
   initialSettings,
+  mode = "global",
 }: {
   initialSettings: PublicSiteSettings;
+  mode?: "global" | "homepage";
 }) {
   const [settings, setSettings] = useState(initialSettings);
   const [saving, setSaving] = useState(false);
@@ -357,6 +359,8 @@ export default function SiteSettingsForm({
 
   return (
     <div>
+      {mode === "homepage" ? (
+        <>
       <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111]">
         <div className="grid gap-8 border-b border-white/[0.08] p-6 lg:grid-cols-[0.8fr_1.2fr] lg:p-8">
           <div>
@@ -502,6 +506,12 @@ export default function SiteSettingsForm({
         </div>
       </section>
 
+        </>
+      ) : null}
+
+      {mode === "global" ? (
+        <>
+
       <section className="mt-6 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111]">
         <div className="grid gap-8 p-6 lg:grid-cols-[0.8fr_1.2fr] lg:p-8">
           <div>
@@ -596,10 +606,15 @@ export default function SiteSettingsForm({
           </section>
         ))}
       </div>
+        </>
+      ) : null}
 
       <div className="sticky bottom-5 mt-6 flex items-center justify-between gap-5 rounded-2xl border border-white/10 bg-[#161616]/95 p-4 shadow-2xl backdrop-blur-xl">
         <p role="status" className="text-sm text-white/40">
-          {message || "Changes apply across the public website after saving."}
+          {message ||
+            (mode === "homepage"
+              ? "Homepage media changes apply after saving."
+              : "Changes apply across the public website after saving.")}
         </p>
         <button
           type="button"
