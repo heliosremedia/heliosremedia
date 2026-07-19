@@ -89,6 +89,9 @@ export async function GET(_request: Request, { params }: MediaRouteProps) {
       select: {
         id: true,
         heroMediaId: true,
+        collectionHeroes: {
+          select: { mediaId: true, mediaCategory: true },
+        },
       },
     });
 
@@ -146,7 +149,9 @@ export async function GET(_request: Request, { params }: MediaRouteProps) {
       media: media.map((item) => ({
         ...item,
         publicUrl: item.storageKey ? getPublicAssetUrl(item.storageKey) : "",
-        isHero: item.id === project.heroMediaId,
+        isHero: project.collectionHeroes.some(
+          (hero) => hero.mediaId === item.id && hero.mediaCategory === item.mediaCategory,
+        ),
       })),
     });
   } catch (error) {
@@ -790,6 +795,10 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
         });
 
         displayOrder = (displayOrderResult._max.displayOrder ?? -1) + 1;
+
+        await prisma.projectMediaCollectionHero.deleteMany({
+          where: { projectId, mediaId },
+        });
       }
 
       const updatedMedia = await prisma.media.update({
@@ -838,13 +847,14 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
         },
       });
 
-      const project = await prisma.project.findUnique({
+      const collectionHero = await prisma.projectMediaCollectionHero.findUnique({
         where: {
-          id: projectId,
+          projectId_mediaCategory: {
+            projectId,
+            mediaCategory: updatedMedia.mediaCategory,
+          },
         },
-        select: {
-          heroMediaId: true,
-        },
+        select: { mediaId: true },
       });
 
       return NextResponse.json({
@@ -854,7 +864,7 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
           publicUrl: updatedMedia.storageKey
             ? getPublicAssetUrl(updatedMedia.storageKey)
             : "",
-          isHero: updatedMedia.id === project?.heroMediaId,
+          isHero: updatedMedia.id === collectionHero?.mediaId,
         },
       });
     }
@@ -1027,6 +1037,9 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
           _max: { displayOrder: true },
         });
         const startingDisplayOrder = (maximum._max.displayOrder ?? -1) + 1;
+        await transaction.projectMediaCollectionHero.deleteMany({
+          where: { projectId, mediaId: { in: mediaIds } },
+        });
         await Promise.all(mediaIds.map((id, index) => transaction.media.update({
           where: { id },
           data: { mediaCategory: requestedMediaCategory, displayOrder: startingDisplayOrder + index },
@@ -1067,6 +1080,7 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
           id: true,
           sourceType: true,
           storageKey: true,
+          mediaCategory: true,
         },
       });
 
@@ -1082,22 +1096,34 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
         );
       }
 
-      const project = await prisma.project.update({
-        where: {
-          id: projectId,
-        },
-        data: {
-          heroMediaId: media.id,
-        },
-        select: {
-          id: true,
-          heroMediaId: true,
-        },
+      await prisma.$transaction(async (transaction) => {
+        await transaction.projectMediaCollectionHero.upsert({
+          where: {
+            projectId_mediaCategory: {
+              projectId,
+              mediaCategory: media.mediaCategory,
+            },
+          },
+          create: {
+            projectId,
+            mediaCategory: media.mediaCategory,
+            mediaId: media.id,
+          },
+          update: { mediaId: media.id },
+        });
+
+        if (media.mediaCategory === "PHOTOGRAPHY") {
+          await transaction.project.update({
+            where: { id: projectId },
+            data: { heroMediaId: media.id },
+          });
+        }
       });
 
       return NextResponse.json({
         success: true,
-        heroMediaId: project.heroMediaId,
+        heroMediaId: media.id,
+        mediaCategory: media.mediaCategory,
       });
     }
 
