@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { displayTestimonial } from "@/lib/testimonials";
 
@@ -129,7 +129,7 @@ export default function InTheirWords({ testimonials }: { testimonials: Testimoni
           </h2>
         </motion.header>
 
-        <div className="relative mt-11 h-[29rem] sm:mt-13 sm:h-[30.5rem] lg:h-[31.5rem]">
+        <div className="relative mt-11 h-[35rem] sm:mt-13 sm:h-[36rem] md:h-[30.5rem] lg:h-[31.5rem]">
           {testimonials.map((testimonial, index) => {
             const position = getRelativePosition(index, activeIndex, testimonials.length);
             const isActive = position === "active";
@@ -206,9 +206,9 @@ export default function InTheirWords({ testimonials }: { testimonials: Testimoni
                         mass: 1.2,
                       },
                 }}
-                className={`absolute top-0 h-[25.75rem] cursor-pointer overflow-hidden rounded-[1.25rem] border border-white/[0.08] bg-[#0d0d0d] shadow-[0_26px_76px_rgba(0,0,0,0.4)] sm:h-[27rem] lg:h-[28.5rem] ${positionClasses[position]}`}
+                className={`absolute top-0 h-[31.5rem] cursor-pointer overflow-hidden rounded-[1.25rem] border border-white/[0.08] bg-[#0d0d0d] shadow-[0_26px_76px_rgba(0,0,0,0.4)] sm:h-[32.5rem] md:h-[27rem] lg:h-[28.5rem] ${positionClasses[position]}`}
               >
-                <div className="grid h-full md:grid-cols-[0.95fr_1.05fr]">
+                <div className="grid h-full grid-rows-[13rem_minmax(0,1fr)] sm:grid-rows-[14rem_minmax(0,1fr)] md:grid-cols-[0.95fr_1.05fr] md:grid-rows-[minmax(0,1fr)]">
                   <div className="relative order-2 flex min-h-0 flex-col p-6 sm:p-7 md:order-1 lg:p-8">
                     <div className="min-h-0 flex-1 overflow-hidden">
                       <div
@@ -244,7 +244,7 @@ export default function InTheirWords({ testimonials }: { testimonials: Testimoni
                     </div>
                   </div>
 
-                  <div className="relative order-1 min-h-[10rem] overflow-hidden bg-white/[0.03] md:order-2">
+                  <div className="relative order-1 min-h-0 overflow-hidden bg-white/[0.03] md:order-2">
                     <motion.div
                       animate={{
                         scale: isActive ? 1 : 1.045,
@@ -257,7 +257,17 @@ export default function InTheirWords({ testimonials }: { testimonials: Testimoni
                     >
                       {testimonial.image ? <>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={testimonial.image} alt={testimonial.imageAlt} loading={index === 0 ? "eager" : "lazy"} style={{ objectPosition: `${testimonial.focalX * 100}% ${testimonial.focalY * 100}%` }} className="absolute inset-0 h-full w-full object-cover grayscale contrast-[1.04]" />
+                        <img
+                          src={testimonial.image}
+                          alt={testimonial.imageAlt}
+                          loading={index === 0 ? "eager" : "lazy"}
+                          style={{
+                            "--testimonial-focal-x": `${testimonial.focalX * 100}%`,
+                            "--testimonial-focal-y": `${testimonial.focalY * 100}%`,
+                            "--testimonial-mobile-y": `${Math.min(testimonial.focalY, 0.28) * 100}%`,
+                          } as CSSProperties}
+                          className="absolute inset-0 h-full w-full object-cover grayscale contrast-[1.04] [object-position:var(--testimonial-focal-x)_var(--testimonial-mobile-y)] md:[object-position:var(--testimonial-focal-x)_var(--testimonial-focal-y)]"
+                        />
                       </> : <div className="flex h-full items-center justify-center font-serif text-8xl text-white/10">{testimonial.name.charAt(0)}</div>}
                     </motion.div>
 
