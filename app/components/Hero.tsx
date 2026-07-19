@@ -61,10 +61,10 @@ export default function Hero() {
       <div className="pointer-events-none absolute inset-x-0 -bottom-px h-2 bg-[var(--background)]" />
       <div className="hero-grain pointer-events-none absolute inset-0 opacity-[0.045] mix-blend-soft-light" />
 
-      <div className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-7xl items-center px-6 pb-24 pt-48 md:px-10 md:pt-52 lg:px-16">
-        <div className="max-w-[58rem] translate-y-5">
+      <div className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-7xl items-end px-5 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-[calc(7.5rem+env(safe-area-inset-top))] sm:px-8 md:items-center md:px-10 md:pb-24 md:pt-52 lg:px-16">
+        <div className="w-full max-w-[58rem] md:translate-y-5">
           <motion.h1
-            className="font-display text-[clamp(4rem,7.2vw,7rem)] font-light leading-[0.92] tracking-[-0.045em] text-[var(--foreground)]"
+            className="font-display text-[clamp(3rem,14vw,4rem)] font-light leading-[0.9] tracking-[-0.045em] text-[var(--foreground)] md:text-[clamp(4rem,7.2vw,7rem)] md:leading-[0.92]"
             variants={reveal}
             initial={shouldReduceMotion ? false : "hidden"}
             animate="visible"
@@ -79,7 +79,7 @@ export default function Hero() {
           </motion.h1>
 
           <motion.div
-            className="mt-10 h-px bg-[var(--helios-orange)]"
+            className="mt-5 h-px bg-[var(--helios-orange)] md:mt-10"
             initial={shouldReduceMotion ? false : { width: 0, opacity: 0 }}
             animate={{ width: 104, opacity: 1 }}
             transition={{
@@ -90,7 +90,7 @@ export default function Hero() {
           />
 
           <motion.p
-            className="mt-8 max-w-2xl text-base leading-8 text-[var(--helios-muted)] md:text-lg"
+            className="mt-5 max-w-2xl text-sm leading-6 text-[var(--helios-muted)] md:mt-8 md:text-lg md:leading-8"
             variants={reveal}
             initial={shouldReduceMotion ? false : "hidden"}
             animate="visible"
@@ -105,7 +105,7 @@ export default function Hero() {
           </motion.p>
 
           <motion.div
-            className="mt-11 flex flex-wrap gap-5"
+            className="mt-7 grid w-full grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:gap-5 md:mt-11"
             variants={reveal}
             initial={shouldReduceMotion ? false : "hidden"}
             animate="visible"
@@ -117,7 +117,7 @@ export default function Hero() {
           >
             <motion.a
               href={bookingHref}
-              className="flex min-h-14 items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-10 text-xs font-semibold uppercase tracking-[0.23em] text-white shadow-[0_12px_35px_rgba(0,0,0,0.25)]"
+              className="flex min-h-12 items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-white shadow-[0_12px_35px_rgba(0,0,0,0.25)] sm:min-h-14 sm:px-10 sm:text-xs sm:tracking-[0.23em]"
               whileHover={
                 shouldReduceMotion
                   ? undefined
@@ -136,7 +136,7 @@ export default function Hero() {
 
             <motion.a
               href="/portfolio"
-              className="flex min-h-14 items-center justify-center rounded-[3px] border border-white/40 bg-black/10 px-10 text-xs font-semibold uppercase tracking-[0.23em] text-white backdrop-blur-sm"
+              className="flex min-h-12 items-center justify-center rounded-[3px] border border-white/40 bg-black/10 px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-sm sm:min-h-14 sm:px-10 sm:text-xs sm:tracking-[0.23em]"
               whileHover={
                 shouldReduceMotion
                   ? undefined
@@ -161,7 +161,7 @@ export default function Hero() {
       <motion.a
         href="#standard"
         aria-label="Scroll to the Helios Standard"
-        className="absolute bottom-7 left-1/2 z-20 -translate-x-1/2 text-center"
+        className="absolute bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-20 hidden -translate-x-1/2 text-center md:block"
         initial={shouldReduceMotion ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{
