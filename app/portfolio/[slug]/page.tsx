@@ -448,6 +448,15 @@ export default async function PortfolioProjectPage({
         </section>
       )}
 
+      <nav aria-label="Project navigation" className="border-b border-white/[0.08] bg-[#090909]">
+        <div className="container-shell py-5">
+          <Link href="/portfolio" className="inline-flex items-center gap-3 text-[0.58rem] font-semibold uppercase tracking-[0.17em] text-white/50 transition hover:text-white">
+            <span aria-hidden="true">←</span>
+            Back to all projects
+          </Link>
+        </div>
+      </nav>
+
       {(project.shortDescription ||
         project.description ||
         facts.length > 0) && (
@@ -456,7 +465,7 @@ export default async function PortfolioProjectPage({
             <p className="eyebrow text-[var(--helios-orange)]">The project</p>
 
             {project.shortDescription && (
-              <h2 className="mt-6 max-w-4xl font-display text-[clamp(2.5rem,5vw,5rem)] font-light leading-[0.98] tracking-[-0.045em] text-white">
+              <h2 className="mt-6 max-w-4xl font-display text-[clamp(1.85rem,3.2vw,3.5rem)] font-light leading-[1.04] tracking-[-0.035em] text-white">
                 {project.shortDescription}
               </h2>
             )}
@@ -610,7 +619,8 @@ export default async function PortfolioProjectPage({
             href="/portfolio"
             className="inline-flex min-h-12 items-center justify-center self-start rounded-full border border-white/15 px-7 text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/65 transition hover:border-white/35 hover:text-white lg:self-auto"
           >
-            View all projects
+            <span aria-hidden="true" className="mr-3">←</span>
+            Back to all projects
           </Link>
         </div>
       </section>
