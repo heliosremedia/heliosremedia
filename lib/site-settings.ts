@@ -14,6 +14,7 @@ export type PublicSiteSettings = {
   websiteUrl: string | null; instagramUrl: string | null; facebookUrl: string | null;
   youtubeUrl: string | null; linkedinUrl: string | null;
   defaultSeoTitle: string; defaultSeoDescription: string;
+  privacyPolicyPublished: boolean; termsOfServicePublished: boolean;
 };
 
 export const defaultSiteSettings: PublicSiteSettings = {
@@ -48,6 +49,8 @@ export const defaultSiteSettings: PublicSiteSettings = {
   linkedinUrl: null,
   defaultSeoTitle: "Helios Real Estate Media",
   defaultSeoDescription: "Luxury real estate photography, cinematic films, and branding for Northern Colorado's finest homes.",
+  privacyPolicyPublished: false,
+  termsOfServicePublished: false,
 };
 
 export async function getSiteSettings(): Promise<PublicSiteSettings> {
