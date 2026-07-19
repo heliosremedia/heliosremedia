@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { tryResolveExternalMedia } from "@/lib/external-media";
 import { prisma } from "@/lib/prisma";
 
 import ProjectDetailsEditor from "./ProjectDetailsEditor";
@@ -86,6 +87,8 @@ export default async function ProjectEditorPage({
           },
           select: {
             id: true,
+            sourceType: true,
+            externalUrl: true,
           },
         },
         services: {
@@ -125,6 +128,15 @@ export default async function ProjectEditorPage({
   if (!project) {
     notFound();
   }
+
+  const hasPlayableVideo = project.media.some((media) => {
+    if (media.sourceType !== "VIDEO_EMBED") {
+      return false;
+    }
+
+    const externalMedia = tryResolveExternalMedia(media.externalUrl);
+    return Boolean(externalMedia?.embedUrl || externalMedia?.playbackUrl);
+  });
 
   return (
     <div className="space-y-7">
@@ -201,8 +213,12 @@ export default async function ProjectEditorPage({
           [
             "01",
             "Details",
-            project.shortDescription ? "Ready" : "Add summary",
-            Boolean(project.shortDescription),
+            project.shortDescription
+              ? "Ready"
+              : hasPlayableVideo
+                ? "Video-led"
+                : "Add summary",
+            Boolean(project.shortDescription) || hasPlayableVideo,
           ],
           [
             "02",
@@ -361,6 +377,7 @@ export default async function ProjectEditorPage({
         }
         visibleMediaCount={project.media.length}
         hasProjectSummary={Boolean(project.shortDescription)}
+        hasPlayableVideo={hasPlayableVideo}
         services={services}
         initialServiceIds={project.services.map(
           (projectService) => projectService.serviceId,

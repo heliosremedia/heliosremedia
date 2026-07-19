@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
@@ -590,6 +591,7 @@ function SortableMediaCard({
 export default function ProjectMediaManager({
   projectId,
 }: ProjectMediaManagerProps) {
+  const router = useRouter();
   const [media, setMedia] = useState<ProjectMediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -796,26 +798,30 @@ export default function ProjectMediaManager({
     setSelectionAnchorId(null);
   }, []);
 
-  const handleMediaUploaded = useCallback((uploadedMedia: ProjectMediaItem) => {
-    setMedia((currentMedia) => {
-      const normalizedMedia = {
-        ...uploadedMedia,
-        isHero: uploadedMedia.isHero ?? false,
-      };
+  const handleMediaUploaded = useCallback(
+    (uploadedMedia: ProjectMediaItem) => {
+      setMedia((currentMedia) => {
+        const normalizedMedia = {
+          ...uploadedMedia,
+          isHero: uploadedMedia.isHero ?? false,
+        };
 
-      const existingIndex = currentMedia.findIndex(
-        (item) => item.id === normalizedMedia.id,
-      );
-
-      if (existingIndex >= 0) {
-        return currentMedia.map((item) =>
-          item.id === normalizedMedia.id ? normalizedMedia : item,
+        const existingIndex = currentMedia.findIndex(
+          (item) => item.id === normalizedMedia.id,
         );
-      }
 
-      return [...currentMedia, normalizedMedia];
-    });
-  }, []);
+        if (existingIndex >= 0) {
+          return currentMedia.map((item) =>
+            item.id === normalizedMedia.id ? normalizedMedia : item,
+          );
+        }
+
+        return [...currentMedia, normalizedMedia];
+      });
+      router.refresh();
+    },
+    [router],
+  );
 
   const handleSetHero = useCallback(
     async (mediaId: string) => {
@@ -846,6 +852,7 @@ export default function ProjectMediaManager({
             isHero: item.id === data.heroMediaId,
           })),
         );
+        router.refresh();
       } catch (updateError) {
         console.error("Unable to update project hero image:", updateError);
 
@@ -858,7 +865,7 @@ export default function ProjectMediaManager({
         setUpdatingHeroId(null);
       }
     },
-    [projectId],
+    [projectId, router],
   );
 
   useEffect(() => {
@@ -923,6 +930,7 @@ export default function ProjectMediaManager({
             currentItem.id === updatedMedia.id ? updatedMedia : currentItem,
           ),
         );
+        router.refresh();
 
         return true;
       } catch (updateError) {
@@ -937,7 +945,7 @@ export default function ProjectMediaManager({
         setUpdatingAssetId(null);
       }
     },
-    [projectId],
+    [projectId, router],
   );
 
   const beginEditingAsset = useCallback(
@@ -1047,6 +1055,7 @@ export default function ProjectMediaManager({
           "The asset was removed from the project, but its storage cleanup is still pending.",
         );
       }
+      router.refresh();
     } catch (deleteError) {
       console.error("Unable to delete project asset:", deleteError);
       setAssetError(
@@ -1057,7 +1066,7 @@ export default function ProjectMediaManager({
     } finally {
       setUpdatingAssetId(null);
     }
-  }, [activeMediaId, deletingMedia, projectId]);
+  }, [activeMediaId, deletingMedia, projectId, router]);
 
   const handleReorder = useCallback(
     async (
