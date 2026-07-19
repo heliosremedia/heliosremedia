@@ -90,7 +90,7 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
                 height={90}
                 priority
                 unoptimized={Boolean(settings.brandLogoUrl?.startsWith("http"))}
-                className="h-auto w-36 sm:w-40 md:w-48 lg:w-[13rem]"
+                className="h-auto w-44 md:w-48 lg:w-[13rem]"
               />
             </Link>
           </motion.div>
