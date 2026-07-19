@@ -79,6 +79,12 @@ enum InquiryStatus {
   SPAM
 }
 
+enum HomepageCardMediaMode {
+  IMAGE
+  LIBRARY_VIDEO
+  UPLOADED_VIDEO
+}
+
 model Project {
   id               String  @id @default(cuid())
   title            String
@@ -180,8 +186,9 @@ model Media {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  heroForProject      Project? @relation("ProjectHeroMedia")
-  thumbnailForProject Project? @relation("ProjectThumbnailMedia")
+  heroForProject      Project?           @relation("ProjectHeroMedia")
+  thumbnailForProject Project?           @relation("ProjectThumbnailMedia")
+  homepageWorkCards   HomepageWorkCard[]
 
   @@index([projectId])
   @@index([projectId, displayOrder])
@@ -198,8 +205,9 @@ model Service {
   displayOrder Int     @default(0)
   active       Boolean @default(true)
 
-  projects  ProjectService[]
-  inquiries InquiryService[]
+  projects         ProjectService[]
+  inquiries        InquiryService[]
+  homepageWorkCard HomepageWorkCard?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -342,6 +350,34 @@ model HomepageProject {
   updatedAt DateTime @updatedAt
 
   @@index([active, displayOrder])
+}
+
+model HomepageWorkCard {
+  id        String  @id @default(cuid())
+  serviceId String  @unique
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  titleOverride       String?
+  destinationOverride String?
+  displayOrder        Int     @default(0)
+  active              Boolean @default(true)
+
+  imageStorageKey String?
+  imageUrl        String?
+  imageAlt        String?
+
+  mediaMode       HomepageCardMediaMode @default(IMAGE)
+  featuredMediaId String?
+  featuredMedia   Media?                @relation(fields: [featuredMediaId], references: [id], onDelete: SetNull)
+
+  videoStorageKey String?
+  videoUrl        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, displayOrder])
+  @@index([featuredMediaId])
 }
 
 model SiteSettings {
