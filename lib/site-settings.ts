@@ -4,6 +4,9 @@ export type PublicSiteSettings = {
   id: string; businessName: string; phoneDisplay: string; phoneE164: string;
   email: string | null; bookingUrl: string | null;
   heroVideoUrl: string | null; heroPosterUrl: string | null; locationLabel: string;
+  heliosStandardImageStorageKey: string | null; heliosStandardImageUrl: string | null;
+  heliosStandardImageAlt: string | null; primaryConversionImageStorageKey: string | null;
+  primaryConversionImageUrl: string | null; primaryConversionImageAlt: string | null;
   brandLogoStorageKey: string | null; brandLogoUrl: string | null; brandLogoAlt: string | null;
   brandMonogramStorageKey: string | null; brandMonogramUrl: string | null;
   featuredFilmEnabled: boolean; featuredFilmVideoStorageKey: string | null;
@@ -26,6 +29,12 @@ export const defaultSiteSettings: PublicSiteSettings = {
   bookingUrl: null,
   heroVideoUrl: null,
   heroPosterUrl: "/work/featured-estate.jpg",
+  heliosStandardImageStorageKey: null,
+  heliosStandardImageUrl: null,
+  heliosStandardImageAlt: "Luxury interior photographed by Helios Real Estate Media",
+  primaryConversionImageStorageKey: null,
+  primaryConversionImageUrl: null,
+  primaryConversionImageAlt: "Architectural living room photographed by Helios Real Estate Media",
   brandLogoStorageKey: null,
   brandLogoUrl: null,
   brandLogoAlt: "Helios Real Estate Media",

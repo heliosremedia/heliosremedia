@@ -15,7 +15,7 @@ function resolveAction(type: PublicCta["primaryActionType"] | null, value: strin
   return value || "#";
 }
 
-export default function PrimaryConversion({ cta }: { cta: PublicCta }) {
+export default function PrimaryConversion({ cta, imageUrl, imageAlt }: { cta: PublicCta; imageUrl?: string | null; imageAlt?: string | null }) {
   const settings = useSiteSettings();
   const prefersReducedMotion = useReducedMotion();
 
@@ -49,9 +49,10 @@ export default function PrimaryConversion({ cta }: { cta: PublicCta }) {
             className="relative min-h-[28rem] overflow-hidden sm:min-h-[35rem] lg:min-h-[43rem]"
           >
             <Image
-              src="/standard/standard-16.jpg"
-              alt="Architectural living room photographed by Helios Real Estate Media"
+              src={imageUrl || "/standard/standard-16.jpg"}
+              alt={imageAlt || "Architectural living room photographed by Helios Real Estate Media"}
               fill
+              unoptimized={Boolean(imageUrl?.startsWith("http"))}
               sizes="(min-width: 1024px) 66vw, 100vw"
               className="object-cover object-[48%_54%]"
             />

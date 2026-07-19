@@ -397,6 +397,14 @@ model SiteSettings {
   heroVideoUrl  String?
   heroPosterUrl String? @default("/work/featured-estate.jpg")
 
+  heliosStandardImageStorageKey String?
+  heliosStandardImageUrl        String?
+  heliosStandardImageAlt        String? @default("Luxury interior photographed by Helios Real Estate Media")
+
+  primaryConversionImageStorageKey String?
+  primaryConversionImageUrl        String?
+  primaryConversionImageAlt        String? @default("Architectural living room photographed by Helios Real Estate Media")
+
   brandLogoStorageKey String?
   brandLogoUrl        String?
   brandLogoAlt        String? @default("Helios Real Estate Media")

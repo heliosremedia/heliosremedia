@@ -79,7 +79,7 @@ export default async function Home() {
     <main>
       <Navbar />
       <Hero />
-      <HeliosStandard />
+      <HeliosStandard imageUrl={settings.heliosStandardImageUrl} imageAlt={settings.heliosStandardImageAlt} />
       <WorkShowcase
         items={configuredWorkItems.length > 0 ? configuredWorkItems : undefined}
         featuredProject={featuredProject}
@@ -110,7 +110,7 @@ export default async function Home() {
         rating: item.rating,
         sourceUrl: item.sourceUrl,
       }))} />
-      <PrimaryConversion cta={homepageCta ?? defaultHomeCta} />
+      <PrimaryConversion cta={homepageCta ?? defaultHomeCta} imageUrl={settings.primaryConversionImageUrl} imageAlt={settings.primaryConversionImageAlt} />
       <Footer />
     </main>
   );

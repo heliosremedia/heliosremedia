@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { PublicSiteSettings } from "@/lib/site-settings";
 
-type UploadKind = "video" | "poster" | "logo" | "monogram";
+type UploadKind = "video" | "poster" | "logo" | "monogram" | "standard" | "conversion";
 
 type UploadState = {
   kind: UploadKind;
@@ -14,6 +14,7 @@ type PresignResponse = {
   success: boolean;
   error?: string;
   upload?: {
+    key?: string;
     uploadUrl: string;
     publicUrl: string;
     contentType: string;
@@ -264,6 +265,54 @@ export default function SiteSettingsForm({
     }
   }
 
+  async function uploadHomepageImage(kind: "standard" | "conversion", file: File) {
+    setUploading({ kind, progress: 0 });
+    setMessage("Preparing homepage section image…");
+
+    try {
+      const response = await fetch("/api/admin/site-settings/homepage-images/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: kind === "standard" ? "helios-standard" : "primary-conversion",
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+        }),
+      });
+      const data = (await response.json()) as PresignResponse;
+      if (!response.ok || !data.success || !data.upload?.key) {
+        throw new Error(data.error || "Unable to prepare this image upload.");
+      }
+
+      await uploadToR2(file, data.upload.uploadUrl, data.upload.contentType, (progress) =>
+        setUploading({ kind, progress }),
+      );
+
+      const nextSettings = kind === "standard"
+        ? { ...settings, heliosStandardImageStorageKey: data.upload.key, heliosStandardImageUrl: data.upload.publicUrl }
+        : { ...settings, primaryConversionImageStorageKey: data.upload.key, primaryConversionImageUrl: data.upload.publicUrl };
+      await persist(nextSettings, kind === "standard" ? "Helios Standard image published." : "Homepage call-to-action image published.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "The homepage image could not be uploaded.");
+    } finally {
+      setUploading(null);
+    }
+  }
+
+  async function clearHomepageImage(kind: "standard" | "conversion") {
+    const previous = settings;
+    const nextSettings = kind === "standard"
+      ? { ...settings, heliosStandardImageStorageKey: null, heliosStandardImageUrl: null }
+      : { ...settings, primaryConversionImageStorageKey: null, primaryConversionImageUrl: null };
+    setSettings(nextSettings);
+    try {
+      await persist(nextSettings, "Using the original homepage image.");
+    } catch {
+      setSettings(previous);
+    }
+  }
+
   const groups = [
     {
       title: "Business and contact",
@@ -282,7 +331,7 @@ export default function SiteSettingsForm({
         ["serviceArea", "Primary service area"],
         ["availabilityMessage", "Availability message"],
         ["footerDescription", "Footer description"],
-        ["serviceAreaDescription", "Service-area description"],
+        ["serviceAreaDescription", "Footer service-area line"],
       ],
     },
     {
@@ -414,6 +463,41 @@ export default function SiteSettingsForm({
                 </label>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-6 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111]">
+        <div className="grid gap-8 p-6 lg:grid-cols-[0.8fr_1.2fr] lg:p-8">
+          <div>
+            <p className="text-[0.54rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">Homepage imagery</p>
+            <h2 className="mt-3 text-2xl font-light text-white">Section images</h2>
+            <p className="mt-3 max-w-lg text-sm leading-6 text-white/40">Replace the editorial image in The Helios Standard and the image above the footer at any time.</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {([
+              { kind: "standard" as const, title: "The Helios Standard", src: settings.heliosStandardImageUrl || "/standard/standard-8.jpg", altKey: "heliosStandardImageAlt" as const, managed: settings.heliosStandardImageUrl },
+              { kind: "conversion" as const, title: "Pre-footer call to action", src: settings.primaryConversionImageUrl || "/standard/standard-16.jpg", altKey: "primaryConversionImageAlt" as const, managed: settings.primaryConversionImageUrl },
+            ]).map((item) => (
+              <div key={item.kind} className="rounded-2xl border border-white/[0.08] bg-black/25 p-5">
+                <p className="text-[0.55rem] font-semibold uppercase tracking-[0.16em] text-white/45">{item.title}</p>
+                <div className="mt-4 aspect-video overflow-hidden rounded-xl border border-white/[0.06] bg-black/35">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={item.src} alt="" className="h-full w-full object-cover" />
+                </div>
+                <label className="mt-4 block text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Image alt text
+                  <input value={settings[item.altKey] ?? ""} onChange={(event) => update(item.altKey, event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" />
+                </label>
+                {uploading?.kind === item.kind ? <div className="mt-4"><div className="h-1 overflow-hidden rounded-full bg-white/10"><div className="h-full bg-[var(--helios-orange)] transition-[width]" style={{ width: `${uploading.progress}%` }} /></div><p className="mt-2 text-xs text-white/40">Uploading {uploading.progress}%</p></div> : null}
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <label className={`cursor-pointer rounded-full bg-[var(--helios-orange)] px-5 py-3 text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-black ${uploadBusy ? "pointer-events-none opacity-40" : ""}`}>
+                    {item.managed ? "Replace image" : "Upload image"}
+                    <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="sr-only" disabled={uploadBusy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadHomepageImage(item.kind, file); event.target.value = ""; }} />
+                  </label>
+                  {item.managed ? <button type="button" disabled={uploadBusy} onClick={() => void clearHomepageImage(item.kind)} className="rounded-full border border-white/10 px-5 py-3 text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-white/55 disabled:opacity-40">Use original</button> : null}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
