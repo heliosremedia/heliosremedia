@@ -19,9 +19,13 @@ import {
 
 type ProjectMediaItem = {
   id: string;
+  sourceType: string;
+  provider: string | null;
   storageKey: string | null;
   originalFilename: string | null;
   mimeType: string | null;
+  externalUrl: string | null;
+  externalId: string | null;
   fileSize: number | null;
   width: number | null;
   height: number | null;

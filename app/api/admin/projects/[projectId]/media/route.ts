@@ -6,6 +6,7 @@ import {
   getMediaCollection,
   isMediaCategory,
 } from "@/lib/media-collections";
+import { resolveExternalMedia } from "@/lib/external-media";
 import { prisma } from "@/lib/prisma";
 import { r2Client, r2Config } from "@/lib/r2";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
@@ -17,8 +18,12 @@ type MediaRouteProps = {
 };
 
 type CreateMediaRequestBody = {
+  externalUrl?: unknown;
   key?: unknown;
   originalFilename?: unknown;
+  altText?: unknown;
+  caption?: unknown;
+  visibility?: unknown;
   mimeType?: unknown;
   fileSize?: unknown;
   width?: unknown;
@@ -29,6 +34,7 @@ type CreateMediaRequestBody = {
 type UpdateMediaRequestBody = {
   action?: unknown;
   mediaId?: unknown;
+  externalUrl?: unknown;
   mediaCategory?: unknown;
   mediaIds?: unknown;
   originalFilename?: unknown;
@@ -115,11 +121,15 @@ export async function GET(_request: Request, { params }: MediaRouteProps) {
       ],
       select: {
         id: true,
+        sourceType: true,
+        provider: true,
         storageKey: true,
         originalFilename: true,
         altText: true,
         caption: true,
         mimeType: true,
+        externalUrl: true,
+        externalId: true,
         fileSize: true,
         width: true,
         height: true,
@@ -159,6 +169,9 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
     const { projectId } = await params;
     const body = (await request.json()) as CreateMediaRequestBody;
 
+    const externalUrlInput =
+      typeof body.externalUrl === "string" ? body.externalUrl.trim() : "";
+
     const key = typeof body.key === "string" ? body.key.trim() : "";
 
     const originalFilename =
@@ -191,6 +204,184 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
         {
           status: 400,
         },
+      );
+    }
+
+    if (externalUrlInput) {
+      const originalFilename =
+        typeof body.originalFilename === "string"
+          ? body.originalFilename.trim()
+          : "";
+      const altText = getOptionalText(body.altText);
+      const caption = getOptionalText(body.caption);
+      const visibility =
+        typeof body.visibility === "string" ? body.visibility.trim() : "VISIBLE";
+      const requestedMediaCategory =
+        typeof body.mediaCategory === "string" ? body.mediaCategory.trim() : "";
+
+      if (!originalFilename || originalFilename.length > 255) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "A video title is required and must be 255 characters or fewer.",
+          },
+          { status: 400 },
+        );
+      }
+
+      if ((altText?.length ?? 0) > 500 || (caption?.length ?? 0) > 2000) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "The video description or caption is too long.",
+          },
+          { status: 400 },
+        );
+      }
+
+      if (!isMediaCategory(requestedMediaCategory)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Choose a valid media collection.",
+          },
+          { status: 400 },
+        );
+      }
+
+      if (visibility !== "VISIBLE" && visibility !== "HIDDEN") {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Choose a valid visibility setting.",
+          },
+          { status: 400 },
+        );
+      }
+
+      let resolvedMedia;
+
+      try {
+        resolvedMedia = resolveExternalMedia(externalUrlInput);
+      } catch (error) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : "The video URL is not supported.",
+          },
+          { status: 400 },
+        );
+      }
+
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { id: true, heroMediaId: true },
+      });
+
+      if (!project) {
+        return NextResponse.json(
+          { success: false, error: "Project not found." },
+          { status: 404 },
+        );
+      }
+
+      const duplicate = await prisma.media.findFirst({
+        where: {
+          projectId,
+          externalUrl: resolvedMedia.externalUrl,
+        },
+        select: {
+          id: true,
+          sourceType: true,
+          provider: true,
+          storageKey: true,
+          originalFilename: true,
+          altText: true,
+          caption: true,
+          mimeType: true,
+          fileSize: true,
+          width: true,
+          height: true,
+          aspectRatio: true,
+          externalUrl: true,
+          externalId: true,
+          mediaCategory: true,
+          displayOrder: true,
+          visibility: true,
+          createdAt: true,
+        },
+      });
+
+      if (duplicate) {
+        return NextResponse.json({
+          success: true,
+          media: {
+            ...duplicate,
+            publicUrl: duplicate.storageKey
+              ? getPublicAssetUrl(duplicate.storageKey)
+              : "",
+            isHero: duplicate.id === project.heroMediaId,
+          },
+        });
+      }
+
+      const displayOrderResult = await prisma.media.aggregate({
+        where: {
+          projectId,
+          mediaCategory: requestedMediaCategory,
+        },
+        _max: { displayOrder: true },
+      });
+
+      const media = await prisma.media.create({
+        data: {
+          projectId,
+          sourceType: resolvedMedia.sourceType,
+          provider: resolvedMedia.databaseProvider,
+          mediaCategory: requestedMediaCategory,
+          externalUrl: resolvedMedia.externalUrl,
+          externalId: resolvedMedia.externalId,
+          originalFilename,
+          altText,
+          caption,
+          displayOrder: (displayOrderResult._max.displayOrder ?? -1) + 1,
+          visibility,
+        },
+        select: {
+          id: true,
+          sourceType: true,
+          provider: true,
+          storageKey: true,
+          originalFilename: true,
+          altText: true,
+          caption: true,
+          mimeType: true,
+          fileSize: true,
+          width: true,
+          height: true,
+          aspectRatio: true,
+          externalUrl: true,
+          externalId: true,
+          mediaCategory: true,
+          displayOrder: true,
+          visibility: true,
+          createdAt: true,
+        },
+      });
+
+      return NextResponse.json(
+        {
+          success: true,
+          media: {
+            ...media,
+            publicUrl: "",
+            isHero: false,
+          },
+        },
+        { status: 201 },
       );
     }
 
@@ -312,11 +503,15 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
       },
       select: {
         id: true,
+        sourceType: true,
+        provider: true,
         storageKey: true,
         originalFilename: true,
         altText: true,
         caption: true,
         mimeType: true,
+        externalUrl: true,
+        externalId: true,
         fileSize: true,
         width: true,
         height: true,
@@ -370,11 +565,15 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
       },
       select: {
         id: true,
+        sourceType: true,
+        provider: true,
         storageKey: true,
         originalFilename: true,
         altText: true,
         caption: true,
         mimeType: true,
+        externalUrl: true,
+        externalId: true,
         fileSize: true,
         width: true,
         height: true,
@@ -405,7 +604,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
     return NextResponse.json(
       {
         success: false,
-        error: "The uploaded image could not be added to this project.",
+        error: "The media asset could not be added to this project.",
       },
       {
         status: 500,
@@ -446,6 +645,8 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
         typeof body.mediaCategory === "string" ? body.mediaCategory.trim() : "";
       const visibility =
         typeof body.visibility === "string" ? body.visibility.trim() : "";
+      const externalUrlInput =
+        typeof body.externalUrl === "string" ? body.externalUrl.trim() : "";
 
       if (!mediaId) {
         return NextResponse.json(
@@ -528,6 +729,8 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
         select: {
           id: true,
           mediaCategory: true,
+          sourceType: true,
+          externalUrl: true,
         },
       });
 
@@ -544,6 +747,36 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
       }
 
       let displayOrder: number | undefined;
+      let resolvedExternalMedia:
+        | ReturnType<typeof resolveExternalMedia>
+        | undefined;
+
+      if (existingMedia.externalUrl) {
+        if (!externalUrlInput) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: "An external media URL is required for this asset.",
+            },
+            { status: 400 },
+          );
+        }
+
+        try {
+          resolvedExternalMedia = resolveExternalMedia(externalUrlInput);
+        } catch (error) {
+          return NextResponse.json(
+            {
+              success: false,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "The external media URL is not supported.",
+            },
+            { status: 400 },
+          );
+        }
+      }
 
       if (existingMedia.mediaCategory !== requestedMediaCategory) {
         const displayOrderResult = await prisma.media.aggregate({
@@ -569,6 +802,14 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
           caption,
           mediaCategory: requestedMediaCategory,
           visibility,
+          ...(resolvedExternalMedia
+            ? {
+                sourceType: resolvedExternalMedia.sourceType,
+                provider: resolvedExternalMedia.databaseProvider,
+                externalUrl: resolvedExternalMedia.externalUrl,
+                externalId: resolvedExternalMedia.externalId,
+              }
+            : {}),
           ...(displayOrder === undefined
             ? {}
             : {
@@ -577,11 +818,15 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
         },
         select: {
           id: true,
+          sourceType: true,
+          provider: true,
           storageKey: true,
           originalFilename: true,
           altText: true,
           caption: true,
           mimeType: true,
+          externalUrl: true,
+          externalId: true,
           fileSize: true,
           width: true,
           height: true,
@@ -777,14 +1022,16 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
         },
         select: {
           id: true,
+          sourceType: true,
+          storageKey: true,
         },
       });
 
-      if (!media) {
+      if (!media || media.sourceType !== "UPLOADED_IMAGE" || !media.storageKey) {
         return NextResponse.json(
           {
             success: false,
-            error: "The selected image was not found.",
+            error: "Only uploaded images can be used as the project hero.",
           },
           {
             status: 404,

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { tryResolveExternalMedia } from "@/lib/external-media";
 import type { MediaCategory } from "@/lib/media-collections";
 
 export type LibraryMediaItem = {
@@ -76,6 +77,10 @@ export default function MediaLibraryGrid({ items }: MediaLibraryGridProps) {
     [activeMediaId, items],
   );
   const activeMedia = activeIndex >= 0 ? items[activeIndex] : null;
+  const activeExternalMedia = useMemo(
+    () => tryResolveExternalMedia(activeMedia?.externalUrl),
+    [activeMedia?.externalUrl],
+  );
 
   const closePreview = useCallback(() => setActiveMediaId(null), []);
   const showPrevious = useCallback(() => {
@@ -317,6 +322,28 @@ export default function MediaLibraryGrid({ items }: MediaLibraryGridProps) {
                 }
                 className="max-h-full max-w-full object-contain shadow-[0_30px_100px_rgba(0,0,0,0.65)]"
               />
+            ) : activeExternalMedia?.embedUrl ? (
+              <iframe
+                src={activeExternalMedia.embedUrl}
+                title={
+                  activeMedia.originalFilename ||
+                  `${activeExternalMedia.label} video`
+                }
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
+                className="aspect-video max-h-full w-full max-w-6xl rounded-lg border border-white/10 bg-black shadow-[0_30px_100px_rgba(0,0,0,0.65)]"
+              />
+            ) : activeExternalMedia?.playbackUrl ? (
+              <video
+                src={activeExternalMedia.playbackUrl}
+                controls
+                playsInline
+                preload="metadata"
+                className="max-h-full w-full max-w-6xl rounded-lg bg-black shadow-[0_30px_100px_rgba(0,0,0,0.65)]"
+              >
+                Your browser cannot play this hosted video.
+              </video>
             ) : activeMedia.externalUrl ? (
               <a
                 href={activeMedia.externalUrl}

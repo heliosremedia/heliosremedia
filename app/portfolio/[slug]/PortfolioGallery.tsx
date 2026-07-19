@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { tryResolveExternalMedia } from "@/lib/external-media";
+
 export type PortfolioGalleryItem = {
   id: string;
   imageUrl: string | null;
@@ -32,7 +34,16 @@ export default function PortfolioGallery({
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const previewItems = useMemo(
-    () => items.filter((item) => Boolean(item.imageUrl)),
+    () =>
+      items.filter((item) => {
+        if (item.imageUrl) {
+          return true;
+        }
+
+        return (
+          tryResolveExternalMedia(item.externalUrl)?.sourceType === "VIDEO_EMBED"
+        );
+      }),
     [items],
   );
   const [showcaseMediaId, setShowcaseMediaId] = useState<string | null>(
@@ -46,6 +57,10 @@ export default function PortfolioGallery({
     return selectedIndex >= 0 ? selectedIndex : 0;
   }, [previewItems, showcaseMediaId]);
   const showcaseMedia = previewItems[showcaseIndex] ?? null;
+  const showcaseExternalMedia = useMemo(
+    () => tryResolveExternalMedia(showcaseMedia?.externalUrl),
+    [showcaseMedia?.externalUrl],
+  );
   const activeIndex = useMemo(
     () => previewItems.findIndex((item) => item.id === activeMediaId),
     [activeMediaId, previewItems],
@@ -204,29 +219,50 @@ export default function PortfolioGallery({
         </div>
       </div>
 
-      {galleryView === "showcase" && showcaseMedia?.imageUrl ? (
+      {galleryView === "showcase" && showcaseMedia ? (
         <section className="mt-5" aria-label={`${collectionLabel} showcase`}>
           <div className="group relative flex h-[clamp(28rem,68vh,54rem)] items-center justify-center overflow-hidden bg-white/[0.025]">
-            <button
-              type="button"
-              onClick={(event) => {
-                triggerRef.current = event.currentTarget;
-                setActiveMediaId(showcaseMedia.id);
-              }}
-              aria-label={`Open ${showcaseMedia.alt} in fullscreen`}
-              className="relative flex h-full w-full cursor-zoom-in items-center justify-center"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={showcaseMedia.imageUrl}
-                alt={showcaseMedia.alt}
-                className="h-full w-full object-contain"
-                style={{
-                  objectPosition: `${showcaseMedia.focalX * 100}% ${showcaseMedia.focalY * 100}%`,
+            {showcaseMedia.imageUrl ? (
+              <button
+                type="button"
+                onClick={(event) => {
+                  triggerRef.current = event.currentTarget;
+                  setActiveMediaId(showcaseMedia.id);
                 }}
+                aria-label={`Open ${showcaseMedia.alt} in fullscreen`}
+                className="relative flex h-full w-full cursor-zoom-in items-center justify-center"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={showcaseMedia.imageUrl}
+                  alt={showcaseMedia.alt}
+                  className="h-full w-full object-contain"
+                  style={{
+                    objectPosition: `${showcaseMedia.focalX * 100}% ${showcaseMedia.focalY * 100}%`,
+                  }}
+                />
+                <span className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
+              </button>
+            ) : showcaseExternalMedia?.embedUrl ? (
+              <iframe
+                src={showcaseExternalMedia.embedUrl}
+                title={showcaseMedia.alt}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
+                className="aspect-video max-h-full w-full max-w-[96rem] border-0 bg-black"
               />
-              <span className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
-            </button>
+            ) : showcaseExternalMedia?.playbackUrl ? (
+              <video
+                src={showcaseExternalMedia.playbackUrl}
+                controls
+                playsInline
+                preload="metadata"
+                className="max-h-full w-full max-w-[96rem] bg-black"
+              >
+                Your browser cannot play this hosted video.
+              </video>
+            ) : null}
 
             {previewItems.length > 1 && (
               <>
@@ -240,7 +276,7 @@ export default function PortfolioGallery({
                       ].id,
                     )
                   }
-                  aria-label="Show previous image"
+                  aria-label="Show previous asset"
                   className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/40 text-white/55 opacity-0 backdrop-blur-md transition hover:border-white/30 hover:text-white group-hover:opacity-100 focus:opacity-100"
                 >
                   <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5">
@@ -254,7 +290,7 @@ export default function PortfolioGallery({
                       previewItems[(showcaseIndex + 1) % previewItems.length].id,
                     )
                   }
-                  aria-label="Show next image"
+                  aria-label="Show next asset"
                   className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/40 text-white/55 opacity-0 backdrop-blur-md transition hover:border-white/30 hover:text-white group-hover:opacity-100 focus:opacity-100"
                 >
                   <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5">
@@ -282,31 +318,46 @@ export default function PortfolioGallery({
             className="mt-3 flex gap-2 overflow-x-auto pb-3 [scrollbar-color:rgba(255,255,255,0.18)_transparent] [scrollbar-width:thin]"
             aria-label={`${collectionLabel} thumbnails`}
           >
-            {previewItems.map((item, itemIndex) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setShowcaseMediaId(item.id)}
-                aria-label={`Show image ${itemIndex + 1}: ${item.alt}`}
-                aria-current={item.id === showcaseMedia.id ? "true" : undefined}
-                className={`relative h-20 w-28 flex-none overflow-hidden border transition sm:h-24 sm:w-36 ${
-                  item.id === showcaseMedia.id
-                    ? "border-[var(--helios-orange)] opacity-100"
-                    : "border-white/[0.08] opacity-45 hover:border-white/30 hover:opacity-85"
-                }`}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={item.imageUrl!}
-                  alt=""
-                  loading="lazy"
-                  className="h-full w-full object-cover"
-                  style={{
-                    objectPosition: `${item.focalX * 100}% ${item.focalY * 100}%`,
-                  }}
-                />
-              </button>
-            ))}
+            {previewItems.map((item, itemIndex) => {
+              const externalMedia = tryResolveExternalMedia(item.externalUrl);
+
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setShowcaseMediaId(item.id)}
+                  aria-label={`Show asset ${itemIndex + 1}: ${item.alt}`}
+                  aria-current={item.id === showcaseMedia.id ? "true" : undefined}
+                  className={`relative h-20 w-28 flex-none overflow-hidden border transition sm:h-24 sm:w-36 ${
+                    item.id === showcaseMedia.id
+                      ? "border-[var(--helios-orange)] opacity-100"
+                      : "border-white/[0.08] opacity-45 hover:border-white/30 hover:opacity-85"
+                  }`}
+                >
+                  {item.imageUrl || externalMedia?.thumbnailUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.imageUrl || externalMedia!.thumbnailUrl!}
+                      alt=""
+                      loading="lazy"
+                      className="h-full w-full object-cover"
+                      style={{
+                        objectPosition: `${item.focalX * 100}% ${item.focalY * 100}%`,
+                      }}
+                    />
+                  ) : (
+                    <span className="flex h-full w-full flex-col items-center justify-center bg-[radial-gradient(circle_at_70%_20%,rgba(217,107,43,0.2),transparent_42%),#0b0b0b] text-white/55">
+                      <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+                        <path d="m9 7 8 5-8 5V7Z" fill="currentColor" />
+                      </svg>
+                      <span className="mt-2 text-[0.48rem] font-semibold uppercase tracking-[0.12em]">
+                        {externalMedia?.label || "Video"}
+                      </span>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </section>
       ) : (
@@ -317,7 +368,10 @@ export default function PortfolioGallery({
               : "grid-cols-1 gap-7"
           }`}
         >
-          {items.map((item) => (
+          {items.map((item) => {
+            const externalMedia = tryResolveExternalMedia(item.externalUrl);
+
+            return (
             <figure key={item.id} className="group">
               <div
                 className={`relative overflow-hidden bg-white/[0.03] ${
@@ -367,6 +421,26 @@ export default function PortfolioGallery({
                       </svg>
                     </span>
                   </button>
+                ) : externalMedia?.embedUrl ? (
+                  <iframe
+                    src={externalMedia.embedUrl}
+                    title={item.alt}
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    className="h-full w-full border-0 bg-black"
+                  />
+                ) : externalMedia?.playbackUrl ? (
+                  <video
+                    src={externalMedia.playbackUrl}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    className="h-full w-full bg-black object-contain"
+                  >
+                    Your browser cannot play this hosted video.
+                  </video>
                 ) : item.externalUrl ? (
                   <a
                     href={item.externalUrl}
@@ -393,7 +467,8 @@ export default function PortfolioGallery({
                 </figcaption>
               )}
             </figure>
-          ))}
+            );
+          })}
         </div>
       )}
 
