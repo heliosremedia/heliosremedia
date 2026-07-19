@@ -11,11 +11,12 @@ import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { defaultHomeCta, getCtaForSlot } from "@/lib/ctas";
 import { getSiteSettings } from "@/lib/site-settings";
+import { getHomepageCardVideo } from "@/lib/homepage-work-cards";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [testimonials, trustedLogos, homepageProjects, homepageCta, settings] = await Promise.all([
+  const [testimonials, trustedLogos, homepageProjects, homepageWorkCards, homepageCta, settings] = await Promise.all([
     prisma.testimonial.findMany({
       where: { published: true, featured: true },
       orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
@@ -33,28 +34,57 @@ export default async function Home() {
     prisma.homepageProject.findMany({
       where: { active: true, project: { status: "PUBLISHED" } },
       orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
-      take: 5,
+      take: 1,
       select: { titleOverride: true, project: { select: { title: true, slug: true, heroMedia: { select: { storageKey: true, altText: true } } } } },
+    }),
+    prisma.homepageWorkCard.findMany({
+      where: { active: true, service: { active: true } },
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+      take: 5,
+      select: {
+        titleOverride: true, destinationOverride: true, imageUrl: true, imageAlt: true,
+        mediaMode: true, videoUrl: true,
+        service: { select: { name: true, slug: true } },
+        featuredMedia: { select: { sourceType: true, provider: true, storageKey: true, externalUrl: true, externalId: true, project: { select: { status: true } } } },
+      },
     }),
     getCtaForSlot("HOME_PRIMARY"),
     getSiteSettings(),
   ]);
-  const curatedWorkItems = homepageProjects
+  const featuredProject = homepageProjects
     .filter((item) => item.project.heroMedia?.storageKey)
-    .map((item, index) => ({
+    .map((item) => ({
       title: item.titleOverride || item.project.title,
       href: `/portfolio/${item.project.slug}`,
       image: getPublicAssetUrl(item.project.heroMedia!.storageKey!),
       imageAlt: item.project.heroMedia?.altText || item.project.title,
-      size: index === 0 ? ("hero" as const) : ("supporting" as const),
-    }));
+      size: "hero" as const,
+    }))[0] ?? null;
+  const configuredWorkItems = homepageWorkCards
+    .filter((card) => !card.featuredMedia || card.featuredMedia.project.status === "PUBLISHED")
+    .map((card, index) => {
+      const video = getHomepageCardVideo(card);
+      return {
+        title: card.titleOverride || card.service.name,
+        href: card.destinationOverride || `/portfolio?service=${card.service.slug}`,
+        image: card.imageUrl || video.thumbnailUrl || "/work/cards/cinematicfilms-workcard.jpg",
+        imageAlt: card.imageAlt || `${card.service.name} by Helios Real Estate Media`,
+        size: index === 0 ? ("hero" as const) : ("supporting" as const),
+        videoSrc: video.videoSrc,
+        embedSrc: video.embedSrc,
+      };
+    });
 
   return (
     <main>
       <Navbar />
       <Hero />
       <HeliosStandard />
-      <WorkShowcase items={curatedWorkItems.length > 0 ? curatedWorkItems : undefined} featuredFilm={{ enabled: settings.featuredFilmEnabled, videoSrc: settings.featuredFilmVideoUrl, poster: settings.featuredFilmPosterUrl, href: settings.featuredFilmDestination }} />
+      <WorkShowcase
+        items={configuredWorkItems.length > 0 ? configuredWorkItems : undefined}
+        featuredProject={featuredProject}
+        featuredFilm={{ enabled: configuredWorkItems.length === 0 && settings.featuredFilmEnabled, videoSrc: settings.featuredFilmVideoUrl, poster: settings.featuredFilmPosterUrl, href: settings.featuredFilmDestination }}
+      />
       <OurApproach />
       <TrustedBy logos={trustedLogos.map((logo) => ({
         id: logo.id,
