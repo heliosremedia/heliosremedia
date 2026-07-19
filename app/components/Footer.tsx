@@ -186,24 +186,26 @@ export default function Footer() {
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
               <p className="text-[0.53rem] uppercase tracking-[0.21em] text-white/20">
                 © {currentYear} Helios Real Estate Media LLC
               </p>
 
-              <Link
-                href="/privacy"
-                className="text-[0.53rem] uppercase tracking-[0.21em] text-white/20 transition-colors duration-300 hover:text-white/60 focus-visible:outline-none focus-visible:text-white/60"
-              >
-                Privacy
-              </Link>
+              <div className="flex items-center gap-6">
+                {settings.privacyPolicyPublished ? <Link
+                  href="/privacy"
+                  className="text-[0.53rem] uppercase tracking-[0.21em] text-white/20 transition-colors duration-300 hover:text-white/60 focus-visible:outline-none focus-visible:text-white/60"
+                >
+                  Privacy
+                </Link> : null}
 
-              <Link
-                href="/terms"
-                className="text-[0.53rem] uppercase tracking-[0.21em] text-white/20 transition-colors duration-300 hover:text-white/60 focus-visible:outline-none focus-visible:text-white/60"
-              >
-                Terms
-              </Link>
+                {settings.termsOfServicePublished ? <Link
+                  href="/terms"
+                  className="text-[0.53rem] uppercase tracking-[0.21em] text-white/20 transition-colors duration-300 hover:text-white/60 focus-visible:outline-none focus-visible:text-white/60"
+                >
+                  Terms
+                </Link> : null}
+              </div>
             </div>
           </div>
         </div>

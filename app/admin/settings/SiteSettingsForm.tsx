@@ -307,7 +307,7 @@ export default function SiteSettingsForm({
   const uploadBusy = uploading !== null || saving;
 
   return (
-    <>
+    <div>
       <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111]">
         <div className="grid gap-8 border-b border-white/[0.08] p-6 lg:grid-cols-[0.8fr_1.2fr] lg:p-8">
           <div>
@@ -526,6 +526,6 @@ export default function SiteSettingsForm({
           {saving ? "Saving…" : "Save settings"}
         </button>
       </div>
-    </>
+    </div>
   );
 }

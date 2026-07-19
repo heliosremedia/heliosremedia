@@ -7,17 +7,20 @@ import { getAbsoluteUrl } from "@/lib/site";
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const projects = await prisma.project.findMany({
-    where: { status: "PUBLISHED" },
-    orderBy: [{ displayOrder: "asc" }, { publishedAt: "desc" }],
-    select: {
-      slug: true,
-      updatedAt: true,
-      heroMedia: {
-        select: { storageKey: true },
+  const [projects, legalDocuments] = await Promise.all([
+    prisma.project.findMany({
+      where: { status: "PUBLISHED" },
+      orderBy: [{ displayOrder: "asc" }, { publishedAt: "desc" }],
+      select: {
+        slug: true,
+        updatedAt: true,
+        heroMedia: {
+          select: { storageKey: true },
+        },
       },
-    },
-  });
+    }),
+    prisma.legalDocument.findMany({ where: { published: true }, select: { type: true, updatedAt: true } }),
+  ]);
 
   const staticPages: MetadataRoute.Sitemap = [
     {
@@ -57,5 +60,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       : undefined,
   }));
 
-  return [...staticPages, ...projectPages];
+  const legalPages: MetadataRoute.Sitemap = legalDocuments.map((document) => ({
+    url: getAbsoluteUrl(document.type === "PRIVACY_POLICY" ? "/privacy" : "/terms"),
+    lastModified: document.updatedAt,
+    changeFrequency: "yearly",
+    priority: 0.2,
+  }));
+
+  return [...staticPages, ...projectPages, ...legalPages];
 }
