@@ -154,6 +154,20 @@ export function createSiteHeroKey(
   return `site/homepage/hero/${kind}-${timestamp}-${id}.${extension}`;
 }
 
+export function createHomepageSectionImageKey(
+  kind: "helios-standard" | "primary-conversion",
+  mimeType: string,
+) {
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\..+/, "")
+    .replace("T", "-");
+  const id = randomUUID().slice(0, 8);
+
+  return `site/homepage/${kind}/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
+}
+
 export function createBrandLogoKey(mimeType: string) {
   const timestamp = new Date()
     .toISOString()
