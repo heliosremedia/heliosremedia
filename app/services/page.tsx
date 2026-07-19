@@ -139,9 +139,13 @@ export default async function ServicesPage() {
         <div>
           {services.map((service, serviceIndex) => {
             const serviceMediaCategories = getServiceMediaCategories(service);
+            const primaryMediaCategory = serviceMediaCategories[0];
             const projectPreviews = service.projects.map(({ project }) => {
-              const collectionHero = project.collectionHeroes.find((hero) =>
-                serviceMediaCategories.includes(hero.mediaCategory),
+              // Service imagery is category-specific: a Drone Photography
+              // preview must use that project's Drone hero, never its general
+              // Photography/project cover unless no Drone hero exists.
+              const collectionHero = project.collectionHeroes.find(
+                (hero) => hero.mediaCategory === primaryMediaCategory,
               )?.media;
               const imageStorageKey =
                 collectionHero?.storageKey || project.heroMedia?.storageKey;

@@ -15,6 +15,17 @@ export type PublicAboutPageContent = {
   storyHeadline: string;
   storyBodyLeft: string;
   storyBodyRight: string;
+  founderEnabled: boolean;
+  founderEyebrow: string;
+  founderFirstName: string;
+  founderRole: string;
+  founderBody: string;
+  founderSignature: string;
+  founderTitle: string;
+  founderTeamNote: string;
+  founderImageStorageKey: string | null;
+  founderImageUrl: string | null;
+  founderImageAlt: string;
   principlesEyebrow: string;
   principlesHeadline: string;
   principlesIntro: string;
@@ -60,6 +71,17 @@ export const defaultAboutPageContent: PublicAboutPageContent = {
   storyHeadline: "We create the visual language that helps exceptional properties feel impossible to overlook.",
   storyBodyLeft: "Photography, cinematic film, aerial perspectives, agent branding, and social content are approached as parts of the same campaign. The result is more coherent, more useful, and more memorable than a collection of disconnected deliverables.",
   storyBodyRight: "We work with agents, builders, designers, and property professionals who understand that presentation is not decoration. It is a strategic part of how trust is earned and value is communicated.",
+  founderEnabled: false,
+  founderEyebrow: "Meet Helios",
+  founderFirstName: "Jake",
+  founderRole: "Founder · Creative · Storyteller",
+  founderBody: "Helios was built on a simple belief: real estate media can do more than document a home. It can elevate it.\n\nEvery listing has a story, and every agent deserves marketing that reflects the work they’ve put into earning it.\n\nWhen you work with Helios, you’re not just getting photos or video. You’re getting a partner who cares about the final result.",
+  founderSignature: "Jake Guerin",
+  founderTitle: "Founder of Helios",
+  founderTeamNote: "Today, Helios is powered by a growing team of photographers, editors, and creatives who share the same commitment to quality.",
+  founderImageStorageKey: null,
+  founderImageUrl: null,
+  founderImageAlt: "Jake Guerin, founder of Helios Real Estate Media",
   principlesEyebrow: "The Helios point of view",
   principlesHeadline: "Beauty with a purpose.",
   principlesIntro: "A clear set of principles keeps the work consistent while every property remains distinct.",
@@ -95,6 +117,7 @@ export async function getAboutPageContent(): Promise<PublicAboutPageContent> {
     return {
       ...content,
       heroImageUrl: content.heroImageUrl ?? defaultAboutPageContent.heroImageUrl,
+      founderImageUrl: content.founderImageUrl ?? defaultAboutPageContent.founderImageUrl,
       galleryOneUrl: content.galleryOneUrl ?? defaultAboutPageContent.galleryOneUrl,
       galleryTwoUrl: content.galleryTwoUrl ?? defaultAboutPageContent.galleryTwoUrl,
       galleryThreeUrl: content.galleryThreeUrl ?? defaultAboutPageContent.galleryThreeUrl,

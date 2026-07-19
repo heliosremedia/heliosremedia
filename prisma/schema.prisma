@@ -90,6 +90,16 @@ enum LegalDocumentType {
   TERMS_OF_SERVICE
 }
 
+enum ClientPortalProvider {
+  HDPHOTOHUB
+  EXTERNAL
+}
+
+enum ClientPortalChallengePurpose {
+  LOGIN
+  REGISTER
+}
+
 model Project {
   id               String  @id @default(cuid())
   title            String
@@ -462,6 +472,52 @@ model SiteSettings {
   updatedAt DateTime @updatedAt
 }
 
+model ClientPortal {
+  id          String               @id @default(cuid())
+  name        String
+  slug        String               @unique
+  description String?
+  provider    ClientPortalProvider @default(HDPHOTOHUB)
+
+  hdphGroupId     Int?
+  loginUrl        String?
+  registrationUrl String?
+  bookingUrl      String?
+
+  registrationEnabled Boolean @default(true)
+  isDefault           Boolean @default(false)
+  active              Boolean @default(true)
+  displayOrder        Int     @default(0)
+
+  challenges ClientPortalChallenge[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, displayOrder])
+  @@index([provider])
+}
+
+model ClientPortalChallenge {
+  id        String                       @id @default(cuid())
+  portalId  String
+  portal    ClientPortal                 @relation(fields: [portalId], references: [id], onDelete: Cascade)
+  purpose   ClientPortalChallengePurpose
+  email     String
+  tokenHash String                       @unique
+
+  firstName String?
+  lastName  String?
+  phone     String?
+
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([portalId, email])
+  @@index([expiresAt])
+}
+
 model AboutPageContent {
   id String @id @default("default")
 
@@ -478,6 +534,19 @@ model AboutPageContent {
   storyHeadline  String @default("We create the visual language that helps exceptional properties feel impossible to overlook.")
   storyBodyLeft  String @default("Photography, cinematic film, aerial perspectives, agent branding, and social content are approached as parts of the same campaign. The result is more coherent, more useful, and more memorable than a collection of disconnected deliverables.")
   storyBodyRight String @default("We work with agents, builders, designers, and property professionals who understand that presentation is not decoration. It is a strategic part of how trust is earned and value is communicated.")
+
+  founderEnabled   Boolean @default(false)
+  founderEyebrow   String  @default("Meet Helios")
+  founderFirstName String  @default("Jake")
+  founderRole      String  @default("Founder · Creative · Storyteller")
+  founderBody      String  @default("Helios was built on a simple belief: real estate media can do more than document a home. It can elevate it.\n\nEvery listing has a story, and every agent deserves marketing that reflects the work they’ve put into earning it.\n\nWhen you work with Helios, you’re not just getting photos or video. You’re getting a partner who cares about the final result.")
+  founderSignature String  @default("Jake Guerin")
+  founderTitle     String  @default("Founder of Helios")
+  founderTeamNote  String  @default("Today, Helios is powered by a growing team of photographers, editors, and creatives who share the same commitment to quality.")
+
+  founderImageStorageKey String?
+  founderImageUrl        String?
+  founderImageAlt        String  @default("Jake Guerin, founder of Helios Real Estate Media")
 
   principlesEyebrow  String @default("The Helios point of view")
   principlesHeadline String @default("Beauty with a purpose.")

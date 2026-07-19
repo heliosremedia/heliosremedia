@@ -66,6 +66,11 @@ const navigation: NavigationItem[] = [
     ),
   },
   {
+    label: "Client Portals",
+    href: "/admin/client-portals",
+    icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><path d="M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8.5-1a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 21a6 6 0 0 1 12 0M13 14.5A5 5 0 0 1 22 18v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
+  },
+  {
     label: "Homepage",
     href: "/admin/homepage",
     icon: (

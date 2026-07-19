@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 
 import { createAboutPageImageKey, createPresignedUploadUrl, getPublicAssetUrl } from "@/lib/r2-upload";
 
-const kinds = new Set(["hero", "gallery-one", "gallery-two", "gallery-three"]);
+const kinds = new Set(["hero", "founder", "gallery-one", "gallery-two", "gallery-three"]);
+type ImageKind = "hero" | "founder" | "gallery-one" | "gallery-two" | "gallery-three";
 const imageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Record<string, unknown>;
-    const kind = typeof body.kind === "string" && kinds.has(body.kind) ? body.kind as "hero" | "gallery-one" | "gallery-two" | "gallery-three" : null;
+    const kind = typeof body.kind === "string" && kinds.has(body.kind) ? body.kind as ImageKind : null;
     const fileType = typeof body.fileType === "string" ? body.fileType : "";
     const fileSize = typeof body.fileSize === "number" ? body.fileSize : Number.NaN;
     if (!kind || !imageTypes.has(fileType) || !Number.isFinite(fileSize) || fileSize <= 0 || fileSize > 25 * 1024 * 1024) {

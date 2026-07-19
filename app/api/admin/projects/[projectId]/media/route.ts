@@ -1,4 +1,5 @@
 import { DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import {
@@ -1119,6 +1120,9 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
           });
         }
       });
+
+      revalidatePath("/services");
+      revalidatePath("/portfolio");
 
       return NextResponse.json({
         success: true,

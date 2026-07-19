@@ -213,7 +213,7 @@ export function createHomepageWorkCardKey(
 }
 
 export function createAboutPageImageKey(
-  kind: "hero" | "gallery-one" | "gallery-two" | "gallery-three",
+  kind: "hero" | "founder" | "gallery-one" | "gallery-two" | "gallery-three",
   mimeType: string,
 ) {
   const timestamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "-");
