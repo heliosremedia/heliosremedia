@@ -1,8 +1,18 @@
 import Footer from "@/app/components/Footer";
 import Navbar from "@/app/components/Navbar";
 import type { ManagedLegalDocument } from "@/lib/legal-documents";
+import { containsHtml, sanitizeLegalHtml } from "@/lib/legal-html";
 
 function LegalBody({ content }: { content: string }) {
+  if (containsHtml(content)) {
+    return (
+      <div
+        className="legal-html"
+        dangerouslySetInnerHTML={{ __html: sanitizeLegalHtml(content) }}
+      />
+    );
+  }
+
   const blocks = content.split(/\n\s*\n/).map((block) => block.trim()).filter(Boolean);
 
   return <div className="space-y-7">{blocks.map((block, index) => {
@@ -27,7 +37,7 @@ export default function LegalDocumentPage({ document }: { document: ManagedLegal
       </div>
     </section>
     <section className="container-shell py-16 sm:py-20 lg:py-24">
-      <article className="max-w-4xl text-[0.98rem] leading-8 text-white/60 sm:text-base"><LegalBody content={document.content} /></article>
+      <article className="max-w-4xl text-[0.98rem] leading-8 text-white/60 sm:text-base [&_.legal-html]:space-y-6 [&_.legal-html_a]:text-[var(--helios-orange)] [&_.legal-html_a]:underline [&_.legal-html_a]:underline-offset-4 [&_.legal-html_blockquote]:border-l-2 [&_.legal-html_blockquote]:border-[var(--helios-orange)]/45 [&_.legal-html_blockquote]:pl-6 [&_.legal-html_h1]:pt-4 [&_.legal-html_h1]:font-display [&_.legal-html_h1]:text-4xl [&_.legal-html_h1]:font-light [&_.legal-html_h1]:leading-tight [&_.legal-html_h1]:text-white [&_.legal-html_h2]:pt-8 [&_.legal-html_h2]:font-display [&_.legal-html_h2]:text-3xl [&_.legal-html_h2]:font-light [&_.legal-html_h2]:leading-tight [&_.legal-html_h2]:text-white [&_.legal-html_h3]:pt-5 [&_.legal-html_h3]:font-display [&_.legal-html_h3]:text-2xl [&_.legal-html_h3]:font-light [&_.legal-html_h3]:leading-tight [&_.legal-html_h3]:text-white/90 [&_.legal-html_h4]:pt-4 [&_.legal-html_h4]:font-semibold [&_.legal-html_h4]:text-white/85 [&_.legal-html_hr]:my-10 [&_.legal-html_hr]:border-white/10 [&_.legal-html_li]:pl-1 [&_.legal-html_ol]:list-decimal [&_.legal-html_ol]:space-y-3 [&_.legal-html_ol]:pl-7 [&_.legal-html_p]:my-5 [&_.legal-html_strong]:font-semibold [&_.legal-html_strong]:text-white/85 [&_.legal-html_table]:my-8 [&_.legal-html_table]:w-full [&_.legal-html_table]:border-collapse [&_.legal-html_td]:border [&_.legal-html_td]:border-white/10 [&_.legal-html_td]:p-3 [&_.legal-html_th]:border [&_.legal-html_th]:border-white/10 [&_.legal-html_th]:p-3 [&_.legal-html_th]:text-left [&_.legal-html_th]:text-white/85 [&_.legal-html_ul]:list-disc [&_.legal-html_ul]:space-y-3 [&_.legal-html_ul]:pl-7"><LegalBody content={document.content} /></article>
     </section>
     <Footer />
   </main>;
