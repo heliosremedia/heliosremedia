@@ -23,6 +23,7 @@ type ProjectWorkflowManagerProps = {
   heroMediaId: string | null;
   visibleMediaCount: number;
   hasProjectSummary: boolean;
+  hasPlayableVideo: boolean;
   services: AssignableService[];
   initialServiceIds: string[];
 };
@@ -63,6 +64,7 @@ export default function ProjectWorkflowManager({
   heroMediaId,
   visibleMediaCount,
   hasProjectSummary,
+  hasPlayableVideo,
   services,
   initialServiceIds,
 }: ProjectWorkflowManagerProps) {
@@ -101,18 +103,22 @@ export default function ProjectWorkflowManager({
   const publishingRequirements = useMemo(
     () => [
       {
-        label: "Project summary added",
-        complete: hasProjectSummary,
+        label: "Project introduction ready",
+        complete: hasProjectSummary || hasPlayableVideo,
         detail: hasProjectSummary
           ? "The public project has a concise introduction."
-          : "Add a short description in project details.",
+          : hasPlayableVideo
+            ? "The project can lead directly with its featured video."
+            : "Add a short description in project details.",
       },
       {
-        label: "Hero image selected",
-        complete: Boolean(heroMediaId),
+        label: "Lead media ready",
+        complete: Boolean(heroMediaId) || hasPlayableVideo,
         detail: heroMediaId
           ? "The public project has a lead visual."
-          : "Select a hero image from project media.",
+          : hasPlayableVideo
+            ? "A playable video will lead this project."
+            : "Select a hero image or add a playable video.",
       },
       {
         label: "Visible media available",
@@ -138,6 +144,7 @@ export default function ProjectWorkflowManager({
     [
       activeSavedServiceCount,
       hasProjectSummary,
+      hasPlayableVideo,
       heroMediaId,
       visibleMediaCount,
     ],

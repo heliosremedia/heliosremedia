@@ -4,9 +4,13 @@ import Link from "next/link";
 import Footer from "@/app/components/Footer";
 import ManagedCtaSection from "@/app/components/ManagedCtaSection";
 import Navbar from "@/app/components/Navbar";
+import { tryResolveExternalMedia } from "@/lib/external-media";
+import { getServiceMediaCategories } from "@/lib/portfolio-services";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { defaultPageCtas } from "@/lib/ctas";
+
+import PortfolioFilmLibrary from "./PortfolioFilmLibrary";
 
 export const dynamic = "force-dynamic";
 
@@ -35,38 +39,62 @@ export default async function PortfolioPage({
   const { service: requestedService } = await searchParams;
   const serviceSlug = getServiceParam(requestedService);
 
-  const [services, projects] = await Promise.all([
-    prisma.service.findMany({
-      where: {
-        active: true,
+  const services = await prisma.service.findMany({
+    where: {
+      active: true,
+    },
+    orderBy: [
+      {
+        displayOrder: "asc",
       },
-      orderBy: [
-        {
-          displayOrder: "asc",
-        },
-        {
-          name: "asc",
-        },
-      ],
-      select: {
-        id: true,
-        name: true,
-        slug: true,
+      {
+        name: "asc",
       },
-    }),
+    ],
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+    },
+  });
+  const selectedService = services.find(
+    (service) => service.slug === serviceSlug,
+  );
+  const selectedMediaCategories = getServiceMediaCategories(selectedService);
+  const showFilmLibrary = selectedMediaCategories.includes("CINEMATIC_FILM");
+
+  const [projects, filmMedia] = await Promise.all([
     prisma.project.findMany({
       where: {
         status: "PUBLISHED",
-        ...(serviceSlug
+        ...(selectedService
           ? {
-              services: {
-                some: {
-                  service: {
-                    slug: serviceSlug,
-                    active: true,
+              OR: [
+                {
+                  services: {
+                    some: {
+                      serviceId: selectedService.id,
+                      service: {
+                        active: true,
+                      },
+                    },
                   },
                 },
-              },
+                ...(selectedMediaCategories.length > 0
+                  ? [
+                      {
+                        media: {
+                          some: {
+                            visibility: "VISIBLE" as const,
+                            mediaCategory: {
+                              in: selectedMediaCategories,
+                            },
+                          },
+                        },
+                      },
+                    ]
+                  : []),
+              ],
             }
           : {}),
       },
@@ -98,6 +126,23 @@ export default async function PortfolioPage({
             altText: true,
           },
         },
+        media: {
+          where: {
+            visibility: "VISIBLE",
+            sourceType: "VIDEO_EMBED",
+            externalUrl: {
+              not: null,
+            },
+          },
+          orderBy: [
+            { displayOrder: "asc" },
+            { createdAt: "asc" },
+          ],
+          take: 1,
+          select: {
+            externalUrl: true,
+          },
+        },
         services: {
           orderBy: {
             service: {
@@ -117,10 +162,62 @@ export default async function PortfolioPage({
         },
       },
     }),
+    showFilmLibrary
+      ? prisma.media.findMany({
+          where: {
+            visibility: "VISIBLE",
+            sourceType: "VIDEO_EMBED",
+            mediaCategory: "CINEMATIC_FILM",
+            externalUrl: {
+              not: null,
+            },
+            project: {
+              status: "PUBLISHED",
+            },
+          },
+          orderBy: [
+            { project: { featured: "desc" } },
+            { project: { displayOrder: "asc" } },
+            { displayOrder: "asc" },
+            { createdAt: "desc" },
+          ],
+          select: {
+            id: true,
+            originalFilename: true,
+            externalUrl: true,
+            project: {
+              select: {
+                title: true,
+                slug: true,
+                locationLabel: true,
+                city: true,
+                state: true,
+              },
+            },
+          },
+        })
+      : Promise.resolve([]),
   ]);
-
-  const selectedService = services.find(
-    (service) => service.slug === serviceSlug,
+  const films = filmMedia.flatMap((media) =>
+    media.externalUrl
+      ? [
+          {
+            id: media.id,
+            title: media.originalFilename || media.project.title,
+            externalUrl: media.externalUrl,
+            project: {
+              title: media.project.title,
+              slug: media.project.slug,
+              location:
+                media.project.locationLabel ||
+                [media.project.city, media.project.state]
+                  .filter(Boolean)
+                  .join(", ") ||
+                null,
+            },
+          },
+        ]
+      : [],
   );
 
   return (
@@ -201,9 +298,12 @@ export default async function PortfolioPage({
         {projects.length > 0 ? (
           <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {projects.map((project, index) => {
+              const videoMedia = tryResolveExternalMedia(
+                project.media[0]?.externalUrl,
+              );
               const imageUrl = project.heroMedia?.storageKey
                 ? getPublicAssetUrl(project.heroMedia.storageKey)
-                : "";
+                : videoMedia?.thumbnailUrl || "";
               const location =
                 project.locationLabel ||
                 [project.city, project.state].filter(Boolean).join(", ");
@@ -250,6 +350,14 @@ export default async function PortfolioPage({
                     {project.featured && (
                       <span className="absolute left-5 top-5 rounded-full border border-[var(--helios-orange)]/35 bg-[var(--helios-orange)] px-3 py-1.5 text-[0.52rem] font-semibold uppercase tracking-[0.15em] text-black">
                         Featured project
+                      </span>
+                    )}
+
+                    {!project.heroMedia?.storageKey && videoMedia && (
+                      <span className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/80 backdrop-blur-md">
+                        <svg viewBox="0 0 24 24" fill="none" className="ml-0.5 h-4 w-4" aria-hidden="true">
+                          <path d="m9 7 8 5-8 5V7Z" fill="currentColor" />
+                        </svg>
                       </span>
                     )}
 
@@ -303,6 +411,8 @@ export default async function PortfolioPage({
           </div>
         )}
       </section>
+
+      {showFilmLibrary && <PortfolioFilmLibrary films={films} />}
 
       <ManagedCtaSection slot="PORTFOLIO_FOOTER" fallback={defaultPageCtas.PORTFOLIO_FOOTER} />
       <Footer />

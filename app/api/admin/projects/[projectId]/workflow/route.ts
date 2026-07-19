@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
+import { tryResolveExternalMedia } from "@/lib/external-media";
 import { prisma } from "@/lib/prisma";
 
 type ProjectWorkflowRouteProps = {
@@ -71,6 +72,15 @@ export async function PATCH(
                 active: true,
               },
             },
+          },
+        },
+        media: {
+          where: {
+            visibility: "VISIBLE",
+          },
+          select: {
+            sourceType: true,
+            externalUrl: true,
           },
         },
         _count: {
@@ -238,13 +248,24 @@ export async function PATCH(
 
     if (action === "publish") {
       const blockers: string[] = [];
+      const hasPlayableVideo = project.media.some((media) => {
+        if (media.sourceType !== "VIDEO_EMBED") {
+          return false;
+        }
 
-      if (!project.shortDescription) {
+        const externalMedia = tryResolveExternalMedia(media.externalUrl);
+        return Boolean(externalMedia?.embedUrl || externalMedia?.playbackUrl);
+      });
+
+      if (!project.shortDescription && !hasPlayableVideo) {
         blockers.push("Add a short project description.");
       }
 
-      if (!project.heroMediaId || project.heroMedia?.visibility !== "VISIBLE") {
-        blockers.push("Select a visible hero image.");
+      if (
+        (!project.heroMediaId || project.heroMedia?.visibility !== "VISIBLE") &&
+        !hasPlayableVideo
+      ) {
+        blockers.push("Select a visible hero image or add a playable video.");
       }
 
       if (project._count.media === 0) {

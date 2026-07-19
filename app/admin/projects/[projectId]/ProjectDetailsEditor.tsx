@@ -428,7 +428,7 @@ export default function ProjectDetailsEditor({
                   <div className="grid gap-5 p-5 sm:p-6">
                     <Field
                       label="Short description"
-                      detail={`${draft.shortDescription.length}/320 characters · required for publishing`}
+                      detail={`${draft.shortDescription.length}/320 characters · recommended, optional for video-led projects`}
                     >
                       <textarea
                         value={draft.shortDescription}

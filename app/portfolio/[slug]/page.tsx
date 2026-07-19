@@ -4,11 +4,12 @@ import { notFound } from "next/navigation";
 
 import Footer from "@/app/components/Footer";
 import Navbar from "@/app/components/Navbar";
+import { tryResolveExternalMedia } from "@/lib/external-media";
 import { MEDIA_COLLECTIONS } from "@/lib/media-collections";
+import { validateProjectPreview } from "@/lib/project-preview";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { getAbsoluteUrl } from "@/lib/site";
-import { validateProjectPreview } from "@/lib/project-preview";
 
 import PortfolioGallery from "./PortfolioGallery";
 
@@ -143,6 +144,23 @@ export async function generateMetadata({
           altText: true,
         },
       },
+      media: {
+        where: {
+          visibility: "VISIBLE",
+          sourceType: "VIDEO_EMBED",
+          externalUrl: {
+            not: null,
+          },
+        },
+        orderBy: [
+          { displayOrder: "asc" },
+          { createdAt: "asc" },
+        ],
+        take: 1,
+        select: {
+          externalUrl: true,
+        },
+      },
     },
   });
 
@@ -152,9 +170,12 @@ export async function generateMetadata({
     };
   }
 
+  const metadataVideo = tryResolveExternalMedia(
+    project.media[0]?.externalUrl,
+  );
   const image = project.heroMedia?.storageKey
     ? getPublicAssetUrl(project.heroMedia.storageKey)
-    : undefined;
+    : metadataVideo?.thumbnailUrl;
   const title =
     project.seoTitle || `${project.title} | Helios Real Estate Media`;
   const description =
@@ -207,6 +228,17 @@ export default async function PortfolioProjectPage({
   const heroUrl = project.heroMedia?.storageKey
     ? getPublicAssetUrl(project.heroMedia.storageKey)
     : "";
+  const leadVideoMedia = !heroUrl
+    ? project.media.find((media) => {
+        if (media.sourceType !== "VIDEO_EMBED") {
+          return false;
+        }
+
+        const externalMedia = tryResolveExternalMedia(media.externalUrl);
+        return Boolean(externalMedia?.embedUrl || externalMedia?.playbackUrl);
+      })
+    : null;
+  const leadVideo = tryResolveExternalMedia(leadVideoMedia?.externalUrl);
   const location =
     project.locationLabel ||
     [project.city, project.state].filter(Boolean).join(", ");
@@ -218,6 +250,7 @@ export default async function PortfolioProjectPage({
     project.heroMedia?.storageKey
       ? getPublicAssetUrl(project.heroMedia.storageKey)
       : null,
+    leadVideo?.thumbnailUrl || null,
     ...project.media.map((media) =>
       media.storageKey ? getPublicAssetUrl(media.storageKey) : null,
     ),
@@ -248,7 +281,8 @@ export default async function PortfolioProjectPage({
     keywords: activeServices.map(({ service }) => service.name).join(", "),
   };
   const visibleMedia = project.media.filter(
-    (media) => media.id !== project.heroMediaId,
+    (media) =>
+      media.id !== project.heroMediaId && media.id !== leadVideoMedia?.id,
   );
   const collections = MEDIA_COLLECTIONS.map((collection) => ({
     ...collection,
@@ -310,54 +344,109 @@ export default async function PortfolioProjectPage({
       />
       <Navbar />
 
-      <section className="relative min-h-[78vh] overflow-hidden bg-[#111]">
-        {heroUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={heroUrl}
-            alt={
-              project.heroMedia?.altText ||
-              project.heroMedia?.originalFilename ||
-              project.title
-            }
-            className="absolute inset-0 h-full w-full object-cover"
-            style={{
-              objectPosition: `${(project.heroMedia?.focalX ?? 0.5) * 100}% ${(project.heroMedia?.focalY ?? 0.5) * 100}%`,
-            }}
-          />
-        ) : (
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_25%,rgba(217,107,43,0.2),transparent_35%),#101010]" />
-        )}
+      {leadVideoMedia && leadVideo ? (
+        <section className="relative overflow-hidden border-b border-white/[0.08] bg-[#0b0b0c]">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_75%_18%,rgba(217,107,43,0.16),transparent_34%)]" />
+          <div className="hero-grain pointer-events-none absolute inset-0 opacity-[0.03] mix-blend-soft-light" />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-black/45" />
-        <div className="hero-grain absolute inset-0 opacity-[0.035] mix-blend-soft-light" />
+          <div className="container-shell relative pb-16 pt-32 sm:pb-20 sm:pt-36">
+            <div className="overflow-hidden border border-white/[0.09] bg-black shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+              {leadVideo.embedUrl ? (
+                <iframe
+                  src={leadVideo.embedUrl}
+                  title={leadVideoMedia.originalFilename || project.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  className="aspect-video w-full border-0 bg-black"
+                />
+              ) : leadVideo.playbackUrl ? (
+                <video
+                  src={leadVideo.playbackUrl}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="aspect-video w-full bg-black object-contain"
+                >
+                  Your browser cannot play this hosted video.
+                </video>
+              ) : null}
+            </div>
 
-        <div className="container-shell relative flex min-h-[78vh] items-end pb-14 pt-40 sm:pb-20">
-          <div className="max-w-5xl">
-            <p className="eyebrow text-[var(--helios-orange)]">
-              {location || project.propertyType || "Helios portfolio"}
-            </p>
+            <div className="mt-10 max-w-5xl sm:mt-14">
+              <p className="eyebrow text-[var(--helios-orange)]">
+                {location || project.propertyType || "Helios portfolio"}
+              </p>
+              <h1 className="mt-5 font-display text-[clamp(3.4rem,8vw,7.5rem)] font-light leading-[0.86] tracking-[-0.055em] text-white">
+                {project.title}
+              </h1>
 
-            <h1 className="mt-6 font-display text-[clamp(3.6rem,9vw,8.5rem)] font-light leading-[0.84] tracking-[-0.06em] text-white">
-              {project.title}
-            </h1>
-
-            {activeServices.length > 0 && (
-              <div className="mt-8 flex flex-wrap gap-2">
-                {activeServices.map(({ service }) => (
-                  <Link
-                    key={service.id}
-                    href={`/portfolio?service=${service.slug}`}
-                    className="rounded-full border border-white/20 bg-black/20 px-3.5 py-2 text-[0.52rem] font-semibold uppercase tracking-[0.15em] text-white/70 backdrop-blur-md transition hover:border-white/40 hover:text-white"
-                  >
-                    {service.name}
-                  </Link>
-                ))}
-              </div>
-            )}
+              {activeServices.length > 0 && (
+                <div className="mt-7 flex flex-wrap gap-2">
+                  {activeServices.map(({ service }) => (
+                    <Link
+                      key={service.id}
+                      href={`/portfolio?service=${service.slug}`}
+                      className="rounded-full border border-white/15 px-3.5 py-2 text-[0.52rem] font-semibold uppercase tracking-[0.15em] text-white/55 transition hover:border-white/35 hover:text-white"
+                    >
+                      {service.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : (
+        <section className="relative min-h-[78vh] overflow-hidden bg-[#111]">
+          {heroUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={heroUrl}
+              alt={
+                project.heroMedia?.altText ||
+                project.heroMedia?.originalFilename ||
+                project.title
+              }
+              className="absolute inset-0 h-full w-full object-cover"
+              style={{
+                objectPosition: `${(project.heroMedia?.focalX ?? 0.5) * 100}% ${(project.heroMedia?.focalY ?? 0.5) * 100}%`,
+              }}
+            />
+          ) : (
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_25%,rgba(217,107,43,0.2),transparent_35%),#101010]" />
+          )}
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-black/45" />
+          <div className="hero-grain absolute inset-0 opacity-[0.035] mix-blend-soft-light" />
+
+          <div className="container-shell relative flex min-h-[78vh] items-end pb-14 pt-40 sm:pb-20">
+            <div className="max-w-5xl">
+              <p className="eyebrow text-[var(--helios-orange)]">
+                {location || project.propertyType || "Helios portfolio"}
+              </p>
+
+              <h1 className="mt-6 font-display text-[clamp(3.6rem,9vw,8.5rem)] font-light leading-[0.84] tracking-[-0.06em] text-white">
+                {project.title}
+              </h1>
+
+              {activeServices.length > 0 && (
+                <div className="mt-8 flex flex-wrap gap-2">
+                  {activeServices.map(({ service }) => (
+                    <Link
+                      key={service.id}
+                      href={`/portfolio?service=${service.slug}`}
+                      className="rounded-full border border-white/20 bg-black/20 px-3.5 py-2 text-[0.52rem] font-semibold uppercase tracking-[0.15em] text-white/70 backdrop-blur-md transition hover:border-white/40 hover:text-white"
+                    >
+                      {service.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       {(project.shortDescription ||
         project.description ||
