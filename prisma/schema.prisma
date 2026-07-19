@@ -224,6 +224,10 @@ model Service {
   name         String
   slug         String  @unique
   description  String?
+  // Retained for backward compatibility; public service imagery now comes
+  // from each project's matching media-collection hero.
+  heroImageStorageKey String?
+  heroImageAlt        String?
   displayOrder Int     @default(0)
   active       Boolean @default(true)
 
