@@ -7,6 +7,7 @@ import Navbar from "@/app/components/Navbar";
 import { defaultPageCtas } from "@/lib/ctas";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
+import { getServiceMediaCategories } from "@/lib/portfolio-services";
 
 export const dynamic = "force-dynamic";
 
@@ -28,8 +29,6 @@ export default async function ServicesPage() {
       name: true,
       slug: true,
       description: true,
-      heroImageStorageKey: true,
-      heroImageAlt: true,
       _count: {
         select: {
           projects: {
@@ -59,6 +58,25 @@ export default async function ServicesPage() {
                   storageKey: true,
                   altText: true,
                   originalFilename: true,
+                },
+              },
+              collectionHeroes: {
+                where: {
+                  media: {
+                    visibility: "VISIBLE",
+                    storageKey: { not: null },
+                    sourceType: "UPLOADED_IMAGE",
+                  },
+                },
+                select: {
+                  mediaCategory: true,
+                  media: {
+                    select: {
+                      storageKey: true,
+                      altText: true,
+                      originalFilename: true,
+                    },
+                  },
                 },
               },
             },
@@ -120,18 +138,25 @@ export default async function ServicesPage() {
       {services.length > 0 ? (
         <div>
           {services.map((service, serviceIndex) => {
-            const projectPreviews = service.projects.map(({ project }) => ({
-              ...project,
-              imageUrl: project.heroMedia?.storageKey
-                ? getPublicAssetUrl(project.heroMedia.storageKey)
-                : "",
-              location:
-                project.locationLabel ||
-                [project.city, project.state].filter(Boolean).join(", "),
-            }));
-            const serviceHeroUrl = service.heroImageStorageKey
-              ? getPublicAssetUrl(service.heroImageStorageKey)
-              : null;
+            const serviceMediaCategories = getServiceMediaCategories(service);
+            const projectPreviews = service.projects.map(({ project }) => {
+              const collectionHero = project.collectionHeroes.find((hero) =>
+                serviceMediaCategories.includes(hero.mediaCategory),
+              )?.media;
+              const imageStorageKey =
+                collectionHero?.storageKey || project.heroMedia?.storageKey;
+
+              return {
+                ...project,
+                collectionHero,
+                imageUrl: imageStorageKey
+                  ? getPublicAssetUrl(imageStorageKey)
+                  : "",
+                location:
+                  project.locationLabel ||
+                  [project.city, project.state].filter(Boolean).join(", "),
+              };
+            });
 
             return (
               <section
@@ -190,19 +215,13 @@ export default async function ServicesPage() {
                             aria-label={`View ${project.title}`}
                             className="absolute inset-0 z-10"
                           />
-                          {projectIndex === 0 && serviceHeroUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={serviceHeroUrl}
-                              alt={service.heroImageAlt || `${service.name} by Helios Real Estate Media`}
-                              loading="lazy"
-                              className="absolute inset-0 h-full w-full object-cover transition duration-1000 ease-[var(--ease-luxury)] group-hover:scale-[1.04]"
-                            />
-                          ) : project.imageUrl ? (
+                          {project.imageUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={project.imageUrl}
                               alt={
+                                project.collectionHero?.altText ||
+                                project.collectionHero?.originalFilename ||
                                 project.heroMedia?.altText ||
                                 project.heroMedia?.originalFilename ||
                                 project.title
