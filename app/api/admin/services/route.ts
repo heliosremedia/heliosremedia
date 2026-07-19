@@ -7,6 +7,8 @@ type CreateServiceBody = {
   name?: unknown;
   slug?: unknown;
   description?: unknown;
+  heroImageStorageKey?: unknown;
+  heroImageAlt?: unknown;
 };
 
 type UpdateServiceBody = {
@@ -15,6 +17,8 @@ type UpdateServiceBody = {
   name?: unknown;
   slug?: unknown;
   description?: unknown;
+  heroImageStorageKey?: unknown;
+  heroImageAlt?: unknown;
   active?: unknown;
   serviceIds?: unknown;
 };
@@ -45,6 +49,8 @@ function serviceSelect() {
     name: true,
     slug: true,
     description: true,
+    heroImageStorageKey: true,
+    heroImageAlt: true,
     displayOrder: true,
     active: true,
     createdAt: true,
@@ -91,6 +97,7 @@ function revalidateServicePaths() {
   revalidatePath("/admin/services");
   revalidatePath("/admin/projects");
   revalidatePath("/portfolio");
+  revalidatePath("/services");
 }
 
 export async function POST(request: Request) {
@@ -99,6 +106,8 @@ export async function POST(request: Request) {
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const requestedSlug = typeof body.slug === "string" ? body.slug.trim() : "";
     const description = getOptionalText(body.description);
+    const heroImageStorageKey = getOptionalText(body.heroImageStorageKey);
+    const heroImageAlt = getOptionalText(body.heroImageAlt);
 
     if (!name || name.length > 100) {
       return NextResponse.json(
@@ -136,6 +145,8 @@ export async function POST(request: Request) {
         name,
         slug,
         description,
+        heroImageStorageKey,
+        heroImageAlt,
         displayOrder: (orderResult._max.displayOrder ?? -1) + 1,
         active: true,
       },
@@ -334,6 +345,8 @@ export async function PATCH(request: Request) {
       const requestedSlug =
         typeof body.slug === "string" ? body.slug.trim() : "";
       const description = getOptionalText(body.description);
+      const heroImageStorageKey = getOptionalText(body.heroImageStorageKey);
+      const heroImageAlt = getOptionalText(body.heroImageAlt);
 
       if (!name || name.length > 100) {
         return NextResponse.json(
@@ -372,6 +385,8 @@ export async function PATCH(request: Request) {
           name,
           slug,
           description,
+          heroImageStorageKey,
+          heroImageAlt,
         },
         select: serviceSelect(),
       });

@@ -26,6 +26,9 @@ export type AdminService = {
   name: string;
   slug: string;
   description: string | null;
+  heroImageStorageKey: string | null;
+  heroImageAlt: string | null;
+  heroImageUrl: string | null;
   displayOrder: number;
   active: boolean;
   createdAt: string;
@@ -50,6 +53,9 @@ type ServiceDraft = {
   name: string;
   slug: string;
   description: string;
+  heroImageStorageKey: string;
+  heroImageAlt: string;
+  heroImageUrl: string;
 };
 
 type SortableServiceCardProps = {
@@ -197,6 +203,7 @@ export default function ServiceManager({
   const [draft, setDraft] = useState<ServiceDraft | null>(null);
   const [slugEdited, setSlugEdited] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingHero, setIsUploadingHero] = useState(false);
   const [isReordering, setIsReordering] = useState(false);
   const [updatingServiceId, setUpdatingServiceId] = useState<string | null>(
     null,
@@ -231,6 +238,9 @@ export default function ServiceManager({
       name: "",
       slug: "",
       description: "",
+      heroImageStorageKey: "",
+      heroImageAlt: "",
+      heroImageUrl: "",
     });
     setSlugEdited(false);
     setError(null);
@@ -242,6 +252,9 @@ export default function ServiceManager({
       name: service.name,
       slug: service.slug,
       description: service.description || "",
+      heroImageStorageKey: service.heroImageStorageKey || "",
+      heroImageAlt: service.heroImageAlt || "",
+      heroImageUrl: service.heroImageUrl || "",
     });
     setSlugEdited(true);
     setError(null);
@@ -279,6 +292,45 @@ export default function ServiceManager({
     };
   }, [closeModal, draft]);
 
+  const uploadHeroImage = useCallback(async (file: File) => {
+    if (!editingServiceId) return;
+
+    try {
+      setIsUploadingHero(true);
+      setError(null);
+      const response = await fetch("/api/admin/services/hero-image/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serviceId: editingServiceId, fileType: file.type, fileSize: file.size }),
+      });
+      const data = (await response.json()) as {
+        success: boolean;
+        error?: string;
+        upload?: { key: string; uploadUrl: string; publicUrl: string; contentType: string };
+      };
+      if (!response.ok || !data.success || !data.upload) {
+        throw new Error(data.error || "The service hero upload could not be prepared.");
+      }
+
+      const uploadResponse = await fetch(data.upload.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": data.upload.contentType },
+        body: file,
+      });
+      if (!uploadResponse.ok) throw new Error("The service hero image could not be uploaded.");
+
+      setDraft((current) => current ? {
+        ...current,
+        heroImageStorageKey: data.upload!.key,
+        heroImageUrl: data.upload!.publicUrl,
+      } : current);
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "The service hero image could not be uploaded.");
+    } finally {
+      setIsUploadingHero(false);
+    }
+  }, [editingServiceId]);
+
   const saveService = useCallback(async () => {
     if (!draft || !draft.name.trim()) {
       return;
@@ -304,6 +356,8 @@ export default function ServiceManager({
           name: draft.name,
           slug: draft.slug,
           description: draft.description,
+          heroImageStorageKey: draft.heroImageStorageKey,
+          heroImageAlt: draft.heroImageAlt,
         }),
       });
       const data = (await response.json()) as ServiceMutationResponse;
@@ -312,7 +366,10 @@ export default function ServiceManager({
         throw new Error(data.error || "The service could not be saved.");
       }
 
-      const savedService = data.service;
+      const savedService = {
+        ...data.service,
+        heroImageUrl: draft.heroImageUrl || null,
+      };
 
       setServices((currentServices) => {
         const exists = currentServices.some(
@@ -691,6 +748,30 @@ export default function ServiceManager({
                 />
               </label>
 
+              {editingServiceId ? (
+                <section className="rounded-2xl border border-white/[0.08] bg-black/25 p-5">
+                  <p className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/45">Service hero image</p>
+                  <p className="mt-2 text-sm leading-6 text-white/35">Used as this service’s lead image on the public Services page. When empty, the first related project remains the fallback.</p>
+                  {draft.heroImageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={draft.heroImageUrl} alt="" className="mt-4 aspect-video w-full rounded-xl object-cover" />
+                  ) : null}
+                  <label className="mt-4 block">
+                    <span className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/45">Image alt text</span>
+                    <input value={draft.heroImageAlt} onChange={(event) => setDraft((current) => current ? { ...current, heroImageAlt: event.target.value } : current)} className="mt-2.5 min-h-12 w-full rounded-xl border border-white/10 bg-black/30 px-4 text-sm text-white/80 outline-none focus:border-[var(--helios-orange)]/55" />
+                  </label>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <label className={`cursor-pointer rounded-full bg-[var(--helios-orange)] px-5 py-3 text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-black ${isUploadingHero ? "pointer-events-none opacity-40" : ""}`}>
+                      {isUploadingHero ? "Uploading…" : draft.heroImageUrl ? "Replace image" : "Upload image"}
+                      <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="sr-only" disabled={isUploadingHero} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadHeroImage(file); event.target.value = ""; }} />
+                    </label>
+                    {draft.heroImageUrl ? <button type="button" onClick={() => setDraft((current) => current ? { ...current, heroImageStorageKey: "", heroImageUrl: "", heroImageAlt: "" } : current)} className="rounded-full border border-white/10 px-5 py-3 text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-white/55">Use project fallback</button> : null}
+                  </div>
+                </section>
+              ) : (
+                <p className="rounded-xl border border-white/[0.08] bg-black/20 px-4 py-3 text-xs leading-5 text-white/30">Save the new service first, then edit it to upload its hero image.</p>
+              )}
+
               <label className="block">
                 <span className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/45">
                   Service URL slug
@@ -764,7 +845,7 @@ export default function ServiceManager({
 
               <button
                 type="submit"
-                disabled={isSaving || !draft.name.trim()}
+                disabled={isSaving || isUploadingHero || !draft.name.trim()}
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[var(--helios-orange)] px-7 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-black transition hover:bg-[var(--helios-orange-hover)] disabled:cursor-wait disabled:opacity-45"
               >
                 {isSaving && (

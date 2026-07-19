@@ -28,6 +28,8 @@ export default async function ServicesPage() {
       name: true,
       slug: true,
       description: true,
+      heroImageStorageKey: true,
+      heroImageAlt: true,
       _count: {
         select: {
           projects: {
@@ -127,6 +129,9 @@ export default async function ServicesPage() {
                 project.locationLabel ||
                 [project.city, project.state].filter(Boolean).join(", "),
             }));
+            const serviceHeroUrl = service.heroImageStorageKey
+              ? getPublicAssetUrl(service.heroImageStorageKey)
+              : null;
 
             return (
               <section
@@ -185,7 +190,15 @@ export default async function ServicesPage() {
                             aria-label={`View ${project.title}`}
                             className="absolute inset-0 z-10"
                           />
-                          {project.imageUrl ? (
+                          {projectIndex === 0 && serviceHeroUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={serviceHeroUrl}
+                              alt={service.heroImageAlt || `${service.name} by Helios Real Estate Media`}
+                              loading="lazy"
+                              className="absolute inset-0 h-full w-full object-cover transition duration-1000 ease-[var(--ease-luxury)] group-hover:scale-[1.04]"
+                            />
+                          ) : project.imageUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={project.imageUrl}
