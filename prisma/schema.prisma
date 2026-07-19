@@ -85,6 +85,11 @@ enum HomepageCardMediaMode {
   UPLOADED_VIDEO
 }
 
+enum LegalDocumentType {
+  PRIVACY_POLICY
+  TERMS_OF_SERVICE
+}
+
 model Project {
   id               String  @id @default(cuid())
   title            String
@@ -421,8 +426,24 @@ model SiteSettings {
   defaultSeoTitle       String @default("Helios Real Estate Media")
   defaultSeoDescription String @default("Luxury real estate photography, cinematic films, and branding for Northern Colorado's finest homes.")
 
+  privacyPolicyPublished  Boolean @default(false)
+  termsOfServicePublished Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model LegalDocument {
+  id        String            @id @default(cuid())
+  type      LegalDocumentType @unique
+  title     String
+  content   String
+  published Boolean           @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published])
 }
 
 model CallToAction {
