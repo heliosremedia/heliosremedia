@@ -126,21 +126,23 @@ export default async function PortfolioPage({
             altText: true,
           },
         },
+        details: {
+          select: {
+            propertyWebsiteUrl: true,
+          },
+        },
         media: {
           where: {
             visibility: "VISIBLE",
-            sourceType: "VIDEO_EMBED",
-            externalUrl: {
-              not: null,
-            },
           },
           orderBy: [
             { displayOrder: "asc" },
             { createdAt: "asc" },
           ],
-          take: 1,
           select: {
             externalUrl: true,
+            sourceType: true,
+            mediaCategory: true,
           },
         },
         services: {
@@ -298,8 +300,40 @@ export default async function PortfolioPage({
         {projects.length > 0 ? (
           <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {projects.map((project, index) => {
+              const assignedServiceIds = new Set(
+                project.services
+                  .filter(({ service }) => service.active)
+                  .map(({ service }) => service.id),
+              );
+              const mediaCategories = new Set(
+                project.media.map((media) => media.mediaCategory),
+              );
+              const badgeServices = services.filter((service) => {
+                if (assignedServiceIds.has(service.id)) {
+                  return true;
+                }
+
+                const inferredFromMedia = getServiceMediaCategories(
+                  service,
+                ).some((category) => mediaCategories.has(category));
+
+                if (inferredFromMedia) {
+                  return true;
+                }
+
+                return (
+                  Boolean(project.details?.propertyWebsiteUrl) &&
+                  getServiceMediaCategories(service).includes(
+                    "PROPERTY_WEBSITE",
+                  )
+                );
+              });
+              const firstVideo = project.media.find(
+                (media) =>
+                  media.sourceType === "VIDEO_EMBED" && media.externalUrl,
+              );
               const videoMedia = tryResolveExternalMedia(
-                project.media[0]?.externalUrl,
+                firstVideo?.externalUrl,
               );
               const imageUrl = project.heroMedia?.storageKey
                 ? getPublicAssetUrl(project.heroMedia.storageKey)
@@ -371,17 +405,14 @@ export default async function PortfolioPage({
                       </h3>
 
                       <div className="mt-5 flex flex-wrap gap-2">
-                        {project.services
-                          .filter(({ service }) => service.active)
-                          .slice(0, 3)
-                          .map(({ service }) => (
-                            <span
-                              key={service.id}
-                              className="rounded-full border border-white/15 bg-black/25 px-3 py-1.5 text-[0.5rem] font-semibold uppercase tracking-[0.13em] text-white/65 backdrop-blur-md"
-                            >
-                              {service.name}
-                            </span>
-                          ))}
+                        {badgeServices.map((service) => (
+                          <span
+                            key={service.id}
+                            className="rounded-full border border-white/15 bg-black/25 px-3 py-1.5 text-[0.5rem] font-semibold uppercase tracking-[0.13em] text-white/65 backdrop-blur-md"
+                          >
+                            {service.name}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   </div>
