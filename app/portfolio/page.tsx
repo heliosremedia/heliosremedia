@@ -126,6 +126,25 @@ export default async function PortfolioPage({
             altText: true,
           },
         },
+        collectionHeroes: {
+          where: {
+            media: {
+              visibility: "VISIBLE",
+              storageKey: { not: null },
+              sourceType: "UPLOADED_IMAGE",
+            },
+          },
+          select: {
+            mediaCategory: true,
+            media: {
+              select: {
+                storageKey: true,
+                originalFilename: true,
+                altText: true,
+              },
+            },
+          },
+        },
         details: {
           select: {
             propertyWebsiteUrl: true,
@@ -248,13 +267,13 @@ export default async function PortfolioPage({
         </div>
       </section>
 
-      <section className="container-shell py-8 sm:py-10">
+      <section id="portfolio-filters" className="container-shell scroll-mt-24 py-8 sm:py-10">
         <div
           className="flex gap-2 overflow-x-auto pb-2"
           aria-label="Filter portfolio"
         >
           <Link
-            href="/portfolio"
+            href="/portfolio#portfolio-filters"
             className={`shrink-0 rounded-full border px-4 py-2.5 text-[0.56rem] font-semibold uppercase tracking-[0.15em] transition ${
               !selectedService
                 ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] text-black"
@@ -267,7 +286,7 @@ export default async function PortfolioPage({
           {services.map((service) => (
             <Link
               key={service.id}
-              href={`/portfolio?service=${service.slug}`}
+              href={`/portfolio?service=${service.slug}#portfolio-filters`}
               className={`shrink-0 rounded-full border px-4 py-2.5 text-[0.56rem] font-semibold uppercase tracking-[0.15em] transition ${
                 selectedService?.id === service.id
                   ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] text-black"
@@ -335,8 +354,13 @@ export default async function PortfolioPage({
               const videoMedia = tryResolveExternalMedia(
                 firstVideo?.externalUrl,
               );
-              const imageUrl = project.heroMedia?.storageKey
-                ? getPublicAssetUrl(project.heroMedia.storageKey)
+              const collectionHero = project.collectionHeroes.find((hero) =>
+                selectedMediaCategories.includes(hero.mediaCategory),
+              )?.media;
+              const imageStorageKey =
+                collectionHero?.storageKey || project.heroMedia?.storageKey;
+              const imageUrl = imageStorageKey
+                ? getPublicAssetUrl(imageStorageKey)
                 : videoMedia?.thumbnailUrl || "";
               const location =
                 project.locationLabel ||
@@ -369,6 +393,8 @@ export default async function PortfolioPage({
                       <img
                         src={imageUrl}
                         alt={
+                          collectionHero?.altText ||
+                          collectionHero?.originalFilename ||
                           project.heroMedia?.altText ||
                           project.heroMedia?.originalFilename ||
                           project.title
@@ -387,7 +413,7 @@ export default async function PortfolioPage({
                       </span>
                     )}
 
-                    {!project.heroMedia?.storageKey && videoMedia && (
+                    {!imageStorageKey && videoMedia && (
                       <span className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/80 backdrop-blur-md">
                         <svg viewBox="0 0 24 24" fill="none" className="ml-0.5 h-4 w-4" aria-hidden="true">
                           <path d="m9 7 8 5-8 5V7Z" fill="currentColor" />
@@ -433,7 +459,7 @@ export default async function PortfolioPage({
 
             {selectedService && (
               <Link
-                href="/portfolio"
+                href="/portfolio#portfolio-filters"
                 className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full border border-white/15 px-6 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-white/60 transition hover:border-white/30 hover:text-white"
               >
                 View all work
