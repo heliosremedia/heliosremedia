@@ -212,6 +212,15 @@ export function createHomepageWorkCardKey(
   return `site/homepage/work-cards/${cardId}/${kind}-${timestamp}-${id}.${extension}`;
 }
 
+export function createAboutPageImageKey(
+  kind: "hero" | "gallery-one" | "gallery-two" | "gallery-three",
+  mimeType: string,
+) {
+  const timestamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "-");
+  const id = randomUUID().slice(0, 8);
+  return `site/about/${kind}/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
+}
+
 export async function createPresignedUploadUrl(
   key: string,
   contentType: string,

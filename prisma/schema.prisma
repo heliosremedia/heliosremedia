@@ -121,13 +121,13 @@ model Project {
   heroMedia      Media? @relation("ProjectHeroMedia", fields: [heroMediaId], references: [id], onDelete: SetNull)
   thumbnailMedia Media? @relation("ProjectThumbnailMedia", fields: [thumbnailMediaId], references: [id], onDelete: SetNull)
 
-  media             Media[]              @relation("ProjectMedia")
+  media             Media[]                      @relation("ProjectMedia")
   details           ProjectDetails?
   services          ProjectService[]
   tags              ProjectTag[]
   homepagePlacement HomepageProject?
   previewLinks      ProjectPreviewLink[]
-  collectionHeroes ProjectMediaCollectionHero[]
+  collectionHeroes  ProjectMediaCollectionHero[]
 
   @@index([status])
   @@index([featured])
@@ -192,8 +192,8 @@ model Media {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  heroForProject      Project?           @relation("ProjectHeroMedia")
-  thumbnailForProject Project?           @relation("ProjectThumbnailMedia")
+  heroForProject      Project?                    @relation("ProjectHeroMedia")
+  thumbnailForProject Project?                    @relation("ProjectThumbnailMedia")
   homepageWorkCards   HomepageWorkCard[]
   collectionHero      ProjectMediaCollectionHero?
 
@@ -207,7 +207,7 @@ model Media {
 model ProjectMediaCollectionHero {
   projectId     String
   mediaCategory MediaCategory
-  mediaId       String @unique
+  mediaId       String        @unique
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   media   Media   @relation(fields: [mediaId], references: [id], onDelete: Cascade)
@@ -220,16 +220,16 @@ model ProjectMediaCollectionHero {
 }
 
 model Service {
-  id           String  @id @default(cuid())
-  name         String
-  slug         String  @unique
-  description  String?
+  id                  String  @id @default(cuid())
+  name                String
+  slug                String  @unique
+  description         String?
   // Retained for backward compatibility; public service imagery now comes
   // from each project's matching media-collection hero.
   heroImageStorageKey String?
   heroImageAlt        String?
-  displayOrder Int     @default(0)
-  active       Boolean @default(true)
+  displayOrder        Int     @default(0)
+  active              Boolean @default(true)
 
   projects         ProjectService[]
   inquiries        InquiryService[]
@@ -457,6 +457,46 @@ model SiteSettings {
 
   privacyPolicyPublished  Boolean @default(false)
   termsOfServicePublished Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AboutPageContent {
+  id String @id @default("default")
+
+  heroEyebrow  String @default("About Helios")
+  heroHeadline String @default("Presentation shapes perception.")
+  heroBody     String @default("Helios is a Northern Colorado real estate media studio built around one belief: thoughtful presentation changes how a property is seen, remembered, and valued.")
+
+  heroImageStorageKey String?
+  heroImageUrl        String?
+  heroImageAlt        String  @default("Refined contemporary interior photographed by Helios Real Estate Media")
+
+  storyEyebrow   String @default("Why we exist")
+  storyIntro     String @default("Real estate media is often treated as documentation. We see it as positioning—the first signal of care, quality, and value a buyer receives.")
+  storyHeadline  String @default("We create the visual language that helps exceptional properties feel impossible to overlook.")
+  storyBodyLeft  String @default("Photography, cinematic film, aerial perspectives, agent branding, and social content are approached as parts of the same campaign. The result is more coherent, more useful, and more memorable than a collection of disconnected deliverables.")
+  storyBodyRight String @default("We work with agents, builders, designers, and property professionals who understand that presentation is not decoration. It is a strategic part of how trust is earned and value is communicated.")
+
+  principlesEyebrow  String @default("The Helios point of view")
+  principlesHeadline String @default("Beauty with a purpose.")
+  principlesIntro    String @default("A clear set of principles keeps the work consistent while every property remains distinct.")
+  principles         Json
+
+  galleryOneStorageKey   String?
+  galleryOneUrl          String?
+  galleryOneAlt          String  @default("Luxury interior media created by Helios")
+  galleryTwoStorageKey   String?
+  galleryTwoUrl          String?
+  galleryTwoAlt          String  @default("Architectural detail photographed by Helios")
+  galleryThreeStorageKey String?
+  galleryThreeUrl        String?
+  galleryThreeAlt        String  @default("Elevated property photography by Helios")
+
+  processEyebrow  String @default("The client experience")
+  processHeadline String @default("Considered from first call to final delivery.")
+  process         Json
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
