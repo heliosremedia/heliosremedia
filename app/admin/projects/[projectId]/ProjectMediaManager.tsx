@@ -24,12 +24,14 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+import { tryResolveExternalMedia } from "@/lib/external-media";
 import {
   getMediaCollection,
   MEDIA_COLLECTIONS,
   type MediaCategory,
 } from "@/lib/media-collections";
 
+import ExternalMediaForm from "./ExternalMediaForm";
 import MediaUploader from "./MediaUploader";
 
 type ProjectMediaManagerProps = {
@@ -38,11 +40,15 @@ type ProjectMediaManagerProps = {
 
 export type ProjectMediaItem = {
   id: string;
+  sourceType: string;
+  provider: string | null;
   storageKey: string | null;
   originalFilename: string | null;
   altText?: string | null;
   caption?: string | null;
   mimeType: string | null;
+  externalUrl: string | null;
+  externalId: string | null;
   fileSize: number | null;
   width: number | null;
   height: number | null;
@@ -89,6 +95,7 @@ type DeleteAssetResponse = {
 
 type AssetDraft = {
   originalFilename: string;
+  externalUrl: string;
   altText: string;
   caption: string;
   mediaCategory: MediaCategory;
@@ -173,6 +180,8 @@ function SortableMediaCard({
   onToggleVisibility,
   onDelete,
 }: SortableMediaCardProps) {
+  const externalMedia = tryResolveExternalMedia(item.externalUrl);
+  const canBeHero = item.sourceType === "UPLOADED_IMAGE" && Boolean(item.publicUrl);
   const {
     attributes,
     listeners,
@@ -216,21 +225,41 @@ function SortableMediaCard({
           item.originalFilename || `${collectionLabel} asset`
         } in fullscreen preview`}
       >
-        <Image
-          src={item.publicUrl}
-          alt={
-            item.altText || item.originalFilename || `${collectionLabel} asset`
-          }
-          fill
-          sizes={
-            viewMode === "compact"
-              ? "(min-width: 1536px) 16vw, (min-width: 1280px) 22vw, (min-width: 1024px) 30vw, (min-width: 640px) 45vw, 100vw"
-              : "(min-width: 1280px) 30vw, (min-width: 640px) 45vw, 100vw"
-          }
-          quality={75}
-          draggable={false}
-          className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.035]"
-        />
+        {item.publicUrl ? (
+          <Image
+            src={item.publicUrl}
+            alt={
+              item.altText || item.originalFilename || `${collectionLabel} asset`
+            }
+            fill
+            sizes={
+              viewMode === "compact"
+                ? "(min-width: 1536px) 16vw, (min-width: 1280px) 22vw, (min-width: 1024px) 30vw, (min-width: 640px) 45vw, 100vw"
+                : "(min-width: 1280px) 30vw, (min-width: 640px) 45vw, 100vw"
+            }
+            quality={75}
+            draggable={false}
+            className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.035]"
+          />
+        ) : externalMedia?.thumbnailUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={externalMedia.thumbnailUrl}
+            alt=""
+            className="h-full w-full object-cover opacity-70 transition duration-700 ease-out group-hover:scale-[1.035]"
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[radial-gradient(circle_at_70%_20%,rgba(217,107,43,0.22),transparent_38%),#090909] px-6 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/75 backdrop-blur-md">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="ml-0.5 h-4 w-4">
+                <path d="m9 7 8 5-8 5V7Z" fill="currentColor" />
+              </svg>
+            </span>
+            <span className="mt-4 text-[0.55rem] font-semibold uppercase tracking-[0.17em] text-white/50">
+              {externalMedia?.label || "External media"}
+            </span>
+          </div>
+        )}
 
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/5 to-black/15 opacity-75 transition duration-300 group-hover:opacity-90" />
 
@@ -270,7 +299,9 @@ function SortableMediaCard({
               Fullscreen preview
             </p>
 
-            <p className="mt-1 text-sm text-white/80">Click to view</p>
+            <p className="mt-1 text-sm text-white/80">
+              {item.sourceType === "UPLOADED_IMAGE" ? "Click to view" : "Click to play"}
+            </p>
           </div>
 
           <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white/75 backdrop-blur-md">
@@ -383,7 +414,9 @@ function SortableMediaCard({
           </p>
 
           <div className={`${viewMode === "compact" ? "hidden" : "mt-2 flex"} flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/25`}>
-            <span>{formatFileSize(item.fileSize)}</span>
+            <span>
+              {externalMedia?.label || formatFileSize(item.fileSize)}
+            </span>
 
             {item.width && item.height && (
               <>
@@ -404,19 +437,27 @@ function SortableMediaCard({
           <button
             type="button"
             onClick={() => {
-              if (!item.isHero && !isHeroUpdateLocked) {
+              if (canBeHero && !item.isHero && !isHeroUpdateLocked) {
                 onSetHero(item.id);
               }
             }}
-            disabled={item.isHero || isHeroUpdateLocked}
-            aria-label={item.isHero ? "Current hero image" : `Set ${item.originalFilename || "asset"} as hero image`}
+            disabled={!canBeHero || item.isHero || isHeroUpdateLocked}
+            aria-label={
+              !canBeHero
+                ? "External videos cannot be used as the project hero image"
+                : item.isHero
+                  ? "Current hero image"
+                  : `Set ${item.originalFilename || "asset"} as hero image`
+            }
             className={`${MEDIA_BADGE_CLASS} transition ${
               item.isHero
                 ? "cursor-default border border-[var(--helios-orange)]/25 bg-[var(--helios-orange)]/10 text-[var(--helios-orange-hover)]"
-                : "border border-white/10 text-white/40 hover:border-[var(--helios-orange)]/40 hover:bg-[var(--helios-orange)] hover:text-black disabled:cursor-wait disabled:opacity-40"
+                : "border border-white/10 text-white/40 hover:border-[var(--helios-orange)]/40 hover:bg-[var(--helios-orange)] hover:text-black disabled:cursor-not-allowed disabled:opacity-25"
             }`}
           >
-            {item.isHero
+            {!canBeHero
+              ? "Video"
+              : item.isHero
               ? "Current hero"
               : isUpdatingHero
                 ? "Updating"
@@ -604,6 +645,11 @@ export default function ProjectMediaManager({
   const activeMedia = useMemo(
     () => media.find((item) => item.id === activeMediaId) ?? null,
     [activeMediaId, media],
+  );
+
+  const activeExternalMedia = useMemo(
+    () => tryResolveExternalMedia(activeMedia?.externalUrl),
+    [activeMedia?.externalUrl],
   );
 
   const editingMedia = useMemo(
@@ -904,6 +950,7 @@ export default function ProjectMediaManager({
 
       setAssetDraft({
         originalFilename: item.originalFilename || "Untitled asset",
+        externalUrl: item.externalUrl || "",
         altText: item.altText || "",
         caption: item.caption || "",
         mediaCategory: item.mediaCategory,
@@ -941,6 +988,7 @@ export default function ProjectMediaManager({
 
       await updateAsset(item, {
         originalFilename: item.originalFilename || "Untitled asset",
+        externalUrl: item.externalUrl || "",
         altText: item.altText || "",
         caption: item.caption || "",
         mediaCategory: item.mediaCategory,
@@ -1352,6 +1400,11 @@ export default function ProjectMediaManager({
           onMediaUploaded={handleMediaUploaded}
         />
 
+        <ExternalMediaForm
+          projectId={projectId}
+          onMediaAdded={handleMediaUploaded}
+        />
+
         <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]">
           <div className="flex flex-col gap-3 border-b border-white/[0.08] px-5 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-6">
             <div>
@@ -1364,9 +1417,9 @@ export default function ProjectMediaManager({
               </h3>
 
               <p className="mt-2 max-w-2xl text-sm leading-6 text-white/35">
-                Manage every project asset by collection. Open any image for a
-                fullscreen preview or select the image that should lead the
-                project.
+                Manage every project asset by collection. Preview images and
+                videos, control visibility, and choose the image that should
+                lead the project.
               </p>
             </div>
 
@@ -1775,17 +1828,49 @@ export default function ProjectMediaManager({
             </div>
           </header>
 
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 pb-28 pt-24 sm:px-20 sm:pb-32">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={activeMedia.publicUrl}
-              alt={
-                activeMedia.altText ||
-                activeMedia.originalFilename ||
-                "Project media asset"
-              }
-              className="max-h-full max-w-full rounded-lg object-contain shadow-[0_35px_100px_rgba(0,0,0,0.65)]"
-            />
+          <div className="absolute inset-0 flex items-center justify-center px-4 pb-28 pt-24 sm:px-20 sm:pb-32">
+            {activeMedia.publicUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={activeMedia.publicUrl}
+                alt={
+                  activeMedia.altText ||
+                  activeMedia.originalFilename ||
+                  "Project media asset"
+                }
+                className="max-h-full max-w-full rounded-lg object-contain shadow-[0_35px_100px_rgba(0,0,0,0.65)]"
+              />
+            ) : activeExternalMedia?.embedUrl ? (
+              <iframe
+                src={activeExternalMedia.embedUrl}
+                title={activeMedia.originalFilename || `${activeExternalMedia.label} video`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
+                className="aspect-video max-h-full w-full max-w-6xl rounded-lg border border-white/10 bg-black shadow-[0_35px_100px_rgba(0,0,0,0.65)]"
+              />
+            ) : activeExternalMedia?.playbackUrl ? (
+              <video
+                src={activeExternalMedia.playbackUrl}
+                controls
+                playsInline
+                preload="metadata"
+                className="max-h-full w-full max-w-6xl rounded-lg bg-black shadow-[0_35px_100px_rgba(0,0,0,0.65)]"
+              >
+                Your browser cannot play this hosted video.
+              </video>
+            ) : activeMedia.externalUrl ? (
+              <a
+                href={activeMedia.externalUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-7 text-[0.6rem] font-semibold uppercase tracking-[0.17em] text-white/65 transition hover:border-white/35 hover:text-white"
+              >
+                Open external asset
+              </a>
+            ) : (
+              <p className="text-sm text-white/35">No preview is available.</p>
+            )}
           </div>
 
           {activeCollectionMedia.length > 1 && (
@@ -1845,7 +1930,9 @@ export default function ProjectMediaManager({
 
                 <span aria-hidden="true">·</span>
 
-                <span>{formatFileSize(activeMedia.fileSize)}</span>
+                <span>
+                  {activeExternalMedia?.label || formatFileSize(activeMedia.fileSize)}
+                </span>
 
                 {activeMedia.width && activeMedia.height && (
                   <>
@@ -1874,26 +1961,37 @@ export default function ProjectMediaManager({
                 )}
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  if (!activeMedia.isHero && updatingHeroId === null) {
-                    void handleSetHero(activeMedia.id);
-                  }
-                }}
-                disabled={activeMedia.isHero || updatingHeroId !== null}
-                className={`inline-flex min-h-11 items-center justify-center rounded-full px-6 text-[0.58rem] font-semibold uppercase tracking-[0.15em] transition ${
-                  activeMedia.isHero
-                    ? "cursor-default border border-[var(--helios-orange)]/25 bg-[var(--helios-orange)]/10 text-[var(--helios-orange-hover)]"
-                    : "bg-[var(--helios-orange)] text-black hover:bg-[var(--helios-orange-hover)] disabled:cursor-wait disabled:opacity-50"
-                }`}
-              >
-                {activeMedia.isHero
-                  ? "Current hero image"
-                  : updatingHeroId === activeMedia.id
-                    ? "Setting hero"
-                    : "Set as hero image"}
-              </button>
+              {activeMedia.sourceType === "UPLOADED_IMAGE" ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!activeMedia.isHero && updatingHeroId === null) {
+                      void handleSetHero(activeMedia.id);
+                    }
+                  }}
+                  disabled={activeMedia.isHero || updatingHeroId !== null}
+                  className={`inline-flex min-h-11 items-center justify-center rounded-full px-6 text-[0.58rem] font-semibold uppercase tracking-[0.15em] transition ${
+                    activeMedia.isHero
+                      ? "cursor-default border border-[var(--helios-orange)]/25 bg-[var(--helios-orange)]/10 text-[var(--helios-orange-hover)]"
+                      : "bg-[var(--helios-orange)] text-black hover:bg-[var(--helios-orange-hover)] disabled:cursor-wait disabled:opacity-50"
+                  }`}
+                >
+                  {activeMedia.isHero
+                    ? "Current hero image"
+                    : updatingHeroId === activeMedia.id
+                      ? "Setting hero"
+                      : "Set as hero image"}
+                </button>
+              ) : activeMedia.externalUrl ? (
+                <a
+                  href={activeMedia.externalUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/12 px-6 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-white/55 transition hover:border-white/30 hover:text-white"
+                >
+                  Open source ↗
+                </a>
+              ) : null}
             </div>
           </footer>
         </div>
@@ -1995,6 +2093,36 @@ export default function ProjectMediaManager({
                   className="mt-2.5 min-h-12 w-full rounded-xl border border-white/10 bg-black/30 px-4 text-sm text-white/80 outline-none transition placeholder:text-white/20 focus:border-[var(--helios-orange)]/55 focus:ring-2 focus:ring-[var(--helios-orange)]/10"
                 />
               </label>
+
+              {editingMedia.externalUrl && (
+                <label className="block">
+                  <span className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/45">
+                    External media URL
+                  </span>
+
+                  <input
+                    type="url"
+                    required
+                    maxLength={2048}
+                    value={assetDraft.externalUrl}
+                    onChange={(event) =>
+                      setAssetDraft((current) =>
+                        current
+                          ? {
+                              ...current,
+                              externalUrl: event.target.value,
+                            }
+                          : current,
+                      )
+                    }
+                    className="mt-2.5 min-h-12 w-full rounded-xl border border-white/10 bg-black/30 px-4 text-sm text-white/80 outline-none transition placeholder:text-white/20 focus:border-[var(--helios-orange)]/55 focus:ring-2 focus:ring-[var(--helios-orange)]/10"
+                  />
+
+                  <span className="mt-2 block text-xs leading-5 text-white/30">
+                    Provider and playback settings are detected again when saved.
+                  </span>
+                </label>
+              )}
 
               <label className="block">
                 <span className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/45">
@@ -2151,7 +2279,9 @@ export default function ProjectMediaManager({
                 type="submit"
                 disabled={
                   updatingAssetId !== null ||
-                  !assetDraft.originalFilename.trim()
+                  !assetDraft.originalFilename.trim() ||
+                  (Boolean(editingMedia.externalUrl) &&
+                    !assetDraft.externalUrl.trim())
                 }
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[var(--helios-orange)] px-7 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-black transition hover:bg-[var(--helios-orange-hover)] disabled:cursor-wait disabled:opacity-45"
               >
