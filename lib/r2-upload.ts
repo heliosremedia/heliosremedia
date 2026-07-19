@@ -168,17 +168,6 @@ export function createHomepageSectionImageKey(
   return `site/homepage/${kind}/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
 }
 
-export function createServiceHeroImageKey(serviceId: string, mimeType: string) {
-  const timestamp = new Date()
-    .toISOString()
-    .replace(/[-:]/g, "")
-    .replace(/\..+/, "")
-    .replace("T", "-");
-  const id = randomUUID().slice(0, 8);
-
-  return `services/${serviceId}/hero/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
-}
-
 export function createBrandLogoKey(mimeType: string) {
   const timestamp = new Date()
     .toISOString()
@@ -221,6 +210,15 @@ export function createHomepageWorkCardKey(
     : extensionFromMime(mimeType);
 
   return `site/homepage/work-cards/${cardId}/${kind}-${timestamp}-${id}.${extension}`;
+}
+
+export function createAboutPageImageKey(
+  kind: "hero" | "gallery-one" | "gallery-two" | "gallery-three",
+  mimeType: string,
+) {
+  const timestamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "-");
+  const id = randomUUID().slice(0, 8);
+  return `site/about/${kind}/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
 }
 
 export async function createPresignedUploadUrl(

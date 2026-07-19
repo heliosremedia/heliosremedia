@@ -72,6 +72,7 @@ type SetHeroResponse = {
   success: boolean;
   error?: string;
   heroMediaId?: string;
+  mediaCategory?: MediaCategory;
 };
 
 type ReorderMediaResponse = {
@@ -904,15 +905,16 @@ export default function ProjectMediaManager({
 
         const data = (await response.json()) as SetHeroResponse;
 
-        if (!response.ok || !data.success || !data.heroMediaId) {
+        if (!response.ok || !data.success || !data.heroMediaId || !data.mediaCategory) {
           throw new Error(data.error || "The hero image could not be updated.");
         }
 
         setMedia((currentMedia) =>
-          currentMedia.map((item) => ({
-            ...item,
-            isHero: item.id === data.heroMediaId,
-          })),
+          currentMedia.map((item) =>
+            item.mediaCategory === data.mediaCategory
+              ? { ...item, isHero: item.id === data.heroMediaId }
+              : item,
+          ),
         );
         router.refresh();
       } catch (updateError) {

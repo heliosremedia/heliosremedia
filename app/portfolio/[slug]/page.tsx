@@ -6,6 +6,7 @@ import Footer from "@/app/components/Footer";
 import Navbar from "@/app/components/Navbar";
 import { tryResolveExternalMedia } from "@/lib/external-media";
 import { MEDIA_COLLECTIONS } from "@/lib/media-collections";
+import { getServiceMediaCategories } from "@/lib/portfolio-services";
 import { validateProjectPreview } from "@/lib/project-preview";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
@@ -290,6 +291,16 @@ export default async function PortfolioProjectPage({
       (media) => media.mediaCategory === collection.value,
     ),
   })).filter((collection) => collection.media.length > 0);
+  const collectionId = (mediaCategory: string) =>
+    `collection-${mediaCategory.toLowerCase().replace(/_/g, "-")}`;
+  const serviceDestinations = new Map(
+    activeServices.map(({ service }) => {
+      const destination = getServiceMediaCategories(service).find((category) =>
+        collections.some((collection) => collection.value === category),
+      );
+      return [service.id, destination ? `#${collectionId(destination)}` : "#project-overview"];
+    }),
+  );
   const facts = [
     project.details?.squareFeet
       ? {
@@ -377,7 +388,7 @@ export default async function PortfolioProjectPage({
               <p className="eyebrow text-[var(--helios-orange)]">
                 {location || project.propertyType || "Helios portfolio"}
               </p>
-              <h1 className="mt-5 font-display text-[clamp(3.4rem,8vw,7.5rem)] font-light leading-[0.86] tracking-[-0.055em] text-white">
+              <h1 className="mt-5 font-display text-[clamp(3rem,7vw,7.5rem)] font-light leading-[0.86] tracking-[-0.055em] text-white sm:whitespace-nowrap">
                 {project.title}
               </h1>
 
@@ -386,8 +397,8 @@ export default async function PortfolioProjectPage({
                   {activeServices.map(({ service }) => (
                     <Link
                       key={service.id}
-                      href={`/portfolio?service=${service.slug}`}
-                      className="rounded-full border border-white/15 px-3.5 py-2 text-[0.52rem] font-semibold uppercase tracking-[0.15em] text-white/55 transition hover:border-white/35 hover:text-white"
+                      href={serviceDestinations.get(service.id) ?? "#project-overview"}
+                      className="rounded-full border border-white/15 px-3.5 py-2 text-[0.52rem] font-semibold uppercase tracking-[0.15em] text-white/55 transition duration-300 hover:-translate-y-0.5 hover:border-[var(--helios-orange)]/65 hover:bg-[var(--helios-orange)]/10 hover:text-[var(--helios-orange)]"
                     >
                       {service.name}
                     </Link>
@@ -426,7 +437,7 @@ export default async function PortfolioProjectPage({
                 {location || project.propertyType || "Helios portfolio"}
               </p>
 
-              <h1 className="mt-6 font-display text-[clamp(3.6rem,9vw,8.5rem)] font-light leading-[0.84] tracking-[-0.06em] text-white">
+              <h1 className="mt-6 font-display text-[clamp(3rem,7vw,8.5rem)] font-light leading-[0.84] tracking-[-0.06em] text-white sm:whitespace-nowrap">
                 {project.title}
               </h1>
 
@@ -435,8 +446,8 @@ export default async function PortfolioProjectPage({
                   {activeServices.map(({ service }) => (
                     <Link
                       key={service.id}
-                      href={`/portfolio?service=${service.slug}`}
-                      className="rounded-full border border-white/20 bg-black/20 px-3.5 py-2 text-[0.52rem] font-semibold uppercase tracking-[0.15em] text-white/70 backdrop-blur-md transition hover:border-white/40 hover:text-white"
+                      href={serviceDestinations.get(service.id) ?? "#project-overview"}
+                      className="rounded-full border border-white/20 bg-black/20 px-3.5 py-2 text-[0.52rem] font-semibold uppercase tracking-[0.15em] text-white/70 backdrop-blur-md transition duration-300 hover:-translate-y-0.5 hover:border-[var(--helios-orange)]/65 hover:bg-[var(--helios-orange)]/10 hover:text-[var(--helios-orange)]"
                     >
                       {service.name}
                     </Link>
@@ -448,7 +459,7 @@ export default async function PortfolioProjectPage({
         </section>
       )}
 
-      <nav aria-label="Project navigation" className="border-b border-white/[0.08] bg-[#090909]">
+      <nav id="project-overview" aria-label="Project navigation" className="scroll-mt-24 border-b border-white/[0.08] bg-[#090909]">
         <div className="container-shell py-5">
           <Link href="/portfolio" className="inline-flex items-center gap-3 text-[0.58rem] font-semibold uppercase tracking-[0.17em] text-white/50 transition hover:text-white">
             <span aria-hidden="true">←</span>
@@ -465,7 +476,7 @@ export default async function PortfolioProjectPage({
             <p className="eyebrow text-[var(--helios-orange)]">The project</p>
 
             {project.shortDescription && (
-              <h2 className="mt-6 max-w-3xl font-display text-[clamp(1.55rem,2.25vw,2.5rem)] font-light leading-[1.16] tracking-[-0.025em] text-white/92">
+              <h2 className="mt-6 max-w-2xl font-display text-[clamp(1rem,1.2vw,1.3rem)] font-light leading-[1.35] tracking-[-0.015em] text-white/88">
                 {project.shortDescription}
               </h2>
             )}
@@ -524,7 +535,8 @@ export default async function PortfolioProjectPage({
       {collections.map((collection, collectionIndex) => (
         <section
           key={collection.value}
-          className="container-shell border-b border-white/[0.08] py-20 sm:py-28"
+          id={collectionId(collection.value)}
+          className="container-shell scroll-mt-24 border-b border-white/[0.08] py-20 sm:py-28"
         >
           <div className="flex items-end justify-between gap-8">
             <div>

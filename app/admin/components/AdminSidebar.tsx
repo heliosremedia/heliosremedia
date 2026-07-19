@@ -73,6 +73,11 @@ const navigation: NavigationItem[] = [
     ),
   },
   {
+    label: "About Page",
+    href: "/admin/about",
+    icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><circle cx="12" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.5"/><path d="M5 21a7 7 0 0 1 14 0M4 4h3M17 4h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
+  },
+  {
     label: "Media Library",
     href: "/admin/media",
     icon: (
