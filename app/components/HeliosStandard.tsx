@@ -45,7 +45,13 @@ const wordVariants = {
   },
 };
 
-export default function HeliosStandard() {
+export default function HeliosStandard({
+  imageUrl = "/standard/standard-8.jpg",
+  imageAlt = "Luxury interior photographed by Helios Real Estate Media",
+}: {
+  imageUrl?: string | null;
+  imageAlt?: string | null;
+}) {
   const shouldReduceMotion = useReducedMotion();
 
   return (
@@ -201,9 +207,10 @@ export default function HeliosStandard() {
           <div className="relative overflow-hidden rounded-[4px] bg-black shadow-[0_28px_85px_rgba(0,0,0,0.34)]">
             <div className="relative aspect-[16/9] sm:aspect-[2/1] lg:aspect-[2.35/1]">
               <Image
-                src="/standard/standard-8.jpg"
-                alt="Luxury interior photographed by Helios Real Estate Media"
+                src={imageUrl || "/standard/standard-8.jpg"}
+                alt={imageAlt || "Luxury interior photographed by Helios Real Estate Media"}
                 fill
+                unoptimized={Boolean(imageUrl?.startsWith("http"))}
                 sizes="(max-width: 640px) 100vw, (max-width: 1280px) 94vw, 1216px"
                 className="object-cover object-[center_40%]"
               />
