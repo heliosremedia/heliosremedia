@@ -999,6 +999,49 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
       });
     }
 
+    if (action === "bulk-update-category") {
+      const requestedMediaCategory =
+        typeof body.mediaCategory === "string" ? body.mediaCategory.trim() : "";
+      const mediaIds = Array.isArray(body.mediaIds)
+        ? body.mediaIds.filter((value): value is string => typeof value === "string" && value.trim().length > 0).map((value) => value.trim())
+        : [];
+
+      if (!isMediaCategory(requestedMediaCategory)) {
+        return NextResponse.json({ success: false, error: "Select a valid destination collection." }, { status: 400 });
+      }
+      if (mediaIds.length === 0 || mediaIds.length > 500 || new Set(mediaIds).size !== mediaIds.length) {
+        return NextResponse.json({ success: false, error: "Select between 1 and 500 unique assets." }, { status: 400 });
+      }
+
+      const result = await prisma.$transaction(async (transaction) => {
+        const selectedMedia = await transaction.media.findMany({
+          where: { projectId, id: { in: mediaIds } },
+          select: { id: true, mediaCategory: true },
+        });
+        if (selectedMedia.length !== mediaIds.length) {
+          throw new Error("BULK_MEDIA_NOT_FOUND");
+        }
+
+        const maximum = await transaction.media.aggregate({
+          where: { projectId, mediaCategory: requestedMediaCategory, id: { notIn: mediaIds } },
+          _max: { displayOrder: true },
+        });
+        const startingDisplayOrder = (maximum._max.displayOrder ?? -1) + 1;
+        await Promise.all(mediaIds.map((id, index) => transaction.media.update({
+          where: { id },
+          data: { mediaCategory: requestedMediaCategory, displayOrder: startingDisplayOrder + index },
+        })));
+        return { startingDisplayOrder };
+      });
+
+      return NextResponse.json({
+        success: true,
+        mediaIds,
+        mediaCategory: requestedMediaCategory,
+        startingDisplayOrder: result.startingDisplayOrder,
+      });
+    }
+
     if (action === "set-hero") {
       const mediaId =
         typeof body.mediaId === "string" ? body.mediaId.trim() : "";
