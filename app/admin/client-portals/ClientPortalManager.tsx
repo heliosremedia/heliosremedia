@@ -1,6 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type Portal = {
   id: string; name: string; slug: string; description: string | null; provider: "HDPHOTOHUB" | "EXTERNAL";
@@ -12,6 +15,11 @@ type Draft = Omit<Portal, "id" | "displayOrder"> & { id?: string };
 
 const emptyDraft: Draft = { name: "", slug: "", description: "", provider: "HDPHOTOHUB", hdphGroupId: null, loginUrl: "", registrationUrl: "", bookingUrl: "", registrationEnabled: true, isDefault: false, active: true };
 
+function SortablePortalRow({ portal, disabled, onEdit, onRemove }: { portal: Portal; disabled: boolean; onEdit: (portal: Portal) => void; onRemove: (id: string) => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: portal.id, disabled });
+  return <article ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={`flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between ${isDragging ? "relative z-10 bg-[#181818] opacity-80" : ""}`}><div className="flex min-w-0 items-start gap-4"><button type="button" disabled={disabled} aria-label={`Move ${portal.name}`} {...attributes} {...listeners} className="touch-none cursor-grab rounded-lg px-2 py-1 text-lg text-white/25 hover:bg-white/[0.05] hover:text-white disabled:cursor-default disabled:opacity-20">⋮⋮</button><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="text-lg text-white">{portal.name}</h3>{portal.isDefault && <span className="rounded-full border border-[var(--helios-orange)]/30 px-2 py-1 text-[0.55rem] uppercase tracking-[0.15em] text-[var(--helios-orange)]">Default</span>}{!portal.active && <span className="text-[0.58rem] uppercase tracking-[0.15em] text-white/25">Hidden</span>}</div><p className="mt-1 text-xs text-white/30">/client-portal/{portal.slug} · {portal.provider === "HDPHOTOHUB" ? (portal.hdphGroupId ? `HDPhotoHub group #${portal.hdphGroupId}` : "HDPhotoHub — general") : "External provider"}</p></div></div><div className="flex gap-4"><button onClick={() => onEdit(portal)} className="text-xs uppercase tracking-[0.16em] text-white/50 hover:text-white">Edit</button><button onClick={() => onRemove(portal.id)} className="text-xs uppercase tracking-[0.16em] text-red-300/50 hover:text-red-300">Delete</button></div></article>;
+}
+
 export default function ClientPortalManager({ initialPortals }: { initialPortals: Portal[] }) {
   const [portals, setPortals] = useState(initialPortals);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
@@ -21,6 +29,7 @@ export default function ClientPortalManager({ initialPortals }: { initialPortals
   const [emailConfigured, setEmailConfigured] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const editing = Boolean(draft.id);
   const selectedGroup = useMemo(() => groups.find((group) => group.gid === draft.hdphGroupId), [draft.hdphGroupId, groups]);
 
@@ -64,6 +73,21 @@ export default function ClientPortalManager({ initialPortals }: { initialPortals
 
   function edit(portal: Portal) { setDraft({ ...portal }); window.scrollTo({ top: 0, behavior: "smooth" }); }
 
+  async function reorder(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id || busy) return;
+    const previous = portals;
+    const next = arrayMove(portals, portals.findIndex(({ id }) => id === active.id), portals.findIndex(({ id }) => id === over.id)).map((portal, displayOrder) => ({ ...portal, displayOrder }));
+    setPortals(next); setBusy(true); setMessage("Saving portal order…");
+    try {
+      const response = await fetch("/api/admin/client-portals", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reorder", portalIds: next.map(({ id }) => id) }) });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "The portal order could not be saved.");
+      setMessage("Portal order saved. The client login page now uses this order.");
+    } catch (error) { setPortals(previous); setMessage(error instanceof Error ? error.message : "The portal order could not be saved."); }
+    finally { setBusy(false); }
+  }
+
   return <div className="space-y-6">
     <section className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -87,6 +111,6 @@ export default function ClientPortalManager({ initialPortals }: { initialPortals
       <div className="mt-6 flex items-center gap-4"><button type="button" disabled={busy || !draft.name.trim()} onClick={save} className="rounded-full bg-[var(--helios-orange)] px-6 py-3 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-white disabled:opacity-40">{editing ? "Save portal" : "Create portal"}</button>{message && <p className="text-sm text-white/45">{message}</p>}</div>
     </section>
 
-    <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]"><div className="border-b border-white/[0.08] px-6 py-5"><h2 className="text-2xl text-white">Client entry points</h2><p className="mt-1 text-sm text-white/35">{portals.length} configured portals</p></div>{portals.length ? <div className="divide-y divide-white/[0.07]">{portals.map((portal) => <article key={portal.id} className="flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><h3 className="text-lg text-white">{portal.name}</h3>{portal.isDefault && <span className="rounded-full border border-[var(--helios-orange)]/30 px-2 py-1 text-[0.55rem] uppercase tracking-[0.15em] text-[var(--helios-orange)]">Default</span>}{!portal.active && <span className="text-[0.58rem] uppercase tracking-[0.15em] text-white/25">Hidden</span>}</div><p className="mt-1 text-xs text-white/30">/client-portal/{portal.slug} · {portal.provider === "HDPHOTOHUB" ? (portal.hdphGroupId ? `HDPhotoHub group #${portal.hdphGroupId}` : "HDPhotoHub — general") : "External provider"}</p></div><div className="flex gap-4"><button onClick={() => edit(portal)} className="text-xs uppercase tracking-[0.16em] text-white/50 hover:text-white">Edit</button><button onClick={() => remove(portal.id)} className="text-xs uppercase tracking-[0.16em] text-red-300/50 hover:text-red-300">Delete</button></div></article>)}</div> : <p className="px-6 py-10 text-sm text-white/35">No portals yet. Discover the HDPhotoHub groups, then create the first entry point.</p>}</section>
+    <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]"><div className="flex flex-col gap-2 border-b border-white/[0.08] px-6 py-5 sm:flex-row sm:items-end sm:justify-between"><div><h2 className="text-2xl text-white">Client entry points</h2><p className="mt-1 text-sm text-white/35">{portals.length} configured portals · drag rows to set the public display order</p></div>{message && <p role="status" className="text-xs text-white/40">{message}</p>}</div>{portals.length ? <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={reorder}><SortableContext items={portals.map(({ id }) => id)} strategy={verticalListSortingStrategy}><div className="divide-y divide-white/[0.07]">{portals.map((portal) => <SortablePortalRow key={portal.id} portal={portal} disabled={busy} onEdit={edit} onRemove={remove} />)}</div></SortableContext></DndContext> : <p className="px-6 py-10 text-sm text-white/35">No portals yet. Discover the HDPhotoHub groups, then create the first entry point.</p>}</section>
   </div>;
 }
