@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-import { createHdPhotoHubClient, getHdPhotoHubBrand, getHdPhotoHubSso, getHdPhotoHubUser, setHdPhotoHubPassword } from "@/lib/client-portal/hdphotohub";
+import { createHdPhotoHubClient, getHdPhotoHubBrand, getHdPhotoHubSso, getHdPhotoHubUser, setHdPhotoHubPassword, userBelongsToGroup } from "@/lib/client-portal/hdphotohub";
 import { PORTAL_REGISTRATION_COOKIE, verifyRegistrationSession } from "@/lib/client-portal/tokens";
 import { cleanText, safeSsoUrl } from "@/lib/client-portal/validation";
 import { prisma } from "@/lib/prisma";
@@ -11,6 +11,8 @@ export async function POST(request: Request) {
   const session = verifyRegistrationSession(cookieStore.get(PORTAL_REGISTRATION_COOKIE)?.value);
   if (!session) return NextResponse.json({ success: false, error: "Your registration session expired. Start again from the client portal." }, { status: 401 });
   try {
+    const challenge = await prisma.clientPortalChallenge.findFirst({ where: { id: session.challengeId, portalId: session.portalId, email: session.email, purpose: "REGISTER", consumedAt: { not: null }, expiresAt: { gt: new Date() } }, select: { id: true } });
+    if (!challenge) return NextResponse.json({ success: false, error: "Your registration session expired. Start again from the client portal." }, { status: 401 });
     const body = await request.json() as Record<string, unknown>;
     const firstName = cleanText(body.firstName, 100, true)!;
     const lastName = cleanText(body.lastName, 100, true)!;
@@ -20,7 +22,12 @@ export async function POST(request: Request) {
     const portal = await prisma.clientPortal.findFirst({ where: { id: session.portalId, active: true, provider: "HDPHOTOHUB" } });
     if (!portal) return NextResponse.json({ success: false, error: "This client portal is no longer available." }, { status: 404 });
     const existing = await getHdPhotoHubUser(session.email);
-    if (existing) return NextResponse.json({ success: false, error: "An account now exists for this email. Return to the portal and sign in." }, { status: 409 });
+    if (existing) {
+      if (!userBelongsToGroup(existing, portal.hdphGroupId)) return NextResponse.json({ success: false, error: "This account is not eligible for this client portal." }, { status: 403 });
+      const sso = await getHdPhotoHubSso(session.email);
+      cookieStore.delete(PORTAL_REGISTRATION_COOKIE);
+      return NextResponse.json({ success: true, redirectUrl: safeSsoUrl(sso.url) });
+    }
     const brand = await getHdPhotoHubBrand();
     const user = await createHdPhotoHubClient({ brandId: brand.bid, groupId: portal.hdphGroupId, email: session.email, firstName, lastName, phone });
     await setHdPhotoHubPassword(user.uid, password);

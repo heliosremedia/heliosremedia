@@ -499,12 +499,13 @@ model ClientPortal {
 }
 
 model ClientPortalChallenge {
-  id        String                       @id @default(cuid())
-  portalId  String
-  portal    ClientPortal                 @relation(fields: [portalId], references: [id], onDelete: Cascade)
-  purpose   ClientPortalChallengePurpose
-  email     String
-  tokenHash String                       @unique
+  id                 String                       @id @default(cuid())
+  portalId           String
+  portal             ClientPortal                 @relation(fields: [portalId], references: [id], onDelete: Cascade)
+  purpose            ClientPortalChallengePurpose
+  email              String
+  tokenHash          String                       @unique
+  requestFingerprint String?
 
   firstName String?
   lastName  String?
@@ -515,6 +516,7 @@ model ClientPortalChallenge {
   createdAt  DateTime  @default(now())
 
   @@index([portalId, email])
+  @@index([requestFingerprint, createdAt])
   @@index([expiresAt])
 }
 

@@ -26,6 +26,7 @@ CREATE TABLE "ClientPortalChallenge" (
     "purpose" "ClientPortalChallengePurpose" NOT NULL,
     "email" TEXT NOT NULL,
     "tokenHash" TEXT NOT NULL,
+    "requestFingerprint" TEXT,
     "firstName" TEXT,
     "lastName" TEXT,
     "phone" TEXT,
@@ -40,5 +41,6 @@ CREATE INDEX "ClientPortal_active_displayOrder_idx" ON "ClientPortal"("active", 
 CREATE INDEX "ClientPortal_provider_idx" ON "ClientPortal"("provider");
 CREATE UNIQUE INDEX "ClientPortalChallenge_tokenHash_key" ON "ClientPortalChallenge"("tokenHash");
 CREATE INDEX "ClientPortalChallenge_portalId_email_idx" ON "ClientPortalChallenge"("portalId", "email");
+CREATE INDEX "ClientPortalChallenge_requestFingerprint_createdAt_idx" ON "ClientPortalChallenge"("requestFingerprint", "createdAt");
 CREATE INDEX "ClientPortalChallenge_expiresAt_idx" ON "ClientPortalChallenge"("expiresAt");
 ALTER TABLE "ClientPortalChallenge" ADD CONSTRAINT "ClientPortalChallenge_portalId_fkey" FOREIGN KEY ("portalId") REFERENCES "ClientPortal"("id") ON DELETE CASCADE ON UPDATE CASCADE;

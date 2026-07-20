@@ -10,6 +10,13 @@ export function hashPortalToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
+export function portalRequestFingerprint(request: Request) {
+  const address = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    || request.headers.get("x-real-ip")?.trim()
+    || "unknown";
+  return createHmac("sha256", secret()).update(address).digest("hex");
+}
+
 export const PORTAL_REGISTRATION_COOKIE = "helios_portal_registration";
 
 type RegistrationSession = {

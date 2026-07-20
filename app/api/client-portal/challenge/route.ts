@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { sendPortalVerificationEmail } from "@/lib/client-portal/email";
 import { getHdPhotoHubUser, userBelongsToGroup } from "@/lib/client-portal/hdphotohub";
-import { createPortalToken, hashPortalToken } from "@/lib/client-portal/tokens";
+import { createPortalToken, hashPortalToken, portalRequestFingerprint } from "@/lib/client-portal/tokens";
 import { normalizeEmail, portalDestination } from "@/lib/client-portal/validation";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings } from "@/lib/site-settings";
@@ -21,20 +21,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, redirectUrl: destination });
     }
 
-    const recent = await prisma.clientPortalChallenge.count({ where: { portalId: portal.id, email, createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) } } });
+    const requestFingerprint = portalRequestFingerprint(request);
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const [recent, recentFromAddress] = await Promise.all([
+      prisma.clientPortalChallenge.count({ where: { portalId: portal.id, email, createdAt: { gte: oneHourAgo } } }),
+      prisma.clientPortalChallenge.count({ where: { requestFingerprint, createdAt: { gte: oneHourAgo } } }),
+    ]);
     if (recent >= 5) return NextResponse.json({ success: false, error: "Too many access requests were made. Please wait before trying again." }, { status: 429 });
+    if (recentFromAddress >= 20) return NextResponse.json({ success: false, error: "Too many access requests were made. Please wait before trying again." }, { status: 429 });
 
     const user = await getHdPhotoHubUser(email);
     if (user && !userBelongsToGroup(user, portal.hdphGroupId)) {
-      return NextResponse.json({ success: false, error: "That account belongs to a different client group. Choose the matching portal or contact us for help." }, { status: 409 });
+      return NextResponse.json({ success: true, message: "If this email is eligible, a secure access link is on its way." });
     }
     if (!user && !portal.registrationEnabled) {
-      return NextResponse.json({ success: false, error: "No eligible account was found. Contact us for client access." }, { status: 404 });
+      return NextResponse.json({ success: true, message: "If this email is eligible, a secure access link is on its way." });
     }
 
     const purpose = user ? "LOGIN" as const : "REGISTER" as const;
     const token = createPortalToken();
-    const challenge = await prisma.clientPortalChallenge.create({ data: { portalId: portal.id, purpose, email, tokenHash: hashPortalToken(token), expiresAt: new Date(Date.now() + 15 * 60 * 1000) }, select: { id: true } });
+    const challenge = await prisma.clientPortalChallenge.create({ data: { portalId: portal.id, purpose, email, tokenHash: hashPortalToken(token), requestFingerprint, expiresAt: new Date(Date.now() + 15 * 60 * 1000) }, select: { id: true } });
     const settings = await getSiteSettings();
     const verificationUrl = new URL("/api/client-portal/verify", request.url);
     verificationUrl.searchParams.set("token", token);
@@ -44,7 +50,7 @@ export async function POST(request: Request) {
       await prisma.clientPortalChallenge.delete({ where: { id: challenge.id } });
       throw error;
     }
-    return NextResponse.json({ success: true, message: purpose === "LOGIN" ? "Check your email for a secure dashboard link." : "Check your email to verify your address and finish creating your account." });
+    return NextResponse.json({ success: true, message: "If this email is eligible, a secure access link is on its way." });
   } catch (error) {
     if (error instanceof Error && error.message === "INVALID_EMAIL") return NextResponse.json({ success: false, error: "Enter a valid email address." }, { status: 400 });
     console.error("Unable to start client portal access:", error);
