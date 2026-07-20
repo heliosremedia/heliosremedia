@@ -41,6 +41,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       ...init?.headers,
     },
     cache: "no-store",
+    signal: init?.signal ?? AbortSignal.timeout(10_000),
   });
 
   if (!response.ok) {
@@ -124,5 +125,5 @@ export function setHdPhotoHubPassword(userId: number, password: string) {
 
 export function userBelongsToGroup(user: HdPhotoHubUser, groupId: number | null) {
   if (groupId === null) return true;
-  return (user.group?.gid ?? user.group?.id) === groupId;
+  return Number(user.group?.gid ?? user.group?.id) === groupId;
 }
