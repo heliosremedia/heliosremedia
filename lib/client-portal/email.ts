@@ -40,5 +40,12 @@ export async function sendPortalVerificationEmail(input: {
     }),
   });
 
-  if (!response.ok) throw new Error("The verification email could not be sent.");
+  if (!response.ok) {
+    const details = await response.text();
+    console.error("Resend rejected a client portal email", {
+      status: response.status,
+      details: details.slice(0, 1_000),
+    });
+    throw new Error("The verification email could not be sent.");
+  }
 }
