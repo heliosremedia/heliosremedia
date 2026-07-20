@@ -5,8 +5,8 @@ import Image from "next/image";
 
 import type { AboutListItem, PublicAboutPageContent } from "@/lib/about-page";
 
-type ImageKind = "hero" | "gallery-one" | "gallery-two" | "gallery-three";
-type ImagePrefix = "heroImage" | "galleryOne" | "galleryTwo" | "galleryThree";
+type ImageKind = "hero" | "founder" | "gallery-one" | "gallery-two" | "gallery-three";
+type ImagePrefix = "heroImage" | "founderImage" | "galleryOne" | "galleryTwo" | "galleryThree";
 
 async function jsonRequest(url: string, init: RequestInit) {
   const response = await fetch(url, { ...init, headers: { "Content-Type": "application/json", ...init.headers } });
@@ -59,6 +59,25 @@ export default function AboutPageManager({ initialContent }: { initialContent: P
       <div className="grid gap-4 lg:grid-cols-2"><Input label="Eyebrow" value={content.storyEyebrow} onChange={(value) => field("storyEyebrow", value)} /><Textarea label="Intro" value={content.storyIntro} onChange={(value) => field("storyIntro", value)} rows={5} /><Textarea label="Large statement" value={content.storyHeadline} onChange={(value) => field("storyHeadline", value)} rows={5} /><div /><Textarea label="Supporting copy — left" value={content.storyBodyLeft} onChange={(value) => field("storyBodyLeft", value)} rows={7} /><Textarea label="Supporting copy — right" value={content.storyBodyRight} onChange={(value) => field("storyBodyRight", value)} rows={7} /></div>
     </Panel>
 
+    <Panel eyebrow="Personal connection" title="Founder profile" description="Introduce the person behind the company. Upload a portrait, edit every line, then publish the section when it is ready.">
+      <label className="mb-6 flex items-start gap-3 rounded-xl border border-white/[0.08] bg-black/20 p-4">
+        <input type="checkbox" checked={content.founderEnabled} onChange={(event) => field("founderEnabled", event.target.checked)} className="mt-0.5 h-4 w-4 accent-[var(--helios-orange)]" />
+        <span><span className="block text-sm font-medium text-white/80">Show founder profile on the About page</span><span className="mt-1 block text-xs leading-5 text-white/35">The section only appears publicly when this is enabled and a portrait has been uploaded.</span></span>
+      </label>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+        <ImageField label="Founder portrait" value={content.founderImageUrl} alt={content.founderImageAlt} onAlt={(value) => field("founderImageAlt", value)} onFile={(file) => upload("founder", "founderImage", file)} busy={busy} aspect="portrait" />
+        <div className="grid content-start gap-4 sm:grid-cols-2">
+          <Input label="Section eyebrow" value={content.founderEyebrow} onChange={(value) => field("founderEyebrow", value)} />
+          <Input label="First name in headline" value={content.founderFirstName} onChange={(value) => field("founderFirstName", value)} />
+          <Input label="Role line" value={content.founderRole} onChange={(value) => field("founderRole", value)} />
+          <Input label="Signature / full name" value={content.founderSignature} onChange={(value) => field("founderSignature", value)} />
+          <div className="sm:col-span-2"><Textarea label="Founder story" value={content.founderBody} onChange={(value) => field("founderBody", value)} rows={10} /></div>
+          <Input label="Founder title" value={content.founderTitle} onChange={(value) => field("founderTitle", value)} />
+          <div className="sm:col-span-2"><Textarea label="Team note beneath profile" value={content.founderTeamNote} onChange={(value) => field("founderTeamNote", value)} rows={4} /></div>
+        </div>
+      </div>
+    </Panel>
+
     <Panel eyebrow="Point of view" title="Principles" description="Edit the section heading and each principle card.">
       <div className="grid gap-4 lg:grid-cols-3"><Input label="Eyebrow" value={content.principlesEyebrow} onChange={(value) => field("principlesEyebrow", value)} /><Input label="Headline" value={content.principlesHeadline} onChange={(value) => field("principlesHeadline", value)} /><Textarea label="Introduction" value={content.principlesIntro} onChange={(value) => field("principlesIntro", value)} rows={3} /></div>
       <ListEditor items={content.principles} onChange={(items) => field("principles", items)} />
@@ -93,8 +112,8 @@ function Textarea({ label, value, onChange, rows }: { label: string; value: stri
   return <label className="block text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-white/30">{label}<textarea value={value} rows={rows} onChange={(event) => onChange(event.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 p-4 text-sm leading-6 normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label>;
 }
 
-function ImageField({ label, value, alt, onAlt, onFile, busy }: { label: string; value: string | null; alt: string; onAlt: (value: string) => void; onFile: (file: File) => void; busy: boolean }) {
-  return <div className="rounded-2xl border border-white/[0.08] bg-black/20 p-4"><p className="text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-white/30">{label}</p><div className="relative mt-3 aspect-[4/3] overflow-hidden rounded-xl bg-white/[0.03]">{value ? <Image src={value} alt="" fill unoptimized sizes="(max-width: 1024px) 100vw, 33vw" className="object-cover" /> : <div className="flex h-full items-center justify-center text-sm text-white/20">No image</div>}</div><label className="mt-4 block text-[0.5rem] uppercase tracking-[0.13em] text-white/25">Image alt text<input value={alt} onChange={(event) => onAlt(event.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-black/25 px-3 text-sm normal-case tracking-normal text-white" /></label><label className="mt-4 inline-flex cursor-pointer rounded-full bg-[var(--helios-orange)] px-5 py-3 text-[0.52rem] font-semibold uppercase tracking-[0.13em] text-black"><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; if (file) onFile(file); event.currentTarget.value = ""; }} className="sr-only" />{busy ? "Working…" : "Upload image"}</label></div>;
+function ImageField({ label, value, alt, onAlt, onFile, busy, aspect = "landscape" }: { label: string; value: string | null; alt: string; onAlt: (value: string) => void; onFile: (file: File) => void; busy: boolean; aspect?: "landscape" | "portrait" }) {
+  return <div className="rounded-2xl border border-white/[0.08] bg-black/20 p-4"><p className="text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-white/30">{label}</p><div className={`relative mt-3 overflow-hidden rounded-xl bg-white/[0.03] ${aspect === "portrait" ? "aspect-[4/5]" : "aspect-[4/3]"}`}>{value ? <Image src={value} alt="" fill unoptimized sizes="(max-width: 1024px) 100vw, 33vw" className="object-cover" /> : <div className="flex h-full items-center justify-center text-sm text-white/20">No image</div>}</div><label className="mt-4 block text-[0.5rem] uppercase tracking-[0.13em] text-white/25">Image alt text<input value={alt} onChange={(event) => onAlt(event.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-black/25 px-3 text-sm normal-case tracking-normal text-white" /></label><label className="mt-4 inline-flex cursor-pointer rounded-full bg-[var(--helios-orange)] px-5 py-3 text-[0.52rem] font-semibold uppercase tracking-[0.13em] text-black"><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; if (file) onFile(file); event.currentTarget.value = ""; }} className="sr-only" />{busy ? "Working…" : "Upload image"}</label></div>;
 }
 
 function ListEditor({ items, onChange }: { items: AboutListItem[]; onChange: (items: AboutListItem[]) => void }) {

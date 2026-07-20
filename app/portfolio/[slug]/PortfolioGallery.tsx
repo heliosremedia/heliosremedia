@@ -221,7 +221,7 @@ export default function PortfolioGallery({
 
       {galleryView === "showcase" && showcaseMedia ? (
         <section className="mt-5" aria-label={`${collectionLabel} showcase`}>
-          <div className="group relative flex h-[clamp(28rem,68vh,54rem)] items-center justify-center overflow-hidden bg-white/[0.025]">
+          <div className="group relative flex items-center justify-center overflow-hidden bg-white/[0.025] sm:h-[clamp(28rem,68vh,54rem)]">
             {showcaseMedia.imageUrl ? (
               <button
                 type="button"
@@ -230,13 +230,13 @@ export default function PortfolioGallery({
                   setActiveMediaId(showcaseMedia.id);
                 }}
                 aria-label={`Open ${showcaseMedia.alt} in fullscreen`}
-                className="relative flex h-full w-full cursor-zoom-in items-center justify-center"
+                className="relative flex w-full cursor-zoom-in items-center justify-center sm:h-full"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={showcaseMedia.imageUrl}
                   alt={showcaseMedia.alt}
-                  className="h-full w-full object-contain"
+                  className="h-auto max-h-[72svh] max-w-full object-contain sm:h-full sm:max-h-none sm:w-full"
                   style={{
                     objectPosition: `${showcaseMedia.focalX * 100}% ${showcaseMedia.focalY * 100}%`,
                   }}

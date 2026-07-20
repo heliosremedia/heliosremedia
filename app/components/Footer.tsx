@@ -13,6 +13,7 @@ const exploreLinks = [
   { label: "About Helios", href: "/about" },
   { label: "FAQs", href: "/faq" },
   { label: "Client Stories", href: "/#testimonials" },
+  { label: "Client Login", href: "/client-portal" },
 ];
 
 export default function Footer() {

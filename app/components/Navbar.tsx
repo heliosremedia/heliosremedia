@@ -13,6 +13,7 @@ const navigation = [
   { label: "Services", href: "/services" },
   { label: "About Helios", href: "/about" },
   { label: "FAQs", href: "/faq" },
+  { label: "Client Login", href: "/client-portal" },
 ];
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -97,7 +98,7 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
 
           <motion.nav
             aria-label="Primary navigation"
-            className="hidden items-center gap-8 md:flex lg:gap-10 xl:gap-12"
+            className="hidden items-center gap-5 md:flex lg:gap-7 xl:gap-9"
             initial={shouldReduceMotion ? false : { opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{

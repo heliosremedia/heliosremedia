@@ -40,10 +40,10 @@ export default async function AboutPage() {
         <div className="container-shell relative flex min-h-[88vh] items-end pb-16 pt-40 sm:pb-24">
           <div className="max-w-6xl">
             <p className="eyebrow text-[var(--helios-orange)]">{content.heroEyebrow}</p>
-            <h1 className="mt-7 max-w-5xl font-display text-[clamp(3.7rem,9.2vw,9rem)] font-light leading-[0.9] tracking-[-0.062em] text-white">
+            <h1 className="mt-7 max-w-5xl font-display text-[clamp(3.7rem,9.2vw,9rem)] font-light leading-[0.98] tracking-[-0.062em] text-white">
               {content.heroHeadline}
             </h1>
-            <p className="mt-10 max-w-2xl text-sm leading-7 text-white/58 sm:text-base sm:leading-8">
+            <p className="mt-14 max-w-2xl text-sm leading-7 text-white/58 sm:mt-16 sm:text-base sm:leading-8">
               {content.heroBody}
             </p>
           </div>
@@ -72,6 +72,58 @@ export default async function AboutPage() {
           </div>
         </div>
       </section>
+
+      {content.founderEnabled && content.founderImageUrl && (
+        <section className="border-b border-white/[0.08] bg-[#0c0c0c]">
+          <div className="container-shell py-20 sm:py-28 lg:py-36">
+            <div className="mx-auto max-w-6xl">
+              <div className="text-center">
+                <p className="eyebrow text-[var(--helios-orange)]">{content.founderEyebrow}</p>
+                <span className="mx-auto mt-5 block h-px w-16 bg-[var(--helios-orange)]/70" />
+              </div>
+
+              <div className="mt-12 grid items-center gap-10 sm:mt-16 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-16">
+                <div className="relative mx-auto aspect-[4/5] w-full max-w-[34rem] overflow-hidden rounded-[1.1rem] border border-white/[0.1] bg-[#111]">
+                  <Image
+                    src={content.founderImageUrl}
+                    alt={content.founderImageAlt}
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 45vw"
+                    className="object-cover object-center"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+                </div>
+
+                <div>
+                  <h2 className="font-display text-[clamp(3.5rem,7vw,7rem)] font-light leading-[0.92] tracking-[-0.055em] text-white">
+                    Meet <span className="italic text-[var(--helios-orange)]">{content.founderFirstName}</span>
+                  </h2>
+                  <span className="mt-7 block h-px w-20 bg-[var(--helios-orange)]/75" />
+                  <p className="mt-8 text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-white/75">
+                    {content.founderRole}
+                  </p>
+                  <p className="mt-7 max-w-xl whitespace-pre-line text-sm leading-7 text-white/58 sm:text-base sm:leading-8">
+                    {content.founderBody}
+                  </p>
+                  <p className="mt-8 font-display text-4xl italic tracking-[-0.04em] text-white/90 sm:text-5xl">
+                    {content.founderSignature}
+                  </p>
+                  <p className="mt-3 text-[0.62rem] font-semibold uppercase tracking-[0.25em] text-[var(--helios-orange)]">
+                    {content.founderTitle}
+                  </p>
+                </div>
+              </div>
+
+              <blockquote className="relative mx-auto mt-16 max-w-5xl rounded-2xl border border-white/[0.16] px-7 py-8 text-center sm:px-14">
+                <span aria-hidden="true" className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 bg-[#0c0c0c] px-5 font-display text-5xl leading-none text-[var(--helios-orange)]">“</span>
+                <p className="font-display text-xl font-light leading-7 tracking-[-0.02em] text-white/75 sm:text-2xl sm:leading-8">
+                  {content.founderTeamNote}
+                </p>
+              </blockquote>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="border-b border-white/[0.08] bg-[#0c0c0c]">
         <div className="container-shell py-20 sm:py-28 lg:py-36">

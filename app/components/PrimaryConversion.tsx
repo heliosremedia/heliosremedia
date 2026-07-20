@@ -148,6 +148,13 @@ export default function PrimaryConversion({ cta, imageUrl, imageAlt }: { cta: Pu
                 </span>
               </Link>
 
+              {settings.availabilityMessage && (
+                <p className="mt-5 flex items-start gap-2.5 text-xs leading-5 text-white/42">
+                  <span aria-hidden="true" className="mt-[0.42rem] h-1.5 w-1.5 shrink-0 rounded-full bg-[#f06b24] shadow-[0_0_12px_rgba(240,107,36,0.55)]" />
+                  {settings.availabilityMessage}
+                </p>
+              )}
+
               {cta.secondaryLabel && cta.secondaryActionType && <Link
                 href={resolveAction(cta.secondaryActionType, cta.secondaryValue, settings)}
                 className="group mt-7 inline-flex items-center gap-4 text-[0.57rem] font-medium uppercase tracking-[0.28em] text-white/32 transition-colors duration-300 hover:text-white focus-visible:outline-none focus-visible:text-white"
