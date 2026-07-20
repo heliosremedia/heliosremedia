@@ -74,6 +74,21 @@ export async function PATCH(request: Request) {
   if (!(await getAdminSession())) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
   try {
     const body = await request.json() as Record<string, unknown>;
+    if (body.action === "reorder") {
+      if (!Array.isArray(body.portalIds) || body.portalIds.length === 0 || !body.portalIds.every((value) => typeof value === "string" && value.trim())) {
+        return NextResponse.json({ success: false, error: "A complete ordered portal list is required." }, { status: 400 });
+      }
+      const portalIds = body.portalIds.map((value) => (value as string).trim());
+      if (new Set(portalIds).size !== portalIds.length) return NextResponse.json({ success: false, error: "The portal order contains duplicate IDs." }, { status: 400 });
+      await prisma.$transaction(async (tx) => {
+        const current = await tx.clientPortal.findMany({ select: { id: true } });
+        const requested = new Set(portalIds);
+        if (current.length !== portalIds.length || current.some(({ id }) => !requested.has(id))) throw new Error("STALE_PORTAL_ORDER");
+        for (const [displayOrder, id] of portalIds.entries()) await tx.clientPortal.update({ where: { id }, data: { displayOrder } });
+      });
+      revalidate();
+      return NextResponse.json({ success: true, portalIds });
+    }
     const id = cleanText(body.id, 100, true)!;
     const name = cleanText(body.name, 120, true)!;
     const slug = slugify(typeof body.slug === "string" ? body.slug : name);
