@@ -78,14 +78,15 @@ export default async function Home() {
   return (
     <main>
       <Navbar />
-      <Hero />
+      <Hero settings={settings} />
       <HeliosStandard imageUrl={settings.heliosStandardImageUrl} imageAlt={settings.heliosStandardImageAlt} />
       <WorkShowcase
+        settings={settings}
         items={configuredWorkItems.length > 0 ? configuredWorkItems : undefined}
         featuredProject={featuredProject}
         featuredFilm={{ enabled: configuredWorkItems.length === 0 && settings.featuredFilmEnabled, videoSrc: settings.featuredFilmVideoUrl, poster: settings.featuredFilmPosterUrl, href: settings.featuredFilmDestination }}
       />
-      <OurApproach />
+      <OurApproach settings={settings} />
       <TrustedBy logos={trustedLogos.map((logo) => ({
         id: logo.id,
         organizationName: logo.organizationName,
@@ -110,7 +111,7 @@ export default async function Home() {
         rating: item.rating,
         sourceUrl: item.sourceUrl,
       }))} />
-      <PrimaryConversion cta={homepageCta ?? defaultHomeCta} imageUrl={settings.primaryConversionImageUrl} imageAlt={settings.primaryConversionImageAlt} />
+      <PrimaryConversion cta={homepageCta ?? defaultHomeCta} imageUrl={settings.primaryConversionImageUrl} imageAlt={settings.primaryConversionImageAlt} imageCaption={settings.conversionImageCaption} />
       <Footer />
     </main>
   );

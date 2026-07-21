@@ -5,12 +5,13 @@ import { motion, useReducedMotion } from "motion/react";
 
 import WorkCard from "./WorkCard";
 import { portfolioItems } from "./portfolio";
+import type { PublicSiteSettings } from "@/lib/site-settings";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 type FeaturedFilm = { enabled: boolean; videoSrc: string | null; poster: string | null; href: string | null };
 
-export default function WorkShowcase({ items = portfolioItems, featuredFilm, featuredProject }: { items?: typeof portfolioItems; featuredFilm?: FeaturedFilm; featuredProject?: (typeof portfolioItems)[number] | null }) {
+export default function WorkShowcase({ items = portfolioItems, featuredFilm, featuredProject, settings }: { items?: typeof portfolioItems; featuredFilm?: FeaturedFilm; featuredProject?: (typeof portfolioItems)[number] | null; settings: PublicSiteSettings }) {
   const shouldReduceMotion = useReducedMotion();
   const displayItems = featuredFilm?.enabled && featuredFilm.videoSrc
     ? [{ ...items[0], title: "Cinematic Films", href: featuredFilm.href || "/portfolio?service=cinematic-films", image: featuredFilm.poster || portfolioItems[0].image }, ...items.slice(1)]
@@ -57,12 +58,12 @@ export default function WorkShowcase({ items = portfolioItems, featuredFilm, fea
                 ease,
               }}
             >
-              <span className="block text-[var(--foreground)]">Crafted to</span>
+              <span className="block text-[var(--foreground)]">{settings.workHeadingLineOne || "Crafted to"}</span>
 
-              <span className="block text-white/80">Capture</span>
+              <span className="block text-white/80">{settings.workHeadingLineTwo || "Capture"}</span>
 
               <span className="block italic text-[var(--helios-orange)]">
-                Attention.
+                {settings.workHeadingAccent || "Attention."}
               </span>
             </motion.h2>
 
@@ -120,22 +121,20 @@ export default function WorkShowcase({ items = portfolioItems, featuredFilm, fea
                 <span className="h-px w-10 bg-[var(--helios-orange)]" />
 
                 <span className="eyebrow text-[var(--helios-orange)]">
-                  Our Work
+                  {settings.workEyebrow || "Our Work"}
                 </span>
               </div>
 
               <p className="mt-7 text-sm leading-7 text-white/48 md:text-[0.95rem]">
-                Every image, every frame, and every film is crafted to elevate
-                perception, command attention, and inspire confidence before
-                the first showing.
+                {settings.workBody || "Every image, every frame, and every film is crafted to elevate perception, command attention, and inspire confidence before the first showing."}
               </p>
 
               <Link
-                href="/portfolio"
+                href={settings.workButtonDestination || "/portfolio"}
                 className="group mt-8 inline-flex flex-col items-start"
               >
                 <span className="flex items-center gap-3 text-[0.7rem] font-medium uppercase tracking-[0.3em] text-white transition-opacity duration-500 group-hover:opacity-70">
-                  Explore Portfolio
+                  {settings.workButtonLabel || "Explore Portfolio"}
 
                   <span
                     aria-hidden="true"
@@ -174,7 +173,7 @@ export default function WorkShowcase({ items = portfolioItems, featuredFilm, fea
             ease,
           }}
         >
-          <div className="mb-5 flex items-center gap-4"><span className="h-px w-10 bg-[var(--helios-orange)]" /><span className="eyebrow text-[var(--helios-orange)]">Featured Project</span></div>
+          <div className="mb-5 flex items-center gap-4"><span className="h-px w-10 bg-[var(--helios-orange)]" /><span className="eyebrow text-[var(--helios-orange)]">{settings.featuredProjectEyebrow || "Featured Project"}</span></div>
           <WorkCard
             {...featuredProject}
             priority
@@ -258,19 +257,19 @@ export default function WorkShowcase({ items = portfolioItems, featuredFilm, fea
           }}
         >
           <span className="eyebrow text-[var(--helios-orange)]">
-            Complete Portfolio
+            {settings.portfolioEyebrow || "Complete Portfolio"}
           </span>
 
           <h3 className="mt-5 font-display text-[clamp(2.6rem,4.4vw,4.15rem)] font-light leading-[0.96] tracking-[-0.04em] text-[var(--foreground)]">
-            Explore the Full Collection.
+            {settings.portfolioHeading || "Explore the Full Collection."}
           </h3>
 
           <Link
-            href="/portfolio"
+            href={settings.portfolioButtonDestination || "/portfolio"}
             className="group mt-8 inline-flex flex-col items-center"
           >
             <span className="flex items-center gap-4 text-[0.68rem] font-medium uppercase tracking-[0.3em] text-white/78 transition-colors duration-500 group-hover:text-white">
-              View Complete Portfolio
+              {settings.portfolioButtonLabel || "View Complete Portfolio"}
 
               <span
                 aria-hidden="true"
