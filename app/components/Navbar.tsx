@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useSiteSettings } from "./SiteSettingsProvider";
 
@@ -27,6 +27,8 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
   const pathname = usePathname();
   const bookingHref = settings.bookingUrl || "/inquire";
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
@@ -46,6 +48,44 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
       window.removeEventListener("resize", closeMenu);
     };
   }, []);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const focusableSelector =
+      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const focusableElements = Array.from(
+      mobileMenuRef.current?.querySelectorAll<HTMLElement>(focusableSelector) ?? [],
+    );
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    firstElement?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+        menuButtonRef.current?.focus();
+        return;
+      }
+
+      if (event.key !== "Tab" || !firstElement || !lastElement) return;
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [menuOpen]);
 
   const closeMenu = () => setMenuOpen(false);
   const isActive = (href: string) =>
@@ -155,6 +195,7 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
           </motion.nav>
 
           <motion.button
+            ref={menuButtonRef}
             type="button"
             aria-label={
               menuOpen ? "Close navigation menu" : "Open navigation menu"
@@ -202,7 +243,11 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
         {menuOpen && (
           <motion.div
             id="mobile-navigation"
-            className="fixed inset-0 z-40 overflow-hidden bg-[var(--background)] md:hidden"
+            ref={mobileMenuRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mobile-navigation-title"
+            className="fixed inset-0 z-40 overflow-y-auto bg-[var(--background)] md:hidden"
             initial={shouldReduceMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -221,9 +266,9 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
               }}
             />
 
-            <div className="hero-grain pointer-events-none absolute inset-0 opacity-[0.035] mix-blend-soft-light" />
+            <div className="hero-grain pointer-events-none fixed inset-0 opacity-[0.035] mix-blend-soft-light" />
 
-            <div className="container-shell relative flex min-h-svh flex-col pb-[calc(2rem+env(safe-area-inset-bottom))] pt-[calc(8.75rem+env(safe-area-inset-top))]">
+            <div className="container-shell relative flex min-h-svh flex-col pb-[calc(2rem+env(safe-area-inset-bottom))] pt-[calc(7.75rem+env(safe-area-inset-top))]">
               <nav
                 aria-label="Mobile primary navigation"
                 className="flex flex-1 flex-col justify-center"
@@ -244,6 +289,7 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
                   />
 
                   <motion.span
+                    id="mobile-navigation-title"
                     className="eyebrow text-white/50"
                     initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -291,7 +337,7 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
                       <Link
                         href={item.href}
                         aria-current={isActive(item.href) ? "page" : undefined}
-                        className={`group flex items-end justify-between gap-6 py-5 font-display text-[clamp(2.9rem,13vw,4.5rem)] font-light leading-none tracking-[-0.04em] ${
+                        className={`group flex items-end justify-between gap-6 py-4 font-display text-[clamp(2.35rem,10.5vw,4.1rem)] font-light leading-none tracking-[-0.04em] outline-none transition-colors focus-visible:text-[var(--helios-orange)] ${
                           isActive(item.href)
                             ? "text-[var(--helios-orange)]"
                             : "text-[var(--foreground)]"
@@ -310,7 +356,7 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
 
                 <motion.a
                   href={bookingHref}
-                  className="mt-10 flex min-h-14 w-full items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-8 text-xs font-semibold uppercase tracking-[0.23em] text-white"
+                  className="mt-8 flex min-h-14 w-full items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-8 text-xs font-semibold uppercase tracking-[0.23em] text-white outline-none transition focus-visible:ring-2 focus-visible:ring-white/70"
                   initial={shouldReduceMotion ? false : { opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 12 }}
