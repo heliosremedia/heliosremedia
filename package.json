@@ -7,7 +7,10 @@
     "build": "node scripts/build.mjs",
     "start": "next start",
     "lint": "eslint",
-    "auth:hash-password": "node scripts/hash-admin-password.mjs"
+    "auth:hash-password": "node scripts/hash-admin-password.mjs",
+    "typecheck": "tsc --noEmit",
+    "prisma:validate": "prisma validate",
+    "prisma:generate": "prisma generate"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1089.0",
