@@ -221,6 +221,12 @@ export function createAboutPageImageKey(
   return `site/about/${kind}/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
 }
 
+export function createTeamMemberPortraitKey(mimeType: string) {
+  const timestamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "-");
+  const id = randomUUID().slice(0, 8);
+  return `site/team/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
+}
+
 export async function createPresignedUploadUrl(
   key: string,
   contentType: string,
