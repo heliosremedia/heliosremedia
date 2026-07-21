@@ -757,7 +757,7 @@ export default function ServiceManager({
                 type="button"
                 onClick={closeModal}
                 disabled={isSaving}
-                className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 px-6 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-white/45 transition hover:border-white/25 hover:text-white disabled:cursor-wait disabled:opacity-40"
+                className="admin-btn-secondary"
               >
                 Cancel
               </button>
@@ -765,7 +765,7 @@ export default function ServiceManager({
               <button
                 type="submit"
                 disabled={isSaving || !draft.name.trim()}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[var(--helios-orange)] px-7 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-black transition hover:bg-[var(--helios-orange-hover)] disabled:cursor-wait disabled:opacity-45"
+                className="admin-btn-primary"
               >
                 {isSaving && (
                   <span className="h-3 w-3 animate-spin rounded-full border border-black/25 border-t-black" />

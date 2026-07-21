@@ -400,7 +400,7 @@ export default function SiteSettingsForm({
                 </div>
               ) : null}
               <div className="mt-5 flex flex-wrap gap-3">
-                <label className={`cursor-pointer rounded-full bg-[var(--helios-orange)] px-5 py-3 text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-black ${uploadBusy ? "pointer-events-none opacity-40" : ""}`}>
+                <label className={`admin-btn-primary cursor-pointer ${uploadBusy ? "pointer-events-none opacity-40" : ""}`}>
                   {settings.heroVideoUrl ? "Replace video" : "Upload video"}
                   <input
                     type="file"
@@ -419,7 +419,7 @@ export default function SiteSettingsForm({
                     type="button"
                     disabled={uploadBusy}
                     onClick={() => void clearHeroVideo()}
-                    className="rounded-full border border-white/10 px-5 py-3 text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-white/55 disabled:opacity-40"
+                    className="admin-btn-secondary"
                   >
                     Disconnect
                   </button>
@@ -451,7 +451,7 @@ export default function SiteSettingsForm({
                 </div>
               ) : null}
               <div className="mt-5">
-                <label className={`inline-flex cursor-pointer rounded-full border border-white/15 px-5 py-3 text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-white/70 ${uploadBusy ? "pointer-events-none opacity-40" : ""}`}>
+                <label className={`admin-btn-secondary cursor-pointer ${uploadBusy ? "pointer-events-none opacity-40" : ""}`}>
                   {settings.heroPosterUrl ? "Replace poster" : "Upload poster"}
                   <input
                     type="file"
@@ -494,11 +494,11 @@ export default function SiteSettingsForm({
                 </label>
                 {uploading?.kind === item.kind ? <div className="mt-4"><div className="h-1 overflow-hidden rounded-full bg-white/10"><div className="h-full bg-[var(--helios-orange)] transition-[width]" style={{ width: `${uploading.progress}%` }} /></div><p className="mt-2 text-xs text-white/40">Uploading {uploading.progress}%</p></div> : null}
                 <div className="mt-5 flex flex-wrap gap-3">
-                  <label className={`cursor-pointer rounded-full bg-[var(--helios-orange)] px-5 py-3 text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-black ${uploadBusy ? "pointer-events-none opacity-40" : ""}`}>
+                  <label className={`admin-btn-primary cursor-pointer ${uploadBusy ? "pointer-events-none opacity-40" : ""}`}>
                     {item.managed ? "Replace image" : "Upload image"}
                     <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="sr-only" disabled={uploadBusy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadHomepageImage(item.kind, file); event.target.value = ""; }} />
                   </label>
-                  {item.managed ? <button type="button" disabled={uploadBusy} onClick={() => void clearHomepageImage(item.kind)} className="rounded-full border border-white/10 px-5 py-3 text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-white/55 disabled:opacity-40">Use original</button> : null}
+                  {item.managed ? <button type="button" disabled={uploadBusy} onClick={() => void clearHomepageImage(item.kind)} className="admin-btn-secondary">Use original</button> : null}
                 </div>
               </div>
             ))}
@@ -538,8 +538,8 @@ export default function SiteSettingsForm({
             <label className="mt-5 block text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Logo alt text<input value={settings.brandLogoAlt ?? ""} onChange={(event) => update("brandLogoAlt", event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label>
 
             <div className="mt-5 flex flex-wrap gap-3">
-              <label className={`cursor-pointer rounded-full bg-[var(--helios-orange)] px-5 py-3 text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-black ${uploadBusy ? "pointer-events-none opacity-40" : ""}`}>{settings.brandLogoUrl ? "Replace logo" : "Upload logo"}<input type="file" accept="image/png,image/webp,image/avif" className="sr-only" disabled={uploadBusy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadBrandLogo(file); event.target.value = ""; }} /></label>
-              {settings.brandLogoUrl ? <button type="button" disabled={uploadBusy} onClick={() => void clearBrandLogo()} className="rounded-full border border-white/10 px-5 py-3 text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-white/55 disabled:opacity-40">Use default</button> : null}
+              <label className={`admin-btn-primary cursor-pointer ${uploadBusy ? "pointer-events-none opacity-40" : ""}`}>{settings.brandLogoUrl ? "Replace logo" : "Upload logo"}<input type="file" accept="image/png,image/webp,image/avif" className="sr-only" disabled={uploadBusy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadBrandLogo(file); event.target.value = ""; }} /></label>
+              {settings.brandLogoUrl ? <button type="button" disabled={uploadBusy} onClick={() => void clearBrandLogo()} className="admin-btn-secondary">Use default</button> : null}
             </div>
           </div>
 
@@ -564,8 +564,8 @@ export default function SiteSettingsForm({
             </div>
 
             <div className="mt-5 flex flex-wrap gap-3">
-              <label className={`cursor-pointer rounded-full bg-[var(--helios-orange)] px-5 py-3 text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-black ${uploadBusy ? "pointer-events-none opacity-40" : ""}`}>{settings.brandMonogramUrl ? "Replace monogram" : "Upload monogram"}<input type="file" accept="image/png,image/webp,image/avif" className="sr-only" disabled={uploadBusy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadBrandMonogram(file); event.target.value = ""; }} /></label>
-              {settings.brandMonogramUrl ? <button type="button" disabled={uploadBusy} onClick={() => void clearBrandMonogram()} className="rounded-full border border-white/10 px-5 py-3 text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-white/55 disabled:opacity-40">Use logo fallback</button> : null}
+              <label className={`admin-btn-primary cursor-pointer ${uploadBusy ? "pointer-events-none opacity-40" : ""}`}>{settings.brandMonogramUrl ? "Replace monogram" : "Upload monogram"}<input type="file" accept="image/png,image/webp,image/avif" className="sr-only" disabled={uploadBusy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadBrandMonogram(file); event.target.value = ""; }} /></label>
+              {settings.brandMonogramUrl ? <button type="button" disabled={uploadBusy} onClick={() => void clearBrandMonogram()} className="admin-btn-secondary">Use logo fallback</button> : null}
             </div>
           </div>
           </div>
@@ -620,7 +620,7 @@ export default function SiteSettingsForm({
           type="button"
           onClick={() => void persist(settings)}
           disabled={saving || uploading !== null}
-          className="shrink-0 rounded-full bg-[var(--helios-orange)] px-6 py-3 text-[0.54rem] font-semibold uppercase tracking-[0.14em] text-black disabled:opacity-40"
+          className="shrink-0 admin-btn-primary"
         >
           {saving ? "Saving…" : "Save settings"}
         </button>

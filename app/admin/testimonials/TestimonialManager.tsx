@@ -161,7 +161,7 @@ export default function TestimonialManager({ initialTestimonials }: { initialTes
       <section className="rounded-2xl border border-white/[0.08] bg-[#111] p-5 sm:p-7">
         <div className="flex flex-col gap-5 border-b border-white/[0.08] pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div><p className="eyebrow text-[var(--helios-orange)]">Social proof library</p><h2 className="mt-2 text-2xl font-light text-white">Agent testimonials</h2><p className="mt-2 text-sm text-white/30">Published, featured records appear on the homepage in this order.</p></div>
-          <button type="button" onClick={openCreate} className="self-start rounded-full bg-[var(--helios-orange)] px-5 py-3 text-[0.54rem] font-semibold uppercase tracking-[0.14em] text-black sm:self-auto">Add testimonial</button>
+          <button type="button" onClick={openCreate} className="self-start admin-btn-primary sm:self-auto">Add testimonial</button>
         </div>
 
         <div className="mt-6 grid gap-4 xl:grid-cols-2">
@@ -177,12 +177,12 @@ export default function TestimonialManager({ initialTestimonials }: { initialTes
                 <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-base text-white/80">{item.agentName}</h3><p className="mt-1 text-xs text-white/30">{[item.jobTitle, item.brokerage].filter(Boolean).join(" · ") || "No attribution details"}</p></div><div className="flex gap-1">{item.featured && <span className="rounded-full border border-[var(--helios-orange)]/20 px-2 py-1 text-[0.47rem] uppercase tracking-[0.12em] text-[var(--helios-orange)]">Featured</span>}<span className={`rounded-full border px-2 py-1 text-[0.47rem] uppercase tracking-[0.12em] ${item.published ? "border-emerald-300/15 text-emerald-200/55" : "border-white/10 text-white/25"}`}>{item.published ? "Published" : "Draft"}</span></div></div>
                 <blockquote className="mt-4 line-clamp-4 font-display text-lg leading-6 text-white/55">“{item.testimonial}”</blockquote>
                 <div className="mt-auto flex flex-wrap items-center gap-1 border-t border-white/[0.06] pt-4">
-                  <button type="button" aria-label={`Move ${item.agentName} up`} disabled={index === 0 || busy !== null} onClick={() => move(index, -1)} className="px-2 py-1 text-white/30 hover:text-white disabled:opacity-20">↑</button>
-                  <button type="button" aria-label={`Move ${item.agentName} down`} disabled={index === testimonials.length - 1 || busy !== null} onClick={() => move(index, 1)} className="px-2 py-1 text-white/30 hover:text-white disabled:opacity-20">↓</button>
-                  <button type="button" disabled={busy !== null} onClick={() => setStatus(item, "featured")} className="ml-auto px-2 py-1 text-[0.5rem] uppercase tracking-[0.12em] text-white/30 hover:text-white">{item.featured ? "Unfeature" : "Feature"}</button>
-                  <button type="button" disabled={busy !== null} onClick={() => setStatus(item, "published")} className="px-2 py-1 text-[0.5rem] uppercase tracking-[0.12em] text-white/30 hover:text-white">{item.published ? "Unpublish" : "Publish"}</button>
-                  <button type="button" onClick={() => openEdit(item)} className="px-2 py-1 text-[0.5rem] uppercase tracking-[0.12em] text-white/30 hover:text-white">Edit</button>
-                  <button type="button" disabled={busy !== null} onClick={() => remove(item)} className="px-2 py-1 text-[0.5rem] uppercase tracking-[0.12em] text-red-200/35 hover:text-red-200">Delete</button>
+                  <button type="button" aria-label={`Move ${item.agentName} up`} disabled={index === 0 || busy !== null} onClick={() => move(index, -1)} className="admin-btn-link">↑</button>
+                  <button type="button" aria-label={`Move ${item.agentName} down`} disabled={index === testimonials.length - 1 || busy !== null} onClick={() => move(index, 1)} className="admin-btn-link">↓</button>
+                  <button type="button" disabled={busy !== null} onClick={() => setStatus(item, "featured")} className="ml-auto admin-btn-link">{item.featured ? "Unfeature" : "Feature"}</button>
+                  <button type="button" disabled={busy !== null} onClick={() => setStatus(item, "published")} className="admin-btn-link">{item.published ? "Unpublish" : "Publish"}</button>
+                  <button type="button" onClick={() => openEdit(item)} className="admin-btn-link">Edit</button>
+                  <button type="button" disabled={busy !== null} onClick={() => remove(item)} className="admin-btn-link-destructive">Delete</button>
                 </div>
               </div>
             </article>
@@ -194,7 +194,7 @@ export default function TestimonialManager({ initialTestimonials }: { initialTes
       {draft && (
         <div className="fixed inset-0 z-[80] overflow-y-auto bg-black/85 p-5 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="testimonial-dialog-title">
           <div className="mx-auto my-5 w-full max-w-5xl rounded-2xl border border-white/[0.1] bg-[#151515] p-6 shadow-2xl sm:p-8">
-            <div className="flex items-start justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Client story</p><h2 id="testimonial-dialog-title" className="mt-2 text-2xl font-light text-white">{draft.id ? "Edit testimonial" : "New testimonial"}</h2></div><button type="button" onClick={() => setDraft(null)} className="h-10 w-10 rounded-full border border-white/10 text-white/40">×</button></div>
+            <div className="flex items-start justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Client story</p><h2 id="testimonial-dialog-title" className="mt-2 text-2xl font-light text-white">{draft.id ? "Edit testimonial" : "New testimonial"}</h2></div><button type="button" onClick={() => setDraft(null)} className="admin-btn-icon-sm">×</button></div>
             <div className="mt-7 grid gap-7 lg:grid-cols-[18rem_minmax(0,1fr)]">
               <div>
                 <div className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-white/10 bg-black/25">
@@ -203,7 +203,7 @@ export default function TestimonialManager({ initialTestimonials }: { initialTes
                     <img src={previewUrl} alt="Agent photo preview" className="absolute inset-0 h-full w-full object-cover grayscale" style={{ objectPosition: `${draft.focalX * 100}% ${draft.focalY * 100}%` }} />
                   </> : <div className="flex h-full items-center justify-center text-sm text-white/20">Agent photo</div>}
                 </div>
-                <label className="mt-3 flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-white/10 text-[0.53rem] font-semibold uppercase tracking-[0.14em] text-white/40 hover:border-white/25 hover:text-white">Choose photo<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="sr-only" onChange={(event) => choosePhoto(event.target.files?.[0] ?? null)} /></label>
+                <label className="mt-3 admin-btn-secondary cursor-pointer hover:border-white/25 hover:text-white">Choose photo<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="sr-only" onChange={(event) => choosePhoto(event.target.files?.[0] ?? null)} /></label>
                 {previewUrl && <button type="button" onClick={() => { setPhotoFile(null); setPreviewUrl(null); setDraft((current) => current ? { ...current, photoStorageKey: null, photoUrl: null } : current); }} className="mt-2 w-full text-center text-[0.5rem] uppercase tracking-[0.13em] text-red-200/35 hover:text-red-200">Remove photo</button>}
                 <label className="mt-5 block text-[0.52rem] uppercase tracking-[0.14em] text-white/30">Horizontal focus<input type="range" min="0" max="1" step="0.01" value={draft.focalX} onChange={(event) => setDraft({ ...draft, focalX: Number(event.target.value) })} className="mt-2 w-full accent-[var(--helios-orange)]" /></label>
                 <label className="mt-3 block text-[0.52rem] uppercase tracking-[0.14em] text-white/30">Vertical focus<input type="range" min="0" max="1" step="0.01" value={draft.focalY} onChange={(event) => setDraft({ ...draft, focalY: Number(event.target.value) })} className="mt-2 w-full accent-[var(--helios-orange)]" /></label>
@@ -220,7 +220,7 @@ export default function TestimonialManager({ initialTestimonials }: { initialTes
                 <label className="flex items-center gap-3 text-sm text-white/45"><input type="checkbox" checked={draft.featured} onChange={(event) => setDraft({ ...draft, featured: event.target.checked })} className="h-4 w-4 accent-[var(--helios-orange)]" />Featured</label>
               </div>
             </div>
-            <div className="mt-8 flex justify-end gap-3 border-t border-white/[0.08] pt-6"><button type="button" onClick={() => setDraft(null)} className="rounded-full border border-white/10 px-5 py-3 text-[0.54rem] uppercase tracking-[0.14em] text-white/40">Cancel</button><button type="button" onClick={save} disabled={busy !== null || !draft.agentName.trim() || !draft.testimonial.trim()} className="rounded-full bg-[var(--helios-orange)] px-6 py-3 text-[0.54rem] font-semibold uppercase tracking-[0.14em] text-black disabled:opacity-40">{busy ? photoFile ? "Uploading…" : "Saving…" : "Save testimonial"}</button></div>
+            <div className="mt-8 flex justify-end gap-3 border-t border-white/[0.08] pt-6"><button type="button" onClick={() => setDraft(null)} className="admin-btn-secondary">Cancel</button><button type="button" onClick={save} disabled={busy !== null || !draft.agentName.trim() || !draft.testimonial.trim()} className="admin-btn-primary">{busy ? photoFile ? "Uploading…" : "Saving…" : "Save testimonial"}</button></div>
           </div>
         </div>
       )}
