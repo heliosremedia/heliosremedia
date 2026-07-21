@@ -31,13 +31,13 @@ export default function AdminError({ error, unstable_retry }: AdminErrorProps) {
           <button
             type="button"
             onClick={unstable_retry}
-            className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--helios-orange)] px-6 text-[0.56rem] font-semibold uppercase tracking-[0.17em] text-black transition hover:bg-[var(--helios-orange-hover)]"
+            className="admin-btn-primary"
           >
             Try again
           </button>
           <Link
             href="/admin/projects"
-            className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/[0.12] px-6 text-[0.56rem] font-semibold uppercase tracking-[0.17em] text-white/55 transition hover:border-white/25 hover:text-white"
+            className="admin-btn-secondary"
           >
             Return to projects
           </Link>

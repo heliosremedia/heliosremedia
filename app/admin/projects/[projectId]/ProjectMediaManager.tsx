@@ -2091,7 +2091,7 @@ export default function ProjectMediaManager({
                 <h3 id="bulk-edit-title" className="mt-3 text-2xl font-normal text-white sm:text-3xl">Move {selectedMediaIds.length} selected assets</h3>
                 <p className="mt-2 text-sm leading-6 text-white/35">Choose the collection where every selected asset should appear.</p>
               </div>
-              <button type="button" onClick={() => setBulkEditOpen(false)} disabled={isBulkMoving} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 text-white/45 hover:text-white disabled:opacity-40" aria-label="Close bulk editor">×</button>
+              <button type="button" onClick={() => setBulkEditOpen(false)} disabled={isBulkMoving} className="admin-btn-icon-sm" aria-label="Close bulk editor">×</button>
             </div>
             <div className="px-6 py-7 sm:px-8">
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -2103,8 +2103,8 @@ export default function ProjectMediaManager({
               {assetError && <p className="mt-5 rounded-xl border border-red-300/15 bg-red-300/[0.05] px-4 py-3 text-sm text-red-200/80">{assetError}</p>}
             </div>
             <div className="flex flex-col-reverse gap-3 border-t border-white/[0.08] px-6 py-5 sm:flex-row sm:justify-end sm:px-8">
-              <button type="button" onClick={() => setBulkEditOpen(false)} disabled={isBulkMoving} className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 px-6 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-white/45 hover:text-white disabled:opacity-40">Cancel</button>
-              <button type="button" onClick={() => void saveBulkCategory()} disabled={isBulkMoving || !bulkTargetCategory || media.filter((item) => selectedMediaIds.includes(item.id)).every((item) => item.mediaCategory === bulkTargetCategory)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[var(--helios-orange)] px-7 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-black hover:bg-[var(--helios-orange-hover)] disabled:opacity-40">
+              <button type="button" onClick={() => setBulkEditOpen(false)} disabled={isBulkMoving} className="admin-btn-secondary">Cancel</button>
+              <button type="button" onClick={() => void saveBulkCategory()} disabled={isBulkMoving || !bulkTargetCategory || media.filter((item) => selectedMediaIds.includes(item.id)).every((item) => item.mediaCategory === bulkTargetCategory)} className="admin-btn-primary">
                 {isBulkMoving && <span className="h-3 w-3 animate-spin rounded-full border border-black/25 border-t-black" />}
                 {isBulkMoving ? "Moving assets" : "Move selected assets"}
               </button>
@@ -2386,7 +2386,7 @@ export default function ProjectMediaManager({
                   setAssetDraft(null);
                 }}
                 disabled={updatingAssetId !== null}
-                className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 px-6 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-white/45 transition hover:border-white/25 hover:text-white disabled:cursor-wait disabled:opacity-40"
+                className="admin-btn-secondary"
               >
                 Cancel
               </button>
@@ -2399,7 +2399,7 @@ export default function ProjectMediaManager({
                   (Boolean(editingMedia.externalUrl) &&
                     !assetDraft.externalUrl.trim())
                 }
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[var(--helios-orange)] px-7 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-black transition hover:bg-[var(--helios-orange-hover)] disabled:cursor-wait disabled:opacity-45"
+                className="admin-btn-primary"
               >
                 {updatingAssetId === editingMedia.id && (
                   <span className="h-3 w-3 animate-spin rounded-full border border-black/25 border-t-black" />
@@ -2485,7 +2485,7 @@ export default function ProjectMediaManager({
                 type="button"
                 onClick={() => setDeletingMediaId(null)}
                 disabled={updatingAssetId !== null}
-                className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 px-6 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-white/45 transition hover:border-white/25 hover:text-white disabled:cursor-wait disabled:opacity-40"
+                className="admin-btn-secondary"
               >
                 Keep asset
               </button>
@@ -2494,7 +2494,7 @@ export default function ProjectMediaManager({
                 type="button"
                 onClick={() => void confirmDeleteAsset()}
                 disabled={updatingAssetId !== null}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-red-300 px-7 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-black transition hover:bg-red-200 disabled:cursor-wait disabled:opacity-45"
+                className="admin-btn-destructive"
               >
                 {updatingAssetId === deletingMedia.id && (
                   <span className="h-3 w-3 animate-spin rounded-full border border-black/25 border-t-black" />
