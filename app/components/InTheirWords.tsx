@@ -20,6 +20,8 @@ export type TestimonialCard = {
   sourceUrl: string | null;
 };
 
+export type GoogleReviewCard = { id: string; agentName: string; testimonial: string; rating: number; sourceUrl: string | null; reviewedAt: string | null };
+
 type CardPosition = "active" | "left" | "right";
 
 function getRelativePosition(
@@ -35,7 +37,7 @@ function getRelativePosition(
   return "left";
 }
 
-export default function InTheirWords({ testimonials }: { testimonials: TestimonialCard[] }) {
+export default function InTheirWords({ testimonials, googleReviews }: { testimonials: TestimonialCard[]; googleReviews: GoogleReviewCard[] }) {
   const prefersReducedMotion = useReducedMotion();
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -336,6 +338,8 @@ export default function InTheirWords({ testimonials }: { testimonials: Testimoni
           </div>
         </div>
 
+        {googleReviews.length > 0 && <GoogleReviewRibbon reviews={googleReviews} reducedMotion={Boolean(prefersReducedMotion)} />}
+
         <motion.footer
           initial={{
             opacity: 0,
@@ -369,4 +373,17 @@ export default function InTheirWords({ testimonials }: { testimonials: Testimoni
       </div>
     </section>
   );
+}
+
+function GoogleReviewRibbon({ reviews, reducedMotion }: { reviews: GoogleReviewCard[]; reducedMotion: boolean }) {
+  const repeated = reviews.length > 1 ? [...reviews, ...reviews] : reviews;
+  return <div className="group/reviews relative mt-12 overflow-hidden border-y border-white/[0.065] py-7 [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]" aria-label="Selected Google reviews">
+    <div className={`flex w-max gap-5 ${reducedMotion || reviews.length === 1 ? "flex-wrap justify-center" : "animate-[google-review-ribbon_72s_linear_infinite] group-hover/reviews:[animation-play-state:paused] group-focus-within/reviews:[animation-play-state:paused]"}`}>
+      {repeated.map((review, index) => {
+        const content = <><div className="flex items-center justify-between gap-5"><span className="text-[0.5rem] font-semibold uppercase tracking-[0.18em] text-white/38">Google review</span><span aria-label={`${review.rating} out of 5 stars`} className="text-[0.55rem] tracking-[0.15em] text-[#f06b24]">{"★".repeat(review.rating)}</span></div><p className="mt-4 line-clamp-3 font-serif text-[1.05rem] leading-6 text-[#eee8e1]/68">“{displayTestimonial(review.testimonial)}”</p><p className="mt-4 text-[0.54rem] font-medium uppercase tracking-[0.2em] text-white/45">{review.agentName}</p></>;
+        const className = "block w-[19rem] shrink-0 rounded-xl border border-white/[0.065] bg-white/[0.018] p-5 transition-colors hover:border-white/15 focus-visible:border-[#f06b24]/40 focus-visible:outline-none sm:w-[22rem]";
+        return review.sourceUrl ? <a key={`${review.id}-${index}`} href={review.sourceUrl} target="_blank" rel="noreferrer" className={className}>{content}</a> : <article key={`${review.id}-${index}`} className={className}>{content}</article>;
+      })}
+    </div>
+  </div>;
 }

@@ -13,6 +13,10 @@ export type AdminTestimonial = {
   photoUrl: string | null;
   photoAlt: string | null;
   sourceUrl: string | null;
+  sourceProvider: string;
+  externalReviewId: string | null;
+  reviewerPhotoUrl: string | null;
+  reviewedAt: string | null;
   focalX: number;
   focalY: number;
   rating: number;
@@ -46,7 +50,7 @@ const emptyDraft: Draft = {
   focalX: 0.5, focalY: 0.2, rating: 5, published: false, featured: false,
 };
 
-export default function TestimonialManager({ initialTestimonials }: { initialTestimonials: AdminTestimonial[] }) {
+export default function TestimonialManager({ initialTestimonials, googleConfigured }: { initialTestimonials: AdminTestimonial[]; googleConfigured: boolean }) {
   const [testimonials, setTestimonials] = useState(initialTestimonials);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -55,6 +59,8 @@ export default function TestimonialManager({ initialTestimonials }: { initialTes
   const [error, setError] = useState<string | null>(null);
   const publishedCount = useMemo(() => testimonials.filter((item) => item.published).length, [testimonials]);
   const featuredCount = useMemo(() => testimonials.filter((item) => item.featured).length, [testimonials]);
+  const googleCount = useMemo(() => testimonials.filter((item) => item.sourceProvider === "GOOGLE").length, [testimonials]);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   useEffect(() => () => { if (previewUrl?.startsWith("blob:")) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
 
@@ -150,13 +156,29 @@ export default function TestimonialManager({ initialTestimonials }: { initialTes
     finally { setBusy(null); }
   }
 
+  async function syncGoogleReviews() {
+    setBusy("google-sync"); setError(null); setSyncMessage(null);
+    try {
+      const data = await jsonRequest("/api/admin/testimonials/google-sync", { method: "POST" });
+      const result = data.result as { imported: number; updated: number };
+      setSyncMessage(`${result.imported} new review${result.imported === 1 ? "" : "s"} imported; ${result.updated} refreshed. Reloading…`);
+      window.location.reload();
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Unable to sync Google reviews."); setBusy(null); }
+  }
+
   return (
     <>
-      <section className="grid gap-4 sm:grid-cols-3">
-        {[{ label: "Testimonials", value: testimonials.length }, { label: "Published", value: publishedCount }, { label: "Featured", value: featuredCount }].map((stat) => <div key={stat.label} className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5"><p className="text-[0.55rem] font-semibold uppercase tracking-[0.17em] text-white/25">{stat.label}</p><p className="mt-2 text-3xl font-light text-white">{stat.value}</p></div>)}
+      <section className="grid gap-4 sm:grid-cols-4">
+        {[{ label: "Testimonials", value: testimonials.length }, { label: "Published", value: publishedCount }, { label: "Featured", value: featuredCount }, { label: "Google", value: googleCount }].map((stat) => <div key={stat.label} className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5"><p className="text-[0.55rem] font-semibold uppercase tracking-[0.17em] text-white/25">{stat.label}</p><p className="mt-2 text-3xl font-light text-white">{stat.value}</p></div>)}
       </section>
 
       {error && <div role="alert" className="rounded-xl border border-red-400/20 bg-red-400/[0.06] px-5 py-4 text-sm text-red-200/80">{error}</div>}
+      {syncMessage && <div role="status" className="rounded-xl border border-emerald-300/15 bg-emerald-300/[0.04] px-5 py-4 text-sm text-emerald-100/65">{syncMessage}</div>}
+
+      <section className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5 sm:flex sm:items-center sm:justify-between sm:gap-6 sm:p-6">
+        <div><p className="eyebrow text-[var(--helios-orange)]">Google Business Profile</p><h2 className="mt-2 text-xl font-light text-white">Review synchronization</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-white/35">Reviews arrive as drafts. Publish only the selections you want in the homepage ribbon; synchronization never publishes automatically.</p></div>
+        <div className="mt-5 shrink-0 text-left sm:mt-0 sm:text-right"><p className={`mb-3 text-[0.52rem] uppercase tracking-[0.14em] ${googleConfigured ? "text-emerald-200/50" : "text-amber-200/50"}`}>{googleConfigured ? "Connected" : "Authorization required"}</p><button type="button" onClick={syncGoogleReviews} disabled={!googleConfigured || busy !== null} className="admin-btn-secondary">{busy === "google-sync" ? "Syncing…" : "Sync Google reviews"}</button></div>
+      </section>
 
       <section className="rounded-2xl border border-white/[0.08] bg-[#111] p-5 sm:p-7">
         <div className="flex flex-col gap-5 border-b border-white/[0.08] pb-6 sm:flex-row sm:items-end sm:justify-between">
@@ -175,6 +197,7 @@ export default function TestimonialManager({ initialTestimonials }: { initialTes
               </div>
               <div className="flex min-w-0 flex-col p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-base text-white/80">{item.agentName}</h3><p className="mt-1 text-xs text-white/30">{[item.jobTitle, item.brokerage].filter(Boolean).join(" · ") || "No attribution details"}</p></div><div className="flex gap-1">{item.featured && <span className="rounded-full border border-[var(--helios-orange)]/20 px-2 py-1 text-[0.47rem] uppercase tracking-[0.12em] text-[var(--helios-orange)]">Featured</span>}<span className={`rounded-full border px-2 py-1 text-[0.47rem] uppercase tracking-[0.12em] ${item.published ? "border-emerald-300/15 text-emerald-200/55" : "border-white/10 text-white/25"}`}>{item.published ? "Published" : "Draft"}</span></div></div>
+                {item.sourceProvider === "GOOGLE" && <p className="mt-3 text-[0.48rem] font-semibold uppercase tracking-[0.14em] text-blue-200/45">Google review · curated draft</p>}
                 <blockquote className="mt-4 line-clamp-4 font-display text-lg leading-6 text-white/55">“{item.testimonial}”</blockquote>
                 <div className="mt-auto flex flex-wrap items-center gap-1 border-t border-white/[0.06] pt-4">
                   <button type="button" aria-label={`Move ${item.agentName} up`} disabled={index === 0 || busy !== null} onClick={() => move(index, -1)} className="admin-btn-link">↑</button>

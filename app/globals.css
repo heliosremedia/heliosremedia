@@ -296,3 +296,11 @@ video {
     transition-duration: 0.01ms !important;
   }
 }
+@keyframes google-review-ribbon {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-50% - 0.625rem)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [class*="google-review-ribbon"] { animation: none !important; }
+}
