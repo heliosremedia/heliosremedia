@@ -8,6 +8,7 @@ import {
   useScroll,
   useTransform,
 } from "motion/react";
+import type { PublicSiteSettings } from "@/lib/site-settings";
 
 const principles = [
   {
@@ -29,7 +30,7 @@ const principles = [
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-export default function OurApproach() {
+export default function OurApproach({ settings }: { settings: PublicSiteSettings }) {
   const signatureRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useReducedMotion();
 
@@ -106,14 +107,12 @@ export default function OurApproach() {
               <span className="h-px w-11 bg-[#f06b24]" />
 
               <span className="text-[0.67rem] font-medium uppercase tracking-[0.31em] text-[#f06b24] sm:text-xs">
-                Our Approach
+                {settings.approachEyebrow || "Our Approach"}
               </span>
             </div>
 
             <p className="mt-6 max-w-[35rem] text-sm leading-7 text-white/56 sm:text-base sm:leading-8">
-              Every listing is treated like a campaign. Every image, frame, and
-              film is shaped to capture attention, create emotion, and elevate
-              the way a property is perceived.
+              {settings.approachBody || "Every listing is treated like a campaign. Every image, frame, and film is shaped to capture attention, create emotion, and elevate the way a property is perceived."}
             </p>
           </div>
 
@@ -123,8 +122,8 @@ export default function OurApproach() {
           />
 
           <h2 className="max-w-[46rem] font-serif text-[clamp(3.25rem,5.5vw,6.5rem)] font-normal leading-[0.88] tracking-[-0.055em] text-[#f3eee8]">
-            We Build
-            <span className="block italic text-white">Perceived Value.</span>
+            {settings.approachHeadingLineOne || "We Build"}
+            <span className="block italic text-white">{settings.approachHeadingLineTwo || "Perceived Value."}</span>
           </h2>
         </motion.header>
 

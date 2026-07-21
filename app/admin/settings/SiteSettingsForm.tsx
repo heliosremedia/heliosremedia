@@ -471,6 +471,30 @@ export default function SiteSettingsForm({
         </div>
       </section>
 
+
+      <section className="mt-6 rounded-2xl border border-white/[0.08] bg-[#111] p-6 lg:p-8">
+        <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
+          <div>
+            <p className="text-[0.54rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">Homepage copy</p>
+            <h2 className="mt-3 text-2xl font-light text-white">Public section content</h2>
+            <p className="mt-3 max-w-lg text-sm leading-6 text-white/40">Edit homepage-only headlines, labels, links, captions, and availability language. Empty fields fall back to the current production copy.</p>
+          </div>
+          <div className="space-y-6">
+            <div className="rounded-2xl border border-white/[0.08] bg-black/25 p-5">
+              <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-[0.55rem] font-semibold uppercase tracking-[0.16em] text-white/45">Availability message</p><p className="mt-2 text-xs leading-5 text-white/35">Preview: {settings.availabilityEnabled && settings.availabilityMessage ? `${settings.availabilityLabel ? `${settings.availabilityLabel}: ` : ""}${settings.availabilityMessage}` : "Hidden"}</p></div><label className="inline-flex items-center gap-3 text-xs uppercase tracking-[0.14em] text-white/55"><input type="checkbox" checked={settings.availabilityEnabled} onChange={(event) => setSettings((current) => ({ ...current, availabilityEnabled: event.target.checked }))} /> Enabled</label></div>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Label<input value={settings.availabilityLabel ?? ""} onChange={(event) => update("availabilityLabel", event.target.value)} placeholder="Now booking" className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label><label className="text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Message or month<input value={settings.availabilityMessage ?? ""} onChange={(event) => update("availabilityMessage", event.target.value)} placeholder="August" className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label></div>
+            </div>
+            {([
+              ["Hero", [["heroEyebrow","Eyebrow"],["heroHeadlineLineOne","Heading line 1"],["heroHeadlineLineTwo","Heading line 2"],["heroBody","Body copy"],["heroPrimaryLabel","Primary button"],["heroPrimaryDestination","Primary destination"],["heroSecondaryLabel","Secondary button"],["heroSecondaryDestination","Secondary destination"],["heroPosterAlt","Poster alt text"]]],
+              ["The Helios Standard", [["standardEyebrow","Eyebrow"],["standardHeadingLineOne","Heading line 1"],["standardHeadingLineTwo","Heading line 2"],["standardBody","Body copy"]]],
+              ["Our Work", [["workEyebrow","Eyebrow"],["workHeadingLineOne","Heading line 1"],["workHeadingLineTwo","Heading line 2"],["workHeadingAccent","Accent word"],["workBody","Body copy"],["workButtonLabel","Button label"],["workButtonDestination","Button destination"],["featuredProjectEyebrow","Featured project label"],["portfolioEyebrow","Portfolio kicker"],["portfolioHeading","Portfolio heading"],["portfolioButtonLabel","Portfolio button"],["portfolioButtonDestination","Portfolio destination"]]],
+              ["Our Approach", [["approachEyebrow","Eyebrow"],["approachHeadingLineOne","Heading line 1"],["approachHeadingLineTwo","Heading line 2"],["approachBody","Body copy"]]],
+              ["Pre-footer image", [["conversionImageCaption","Image caption"]]],
+            ] as const).map(([title, fields]) => <div key={title} className="rounded-2xl border border-white/[0.08] bg-black/25 p-5"><h3 className="text-lg font-light text-white">{title}</h3><div className="mt-4 grid gap-4 sm:grid-cols-2">{fields.map(([key,label]) => <label key={key} className="text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">{label}{key.toLowerCase().includes("body") ? <textarea rows={3} value={settings[key] ?? ""} onChange={(event) => update(key, event.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case leading-6 tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /> : <input value={settings[key] ?? ""} onChange={(event) => update(key, event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" />}</label>)}</div></div>)}
+          </div>
+        </div>
+      </section>
+
       <section className="mt-6 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111]">
         <div className="grid gap-8 p-6 lg:grid-cols-[0.8fr_1.2fr] lg:p-8">
           <div>

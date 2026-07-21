@@ -460,6 +460,18 @@ model SiteSettings {
 
   heroVideoUrl  String?
   heroPosterUrl String? @default("/work/featured-estate.jpg")
+  heroPosterAlt String? @default("Luxury real estate exterior photographed by Helios Real Estate Media")
+  heroEyebrow String? @default("Fort Collins, Colorado")
+  heroHeadlineLineOne String? @default("Luxury Marketing")
+  heroHeadlineLineTwo String? @default("for Exceptional Homes")
+  heroBody String? @default("Photography, cinematic films, aerial imagery, and branding crafted to elevate Northern Colorado's most exceptional homes.")
+  heroPrimaryLabel String? @default("Book Now")
+  heroPrimaryDestination String?
+  heroSecondaryLabel String? @default("View Portfolio")
+  heroSecondaryDestination String? @default("/portfolio")
+  availabilityEnabled Boolean @default(false)
+  availabilityLabel String? @default("Now booking")
+  availabilityMessage    String?
 
   heliosStandardImageStorageKey String?
   heliosStandardImageUrl        String?
@@ -487,7 +499,28 @@ model SiteSettings {
   serviceArea            String  @default("Northern Colorado")
   serviceAreaDescription String?
   footerDescription      String?
-  availabilityMessage    String?
+
+  standardEyebrow String? @default("The Helios Standard")
+  standardHeadingLineOne String? @default("Presentation")
+  standardHeadingLineTwo String? @default("Changes Perception.")
+  standardBody String? @default("Exceptional homes deserve more than documentation. They deserve a presentation that shapes how they are seen, remembered, and valued.")
+  workEyebrow String? @default("Our Work")
+  workHeadingLineOne String? @default("Crafted to")
+  workHeadingLineTwo String? @default("Capture")
+  workHeadingAccent String? @default("Attention.")
+  workBody String? @default("Every image, every frame, and every film is crafted to elevate perception, command attention, and inspire confidence before the first showing.")
+  workButtonLabel String? @default("Explore Portfolio")
+  workButtonDestination String? @default("/portfolio")
+  featuredProjectEyebrow String? @default("Featured Project")
+  portfolioEyebrow String? @default("Complete Portfolio")
+  portfolioHeading String? @default("Explore the Full Collection.")
+  portfolioButtonLabel String? @default("View Complete Portfolio")
+  portfolioButtonDestination String? @default("/portfolio")
+  approachEyebrow String? @default("Our Approach")
+  approachHeadingLineOne String? @default("We Build")
+  approachHeadingLineTwo String? @default("Perceived Value.")
+  approachBody String? @default("Every listing is treated like a campaign. Every image, frame, and film is shaped to capture attention, create emotion, and elevate the way a property is perceived.")
+  conversionImageCaption String? @default("Presentation shapes perception.")
 
   websiteUrl   String?
   instagramUrl String?

@@ -84,6 +84,14 @@ export async function PATCH(request: Request) {
     const existing = await prisma.homepageWorkCard.findUnique({ where: { id: cardId }, include: { service: { select: { slug: true } } } });
     if (!existing) return NextResponse.json({ success: false, error: "Homepage card not found." }, { status: 404 });
 
+    const nextServiceId = typeof body.serviceId === "string" && body.serviceId.trim() ? body.serviceId.trim() : existing.serviceId;
+    const nextService = await prisma.service.findFirst({ where: { id: nextServiceId, active: true }, select: { id: true, slug: true } });
+    if (!nextService) return NextResponse.json({ success: false, error: "Select an active service for this card." }, { status: 400 });
+    if (nextServiceId !== existing.serviceId) {
+      const duplicate = await prisma.homepageWorkCard.findUnique({ where: { serviceId: nextServiceId }, select: { id: true } });
+      if (duplicate) return NextResponse.json({ success: false, error: "That service is already assigned to another homepage card." }, { status: 409 });
+    }
+
     const mediaMode = ["IMAGE", "LIBRARY_VIDEO", "UPLOADED_VIDEO"].includes(String(body.mediaMode))
       ? String(body.mediaMode) as "IMAGE" | "LIBRARY_VIDEO" | "UPLOADED_VIDEO"
       : existing.mediaMode;
@@ -116,7 +124,8 @@ export async function PATCH(request: Request) {
       where: { id: cardId },
       data: {
         titleOverride: textValue(body.titleOverride, 120),
-        destinationOverride: destination(body.destinationOverride, `/portfolio?service=${existing.service.slug}`),
+        serviceId: nextService.id,
+        destinationOverride: destination(body.destinationOverride, `/portfolio?service=${nextService.slug}`),
         imageStorageKey,
         imageUrl: textValue(body.imageUrl, 1500),
         imageAlt: textValue(body.imageAlt, 240),

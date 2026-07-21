@@ -55,13 +55,17 @@ export async function PATCH(request: Request) {
     if (primaryConversionImageStorageKey !== existing?.primaryConversionImageStorageKey) await verifyContentImage(primaryConversionImageStorageKey);
     const data = {
       businessName: text(body.businessName, 160, true)!, phoneDisplay: text(body.phoneDisplay, 40, true)!, phoneE164, email,
-      bookingUrl: url(body.bookingUrl), heroVideoUrl: assetUrl(body.heroVideoUrl), heroPosterUrl: assetUrl(body.heroPosterUrl),
+      bookingUrl: url(body.bookingUrl), heroVideoUrl: assetUrl(body.heroVideoUrl), heroPosterUrl: assetUrl(body.heroPosterUrl), heroPosterAlt: text(body.heroPosterAlt, 240),
+      heroEyebrow: text(body.heroEyebrow, 120), heroHeadlineLineOne: text(body.heroHeadlineLineOne, 120), heroHeadlineLineTwo: text(body.heroHeadlineLineTwo, 120), heroBody: text(body.heroBody, 420), heroPrimaryLabel: text(body.heroPrimaryLabel, 80), heroPrimaryDestination: assetUrl(body.heroPrimaryDestination), heroSecondaryLabel: text(body.heroSecondaryLabel, 80), heroSecondaryDestination: assetUrl(body.heroSecondaryDestination), availabilityEnabled: Boolean(body.availabilityEnabled), availabilityLabel: text(body.availabilityLabel, 80),
       heliosStandardImageStorageKey, heliosStandardImageUrl: assetUrl(body.heliosStandardImageUrl), heliosStandardImageAlt: text(body.heliosStandardImageAlt, 240),
       primaryConversionImageStorageKey, primaryConversionImageUrl: assetUrl(body.primaryConversionImageUrl), primaryConversionImageAlt: text(body.primaryConversionImageAlt, 240),
       brandLogoStorageKey, brandLogoUrl: assetUrl(body.brandLogoUrl), brandLogoAlt: text(body.brandLogoAlt, 240),
       brandMonogramStorageKey, brandMonogramUrl: assetUrl(body.brandMonogramUrl),
       locationLabel: text(body.locationLabel, 160, true)!, serviceArea: text(body.serviceArea, 160, true)!,
       serviceAreaDescription: text(body.serviceAreaDescription, 500), footerDescription: text(body.footerDescription, 500), availabilityMessage: text(body.availabilityMessage, 240),
+      standardEyebrow: text(body.standardEyebrow, 120), standardHeadingLineOne: text(body.standardHeadingLineOne, 120), standardHeadingLineTwo: text(body.standardHeadingLineTwo, 120), standardBody: text(body.standardBody, 500),
+      workEyebrow: text(body.workEyebrow, 120), workHeadingLineOne: text(body.workHeadingLineOne, 120), workHeadingLineTwo: text(body.workHeadingLineTwo, 120), workHeadingAccent: text(body.workHeadingAccent, 80), workBody: text(body.workBody, 500), workButtonLabel: text(body.workButtonLabel, 80), workButtonDestination: assetUrl(body.workButtonDestination), featuredProjectEyebrow: text(body.featuredProjectEyebrow, 80), portfolioEyebrow: text(body.portfolioEyebrow, 120), portfolioHeading: text(body.portfolioHeading, 160), portfolioButtonLabel: text(body.portfolioButtonLabel, 80), portfolioButtonDestination: assetUrl(body.portfolioButtonDestination),
+      approachEyebrow: text(body.approachEyebrow, 120), approachHeadingLineOne: text(body.approachHeadingLineOne, 120), approachHeadingLineTwo: text(body.approachHeadingLineTwo, 120), approachBody: text(body.approachBody, 500), conversionImageCaption: text(body.conversionImageCaption, 160),
       websiteUrl: url(body.websiteUrl), instagramUrl: url(body.instagramUrl, "instagram"), facebookUrl: url(body.facebookUrl, "facebook"), youtubeUrl: url(body.youtubeUrl, "youtube"), linkedinUrl: url(body.linkedinUrl, "linkedin"),
       defaultSeoTitle: text(body.defaultSeoTitle, 160, true)!, defaultSeoDescription: text(body.defaultSeoDescription, 320, true)!,
     };
@@ -70,7 +74,7 @@ export async function PATCH(request: Request) {
     if (brandMonogramStorageKey !== existing?.brandMonogramStorageKey) await deleteContentImage(existing?.brandMonogramStorageKey ?? null);
     if (heliosStandardImageStorageKey !== existing?.heliosStandardImageStorageKey) await deleteContentImage(existing?.heliosStandardImageStorageKey ?? null);
     if (primaryConversionImageStorageKey !== existing?.primaryConversionImageStorageKey) await deleteContentImage(existing?.primaryConversionImageStorageKey ?? null);
-    revalidatePath("/", "layout"); revalidatePath("/admin/settings");
+    revalidatePath("/", "layout"); revalidatePath("/admin/settings"); revalidatePath("/admin/homepage");
     return NextResponse.json({ success: true, settings });
   } catch (error) {
     const messages: Record<string, string> = { INVALID_TEXT: "Complete every required field and stay within the displayed limits.", INVALID_URL: "One or more links are not valid web addresses.", INVALID_PHONE: "Enter the phone number in international format, such as +19706825533.", INVALID_EMAIL: "Enter a valid email address.", INVALID_LOGO_KEY: "The brand logo storage location is invalid.", INVALID_MONOGRAM_KEY: "The brand monogram storage location is invalid.", INVALID_HOMEPAGE_IMAGE_KEY: "The homepage image storage location is invalid." };

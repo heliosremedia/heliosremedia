@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { useSiteSettings } from "./SiteSettingsProvider";
+import type { PublicSiteSettings } from "@/lib/site-settings";
 
 const reveal = {
   hidden: { opacity: 0, y: 24 },
@@ -11,18 +11,20 @@ const reveal = {
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-export default function Hero() {
-  const settings = useSiteSettings();
-  const bookingHref = settings.bookingUrl || "/inquire";
+export default function Hero({ settings }: { settings: PublicSiteSettings }) {
+  const bookingHref = settings.heroPrimaryDestination || settings.bookingUrl || "/inquire";
   const shouldReduceMotion = useReducedMotion();
   const [videoReady, setVideoReady] = useState(false);
   const poster = settings.heroPosterUrl || undefined;
+  const posterAlt = settings.heroPosterAlt?.trim() || "";
 
   return (
     <section className="relative min-h-[100svh] overflow-hidden bg-[var(--background)]">
       {poster ? (
         <div
-          aria-hidden="true"
+          aria-hidden={posterAlt ? undefined : true}
+          aria-label={posterAlt || undefined}
+          role={posterAlt ? "img" : undefined}
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${JSON.stringify(poster)})` }}
         />
@@ -63,6 +65,7 @@ export default function Hero() {
 
       <div className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-7xl items-end px-5 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-[calc(7.5rem+env(safe-area-inset-top))] sm:px-8 md:items-center md:px-10 md:pb-24 md:pt-52 lg:px-16">
         <div className="w-full max-w-[58rem] md:translate-y-5">
+          {settings.heroEyebrow ? <motion.p className="mb-4 text-[0.64rem] font-semibold uppercase tracking-[0.28em] text-[var(--helios-orange)]" variants={reveal} initial={shouldReduceMotion ? false : "hidden"} animate="visible" transition={{ duration: shouldReduceMotion ? 0 : 0.75, delay: shouldReduceMotion ? 0 : 0.42, ease }}>{settings.heroEyebrow}</motion.p> : null}
           <motion.h1
             className="font-display text-[clamp(3rem,14vw,4rem)] font-light leading-[0.9] tracking-[-0.045em] text-[var(--foreground)] md:text-[clamp(4rem,7.2vw,7rem)] md:leading-[0.92]"
             variants={reveal}
@@ -74,8 +77,8 @@ export default function Hero() {
               ease,
             }}
           >
-            <span className="block">Luxury Marketing</span>
-            <span className="block">for Exceptional Homes</span>
+            <span className="block">{settings.heroHeadlineLineOne || "Luxury Marketing"}</span>
+            <span className="block">{settings.heroHeadlineLineTwo || "for Exceptional Homes"}</span>
           </motion.h1>
 
           <motion.div
@@ -100,9 +103,22 @@ export default function Hero() {
               ease,
             }}
           >
-            Photography, cinematic films, aerial imagery, and branding crafted
-            to elevate {settings.serviceArea}&apos;s most exceptional homes.
+            {settings.heroBody || `Photography, cinematic films, aerial imagery, and branding crafted to elevate ${settings.serviceArea}'s most exceptional homes.`}
           </motion.p>
+
+
+          {settings.availabilityEnabled && settings.availabilityMessage ? (
+            <motion.p
+              className="mt-5 inline-flex max-w-full items-center gap-2 rounded-full border border-white/15 bg-black/25 px-4 py-2 text-[0.62rem] font-medium uppercase tracking-[0.18em] text-white/68 backdrop-blur-sm"
+              variants={reveal}
+              initial={shouldReduceMotion ? false : "hidden"}
+              animate="visible"
+              transition={{ duration: shouldReduceMotion ? 0 : 0.75, delay: shouldReduceMotion ? 0 : 1.2, ease }}
+            >
+              <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[var(--helios-orange)] shadow-[0_0_12px_rgba(217,107,43,0.6)]" />
+              <span>{settings.availabilityLabel ? `${settings.availabilityLabel}: ` : ""}{settings.availabilityMessage}</span>
+            </motion.p>
+          ) : null}
 
           <motion.div
             className="mt-7 grid w-full grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:gap-5 md:mt-11"
@@ -131,11 +147,11 @@ export default function Hero() {
               whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
               transition={{ type: "spring", stiffness: 320, damping: 24 }}
             >
-              Book Now
+              {settings.heroPrimaryLabel || "Book Now"}
             </motion.a>
 
             <motion.a
-              href="/portfolio"
+              href={settings.heroSecondaryDestination || "/portfolio"}
               className="flex min-h-12 items-center justify-center rounded-[3px] border border-white/40 bg-black/10 px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-sm sm:min-h-14 sm:px-10 sm:text-xs sm:tracking-[0.23em]"
               whileHover={
                 shouldReduceMotion
@@ -152,7 +168,7 @@ export default function Hero() {
               whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
               transition={{ type: "spring", stiffness: 320, damping: 24 }}
             >
-              View Portfolio
+              {settings.heroSecondaryLabel || "View Portfolio"}
             </motion.a>
           </motion.div>
         </div>

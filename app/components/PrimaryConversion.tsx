@@ -15,7 +15,7 @@ function resolveAction(type: PublicCta["primaryActionType"] | null, value: strin
   return value || "#";
 }
 
-export default function PrimaryConversion({ cta, imageUrl, imageAlt }: { cta: PublicCta; imageUrl?: string | null; imageAlt?: string | null }) {
+export default function PrimaryConversion({ cta, imageUrl, imageAlt, imageCaption }: { cta: PublicCta; imageUrl?: string | null; imageAlt?: string | null; imageCaption?: string | null }) {
   const settings = useSiteSettings();
   const prefersReducedMotion = useReducedMotion();
 
@@ -94,7 +94,7 @@ export default function PrimaryConversion({ cta, imageUrl, imageAlt }: { cta: Pu
               }}
               className="absolute bottom-7 left-6 z-10 max-w-[18rem] text-[0.52rem] font-medium uppercase tracking-[0.34em] text-white/38 sm:bottom-9 sm:left-8 lg:bottom-10 lg:left-12 xl:left-16"
             >
-              Presentation shapes perception.
+              {imageCaption || "Presentation shapes perception."}
             </motion.p>
           </motion.div>
 
@@ -148,10 +148,10 @@ export default function PrimaryConversion({ cta, imageUrl, imageAlt }: { cta: Pu
                 </span>
               </Link>
 
-              {settings.availabilityMessage && (
+              {settings.availabilityEnabled && settings.availabilityMessage && (
                 <p className="mt-5 flex items-start gap-2.5 text-xs leading-5 text-white/42">
                   <span aria-hidden="true" className="mt-[0.42rem] h-1.5 w-1.5 shrink-0 rounded-full bg-[#f06b24] shadow-[0_0_12px_rgba(240,107,36,0.55)]" />
-                  {settings.availabilityMessage}
+                  {settings.availabilityLabel ? `${settings.availabilityLabel}: ` : ""}{settings.availabilityMessage}
                 </p>
               )}
 
