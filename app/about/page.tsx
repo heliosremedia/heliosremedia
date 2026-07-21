@@ -125,6 +125,37 @@ export default async function AboutPage() {
         </section>
       )}
 
+      <section className="border-b border-white/[0.08] bg-[#090909]">
+        <div className="container-shell py-20 sm:py-28 lg:py-36">
+          <div className="grid gap-12 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:items-end lg:gap-20">
+            <div>
+              <p className="eyebrow text-[var(--helios-orange)]">The team behind the frame</p>
+              <h2 className="mt-6 max-w-3xl font-display text-[clamp(3rem,6vw,6rem)] font-light leading-[0.98] tracking-[-0.052em] text-white">
+                A lean creative crew built for polished, dependable delivery.
+              </h2>
+            </div>
+            <p className="max-w-xl text-sm leading-7 text-white/42 sm:text-base sm:leading-8">
+              Helios pairs photographers, filmmakers, drone operators, editors, and client coordinators around one shared production standard: make the property feel considered before, during, and after the shoot.
+            </p>
+          </div>
+
+          <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              ["Production", "Photography, film, aerial, and property-detail coverage planned around the listing story."],
+              ["Post-production", "Consistent color, pacing, retouching, and delivery prep across every campaign asset."],
+              ["Client care", "Clear scheduling, expectations, and handoff so agents and sellers know what happens next."],
+              ["Marketing support", "Reusable content thinking for listings, social channels, websites, and agent brands."],
+            ].map(([title, copy]) => (
+              <article key={title} className="rounded-2xl border border-white/[0.1] bg-white/[0.025] p-7 transition duration-500 hover:border-[var(--helios-orange)]/45 hover:bg-white/[0.04]">
+                <span className="block h-px w-10 bg-[var(--helios-orange)]/75" />
+                <h3 className="mt-8 font-display text-3xl font-light tracking-[-0.04em] text-white/88">{title}</h3>
+                <p className="mt-5 text-sm leading-7 text-white/38">{copy}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="border-b border-white/[0.08] bg-[#0c0c0c]">
         <div className="container-shell py-20 sm:py-28 lg:py-36">
           <div className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
