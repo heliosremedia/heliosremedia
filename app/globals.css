@@ -39,6 +39,8 @@
   --helios-border-strong: rgba(245, 241, 234, 0.28);
 
   --font-helios: "Helios", Arial, Helvetica, sans-serif;
+  --font-cormorant: "Helios", Georgia, serif;
+  --font-inter: Arial, Helvetica, sans-serif;
 
   --container-width: 80rem;
   --container-padding: clamp(1.5rem, 4vw, 4rem);
