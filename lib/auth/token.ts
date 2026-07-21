@@ -3,7 +3,7 @@ import type { AdminRole } from "@/app/generated/prisma/client";
 
 export const SESSION_COOKIE = "helios_admin_session";
 export const SESSION_LIFETIME_SECONDS = 60 * 60 * 12;
-export type AdminSession = { userId: string; email: string; displayName: string; role: AdminRole; expiresAt: number };
+export type AdminSession = { userId: string; email: string; displayName: string; role: AdminRole; sessionVersion: number; expiresAt: number };
 
 function secret() { const value = process.env.AUTH_SECRET; if (!value || value.length < 32) throw new Error("AUTH_SECRET must contain at least 32 characters."); return value; }
 function signature(payload: string) { return createHmac("sha256", secret()).update(payload).digest("base64url"); }

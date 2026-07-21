@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     if (!user.active) return NextResponse.json({ success: false, error: "This account is disabled." }, { status: 403 });
     if (user.lockedUntil && user.lockedUntil > new Date()) return NextResponse.json({ success: false, error: "Too many attempts. Try again later." }, { status: 429 });
 
-    const effectiveHash = email === ownerEmail && passwordHash ? passwordHash : user.passwordHash;
+    const effectiveHash = user.passwordHash || (email === ownerEmail ? passwordHash : null);
     const valid = Boolean(effectiveHash) && await verifyPassword(password, effectiveHash!);
     if (!valid) {
       const failures = user.failedLoginCount + 1;
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     await prisma.adminUser.update({ where: { id: user.id }, data: { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date() } });
     await recordAuditEvent({ actorId: user.id, actorEmail: user.email, action: "AUTH_LOGIN_SUCCEEDED", entityType: "AdminUser", entityId: user.id, summary: "Admin signed in.", ...context });
     const response = NextResponse.json({ success: true });
-    response.cookies.set(SESSION_COOKIE, createSessionToken({ userId: user.id, email: user.email, displayName: user.displayName, role: user.role }), sessionCookieOptions);
+    response.cookies.set(SESSION_COOKIE, createSessionToken({ userId: user.id, email: user.email, displayName: user.displayName, role: user.role, sessionVersion: user.sessionVersion }), sessionCookieOptions);
     return response;
   } catch (error) {
     console.error("Unable to sign in:", error);
