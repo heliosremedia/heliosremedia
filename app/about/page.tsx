@@ -6,6 +6,7 @@ import ManagedCtaSection from "@/app/components/ManagedCtaSection";
 import Navbar from "@/app/components/Navbar";
 import { getAboutPageContent } from "@/lib/about-page";
 import { defaultPageCtas } from "@/lib/ctas";
+import { getVisibleTeamMembers, teamMemberCategoryLabels } from "@/lib/team-members";
 
 export const dynamic = "force-dynamic";
 
@@ -19,12 +20,12 @@ export const metadata: Metadata = {
 };
 
 export default async function AboutPage() {
-  const content = await getAboutPageContent();
+  const [content, teamMembers] = await Promise.all([getAboutPageContent(), getVisibleTeamMembers()]);
   return (
     <main className="min-h-screen bg-[#090909] text-white">
       <Navbar />
 
-      <section className="relative min-h-[88vh] overflow-hidden bg-[#111]">
+      <section className="relative min-h-[100svh] overflow-hidden bg-[#111] sm:min-h-[88vh]">
         <Image
           src={content.heroImageUrl ?? "/approach/helios-approach.jpg"}
           alt={content.heroImageAlt}
@@ -37,13 +38,13 @@ export default async function AboutPage() {
         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/38" />
         <div className="hero-grain absolute inset-0 opacity-[0.035] mix-blend-soft-light" />
 
-        <div className="container-shell relative flex min-h-[88vh] items-end pb-16 pt-40 sm:pb-24">
+        <div className="container-shell relative flex min-h-[100svh] items-end pb-14 pt-32 sm:min-h-[88vh] sm:pb-24 sm:pt-40">
           <div className="max-w-6xl">
             <p className="eyebrow text-[var(--helios-orange)]">{content.heroEyebrow}</p>
-            <h1 className="mt-7 max-w-5xl font-display text-[clamp(3.7rem,9.2vw,9rem)] font-light leading-[0.98] tracking-[-0.062em] text-white">
+            <h1 className="mt-7 max-w-5xl font-display text-[clamp(3.15rem,14vw,9rem)] font-light leading-[0.98] tracking-[-0.062em] text-white">
               {content.heroHeadline}
             </h1>
-            <p className="mt-14 max-w-2xl text-sm leading-7 text-white/58 sm:mt-16 sm:text-base sm:leading-8">
+            <p className="mt-8 max-w-2xl text-sm leading-7 text-white/62 sm:mt-14 sm:text-base sm:leading-8">
               {content.heroBody}
             </p>
           </div>
@@ -82,7 +83,7 @@ export default async function AboutPage() {
                 <span className="mx-auto mt-5 block h-px w-16 bg-[var(--helios-orange)]/70" />
               </div>
 
-              <div className="mt-12 grid items-center gap-10 sm:mt-16 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-16">
+              <div className="mt-12 grid items-center gap-12 sm:mt-16 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] lg:gap-20">
                 <div className="relative mx-auto aspect-[4/5] w-full max-w-[34rem] overflow-hidden rounded-[1.1rem] border border-white/[0.1] bg-[#111]">
                   <Image
                     src={content.founderImageUrl}
@@ -105,7 +106,7 @@ export default async function AboutPage() {
                   <p className="mt-7 max-w-xl whitespace-pre-line text-sm leading-7 text-white/58 sm:text-base sm:leading-8">
                     {content.founderBody}
                   </p>
-                  <p className="mt-8 font-display text-4xl italic tracking-[-0.04em] text-white/90 sm:text-5xl">
+                  <p className="mt-10 font-display text-[clamp(2.6rem,6vw,4.75rem)] italic leading-none tracking-[-0.055em] text-white/90">
                     {content.founderSignature}
                   </p>
                   <p className="mt-3 text-[0.62rem] font-semibold uppercase tracking-[0.25em] text-[var(--helios-orange)]">
@@ -139,20 +140,39 @@ export default async function AboutPage() {
             </p>
           </div>
 
-          <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              ["Production", "Photography, film, aerial, and property-detail coverage planned around the listing story."],
-              ["Post-production", "Consistent color, pacing, retouching, and delivery prep across every campaign asset."],
-              ["Client care", "Clear scheduling, expectations, and handoff so agents and sellers know what happens next."],
-              ["Marketing support", "Reusable content thinking for listings, social channels, websites, and agent brands."],
-            ].map(([title, copy]) => (
-              <article key={title} className="rounded-2xl border border-white/[0.1] bg-white/[0.025] p-7 transition duration-500 hover:border-[var(--helios-orange)]/45 hover:bg-white/[0.04]">
-                <span className="block h-px w-10 bg-[var(--helios-orange)]/75" />
-                <h3 className="mt-8 font-display text-3xl font-light tracking-[-0.04em] text-white/88">{title}</h3>
-                <p className="mt-5 text-sm leading-7 text-white/38">{copy}</p>
-              </article>
-            ))}
-          </div>
+          {teamMembers.length > 0 ? (
+            <div className="mt-14 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {teamMembers.map((member) => (
+                <article key={member.id} className="group overflow-hidden rounded-2xl border border-white/[0.1] bg-white/[0.025]">
+                  <div className="relative aspect-[4/5] bg-[#111]">
+                    {member.portraitUrl ? <Image src={member.portraitUrl} alt={member.portraitAlt ?? member.name} fill sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw" className="object-cover grayscale transition duration-700 group-hover:grayscale-0" style={{ objectPosition: `${member.focalX * 100}% ${member.focalY * 100}%` }} /> : <div className="flex h-full items-center justify-center font-display text-8xl text-white/12">{member.name.charAt(0)}</div>}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/78 via-black/10 to-transparent" />
+                    <p className="absolute bottom-5 left-5 right-5 text-[0.55rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">{teamMemberCategoryLabels[member.category]}</p>
+                  </div>
+                  <div className="p-6 sm:p-7">
+                    <h3 className="font-display text-4xl font-light tracking-[-0.045em] text-white/90">{member.name}</h3>
+                    <p className="mt-3 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-white/45">{member.title}</p>
+                    <p className="mt-5 text-sm leading-7 text-white/42">{member.biography}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                ["Production", "Photography, film, aerial, and property-detail coverage planned around the listing story."],
+                ["Post-production", "Consistent color, pacing, retouching, and delivery prep across every campaign asset."],
+                ["Client care", "Clear scheduling, expectations, and handoff so agents and sellers know what happens next."],
+                ["Marketing support", "Reusable content thinking for listings, social channels, websites, and agent brands."],
+              ].map(([title, copy]) => (
+                <article key={title} className="rounded-2xl border border-white/[0.1] bg-white/[0.025] p-7 transition duration-500 hover:border-[var(--helios-orange)]/45 hover:bg-white/[0.04]">
+                  <span className="block h-px w-10 bg-[var(--helios-orange)]/75" />
+                  <h3 className="mt-8 font-display text-3xl font-light tracking-[-0.04em] text-white/88">{title}</h3>
+                  <p className="mt-5 text-sm leading-7 text-white/38">{copy}</p>
+                </article>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
