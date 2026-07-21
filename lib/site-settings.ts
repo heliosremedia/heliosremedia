@@ -10,6 +10,7 @@ export type PublicSiteSettings = {
   primaryConversionImageUrl: string | null; primaryConversionImageAlt: string | null;
   brandLogoStorageKey: string | null; brandLogoUrl: string | null; brandLogoAlt: string | null;
   brandMonogramStorageKey: string | null; brandMonogramUrl: string | null;
+  faviconStorageKey: string | null; faviconUrl: string | null; faviconVersion: number;
   featuredFilmEnabled: boolean; featuredFilmVideoStorageKey: string | null;
   featuredFilmVideoUrl: string | null; featuredFilmPosterStorageKey: string | null;
   featuredFilmPosterUrl: string | null; featuredFilmDestination: string | null;
@@ -55,6 +56,9 @@ export const defaultSiteSettings: PublicSiteSettings = {
   brandLogoAlt: "Helios Real Estate Media",
   brandMonogramStorageKey: null,
   brandMonogramUrl: null,
+  faviconStorageKey: null,
+  faviconUrl: null,
+  faviconVersion: 0,
   featuredFilmEnabled: false,
   featuredFilmVideoStorageKey: null,
   featuredFilmVideoUrl: null,
