@@ -40,16 +40,18 @@ export async function POST(request: Request) {
     const password = typeof body.password === "string" ? body.password : "";
     const ownerEmail = normalizeEnvironmentValue(process.env.HELIOS_ADMIN_EMAIL, "HELIOS_ADMIN_EMAIL")?.toLowerCase();
     const passwordHash = normalizeEnvironmentValue(process.env.HELIOS_ADMIN_PASSWORD_HASH, "HELIOS_ADMIN_PASSWORD_HASH");
-    if (!ownerEmail || !passwordHash) return NextResponse.json({ success: false, error: "Admin authentication has not been configured." }, { status: 503 });
-    if (!/^scrypt:[a-f0-9]{32}:[a-f0-9]{128}$/i.test(passwordHash)) return NextResponse.json({ success: false, error: "The admin password hash is not valid. Generate and replace it in the deployment settings." }, { status: 503 });
+    if (ownerEmail && passwordHash && !/^scrypt:[a-f0-9]{32}:[a-f0-9]{128}$/i.test(passwordHash)) return NextResponse.json({ success: false, error: "The admin password hash is not valid. Generate and replace it in the deployment settings." }, { status: 503 });
 
-    const user = await prisma.adminUser.upsert({ where: { email: ownerEmail }, create: { email: ownerEmail, displayName: process.env.HELIOS_ADMIN_NAME?.trim() || "Helios Owner", role: "OWNER" }, update: {} });
+    if (ownerEmail && passwordHash) await prisma.adminUser.upsert({ where: { email: ownerEmail }, create: { email: ownerEmail, displayName: process.env.HELIOS_ADMIN_NAME?.trim() || "Helios Owner", role: "OWNER" }, update: {} });
+    const user = await prisma.adminUser.findUnique({ where: { email } });
+    if (!user) return NextResponse.json({ success: false, error: "The email or password is incorrect." }, { status: 401 });
     const context = requestContext(request);
     if (!user.active) return NextResponse.json({ success: false, error: "This account is disabled." }, { status: 403 });
+    if (user.lockedUntil && user.lockedUntil > new Date()) return NextResponse.json({ success: false, error: "Too many attempts. Try again later." }, { status: 429 });
 
-    const valid = email === ownerEmail && await verifyPassword(password, passwordHash);
+    const effectiveHash = email === ownerEmail && passwordHash ? passwordHash : user.passwordHash;
+    const valid = Boolean(effectiveHash) && await verifyPassword(password, effectiveHash!);
     if (!valid) {
-      if (user.lockedUntil && user.lockedUntil > new Date()) return NextResponse.json({ success: false, error: "Too many attempts. Try again later." }, { status: 429 });
       const failures = user.failedLoginCount + 1;
       const lockedUntil = failures >= MAX_FAILURES ? new Date(Date.now() + LOCK_MINUTES * 60_000) : null;
       await prisma.adminUser.update({ where: { id: user.id }, data: { failedLoginCount: lockedUntil ? 0 : failures, lockedUntil } });

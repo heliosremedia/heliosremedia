@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { tryResolveExternalMedia } from "@/lib/external-media";
@@ -143,15 +144,16 @@ export default function MediaLibraryGrid({ items }: MediaLibraryGridProps) {
               aria-label={`Preview ${item.originalFilename || item.collectionLabel}`}
             >
               {item.publicUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={item.publicUrl}
                   alt={
                     item.altText ||
                     item.originalFilename ||
                     `${item.project.title} ${item.collectionLabel}`
                   }
-                  loading="lazy"
+                  fill
+                  sizes="(min-width: 1536px) 22vw, (min-width: 1280px) 30vw, (min-width: 640px) 46vw, 94vw"
+                  quality={75}
                   className="h-full w-full object-cover transition duration-700 ease-[var(--ease-luxury)] group-hover:scale-[1.035]"
                 />
               ) : (

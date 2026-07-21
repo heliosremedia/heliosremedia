@@ -20,6 +20,7 @@ export default function AdminShell({
       <AdminSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        role={session.role}
       />
 
       <div className="lg:pl-60">

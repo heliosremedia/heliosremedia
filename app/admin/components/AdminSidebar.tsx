@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { AdminRole } from "@/app/generated/prisma/client";
 
 type AdminSidebarProps = {
   isOpen: boolean;
   onClose: () => void;
+  role: AdminRole;
 };
 
 type NavigationItem = {
@@ -206,6 +208,11 @@ const navigation: NavigationItem[] = [
     href: "/admin/activity",
     icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><circle cx="6" cy="6" r="1" fill="currentColor"/><circle cx="6" cy="12" r="1" fill="currentColor"/><circle cx="6" cy="18" r="1" fill="currentColor"/></svg>,
   },
+  {
+    label: "Accounts & Users",
+    href: "/admin/users",
+    icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><circle cx="9" cy="8" r="3" stroke="currentColor" strokeWidth="1.5"/><path d="M3 20a6 6 0 0 1 12 0M16 10h5M18.5 7.5v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
+  },
 ];
 
 function isActivePath(pathname: string, href: string) {
@@ -219,6 +226,7 @@ function isActivePath(pathname: string, href: string) {
 export default function AdminSidebar({
   isOpen,
   onClose,
+  role,
 }: AdminSidebarProps) {
   const pathname = usePathname();
 
@@ -278,7 +286,7 @@ export default function AdminSidebar({
           </p>
 
           <div className="mt-4 space-y-1">
-            {navigation.map((item) => {
+            {navigation.filter((item) => item.href !== "/admin/users" || role === "OWNER" || role === "ADMIN").map((item) => {
               const active = isActivePath(pathname, item.href);
 
               return (

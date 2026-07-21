@@ -488,6 +488,10 @@ model SiteSettings {
   brandMonogramStorageKey String?
   brandMonogramUrl        String?
 
+  faviconStorageKey String?
+  faviconUrl        String?
+  faviconVersion    Int     @default(0)
+
   featuredFilmEnabled          Boolean @default(false)
   featuredFilmVideoStorageKey  String?
   featuredFilmVideoUrl         String?
@@ -697,6 +701,8 @@ model AdminUser {
   displayName String
   role        AdminRole @default(EDITOR)
   active      Boolean   @default(true)
+  passwordHash String?
+  sessionVersion Int @default(0)
 
   failedLoginCount Int       @default(0)
   lockedUntil      DateTime?
@@ -707,11 +713,29 @@ model AdminUser {
   inquiryNotes      InquiryNote[]
   inquiryActivities InquiryActivity[]
   previewLinks      ProjectPreviewLink[]
+  invitationsCreated AdminInvitation[] @relation("InvitationCreator")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([active, role])
+}
+
+model AdminInvitation {
+  id String @id @default(cuid())
+  email String
+  displayName String
+  role AdminRole @default(EDITOR)
+  tokenHash String @unique
+  createdById String
+  createdBy AdminUser @relation("InvitationCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  acceptedAt DateTime?
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+  @@index([expiresAt])
 }
 
 model ProjectPreviewLink {
