@@ -223,18 +223,18 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
 
             <div className="hero-grain pointer-events-none absolute inset-0 opacity-[0.035] mix-blend-soft-light" />
 
-            <div className="container-shell relative flex min-h-svh flex-col pb-[calc(2rem+env(safe-area-inset-bottom))] pt-[calc(8.75rem+env(safe-area-inset-top))]">
+            <div className="container-shell relative flex min-h-svh flex-col pb-[calc(1rem+env(safe-area-inset-bottom))] pt-[calc(7rem+env(safe-area-inset-top))]">
               <nav
                 aria-label="Mobile primary navigation"
                 className="flex flex-1 flex-col justify-center"
               >
-                <div className="mb-8 flex items-center gap-4">
+                <div className="mb-4 flex items-center gap-3">
                   <motion.span
                     className="h-px bg-[var(--helios-orange)]"
                     initial={
                       shouldReduceMotion ? false : { width: 0, opacity: 0 }
                     }
-                    animate={{ width: 48, opacity: 1 }}
+                    animate={{ width: 40, opacity: 1 }}
                     exit={{ width: 0, opacity: 0 }}
                     transition={{
                       duration: shouldReduceMotion ? 0 : 0.65,
@@ -291,7 +291,7 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
                       <Link
                         href={item.href}
                         aria-current={isActive(item.href) ? "page" : undefined}
-                        className={`group flex items-end justify-between gap-6 py-5 font-display text-[clamp(2.9rem,13vw,4.5rem)] font-light leading-none tracking-[-0.04em] ${
+                        className={`group flex items-end justify-between gap-6 py-3 font-display text-[clamp(2rem,9vw,3.25rem)] font-light leading-none tracking-[-0.035em] ${
                           isActive(item.href)
                             ? "text-[var(--helios-orange)]"
                             : "text-[var(--foreground)]"
@@ -300,7 +300,7 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
                       >
                         <span>{item.label}</span>
 
-                        <span className="mb-1 text-base font-light text-[var(--helios-orange)] transition-transform duration-500 group-hover:translate-x-1">
+                        <span className="mb-0.5 text-sm font-light text-[var(--helios-orange)] transition-transform duration-500 group-hover:translate-x-1">
                           ↗
                         </span>
                       </Link>
@@ -310,7 +310,7 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
 
                 <motion.a
                   href={bookingHref}
-                  className="mt-10 flex min-h-14 w-full items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-8 text-xs font-semibold uppercase tracking-[0.23em] text-white"
+                  className="mt-5 flex min-h-12 w-full items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-8 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-white"
                   initial={shouldReduceMotion ? false : { opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 12 }}
@@ -326,7 +326,7 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
               </nav>
 
               <motion.div
-                className="flex items-end justify-between gap-6 pt-10"
+                className="flex items-end justify-between gap-6 pt-4"
                 initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
@@ -336,7 +336,7 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
                   ease,
                 }}
               >
-                <p className="max-w-[14rem] text-xs leading-5 text-white/45">
+                <p className="max-w-[14rem] text-[0.68rem] leading-4 text-white/45">
                   Luxury real estate media crafted in {settings.serviceArea}.
                 </p>
 
