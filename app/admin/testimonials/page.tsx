@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { isGoogleReviewsConfigured } from "@/lib/google-business-reviews";
 
 import TestimonialManager, { type AdminTestimonial } from "./TestimonialManager";
 
@@ -11,6 +12,7 @@ export default async function AdminTestimonialsPage() {
 
   const serialized: AdminTestimonial[] = testimonials.map((testimonial) => ({
     ...testimonial,
+    reviewedAt: testimonial.reviewedAt?.toISOString() ?? null,
     createdAt: testimonial.createdAt.toISOString(),
     updatedAt: testimonial.updatedAt.toISOString(),
   }));
@@ -25,7 +27,7 @@ export default async function AdminTestimonialsPage() {
         </div>
         <p className="max-w-xs text-xs leading-5 text-white/25 sm:text-right">Published testimonials are reusable content assets for the homepage, service pages, campaigns, and future landing pages.</p>
       </section>
-      <TestimonialManager initialTestimonials={serialized} />
+      <TestimonialManager initialTestimonials={serialized} googleConfigured={isGoogleReviewsConfigured()} />
     </div>
   );
 }

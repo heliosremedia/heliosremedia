@@ -367,6 +367,10 @@ model Testimonial {
   photoUrl        String?
   photoAlt        String?
   sourceUrl       String?
+  sourceProvider  String  @default("MANUAL")
+  externalReviewId String? @unique
+  reviewerPhotoUrl String?
+  reviewedAt       DateTime?
 
   focalX Float @default(0.5)
   focalY Float @default(0.2)
@@ -381,6 +385,7 @@ model Testimonial {
 
   @@index([published, displayOrder])
   @@index([featured])
+  @@index([sourceProvider, published, displayOrder])
 }
 
 model TrustedLogo {

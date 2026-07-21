@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { deleteContentImage, verifyContentImage } from "@/lib/content-image-storage";
 import { prisma } from "@/lib/prisma";
 import { TESTIMONIAL_CHARACTER_LIMIT } from "@/lib/testimonials";
+import { getAdminSession } from "@/lib/auth/session";
 
 const testimonialSelect = {
   id: true,
@@ -15,6 +16,10 @@ const testimonialSelect = {
   photoUrl: true,
   photoAlt: true,
   sourceUrl: true,
+  sourceProvider: true,
+  externalReviewId: true,
+  reviewerPhotoUrl: true,
+  reviewedAt: true,
   focalX: true,
   focalY: true,
   rating: true,
@@ -83,6 +88,7 @@ function validationResponse(error: unknown) {
 }
 
 export async function POST(request: Request) {
+  if (!await getAdminSession()) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
   try {
     const body = (await request.json()) as Record<string, unknown>;
     const data = validateBody(body);
@@ -103,6 +109,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  if (!await getAdminSession()) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
   try {
     const body = (await request.json()) as Record<string, unknown>;
     const action = typeof body.action === "string" ? body.action : "";
@@ -160,6 +167,7 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  if (!await getAdminSession()) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
   try {
     const testimonialId = new URL(request.url).searchParams.get("testimonialId")?.trim();
     if (!testimonialId) return NextResponse.json({ success: false, error: "A testimonial ID is required." }, { status: 400 });

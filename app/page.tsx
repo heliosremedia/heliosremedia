@@ -16,15 +16,20 @@ import { getHomepageCardVideo } from "@/lib/homepage-work-cards";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [testimonials, trustedLogos, homepageProjects, homepageWorkCards, homepageCta, settings] = await Promise.all([
+  const [testimonials, googleReviews, trustedLogos, homepageProjects, homepageWorkCards, homepageCta, settings] = await Promise.all([
     prisma.testimonial.findMany({
-      where: { published: true, featured: true },
+      where: { published: true, featured: true, sourceProvider: "MANUAL" },
       orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
       select: {
         id: true, agentName: true, jobTitle: true, brokerage: true,
         testimonial: true, photoUrl: true, photoAlt: true, focalX: true,
         focalY: true, rating: true, sourceUrl: true,
       },
+    }),
+    prisma.testimonial.findMany({
+      where: { published: true, sourceProvider: "GOOGLE" },
+      orderBy: [{ displayOrder: "asc" }, { reviewedAt: "desc" }],
+      select: { id: true, agentName: true, testimonial: true, rating: true, sourceUrl: true, reviewedAt: true },
     }),
     prisma.trustedLogo.findMany({
       where: { published: true, logoUrl: { not: null } },
@@ -105,7 +110,7 @@ export default async function Home() {
         displayOpacity: logo.displayOpacity,
         displayScale: logo.displayScale,
       }))} />
-      <InTheirWords testimonials={testimonials.map((item) => ({
+      <InTheirWords googleReviews={googleReviews.map((item) => ({ ...item, reviewedAt: item.reviewedAt?.toISOString() ?? null }))} testimonials={testimonials.map((item) => ({
         id: item.id,
         quote: item.testimonial,
         name: item.agentName,
