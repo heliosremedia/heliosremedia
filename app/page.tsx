@@ -79,7 +79,14 @@ export default async function Home() {
     <main>
       <Navbar />
       <Hero settings={settings} />
-      <HeliosStandard imageUrl={settings.heliosStandardImageUrl} imageAlt={settings.heliosStandardImageAlt} />
+      <HeliosStandard
+        imageUrl={settings.heliosStandardImageUrl}
+        imageAlt={settings.heliosStandardImageAlt}
+        eyebrow={settings.standardEyebrow}
+        headingLineOne={settings.standardHeadingLineOne}
+        headingLineTwo={settings.standardHeadingLineTwo}
+        body={settings.standardBody}
+      />
       <WorkShowcase
         settings={settings}
         items={configuredWorkItems.length > 0 ? configuredWorkItems : undefined}

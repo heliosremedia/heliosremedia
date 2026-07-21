@@ -16,12 +16,15 @@ export default function Hero({ settings }: { settings: PublicSiteSettings }) {
   const shouldReduceMotion = useReducedMotion();
   const [videoReady, setVideoReady] = useState(false);
   const poster = settings.heroPosterUrl || undefined;
+  const posterAlt = settings.heroPosterAlt?.trim() || "";
 
   return (
     <section className="relative min-h-[100svh] overflow-hidden bg-[var(--background)]">
       {poster ? (
         <div
-          aria-hidden="true"
+          aria-hidden={posterAlt ? undefined : true}
+          aria-label={posterAlt || undefined}
+          role={posterAlt ? "img" : undefined}
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${JSON.stringify(poster)})` }}
         />

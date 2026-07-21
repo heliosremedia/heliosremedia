@@ -501,9 +501,9 @@ model SiteSettings {
   footerDescription      String?
 
   standardEyebrow String? @default("The Helios Standard")
-  standardHeadingLineOne String? @default("Media with")
-  standardHeadingLineTwo String? @default("Measured Intention")
-  standardBody String? @default("Every frame is composed with purpose—guiding attention, creating emotion, and revealing what makes the property exceptional.")
+  standardHeadingLineOne String? @default("Presentation")
+  standardHeadingLineTwo String? @default("Changes Perception.")
+  standardBody String? @default("Exceptional homes deserve more than documentation. They deserve a presentation that shapes how they are seen, remembered, and valued.")
   workEyebrow String? @default("Our Work")
   workHeadingLineOne String? @default("Crafted to")
   workHeadingLineTwo String? @default("Capture")

@@ -48,11 +48,23 @@ const wordVariants = {
 export default function HeliosStandard({
   imageUrl = "/standard/standard-8.jpg",
   imageAlt = "Luxury interior photographed by Helios Real Estate Media",
+  eyebrow = "The Helios Standard",
+  headingLineOne = "Presentation",
+  headingLineTwo = "Changes Perception.",
+  body = "Exceptional homes deserve more than documentation. They deserve a presentation that shapes how they are seen, remembered, and valued.",
 }: {
   imageUrl?: string | null;
   imageAlt?: string | null;
+  eyebrow?: string | null;
+  headingLineOne?: string | null;
+  headingLineTwo?: string | null;
+  body?: string | null;
 }) {
   const shouldReduceMotion = useReducedMotion();
+  const resolvedHeadingLineTwo = headingLineTwo || "Changes Perception.";
+  const headingWords = resolvedHeadingLineTwo.split(/\s+/);
+  const accentWord = headingWords.pop() || "";
+  const headingPrefix = headingWords.join(" ");
 
   return (
     <section
@@ -97,14 +109,12 @@ export default function HeliosStandard({
                 <span className="h-px w-10 bg-[var(--helios-orange)]" />
 
                 <span className="eyebrow text-[var(--helios-orange)]">
-                  The Helios Standard
+                  {eyebrow || "The Helios Standard"}
                 </span>
               </div>
 
               <p className="mt-7 text-sm leading-7 text-white/48 md:text-[0.95rem]">
-                Exceptional homes deserve more than documentation. They deserve
-                a presentation that shapes how they are seen, remembered, and
-                valued.
+                {body || "Exceptional homes deserve more than documentation. They deserve a presentation that shapes how they are seen, remembered, and valued."}
               </p>
             </motion.div>
 
@@ -151,7 +161,7 @@ export default function HeliosStandard({
                   ease,
                 }}
               >
-                Presentation
+                {headingLineOne || "Presentation"}
               </motion.span>
 
               <motion.span
@@ -163,7 +173,7 @@ export default function HeliosStandard({
                   ease,
                 }}
               >
-                Changes
+                {headingPrefix}
               </motion.span>
 
               <motion.span
@@ -175,7 +185,7 @@ export default function HeliosStandard({
                   ease,
                 }}
               >
-                Perception.
+                {accentWord}
               </motion.span>
             </motion.h2>
           </div>
