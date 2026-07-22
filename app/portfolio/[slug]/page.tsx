@@ -554,9 +554,6 @@ export default async function PortfolioProjectPage({
               <h2 className="mt-4 font-display text-4xl font-light leading-[1.15] tracking-[-0.035em] text-white sm:text-5xl">
                 {collection.label}
               </h2>
-              <p className="mt-6 block text-[0.52rem] font-normal uppercase leading-normal tracking-[0.14em] text-white/26 sm:mt-7 sm:text-[0.56rem]">
-                The {projectCollectionLabel}
-              </p>
             </div>
 
             <p className="text-xs text-white/25">
@@ -564,6 +561,10 @@ export default async function PortfolioProjectPage({
               {collection.media.length === 1 ? "asset" : "assets"}
             </p>
           </div>
+
+          <p className="mt-10 text-[0.52rem] font-normal uppercase leading-normal tracking-[0.14em] text-white/26 sm:mt-12 sm:text-[0.56rem]">
+            The {projectCollectionLabel}
+          </p>
 
           <PortfolioGallery
             projectTitle={project.title}
