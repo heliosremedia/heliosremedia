@@ -7,7 +7,7 @@ import { getAbsoluteUrl } from "@/lib/site";
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [projects, legalDocuments] = await Promise.all([
+  const [projects, services, legalDocuments] = await Promise.all([
     prisma.project.findMany({
       where: { status: "PUBLISHED" },
       orderBy: [{ displayOrder: "asc" }, { publishedAt: "desc" }],
@@ -19,6 +19,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         },
       },
     }),
+    prisma.service.findMany({ where: { active: true }, select: { slug: true, updatedAt: true } }),
     prisma.legalDocument.findMany({ where: { published: true }, select: { type: true, updatedAt: true } }),
   ]);
 
@@ -65,6 +66,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       : undefined,
   }));
 
+  const servicePages: MetadataRoute.Sitemap = services.map((service) => ({
+    url: getAbsoluteUrl(`/services/${service.slug}`),
+    lastModified: service.updatedAt,
+    changeFrequency: "monthly",
+    priority: 0.85,
+  }));
+
   const legalPages: MetadataRoute.Sitemap = legalDocuments.map((document) => ({
     url: getAbsoluteUrl(document.type === "PRIVACY_POLICY" ? "/privacy" : "/terms"),
     lastModified: document.updatedAt,
@@ -72,5 +80,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.2,
   }));
 
-  return [...staticPages, ...projectPages, ...legalPages];
+  return [...staticPages, ...servicePages, ...projectPages, ...legalPages];
 }
