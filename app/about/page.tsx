@@ -41,10 +41,10 @@ export default async function AboutPage() {
         <div className="container-shell relative flex min-h-[100svh] items-end pb-14 pt-32 sm:min-h-[88vh] sm:pb-24 sm:pt-40">
           <div className="max-w-6xl">
             <p className="eyebrow text-[var(--helios-orange)]">{content.heroEyebrow}</p>
-            <h1 className="mt-7 max-w-5xl font-display text-[clamp(3.15rem,14vw,9rem)] font-light leading-[0.98] tracking-[-0.062em] text-white">
+            <h1 className="mt-7 max-w-6xl font-display text-[clamp(3.15rem,11vw,8rem)] font-light leading-[0.94] tracking-[-0.058em] text-white">
               {content.heroHeadline}
             </h1>
-            <p className="mt-8 max-w-2xl text-sm leading-7 text-white/62 sm:mt-14 sm:text-base sm:leading-8">
+            <p className="mt-8 max-w-2xl text-sm leading-7 text-white/62 sm:mt-10 sm:text-base sm:leading-8">
               {content.heroBody}
             </p>
           </div>
@@ -60,14 +60,14 @@ export default async function AboutPage() {
         </div>
 
         <div>
-          <h2 className="max-w-4xl font-display text-[clamp(2.9rem,5.8vw,6rem)] font-light leading-[1] tracking-[-0.052em] text-[#f2ede7]">
+          <h2 className="max-w-5xl font-display text-[clamp(2.75rem,5vw,5.25rem)] font-light leading-[1] tracking-[-0.048em] text-[#f2ede7]">
             {content.storyHeadline}
           </h2>
           <div className="mt-12 grid gap-7 border-t border-white/[0.1] pt-8 sm:grid-cols-2">
-            <p className="text-sm leading-7 text-white/40">
+            <p className="text-sm leading-7 text-white/46">
               {content.storyBodyLeft}
             </p>
-            <p className="text-sm leading-7 text-white/40">
+            <p className="text-sm leading-7 text-white/46">
               {content.storyBodyRight}
             </p>
           </div>
@@ -106,10 +106,10 @@ export default async function AboutPage() {
                   <p className="mt-7 max-w-xl whitespace-pre-line text-sm leading-7 text-white/58 sm:text-base sm:leading-8">
                     {content.founderBody}
                   </p>
-                  <p className="mt-10 font-display text-[clamp(2.6rem,6vw,4.75rem)] italic leading-none tracking-[-0.055em] text-white/90">
+                  <p className="font-signature mt-10 text-[clamp(2.8rem,6vw,5rem)] leading-none text-white/90">
                     {content.founderSignature}
                   </p>
-                  <p className="mt-3 text-[0.62rem] font-semibold uppercase tracking-[0.25em] text-[var(--helios-orange)]">
+                  <p className="mt-7 text-[0.62rem] font-semibold uppercase tracking-[0.25em] text-[var(--helios-orange)]">
                     {content.founderTitle}
                   </p>
                 </div>
@@ -128,10 +128,10 @@ export default async function AboutPage() {
 
       <section className="border-b border-white/[0.08] bg-[#090909]">
         <div className="container-shell py-20 sm:py-28 lg:py-36">
-          <div className="grid gap-12 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:items-end lg:gap-20">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-end lg:gap-16">
             <div>
               <p className="eyebrow text-[var(--helios-orange)]">The team behind the frame</p>
-              <h2 className="mt-6 max-w-3xl font-display text-[clamp(3rem,6vw,6rem)] font-light leading-[0.98] tracking-[-0.052em] text-white">
+              <h2 className="mt-6 max-w-4xl font-display text-[clamp(2.75rem,5vw,5rem)] font-light leading-[0.98] tracking-[-0.048em] text-white">
                 A lean creative crew built for polished, dependable delivery.
               </h2>
             </div>
@@ -141,10 +141,10 @@ export default async function AboutPage() {
           </div>
 
           {teamMembers.length > 0 ? (
-            <div className="mt-14 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            <div className={`mt-10 grid gap-5 ${teamMembers.length === 1 ? "mx-auto max-w-5xl" : teamMembers.length === 2 ? "mx-auto max-w-5xl sm:grid-cols-2" : "sm:grid-cols-2 xl:grid-cols-3"}`}>
               {teamMembers.map((member) => (
-                <article key={member.id} className="group overflow-hidden rounded-2xl border border-white/[0.1] bg-white/[0.025]">
-                  <div className="relative aspect-[4/5] bg-[#111]">
+                <article key={member.id} className={`group overflow-hidden rounded-2xl border border-white/[0.1] bg-white/[0.025] ${teamMembers.length === 1 ? "lg:grid lg:grid-cols-[0.85fr_1.15fr]" : ""}`}>
+                  <div className={`relative bg-[#111] ${teamMembers.length === 1 ? "min-h-[28rem]" : "aspect-[4/5]"}`}>
                     {member.portraitUrl ? <Image src={member.portraitUrl} alt={member.portraitAlt ?? member.name} fill sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw" className="object-cover grayscale transition duration-700 group-hover:grayscale-0" style={{ objectPosition: `${member.focalX * 100}% ${member.focalY * 100}%` }} /> : <div className="flex h-full items-center justify-center font-display text-8xl text-white/12">{member.name.charAt(0)}</div>}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/78 via-black/10 to-transparent" />
                     <p className="absolute bottom-5 left-5 right-5 text-[0.55rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">{teamMemberCategoryLabels[member.category]}</p>

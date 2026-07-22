@@ -116,6 +116,7 @@ html {
   min-width: 320px;
   scroll-behavior: smooth;
   background: var(--background);
+  overscroll-behavior-y: none;
 }
 
 body {
@@ -123,6 +124,7 @@ body {
   min-width: 320px;
   overflow-x: hidden;
   background: var(--background);
+  min-height: 100%;
   color: var(--foreground);
   font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   text-rendering: optimizeLegibility;
@@ -132,7 +134,16 @@ body {
 
 main {
   overflow: clip;
+  background: var(--background);
 }
+
+@font-face {
+  font-family: "Helios Signature";
+  src: local("Snell Roundhand"), local("Segoe Script"), local("Brush Script MT");
+  font-display: swap;
+}
+
+.font-signature { font-family: "Helios Signature", cursive; }
 
 h1,
 h2,

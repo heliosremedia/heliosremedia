@@ -7,17 +7,9 @@ import { useSiteSettings } from "./SiteSettingsProvider";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-const exploreLinks = [
-  { label: "Portfolio", href: "/portfolio" },
-  { label: "Services", href: "/services" },
-  { label: "About Helios", href: "/about" },
-  { label: "FAQs", href: "/faq" },
-  { label: "Client Stories", href: "/#testimonials" },
-  { label: "Client Login", href: "/client-portal" },
-];
-
 export default function Footer() {
   const settings = useSiteSettings();
+  const exploreLinks = settings.footerNavigation.filter((item) => item.published !== false);
   const bookingHref = settings.bookingUrl || "/inquire";
   const connectLinks = [
     { label: "Book Your Shoot", href: bookingHref },
@@ -59,6 +51,7 @@ export default function Footer() {
               href="/"
               aria-label="Helios Real Estate Media home"
               className="group inline-block focus-visible:outline-none"
+              onClick={(event) => { if (window.location.pathname === "/") { event.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); } }}
             >
               <Image
                 id="footer-heading"
@@ -91,6 +84,8 @@ export default function Footer() {
                   <li key={link.label}>
                     <Link
                       href={link.href}
+                      target={link.newTab ? "_blank" : undefined}
+                      rel={link.newTab ? "noreferrer" : undefined}
                       className="group inline-flex items-center gap-3 text-[0.72rem] font-medium uppercase tracking-[0.22em] text-white/42 transition-colors duration-300 hover:text-white focus-visible:outline-none focus-visible:text-white"
                     >
                       <span>{link.label}</span>

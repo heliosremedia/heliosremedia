@@ -43,7 +43,6 @@ export default async function ServicesPage() {
           project: { status: "PUBLISHED" },
         },
         orderBy: { createdAt: "desc" },
-        take: 3,
         select: {
           project: {
             select: {
@@ -140,7 +139,7 @@ export default async function ServicesPage() {
           {services.map((service, serviceIndex) => {
             const serviceMediaCategories = getServiceMediaCategories(service);
             const primaryMediaCategory = serviceMediaCategories[0];
-            const projectPreviews = service.projects.map(({ project }) => {
+            const eligibleProjects = service.projects.map(({ project }) => {
               // Service imagery is category-specific: a Drone Photography
               // preview must use that project's Drone hero, never its general
               // Photography/project cover unless no Drone hero exists.
@@ -150,7 +149,7 @@ export default async function ServicesPage() {
               const imageStorageKey =
                 collectionHero?.storageKey || project.heroMedia?.storageKey;
 
-              return {
+              return imageStorageKey ? {
                 ...project,
                 collectionHero,
                 imageUrl: imageStorageKey
@@ -159,8 +158,11 @@ export default async function ServicesPage() {
                 location:
                   project.locationLabel ||
                   [project.city, project.state].filter(Boolean).join(", "),
-              };
-            });
+              } : null;
+            }).filter((project): project is NonNullable<typeof project> => Boolean(project));
+            const projectPreviews = serviceIndex < 3
+              ? eligibleProjects.map((project) => ({ project, score: Math.random() })).sort((a, b) => a.score - b.score).slice(0, 3).map(({ project }) => project)
+              : eligibleProjects.slice(0, 3);
 
             return (
               <section

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useInView, useReducedMotion } from "motion/react";
 
 type WorkCardProps = {
@@ -33,6 +33,7 @@ export default function WorkCard({
   const mediaRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaInView = useInView(mediaRef, { amount: 0.2 });
+  const [muted, setMuted] = useState(true);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -103,7 +104,7 @@ export default function WorkCard({
           sizes={imageSizes}
           className="absolute inset-0 h-full w-full object-cover"
         />
-        {videoSrc && !shouldReduceMotion ? <video ref={videoRef} muted loop playsInline preload="metadata" poster={image} aria-label={`${title} featured film`} className="absolute inset-0 h-full w-full object-cover"><source src={videoSrc} /></video> : null}
+        {videoSrc && !shouldReduceMotion ? <video ref={videoRef} muted={muted} loop playsInline preload="metadata" poster={image} aria-label={`${title} featured film`} className="absolute inset-0 h-full w-full object-cover"><source src={videoSrc} /></video> : null}
         {embedSrc && mediaInView && !shouldReduceMotion ? (
           <iframe
             src={embedSrc}
@@ -114,6 +115,11 @@ export default function WorkCard({
           />
         ) : null}
       </motion.div>
+
+      {videoSrc ? <div className="absolute bottom-6 right-6 z-40 flex gap-2 sm:bottom-7 sm:right-7">
+        <button type="button" aria-label={muted ? "Turn film sound on" : "Mute film"} onClick={() => { const next = !muted; setMuted(next); if (videoRef.current) { videoRef.current.muted = next; void videoRef.current.play().catch(() => undefined); } }} className="flex h-11 w-11 items-center justify-center rounded-full border border-white/25 bg-black/55 text-white backdrop-blur-md transition hover:border-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)]">{muted ? "⌁" : "♪"}</button>
+        <button type="button" aria-label="View film fullscreen" onClick={() => { const target = mediaRef.current?.parentElement; if (target?.requestFullscreen) void target.requestFullscreen(); }} className="flex h-11 w-11 items-center justify-center rounded-full border border-white/25 bg-black/55 text-lg text-white backdrop-blur-md transition hover:border-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)]">⛶</button>
+      </div> : null}
 
       <motion.div
         aria-hidden="true"

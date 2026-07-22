@@ -8,29 +8,30 @@ import {
   useScroll,
   useTransform,
 } from "motion/react";
-import type { PublicSiteSettings } from "@/lib/site-settings";
+import type { PublicContentCard, PublicSiteSettings } from "@/lib/site-settings";
 
-const principles = [
+const fallbackPrinciples: PublicContentCard[] = [
   {
     number: "01",
     title: "Intentional",
-    copy: "Every frame is composed with purpose—guiding attention, creating emotion, and revealing what makes the property exceptional.",
+    description: "Every frame is composed with purpose—guiding attention, creating emotion, and revealing what makes the property exceptional.",
   },
   {
     number: "02",
     title: "Story Driven",
-    copy: "Beautiful imagery earns attention. Thoughtful storytelling gives people a reason to remember the home.",
+    description: "Beautiful imagery earns attention. Thoughtful storytelling gives people a reason to remember the home.",
   },
   {
     number: "03",
     title: "Elevated Experience",
-    copy: "From preparation through final delivery, every interaction reflects the same care and attention as the finished media.",
+    description: "From preparation through final delivery, every interaction reflects the same care and attention as the finished media.",
   },
 ];
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function OurApproach({ settings }: { settings: PublicSiteSettings }) {
+  const principles = (settings.approachCards.length ? settings.approachCards : fallbackPrinciples).filter((item) => item.published !== false).map((item) => ({ ...item, copy: item.description }));
   const signatureRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useReducedMotion();
 
@@ -122,8 +123,8 @@ export default function OurApproach({ settings }: { settings: PublicSiteSettings
           />
 
           <h2 className="max-w-[46rem] font-serif text-[clamp(3.25rem,5.5vw,6.5rem)] font-normal leading-[0.88] tracking-[-0.055em] text-[#f3eee8]">
-            {settings.approachHeadingLineOne || "We Build"}
-            <span className="block italic text-white">{settings.approachHeadingLineTwo || "Perceived Value."}</span>
+            {settings.approachHeading || settings.approachHeadingLineOne || "We Build"}
+            <span className="block italic text-white">{settings.approachHeadingAccent || settings.approachHeadingLineTwo || "Perceived Value."}</span>
           </h2>
         </motion.header>
 
@@ -270,7 +271,7 @@ export default function OurApproach({ settings }: { settings: PublicSiteSettings
             }
             className="text-[0.62rem] font-medium uppercase sm:text-[0.68rem]"
           >
-            Light. Clarity. Vision.
+            {settings.approachTagline || "Light. Clarity. Vision."}
           </motion.p>
 
           <motion.span
@@ -284,10 +285,10 @@ export default function OurApproach({ settings }: { settings: PublicSiteSettings
           />
 
           <Link
-            href="/about"
+            href={settings.approachButtonDestination || "/about"}
             className="mt-8 inline-flex min-h-11 items-center justify-center rounded-full border border-white/12 px-6 text-[0.56rem] font-semibold uppercase tracking-[0.17em] text-white/45 transition hover:border-white/30 hover:text-white"
           >
-            Discover Helios
+            {settings.approachButtonLabel || "Discover Helios"}
           </Link>
         </motion.footer>
       </div>

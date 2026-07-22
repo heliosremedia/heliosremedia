@@ -7,15 +7,6 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useSiteSettings } from "./SiteSettingsProvider";
 
-const navigation = [
-  { label: "Home", href: "/" },
-  { label: "Portfolio", href: "/portfolio" },
-  { label: "Services", href: "/services" },
-  { label: "About Helios", href: "/about" },
-  { label: "FAQs", href: "/faq" },
-  { label: "Client Login", href: "/client-portal" },
-];
-
 const ease = [0.22, 1, 0.36, 1] as const;
 
 type NavbarProps = {
@@ -27,9 +18,20 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
   const pathname = usePathname();
   const bookingHref = settings.bookingUrl || "/inquire";
   const [menuOpen, setMenuOpen] = useState(false);
+  const [heroVisible, setHeroVisible] = useState(variant === "overlay");
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
+  const navigation = settings.headerNavigation.filter((item) => item.published !== false);
+
+  useEffect(() => {
+    if (variant !== "overlay") return;
+    const hero = document.querySelector("main > section:first-of-type");
+    if (!hero) return;
+    const observer = new IntersectionObserver(([entry]) => setHeroVisible(entry.isIntersecting), { threshold: 0.08 });
+    observer.observe(hero);
+    return () => observer.disconnect();
+  }, [variant]);
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : "";
@@ -97,14 +99,14 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
     <>
       <header
         className={
-          variant === "solid"
-            ? "sticky top-0 z-50 border-b border-white/[0.08] bg-[#090909]/95 backdrop-blur-xl sm:relative"
-            : "fixed inset-x-0 top-0 z-50 sm:absolute"
+          variant === "solid" || !heroVisible || menuOpen
+            ? "fixed inset-x-0 top-0 z-50 border-b border-white/[0.08] bg-[#090909]/95 backdrop-blur-xl"
+            : "fixed inset-x-0 top-0 z-50 bg-transparent transition-colors duration-500"
         }
       >
         <div
           className={`mx-auto flex w-full max-w-[1600px] items-center justify-between px-5 sm:px-8 md:px-10 lg:px-12 xl:px-14 ${
-            variant === "solid"
+            variant === "solid" || !heroVisible || menuOpen
               ? "py-5"
               : "pb-6 pt-[calc(1.5rem+env(safe-area-inset-top))] md:py-8"
           }`}
@@ -154,6 +156,8 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
                 <Link
                   key={item.label}
                   href={item.href}
+                  target={item.newTab ? "_blank" : undefined}
+                  rel={item.newTab ? "noreferrer" : undefined}
                   aria-current={active ? "page" : undefined}
                   className={`group relative py-3 text-[11px] font-semibold uppercase tracking-[0.25em] transition-colors duration-[400ms] hover:text-[var(--helios-orange)] ${
                     active ? "text-[var(--helios-orange)]" : "text-white"

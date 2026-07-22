@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
 
-const principles = [
+const fallbackPrinciples = [
   {
     number: "01",
     title: "Intentional",
@@ -52,6 +52,9 @@ export default function HeliosStandard({
   headingLineOne = "Presentation",
   headingLineTwo = "Changes Perception.",
   body = "Exceptional homes deserve more than documentation. They deserve a presentation that shapes how they are seen, remembered, and valued.",
+  heading,
+  accent,
+  principles = fallbackPrinciples,
 }: {
   imageUrl?: string | null;
   imageAlt?: string | null;
@@ -59,6 +62,9 @@ export default function HeliosStandard({
   headingLineOne?: string | null;
   headingLineTwo?: string | null;
   body?: string | null;
+  heading?: string | null;
+  accent?: string | null;
+  principles?: Array<{ number: string; title: string; description: string; published?: boolean }>;
 }) {
   const shouldReduceMotion = useReducedMotion();
   const resolvedHeadingLineTwo = headingLineTwo || "Changes Perception.";
@@ -161,7 +167,7 @@ export default function HeliosStandard({
                   ease,
                 }}
               >
-                {headingLineOne || "Presentation"}
+                {heading || headingLineOne || "Presentation Changes"}
               </motion.span>
 
               <motion.span
@@ -173,7 +179,7 @@ export default function HeliosStandard({
                   ease,
                 }}
               >
-                {headingPrefix}
+                {!heading ? headingPrefix : null}
               </motion.span>
 
               <motion.span
@@ -185,7 +191,7 @@ export default function HeliosStandard({
                   ease,
                 }}
               >
-                {accentWord}
+                {accent || (!heading ? accentWord : "Perception.")}
               </motion.span>
             </motion.h2>
           </div>
@@ -240,8 +246,8 @@ export default function HeliosStandard({
 
         <div className="container-shell mt-[clamp(1.5rem,2.5vw,2.25rem)]">
           <div className="grid overflow-hidden rounded-[4px] border border-white/[0.12] lg:grid-cols-4">
-            {principles.map((principle, index) => {
-              const hasDivider = index < principles.length - 1;
+            {principles.filter((principle) => principle.published !== false).map((principle, index, visiblePrinciples) => {
+              const hasDivider = index < visiblePrinciples.length - 1;
 
               return (
                 <motion.article

@@ -90,7 +90,10 @@ export default async function Home() {
         eyebrow={settings.standardEyebrow}
         headingLineOne={settings.standardHeadingLineOne}
         headingLineTwo={settings.standardHeadingLineTwo}
+        heading={settings.standardHeading}
+        accent={settings.standardHeadingAccent}
         body={settings.standardBody}
+        principles={settings.standardPrinciples}
       />
       <WorkShowcase
         settings={settings}

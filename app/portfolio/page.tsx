@@ -26,6 +26,7 @@ export const metadata: Metadata = {
 type PortfolioPageProps = {
   searchParams: Promise<{
     service?: string | string[];
+    page?: string | string[];
   }>;
 };
 
@@ -36,8 +37,9 @@ function getServiceParam(value: string | string[] | undefined) {
 export default async function PortfolioPage({
   searchParams,
 }: PortfolioPageProps) {
-  const { service: requestedService } = await searchParams;
+  const { service: requestedService, page: requestedPage } = await searchParams;
   const serviceSlug = getServiceParam(requestedService);
+  const pageNumber = Math.max(1, Number.parseInt(getServiceParam(requestedPage), 10) || 1);
 
   const services = await prisma.service.findMany({
     where: {
@@ -240,6 +242,14 @@ export default async function PortfolioPage({
         ]
       : [],
   );
+  const leadProject = projects[0]?.featured ? projects[0] : null;
+  const regularProjects = leadProject ? projects.slice(1) : projects;
+  const pageSize = 18;
+  const totalPages = Math.max(1, Math.ceil(regularProjects.length / pageSize));
+  const currentPage = Math.min(pageNumber, totalPages);
+  const displayedProjects = regularProjects.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const pageProjects = currentPage === 1 && leadProject ? [leadProject, ...displayedProjects] : displayedProjects;
+  const pageHref = (page: number) => `/portfolio?${new URLSearchParams({ ...(selectedService ? { service: selectedService.slug } : {}), ...(page > 1 ? { page: String(page) } : {}) }).toString()}#selected-work`;
 
   return (
     <main className="min-h-screen bg-[var(--background)] text-white">
@@ -299,7 +309,7 @@ export default async function PortfolioPage({
         </div>
       </section>
 
-      <section className="container-shell pb-24 sm:pb-32">
+      <section id="selected-work" className="container-shell scroll-mt-28 pb-24 sm:pb-32">
         <div className="flex flex-col gap-3 border-b border-white/[0.08] pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-white/30">
@@ -316,9 +326,9 @@ export default async function PortfolioPage({
           </p>
         </div>
 
-        {projects.length > 0 ? (
+        {pageProjects.length > 0 ? (
           <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {projects.map((project, index) => {
+            {pageProjects.map((project) => {
               const assignedServiceIds = new Set(
                 project.services
                   .filter(({ service }) => service.active)
@@ -370,8 +380,8 @@ export default async function PortfolioPage({
                 <article
                   key={project.id}
                   className={`group relative overflow-hidden border border-white/[0.08] bg-black ${
-                    project.featured && index === 0
-                      ? "md:col-span-2 xl:col-span-2"
+                    project === leadProject && currentPage === 1
+                      ? "md:col-span-2 xl:col-span-3"
                       : ""
                   }`}
                 >
@@ -383,8 +393,8 @@ export default async function PortfolioPage({
 
                   <div
                     className={`relative overflow-hidden bg-white/[0.03] ${
-                      project.featured && index === 0
-                        ? "aspect-[16/9]"
+                      project === leadProject && currentPage === 1
+                        ? "aspect-[16/9] xl:aspect-[2.35/1]"
                         : "aspect-[4/3]"
                     }`}
                   >
@@ -407,7 +417,7 @@ export default async function PortfolioPage({
 
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent opacity-90" />
 
-                    {project.featured && (
+                    {project === leadProject && currentPage === 1 && (
                       <span className="absolute left-5 top-5 rounded-full border border-[var(--helios-orange)]/35 bg-[var(--helios-orange)] px-3 py-1.5 text-[0.52rem] font-semibold uppercase tracking-[0.15em] text-black">
                         Featured project
                       </span>
@@ -467,6 +477,11 @@ export default async function PortfolioPage({
             )}
           </div>
         )}
+        {totalPages > 1 && <nav aria-label="Portfolio pages" className="mt-14 flex flex-wrap items-center justify-center gap-2">
+          {currentPage > 1 && <Link href={pageHref(currentPage - 1)} className="rounded-full border border-white/12 px-5 py-3 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-white/55 hover:border-white/30 hover:text-white">Previous</Link>}
+          {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => <Link key={page} href={pageHref(page)} aria-current={page === currentPage ? "page" : undefined} className={`flex h-11 w-11 items-center justify-center rounded-full border text-xs transition ${page === currentPage ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] text-black" : "border-white/12 text-white/45 hover:border-white/30 hover:text-white"}`}>{page}</Link>)}
+          {currentPage < totalPages && <Link href={pageHref(currentPage + 1)} className="rounded-full border border-white/12 px-5 py-3 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-white/55 hover:border-white/30 hover:text-white">Next</Link>}
+        </nav>}
       </section>
 
       {showFilmLibrary && <PortfolioFilmLibrary films={films} />}

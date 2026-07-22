@@ -510,9 +510,12 @@ model SiteSettings {
   footerDescription      String?
 
   standardEyebrow String? @default("The Helios Standard")
+  standardHeading String? @default("Presentation Changes")
+  standardHeadingAccent String? @default("Perception.")
   standardHeadingLineOne String? @default("Presentation")
   standardHeadingLineTwo String? @default("Changes Perception.")
   standardBody String? @default("Exceptional homes deserve more than documentation. They deserve a presentation that shapes how they are seen, remembered, and valued.")
+  standardPrinciples Json?
   workEyebrow String? @default("Our Work")
   workHeadingLineOne String? @default("Crafted to")
   workHeadingLineTwo String? @default("Capture")
@@ -526,9 +529,17 @@ model SiteSettings {
   portfolioButtonLabel String? @default("View Complete Portfolio")
   portfolioButtonDestination String? @default("/portfolio")
   approachEyebrow String? @default("Our Approach")
+  approachHeading String? @default("We Build")
+  approachHeadingAccent String? @default("Perceived Value.")
   approachHeadingLineOne String? @default("We Build")
   approachHeadingLineTwo String? @default("Perceived Value.")
   approachBody String? @default("Every listing is treated like a campaign. Every image, frame, and film is shaped to capture attention, create emotion, and elevate the way a property is perceived.")
+  approachCards Json?
+  approachTagline String? @default("Light. Clarity. Vision.")
+  approachButtonLabel String? @default("Discover Helios")
+  approachButtonDestination String? @default("/about")
+  headerNavigation Json?
+  footerNavigation Json?
   conversionImageCaption String? @default("Presentation shapes perception.")
 
   websiteUrl   String?
