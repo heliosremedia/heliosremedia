@@ -7,17 +7,12 @@ import Navbar from "@/app/components/Navbar";
 import { getAboutPageContent } from "@/lib/about-page";
 import { defaultPageCtas } from "@/lib/ctas";
 import { getVisibleTeamMembers, teamMemberCategoryLabels } from "@/lib/team-members";
+import { buildPageMetadata } from "@/lib/seo";
+import { getSiteSettings } from "@/lib/site-settings";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "About Helios | Real Estate Media in Northern Colorado",
-  description:
-    "Meet Helios Real Estate Media—a Northern Colorado studio creating intentional photography, cinematic film, aerial media, and marketing content for properties and real estate professionals.",
-  alternates: {
-    canonical: "/about",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> { const settings = await getSiteSettings(); return buildPageMetadata({ title: "About Helios | Real Estate Media in Northern Colorado", description: "Meet Helios Real Estate Media—a Northern Colorado studio creating intentional photography, cinematic film, aerial media, and marketing content for properties and real estate professionals.", path: "/about", settings }); }
 
 export default async function AboutPage() {
   const [content, teamMembers] = await Promise.all([getAboutPageContent(), getVisibleTeamMembers()]);
