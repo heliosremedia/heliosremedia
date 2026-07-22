@@ -252,6 +252,24 @@ select {
   font-size: 1rem;
 }
 
+.contact-form-scope input:not([type="checkbox"]),
+.contact-form-scope textarea,
+.contact-form-scope select {
+  font-family: var(--font-helios), Arial, Helvetica, sans-serif;
+  font-size: 1rem !important;
+  font-weight: 400;
+  line-height: 1.5rem !important;
+  letter-spacing: 0 !important;
+  text-transform: none;
+}
+
+.contact-form-scope input::placeholder,
+.contact-form-scope textarea::placeholder {
+  font-size: 1rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 img,
 video {
   display: block;
