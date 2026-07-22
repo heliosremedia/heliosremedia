@@ -116,10 +116,49 @@ export default function WorkCard({
         ) : null}
       </motion.div>
 
-      {videoSrc ? <div className="absolute bottom-6 right-6 z-40 flex gap-2 sm:bottom-7 sm:right-7">
-        <button type="button" aria-label={muted ? "Turn film sound on" : "Mute film"} onClick={() => { const next = !muted; setMuted(next); if (videoRef.current) { videoRef.current.muted = next; void videoRef.current.play().catch(() => undefined); } }} className="flex h-11 w-11 items-center justify-center rounded-full border border-white/25 bg-black/55 text-white backdrop-blur-md transition hover:border-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)]">{muted ? "⌁" : "♪"}</button>
-        <button type="button" aria-label="View film fullscreen" onClick={() => { const target = mediaRef.current?.parentElement; if (target?.requestFullscreen) void target.requestFullscreen(); }} className="flex h-11 w-11 items-center justify-center rounded-full border border-white/25 bg-black/55 text-lg text-white backdrop-blur-md transition hover:border-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)]">⛶</button>
-      </div> : null}
+      {videoSrc && !shouldReduceMotion ? (
+        <div className="absolute right-5 top-5 z-40 flex gap-2 sm:right-7 sm:top-7">
+          <button
+            type="button"
+            aria-label={muted ? "Turn film sound on" : "Mute film"}
+            aria-pressed={!muted}
+            onClick={() => {
+              const next = !muted;
+              setMuted(next);
+              if (videoRef.current) {
+                videoRef.current.muted = next;
+                void videoRef.current.play().catch(() => undefined);
+              }
+            }}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/35 bg-black/65 text-white shadow-lg backdrop-blur-md transition hover:border-white/70 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)]"
+          >
+            {muted ? (
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-[1.15rem] w-[1.15rem] fill-none stroke-current" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 5 6.5 9H3v6h3.5l4.5 4V5Z" />
+                <path d="m16 9 5 5m0-5-5 5" />
+              </svg>
+            ) : (
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-[1.15rem] w-[1.15rem] fill-none stroke-current" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 5 6.5 9H3v6h3.5l4.5 4V5Z" />
+                <path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" />
+              </svg>
+            )}
+          </button>
+          <button
+            type="button"
+            aria-label="View film fullscreen"
+            onClick={() => {
+              const target = mediaRef.current?.parentElement;
+              if (target?.requestFullscreen) void target.requestFullscreen();
+            }}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/35 bg-black/65 text-white shadow-lg backdrop-blur-md transition hover:border-white/70 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)]"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-[1.05rem] w-[1.05rem] fill-none stroke-current" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 3H3v5M16 3h5v5M8 21H3v-5m13 5h5v-5" />
+            </svg>
+          </button>
+        </div>
+      ) : null}
 
       <motion.div
         aria-hidden="true"
