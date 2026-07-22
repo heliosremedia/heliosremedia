@@ -551,10 +551,10 @@ export default async function PortfolioProjectPage({
               <p className="eyebrow text-[var(--helios-orange)]">
                 {String(collectionIndex + 1).padStart(2, "0")} Collection
               </p>
-              <h2 className="mt-4 font-display text-4xl font-light leading-[0.95] tracking-[-0.035em] text-white sm:text-5xl">
+              <h2 className="mt-4 font-display text-4xl font-light leading-[1.15] tracking-[-0.035em] text-white sm:text-5xl">
                 {collection.label}
               </h2>
-              <p className="mt-5 text-[0.52rem] font-normal uppercase tracking-[0.14em] text-white/26 sm:mt-6 sm:text-[0.56rem]">
+              <p className="mt-6 block text-[0.52rem] font-normal uppercase leading-normal tracking-[0.14em] text-white/26 sm:mt-7 sm:text-[0.56rem]">
                 The {projectCollectionLabel}
               </p>
             </div>
