@@ -9,19 +9,14 @@ import { getServiceMediaCategories } from "@/lib/portfolio-services";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { defaultPageCtas } from "@/lib/ctas";
+import { buildPageMetadata } from "@/lib/seo";
+import { getSiteSettings } from "@/lib/site-settings";
 
 import PortfolioFilmLibrary from "./PortfolioFilmLibrary";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Portfolio | Helios Real Estate Media",
-  description:
-    "Explore photography, cinematic films, aerial media, agent branding, and social content created by Helios Real Estate Media.",
-  alternates: {
-    canonical: "/portfolio",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> { const settings = await getSiteSettings(); return buildPageMetadata({ title: "Portfolio | Helios Real Estate Media", description: "Explore photography, cinematic films, aerial media, agent branding, and social content created by Helios Real Estate Media.", path: "/portfolio", settings }); }
 
 type PortfolioPageProps = {
   searchParams: Promise<{
