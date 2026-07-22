@@ -484,7 +484,7 @@ export default async function PortfolioProjectPage({
             <p className="eyebrow text-[var(--helios-orange)]">The project</p>
 
             {project.shortDescription && (
-              <h2 className="mt-6 max-w-2xl font-display text-base font-light leading-7 tracking-[-0.01em] text-white/82 sm:text-lg sm:leading-8">
+              <h2 className="mt-6 max-w-3xl font-display text-[clamp(1.5rem,1.7vw,2rem)] font-light leading-[1.5] tracking-[-0.018em] text-white/82">
                 {project.shortDescription}
               </h2>
             )}
