@@ -106,18 +106,18 @@ export default function Hero({ settings }: { settings: PublicSiteSettings }) {
             {settings.heroBody || `Photography, cinematic films, aerial imagery, and branding crafted to elevate ${settings.serviceArea}'s most exceptional homes.`}
           </motion.p>
 
-
-          <motion.div
-            className="mt-7 grid w-full grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:gap-5 md:mt-11"
-            variants={reveal}
-            initial={shouldReduceMotion ? false : "hidden"}
-            animate="visible"
-            transition={{
-              duration: shouldReduceMotion ? 0 : 0.85,
-              delay: shouldReduceMotion ? 0 : 1.28,
-              ease,
-            }}
-          >
+          <div className="mt-7 flex flex-col items-start gap-6 md:mt-11">
+            <motion.div
+              className="grid w-full grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:gap-5"
+              variants={reveal}
+              initial={shouldReduceMotion ? false : "hidden"}
+              animate="visible"
+              transition={{
+                duration: shouldReduceMotion ? 0 : 0.85,
+                delay: shouldReduceMotion ? 0 : 1.28,
+                ease,
+              }}
+            >
             <motion.a
               href={bookingHref}
               className="flex min-h-12 items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-white shadow-[0_12px_35px_rgba(0,0,0,0.25)] sm:min-h-14 sm:px-10 sm:text-xs sm:tracking-[0.23em]"
@@ -157,13 +157,14 @@ export default function Hero({ settings }: { settings: PublicSiteSettings }) {
             >
               {settings.heroSecondaryLabel || "View Portfolio"}
             </motion.a>
-          </motion.div>
-          {settings.availabilityEnabled && settings.availabilityMessage ? (
-            <motion.p className="mt-5 flex w-fit max-w-full items-center gap-2 rounded-full border border-white/15 bg-black/25 px-4 py-2 text-[0.62rem] font-medium uppercase tracking-[0.18em] text-white/68 backdrop-blur-sm md:mt-6" variants={reveal} initial={shouldReduceMotion ? false : "hidden"} animate="visible" transition={{ duration: shouldReduceMotion ? 0 : 0.75, delay: shouldReduceMotion ? 0 : 1.4, ease }}>
-              <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[var(--helios-orange)] shadow-[0_0_12px_rgba(217,107,43,0.6)]" />
-              <span>{settings.availabilityLabel ? `${settings.availabilityLabel}: ` : ""}{settings.availabilityMessage}</span>
-            </motion.p>
-          ) : null}
+            </motion.div>
+            {settings.availabilityEnabled && settings.availabilityMessage ? (
+              <motion.p className="flex w-fit max-w-full items-center gap-2 rounded-full border border-white/15 bg-black/25 px-4 py-2 text-[0.62rem] font-medium uppercase tracking-[0.18em] text-white/68 backdrop-blur-sm" variants={reveal} initial={shouldReduceMotion ? false : "hidden"} animate="visible" transition={{ duration: shouldReduceMotion ? 0 : 0.75, delay: shouldReduceMotion ? 0 : 1.4, ease }}>
+                <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[var(--helios-orange)] shadow-[0_0_12px_rgba(217,107,43,0.6)]" />
+                <span>{settings.availabilityLabel ? `${settings.availabilityLabel}: ` : ""}{settings.availabilityMessage}</span>
+              </motion.p>
+            ) : null}
+          </div>
         </div>
       </div>
 
