@@ -346,13 +346,6 @@ export default function SiteSettingsForm({
         ["linkedinUrl", "LinkedIn handle or URL"],
       ],
     },
-    {
-      title: "Default search metadata",
-      fields: [
-        ["defaultSeoTitle", "Default SEO title"],
-        ["defaultSeoDescription", "Default SEO description"],
-      ],
-    },
   ] as const;
 
   const uploadBusy = uploading !== null || saving;
@@ -630,6 +623,26 @@ export default function SiteSettingsForm({
           </section>
         ))}
       </div>
+
+      <section className="mt-6 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111] p-6 lg:p-8">
+        <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr]">
+          <div>
+            <p className="text-[0.54rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">Search appearance</p>
+            <h2 className="mt-3 text-2xl font-light text-white">Homepage SEO preview</h2>
+            <p className="mt-3 max-w-lg text-sm leading-6 text-white/40">These defaults control the homepage search result and provide fallback metadata wherever a page does not have its own title or description.</p>
+            <div className="mt-6 rounded-xl border border-white/[0.08] bg-black/25 p-5">
+              <p className="truncate text-xs text-white/45">{settings.websiteUrl || "https://www.heliosrealestatemedia.com"}</p>
+              <p className="mt-2 font-sans text-xl font-normal leading-7 text-[#8ab4f8]">{settings.defaultSeoTitle || "Helios Real Estate Media"}</p>
+              <p className="mt-1 text-sm leading-6 text-white/52">{settings.defaultSeoDescription || "Add a concise description of Helios and the Northern Colorado services you provide."}</p>
+            </div>
+          </div>
+          <div className="space-y-5">
+            <label className="block text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Default SEO title <span className={settings.defaultSeoTitle.length > 60 ? "float-right text-amber-300/75" : "float-right text-white/25"}>{settings.defaultSeoTitle.length}/60</span><input value={settings.defaultSeoTitle} maxLength={160} onChange={(event) => update("defaultSeoTitle", event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label>
+            <label className="block text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Default SEO description <span className={settings.defaultSeoDescription.length > 160 ? "float-right text-amber-300/75" : "float-right text-white/25"}>{settings.defaultSeoDescription.length}/160</span><textarea rows={4} value={settings.defaultSeoDescription} maxLength={320} onChange={(event) => update("defaultSeoDescription", event.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case leading-6 tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label>
+            <p className="text-xs leading-5 text-white/28">Aim for roughly 50–60 characters in the title and 140–160 in the description. Write naturally for people; search engines may rewrite either field.</p>
+          </div>
+        </div>
+      </section>
         </>
       ) : null}
 
