@@ -293,6 +293,7 @@ export default async function PortfolioProjectPage({
   })).filter((collection) => collection.media.length > 0);
   const collectionId = (mediaCategory: string) =>
     `collection-${mediaCategory.toLowerCase().replace(/_/g, "-")}`;
+  const projectCollectionLabel = `${project.title.replace(/^the\s+/i, "")} Collection`;
   const serviceDestinations = new Map(
     activeServices.map(({ service }) => {
       const destination = getServiceMediaCategories(service).find((category) =>
@@ -550,11 +551,11 @@ export default async function PortfolioProjectPage({
               <p className="eyebrow text-[var(--helios-orange)]">
                 {String(collectionIndex + 1).padStart(2, "0")} Collection
               </p>
-              <h2 className="mt-4 font-display text-4xl font-light tracking-[-0.035em] text-white sm:text-5xl">
+              <h2 className="mt-4 font-display text-4xl font-light leading-[0.95] tracking-[-0.035em] text-white sm:text-5xl">
                 {collection.label}
               </h2>
-              <p className="mt-2.5 text-[0.52rem] font-normal uppercase tracking-[0.14em] text-white/26 sm:text-[0.56rem]">
-                The {project.title.replace(/^the\s+/i, "")} Collection
+              <p className="mt-5 text-[0.52rem] font-normal uppercase tracking-[0.14em] text-white/26 sm:mt-6 sm:text-[0.56rem]">
+                The {projectCollectionLabel}
               </p>
             </div>
 
