@@ -213,7 +213,7 @@ export default function FaqManager({ initialCategories }: { initialCategories: A
               <div className="flex flex-col gap-5 border-b border-white/[0.08] pb-6 sm:flex-row sm:items-end sm:justify-between">
                 <div><p className="eyebrow text-[var(--helios-orange)]">{selected.slug}</p><h2 className="mt-2 text-2xl font-light text-white">{selected.name}</h2><p className="mt-2 max-w-xl text-sm text-white/32">{selected.description || "No category description has been added."}</p></div>
                 <div className="flex flex-wrap gap-2">
-                  {selected.faqs.length === 0 && <button type="button" onClick={() => deleteCategory(selected)} className="rounded-full border border-red-300/15 px-4 py-2 text-[0.52rem] uppercase tracking-[0.14em] text-red-200/45">Delete category</button>}
+                  {selected.faqs.length === 0 && <button type="button" onClick={() => deleteCategory(selected)} className="admin-btn-destructive">Delete category</button>}
                   <button type="button" onClick={() => setDialog({ type: "faq" })} className="admin-btn-primary">New question</button>
                 </div>
               </div>
