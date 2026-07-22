@@ -517,6 +517,7 @@ model SiteSettings {
   standardBody String? @default("Exceptional homes deserve more than documentation. They deserve a presentation that shapes how they are seen, remembered, and valued.")
   standardPrinciples Json?
   workEyebrow String? @default("Our Work")
+  workHeading String? @default("Crafted to Capture")
   workHeadingLineOne String? @default("Crafted to")
   workHeadingLineTwo String? @default("Capture")
   workHeadingAccent String? @default("Attention.")

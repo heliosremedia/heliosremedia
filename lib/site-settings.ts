@@ -41,7 +41,7 @@ export type PublicSiteSettings = {
   footerDescription: string | null; availabilityMessage: string | null;
   standardEyebrow: string | null; standardHeadingLineOne: string | null; standardHeadingLineTwo: string | null; standardBody: string | null;
   standardHeading: string | null; standardHeadingAccent: string | null; standardPrinciples: PublicContentCard[];
-  workEyebrow: string | null; workHeadingLineOne: string | null; workHeadingLineTwo: string | null; workHeadingAccent: string | null; workBody: string | null; workButtonLabel: string | null; workButtonDestination: string | null; featuredProjectEyebrow: string | null; portfolioEyebrow: string | null; portfolioHeading: string | null; portfolioButtonLabel: string | null; portfolioButtonDestination: string | null;
+  workEyebrow: string | null; workHeading: string | null; workHeadingLineOne: string | null; workHeadingLineTwo: string | null; workHeadingAccent: string | null; workBody: string | null; workButtonLabel: string | null; workButtonDestination: string | null; featuredProjectEyebrow: string | null; portfolioEyebrow: string | null; portfolioHeading: string | null; portfolioButtonLabel: string | null; portfolioButtonDestination: string | null;
   approachEyebrow: string | null; approachHeadingLineOne: string | null; approachHeadingLineTwo: string | null; approachBody: string | null; conversionImageCaption: string | null;
   approachHeading: string | null; approachHeadingAccent: string | null; approachCards: PublicContentCard[]; approachTagline: string | null; approachButtonLabel: string | null; approachButtonDestination: string | null;
   headerNavigation: PublicNavigationItem[]; footerNavigation: PublicNavigationItem[];
@@ -104,6 +104,7 @@ export const defaultSiteSettings: PublicSiteSettings = {
   standardBody: "Exceptional homes deserve more than documentation. They deserve a presentation that shapes how they are seen, remembered, and valued.",
   standardPrinciples: defaultStandardPrinciples,
   workEyebrow: "Our Work",
+  workHeading: "Crafted to Capture",
   workHeadingLineOne: "Crafted to",
   workHeadingLineTwo: "Capture",
   workHeadingAccent: "Attention.",
