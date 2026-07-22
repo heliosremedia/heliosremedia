@@ -192,22 +192,22 @@ export default async function AboutPage() {
             </p>
           </div>
 
-          <div className="mt-14 grid border-b border-white/[0.09] lg:grid-cols-4">
+          <div className="mt-12 grid border-b border-white/[0.09] sm:mt-14 lg:grid-cols-4">
             {content.principles.map((principle, index) => (
               <article
                 key={principle.number}
-                className={`group relative min-h-80 border-white/[0.09] px-1 py-10 lg:min-h-[28rem] lg:px-8 lg:py-12 ${
+                className={`group relative min-h-72 border-white/[0.09] px-1 py-9 lg:min-h-[22rem] lg:px-8 lg:py-11 ${
                   index > 0 ? "border-t lg:border-l lg:border-t-0" : ""
                 }`}
               >
-                <span className="font-display text-xl text-[var(--helios-orange)]/70">
+                <span className="font-display text-2xl font-light text-[var(--helios-orange)]/85">
                   {principle.number}
                 </span>
-                <div className="mt-20 lg:mt-28">
+                <div className="mt-12 lg:mt-14">
                   <h3 className="font-display text-4xl font-light leading-none tracking-[-0.04em] text-white/85">
                     {principle.title}
                   </h3>
-                  <p className="mt-6 text-sm leading-7 text-white/36 transition group-hover:text-white/55">
+                  <p className="mt-5 text-sm leading-7 text-white/46 transition group-hover:text-white/65">
                     {principle.copy}
                   </p>
                 </div>
