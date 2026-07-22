@@ -13,6 +13,7 @@ import { buildPageMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/site-settings";
 
 import PortfolioFilmLibrary from "./PortfolioFilmLibrary";
+import FeaturedProjectCarousel, { type FeaturedProjectCard } from "./FeaturedProjectCarousel";
 
 export const dynamic = "force-dynamic";
 
@@ -237,13 +238,31 @@ export default async function PortfolioPage({
         ]
       : [],
   );
-  const leadProject = projects[0]?.featured ? projects[0] : null;
-  const regularProjects = leadProject ? projects.slice(1) : projects;
+  const featuredProjects = projects.filter((project) => project.featured);
+  const regularProjects = projects.filter((project) => !project.featured);
   const pageSize = 18;
   const totalPages = Math.max(1, Math.ceil(regularProjects.length / pageSize));
   const currentPage = Math.min(pageNumber, totalPages);
   const displayedProjects = regularProjects.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  const pageProjects = currentPage === 1 && leadProject ? [leadProject, ...displayedProjects] : displayedProjects;
+  const pageProjects = displayedProjects;
+  const carouselProjects: FeaturedProjectCard[] = featuredProjects.map((project) => {
+    const assignedServiceIds = new Set(project.services.filter(({ service }) => service.active).map(({ service }) => service.id));
+    const mediaCategories = new Set(project.media.map((media) => media.mediaCategory));
+    const badges = services.filter((service) => assignedServiceIds.has(service.id) || getServiceMediaCategories(service).some((category) => mediaCategories.has(category)) || (Boolean(project.details?.propertyWebsiteUrl) && getServiceMediaCategories(service).includes("PROPERTY_WEBSITE"))).map(({ id, name }) => ({ id, name }));
+    const firstVideo = project.media.find((media) => media.sourceType === "VIDEO_EMBED" && media.externalUrl);
+    const videoMedia = tryResolveExternalMedia(firstVideo?.externalUrl);
+    const collectionHero = project.collectionHeroes.find((hero) => selectedMediaCategories.includes(hero.mediaCategory))?.media;
+    const imageStorageKey = collectionHero?.storageKey || project.heroMedia?.storageKey;
+    return {
+      id: project.id,
+      title: project.title,
+      slug: project.slug,
+      location: project.locationLabel || [project.city, project.state].filter(Boolean).join(", ") || project.propertyType || "Helios project",
+      imageUrl: imageStorageKey ? getPublicAssetUrl(imageStorageKey) : videoMedia?.thumbnailUrl || "",
+      imageAlt: collectionHero?.altText || collectionHero?.originalFilename || project.heroMedia?.altText || project.heroMedia?.originalFilename || project.title,
+      badges,
+    };
+  });
   const collectionAnchor = selectedService?.slug || "selected-work";
   const pageHref = (page: number) => `/portfolio?${new URLSearchParams({ ...(selectedService ? { service: selectedService.slug } : {}), ...(page > 1 ? { page: String(page) } : {}) }).toString()}#${collectionAnchor}`;
 
@@ -322,8 +341,10 @@ export default async function PortfolioPage({
           </p>
         </div>
 
+        {currentPage === 1 && carouselProjects.length > 0 ? <FeaturedProjectCarousel projects={carouselProjects} /> : null}
+
         {pageProjects.length > 0 ? (
-          <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div className={`${currentPage === 1 && carouselProjects.length > 0 ? "mt-6" : "mt-8"} grid gap-6 md:grid-cols-2 xl:grid-cols-3`}>
             {pageProjects.map((project) => {
               const assignedServiceIds = new Set(
                 project.services
@@ -375,11 +396,7 @@ export default async function PortfolioPage({
               return (
                 <article
                   key={project.id}
-                  className={`group relative overflow-hidden border border-white/[0.08] bg-black ${
-                    project === leadProject && currentPage === 1
-                      ? "md:col-span-2 xl:col-span-3"
-                      : ""
-                  }`}
+                  className="group relative overflow-hidden border border-white/[0.08] bg-black"
                 >
                   <Link
                     href={`/portfolio/${project.slug}`}
@@ -388,11 +405,7 @@ export default async function PortfolioPage({
                   />
 
                   <div
-                    className={`relative overflow-hidden bg-white/[0.03] ${
-                      project === leadProject && currentPage === 1
-                        ? "aspect-[16/9] xl:aspect-[2.35/1]"
-                        : "aspect-[4/3]"
-                    }`}
+                    className="relative aspect-[4/3] overflow-hidden bg-white/[0.03]"
                   >
                     {imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -412,12 +425,6 @@ export default async function PortfolioPage({
                     )}
 
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent opacity-90" />
-
-                    {project === leadProject && currentPage === 1 && (
-                      <span className="absolute left-5 top-5 rounded-full border border-[var(--helios-orange)]/35 bg-[var(--helios-orange)] px-3 py-1.5 text-[0.52rem] font-semibold uppercase tracking-[0.15em] text-black">
-                        Featured project
-                      </span>
-                    )}
 
                     {!imageStorageKey && videoMedia && (
                       <span className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/80 backdrop-blur-md">
@@ -452,7 +459,7 @@ export default async function PortfolioPage({
               );
             })}
           </div>
-        ) : (
+        ) : currentPage === 1 && carouselProjects.length > 0 ? null : (
           <div className="mt-8 border border-white/[0.08] bg-white/[0.02] px-6 py-20 text-center">
             <h3 className="font-display text-3xl font-light text-white">
               This collection is being curated.

@@ -172,17 +172,19 @@
 
 html {
   min-width: 320px;
+  min-height: 100%;
   scroll-behavior: smooth;
-  background: var(--background);
+  background-color: #0f0f10;
   overscroll-behavior-y: none;
 }
 
 body {
   margin: 0;
   min-width: 320px;
+  min-height: 100dvh;
   overflow-x: hidden;
-  background: var(--background);
-  min-height: 100%;
+  isolation: isolate;
+  background-color: #0f0f10;
   color: var(--foreground);
   font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   text-rendering: optimizeLegibility;
@@ -190,8 +192,18 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+body::before {
+  content: "";
+  position: fixed;
+  inset: -2px;
+  z-index: -1;
+  pointer-events: none;
+  background-color: #0f0f10;
+  transform: translateZ(0);
+}
+
 main {
-  overflow: clip;
+  overflow-x: clip;
   background: var(--background);
 }
 

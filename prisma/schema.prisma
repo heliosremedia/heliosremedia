@@ -197,6 +197,9 @@ model ProjectDetails {
   lotSize      String?
   neighborhood String?
 
+  // Internal-only lookup value. Never rendered on public project pages.
+  propertyAddress String?
+
   propertyWebsiteUrl String?
 
   createdAt DateTime @default(now())

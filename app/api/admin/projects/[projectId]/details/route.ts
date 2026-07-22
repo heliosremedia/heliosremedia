@@ -33,6 +33,7 @@ const DETAILS_TEXT_LIMITS = {
   interiorDesigner: 160,
   lotSize: 120,
   neighborhood: 160,
+  propertyAddress: 300,
   propertyWebsiteUrl: 500,
 } as const;
 
@@ -244,6 +245,7 @@ export async function PATCH(
           bathrooms: bathrooms.value,
           lotSize: getOptionalText(body, "lotSize"),
           neighborhood: getOptionalText(body, "neighborhood"),
+          propertyAddress: getOptionalText(body, "propertyAddress"),
           propertyWebsiteUrl,
         },
         update: {
@@ -257,6 +259,7 @@ export async function PATCH(
           bathrooms: bathrooms.value,
           lotSize: getOptionalText(body, "lotSize"),
           neighborhood: getOptionalText(body, "neighborhood"),
+          propertyAddress: getOptionalText(body, "propertyAddress"),
           propertyWebsiteUrl,
         },
       });

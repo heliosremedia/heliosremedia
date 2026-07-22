@@ -78,6 +78,7 @@ export default async function ProjectEditorPage({
             bathrooms: true,
             lotSize: true,
             neighborhood: true,
+            propertyAddress: true,
             propertyWebsiteUrl: true,
           },
         },
@@ -294,6 +295,7 @@ export default async function ProjectEditorPage({
             bathrooms: project.details?.bathrooms?.toString() || "",
             lotSize: project.details?.lotSize || "",
             neighborhood: project.details?.neighborhood || "",
+            propertyAddress: project.details?.propertyAddress || "",
             propertyWebsiteUrl: project.details?.propertyWebsiteUrl || "",
           }}
         />

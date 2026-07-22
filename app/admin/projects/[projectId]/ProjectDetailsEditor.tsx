@@ -32,6 +32,7 @@ export type ProjectDetailsDraft = {
   bathrooms: string;
   lotSize: string;
   neighborhood: string;
+  propertyAddress: string;
   propertyWebsiteUrl: string;
 };
 
@@ -257,6 +258,7 @@ export default function ProjectDetailsEditor({
           {[
             ["Title", savedData.title],
             ["Location", location || "Not specified"],
+            ["Internal address", savedData.propertyAddress || "Not specified"],
             ["Project type", savedData.projectType || "Not specified"],
             ["Property type", savedData.propertyType || "Not specified"],
             ["Project story", storyReady ? "Complete" : "Needs content"],
@@ -344,6 +346,23 @@ export default function ProjectDetailsEditor({
                     description="Control the public project name, URL, and geographic context."
                   />
                   <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-6">
+                    <Field
+                      label="Property address — internal only"
+                      className="sm:col-span-2"
+                      detail="Used only to find this project in Admin. It is never displayed publicly."
+                    >
+                      <input
+                        value={draft.propertyAddress}
+                        onChange={(event) =>
+                          updateField("propertyAddress", event.target.value)
+                        }
+                        maxLength={300}
+                        autoComplete="street-address"
+                        placeholder="3095 Gladstone Avenue, Loveland, CO 80538"
+                        className={inputClasses}
+                      />
+                    </Field>
+
                     <Field label="Project title">
                       <input
                         required

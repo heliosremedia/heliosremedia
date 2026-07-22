@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 import Script from "next/script";
 
@@ -7,6 +7,11 @@ import { getSiteSettings } from "@/lib/site-settings";
 import { SiteSettingsProvider } from "@/app/components/SiteSettingsProvider";
 
 import "./globals.css";
+
+export const viewport: Viewport = {
+  themeColor: "#0f0f10",
+  colorScheme: "dark",
+};
 
 const cormorant = Cormorant_Garamond({
   variable: "--font-cormorant",
