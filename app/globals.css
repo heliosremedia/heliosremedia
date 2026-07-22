@@ -6,7 +6,7 @@
 
 
 @utility admin-btn {
-  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-center text-[0.58rem] font-semibold uppercase tracking-[0.15em] transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f0f10] active:translate-y-px disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-40;
+  @apply inline-flex h-10 min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-0 text-center text-[0.52rem] font-semibold uppercase leading-none tracking-[0.12em] transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f0f10] active:translate-y-px disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-40;
 }
 
 @utility admin-btn-primary {
@@ -38,7 +38,7 @@
 }
 
 @utility admin-btn-link {
-  @apply inline-flex min-h-10 items-center justify-center rounded-lg px-2 text-[0.56rem] font-semibold uppercase tracking-[0.14em] text-white/45 transition hover:bg-white/[0.05] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f0f10] disabled:pointer-events-none disabled:opacity-40;
+  @apply inline-flex h-9 min-h-9 items-center justify-center whitespace-nowrap rounded-md px-3 text-[0.5rem] font-semibold uppercase leading-none tracking-[0.12em] text-white/45 transition hover:bg-white/[0.05] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f0f10] disabled:pointer-events-none disabled:opacity-40;
 }
 
 @utility admin-btn-link-destructive {
