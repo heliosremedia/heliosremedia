@@ -13,6 +13,7 @@ export default function Footer() {
   const bookingHref = settings.bookingUrl || "/inquire";
   const connectLinks = [
     { label: "Book Your Shoot", href: bookingHref },
+    { label: "Contact Helios", href: "/contact" },
     { label: `Call ${settings.phoneDisplay}`, href: `tel:${settings.phoneE164}` },
     ...(settings.email ? [{ label: "Email Helios", href: `mailto:${settings.email}` }] : []),
   ];

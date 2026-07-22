@@ -48,6 +48,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.7,
     },
+    {
+      url: getAbsoluteUrl("/contact"),
+      changeFrequency: "yearly",
+      priority: 0.6,
+    },
   ];
 
   const projectPages: MetadataRoute.Sitemap = projects.map((project) => ({
