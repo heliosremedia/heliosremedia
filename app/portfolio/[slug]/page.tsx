@@ -553,6 +553,9 @@ export default async function PortfolioProjectPage({
               <h2 className="mt-4 font-display text-4xl font-light tracking-[-0.035em] text-white sm:text-5xl">
                 {collection.label}
               </h2>
+              <p className="mt-2.5 text-[0.52rem] font-normal uppercase tracking-[0.14em] text-white/26 sm:text-[0.56rem]">
+                The {project.title.replace(/^the\s+/i, "")} Collection
+              </p>
             </div>
 
             <p className="text-xs text-white/25">
