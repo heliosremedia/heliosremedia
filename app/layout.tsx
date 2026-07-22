@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 import Script from "next/script";
 
-import { getSiteUrl } from "@/lib/site";
+import { getAbsoluteUrl, getSiteUrl } from "@/lib/site";
 import { getSiteSettings } from "@/lib/site-settings";
 import { SiteSettingsProvider } from "@/app/components/SiteSettingsProvider";
 
@@ -24,7 +24,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const favicon = settings.faviconUrl
     ? `${settings.faviconUrl}${settings.faviconUrl.includes("?") ? "&" : "?"}v=${settings.faviconVersion}`
     : undefined;
-  return { metadataBase: new URL(getSiteUrl()), title: settings.defaultSeoTitle, description: settings.defaultSeoDescription, icons: favicon ? { icon: [{ url: favicon, type: "image/png" }], shortcut: favicon, apple: favicon } : undefined, openGraph: { type: "website", locale: "en_US", siteName: settings.businessName, title: settings.defaultSeoTitle, description: settings.defaultSeoDescription } };
+  const socialImage = settings.heroPosterUrl || settings.brandLogoUrl;
+  return { metadataBase: new URL(getSiteUrl()), title: settings.defaultSeoTitle, description: settings.defaultSeoDescription, icons: favicon ? { icon: [{ url: favicon, type: "image/png" }], shortcut: favicon, apple: favicon } : undefined, openGraph: { type: "website", locale: "en_US", siteName: settings.businessName, title: settings.defaultSeoTitle, description: settings.defaultSeoDescription, url: getAbsoluteUrl("/"), images: socialImage ? [{ url: socialImage, alt: settings.heroPosterAlt || settings.businessName }] : undefined }, twitter: { card: socialImage ? "summary_large_image" : "summary", title: settings.defaultSeoTitle, description: settings.defaultSeoDescription, images: socialImage ? [socialImage] : undefined } };
 }
 
 export default async function RootLayout({
@@ -35,16 +36,32 @@ export default async function RootLayout({
   const settings = await getSiteSettings();
   const analyticsId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim();
   const sameAs = [settings.instagramUrl, settings.facebookUrl, settings.youtubeUrl, settings.linkedinUrl].filter((url): url is string => Boolean(url));
+  const businessId = getAbsoluteUrl("/#business");
   const structuredData = {
     "@context": "https://schema.org",
-    "@type": "ProfessionalService",
-    name: settings.businessName,
-    url: settings.websiteUrl || getSiteUrl(),
-    telephone: settings.phoneE164,
-    email: settings.email || undefined,
-    description: settings.defaultSeoDescription,
-    areaServed: settings.serviceArea,
-    sameAs: sameAs.length ? sameAs : undefined,
+    "@graph": [
+      {
+        "@type": ["LocalBusiness", "ProfessionalService"],
+        "@id": businessId,
+        name: settings.businessName,
+        url: settings.websiteUrl || getSiteUrl(),
+        telephone: settings.phoneE164,
+        email: settings.email || undefined,
+        description: settings.defaultSeoDescription,
+        image: settings.heroPosterUrl || undefined,
+        logo: settings.brandLogoUrl || undefined,
+        areaServed: { "@type": "AdministrativeArea", name: settings.serviceArea },
+        sameAs: sameAs.length ? sameAs : undefined,
+      },
+      {
+        "@type": "WebSite",
+        "@id": getAbsoluteUrl("/#website"),
+        url: getAbsoluteUrl("/"),
+        name: settings.businessName,
+        publisher: { "@id": businessId },
+        inLanguage: "en-US",
+      },
+    ],
   };
   return (
     <html lang="en">
