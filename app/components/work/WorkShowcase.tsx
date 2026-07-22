@@ -58,9 +58,9 @@ export default function WorkShowcase({ items = portfolioItems, featuredFilm, fea
                 ease,
               }}
             >
-              <span className="block text-[var(--foreground)]">{settings.workHeadingLineOne || "Crafted to"}</span>
-
-              <span className="block text-white/80">{settings.workHeadingLineTwo || "Capture"}</span>
+              <span className="block text-[var(--foreground)] lg:whitespace-nowrap">
+                {settings.workHeading || [settings.workHeadingLineOne, settings.workHeadingLineTwo].filter(Boolean).join(" ") || "Crafted to Capture"}
+              </span>
 
               <span className="block italic text-[var(--helios-orange)]">
                 {settings.workHeadingAccent || "Attention."}
