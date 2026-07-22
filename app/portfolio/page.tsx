@@ -239,11 +239,10 @@ export default async function PortfolioPage({
       : [],
   );
   const featuredProjects = projects.filter((project) => project.featured);
-  const regularProjects = projects.filter((project) => !project.featured);
   const pageSize = 18;
-  const totalPages = Math.max(1, Math.ceil(regularProjects.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(projects.length / pageSize));
   const currentPage = Math.min(pageNumber, totalPages);
-  const displayedProjects = regularProjects.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const displayedProjects = projects.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const pageProjects = displayedProjects;
   const carouselProjects: FeaturedProjectCard[] = featuredProjects.map((project) => {
     const assignedServiceIds = new Set(project.services.filter(({ service }) => service.active).map(({ service }) => service.id));
