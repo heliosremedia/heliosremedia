@@ -1126,7 +1126,7 @@ export default function MediaUploader({
                             upload,
                           )
                         }
-                        className="admin-btn-secondary min-h-9"
+                        className="admin-btn-secondary"
                       >
                         Retry
                       </button>
