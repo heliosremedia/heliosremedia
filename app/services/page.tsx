@@ -8,6 +8,8 @@ import { defaultPageCtas } from "@/lib/ctas";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { getServiceMediaCategories } from "@/lib/portfolio-services";
+import { buildPageMetadata } from "@/lib/seo";
+import { getSiteSettings } from "@/lib/site-settings";
 
 function projectCollectionHref(
   projectSlug: string,
@@ -24,14 +26,7 @@ function projectCollectionHref(
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Real Estate Media Services | Helios",
-  description:
-    "Explore photography, cinematic film, aerial media, agent branding, social content, floor plans, Matterport, and property websites from Helios Real Estate Media.",
-  alternates: {
-    canonical: "/services",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> { const settings = await getSiteSettings(); return buildPageMetadata({ title: "Real Estate Media Services | Helios", description: "Explore photography, cinematic film, aerial media, agent branding, social content, floor plans, Matterport, and property websites from Helios Real Estate Media.", path: "/services", settings }); }
 
 export default async function ServicesPage() {
   const services = await prisma.service.findMany({
@@ -198,10 +193,10 @@ export default async function ServicesPage() {
 
                     <div className="mt-9 flex flex-wrap items-center gap-4">
                       <Link
-                        href={`/portfolio?service=${service.slug}#${service.slug}`}
+                        href={`/services/${service.slug}`}
                         className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-6 text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/60 transition hover:border-white/35 hover:text-white"
                       >
-                        View related work
+                        Explore service
                       </Link>
                       {service._count.projects > 0 && (
                         <span className="text-xs text-white/22">
