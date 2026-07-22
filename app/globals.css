@@ -6,7 +6,7 @@
 
 
 @utility admin-btn {
-  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 py-2.5 text-center text-[0.58rem] font-semibold uppercase tracking-[0.15em] transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f0f10] active:translate-y-px disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-40;
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-center text-[0.58rem] font-semibold uppercase tracking-[0.15em] transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f0f10] active:translate-y-px disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-40;
 }
 
 @utility admin-btn-primary {
