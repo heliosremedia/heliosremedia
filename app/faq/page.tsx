@@ -7,16 +7,14 @@ import { PhoneLink } from "@/app/components/SiteActionLink";
 import { prisma } from "@/lib/prisma";
 import { getAbsoluteUrl } from "@/lib/site";
 import { defaultPageCtas } from "@/lib/ctas";
+import { buildPageMetadata } from "@/lib/seo";
+import { getSiteSettings } from "@/lib/site-settings";
 
 import FaqExplorer from "./FaqExplorer";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Frequently Asked Questions | Helios Real Estate Media",
-  description: "Answers about booking, preparing a property, real estate photography, video, aerial media, delivery, and working with Helios Real Estate Media.",
-  alternates: { canonical: "/faq" },
-};
+export async function generateMetadata(): Promise<Metadata> { const settings = await getSiteSettings(); return buildPageMetadata({ title: "Frequently Asked Questions | Helios Real Estate Media", description: "Answers about booking, preparing a property, real estate photography, video, aerial media, delivery, and working with Helios Real Estate Media.", path: "/faq", settings }); }
 
 export default async function FaqPage() {
   const categories = await prisma.faqCategory.findMany({
