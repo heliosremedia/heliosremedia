@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 import { useSiteSettings } from "./SiteSettingsProvider";
 import type { PublicCta } from "@/lib/ctas";
+import RichText from "./RichText";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -128,9 +129,7 @@ export default function PrimaryConversion({ cta, imageUrl, imageAlt, imageCaptio
                 {cta.headline}
               </h2>
 
-              <p className="mt-16 max-w-[28rem] text-[0.97rem] leading-[1.85] text-white/62 sm:mt-20 sm:text-[1.05rem]">
-                {cta.body}
-              </p>
+              {cta.body && <RichText content={cta.body} className="mt-16 max-w-[28rem] text-[0.97rem] leading-[1.85] text-white/62 sm:mt-20 sm:text-[1.05rem]" />}
 
               <Link
                 href={resolveAction(cta.primaryActionType, cta.primaryValue, settings)}

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Footer from "@/app/components/Footer";
 import ManagedCtaSection from "@/app/components/ManagedCtaSection";
 import Navbar from "@/app/components/Navbar";
+import RichText from "@/app/components/RichText";
 import { getAboutPageContent } from "@/lib/about-page";
 import { defaultPageCtas } from "@/lib/ctas";
 import { getVisibleTeamMembers, teamMemberCategoryLabels } from "@/lib/team-members";
@@ -39,9 +40,7 @@ export default async function AboutPage() {
             <h1 className="mt-7 max-w-6xl font-display text-[clamp(3.15rem,11vw,8rem)] font-light leading-[0.94] tracking-[-0.058em] text-white">
               {content.heroHeadline}
             </h1>
-            <p className="mt-8 max-w-2xl text-sm leading-7 text-white/62 sm:mt-10 sm:text-base sm:leading-8">
-              {content.heroBody}
-            </p>
+            <RichText content={content.heroBody} className="mt-12 max-w-2xl text-sm leading-7 text-white/62 sm:mt-14 sm:text-base sm:leading-8" />
           </div>
         </div>
       </section>
@@ -49,9 +48,7 @@ export default async function AboutPage() {
       <section className="container-shell grid gap-14 border-b border-white/[0.08] py-20 sm:py-28 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] lg:gap-24 lg:py-36">
         <div>
           <p className="eyebrow text-[var(--helios-orange)]">{content.storyEyebrow}</p>
-          <p className="mt-7 max-w-md text-sm leading-7 text-white/40 sm:text-base sm:leading-8">
-            {content.storyIntro}
-          </p>
+          <RichText content={content.storyIntro} className="mt-7 max-w-md text-sm leading-7 text-white/40 sm:text-base sm:leading-8" />
         </div>
 
         <div>
@@ -59,12 +56,8 @@ export default async function AboutPage() {
             {content.storyHeadline}
           </h2>
           <div className="mt-12 grid gap-7 border-t border-white/[0.1] pt-8 sm:grid-cols-2">
-            <p className="text-sm leading-7 text-white/46">
-              {content.storyBodyLeft}
-            </p>
-            <p className="text-sm leading-7 text-white/46">
-              {content.storyBodyRight}
-            </p>
+            <RichText content={content.storyBodyLeft} className="text-sm leading-7 text-white/46" />
+            <RichText content={content.storyBodyRight} className="text-sm leading-7 text-white/46" />
           </div>
         </div>
       </section>
@@ -98,9 +91,7 @@ export default async function AboutPage() {
                   <p className="mt-8 text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-white/75">
                     {content.founderRole}
                   </p>
-                  <p className="mt-7 max-w-xl whitespace-pre-line text-sm leading-7 text-white/58 sm:text-base sm:leading-8">
-                    {content.founderBody}
-                  </p>
+                  <RichText content={content.founderBody} className="mt-7 max-w-xl text-sm leading-7 text-white/58 sm:text-base sm:leading-8" />
                   <p className="mt-10 font-display text-[clamp(2.25rem,4.5vw,3.75rem)] font-light italic leading-[1.08] tracking-[-0.035em] text-white/88">
                     {content.founderSignature}
                   </p>
@@ -147,7 +138,7 @@ export default async function AboutPage() {
                   <div className="p-6 sm:p-7">
                     <h3 className="font-display text-4xl font-light tracking-[-0.045em] text-white/90">{member.name}</h3>
                     <p className="mt-3 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-white/45">{member.title}</p>
-                    <p className="mt-5 text-sm leading-7 text-white/42">{member.biography}</p>
+                    <RichText content={member.biography} className="mt-5 text-sm leading-7 text-white/42" />
                   </div>
                 </article>
               ))}
@@ -182,9 +173,7 @@ export default async function AboutPage() {
                 {content.principlesHeadline}
               </h2>
             </div>
-            <p className="max-w-md text-sm leading-7 text-white/35">
-              {content.principlesIntro}
-            </p>
+            <RichText content={content.principlesIntro} className="max-w-md text-sm leading-7 text-white/35" />
           </div>
 
           <div className="mt-12 grid border-b border-white/[0.09] sm:mt-14 lg:grid-cols-4">
@@ -202,9 +191,7 @@ export default async function AboutPage() {
                   <h3 className="font-display text-4xl font-light leading-none tracking-[-0.04em] text-white/85">
                     {principle.title}
                   </h3>
-                  <p className="mt-5 text-sm leading-7 text-white/46 transition group-hover:text-white/65">
-                    {principle.copy}
-                  </p>
+                  <RichText content={principle.copy} className="mt-5 text-sm leading-7 text-white/46 transition group-hover:text-white/65" />
                 </div>
                 <span className="absolute inset-x-0 bottom-0 h-px origin-left scale-x-0 bg-gradient-to-r from-[var(--helios-orange)] to-transparent transition duration-700 group-hover:scale-x-100" />
               </article>
@@ -271,7 +258,7 @@ export default async function AboutPage() {
                   <h3 className="font-display text-3xl font-light tracking-[-0.035em] text-white/80">
                     {step.title}
                   </h3>
-                  <p className="text-sm leading-7 text-white/35">{step.copy}</p>
+                  <RichText content={step.copy} className="text-sm leading-7 text-white/35" />
                 </article>
               ))}
             </div>

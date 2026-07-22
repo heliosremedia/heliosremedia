@@ -9,6 +9,7 @@ import {
   useTransform,
 } from "motion/react";
 import type { PublicContentCard, PublicSiteSettings } from "@/lib/site-settings";
+import RichText from "./RichText";
 
 const fallbackPrinciples: PublicContentCard[] = [
   {
@@ -213,13 +214,12 @@ export default function OurApproach({ settings }: { settings: PublicSiteSettings
                         </h3>
                       </div>
 
-                      <p
+                      <RichText
+                        content={principle.copy}
                         className={`mt-8 max-w-[25rem] text-sm leading-7 transition-colors duration-500 sm:text-base sm:leading-8 ${
                           isActive ? "text-white/74" : "text-white/56"
                         }`}
-                      >
-                        {principle.copy}
-                      </p>
+                      />
                     </motion.div>
                   </div>
 

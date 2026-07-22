@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import RichText from "@/app/components/RichText";
 
 export type PublicFaqCategory = {
   id: string;
@@ -67,7 +68,7 @@ export default function FaqExplorer({ categories }: { categories: PublicFaqCateg
                         <span className="text-base leading-6 text-white/72 transition group-hover:text-white sm:text-lg">{faq.question}</span>
                         <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 text-white/35 transition group-open:rotate-45 group-open:border-[var(--helios-orange)]/30 group-open:text-[var(--helios-orange)]"><span className="absolute h-px w-3 bg-current"/><span className="absolute h-3 w-px bg-current"/></span>
                       </summary>
-                      <div className="px-5 pb-6 sm:px-7 sm:pb-7"><p className="max-w-3xl whitespace-pre-line border-t border-white/[0.07] pt-5 text-sm leading-7 text-white/42 sm:text-base sm:leading-8">{faq.answer}</p></div>
+                      <div className="px-5 pb-6 sm:px-7 sm:pb-7"><RichText content={faq.answer} className="max-w-3xl border-t border-white/[0.07] pt-5 text-sm leading-7 text-white/42 sm:text-base sm:leading-8" /></div>
                     </details>
                   ))}
                 </div>

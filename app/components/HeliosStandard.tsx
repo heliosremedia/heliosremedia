@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
+import RichText from "./RichText";
 
 const fallbackPrinciples = [
   {
@@ -291,9 +292,7 @@ export default function HeliosStandard({
                     </h3>
                   </div>
 
-                  <p className="relative z-10 mt-7 max-w-[17rem] text-sm leading-7 text-white/46 transition-colors duration-700 group-hover:text-white/64">
-                    {principle.description}
-                  </p>
+                  <RichText content={principle.description} className="relative z-10 mt-7 max-w-[17rem] text-sm leading-7 text-white/46 transition-colors duration-700 group-hover:text-white/64" />
 
                   <span className="absolute bottom-0 left-0 z-10 h-px w-0 bg-[var(--helios-orange)] transition-all duration-700 ease-[var(--ease-luxury)] group-hover:w-full" />
                 </motion.article>

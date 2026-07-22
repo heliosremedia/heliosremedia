@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import Footer from "@/app/components/Footer";
 import Navbar from "@/app/components/Navbar";
+import RichText from "@/app/components/RichText";
 import { tryResolveExternalMedia } from "@/lib/external-media";
 import { MEDIA_COLLECTIONS } from "@/lib/media-collections";
 import { getServiceMediaCategories } from "@/lib/portfolio-services";
@@ -490,9 +491,7 @@ export default async function PortfolioProjectPage({
             )}
 
             {project.description && (
-              <p className="mt-8 max-w-3xl whitespace-pre-line text-base leading-8 text-white/52 sm:text-[1.125rem] sm:leading-9">
-                {project.description}
-              </p>
+              <RichText content={project.description} className="mt-8 max-w-3xl text-base leading-8 text-white/52 sm:text-[1.125rem] sm:leading-9" />
             )}
           </div>
 

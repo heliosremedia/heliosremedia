@@ -5,12 +5,14 @@ import { notFound } from "next/navigation";
 import Footer from "@/app/components/Footer";
 import ManagedCtaSection from "@/app/components/ManagedCtaSection";
 import Navbar from "@/app/components/Navbar";
+import RichText from "@/app/components/RichText";
 import { defaultPageCtas } from "@/lib/ctas";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { buildPageMetadata } from "@/lib/seo";
 import { getAbsoluteUrl } from "@/lib/site";
 import { getSiteSettings } from "@/lib/site-settings";
+import { richTextToPlainText } from "@/lib/rich-text";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +54,7 @@ export async function generateMetadata({ params }: ServicePageProps): Promise<Me
   const [service, settings] = await Promise.all([getService(slug), getSiteSettings()]);
   if (!service) return { title: "Service Not Found | Helios", robots: { index: false, follow: false } };
   const title = `${service.name} in Northern Colorado | Helios`;
-  const description = service.description || `Explore professional ${service.name.toLowerCase()} for real estate agents, builders, and exceptional properties across Northern Colorado.`;
+  const description = service.description ? richTextToPlainText(service.description) : `Explore professional ${service.name.toLowerCase()} for real estate agents, builders, and exceptional properties across Northern Colorado.`;
   const hero = service.projects.find(({ project }) => project.heroMedia?.storageKey)?.project.heroMedia;
   return buildPageMetadata({ title, description, path: `/services/${slug}`, settings, image: hero?.storageKey ? getPublicAssetUrl(hero.storageKey) : null, imageAlt: hero?.altText || service.name });
 }
@@ -71,7 +73,7 @@ export default async function ServiceDetailPage({ params }: ServicePageProps) {
     "@context": "https://schema.org",
     "@type": "Service",
     name: service.name,
-    description: service.description || undefined,
+    description: service.description ? richTextToPlainText(service.description) : undefined,
     url: getAbsoluteUrl(`/services/${service.slug}`),
     provider: { "@id": getAbsoluteUrl("/#business") },
     areaServed: { "@type": "AdministrativeArea", name: settings.serviceArea },
@@ -87,7 +89,7 @@ export default async function ServiceDetailPage({ params }: ServicePageProps) {
         <div className="container-shell relative py-20 sm:py-28 lg:py-32">
           <Link href="/services" className="eyebrow text-white/35 transition hover:text-[var(--helios-orange)]">All services</Link>
           <h1 className="mt-7 max-w-5xl font-display text-[clamp(3.7rem,8vw,8rem)] font-light leading-[0.88] tracking-[-0.06em]">{service.name}</h1>
-          <p className="mt-8 max-w-3xl text-base leading-8 text-white/50 sm:text-lg">{service.description || `Professional ${service.name.toLowerCase()} created to elevate listings and strengthen real estate brands across Northern Colorado.`}</p>
+          <RichText content={service.description || `Professional ${service.name.toLowerCase()} created to elevate listings and strengthen real estate brands across Northern Colorado.`} className="mt-8 max-w-3xl text-base leading-8 text-white/50 sm:text-lg" />
           <div className="mt-9 flex flex-wrap gap-4">
             <Link href="/inquire" className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--helios-orange)] px-7 text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-[var(--helios-orange-hover)]">Book this service</Link>
             <Link href={`/portfolio?service=${service.slug}#${service.slug}`} className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-7 text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/65 transition hover:border-white/35 hover:text-white">View full portfolio</Link>
