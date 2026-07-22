@@ -293,7 +293,7 @@ export default async function PortfolioProjectPage({
   })).filter((collection) => collection.media.length > 0);
   const collectionId = (mediaCategory: string) =>
     `collection-${mediaCategory.toLowerCase().replace(/_/g, "-")}`;
-  const projectCollectionLabel = `${project.title.replace(/^the\s+/i, "")} Collection`;
+  const projectCollectionTitle = `The ${project.title.replace(/^the\s+/i, "")}`;
   const serviceDestinations = new Map(
     activeServices.map(({ service }) => {
       const destination = getServiceMediaCategories(service).find((category) =>
@@ -484,7 +484,7 @@ export default async function PortfolioProjectPage({
             <p className="eyebrow text-[var(--helios-orange)]">The project</p>
 
             {project.shortDescription && (
-              <h2 className="mt-6 max-w-2xl font-display text-lg font-light leading-8 tracking-[-0.012em] text-white/86 sm:text-xl sm:leading-9">
+              <h2 className="mt-6 max-w-2xl font-display text-base font-light leading-7 tracking-[-0.01em] text-white/82 sm:text-lg sm:leading-8">
                 {project.shortDescription}
               </h2>
             )}
@@ -550,6 +550,8 @@ export default async function PortfolioProjectPage({
             <div>
               <p className="eyebrow text-[var(--helios-orange)]">
                 {String(collectionIndex + 1).padStart(2, "0")} Collection
+                <span aria-hidden="true"> · </span>
+                {projectCollectionTitle}
               </p>
               <h2 className="mt-4 font-display text-4xl font-light leading-[1.15] tracking-[-0.035em] text-white sm:text-5xl">
                 {collection.label}
@@ -561,10 +563,6 @@ export default async function PortfolioProjectPage({
               {collection.media.length === 1 ? "asset" : "assets"}
             </p>
           </div>
-
-          <p className="mt-10 text-[0.52rem] font-normal uppercase leading-normal tracking-[0.14em] text-white/26 sm:mt-12 sm:text-[0.56rem]">
-            The {projectCollectionLabel}
-          </p>
 
           <PortfolioGallery
             projectTitle={project.title}
