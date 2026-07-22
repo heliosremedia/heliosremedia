@@ -8,7 +8,7 @@ export default function NewProjectPage() {
       <section className="border-b border-white/[0.08] pb-7">
         <Link
           href="/admin/projects"
-          className="inline-flex items-center gap-2 text-[0.62rem] font-semibold uppercase tracking-[0.17em] text-white/35 transition hover:text-white"
+          className="admin-btn-link"
         >
           <svg
             aria-hidden="true"

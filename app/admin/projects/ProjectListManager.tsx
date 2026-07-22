@@ -44,7 +44,7 @@ function ProjectRow({ project, sortable }: { project: AdminProjectListItem; sort
       <td className="px-5 py-4 text-sm text-white/45">{project.mediaCount}</td>
       <td className="px-5 py-4"><span className={`rounded-full border px-3 py-1.5 text-[0.52rem] font-semibold uppercase tracking-[0.12em] ${statusClasses(project.status)}`}>{project.status.charAt(0) + project.status.slice(1).toLowerCase()}</span></td>
       <td className="px-5 py-4 text-sm text-white/35">{project.updatedAt}</td>
-      <td className="px-5 py-4 text-right"><Link href={`/admin/projects/${project.id}`} className="text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-white/70 hover:text-white">Edit →</Link></td>
+      <td className="px-5 py-4 text-right"><Link href={`/admin/projects/${project.id}`} className="admin-btn-link">Edit →</Link></td>
     </tr>
   );
 }

@@ -276,7 +276,7 @@ export default function ProjectWorkflowManager({
               setError(null);
               setServerBlockers([]);
             }}
-            className="self-start text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-red-200/60 transition hover:text-red-100"
+            className="self-start admin-btn-link-destructive"
           >
             Dismiss
           </button>
@@ -312,7 +312,7 @@ export default function ProjectWorkflowManager({
               type="button"
               onClick={() => void saveServices()}
               disabled={isSavingServices || !serviceSelectionChanged}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[var(--helios-orange)] px-6 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-black transition hover:bg-[var(--helios-orange-hover)] disabled:cursor-not-allowed disabled:opacity-35"
+              className="admin-btn-primary"
             >
               {isSavingServices && (
                 <span className="h-3 w-3 animate-spin rounded-full border border-black/25 border-t-black" />
@@ -546,7 +546,7 @@ export default function ProjectWorkflowManager({
                 <>
                   <Link
                     href={`/portfolio/${projectSlug}`}
-                    className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[var(--helios-orange)] px-5 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-black transition hover:bg-[var(--helios-orange-hover)]"
+                    className="w-full admin-btn-primary"
                   >
                     View live project
                   </Link>
@@ -555,7 +555,7 @@ export default function ProjectWorkflowManager({
                     type="button"
                     onClick={() => void runWorkflowAction("unpublish")}
                     disabled={workflowAction !== null}
-                    className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-white/10 px-5 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-white/45 transition hover:border-white/25 hover:text-white disabled:cursor-wait disabled:opacity-40"
+                    className="w-full admin-btn-secondary"
                   >
                     {workflowAction === "unpublish"
                       ? "Moving to draft"
@@ -567,7 +567,7 @@ export default function ProjectWorkflowManager({
                   type="button"
                   onClick={() => void runWorkflowAction("publish")}
                   disabled={workflowAction !== null || !canPublish}
-                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--helios-orange)] px-5 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-black transition hover:bg-[var(--helios-orange-hover)] disabled:cursor-not-allowed disabled:opacity-35"
+                  className="w-full admin-btn-primary"
                 >
                   {workflowAction === "publish" && (
                     <span className="h-3 w-3 animate-spin rounded-full border border-black/25 border-t-black" />
@@ -591,7 +591,7 @@ export default function ProjectWorkflowManager({
                     }
                   }}
                   disabled={workflowAction !== null}
-                  className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-red-300/10 px-5 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-red-200/45 transition hover:border-red-300/25 hover:text-red-100 disabled:cursor-wait disabled:opacity-40"
+                  className="w-full admin-btn-destructive"
                 >
                   {workflowAction === "archive"
                     ? "Archiving"

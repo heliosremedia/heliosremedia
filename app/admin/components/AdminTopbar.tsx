@@ -51,7 +51,7 @@ export default function AdminTopbar({
         <LogoutButton />
         <Link
           href="/admin/projects/new"
-          className="group inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[var(--helios-orange)] px-5 text-xs font-semibold uppercase tracking-[0.16em] text-white transition duration-300 hover:bg-[var(--helios-orange-hover)]"
+          className="group admin-btn-primary"
         >
         <svg
           aria-hidden="true"

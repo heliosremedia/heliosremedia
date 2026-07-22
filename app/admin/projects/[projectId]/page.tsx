@@ -143,7 +143,7 @@ export default async function ProjectEditorPage({
       <section className="border-b border-white/[0.08] pb-7">
         <Link
           href="/admin/projects"
-          className="inline-flex items-center gap-2 text-[0.62rem] font-semibold uppercase tracking-[0.17em] text-white/35 transition hover:text-white"
+          className="admin-btn-link"
         >
           <svg
             aria-hidden="true"
@@ -324,7 +324,7 @@ export default async function ProjectEditorPage({
 
           <a
             href="#project-media"
-            className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--helios-orange)] px-5 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-[var(--helios-orange-hover)]"
+            className="mt-5 w-full admin-btn-primary"
           >
             {project._count.media > 0 ? "Manage assets" : "Upload media"}
           </a>

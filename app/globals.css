@@ -45,6 +45,10 @@
   @apply admin-btn-link text-red-200/55 hover:bg-red-300/[0.07] hover:text-red-100 focus-visible:ring-red-300;
 }
 
+@utility admin-btn-danger {
+  @apply admin-btn-destructive;
+}
+
 @utility admin-btn-loading-dot {
   @apply h-3 w-3 animate-spin rounded-full border border-current/25 border-t-current;
 }

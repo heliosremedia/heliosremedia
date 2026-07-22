@@ -26,7 +26,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[var(--helios-orange)] px-7 text-[0.66rem] font-semibold uppercase tracking-[0.17em] text-white shadow-[0_10px_30px_rgba(217,107,43,0.18)] transition duration-300 hover:-translate-y-0.5 hover:bg-[var(--helios-orange-hover)] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0"
+      className="admin-btn-primary"
     >
       {pending ? (
         <>
@@ -305,7 +305,7 @@ export default function NewProjectForm() {
 
               <Link
                 href="/admin/projects"
-                className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/[0.08] px-5 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-white/40 transition hover:border-white/20 hover:text-white"
+                className="admin-btn-secondary"
               >
                 Cancel
               </Link>

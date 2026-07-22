@@ -186,7 +186,7 @@ export default function FaqManager({ initialCategories }: { initialCategories: A
         <aside className="rounded-2xl border border-white/[0.08] bg-[#111] p-4">
           <div className="flex items-center justify-between gap-3 px-2 py-2">
             <div><p className="text-[0.55rem] font-semibold uppercase tracking-[0.18em] text-white/25">Categories</p><p className="mt-1 text-xs text-white/20">Public grouping and order</p></div>
-            <button type="button" onClick={() => setDialog({ type: "category" })} className="rounded-full bg-[var(--helios-orange)] px-4 py-2 text-[0.54rem] font-semibold uppercase tracking-[0.14em] text-black">Add</button>
+            <button type="button" onClick={() => setDialog({ type: "category" })} className="admin-btn-primary">Add</button>
           </div>
           <div className="mt-3 space-y-2">
             {categories.map((category, index) => (
@@ -198,8 +198,8 @@ export default function FaqManager({ initialCategories }: { initialCategories: A
                 <div className="mt-3 flex items-center gap-1 border-t border-white/[0.06] pt-2">
                   <button type="button" aria-label={`Move ${category.name} up`} disabled={index === 0 || busyId !== null} onClick={() => moveCategory(index, -1)} className="rounded-lg px-2 py-1 text-xs text-white/35 hover:text-white disabled:opacity-20">↑</button>
                   <button type="button" aria-label={`Move ${category.name} down`} disabled={index === categories.length - 1 || busyId !== null} onClick={() => moveCategory(index, 1)} className="rounded-lg px-2 py-1 text-xs text-white/35 hover:text-white disabled:opacity-20">↓</button>
-                  <button type="button" onClick={() => setDialog({ type: "category", category })} className="ml-auto px-2 py-1 text-[0.52rem] uppercase tracking-[0.12em] text-white/35 hover:text-white">Edit</button>
-                  <button type="button" disabled={busyId !== null} onClick={() => toggleCategory(category)} className="px-2 py-1 text-[0.52rem] uppercase tracking-[0.12em] text-white/35 hover:text-white">{category.active ? "Hide" : "Show"}</button>
+                  <button type="button" onClick={() => setDialog({ type: "category", category })} className="ml-auto admin-btn-link">Edit</button>
+                  <button type="button" disabled={busyId !== null} onClick={() => toggleCategory(category)} className="admin-btn-link">{category.active ? "Hide" : "Show"}</button>
                 </div>
               </div>
             ))}
@@ -214,7 +214,7 @@ export default function FaqManager({ initialCategories }: { initialCategories: A
                 <div><p className="eyebrow text-[var(--helios-orange)]">{selected.slug}</p><h2 className="mt-2 text-2xl font-light text-white">{selected.name}</h2><p className="mt-2 max-w-xl text-sm text-white/32">{selected.description || "No category description has been added."}</p></div>
                 <div className="flex flex-wrap gap-2">
                   {selected.faqs.length === 0 && <button type="button" onClick={() => deleteCategory(selected)} className="rounded-full border border-red-300/15 px-4 py-2 text-[0.52rem] uppercase tracking-[0.14em] text-red-200/45">Delete category</button>}
-                  <button type="button" onClick={() => setDialog({ type: "faq" })} className="rounded-full bg-[var(--helios-orange)] px-5 py-2.5 text-[0.54rem] font-semibold uppercase tracking-[0.14em] text-black">New question</button>
+                  <button type="button" onClick={() => setDialog({ type: "faq" })} className="admin-btn-primary">New question</button>
                 </div>
               </div>
               <div className="mt-5 space-y-3">
@@ -236,7 +236,7 @@ export default function FaqManager({ initialCategories }: { initialCategories: A
                 {selected.faqs.length === 0 && <div className="py-20 text-center"><p className="font-display text-3xl font-light text-white/35">No questions yet.</p><p className="mt-2 text-sm text-white/20">Add the first answer for this category.</p></div>}
               </div>
             </>
-          ) : <div className="py-28 text-center"><p className="font-display text-4xl font-light text-white/30">Your knowledge base starts here.</p><button type="button" onClick={() => setDialog({ type: "category" })} className="mt-6 rounded-full bg-[var(--helios-orange)] px-6 py-3 text-[0.55rem] font-semibold uppercase tracking-[0.14em] text-black">Create a category</button></div>}
+          ) : <div className="py-28 text-center"><p className="font-display text-4xl font-light text-white/30">Your knowledge base starts here.</p><button type="button" onClick={() => setDialog({ type: "category" })} className="mt-6 admin-btn-primary">Create a category</button></div>}
         </div>
       </section>
 

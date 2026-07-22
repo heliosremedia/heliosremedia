@@ -955,7 +955,7 @@ export default function MediaUploader({
             onClick={() =>
               inputRef.current?.click()
             }
-            className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--helios-orange)] px-7 text-[0.56rem] font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[var(--helios-orange-hover)]"
+            className="mt-6 admin-btn-primary"
           >
             Choose images
           </button>
@@ -993,7 +993,7 @@ export default function MediaUploader({
                   onClick={
                     clearCompletedUploads
                   }
-                  className="text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-white/30 transition hover:text-white"
+                  className="admin-btn-link"
                 >
                   Clear completed
                 </button>
@@ -1126,7 +1126,7 @@ export default function MediaUploader({
                             upload,
                           )
                         }
-                        className="inline-flex min-h-9 items-center justify-center rounded-full border border-white/10 px-4 text-[0.58rem] font-semibold uppercase tracking-[0.14em] text-white/55 transition hover:border-white/25 hover:text-white"
+                        className="admin-btn-secondary min-h-9"
                       >
                         Retry
                       </button>

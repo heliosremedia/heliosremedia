@@ -1571,7 +1571,7 @@ export default function ProjectMediaManager({
                 <button
                   type="button"
                   onClick={() => setHeroError(null)}
-                  className="self-start text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-red-200/60 transition hover:text-red-100 sm:self-auto"
+                  className="self-start admin-btn-link-destructive sm:self-auto"
                 >
                   Dismiss
                 </button>
@@ -1585,7 +1585,7 @@ export default function ProjectMediaManager({
                 <button
                   type="button"
                   onClick={() => setAssetError(null)}
-                  className="self-start text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-red-200/60 transition hover:text-red-100 sm:self-auto"
+                  className="self-start admin-btn-link-destructive sm:self-auto"
                 >
                   Dismiss
                 </button>
@@ -1621,7 +1621,7 @@ export default function ProjectMediaManager({
                 <button
                   type="button"
                   onClick={() => void loadMedia()}
-                  className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 px-5 text-[0.6rem] font-semibold uppercase tracking-[0.15em] text-white/60 transition hover:border-white/25 hover:text-white"
+                  className="mt-5 admin-btn-secondary"
                 >
                   Try again
                 </button>
@@ -1715,7 +1715,7 @@ export default function ProjectMediaManager({
                               <button
                                 type="button"
                                 onClick={clearSelection}
-                                className="rounded-full border border-white/[0.09] px-3 py-2 text-[0.54rem] font-semibold uppercase tracking-[0.14em] text-white/45 transition hover:border-white/20 hover:text-white"
+                                className="admin-btn-secondary min-h-9 px-4 py-2"
                               >
                                 Clear
                               </button>
@@ -1729,7 +1729,7 @@ export default function ProjectMediaManager({
                                 onClick={() =>
                                   selectCollection(items.map((item) => item.id))
                                 }
-                                className="rounded-full border border-white/[0.09] px-3 py-2 text-[0.54rem] font-semibold uppercase tracking-[0.14em] text-white/35 transition hover:border-white/20 hover:text-white"
+                                className="admin-btn-secondary min-h-9 px-4 py-2"
                               >
                                 Select all
                               </button>
@@ -1766,7 +1766,7 @@ export default function ProjectMediaManager({
                                 [collection.value]: undefined,
                               }))
                             }
-                            className="self-start text-[0.56rem] font-semibold uppercase tracking-[0.15em] text-red-200/55 transition hover:text-red-100 sm:self-auto"
+                            className="self-start admin-btn-link-destructive sm:self-auto"
                           >
                             Dismiss
                           </button>
@@ -1938,7 +1938,7 @@ export default function ProjectMediaManager({
                 href={activeMedia.externalUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-7 text-[0.6rem] font-semibold uppercase tracking-[0.17em] text-white/65 transition hover:border-white/35 hover:text-white"
+                className="admin-btn-secondary"
               >
                 Open external asset
               </a>
@@ -2061,7 +2061,7 @@ export default function ProjectMediaManager({
                   href={activeMedia.externalUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/12 px-6 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-white/55 transition hover:border-white/30 hover:text-white"
+                  className="admin-btn-secondary"
                 >
                   Open source ↗
                 </a>

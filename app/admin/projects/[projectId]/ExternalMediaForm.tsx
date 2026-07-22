@@ -314,7 +314,7 @@ export default function ExternalMediaForm({
                 !detection.details ||
                 Boolean(detection.error)
               }
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[var(--helios-orange)] px-7 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-black transition hover:bg-[var(--helios-orange-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+              className="admin-btn-primary"
             >
               {isSaving && (
                 <span className="h-3 w-3 animate-spin rounded-full border border-black/25 border-t-black" />

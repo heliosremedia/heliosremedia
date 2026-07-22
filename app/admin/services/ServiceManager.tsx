@@ -167,7 +167,7 @@ function SortableServiceCard({
           type="button"
           onClick={() => onToggleActive(service)}
           disabled={disabled}
-          className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/10 px-4 text-[0.55rem] font-semibold uppercase tracking-[0.14em] text-white/40 transition hover:border-white/25 hover:text-white disabled:cursor-wait disabled:opacity-40"
+          className="admin-btn-secondary"
         >
           {service.active ? "Deactivate" : "Activate"}
         </button>
@@ -176,7 +176,7 @@ function SortableServiceCard({
           type="button"
           onClick={() => onEdit(service)}
           disabled={disabled}
-          className="inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--helios-orange)] px-4 text-[0.55rem] font-semibold uppercase tracking-[0.14em] text-black transition hover:bg-[var(--helios-orange-hover)] disabled:cursor-wait disabled:opacity-40"
+          className="admin-btn-primary"
         >
           Edit
         </button>
@@ -506,7 +506,7 @@ export default function ServiceManager({
             <button
               type="button"
               onClick={() => setError(null)}
-              className="self-start text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-red-200/60 transition hover:text-red-100 sm:self-auto"
+              className="self-start admin-btn-link-destructive sm:self-auto"
             >
               Dismiss
             </button>
@@ -545,7 +545,7 @@ export default function ServiceManager({
               <button
                 type="button"
                 onClick={openCreateModal}
-                className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--helios-orange)] px-6 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-black transition hover:bg-[var(--helios-orange-hover)]"
+                className="admin-btn-primary"
               >
                 Add service
               </button>
@@ -593,7 +593,7 @@ export default function ServiceManager({
                 <button
                   type="button"
                   onClick={openCreateModal}
-                  className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--helios-orange)] px-6 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-black transition hover:bg-[var(--helios-orange-hover)]"
+                  className="mt-5 admin-btn-primary"
                 >
                   Add first service
                 </button>

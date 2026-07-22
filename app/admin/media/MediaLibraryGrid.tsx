@@ -284,7 +284,7 @@ export default function MediaLibraryGrid({ items }: MediaLibraryGridProps) {
 
               <Link
                 href={`/admin/projects/${activeMedia.project.id}#project-media`}
-                className="hidden min-h-10 items-center justify-center rounded-full border border-white/10 px-4 text-[0.54rem] font-semibold uppercase tracking-[0.14em] text-white/45 transition hover:border-white/25 hover:text-white sm:inline-flex"
+                className="hidden admin-btn-secondary sm:inline-flex"
               >
                 Manage asset
               </Link>
@@ -351,7 +351,7 @@ export default function MediaLibraryGrid({ items }: MediaLibraryGridProps) {
                 href={activeMedia.externalUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-7 text-[0.6rem] font-semibold uppercase tracking-[0.17em] text-white/65 transition hover:border-white/35 hover:text-white"
+                className="admin-btn-secondary"
               >
                 Open external asset
               </a>

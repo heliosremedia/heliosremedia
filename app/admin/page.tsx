@@ -107,7 +107,7 @@ export default async function AdminPage() {
 
         <Link
           href="/admin/projects"
-          className="inline-flex items-center gap-2 text-[0.66rem] font-semibold uppercase tracking-[0.18em] text-white/45 transition hover:text-white"
+          className="admin-btn-link"
         >
           View all projects
 
@@ -167,7 +167,7 @@ export default async function AdminPage() {
 
           <Link
             href="/admin/projects/new"
-            className="hidden rounded-full border border-white/10 px-4 py-2 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-white/55 transition hover:border-white/25 hover:text-white sm:inline-flex"
+            className="hidden admin-btn-secondary sm:inline-flex"
           >
             Add project
           </Link>
@@ -277,7 +277,7 @@ export default async function AdminPage() {
 
             <Link
               href="/admin/projects/new"
-              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--helios-orange)] px-6 text-[0.66rem] font-semibold uppercase tracking-[0.17em] text-white transition hover:bg-[var(--helios-orange-hover)]"
+              className="mt-6 admin-btn-primary"
             >
               Create first project
             </Link>

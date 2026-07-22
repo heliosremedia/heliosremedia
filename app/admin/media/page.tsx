@@ -249,7 +249,7 @@ export default async function MediaLibraryPage({
 
         <Link
           href="/admin/projects"
-          className="inline-flex items-center gap-2 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-white/40 transition hover:text-white"
+          className="admin-btn-link"
         >
           Upload through a project
           <svg
@@ -345,7 +345,7 @@ export default async function MediaLibraryPage({
 
             <button
               type="submit"
-              className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--helios-orange)] px-7 text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-[var(--helios-orange-hover)]"
+              className="admin-btn-primary"
             >
               Search assets
             </button>
@@ -353,7 +353,7 @@ export default async function MediaLibraryPage({
             {hasFilters && (
               <Link
                 href="/admin/media"
-                className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/10 px-6 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-white/40 transition hover:border-white/25 hover:text-white"
+                className="admin-btn-secondary"
               >
                 Clear
               </Link>
@@ -442,7 +442,7 @@ export default async function MediaLibraryPage({
           </p>
           <Link
             href="/admin/media"
-            className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full border border-white/15 px-6 text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-white/55 transition hover:border-white/30 hover:text-white"
+            className="mt-6 admin-btn-secondary"
           >
             View all assets
           </Link>
@@ -457,7 +457,7 @@ export default async function MediaLibraryPage({
           {page > 1 ? (
             <Link
               href={buildLibraryUrl(filters, { page: page - 1 })}
-              className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 px-5 text-[0.56rem] font-semibold uppercase tracking-[0.15em] text-white/45 transition hover:border-white/25 hover:text-white"
+              className="admin-btn-secondary"
             >
               Previous
             </Link>
@@ -472,7 +472,7 @@ export default async function MediaLibraryPage({
           {page < totalPages ? (
             <Link
               href={buildLibraryUrl(filters, { page: page + 1 })}
-              className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 px-5 text-[0.56rem] font-semibold uppercase tracking-[0.15em] text-white/45 transition hover:border-white/25 hover:text-white"
+              className="admin-btn-secondary"
             >
               Next
             </Link>
