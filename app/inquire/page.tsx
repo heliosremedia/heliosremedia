@@ -3,9 +3,11 @@ import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
 import { prisma } from "@/lib/prisma";
 import InquiryForm from "./InquiryForm";
+import { buildPageMetadata } from "@/lib/seo";
+import { getSiteSettings } from "@/lib/site-settings";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Book Your Shoot | Helios Real Estate Media", description: "Tell Helios about your property and media needs. We'll help build the right campaign.", alternates: { canonical: "/inquire" } };
+export async function generateMetadata(): Promise<Metadata> { const settings = await getSiteSettings(); return buildPageMetadata({ title: "Book Your Shoot | Helios Real Estate Media", description: "Tell Helios about your property and media needs. We'll help build the right campaign.", path: "/inquire", settings }); }
 
 export default async function InquiryPage() {
   const services = await prisma.service.findMany({ where: { active: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }], select: { id: true, name: true, description: true } });
