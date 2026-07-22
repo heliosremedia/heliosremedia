@@ -84,13 +84,13 @@ export default async function AboutPage() {
               </div>
 
               <div className="mt-12 grid items-center gap-12 sm:mt-16 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] lg:gap-20">
-                <div className="relative mx-auto aspect-[4/5] w-full max-w-[34rem] overflow-hidden rounded-[1.1rem] border border-white/[0.1] bg-[#111]">
+                <div className="group relative mx-auto aspect-[4/5] w-full max-w-[34rem] overflow-hidden rounded-[1.1rem] border border-white/[0.1] bg-[#111]">
                   <Image
                     src={content.founderImageUrl}
                     alt={content.founderImageAlt}
                     fill
                     sizes="(max-width: 1024px) 100vw, 45vw"
-                    className="object-cover object-center"
+                    className="object-cover object-center grayscale transition duration-700 group-hover:grayscale-0 [@media(hover:none)]:grayscale-0"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
                 </div>
