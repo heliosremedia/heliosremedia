@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import AcceptInviteForm from "./AcceptInviteForm";
+
+export const metadata: Metadata = { title: "Accept Invitation | Helios", robots: { index: false, follow: false } };
 
 export default async function AcceptInvitePage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
   const token = (await searchParams).token || "";
