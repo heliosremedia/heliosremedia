@@ -9,6 +9,19 @@ import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { getServiceMediaCategories } from "@/lib/portfolio-services";
 
+function projectCollectionHref(
+  projectSlug: string,
+  mediaCategory: ReturnType<typeof getServiceMediaCategories>[number] | undefined,
+) {
+  if (!mediaCategory) {
+    return `/portfolio/${projectSlug}#project-overview`;
+  }
+
+  return `/portfolio/${projectSlug}#collection-${mediaCategory
+    .toLowerCase()
+    .replace(/_/g, "-")}`;
+}
+
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
@@ -217,7 +230,10 @@ export default async function ServicesPage() {
                           }`}
                         >
                           <Link
-                            href={`/portfolio/${project.slug}`}
+                            href={projectCollectionHref(
+                              project.slug,
+                              primaryMediaCategory,
+                            )}
                             aria-label={`View ${project.title}`}
                             className="absolute inset-0 z-10"
                           />
