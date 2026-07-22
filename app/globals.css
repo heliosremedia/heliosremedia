@@ -53,6 +53,60 @@
   @apply h-3 w-3 animate-spin rounded-full border border-current/25 border-t-current;
 }
 
+/*
+ * Admin actions intentionally use concrete component rules in addition to the
+ * Tailwind utilities above. Tailwind v4 can merge nested custom utilities with
+ * earlier generated definitions during cached production builds; these rules
+ * are the final visual contract and prevent local utility order from changing
+ * button geometry or typography.
+ */
+:where(
+  .admin-btn-primary,
+  .admin-btn-secondary,
+  .admin-btn-destructive,
+  .admin-btn-danger,
+  .admin-btn-ghost,
+  .admin-btn-subtle
+) {
+  box-sizing: border-box;
+  display: inline-flex;
+  width: auto;
+  height: 2.5rem !important;
+  min-height: 2.5rem !important;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0 1rem !important;
+  border-radius: 0.375rem !important;
+  font-family: var(--font-helios), Arial, Helvetica, sans-serif;
+  font-size: 0.52rem !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  letter-spacing: 0.12em !important;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+:where(.admin-btn-link, .admin-btn-link-destructive) {
+  box-sizing: border-box;
+  display: inline-flex;
+  width: auto;
+  height: 2.25rem !important;
+  min-height: 2.25rem !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.75rem !important;
+  border-radius: 0.375rem !important;
+  font-family: var(--font-helios), Arial, Helvetica, sans-serif;
+  font-size: 0.5rem !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 @font-face {
   font-family: "Helios";
   src: url("/fonts/helios.otf") format("opentype");
