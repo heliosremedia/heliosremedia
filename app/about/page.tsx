@@ -106,10 +106,10 @@ export default async function AboutPage() {
                   <p className="mt-7 max-w-xl whitespace-pre-line text-sm leading-7 text-white/58 sm:text-base sm:leading-8">
                     {content.founderBody}
                   </p>
-                  <p className="font-signature mt-10 text-[clamp(2.8rem,6vw,5rem)] leading-none text-white/90">
+                  <p className="mt-10 font-display text-[clamp(2.25rem,4.5vw,3.75rem)] font-light italic leading-[1.08] tracking-[-0.035em] text-white/88">
                     {content.founderSignature}
                   </p>
-                  <p className="mt-7 text-[0.62rem] font-semibold uppercase tracking-[0.25em] text-[var(--helios-orange)]">
+                  <p className="mt-8 text-[0.62rem] font-semibold uppercase tracking-[0.25em] text-[var(--helios-orange)]">
                     {content.founderTitle}
                   </p>
                 </div>
