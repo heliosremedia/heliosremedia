@@ -23,7 +23,16 @@ export default function ClientAccessForm({ slug }: { slug: string }) {
   return <form onSubmit={submit} className="mt-8 border-t border-white/10 pt-7">
     <p className="text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">New client or passwordless access</p>
     <label className="mt-5 block text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-white/35" htmlFor="client-email">Client email address</label>
-    <div className="mt-3 flex flex-col gap-3 sm:flex-row"><input id="client-email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" className="min-h-14 flex-1 rounded-sm border border-white/12 bg-black/30 px-5 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-[var(--helios-orange)]" /><button disabled={busy} className="min-h-14 whitespace-nowrap rounded-sm bg-[var(--helios-orange)] px-6 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-[var(--helios-orange-hover)] disabled:opacity-50">{busy ? "Checking…" : "Continue securely"}</button></div>
+    <div className="mt-3 grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+      <input id="client-email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" className="min-h-14 min-w-0 w-full rounded-sm border border-white/12 bg-black/30 px-5 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-[var(--helios-orange)]" />
+      <button
+        disabled={busy}
+        className="inline-flex min-h-14 w-full items-center justify-center whitespace-nowrap rounded-sm bg-[var(--helios-orange)] px-6 font-semibold uppercase text-white transition hover:bg-[var(--helios-orange-hover)] disabled:opacity-50 md:w-auto"
+        style={{ fontSize: "0.625rem", letterSpacing: "0.16em", lineHeight: 1 }}
+      >
+        {busy ? "Checking…" : "Continue securely"}
+      </button>
+    </div>
     <p className="mt-4 text-xs leading-5 text-white/30">Create a new account or request a secure, time-limited sign-in link without using your password.</p>
     {message && <p role="status" className={`mt-5 rounded-sm border px-4 py-3 text-sm ${success ? "border-emerald-400/20 bg-emerald-400/[0.06] text-emerald-200/80" : "border-red-300/20 bg-red-300/[0.05] text-red-200/75"}`}>{message}</p>}
   </form>;
