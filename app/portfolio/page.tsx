@@ -249,7 +249,8 @@ export default async function PortfolioPage({
   const currentPage = Math.min(pageNumber, totalPages);
   const displayedProjects = regularProjects.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const pageProjects = currentPage === 1 && leadProject ? [leadProject, ...displayedProjects] : displayedProjects;
-  const pageHref = (page: number) => `/portfolio?${new URLSearchParams({ ...(selectedService ? { service: selectedService.slug } : {}), ...(page > 1 ? { page: String(page) } : {}) }).toString()}#selected-work`;
+  const collectionAnchor = selectedService?.slug || "selected-work";
+  const pageHref = (page: number) => `/portfolio?${new URLSearchParams({ ...(selectedService ? { service: selectedService.slug } : {}), ...(page > 1 ? { page: String(page) } : {}) }).toString()}#${collectionAnchor}`;
 
   return (
     <main className="min-h-screen bg-[var(--background)] text-white">
@@ -283,7 +284,7 @@ export default async function PortfolioPage({
           aria-label="Filter portfolio"
         >
           <Link
-            href="/portfolio#portfolio-filters"
+            href="/portfolio#selected-work"
             className={`shrink-0 rounded-full border px-4 py-2.5 text-[0.56rem] font-semibold uppercase tracking-[0.15em] transition ${
               !selectedService
                 ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] text-black"
@@ -296,7 +297,7 @@ export default async function PortfolioPage({
           {services.map((service) => (
             <Link
               key={service.id}
-              href={`/portfolio?service=${service.slug}#portfolio-filters`}
+              href={`/portfolio?service=${service.slug}#${service.slug}`}
               className={`shrink-0 rounded-full border px-4 py-2.5 text-[0.56rem] font-semibold uppercase tracking-[0.15em] transition ${
                 selectedService?.id === service.id
                   ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] text-black"
@@ -309,7 +310,7 @@ export default async function PortfolioPage({
         </div>
       </section>
 
-      <section id="selected-work" className="container-shell scroll-mt-28 pb-24 sm:pb-32">
+      <section id={collectionAnchor} className="container-shell scroll-mt-28 pb-24 sm:pb-32">
         <div className="flex flex-col gap-3 border-b border-white/[0.08] pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-white/30">

@@ -11,6 +11,17 @@ import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { defaultHomeCta, getCtaForSlot } from "@/lib/ctas";
 import { getSiteSettings } from "@/lib/site-settings";
+
+function portfolioCollectionHref(destination: string | null, serviceSlug: string) {
+  const fallback = `/portfolio?service=${serviceSlug}`;
+  const href = destination || fallback;
+
+  if (href.startsWith("/portfolio?") && !href.includes("#")) {
+    return `${href}#${serviceSlug}`;
+  }
+
+  return href;
+}
 import { getHomepageCardVideo } from "@/lib/homepage-work-cards";
 
 export const dynamic = "force-dynamic";
@@ -71,7 +82,7 @@ export default async function Home() {
       const video = getHomepageCardVideo(card);
       return {
         title: card.titleOverride || card.service.name,
-        href: card.destinationOverride || `/portfolio?service=${card.service.slug}`,
+        href: portfolioCollectionHref(card.destinationOverride, card.service.slug),
         image: card.imageUrl || video.thumbnailUrl || "/work/cards/cinematicfilms-workcard.jpg",
         imageAlt: card.imageAlt || `${card.service.name} by Helios Real Estate Media`,
         size: index === 0 ? ("hero" as const) : ("supporting" as const),

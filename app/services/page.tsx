@@ -185,7 +185,7 @@ export default async function ServicesPage() {
 
                     <div className="mt-9 flex flex-wrap items-center gap-4">
                       <Link
-                        href={`/portfolio?service=${service.slug}`}
+                        href={`/portfolio?service=${service.slug}#${service.slug}`}
                         className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-6 text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/60 transition hover:border-white/35 hover:text-white"
                       >
                         View related work

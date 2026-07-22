@@ -11,10 +11,17 @@ const ease = [0.22, 1, 0.36, 1] as const;
 
 type FeaturedFilm = { enabled: boolean; videoSrc: string | null; poster: string | null; href: string | null };
 
+function cinematicCollectionHref(destination: string | null) {
+  const href = destination || "/portfolio?service=cinematic-films";
+  return href.startsWith("/portfolio?") && !href.includes("#")
+    ? `${href}#cinematic-films`
+    : href;
+}
+
 export default function WorkShowcase({ items = portfolioItems, featuredFilm, featuredProject, settings }: { items?: typeof portfolioItems; featuredFilm?: FeaturedFilm; featuredProject?: (typeof portfolioItems)[number] | null; settings: PublicSiteSettings }) {
   const shouldReduceMotion = useReducedMotion();
   const displayItems = featuredFilm?.enabled && featuredFilm.videoSrc
-    ? [{ ...items[0], title: "Cinematic Films", href: featuredFilm.href || "/portfolio?service=cinematic-films", image: featuredFilm.poster || portfolioItems[0].image }, ...items.slice(1)]
+    ? [{ ...items[0], title: "Cinematic Films", href: cinematicCollectionHref(featuredFilm.href), image: featuredFilm.poster || portfolioItems[0].image }, ...items.slice(1)]
     : items;
 
   return (
