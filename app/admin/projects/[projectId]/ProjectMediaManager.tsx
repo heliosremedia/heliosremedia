@@ -1715,7 +1715,7 @@ export default function ProjectMediaManager({
                               <button
                                 type="button"
                                 onClick={clearSelection}
-                                className="admin-btn-secondary min-h-9 px-4 py-2"
+                                className="admin-btn-secondary"
                               >
                                 Clear
                               </button>
@@ -1729,7 +1729,7 @@ export default function ProjectMediaManager({
                                 onClick={() =>
                                   selectCollection(items.map((item) => item.id))
                                 }
-                                className="admin-btn-secondary min-h-9 px-4 py-2"
+                                className="admin-btn-secondary"
                               >
                                 Select all
                               </button>
