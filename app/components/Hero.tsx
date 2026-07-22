@@ -159,7 +159,7 @@ export default function Hero({ settings }: { settings: PublicSiteSettings }) {
             </motion.a>
           </motion.div>
           {settings.availabilityEnabled && settings.availabilityMessage ? (
-            <motion.p className="mt-5 inline-flex max-w-full items-center gap-2 rounded-full border border-white/15 bg-black/25 px-4 py-2 text-[0.62rem] font-medium uppercase tracking-[0.18em] text-white/68 backdrop-blur-sm" variants={reveal} initial={shouldReduceMotion ? false : "hidden"} animate="visible" transition={{ duration: shouldReduceMotion ? 0 : 0.75, delay: shouldReduceMotion ? 0 : 1.4, ease }}>
+            <motion.p className="mt-5 flex w-fit max-w-full items-center gap-2 rounded-full border border-white/15 bg-black/25 px-4 py-2 text-[0.62rem] font-medium uppercase tracking-[0.18em] text-white/68 backdrop-blur-sm md:mt-6" variants={reveal} initial={shouldReduceMotion ? false : "hidden"} animate="visible" transition={{ duration: shouldReduceMotion ? 0 : 0.75, delay: shouldReduceMotion ? 0 : 1.4, ease }}>
               <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[var(--helios-orange)] shadow-[0_0_12px_rgba(217,107,43,0.6)]" />
               <span>{settings.availabilityLabel ? `${settings.availabilityLabel}: ` : ""}{settings.availabilityMessage}</span>
             </motion.p>
