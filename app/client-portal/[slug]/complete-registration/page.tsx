@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
@@ -6,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import RegistrationForm from "./RegistrationForm";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Complete Client Registration | Helios", robots: { index: false, follow: false } };
 export default async function CompleteRegistrationPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const portal = await prisma.clientPortal.findFirst({ where: { slug, active: true, registrationEnabled: true } });
