@@ -11,6 +11,8 @@ import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { defaultHomeCta, getCtaForSlot } from "@/lib/ctas";
 import { getSiteSettings } from "@/lib/site-settings";
+import { buildPageMetadata } from "@/lib/seo";
+import type { Metadata } from "next";
 
 function portfolioCollectionHref(destination: string | null, serviceSlug: string) {
   const fallback = `/portfolio?service=${serviceSlug}`;
@@ -25,6 +27,16 @@ function portfolioCollectionHref(destination: string | null, serviceSlug: string
 import { getHomepageCardVideo } from "@/lib/homepage-work-cards";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  return buildPageMetadata({
+    title: settings.defaultSeoTitle,
+    description: settings.defaultSeoDescription,
+    path: "/",
+    settings,
+  });
+}
 
 export default async function Home() {
   const [testimonials, googleReviews, trustedLogos, homepageProjects, homepageWorkCards, homepageCta, settings] = await Promise.all([
