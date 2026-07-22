@@ -102,7 +102,7 @@ export default function AboutPageManager({ initialContent, initialTeamMembers }:
       <ListEditor items={content.process} onChange={(items) => field("process", items)} />
     </Panel>
 
-    <div className="sticky bottom-4 z-20 flex justify-end rounded-2xl border border-white/10 bg-[#111]/95 p-4 shadow-2xl backdrop-blur"><button type="button" disabled={busy} onClick={() => void save()} className="admin-btn-primary px-8 py-4">{busy ? "Saving…" : "Save About page"}</button></div>
+    <div className="sticky bottom-4 z-20 flex justify-end rounded-2xl border border-white/10 bg-[#111]/95 p-4 shadow-2xl backdrop-blur"><button type="button" disabled={busy} onClick={() => void save()} className="admin-btn-primary">{busy ? "Saving…" : "Save About page"}</button></div>
   </div>;
 }
 
