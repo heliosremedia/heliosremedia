@@ -13,6 +13,7 @@ export type PortfolioGalleryItem = {
   focalX: number;
   focalY: number;
   isWide: boolean;
+  isVertical: boolean;
 };
 
 type PortfolioGalleryProps = {
@@ -250,7 +251,11 @@ export default function PortfolioGallery({
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
                 referrerPolicy="strict-origin-when-cross-origin"
-                className="aspect-video max-h-full w-full max-w-[96rem] border-0 bg-black"
+                className={`max-h-full border-0 bg-black ${
+                  showcaseMedia.isVertical
+                    ? "aspect-[9/16] h-[72svh] w-auto max-w-full"
+                    : "aspect-video w-full max-w-[96rem]"
+                }`}
               />
             ) : showcaseExternalMedia?.playbackUrl ? (
               <video
@@ -258,7 +263,11 @@ export default function PortfolioGallery({
                 controls
                 playsInline
                 preload="metadata"
-                className="max-h-full w-full max-w-[96rem] bg-black"
+                className={`max-h-full bg-black ${
+                  showcaseMedia.isVertical
+                    ? "aspect-[9/16] h-[72svh] w-auto max-w-full"
+                    : "w-full max-w-[96rem]"
+                }`}
               >
                 Your browser cannot play this hosted video.
               </video>
@@ -429,7 +438,11 @@ export default function PortfolioGallery({
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                     referrerPolicy="strict-origin-when-cross-origin"
-                    className="h-full w-full border-0 bg-black"
+                    className={`mx-auto h-full border-0 bg-black ${
+                      item.isVertical
+                        ? "aspect-[9/16] w-auto max-w-full"
+                        : "w-full"
+                    }`}
                   />
                 ) : externalMedia?.playbackUrl ? (
                   <video

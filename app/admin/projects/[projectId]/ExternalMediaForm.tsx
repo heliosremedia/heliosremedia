@@ -27,6 +27,7 @@ export default function ExternalMediaForm({
 }: ExternalMediaFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [url, setUrl] = useState("");
+  const [provider, setProvider] = useState<"YOUTUBE" | "VIMEO">("YOUTUBE");
   const [title, setTitle] = useState("");
   const [altText, setAltText] = useState("");
   const [caption, setCaption] = useState("");
@@ -64,6 +65,11 @@ export default function ExternalMediaForm({
 
     if (!detection.details) {
       setError(detection.error || "Enter a valid video URL.");
+      return;
+    }
+
+    if (detection.details.provider !== provider) {
+      setError(`Enter a valid ${provider === "YOUTUBE" ? "YouTube" : "Vimeo"} video link.`);
       return;
     }
 
@@ -119,13 +125,13 @@ export default function ExternalMediaForm({
       >
         <span>
           <span className="block text-[0.62rem] font-semibold uppercase tracking-[0.19em] text-[var(--helios-orange)]">
-            External video
+            Hosted video
           </span>
           <span className="mt-2 block text-xl font-normal text-white">
-            Add a video link
+            Add YouTube or Vimeo
           </span>
           <span className="mt-1.5 block text-sm leading-6 text-white/35">
-            YouTube, Vimeo, Dropbox, or a direct hosted video URL.
+            Paste a link from one of the two supported external providers.
           </span>
         </span>
 
@@ -148,7 +154,26 @@ export default function ExternalMediaForm({
         >
           <div className="grid gap-7 xl:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]">
             <div className="space-y-5">
-              <label className="block">
+              <div className="grid gap-5 sm:grid-cols-[12rem_minmax(0,1fr)]">
+                <label className="block">
+                  <span className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/45">
+                    Provider
+                  </span>
+                  <select
+                    value={provider}
+                    onChange={(event) => {
+                      setProvider(event.target.value as "YOUTUBE" | "VIMEO");
+                      setUrl("");
+                      setError(null);
+                    }}
+                    className="mt-2.5 min-h-12 w-full rounded-xl border border-white/10 bg-[#111] px-4 text-sm text-white/80 outline-none transition focus:border-[var(--helios-orange)]/55"
+                  >
+                    <option value="YOUTUBE">YouTube</option>
+                    <option value="VIMEO">Vimeo</option>
+                  </select>
+                </label>
+
+                <label className="block">
                 <span className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/45">
                   Video URL
                 </span>
@@ -162,10 +187,15 @@ export default function ExternalMediaForm({
                     setError(null);
                     setSuccess(null);
                   }}
-                  placeholder="https://youtube.com/watch?v=..."
+                  placeholder={
+                    provider === "YOUTUBE"
+                      ? "https://youtube.com/watch?v=..."
+                      : "https://vimeo.com/..."
+                  }
                   className="mt-2.5 min-h-12 w-full rounded-xl border border-white/10 bg-black/30 px-4 text-sm text-white/80 outline-none transition placeholder:text-white/20 focus:border-[var(--helios-orange)]/55 focus:ring-2 focus:ring-[var(--helios-orange)]/10"
                 />
-              </label>
+                </label>
+              </div>
 
               <div className="grid gap-5 sm:grid-cols-2">
                 <label className="block">

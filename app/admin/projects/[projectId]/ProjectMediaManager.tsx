@@ -34,6 +34,7 @@ import {
 
 import ExternalMediaForm from "./ExternalMediaForm";
 import MediaUploader from "./MediaUploader";
+import StreamVideoUploader from "./StreamVideoUploader";
 
 type ProjectMediaManagerProps = {
   projectId: string;
@@ -1468,6 +1469,11 @@ export default function ProjectMediaManager({
   return (
     <>
       <div className="space-y-8">
+        <StreamVideoUploader
+          projectId={projectId}
+          onMediaAdded={handleMediaUploaded}
+        />
+
         <MediaUploader
           projectId={projectId}
           onMediaUploaded={handleMediaUploaded}

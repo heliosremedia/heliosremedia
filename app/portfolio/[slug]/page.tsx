@@ -149,7 +149,7 @@ export async function generateMetadata({
       media: {
         where: {
           visibility: "VISIBLE",
-          sourceType: "VIDEO_EMBED",
+          sourceType: { in: ["VIDEO_EMBED", "UPLOADED_VIDEO"] },
           externalUrl: {
             not: null,
           },
@@ -232,7 +232,7 @@ export default async function PortfolioProjectPage({
     : "";
   const leadVideoMedia = !heroUrl
     ? project.media.find((media) => {
-        if (media.sourceType !== "VIDEO_EMBED") {
+        if (!["VIDEO_EMBED", "UPLOADED_VIDEO"].includes(media.sourceType)) {
           return false;
         }
 
@@ -586,6 +586,9 @@ export default async function PortfolioProjectPage({
                     media.height &&
                     media.width / media.height >= 1.35,
                   ),
+              isVertical: media.aspectRatio
+                ? media.aspectRatio < 1
+                : collection.value === "VERTICAL_REEL",
             }))}
           />
         </section>

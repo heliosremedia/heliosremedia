@@ -7,6 +7,11 @@ import {
   getMediaCollection,
   isMediaCategory,
 } from "@/lib/media-collections";
+import {
+  deleteCloudflareStreamVideo,
+  getCloudflareStreamEmbedUrl,
+  isCloudflareStreamUid,
+} from "@/lib/cloudflare-stream";
 import { resolveExternalMedia } from "@/lib/external-media";
 import { prisma } from "@/lib/prisma";
 import { r2Client, r2Config } from "@/lib/r2";
@@ -19,6 +24,7 @@ type MediaRouteProps = {
 };
 
 type CreateMediaRequestBody = {
+  streamUid?: unknown;
   externalUrl?: unknown;
   key?: unknown;
   originalFilename?: unknown;
@@ -177,6 +183,8 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
 
     const externalUrlInput =
       typeof body.externalUrl === "string" ? body.externalUrl.trim() : "";
+    const streamUid =
+      typeof body.streamUid === "string" ? body.streamUid.trim() : "";
 
     const key = typeof body.key === "string" ? body.key.trim() : "";
 
@@ -210,6 +218,157 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
         {
           status: 400,
         },
+      );
+    }
+
+    if (streamUid) {
+      const altText = getOptionalText(body.altText);
+      const caption = getOptionalText(body.caption);
+      const visibility =
+        typeof body.visibility === "string" ? body.visibility.trim() : "VISIBLE";
+
+      if (!isCloudflareStreamUid(streamUid)) {
+        return NextResponse.json(
+          { success: false, error: "Cloudflare returned an invalid video ID." },
+          { status: 400 },
+        );
+      }
+
+      if (!originalFilename || originalFilename.length > 255) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "A video title is required and must be 255 characters or fewer.",
+          },
+          { status: 400 },
+        );
+      }
+
+      if ((altText?.length ?? 0) > 500 || (caption?.length ?? 0) > 2000) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "The video description or caption is too long.",
+          },
+          { status: 400 },
+        );
+      }
+
+      if (!isMediaCategory(requestedMediaCategory)) {
+        return NextResponse.json(
+          { success: false, error: "Choose a valid media collection." },
+          { status: 400 },
+        );
+      }
+
+      if (visibility !== "VISIBLE" && visibility !== "HIDDEN") {
+        return NextResponse.json(
+          { success: false, error: "Choose a valid visibility setting." },
+          { status: 400 },
+        );
+      }
+
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { id: true },
+      });
+
+      if (!project) {
+        return NextResponse.json(
+          { success: false, error: "Project not found." },
+          { status: 404 },
+        );
+      }
+
+      const duplicate = await prisma.media.findFirst({
+        where: {
+          projectId,
+          provider: "CLOUDFLARE_STREAM",
+          externalId: streamUid,
+        },
+        select: {
+          id: true,
+          sourceType: true,
+          provider: true,
+          storageKey: true,
+          originalFilename: true,
+          altText: true,
+          caption: true,
+          mimeType: true,
+          externalUrl: true,
+          externalId: true,
+          fileSize: true,
+          width: true,
+          height: true,
+          aspectRatio: true,
+          mediaCategory: true,
+          displayOrder: true,
+          visibility: true,
+          createdAt: true,
+        },
+      });
+
+      if (duplicate) {
+        return NextResponse.json({
+          success: true,
+          media: { ...duplicate, publicUrl: "", isHero: false },
+        });
+      }
+
+      const displayOrderResult = await prisma.media.aggregate({
+        where: { projectId, mediaCategory: requestedMediaCategory },
+        _max: { displayOrder: true },
+      });
+      const media = await prisma.media.create({
+        data: {
+          projectId,
+          sourceType: "UPLOADED_VIDEO",
+          provider: "CLOUDFLARE_STREAM",
+          mediaCategory: requestedMediaCategory,
+          externalUrl: getCloudflareStreamEmbedUrl(streamUid),
+          externalId: streamUid,
+          originalFilename,
+          altText,
+          caption,
+          mimeType: mimeType || null,
+          fileSize,
+          width,
+          height,
+          aspectRatio: width && height ? width / height : null,
+          displayOrder: (displayOrderResult._max.displayOrder ?? -1) + 1,
+          visibility,
+        },
+        select: {
+          id: true,
+          sourceType: true,
+          provider: true,
+          storageKey: true,
+          originalFilename: true,
+          altText: true,
+          caption: true,
+          mimeType: true,
+          externalUrl: true,
+          externalId: true,
+          fileSize: true,
+          width: true,
+          height: true,
+          aspectRatio: true,
+          mediaCategory: true,
+          displayOrder: true,
+          visibility: true,
+          createdAt: true,
+        },
+      });
+
+      revalidatePath("/portfolio");
+      revalidatePath(`/portfolio/${projectId}`);
+
+      return NextResponse.json(
+        {
+          success: true,
+          media: { ...media, publicUrl: "", isHero: false },
+        },
+        { status: 201 },
       );
     }
 
@@ -1206,6 +1365,8 @@ export async function DELETE(request: Request, { params }: MediaRouteProps) {
       select: {
         id: true,
         storageKey: true,
+        provider: true,
+        externalId: true,
       },
     });
 
@@ -1242,6 +1403,21 @@ export async function DELETE(request: Request, { params }: MediaRouteProps) {
         console.error(
           "The media record was deleted, but its R2 object could not be removed:",
           storageError,
+        );
+      }
+    }
+
+    if (
+      media.provider === "CLOUDFLARE_STREAM" &&
+      media.externalId
+    ) {
+      try {
+        await deleteCloudflareStreamVideo(media.externalId);
+      } catch (streamError) {
+        storageCleanupPending = true;
+        console.error(
+          "The media record was deleted, but its Stream video could not be removed:",
+          streamError,
         );
       }
     }

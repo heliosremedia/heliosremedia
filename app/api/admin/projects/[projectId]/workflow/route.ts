@@ -249,7 +249,7 @@ export async function PATCH(
     if (action === "publish") {
       const blockers: string[] = [];
       const hasPlayableVideo = project.media.some((media) => {
-        if (media.sourceType !== "VIDEO_EMBED") {
+        if (!["VIDEO_EMBED", "UPLOADED_VIDEO"].includes(media.sourceType)) {
           return false;
         }
 

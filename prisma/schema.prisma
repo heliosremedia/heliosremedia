@@ -40,6 +40,7 @@ enum MediaVisibility {
 }
 
 enum ExternalProvider {
+  CLOUDFLARE_STREAM
   YOUTUBE
   VIMEO
   MATTERPORT

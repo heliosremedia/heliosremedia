@@ -185,7 +185,7 @@ export default async function PortfolioPage({
       ? prisma.media.findMany({
           where: {
             visibility: "VISIBLE",
-            sourceType: "VIDEO_EMBED",
+            sourceType: { in: ["VIDEO_EMBED", "UPLOADED_VIDEO"] },
             mediaCategory: "CINEMATIC_FILM",
             externalUrl: {
               not: null,
@@ -248,7 +248,7 @@ export default async function PortfolioPage({
     const assignedServiceIds = new Set(project.services.filter(({ service }) => service.active).map(({ service }) => service.id));
     const mediaCategories = new Set(project.media.map((media) => media.mediaCategory));
     const badges = services.filter((service) => assignedServiceIds.has(service.id) || getServiceMediaCategories(service).some((category) => mediaCategories.has(category)) || (Boolean(project.details?.propertyWebsiteUrl) && getServiceMediaCategories(service).includes("PROPERTY_WEBSITE"))).map(({ id, name }) => ({ id, name }));
-    const firstVideo = project.media.find((media) => media.sourceType === "VIDEO_EMBED" && media.externalUrl);
+    const firstVideo = project.media.find((media) => ["VIDEO_EMBED", "UPLOADED_VIDEO"].includes(media.sourceType) && media.externalUrl);
     const videoMedia = tryResolveExternalMedia(firstVideo?.externalUrl);
     const collectionHero = project.collectionHeroes.find((hero) => selectedMediaCategories.includes(hero.mediaCategory))?.media;
     const imageStorageKey = collectionHero?.storageKey || project.heroMedia?.storageKey;
@@ -375,7 +375,7 @@ export default async function PortfolioPage({
               });
               const firstVideo = project.media.find(
                 (media) =>
-                  media.sourceType === "VIDEO_EMBED" && media.externalUrl,
+                  ["VIDEO_EMBED", "UPLOADED_VIDEO"].includes(media.sourceType) && media.externalUrl,
               );
               const videoMedia = tryResolveExternalMedia(
                 firstVideo?.externalUrl,

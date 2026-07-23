@@ -1,4 +1,5 @@
 export type ExternalMediaProvider =
+  | "CLOUDFLARE_STREAM"
   | "YOUTUBE"
   | "VIMEO"
   | "DROPBOX"
@@ -7,7 +8,7 @@ export type ExternalMediaProvider =
 
 export type ExternalMediaDetails = {
   provider: ExternalMediaProvider;
-  databaseProvider: "YOUTUBE" | "VIMEO" | "OTHER";
+  databaseProvider: "CLOUDFLARE_STREAM" | "YOUTUBE" | "VIMEO" | "OTHER";
   sourceType: "VIDEO_EMBED" | "EXTERNAL_LINK";
   externalUrl: string;
   externalId: string | null;
@@ -19,6 +20,7 @@ export type ExternalMediaDetails = {
 
 const VIDEO_EXTENSIONS = /\.(mp4|m4v|webm|mov)(?:$|[?#])/i;
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
+const CLOUDFLARE_STREAM_ID = /^[a-f0-9]{32}$/i;
 
 function normalizeHttpUrl(value: string) {
   const candidate = value.trim();
@@ -120,6 +122,28 @@ function getDropboxPlaybackUrl(url: URL) {
 
 export function resolveExternalMedia(value: string): ExternalMediaDetails {
   const url = normalizeHttpUrl(value);
+  const normalizedHostname = url.hostname.toLowerCase().replace(/^www\./, "");
+  const streamId =
+    normalizedHostname === "iframe.videodelivery.net" ||
+    normalizedHostname === "videodelivery.net" ||
+    normalizedHostname.endsWith(".cloudflarestream.com")
+      ? url.pathname.split("/").filter(Boolean)[0] ?? ""
+      : "";
+
+  if (CLOUDFLARE_STREAM_ID.test(streamId)) {
+    return {
+      provider: "CLOUDFLARE_STREAM",
+      databaseProvider: "CLOUDFLARE_STREAM",
+      sourceType: "VIDEO_EMBED",
+      externalUrl: `https://iframe.videodelivery.net/${streamId}`,
+      externalId: streamId,
+      embedUrl: `https://iframe.videodelivery.net/${streamId}`,
+      playbackUrl: null,
+      thumbnailUrl: `https://videodelivery.net/${streamId}/thumbnails/thumbnail.jpg?time=1s&fit=crop`,
+      label: "Cloudflare Stream",
+    };
+  }
+
   const youtubeId = getYouTubeId(url);
 
   if (youtubeId) {

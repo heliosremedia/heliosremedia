@@ -131,7 +131,7 @@ export default async function ProjectEditorPage({
   }
 
   const hasPlayableVideo = project.media.some((media) => {
-    if (media.sourceType !== "VIDEO_EMBED") {
+    if (!["VIDEO_EMBED", "UPLOADED_VIDEO"].includes(media.sourceType)) {
       return false;
     }
 
