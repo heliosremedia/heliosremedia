@@ -28,7 +28,7 @@ export function getCloudflareStreamEmbedUrl(uid: string) {
 
 export function getCloudflareStreamThumbnailUrl(
   uid: string,
-  timeSeconds = 1,
+  timeSeconds = 2.5,
 ) {
   if (!isCloudflareStreamUid(uid)) {
     throw new Error("Invalid Cloudflare Stream video ID.");

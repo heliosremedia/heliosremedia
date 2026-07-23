@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { PROJECT_TYPES } from "@/lib/project-types";
+
 import { createProject, type CreateProjectState } from "./actions";
 
 const initialState: CreateProjectState = {
@@ -225,11 +227,11 @@ export default function NewProjectForm() {
                   className={inputClasses}
                 >
                   <option value="">Select project type</option>
-                  <option value="Listing Media">Listing Media</option>
-                  <option value="Agent Branding">Agent Branding</option>
-                  <option value="Community Content">Community Content</option>
-                  <option value="Commercial">Commercial</option>
-                  <option value="Other">Other</option>
+                  {PROJECT_TYPES.map((projectType) => (
+                    <option key={projectType} value={projectType}>
+                      {projectType}
+                    </option>
+                  ))}
                 </select>
               </label>
 

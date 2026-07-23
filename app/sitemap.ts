@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 
 import { prisma } from "@/lib/prisma";
+import { LOCATION_PAGES } from "@/lib/location-pages";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { getAbsoluteUrl } from "@/lib/site";
 
@@ -66,6 +67,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       : undefined,
   }));
 
+  const locationPages: MetadataRoute.Sitemap = LOCATION_PAGES.map(
+    (location) => ({
+      url: getAbsoluteUrl(`/locations/${location.slug}`),
+      changeFrequency: "monthly",
+      priority: 0.85,
+    }),
+  );
+
   const servicePages: MetadataRoute.Sitemap = services.map((service) => ({
     url: getAbsoluteUrl(`/services/${service.slug}`),
     lastModified: service.updatedAt,
@@ -80,5 +89,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.2,
   }));
 
-  return [...staticPages, ...servicePages, ...projectPages, ...legalPages];
+  return [
+    ...staticPages,
+    ...locationPages,
+    ...servicePages,
+    ...projectPages,
+    ...legalPages,
+  ];
 }

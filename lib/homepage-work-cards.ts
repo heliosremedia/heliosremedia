@@ -44,7 +44,16 @@ export function getHomepageCardVideo(card: {
   if (media.externalUrl) {
     try {
       const resolved = resolveExternalMedia(media.externalUrl);
-      return { videoSrc: resolved.playbackUrl, embedSrc: resolved.embedUrl, thumbnailUrl: resolved.thumbnailUrl };
+      const embedSrc =
+        resolved.provider === "CLOUDFLARE_STREAM" && resolved.embedUrl
+          ? `${resolved.embedUrl}?autoplay=true&muted=true&loop=true&controls=false&preload=metadata`
+          : resolved.embedUrl;
+
+      return {
+        videoSrc: resolved.playbackUrl,
+        embedSrc,
+        thumbnailUrl: resolved.thumbnailUrl,
+      };
     } catch {
       return { videoSrc: null, embedSrc: null, thumbnailUrl: null };
     }

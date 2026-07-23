@@ -1469,14 +1469,14 @@ export default function ProjectMediaManager({
   return (
     <>
       <div className="space-y-8">
-        <StreamVideoUploader
-          projectId={projectId}
-          onMediaAdded={handleMediaUploaded}
-        />
-
         <MediaUploader
           projectId={projectId}
           onMediaUploaded={handleMediaUploaded}
+        />
+
+        <StreamVideoUploader
+          projectId={projectId}
+          onMediaAdded={handleMediaUploaded}
         />
 
         <ExternalMediaForm

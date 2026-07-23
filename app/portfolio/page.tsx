@@ -117,6 +117,13 @@ export default async function PortfolioPage({
         locationLabel: true,
         propertyType: true,
         featured: true,
+        thumbnailMedia: {
+          select: {
+            storageKey: true,
+            originalFilename: true,
+            altText: true,
+          },
+        },
         heroMedia: {
           select: {
             storageKey: true,
@@ -160,6 +167,11 @@ export default async function PortfolioPage({
             externalUrl: true,
             sourceType: true,
             mediaCategory: true,
+            originalFilename: true,
+            altText: true,
+            aspectRatio: true,
+            width: true,
+            height: true,
           },
         },
         services: {
@@ -248,17 +260,34 @@ export default async function PortfolioPage({
     const assignedServiceIds = new Set(project.services.filter(({ service }) => service.active).map(({ service }) => service.id));
     const mediaCategories = new Set(project.media.map((media) => media.mediaCategory));
     const badges = services.filter((service) => assignedServiceIds.has(service.id) || getServiceMediaCategories(service).some((category) => mediaCategories.has(category)) || (Boolean(project.details?.propertyWebsiteUrl) && getServiceMediaCategories(service).includes("PROPERTY_WEBSITE"))).map(({ id, name }) => ({ id, name }));
-    const firstVideo = project.media.find((media) => ["VIDEO_EMBED", "UPLOADED_VIDEO"].includes(media.sourceType) && media.externalUrl);
+    const firstVideo =
+      project.media.find(
+        (media) =>
+          ["VIDEO_EMBED", "UPLOADED_VIDEO"].includes(media.sourceType) &&
+          media.externalUrl &&
+          selectedMediaCategories.includes(media.mediaCategory),
+      ) ||
+      project.media.find(
+        (media) =>
+          ["VIDEO_EMBED", "UPLOADED_VIDEO"].includes(media.sourceType) &&
+          media.externalUrl,
+      );
     const videoMedia = tryResolveExternalMedia(firstVideo?.externalUrl);
     const collectionHero = project.collectionHeroes.find((hero) => selectedMediaCategories.includes(hero.mediaCategory))?.media;
-    const imageStorageKey = collectionHero?.storageKey || project.heroMedia?.storageKey;
+    const image =
+      project.thumbnailMedia?.storageKey
+        ? project.thumbnailMedia
+        : collectionHero?.storageKey
+          ? collectionHero
+          : project.heroMedia;
+    const imageStorageKey = image?.storageKey;
     return {
       id: project.id,
       title: project.title,
       slug: project.slug,
       location: project.locationLabel || [project.city, project.state].filter(Boolean).join(", ") || project.propertyType || "Helios project",
       imageUrl: imageStorageKey ? getPublicAssetUrl(imageStorageKey) : videoMedia?.thumbnailUrl || "",
-      imageAlt: collectionHero?.altText || collectionHero?.originalFilename || project.heroMedia?.altText || project.heroMedia?.originalFilename || project.title,
+      imageAlt: image?.altText || image?.originalFilename || firstVideo?.altText || firstVideo?.originalFilename || project.title,
       badges,
     };
   });
@@ -343,7 +372,13 @@ export default async function PortfolioPage({
         {currentPage === 1 && carouselProjects.length > 0 ? <FeaturedProjectCarousel projects={carouselProjects} /> : null}
 
         {pageProjects.length > 0 ? (
-          <div className={`${currentPage === 1 && carouselProjects.length > 0 ? "mt-6" : "mt-8"} grid gap-6 md:grid-cols-2 xl:grid-cols-3`}>
+          <div className={`${currentPage === 1 && carouselProjects.length > 0 ? "mt-6" : "mt-8"} grid items-start gap-6 md:grid-cols-2 ${
+            selectedMediaCategories.some((category) =>
+              ["VERTICAL_REEL", "AGENT_BRANDING"].includes(category),
+            )
+              ? "xl:grid-cols-4"
+              : "xl:grid-cols-3"
+          }`}>
             {pageProjects.map((project) => {
               const assignedServiceIds = new Set(
                 project.services
@@ -373,29 +408,69 @@ export default async function PortfolioPage({
                   )
                 );
               });
-              const firstVideo = project.media.find(
-                (media) =>
-                  ["VIDEO_EMBED", "UPLOADED_VIDEO"].includes(media.sourceType) && media.externalUrl,
-              );
+              const firstVideo =
+                project.media.find(
+                  (media) =>
+                    ["VIDEO_EMBED", "UPLOADED_VIDEO"].includes(
+                      media.sourceType,
+                    ) &&
+                    media.externalUrl &&
+                    selectedMediaCategories.includes(media.mediaCategory),
+                ) ||
+                project.media.find(
+                  (media) =>
+                    ["VIDEO_EMBED", "UPLOADED_VIDEO"].includes(
+                      media.sourceType,
+                    ) && media.externalUrl,
+                );
               const videoMedia = tryResolveExternalMedia(
                 firstVideo?.externalUrl,
               );
               const collectionHero = project.collectionHeroes.find((hero) =>
                 selectedMediaCategories.includes(hero.mediaCategory),
               )?.media;
-              const imageStorageKey =
-                collectionHero?.storageKey || project.heroMedia?.storageKey;
+              const image =
+                project.thumbnailMedia?.storageKey
+                  ? project.thumbnailMedia
+                  : collectionHero?.storageKey
+                    ? collectionHero
+                    : project.heroMedia;
+              const imageStorageKey = image?.storageKey;
               const imageUrl = imageStorageKey
                 ? getPublicAssetUrl(imageStorageKey)
                 : videoMedia?.thumbnailUrl || "";
               const location =
                 project.locationLabel ||
                 [project.city, project.state].filter(Boolean).join(", ");
+              const videoAspectRatio =
+                firstVideo?.aspectRatio ||
+                (firstVideo?.width && firstVideo?.height
+                  ? firstVideo.width / firstVideo.height
+                  : null);
+              const isPortraitVideo =
+                !imageStorageKey &&
+                Boolean(videoMedia) &&
+                (videoAspectRatio
+                  ? videoAspectRatio < 1
+                  : firstVideo?.mediaCategory === "VERTICAL_REEL");
+              const imageAlt =
+                image?.altText ||
+                image?.originalFilename ||
+                firstVideo?.altText ||
+                firstVideo?.originalFilename ||
+                project.title;
 
               return (
                 <article
                   key={project.id}
-                  className="group relative overflow-hidden border border-white/[0.08] bg-black"
+                  className={`group relative overflow-hidden border border-white/[0.08] bg-black ${
+                    !isPortraitVideo &&
+                    selectedMediaCategories.some((category) =>
+                      ["VERTICAL_REEL", "AGENT_BRANDING"].includes(category),
+                    )
+                      ? "xl:col-span-2"
+                      : ""
+                  }`}
                 >
                   <Link
                     href={`/portfolio/${project.slug}`}
@@ -404,26 +479,28 @@ export default async function PortfolioPage({
                   />
 
                   <div
-                    className="relative aspect-[4/3] overflow-hidden bg-white/[0.03]"
+                    className={`relative overflow-hidden bg-white/[0.03] ${
+                      isPortraitVideo ? "aspect-[9/16]" : "aspect-[4/3]"
+                    }`}
                   >
                     {imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={imageUrl}
-                        alt={
-                          collectionHero?.altText ||
-                          collectionHero?.originalFilename ||
-                          project.heroMedia?.altText ||
-                          project.heroMedia?.originalFilename ||
-                          project.title
-                        }
+                        alt={imageAlt}
                         className="h-full w-full object-cover transition duration-1000 ease-[var(--ease-luxury)] group-hover:scale-[1.045]"
                       />
                     ) : (
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_25%,rgba(217,107,43,0.18),transparent_34%),#111]" />
                     )}
 
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent opacity-90" />
+                    <div
+                      className={`absolute inset-0 ${
+                        isPortraitVideo
+                          ? "bg-gradient-to-t from-black/55 via-transparent to-black/15"
+                          : "bg-gradient-to-t from-black via-black/10 to-transparent opacity-90"
+                      }`}
+                    />
 
                     {!imageStorageKey && videoMedia && (
                       <span className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/80 backdrop-blur-md">
@@ -433,6 +510,7 @@ export default async function PortfolioPage({
                       </span>
                     )}
 
+                    {!isPortraitVideo ? (
                     <div className="absolute inset-x-0 bottom-0 p-6 sm:p-7">
                       <p className="text-[0.55rem] font-semibold uppercase tracking-[0.18em] text-white/50">
                         {location || project.propertyType || "Helios project"}
@@ -453,7 +531,28 @@ export default async function PortfolioPage({
                         ))}
                       </div>
                     </div>
+                    ) : null}
                   </div>
+                  {isPortraitVideo ? (
+                    <div className="border-t border-white/[0.08] px-5 py-5">
+                      <p className="text-[0.52rem] font-semibold uppercase tracking-[0.18em] text-white/38">
+                        {location || project.propertyType || "Helios project"}
+                      </p>
+                      <h3 className="mt-2 font-display text-2xl font-light leading-tight tracking-[-0.025em] text-white">
+                        {project.title}
+                      </h3>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {badgeServices.map((service) => (
+                          <span
+                            key={service.id}
+                            className="rounded-full border border-white/12 px-3 py-1.5 text-[0.48rem] font-semibold uppercase tracking-[0.12em] text-white/48"
+                          >
+                            {service.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </article>
               );
             })}

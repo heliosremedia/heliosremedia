@@ -67,7 +67,7 @@ export default function StreamVideoUploader({
   onMediaAdded,
 }: StreamVideoUploaderProps) {
   const uploadRef = useRef<tus.Upload | null>(null);
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [altText, setAltText] = useState("");

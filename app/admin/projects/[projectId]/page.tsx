@@ -15,6 +15,9 @@ type ProjectEditorPageProps = {
   params: Promise<{
     projectId: string;
   }>;
+  searchParams: Promise<{
+    returnTo?: string;
+  }>;
 };
 
 function formatStatus(status: string) {
@@ -34,8 +37,15 @@ function statusClasses(status: string) {
 
 export default async function ProjectEditorPage({
   params,
+  searchParams,
 }: ProjectEditorPageProps) {
   const { projectId } = await params;
+  const { returnTo: requestedReturnTo } = await searchParams;
+  const returnTo =
+    requestedReturnTo?.startsWith("/admin/projects") &&
+    !requestedReturnTo.startsWith("//")
+      ? requestedReturnTo
+      : "/admin/projects";
 
   const [project, services] = await Promise.all([
     prisma.project.findUnique({
@@ -143,7 +153,7 @@ export default async function ProjectEditorPage({
     <div className="space-y-7">
       <section className="border-b border-white/[0.08] pb-7">
         <Link
-          href="/admin/projects"
+          href={returnTo}
           className="admin-btn-link"
         >
           <svg

@@ -10,6 +10,8 @@ import {
   type ReactNode,
 } from "react";
 
+import { PROJECT_TYPES } from "@/lib/project-types";
+
 export type ProjectDetailsDraft = {
   title: string;
   slug: string;
@@ -479,15 +481,28 @@ export default function ProjectDetailsEditor({
 
                     <div className="grid gap-5 sm:grid-cols-2">
                       <Field label="Project type">
-                        <input
+                        <select
                           value={draft.projectType}
                           onChange={(event) =>
                             updateField("projectType", event.target.value)
                           }
-                          maxLength={120}
-                          placeholder="Listing Media"
                           className={inputClasses}
-                        />
+                        >
+                          <option value="">Select project type</option>
+                          {PROJECT_TYPES.map((projectType) => (
+                            <option key={projectType} value={projectType}>
+                              {projectType}
+                            </option>
+                          ))}
+                          {draft.projectType &&
+                          !PROJECT_TYPES.includes(
+                            draft.projectType as (typeof PROJECT_TYPES)[number],
+                          ) ? (
+                            <option value={draft.projectType}>
+                              {draft.projectType}
+                            </option>
+                          ) : null}
+                        </select>
                       </Field>
 
                       <Field label="Property type">

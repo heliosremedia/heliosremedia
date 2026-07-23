@@ -139,7 +139,7 @@ export function resolveExternalMedia(value: string): ExternalMediaDetails {
       externalId: streamId,
       embedUrl: `https://iframe.videodelivery.net/${streamId}`,
       playbackUrl: null,
-      thumbnailUrl: `https://videodelivery.net/${streamId}/thumbnails/thumbnail.jpg?time=1s&fit=crop`,
+      thumbnailUrl: `https://videodelivery.net/${streamId}/thumbnails/thumbnail.jpg?time=2.5s&fit=crop`,
       label: "Cloudflare Stream",
     };
   }

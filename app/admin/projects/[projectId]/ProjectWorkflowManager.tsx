@@ -541,9 +541,9 @@ export default function ProjectWorkflowManager({
                 : "Publishing makes this project available to the public portfolio."}
             </p>
 
-            <div className="mt-6 space-y-3">
+            <div className="mt-6">
               {status === "PUBLISHED" ? (
-                <>
+                <div className="space-y-4">
                   <Link
                     href={`/portfolio/${projectSlug}`}
                     className="w-full admin-btn-primary"
@@ -561,7 +561,7 @@ export default function ProjectWorkflowManager({
                       ? "Moving to draft"
                       : "Move to draft"}
                   </button>
-                </>
+                </div>
               ) : (
                 <button
                   type="button"
@@ -591,7 +591,7 @@ export default function ProjectWorkflowManager({
                     }
                   }}
                   disabled={workflowAction !== null}
-                  className="w-full admin-btn-destructive"
+                  className="mt-6 w-full admin-btn-destructive"
                 >
                   {workflowAction === "archive"
                     ? "Archiving"

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
+import { LOCATION_PAGES } from "@/lib/location-pages";
 import { useSiteSettings } from "./SiteSettingsProvider";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -182,6 +183,21 @@ export default function Footer() {
                 {settings.serviceAreaDescription}
               </p>
             </div>
+
+            <nav
+              aria-label="Northern Colorado service areas"
+              className="flex flex-wrap gap-x-5 gap-y-2"
+            >
+              {LOCATION_PAGES.map((location) => (
+                <Link
+                  key={location.slug}
+                  href={`/locations/${location.slug}`}
+                  className="text-[0.5rem] uppercase tracking-[0.18em] text-white/18 transition-colors hover:text-white/55"
+                >
+                  {location.city}
+                </Link>
+              ))}
+            </nav>
 
             <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
               <p className="text-[0.53rem] uppercase tracking-[0.21em] text-white/20">
