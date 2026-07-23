@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import type { AdminRole } from "@/app/generated/prisma/client";
 
 type AdminSidebarProps = {
@@ -14,6 +15,12 @@ type NavigationItem = {
   label: string;
   href: string;
   icon: React.ReactNode;
+};
+
+type NavigationGroup = {
+  id: string;
+  label: string;
+  hrefs: string[];
 };
 
 const navigation: NavigationItem[] = [
@@ -215,6 +222,33 @@ const navigation: NavigationItem[] = [
   },
 ];
 
+const navigationGroups: NavigationGroup[] = [
+  {
+    id: "operations",
+    label: "Operations",
+    hrefs: ["/admin/projects", "/admin/inquiries", "/admin/client-portals"],
+  },
+  {
+    id: "website-content",
+    label: "Website Content",
+    hrefs: [
+      "/admin/homepage",
+      "/admin/about",
+      "/admin/media",
+      "/admin/services",
+      "/admin/faqs",
+      "/admin/testimonials",
+      "/admin/trusted-logos",
+      "/admin/ctas",
+    ],
+  },
+  {
+    id: "administration",
+    label: "Administration",
+    hrefs: ["/admin/settings", "/admin/activity", "/admin/users"],
+  },
+];
+
 function isActivePath(pathname: string, href: string) {
   if (href === "/admin") {
     return pathname === href;
@@ -223,12 +257,68 @@ function isActivePath(pathname: string, href: string) {
   return pathname.startsWith(href);
 }
 
+function getActiveGroup(pathname: string) {
+  return (
+    navigationGroups.find((group) =>
+      group.hrefs.some((href) => isActivePath(pathname, href)),
+    )?.id ?? null
+  );
+}
+
+function NavigationLink({
+  item,
+  pathname,
+  onClose,
+}: {
+  item: NavigationItem;
+  pathname: string;
+  onClose: () => void;
+}) {
+  const active = isActivePath(pathname, item.href);
+
+  return (
+    <Link
+      href={item.href}
+      onClick={onClose}
+      aria-current={active ? "page" : undefined}
+      className={`group relative flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm transition duration-300 ${
+        active
+          ? "bg-white/[0.07] text-white"
+          : "text-white/50 hover:bg-white/[0.04] hover:text-white"
+      }`}
+    >
+      {active ? (
+        <span className="absolute inset-y-3 left-0 w-px bg-[var(--helios-orange)]" />
+      ) : null}
+
+      <span
+        className={
+          active
+            ? "text-[var(--helios-orange)]"
+            : "text-white/40 transition group-hover:text-white/70"
+        }
+      >
+        {item.icon}
+      </span>
+
+      <span>{item.label}</span>
+    </Link>
+  );
+}
+
 export default function AdminSidebar({
   isOpen,
   onClose,
   role,
 }: AdminSidebarProps) {
   const pathname = usePathname();
+  const activeGroup = getActiveGroup(pathname);
+  const [openGroup, setOpenGroup] = useState<string | null>(activeGroup);
+  const visibleNavigation = navigation.filter(
+    (item) =>
+      item.href !== "/admin/users" || role === "OWNER" || role === "ADMIN",
+  );
+  const dashboard = visibleNavigation.find((item) => item.href === "/admin");
 
   return (
     <>
@@ -280,44 +370,88 @@ export default function AdminSidebar({
           </button>
         </div>
 
-        <nav className="flex-1 px-3 py-6">
+        <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-5 [scrollbar-color:rgba(255,255,255,0.14)_transparent] [scrollbar-width:thin]">
           <p className="px-3 text-[0.58rem] font-semibold uppercase tracking-[0.24em] text-white/30">
             Workspace
           </p>
 
-          <div className="mt-4 space-y-1">
-            {navigation.filter((item) => item.href !== "/admin/users" || role === "OWNER" || role === "ADMIN").map((item) => {
-              const active = isActivePath(pathname, item.href);
+          <div className="mt-4">
+            {dashboard ? (
+              <NavigationLink
+                item={dashboard}
+                pathname={pathname}
+                onClose={onClose}
+              />
+            ) : null}
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={onClose}
-                  className={`group relative flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm transition duration-300 ${
-                    active
-                      ? "bg-white/[0.07] text-white"
-                      : "text-white/50 hover:bg-white/[0.04] hover:text-white"
-                  }`}
-                >
-                  {active ? (
-                    <span className="absolute inset-y-3 left-0 w-px bg-[var(--helios-orange)]" />
-                  ) : null}
+            <div className="mt-3 space-y-2 border-t border-white/[0.07] pt-3">
+              {navigationGroups.map((group) => {
+                const items = group.hrefs
+                  .map((href) =>
+                    visibleNavigation.find((item) => item.href === href),
+                  )
+                  .filter((item): item is NavigationItem => Boolean(item));
+                const expanded = openGroup === group.id;
+                const groupIsActive = activeGroup === group.id;
 
-                  <span
-                    className={
-                      active
-                        ? "text-[var(--helios-orange)]"
-                        : "text-white/40 transition group-hover:text-white/70"
-                    }
-                  >
-                    {item.icon}
-                  </span>
+                if (items.length === 0) {
+                  return null;
+                }
 
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+                return (
+                  <div key={group.id}>
+                    <button
+                      type="button"
+                      aria-expanded={expanded}
+                      aria-controls={`admin-nav-${group.id}`}
+                      onClick={() =>
+                        setOpenGroup((current) =>
+                          current === group.id ? null : group.id,
+                        )
+                      }
+                      className={`group flex w-full items-center justify-between rounded-xl px-3.5 py-3 text-left text-[0.59rem] font-semibold uppercase tracking-[0.2em] transition duration-300 ${
+                        groupIsActive
+                          ? "text-white/70"
+                          : "text-white/32 hover:bg-white/[0.035] hover:text-white/65"
+                      }`}
+                    >
+                      <span>{group.label}</span>
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 20 20"
+                        fill="none"
+                        className={`h-4 w-4 transition-transform duration-300 ${
+                          expanded ? "rotate-180" : ""
+                        }`}
+                      >
+                        <path
+                          d="m6 8 4 4 4-4"
+                          stroke="currentColor"
+                          strokeWidth="1.4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+
+                    <div
+                      id={`admin-nav-${group.id}`}
+                      hidden={!expanded}
+                      className="mt-1 space-y-1"
+                    >
+                      {items.map((item) => (
+                        <NavigationLink
+                          key={item.href}
+                          item={item}
+                          pathname={pathname}
+                          onClose={onClose}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </nav>
 

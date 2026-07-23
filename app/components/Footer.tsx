@@ -146,8 +146,8 @@ export default function Footer() {
         </div>
 
         <div className="mt-20 border-t border-white/[0.08] pt-7 sm:mt-24">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="flex items-end gap-5">
+          <div className="grid gap-6 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center">
+            <div>
               <Link
                 href="/login"
                 aria-label="Admin sign in"
@@ -178,15 +178,11 @@ export default function Footer() {
                   )}
                 </span>
               </Link>
-
-              <p className="max-w-[52rem] text-[0.53rem] uppercase leading-[1.9] tracking-[0.2em] text-white/20">
-                {settings.serviceAreaDescription}
-              </p>
             </div>
 
             <nav
               aria-label="Northern Colorado service areas"
-              className="flex flex-wrap gap-x-5 gap-y-2"
+              className="flex flex-wrap gap-x-5 gap-y-2 lg:justify-center"
             >
               {LOCATION_PAGES.map((location) => (
                 <Link

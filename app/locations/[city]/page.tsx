@@ -130,7 +130,7 @@ export default async function LocationLandingPage({
               Northern Colorado · {location.county}
             </p>
             <h1 className="mt-7 max-w-5xl font-display text-[clamp(3.6rem,8.5vw,8rem)] font-light leading-[0.84] tracking-[-0.06em]">
-              Real estate media in{" "}
+              Real Estate Media in{" "}
               <span className="text-[var(--helios-orange)]">
                 {location.city}.
               </span>
@@ -273,4 +273,3 @@ export default async function LocationLandingPage({
     </main>
   );
 }
-
