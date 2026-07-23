@@ -5,6 +5,7 @@ import Footer from "@/app/components/Footer";
 import ManagedCtaSection from "@/app/components/ManagedCtaSection";
 import Navbar from "@/app/components/Navbar";
 import { defaultPageCtas } from "@/lib/ctas";
+import { tryResolveExternalMedia } from "@/lib/external-media";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { getServiceMediaCategories } from "@/lib/portfolio-services";
@@ -86,6 +87,25 @@ export default async function ServicesPage() {
                   },
                 },
               },
+              media: {
+                where: {
+                  visibility: "VISIBLE",
+                  sourceType: {
+                    in: ["VIDEO_EMBED", "UPLOADED_VIDEO"],
+                  },
+                  externalUrl: {
+                    not: null,
+                  },
+                },
+                orderBy: [
+                  { displayOrder: "asc" },
+                  { createdAt: "asc" },
+                ],
+                select: {
+                  externalUrl: true,
+                  mediaCategory: true,
+                },
+              },
             },
           },
         },
@@ -156,13 +176,21 @@ export default async function ServicesPage() {
               )?.media;
               const imageStorageKey =
                 collectionHero?.storageKey || project.heroMedia?.storageKey;
+              const categoryVideo =
+                project.media.find(
+                  (media) => media.mediaCategory === primaryMediaCategory,
+                ) || project.media[0];
+              const videoThumbnailUrl = tryResolveExternalMedia(
+                categoryVideo?.externalUrl,
+              )?.thumbnailUrl;
+              const imageUrl = imageStorageKey
+                ? getPublicAssetUrl(imageStorageKey)
+                : videoThumbnailUrl || "";
 
-              return imageStorageKey ? {
+              return imageUrl ? {
                 ...project,
                 collectionHero,
-                imageUrl: imageStorageKey
-                  ? getPublicAssetUrl(imageStorageKey)
-                  : "",
+                imageUrl,
                 location:
                   project.locationLabel ||
                   [project.city, project.state].filter(Boolean).join(", "),
