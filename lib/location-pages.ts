@@ -1,6 +1,12 @@
+import "server-only";
+
+import { prisma } from "@/lib/prisma";
+
 export type LocationPage = {
+  id?: string;
   slug: string;
   city: string;
+  state?: string;
   county: string;
   seoTitle: string;
   seoDescription: string;
@@ -10,6 +16,10 @@ export type LocationPage = {
   marketCopy: string;
   localDetails: string[];
   serviceArea: string;
+  published?: boolean;
+  displayOrder?: number;
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 
 export const LOCATION_PAGES: LocationPage[] = [
@@ -154,7 +164,60 @@ export const LOCATION_PAGES: LocationPage[] = [
   },
 ];
 
-export function getLocationPage(slug: string) {
-  return LOCATION_PAGES.find((location) => location.slug === slug);
+function normalizeLocationPage(location: {
+  id: string;
+  slug: string;
+  city: string;
+  state: string;
+  county: string;
+  seoTitle: string;
+  seoDescription: string;
+  heroLead: string;
+  introduction: string;
+  marketTitle: string;
+  marketCopy: string;
+  localDetails: unknown;
+  serviceArea: string;
+  published: boolean;
+  displayOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}): LocationPage {
+  return {
+    ...location,
+    localDetails: Array.isArray(location.localDetails)
+      ? location.localDetails.filter(
+          (detail): detail is string => typeof detail === "string",
+        )
+      : [],
+  };
 }
 
+export async function getPublishedLocationPages(): Promise<LocationPage[]> {
+  try {
+    const locations = await prisma.locationPage.findMany({
+      where: { published: true },
+      orderBy: [{ displayOrder: "asc" }, { city: "asc" }],
+    });
+    return locations.map(normalizeLocationPage);
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("Using bundled location pages because the database is unavailable.", error);
+    }
+    return LOCATION_PAGES;
+  }
+}
+
+export async function getLocationPage(slug: string): Promise<LocationPage | undefined> {
+  try {
+    const location = await prisma.locationPage.findFirst({
+      where: { slug, published: true },
+    });
+    return location ? normalizeLocationPage(location) : undefined;
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("Using a bundled location page because the database is unavailable.", error);
+    }
+    return LOCATION_PAGES.find((location) => location.slug === slug);
+  }
+}

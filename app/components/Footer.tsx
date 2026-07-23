@@ -3,13 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
-import { LOCATION_PAGES } from "@/lib/location-pages";
-import { useSiteSettings } from "./SiteSettingsProvider";
+import { useLocationPages, useSiteSettings } from "./SiteSettingsProvider";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function Footer() {
   const settings = useSiteSettings();
+  const locations = useLocationPages();
   const exploreLinks = settings.footerNavigation.filter((item) => item.published !== false);
   const bookingHref = settings.bookingUrl || "/inquire";
   const connectLinks = [
@@ -184,7 +184,7 @@ export default function Footer() {
               aria-label="Northern Colorado service areas"
               className="flex flex-wrap gap-x-5 gap-y-2 lg:justify-center"
             >
-              {LOCATION_PAGES.map((location) => (
+              {locations.map((location) => (
                 <Link
                   key={location.slug}
                   href={`/locations/${location.slug}`}

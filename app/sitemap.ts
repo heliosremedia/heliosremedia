@@ -1,14 +1,14 @@
 import type { MetadataRoute } from "next";
 
 import { prisma } from "@/lib/prisma";
-import { LOCATION_PAGES } from "@/lib/location-pages";
+import { getPublishedLocationPages } from "@/lib/location-pages";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { getAbsoluteUrl } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [projects, services, legalDocuments] = await Promise.all([
+  const [projects, services, legalDocuments, locations] = await Promise.all([
     prisma.project.findMany({
       where: { status: "PUBLISHED" },
       orderBy: [{ displayOrder: "asc" }, { publishedAt: "desc" }],
@@ -22,6 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }),
     prisma.service.findMany({ where: { active: true }, select: { slug: true, updatedAt: true } }),
     prisma.legalDocument.findMany({ where: { published: true }, select: { type: true, updatedAt: true } }),
+    getPublishedLocationPages(),
   ]);
 
   const staticPages: MetadataRoute.Sitemap = [
@@ -67,9 +68,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       : undefined,
   }));
 
-  const locationPages: MetadataRoute.Sitemap = LOCATION_PAGES.map(
+  const locationPages: MetadataRoute.Sitemap = locations.map(
     (location) => ({
       url: getAbsoluteUrl(`/locations/${location.slug}`),
+      lastModified: location.updatedAt,
       changeFrequency: "monthly",
       priority: 0.85,
     }),

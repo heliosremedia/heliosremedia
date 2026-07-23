@@ -563,6 +563,31 @@ model SiteSettings {
   updatedAt DateTime @updatedAt
 }
 
+model LocationPage {
+  id String @id @default(cuid())
+
+  slug            String @unique
+  city            String
+  state           String @default("Colorado")
+  county          String
+  seoTitle        String
+  seoDescription  String
+  heroLead        String
+  introduction    String
+  marketTitle     String
+  marketCopy      String
+  localDetails    Json
+  serviceArea     String
+
+  published    Boolean @default(false)
+  displayOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, displayOrder])
+}
+
 model ClientPortal {
   id          String               @id @default(cuid())
   name        String

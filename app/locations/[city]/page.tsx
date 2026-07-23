@@ -6,7 +6,7 @@ import Footer from "@/app/components/Footer";
 import Navbar from "@/app/components/Navbar";
 import {
   getLocationPage,
-  LOCATION_PAGES,
+  getPublishedLocationPages,
 } from "@/lib/location-pages";
 import { buildPageMetadata } from "@/lib/seo";
 import { getAbsoluteUrl } from "@/lib/site";
@@ -47,7 +47,7 @@ export async function generateMetadata({
   params,
 }: LocationPageProps): Promise<Metadata> {
   const { city } = await params;
-  const location = getLocationPage(city);
+  const location = await getLocationPage(city);
 
   if (!location) {
     notFound();
@@ -67,13 +67,16 @@ export default async function LocationLandingPage({
   params,
 }: LocationPageProps) {
   const { city } = await params;
-  const location = getLocationPage(city);
+  const location = await getLocationPage(city);
 
   if (!location) {
     notFound();
   }
 
-  const settings = await getSiteSettings();
+  const [settings, locations] = await Promise.all([
+    getSiteSettings(),
+    getPublishedLocationPages(),
+  ]);
   const bookingHref = settings.bookingUrl || "/inquire";
   const structuredData = {
     "@context": "https://schema.org",
@@ -231,7 +234,7 @@ export default async function LocationLandingPage({
             Helios across Northern Colorado
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            {LOCATION_PAGES.map((item) => (
+            {locations.map((item) => (
               <Link
                 key={item.slug}
                 href={`/locations/${item.slug}`}

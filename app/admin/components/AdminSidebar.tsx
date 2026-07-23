@@ -153,6 +153,16 @@ const navigation: NavigationItem[] = [
     ),
   },
   {
+    label: "Local Pages",
+    href: "/admin/locations",
+    icon: (
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+        <path d="M12 21s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+        <circle cx="12" cy="9" r="2.5" stroke="currentColor" strokeWidth="1.5" />
+      </svg>
+    ),
+  },
+  {
     label: "FAQs",
     href: "/admin/faqs",
     icon: (
@@ -236,6 +246,7 @@ const navigationGroups: NavigationGroup[] = [
       "/admin/about",
       "/admin/media",
       "/admin/services",
+      "/admin/locations",
       "/admin/faqs",
       "/admin/testimonials",
       "/admin/trusted-logos",
@@ -409,7 +420,7 @@ export default function AdminSidebar({
                           current === group.id ? null : group.id,
                         )
                       }
-                      className={`group flex w-full items-center justify-between rounded-xl px-3.5 py-3 text-left text-[0.59rem] font-semibold uppercase tracking-[0.2em] transition duration-300 ${
+                      className={`group flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-left text-[0.52rem] font-semibold uppercase tracking-[0.14em] transition duration-300 ${
                         groupIsActive
                           ? "text-white/70"
                           : "text-white/32 hover:bg-white/[0.035] hover:text-white/65"
