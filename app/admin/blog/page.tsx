@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getMediaCollection } from "@/lib/media-collections";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { getSiteSettings } from "@/lib/site-settings";
 import BlogStudio, { type BlogEditorPost, type BlogImageOption } from "./BlogStudio";
@@ -10,8 +11,8 @@ export default async function BlogStudioPage() {
     prisma.blogPost.findMany({ orderBy: { updatedAt: "desc" }, include: { featuredMedia: { select: { storageKey: true } } } }),
     prisma.media.findMany({
       where: { sourceType: "UPLOADED_IMAGE", visibility: "VISIBLE", storageKey: { not: null } },
-      orderBy: { createdAt: "desc" }, take: 120,
-      select: { id: true, storageKey: true, altText: true, caption: true, mediaCategory: true, project: { select: { title: true, locationLabel: true } } },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, projectId: true, storageKey: true, altText: true, caption: true, mediaCategory: true, project: { select: { title: true, locationLabel: true } } },
     }),
     getSiteSettings(),
   ]);
@@ -26,7 +27,12 @@ export default async function BlogStudioPage() {
   }));
   const images: BlogImageOption[] = media.map(item => ({
     id: item.id, url: getPublicAssetUrl(item.storageKey!), alt: item.altText || item.caption || item.project.title,
-    label: item.caption || item.project.locationLabel || item.project.title, category: item.mediaCategory,
+    projectId: item.projectId,
+    property: item.project.title,
+    location: item.project.locationLabel || "",
+    caption: item.caption || "",
+    category: item.mediaCategory,
+    categoryLabel: getMediaCollection(item.mediaCategory).label,
   }));
   return <BlogStudio initialPosts={serialized} images={images} defaultAuthor={settings.defaultBlogAuthor || settings.businessName} />;
 }
