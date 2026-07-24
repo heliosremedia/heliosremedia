@@ -137,10 +137,10 @@
 }
 
 .admin-nav-group-trigger {
-  font-size: 0.72rem !important;
+  font-size: 0.88rem !important;
   font-weight: 400 !important;
-  line-height: 1rem !important;
-  letter-spacing: 0.1em !important;
+  line-height: 1.15rem !important;
+  letter-spacing: 0.075em !important;
 }
 
 .admin-form-scope main :where(.text-sm):not([class*="uppercase"]) {
