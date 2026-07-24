@@ -7,6 +7,39 @@ function text(value: unknown, max: number) {
   return result;
 }
 
+type OpenAiError = {
+  error?: {
+    code?: string | null;
+    message?: string;
+    type?: string;
+  };
+};
+
+function openAiErrorMessage(status: number, payload: OpenAiError) {
+  const code = payload.error?.code || payload.error?.type || "";
+  const message = payload.error?.message || "";
+
+  if (status === 401) {
+    return "AI draft could not be generated because the OpenAI API key was rejected. Replace OPENAI_API_KEY in Vercel, then try again.";
+  }
+  if (status === 403) {
+    return "AI draft could not be generated because the OpenAI project does not allow this request. Check the API key permissions in OpenAI.";
+  }
+  if (status === 429 && (code === "insufficient_quota" || /quota|billing|credit/i.test(message))) {
+    return "AI draft could not be generated because the OpenAI API account has no available credits. Add billing or increase the project budget, then try again.";
+  }
+  if (status === 429) {
+    return "AI draft could not be generated because OpenAI is rate limiting requests. Wait a moment, then try again.";
+  }
+  if (code === "model_not_found" || /model.*(access|exist|found)/i.test(message)) {
+    return "AI draft could not be generated because the configured OpenAI model is unavailable to this project. Check OPENAI_BLOG_MODEL in Vercel.";
+  }
+  if (status >= 500) {
+    return "AI draft could not be generated because OpenAI is temporarily unavailable. Try again in a few minutes.";
+  }
+  return "AI draft could not be generated because OpenAI rejected the request. Check the OpenAI project settings and try again.";
+}
+
 export async function POST(request: Request) {
   try {
     const apiKey = process.env.OPENAI_API_KEY?.trim();
@@ -36,8 +69,23 @@ export async function POST(request: Request) {
       signal: AbortSignal.timeout(60_000),
     });
     if (!response.ok) {
-      console.error("OpenAI rejected Blog Studio request", { status: response.status, details: (await response.text()).slice(0, 1000) });
-      return NextResponse.json({ success: false, error: "The AI draft could not be generated." }, { status: 502 });
+      const details = await response.text();
+      let payload: OpenAiError = {};
+      try {
+        payload = JSON.parse(details) as OpenAiError;
+      } catch {
+        // OpenAI normally returns JSON errors. Keep the response safe and actionable
+        // if an upstream proxy returns plain text instead.
+      }
+      console.error("OpenAI rejected Blog Studio request", {
+        status: response.status,
+        code: payload.error?.code || payload.error?.type || "unknown",
+        details: details.slice(0, 1000),
+      });
+      return NextResponse.json(
+        { success: false, error: openAiErrorMessage(response.status, payload) },
+        { status: response.status >= 500 ? 502 : response.status },
+      );
     }
     const result = await response.json() as { output_text?: string; output?: Array<{ content?: Array<{ text?: string }> }> };
     const output = result.output_text || result.output?.flatMap(item => item.content || []).map(item => item.text || "").join("") || "{}";
