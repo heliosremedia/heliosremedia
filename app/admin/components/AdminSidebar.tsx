@@ -9,6 +9,7 @@ type AdminSidebarProps = {
   isOpen: boolean;
   onClose: () => void;
   role: AdminRole;
+  initialFavorites: string[];
 };
 
 type NavigationItem = {
@@ -286,19 +287,22 @@ function NavigationLink({
   item,
   pathname,
   onClose,
+  favorite,
+  onToggleFavorite,
+  savingFavorite,
 }: {
   item: NavigationItem;
   pathname: string;
   onClose: () => void;
+  favorite?: boolean;
+  onToggleFavorite?: (href: string) => void;
+  savingFavorite?: boolean;
 }) {
   const active = isActivePath(pathname, item.href);
 
   return (
-    <Link
-      href={item.href}
-      onClick={onClose}
-      aria-current={active ? "page" : undefined}
-      className={`group relative flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm transition duration-300 ${
+    <div
+      className={`group relative flex items-center rounded-xl transition duration-300 ${
         active
           ? "bg-white/[0.07] text-white"
           : "text-white/50 hover:bg-white/[0.04] hover:text-white"
@@ -308,18 +312,59 @@ function NavigationLink({
         <span className="absolute inset-y-3 left-0 w-px bg-[var(--helios-orange)]" />
       ) : null}
 
-      <span
-        className={
-          active
-            ? "text-[var(--helios-orange)]"
-            : "text-white/40 transition group-hover:text-white/70"
-        }
+      <Link
+        href={item.href}
+        onClick={onClose}
+        aria-current={active ? "page" : undefined}
+        className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-3.5"
       >
-        {item.icon}
-      </span>
+        <span
+          className={
+            active
+              ? "text-[var(--helios-orange)]"
+              : "text-white/40 transition group-hover:text-white/70"
+          }
+        >
+          {item.icon}
+        </span>
 
-      <span>{item.label}</span>
-    </Link>
+        <span className="truncate">{item.label}</span>
+      </Link>
+
+      {onToggleFavorite ? (
+        <button
+          type="button"
+          aria-label={
+            favorite
+              ? `Remove ${item.label} from favorites`
+              : `Pin ${item.label} to favorites`
+          }
+          aria-pressed={favorite}
+          disabled={savingFavorite}
+          onClick={() => onToggleFavorite(item.href)}
+          className={`mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition ${
+            favorite
+              ? "text-[var(--helios-orange)] hover:bg-white/[0.06]"
+              : "text-white/20 hover:bg-white/[0.06] hover:text-white/65"
+          } disabled:cursor-wait disabled:opacity-40`}
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            fill={favorite ? "currentColor" : "none"}
+            className="h-4 w-4"
+          >
+            <path
+              d="m9 4 6 0 .7 5 2.3 2v1H6v-1l2.3-2L9 4Zm3 8v8"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+      ) : null}
+    </div>
   );
 }
 
@@ -327,15 +372,63 @@ export default function AdminSidebar({
   isOpen,
   onClose,
   role,
+  initialFavorites,
 }: AdminSidebarProps) {
   const pathname = usePathname();
   const activeGroup = getActiveGroup(pathname);
   const [openGroup, setOpenGroup] = useState<string | null>(activeGroup);
+  const [favorites, setFavorites] = useState(initialFavorites);
+  const [savingFavorite, setSavingFavorite] = useState<string | null>(null);
+  const [favoriteError, setFavoriteError] = useState<string | null>(null);
   const visibleNavigation = navigation.filter(
     (item) =>
       item.href !== "/admin/users" || role === "OWNER" || role === "ADMIN",
   );
   const dashboard = visibleNavigation.find((item) => item.href === "/admin");
+  const favoriteItems = favorites
+    .map((href) => visibleNavigation.find((item) => item.href === href))
+    .filter((item): item is NavigationItem => Boolean(item));
+
+  async function toggleFavorite(href: string) {
+    if (savingFavorite) return;
+
+    const previousFavorites = favorites;
+    const nextFavorites = favorites.includes(href)
+      ? favorites.filter((favoriteHref) => favoriteHref !== href)
+      : [...favorites, href];
+
+    setFavorites(nextFavorites);
+    setSavingFavorite(href);
+    setFavoriteError(null);
+
+    try {
+      const response = await fetch("/api/admin/navigation-favorites", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ favorites: nextFavorites }),
+      });
+      const result = (await response.json()) as {
+        success?: boolean;
+        favorites?: string[];
+        error?: string;
+      };
+
+      if (!response.ok || !result.success || !Array.isArray(result.favorites)) {
+        throw new Error(result.error || "Favorites could not be saved.");
+      }
+
+      setFavorites(result.favorites);
+    } catch (error) {
+      setFavorites(previousFavorites);
+      setFavoriteError(
+        error instanceof Error
+          ? error.message
+          : "Favorites could not be saved.",
+      );
+    } finally {
+      setSavingFavorite(null);
+    }
+  }
 
   return (
     <>
@@ -401,6 +494,33 @@ export default function AdminSidebar({
               />
             ) : null}
 
+            {favoriteItems.length > 0 ? (
+              <section
+                aria-labelledby="admin-favorites-heading"
+                className="mt-3 border-t border-white/[0.07] pt-3"
+              >
+                <p
+                  id="admin-favorites-heading"
+                  className="px-3.5 py-2 text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-white/40"
+                >
+                  Favorites
+                </p>
+                <div className="mt-1 space-y-1">
+                  {favoriteItems.map((item) => (
+                    <NavigationLink
+                      key={`favorite-${item.href}`}
+                      item={item}
+                      pathname={pathname}
+                      onClose={onClose}
+                      favorite
+                      onToggleFavorite={toggleFavorite}
+                      savingFavorite={savingFavorite === item.href}
+                    />
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
             <div className="mt-3 space-y-2 border-t border-white/[0.07] pt-3">
               {navigationGroups.map((group) => {
                 const items = group.hrefs
@@ -462,6 +582,9 @@ export default function AdminSidebar({
                           item={item}
                           pathname={pathname}
                           onClose={onClose}
+                          favorite={favorites.includes(item.href)}
+                          onToggleFavorite={toggleFavorite}
+                          savingFavorite={savingFavorite === item.href}
                         />
                       ))}
                     </div>
@@ -470,6 +593,13 @@ export default function AdminSidebar({
               })}
             </div>
           </div>
+
+          <p
+            aria-live="polite"
+            className="mt-3 min-h-4 px-3 text-[0.62rem] leading-4 text-red-300/80"
+          >
+            {favoriteError}
+          </p>
         </nav>
 
         <div className="border-t border-white/[0.08] p-4">

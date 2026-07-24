@@ -799,6 +799,7 @@ model AdminUser {
   active      Boolean   @default(true)
   passwordHash String?
   sessionVersion Int @default(0)
+  navigationFavorites Json?
 
   failedLoginCount Int       @default(0)
   lockedUntil      DateTime?
