@@ -7,6 +7,41 @@ import { useLocationPages, useSiteSettings } from "./SiteSettingsProvider";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
+function SocialIcon({ label }: { label: string }) {
+  if (label === "Instagram") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-[1.05rem] w-[1.05rem]">
+        <rect x="3.5" y="3.5" width="17" height="17" rx="5" stroke="currentColor" strokeWidth="1.7" />
+        <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.7" />
+        <circle cx="17.4" cy="6.7" r="1" fill="currentColor" />
+      </svg>
+    );
+  }
+
+  if (label === "Facebook") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" className="h-[1.05rem] w-[1.05rem]">
+        <path d="M13.6 21v-8h2.8l.4-3h-3.2V8.1c0-.9.3-1.6 1.7-1.6H17V3.8c-.6-.1-1.4-.2-2.4-.2-2.5 0-4.2 1.5-4.2 4.3V10H7.6v3h2.8v8h3.2Z" />
+      </svg>
+    );
+  }
+
+  if (label === "YouTube") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-[1.15rem] w-[1.15rem]">
+        <path d="M20.3 7.1a2.6 2.6 0 0 0-1.8-1.8C16.9 4.9 12 4.9 12 4.9s-4.9 0-6.5.4a2.6 2.6 0 0 0-1.8 1.8A27 27 0 0 0 3.3 12a27 27 0 0 0 .4 4.9 2.6 2.6 0 0 0 1.8 1.8c1.6.4 6.5.4 6.5.4s4.9 0 6.5-.4a2.6 2.6 0 0 0 1.8-1.8 27 27 0 0 0 .4-4.9 27 27 0 0 0-.4-4.9Z" stroke="currentColor" strokeWidth="1.55" />
+        <path d="m10.2 14.8 4.5-2.8-4.5-2.8v5.6Z" fill="currentColor" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" className="h-[1.05rem] w-[1.05rem]">
+      <path d="M6.4 8.5H3.2V19h3.2V8.5ZM4.8 3.2a1.9 1.9 0 1 0 0 3.8 1.9 1.9 0 0 0 0-3.8ZM20.8 13c0-3.2-1.7-4.7-4-4.7-1.8 0-2.7 1-3.1 1.7V8.5h-3.2V19h3.2v-5.2c0-1.4.3-2.8 2.1-2.8s1.8 1.7 1.8 2.9V19h3.2v-6Z" />
+    </svg>
+  );
+}
+
 export default function Footer() {
   const settings = useSiteSettings();
   const locations = useLocationPages();
@@ -79,7 +114,23 @@ export default function Footer() {
             <p className="mt-6 max-w-[31rem] text-[0.94rem] leading-[1.8] text-white/38 sm:text-[1rem]">
               {settings.footerDescription}
             </p>
-            {socialLinks.length ? <div className="mt-7 flex flex-wrap gap-3" aria-label="Social media">{socialLinks.map(([label,href])=><a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={`${label} (opens in a new tab)`} className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-[0.62rem] font-semibold uppercase text-white/45 transition hover:border-[var(--helios-orange)] hover:text-[var(--helios-orange)]">{label.slice(0,2)}</a>)}</div>:null}
+            {socialLinks.length ? (
+              <div className="mt-7 flex flex-wrap gap-3" aria-label="Social media">
+                {socialLinks.map(([label, href]) => (
+                  <a
+                    key={label}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${label} (opens in a new tab)`}
+                    title={label}
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/45 transition duration-300 hover:border-[var(--helios-orange)] hover:bg-[var(--helios-orange)]/[0.07] hover:text-[var(--helios-orange)] focus-visible:border-[var(--helios-orange)] focus-visible:text-[var(--helios-orange)] focus-visible:outline-none"
+                  >
+                    <SocialIcon label={label} />
+                  </a>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           <div className="grid grid-cols-2 gap-10 sm:grid-cols-[1fr_1fr] lg:gap-14">
