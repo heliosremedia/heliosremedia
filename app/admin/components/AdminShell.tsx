@@ -9,9 +9,11 @@ import type { AdminSession } from "@/lib/auth/session";
 export default function AdminShell({
   children,
   session,
+  initialNavigationFavorites,
 }: Readonly<{
   children: React.ReactNode;
   session: AdminSession;
+  initialNavigationFavorites: string[];
 }>) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -21,6 +23,7 @@ export default function AdminShell({
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         role={session.role}
+        initialFavorites={initialNavigationFavorites}
       />
 
       <div className="lg:pl-60">

@@ -14,5 +14,12 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }>) {
   const session = await requireAdminSession();
-  return <AdminShell session={session}>{children}</AdminShell>;
+  return (
+    <AdminShell
+      session={session}
+      initialNavigationFavorites={session.navigationFavorites}
+    >
+      {children}
+    </AdminShell>
+  );
 }
