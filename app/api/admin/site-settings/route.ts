@@ -82,6 +82,7 @@ export async function PATCH(request: Request) {
       approachHeading: text(body.approachHeading, 160), approachHeadingAccent: text(body.approachHeadingAccent, 80), approachCards: cards(body.approachCards, 6), approachTagline: text(body.approachTagline, 120), approachButtonLabel: text(body.approachButtonLabel, 80), approachButtonDestination: assetUrl(body.approachButtonDestination),
       headerNavigation: navigation(body.headerNavigation), footerNavigation: navigation(body.footerNavigation),
       websiteUrl: url(body.websiteUrl), instagramUrl: url(body.instagramUrl, "instagram"), facebookUrl: url(body.facebookUrl, "facebook"), youtubeUrl: url(body.youtubeUrl, "youtube"), linkedinUrl: url(body.linkedinUrl, "linkedin"),
+      brandVoice: text(body.brandVoice, 1000), brandAudience: text(body.brandAudience, 1000), brandWritingGuidance: text(body.brandWritingGuidance, 2000), defaultBlogAuthor: text(body.defaultBlogAuthor, 160),
       defaultSeoTitle: text(body.defaultSeoTitle, 160, true)!, defaultSeoDescription: text(body.defaultSeoDescription, 320, true)!,
     };
     const settings = await prisma.siteSettings.upsert({ where: { id: "default" }, create: { id: "default", ...data }, update: data });

@@ -13,6 +13,13 @@ enum ProjectStatus {
   ARCHIVED
 }
 
+enum BlogPostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
 enum MediaSourceType {
   UPLOADED_IMAGE
   UPLOADED_VIDEO
@@ -243,6 +250,7 @@ model Media {
   thumbnailForProject Project?                    @relation("ProjectThumbnailMedia")
   homepageWorkCards   HomepageWorkCard[]
   collectionHero      ProjectMediaCollectionHero?
+  featuredBlogPosts   BlogPost[]
 
   @@index([projectId])
   @@index([projectId, displayOrder])
@@ -553,6 +561,11 @@ model SiteSettings {
   youtubeUrl   String?
   linkedinUrl  String?
 
+  brandVoice          String?
+  brandAudience       String?
+  brandWritingGuidance String?
+  defaultBlogAuthor   String?
+
   defaultSeoTitle       String @default("Helios Real Estate Media")
   defaultSeoDescription String @default("Luxury real estate photography, cinematic films, and branding for Northern Colorado's finest homes.")
 
@@ -561,6 +574,43 @@ model SiteSettings {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model BlogPost {
+  id String @id @default(cuid())
+
+  title   String
+  slug    String @unique
+  excerpt String?
+  content String
+  author  String?
+  category String?
+
+  status      BlogPostStatus @default(DRAFT)
+  scheduledAt DateTime?
+  publishedAt DateTime?
+  archivedAt  DateTime?
+
+  featuredMediaId String?
+  featuredMedia   Media? @relation(fields: [featuredMediaId], references: [id], onDelete: SetNull)
+
+  featuredImageStorageKey String?
+  featuredImageUrl        String?
+  featuredImageAlt        String?
+
+  seoTitle       String?
+  seoDescription String?
+  canonicalUrl   String?
+
+  socialCaption String?
+  sourceLinks   Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, publishedAt])
+  @@index([category])
+  @@index([featuredMediaId])
 }
 
 model LocationPage {

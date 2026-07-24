@@ -8,7 +8,7 @@ import { getAbsoluteUrl } from "@/lib/site";
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [projects, services, legalDocuments, locations] = await Promise.all([
+  const [projects, services, legalDocuments, locations, blogPosts] = await Promise.all([
     prisma.project.findMany({
       where: { status: "PUBLISHED" },
       orderBy: [{ displayOrder: "asc" }, { publishedAt: "desc" }],
@@ -23,6 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     prisma.service.findMany({ where: { active: true }, select: { slug: true, updatedAt: true } }),
     prisma.legalDocument.findMany({ where: { published: true }, select: { type: true, updatedAt: true } }),
     getPublishedLocationPages(),
+    prisma.blogPost.findMany({ where: { OR: [{ status: "PUBLISHED", publishedAt: { lte: new Date() } }, { status: "SCHEDULED", scheduledAt: { lte: new Date() } }] }, select: { slug: true, updatedAt: true } }),
   ]);
 
   const staticPages: MetadataRoute.Sitemap = [
@@ -55,6 +56,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: getAbsoluteUrl("/contact"),
       changeFrequency: "yearly",
       priority: 0.6,
+    },
+    {
+      url: getAbsoluteUrl("/blog"),
+      changeFrequency: "weekly",
+      priority: 0.75,
     },
   ];
 
@@ -90,12 +96,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: "yearly",
     priority: 0.2,
   }));
+  const blogPages: MetadataRoute.Sitemap = blogPosts.map((post) => ({ url: getAbsoluteUrl(`/blog/${post.slug}`), lastModified: post.updatedAt, changeFrequency: "monthly", priority: 0.7 }));
 
   return [
     ...staticPages,
     ...locationPages,
     ...servicePages,
     ...projectPages,
+    ...blogPages,
     ...legalPages,
   ];
 }

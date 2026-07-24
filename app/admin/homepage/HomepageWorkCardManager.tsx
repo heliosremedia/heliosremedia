@@ -43,6 +43,7 @@ export default function HomepageWorkCardManager({ initialCards, services, films 
   const [busy, setBusy] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
+  const [cardFeedback, setCardFeedback] = useState<Record<string, string>>({});
   const availableServices = services.filter((service) => !cards.some((card) => card.serviceId === service.id));
 
   async function request(url: string, options: RequestInit) {
@@ -57,7 +58,7 @@ export default function HomepageWorkCardManager({ initialCards, services, films 
   }
 
   async function save(card: WorkCard, success = "Homepage card saved.") {
-    setBusy(card.id); setMessage(null);
+    setBusy(card.id); setMessage(null); setCardFeedback((current) => ({ ...current, [card.id]: "Saving…" }));
     try {
       const data = await request("/api/admin/homepage-work-cards", {
         method: "PATCH",
@@ -76,8 +77,8 @@ export default function HomepageWorkCardManager({ initialCards, services, films 
           videoUrl: card.videoUrl,
         }),
       });
-      replaceLocal(data.card); setMessage(success); return data.card as WorkCard;
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to save this card."); return null; }
+      replaceLocal(data.card); setMessage(success); setCardFeedback((current) => ({ ...current, [card.id]: "Card saved ✓" })); return data.card as WorkCard;
+    } catch (error) { const detail = error instanceof Error ? error.message : "Unable to save this card."; setMessage(detail); setCardFeedback((current) => ({ ...current, [card.id]: detail })); return null; }
     finally { setBusy(null); }
   }
 
@@ -139,7 +140,7 @@ export default function HomepageWorkCardManager({ initialCards, services, films 
             <div className="grid gap-4 sm:grid-cols-2"><label className="text-[0.52rem] uppercase tracking-[0.14em] text-white/35">Service assignment<select value={card.serviceId} onChange={(event) => { const service = services.find((item) => item.id === event.target.value); if (service) updateLocal({ serviceId: service.id, service: { ...service, active: true }, destinationOverride: `/portfolio?service=${service.slug}` }); }} className="mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-[#111] px-4 text-sm normal-case tracking-normal text-white">{services.map((service) => { const used = cards.some((item) => item.id !== card.id && item.serviceId === service.id); return <option key={service.id} value={service.id} disabled={used}>{service.name}{used ? " · already assigned" : ""}</option>; })}</select></label><label className="text-[0.52rem] uppercase tracking-[0.14em] text-white/35">Card title<input value={card.titleOverride || ""} onChange={(event) => updateLocal({ titleOverride: event.target.value })} placeholder={card.service.name} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm normal-case tracking-normal text-white" /></label><label className="text-[0.52rem] uppercase tracking-[0.14em] text-white/35">Destination<input value={card.destinationOverride || ""} onChange={(event) => updateLocal({ destinationOverride: event.target.value })} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm normal-case tracking-normal text-white" /></label></div>
             <label className="block text-[0.52rem] uppercase tracking-[0.14em] text-white/35">Image description<input value={card.imageAlt || ""} onChange={(event) => updateLocal({ imageAlt: event.target.value })} placeholder={`${card.service.name} by Helios Real Estate Media`} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm normal-case tracking-normal text-white" /></label>
             <div className="grid gap-4 sm:grid-cols-2"><label className="text-[0.52rem] uppercase tracking-[0.14em] text-white/35">Card media<select value={card.mediaMode} onChange={(event) => updateLocal({ mediaMode: event.target.value as WorkCard["mediaMode"] })} className="mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-[#111] px-4 text-sm normal-case tracking-normal text-white"><option value="IMAGE">Static image</option><option value="LIBRARY_VIDEO">Published film</option><option value="UPLOADED_VIDEO">Uploaded looping preview</option></select></label>{card.mediaMode === "LIBRARY_VIDEO" ? <label className="text-[0.52rem] uppercase tracking-[0.14em] text-white/35">Featured film<select value={card.featuredMediaId || ""} onChange={(event) => updateLocal({ featuredMediaId: event.target.value || null })} className="mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-[#111] px-4 text-sm normal-case tracking-normal text-white"><option value="">Choose a published film</option>{films.map((film) => <option key={film.id} value={film.id}>{film.label} · {film.provider}</option>)}</select></label> : <div className="flex items-end"><label className="admin-btn-secondary cursor-pointer">{card.mediaMode === "UPLOADED_VIDEO" && card.videoUrl ? "Replace preview" : "Upload looping preview"}<input type="file" accept="video/mp4,video/webm" className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(card, "video", file); event.target.value = ""; }} /></label></div>}</div>
-            <div className="flex flex-wrap items-center gap-3 border-t border-white/[0.07] pt-4"><label className="admin-btn-secondary cursor-pointer">{card.imageUrl ? "Replace image" : "Upload image"}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(card, "image", file); event.target.value = ""; }} /></label><button type="button" onClick={() => updateLocal({ active: !card.active })} className="admin-btn-link">{card.active ? "Hide card" : "Show card"}</button><button type="button" onClick={() => void remove(card)} className="admin-btn-link-destructive">Remove</button><button type="button" disabled={busy !== null} onClick={() => void save(card)} className="ml-auto admin-btn-primary">{busy === card.id ? "Saving…" : "Save card"}</button></div>
+            <div className="flex flex-wrap items-center gap-3 border-t border-white/[0.07] pt-4"><label className="admin-btn-secondary cursor-pointer">{card.imageUrl ? "Replace image" : "Upload image"}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(card, "image", file); event.target.value = ""; }} /></label><button type="button" onClick={() => updateLocal({ active: !card.active })} className="admin-btn-link">{card.active ? "Hide card" : "Show card"}</button><button type="button" onClick={() => void remove(card)} className="admin-btn-link-destructive">Remove</button><span role="status" className="ml-auto text-xs text-white/45">{cardFeedback[card.id] || ""}</span><button type="button" disabled={busy !== null} onClick={() => void save(card)} className="admin-btn-primary">{busy === card.id ? "Saving…" : "Save card"}</button></div>
           </div>
         </div>
       </article>;

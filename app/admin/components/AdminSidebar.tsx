@@ -87,6 +87,11 @@ const navigation: NavigationItem[] = [
     ),
   },
   {
+    label: "Blog Studio",
+    href: "/admin/blog",
+    icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  },
+  {
     label: "About Page",
     href: "/admin/about",
     icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><circle cx="12" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.5"/><path d="M5 21a7 7 0 0 1 14 0M4 4h3M17 4h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
@@ -243,6 +248,7 @@ const navigationGroups: NavigationGroup[] = [
     label: "Website Content",
     hrefs: [
       "/admin/homepage",
+      "/admin/blog",
       "/admin/about",
       "/admin/media",
       "/admin/services",
@@ -355,7 +361,7 @@ export default function AdminSidebar({
               HELIOS
             </span>
             <span className="mt-1 block text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-[var(--helios-orange)]">
-              Portfolio Admin
+              Studio Admin
             </span>
           </Link>
 
@@ -469,6 +475,8 @@ export default function AdminSidebar({
         <div className="border-t border-white/[0.08] p-4">
           <Link
             href="/"
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center justify-between rounded-xl border border-white/[0.08] px-4 py-3 text-[0.62rem] uppercase tracking-[0.16em] text-white/45 transition hover:border-white/20 hover:text-white"
           >
             View website

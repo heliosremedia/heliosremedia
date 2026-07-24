@@ -96,12 +96,12 @@ export default async function AdminPage() {
           </p>
 
           <h1 className="mt-3 text-3xl font-light tracking-[-0.03em] text-white sm:text-4xl">
-            Portfolio overview
+            Studio overview
           </h1>
 
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/40">
-            Manage projects, organize media, and control what appears
-            across the Helios portfolio.
+            Manage projects, website content, inquiries, and the Helios
+            experience from one place.
           </p>
         </div>
 

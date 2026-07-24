@@ -41,7 +41,7 @@ export default function AdminTopbar({
           </p>
 
           <p className="mt-1 text-sm text-white/65">
-            Portfolio workspace
+            Studio workspace
           </p>
         </div>
       </div>

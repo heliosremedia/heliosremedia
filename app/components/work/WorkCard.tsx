@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { motion, useInView, useReducedMotion } from "motion/react";
 
 type WorkCardProps = {
@@ -33,7 +33,6 @@ export default function WorkCard({
   const mediaRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaInView = useInView(mediaRef, { amount: 0.2 });
-  const [muted, setMuted] = useState(true);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -104,7 +103,7 @@ export default function WorkCard({
           sizes={imageSizes}
           className="absolute inset-0 h-full w-full object-cover"
         />
-        {videoSrc && !shouldReduceMotion ? <video ref={videoRef} muted={muted} loop playsInline preload="metadata" poster={image} aria-label={`${title} featured film`} className="absolute inset-0 h-full w-full object-cover"><source src={videoSrc} /></video> : null}
+        {videoSrc && !shouldReduceMotion ? <video ref={videoRef} muted loop playsInline preload="metadata" poster={image} aria-label={`${title} featured film`} className="absolute inset-0 h-full w-full object-cover"><source src={videoSrc} /></video> : null}
         {embedSrc && mediaInView && !shouldReduceMotion ? (
           <iframe
             src={embedSrc}
@@ -115,50 +114,6 @@ export default function WorkCard({
           />
         ) : null}
       </motion.div>
-
-      {videoSrc && !shouldReduceMotion ? (
-        <div className="absolute right-5 top-5 z-40 flex gap-2 sm:right-7 sm:top-7">
-          <button
-            type="button"
-            aria-label={muted ? "Turn film sound on" : "Mute film"}
-            aria-pressed={!muted}
-            onClick={() => {
-              const next = !muted;
-              setMuted(next);
-              if (videoRef.current) {
-                videoRef.current.muted = next;
-                void videoRef.current.play().catch(() => undefined);
-              }
-            }}
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/35 bg-black/65 text-white shadow-lg backdrop-blur-md transition hover:border-white/70 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)]"
-          >
-            {muted ? (
-              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-[1.15rem] w-[1.15rem] fill-none stroke-current" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M11 5 6.5 9H3v6h3.5l4.5 4V5Z" />
-                <path d="m16 9 5 5m0-5-5 5" />
-              </svg>
-            ) : (
-              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-[1.15rem] w-[1.15rem] fill-none stroke-current" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M11 5 6.5 9H3v6h3.5l4.5 4V5Z" />
-                <path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" />
-              </svg>
-            )}
-          </button>
-          <button
-            type="button"
-            aria-label="View film fullscreen"
-            onClick={() => {
-              const target = mediaRef.current?.parentElement;
-              if (target?.requestFullscreen) void target.requestFullscreen();
-            }}
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/35 bg-black/65 text-white shadow-lg backdrop-blur-md transition hover:border-white/70 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)]"
-          >
-            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-[1.05rem] w-[1.05rem] fill-none stroke-current" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M8 3H3v5M16 3h5v5M8 21H3v-5m13 5h5v-5" />
-            </svg>
-          </button>
-        </div>
-      ) : null}
 
       <motion.div
         aria-hidden="true"

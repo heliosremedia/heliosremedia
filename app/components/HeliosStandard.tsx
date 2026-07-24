@@ -152,7 +152,7 @@ export default function HeliosStandard({
             />
 
             <motion.h2
-              className="max-w-[34rem] font-display text-[clamp(3rem,4.6vw,5rem)] font-light leading-[0.92] tracking-[-0.045em]"
+              className="max-w-[42rem] font-display text-[clamp(3rem,4.2vw,5rem)] font-light leading-[0.92] tracking-[-0.045em]"
               initial="hidden"
               whileInView="visible"
               viewport={{
@@ -161,7 +161,7 @@ export default function HeliosStandard({
               }}
             >
               <motion.span
-                className="block text-[var(--foreground)]"
+                className="block text-[var(--foreground)] lg:whitespace-nowrap"
                 variants={wordVariants}
                 transition={{
                   duration: shouldReduceMotion ? 0 : 0.9,

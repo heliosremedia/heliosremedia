@@ -22,7 +22,8 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
-  const navigation = settings.headerNavigation.filter((item) => item.published !== false);
+  const configuredNavigation = settings.headerNavigation.filter((item) => item.published !== false);
+  const navigation = configuredNavigation.some((item) => item.href === "/blog") ? configuredNavigation : [...configuredNavigation, { label: "Journal", href: "/blog" }];
 
   useEffect(() => {
     if (variant !== "overlay") return;

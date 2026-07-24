@@ -372,7 +372,25 @@ video {
     line-height: 0.92;
     letter-spacing: -0.038em;
   }
+
+  main p.text-sm:not(.eyebrow):not([class*="uppercase"]),
+  main p.mobile-summary,
+  main .body-base,
+  main .body-lg {
+    font-size: 1rem;
+    line-height: 1.75;
+  }
 }
+
+.blog-article-body {
+  color: rgba(255,255,255,.58);
+  font-size: 1.05rem;
+  line-height: 1.9;
+}
+.blog-article-body p + p { margin-top: 1.5rem; }
+.blog-article-body h2 { margin-top: 3.25rem; color: rgba(255,255,255,.94); font-size: clamp(2rem,4vw,3rem); font-weight: 300; line-height: 1.05; }
+.blog-article-body h3 { margin-top: 2.5rem; color: rgba(255,255,255,.88); font-size: 1.6rem; font-weight: 300; }
+.blog-article-body .blog-list-item { margin-top: .6rem; padding-left: 1rem; }
 
 @media (max-width: 380px) {
   :root {

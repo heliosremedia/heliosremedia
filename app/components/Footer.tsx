@@ -10,7 +10,12 @@ const ease = [0.22, 1, 0.36, 1] as const;
 export default function Footer() {
   const settings = useSiteSettings();
   const locations = useLocationPages();
-  const exploreLinks = settings.footerNavigation.filter((item) => item.published !== false);
+  const configuredExploreLinks = settings.footerNavigation.filter((item) => item.published !== false);
+  const exploreLinks = configuredExploreLinks.some((item) => item.href === "/blog") ? configuredExploreLinks : [...configuredExploreLinks, { label: "Journal", href: "/blog" }];
+  const socialLinks = [
+    ["Instagram", settings.instagramUrl], ["Facebook", settings.facebookUrl],
+    ["YouTube", settings.youtubeUrl], ["LinkedIn", settings.linkedinUrl],
+  ].filter((item): item is [string,string] => Boolean(item[1]));
   const bookingHref = settings.bookingUrl || "/inquire";
   const connectLinks = [
     { label: "Book Your Shoot", href: bookingHref },
@@ -73,6 +78,7 @@ export default function Footer() {
             <p className="mt-6 max-w-[31rem] text-[0.94rem] leading-[1.8] text-white/38 sm:text-[1rem]">
               {settings.footerDescription}
             </p>
+            {socialLinks.length ? <div className="mt-7 flex flex-wrap gap-3" aria-label="Social media">{socialLinks.map(([label,href])=><a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={`${label} (opens in a new tab)`} className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-[0.62rem] font-semibold uppercase text-white/45 transition hover:border-[var(--helios-orange)] hover:text-[var(--helios-orange)]">{label.slice(0,2)}</a>)}</div>:null}
           </div>
 
           <div className="grid grid-cols-2 gap-10 sm:grid-cols-[1fr_1fr] lg:gap-14">

@@ -47,6 +47,8 @@ export type PublicSiteSettings = {
   headerNavigation: PublicNavigationItem[]; footerNavigation: PublicNavigationItem[];
   websiteUrl: string | null; instagramUrl: string | null; facebookUrl: string | null;
   youtubeUrl: string | null; linkedinUrl: string | null;
+  brandVoice: string | null; brandAudience: string | null; brandWritingGuidance: string | null;
+  defaultBlogAuthor: string | null;
   defaultSeoTitle: string; defaultSeoDescription: string;
   privacyPolicyPublished: boolean; termsOfServicePublished: boolean;
 };
@@ -134,6 +136,10 @@ export const defaultSiteSettings: PublicSiteSettings = {
   facebookUrl: null,
   youtubeUrl: null,
   linkedinUrl: null,
+  brandVoice: "Refined, intentional, cinematic, knowledgeable, and human.",
+  brandAudience: "Real estate agents, builders, designers, and property professionals.",
+  brandWritingGuidance: "Write with clarity and confidence. Avoid hype, clichés, fabricated statistics, and keyword stuffing.",
+  defaultBlogAuthor: "Helios Real Estate Media",
   defaultSeoTitle: "Helios Real Estate Media",
   defaultSeoDescription: "Luxury real estate photography, cinematic films, and branding for Northern Colorado's finest homes.",
   privacyPolicyPublished: false,

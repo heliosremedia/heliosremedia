@@ -346,6 +346,15 @@ export default function SiteSettingsForm({
         ["linkedinUrl", "LinkedIn handle or URL"],
       ],
     },
+    {
+      title: "Blog Studio voice",
+      fields: [
+        ["brandVoice", "Brand voice"],
+        ["brandAudience", "Primary audience"],
+        ["brandWritingGuidance", "Writing guardrails"],
+        ["defaultBlogAuthor", "Default article author"],
+      ],
+    },
   ] as const;
 
   const uploadBusy = uploading !== null || saving;
