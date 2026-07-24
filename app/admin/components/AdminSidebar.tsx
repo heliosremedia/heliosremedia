@@ -546,10 +546,10 @@ export default function AdminSidebar({
                           current === group.id ? null : group.id,
                         )
                       }
-                      className={`group flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-left text-[0.52rem] font-semibold uppercase tracking-[0.14em] transition duration-300 ${
+                      className={`group flex w-full items-center justify-between rounded-lg border px-3.5 py-2 text-left text-[0.47rem] font-semibold uppercase tracking-[0.12em] transition duration-300 ${
                         groupIsActive
-                          ? "text-white/70"
-                          : "text-white/32 hover:bg-white/[0.035] hover:text-white/65"
+                          ? "border-[var(--helios-orange)]/25 bg-[var(--helios-orange)]/[0.1] text-[var(--helios-orange)]/85"
+                          : "border-[var(--helios-orange)]/10 bg-[var(--helios-orange)]/[0.045] text-[var(--helios-orange)]/58 hover:border-[var(--helios-orange)]/20 hover:bg-[var(--helios-orange)]/[0.08] hover:text-[var(--helios-orange)]/80"
                       }`}
                     >
                       <span>{group.label}</span>
