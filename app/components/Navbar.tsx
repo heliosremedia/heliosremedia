@@ -23,7 +23,32 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
   const configuredNavigation = settings.headerNavigation.filter((item) => item.published !== false);
-  const navigation = configuredNavigation.some((item) => item.href === "/blog") ? configuredNavigation : [...configuredNavigation, { label: "Journal", href: "/blog" }];
+  const navigationWithoutJournalOrLogin = configuredNavigation.filter(
+    (item) => item.href !== "/blog" && item.href !== "/client-portal",
+  );
+  const journalItem = configuredNavigation.find((item) => item.href === "/blog") ?? {
+    label: "Journal",
+    href: "/blog",
+  };
+  const clientLoginItem = configuredNavigation.find(
+    (item) => item.href === "/client-portal",
+  );
+  const navigation = [
+    ...navigationWithoutJournalOrLogin,
+    journalItem,
+    ...(clientLoginItem ? [clientLoginItem] : []),
+  ];
+  const desktopNavigation = navigation
+    .filter((item) => item.href !== "/")
+    .map((item) => ({
+      ...item,
+      label:
+        item.href === "/about"
+          ? "About"
+          : item.href === "/client-portal"
+            ? "Client Portal"
+            : item.label,
+    }));
 
   useEffect(() => {
     if (variant !== "overlay") return;
@@ -141,7 +166,7 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
 
           <motion.nav
             aria-label="Primary navigation"
-            className="hidden items-center gap-5 md:flex lg:gap-7 xl:gap-9"
+            className="hidden items-center gap-5 md:flex lg:gap-6 xl:gap-7"
             initial={shouldReduceMotion ? false : { opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{
@@ -150,28 +175,37 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
               ease,
             }}
           >
-            {navigation.map((item) => {
+            {desktopNavigation.map((item) => {
               const active = isActive(item.href);
+              const isClientPortal = item.href === "/client-portal";
 
               return (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  target={item.newTab ? "_blank" : undefined}
-                  rel={item.newTab ? "noreferrer" : undefined}
-                  aria-current={active ? "page" : undefined}
-                  className={`group relative py-3 text-[11px] font-semibold uppercase tracking-[0.25em] transition-colors duration-[400ms] hover:text-[var(--helios-orange)] ${
-                    active ? "text-[var(--helios-orange)]" : "text-white"
-                  }`}
+                <div
+                  key={item.href}
+                  className={
+                    isClientPortal
+                      ? "ml-1 border-l border-white/20 pl-6 xl:ml-2 xl:pl-7"
+                      : undefined
+                  }
                 >
-                  {item.label}
-
-                  <span
-                    className={`absolute bottom-1 left-0 h-px bg-[var(--helios-orange)] transition-all duration-[400ms] group-hover:w-full ${
-                      active ? "w-full" : "w-0"
+                  <Link
+                    href={item.href}
+                    target={item.newTab ? "_blank" : undefined}
+                    rel={item.newTab ? "noreferrer" : undefined}
+                    aria-current={active ? "page" : undefined}
+                    className={`group relative block py-3 text-[11px] font-semibold uppercase tracking-[0.23em] transition-colors duration-[400ms] hover:text-[var(--helios-orange)] ${
+                      active ? "text-[var(--helios-orange)]" : "text-white"
                     }`}
-                  />
-                </Link>
+                  >
+                    {item.label}
+
+                    <span
+                      className={`absolute bottom-1 left-0 h-px bg-[var(--helios-orange)] transition-all duration-[400ms] group-hover:w-full ${
+                        active ? "w-full" : "w-0"
+                      }`}
+                    />
+                  </Link>
+                </div>
               );
             })}
 
