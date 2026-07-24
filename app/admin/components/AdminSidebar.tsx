@@ -239,30 +239,30 @@ const navigation: NavigationItem[] = [
 
 const navigationGroups: NavigationGroup[] = [
   {
+    id: "administration",
+    label: "Administration",
+    hrefs: ["/admin/users", "/admin/activity", "/admin/settings"],
+  },
+  {
     id: "operations",
     label: "Operations",
-    hrefs: ["/admin/projects", "/admin/inquiries", "/admin/client-portals"],
+    hrefs: ["/admin/client-portals", "/admin/inquiries", "/admin/projects"],
   },
   {
     id: "website-content",
     label: "Website Content",
     hrefs: [
-      "/admin/homepage",
-      "/admin/blog",
       "/admin/about",
+      "/admin/blog",
+      "/admin/ctas",
+      "/admin/faqs",
+      "/admin/homepage",
+      "/admin/locations",
       "/admin/media",
       "/admin/services",
-      "/admin/locations",
-      "/admin/faqs",
       "/admin/testimonials",
       "/admin/trusted-logos",
-      "/admin/ctas",
     ],
-  },
-  {
-    id: "administration",
-    label: "Administration",
-    hrefs: ["/admin/settings", "/admin/activity", "/admin/users"],
   },
 ];
 
