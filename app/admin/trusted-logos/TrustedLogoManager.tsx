@@ -38,7 +38,7 @@ export default function TrustedLogoManager({ initialLogos }: { initialLogos: Adm
 
   async function request(url: string, options: RequestInit) {
     const response = await fetch(url, { ...options, headers: { "Content-Type": "application/json", ...options.headers } });
-    const data = (await response.json()) as Record<string, unknown>;
+    const data = await readJsonResponse(response);
     if (!response.ok || data.success !== true) throw new Error(typeof data.error === "string" ? data.error : "The change could not be saved.");
     return data;
   }
@@ -71,11 +71,17 @@ export default function TrustedLogoManager({ initialLogos }: { initialLogos: Adm
   }
 
   async function uploadLogo(image: File) {
-    const data = await request("/api/admin/trusted-logos/presign", { method: "POST", body: JSON.stringify({ fileName: image.name, fileType: image.type, fileSize: image.size }) });
-    const upload = data.upload as { key: string; uploadUrl: string; publicUrl: string; contentType: string };
-    const response = await fetch(upload.uploadUrl, { method: "PUT", headers: { "Content-Type": upload.contentType }, body: image });
-    if (!response.ok) throw new Error("The logo could not be uploaded.");
-    return upload;
+    const formData = new FormData();
+    formData.set("image", image);
+    const response = await fetch("/api/admin/trusted-logos/upload", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await readJsonResponse(response);
+    if (!response.ok || data.success !== true) {
+      throw new Error(typeof data.error === "string" ? data.error : "The logo could not be uploaded.");
+    }
+    return data.upload as { key: string; publicUrl: string };
   }
 
   async function save() {
@@ -154,7 +160,8 @@ export default function TrustedLogoManager({ initialLogos }: { initialLogos: Adm
           </div>
           <label className="flex items-center gap-3 text-sm text-white/45"><input type="checkbox" checked={draft.published} onChange={(event) => setDraft({ ...draft, published: event.target.checked })} className="h-4 w-4 accent-[var(--helios-orange)]" />Published</label></div>
         </div>
-        <div className="mt-8 flex justify-end gap-3 border-t border-white/[0.08] pt-6"><button type="button" onClick={() => setDraft(null)} className="admin-btn-secondary">Cancel</button><button type="button" onClick={save} disabled={busy !== null || !draft.organizationName.trim() || (!draft.logoUrl && !file)} className="admin-btn-primary">{busy ? file ? "Uploading…" : "Saving…" : "Save logo"}</button></div>
+        {error && <div role="alert" className="mt-6 rounded-xl border border-red-400/20 bg-red-400/[0.06] px-5 py-4 text-sm text-red-200/80">{error}</div>}
+        <div className="mt-8 flex justify-end gap-3 border-t border-white/[0.08] pt-6"><button type="button" onClick={() => setDraft(null)} disabled={busy !== null} className="admin-btn-secondary">Cancel</button><button type="button" onClick={save} disabled={busy !== null || !draft.organizationName.trim() || (!draft.logoUrl && !file)} className="admin-btn-primary">{busy ? file ? "Uploading…" : "Saving…" : "Save logo"}</button></div>
       </div></div>}
     </>
   );
@@ -162,4 +169,17 @@ export default function TrustedLogoManager({ initialLogos }: { initialLogos: Adm
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <label className="block text-[0.55rem] font-semibold uppercase tracking-[0.16em] text-white/35">{label}<span className="[&_.field]:mt-2 [&_.field]:w-full [&_.field]:rounded-xl [&_.field]:border [&_.field]:border-white/10 [&_.field]:bg-black/25 [&_.field]:px-4 [&_.field]:py-3 [&_.field]:text-sm [&_.field]:normal-case [&_.field]:tracking-normal [&_.field]:text-white [&_.field]:outline-none focus-within:[&_.field]:border-[var(--helios-orange)]">{children}</span></label>;
+}
+
+async function readJsonResponse(response: Response) {
+  try {
+    return (await response.json()) as Record<string, unknown>;
+  } catch {
+    return {
+      success: false,
+      error: response.ok
+        ? "The server returned an unreadable response."
+        : "The server could not complete the request.",
+    };
+  }
 }
