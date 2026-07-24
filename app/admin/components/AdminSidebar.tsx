@@ -546,10 +546,10 @@ export default function AdminSidebar({
                           current === group.id ? null : group.id,
                         )
                       }
-                      className={`admin-nav-group-trigger group flex w-full items-center justify-between rounded-lg border px-3.5 py-2 text-left uppercase transition duration-300 ${
+                      className={`admin-nav-group-trigger group relative flex w-full items-center justify-between border-b px-3.5 py-2.5 text-left uppercase transition duration-300 ${
                         groupIsActive
-                          ? "border-[var(--helios-orange)]/25 bg-[var(--helios-orange)]/[0.1] text-[var(--helios-orange)]/85"
-                          : "border-[var(--helios-orange)]/10 bg-[var(--helios-orange)]/[0.045] text-[var(--helios-orange)]/58 hover:border-[var(--helios-orange)]/20 hover:bg-[var(--helios-orange)]/[0.08] hover:text-[var(--helios-orange)]/80"
+                          ? "border-white/[0.13] bg-white/[0.025] text-white/80"
+                          : "border-white/[0.07] bg-transparent text-white/48 hover:border-white/[0.13] hover:bg-white/[0.018] hover:text-white/72"
                       }`}
                     >
                       <span>{group.label}</span>
@@ -557,7 +557,11 @@ export default function AdminSidebar({
                         aria-hidden="true"
                         viewBox="0 0 20 20"
                         fill="none"
-                        className={`h-4 w-4 transition-transform duration-300 ${
+                        className={`h-3.5 w-3.5 text-[var(--helios-orange)] transition duration-300 ${
+                          groupIsActive
+                            ? "opacity-90"
+                            : "opacity-50 group-hover:opacity-80"
+                        } ${
                           expanded ? "rotate-180" : ""
                         }`}
                       >
