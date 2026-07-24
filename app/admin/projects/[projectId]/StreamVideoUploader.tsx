@@ -11,6 +11,8 @@ import {
 import type { ProjectMediaItem } from "./ProjectMediaManager";
 
 const MAX_VIDEO_SIZE = 1024 * 1024 * 1024;
+const UPLOAD_POLICY = "six-hour-v1";
+const RESUME_WINDOW_MS = 5.75 * 60 * 60 * 1000;
 const ACCEPTED_VIDEO_TYPES = new Set([
   "video/mp4",
   "video/quicktime",
@@ -175,11 +177,14 @@ export default function StreamVideoUploader({
         filename: file.name,
         filetype: file.type || "video/mp4",
         name: title.trim(),
+        uploadPolicy: UPLOAD_POLICY,
       },
       removeFingerprintOnSuccess: true,
-      onError(uploadError) {
+      onError() {
         setStatus("error");
-        setError(uploadError.message || "The video upload failed.");
+        setError(
+          "The resumable upload was interrupted. Select the same video and click Upload to Stream again to continue from the last completed chunk.",
+        );
       },
       onProgress(bytesUploaded, bytesTotal) {
         setProgress(Math.round((bytesUploaded / bytesTotal) * 100));
@@ -204,12 +209,25 @@ export default function StreamVideoUploader({
     });
 
     uploadRef.current = upload;
-    void upload.findPreviousUploads().then((previousUploads) => {
-      if (previousUploads.length > 0) {
-        upload.resumeFromPreviousUpload(previousUploads[0]);
-      }
-      upload.start();
-    });
+    void upload
+      .findPreviousUploads()
+      .then((previousUploads) => {
+        const resumableUpload = previousUploads.find((previousUpload) => {
+          const createdAt = Date.parse(previousUpload.creationTime);
+
+          return (
+            previousUpload.metadata.uploadPolicy === UPLOAD_POLICY &&
+            Number.isFinite(createdAt) &&
+            Date.now() - createdAt < RESUME_WINDOW_MS
+          );
+        });
+
+        if (resumableUpload) {
+          upload.resumeFromPreviousUpload(resumableUpload);
+        }
+        upload.start();
+      })
+      .catch(() => upload.start());
   }
 
   return (

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 const MAX_VIDEO_SIZE = 1024 * 1024 * 1024;
 const MAX_DURATION_SECONDS = 180;
+const UPLOAD_EXPIRY_HOURS = 6;
 
 type StreamUploadRouteProps = {
   params: Promise<{
@@ -69,7 +70,11 @@ export async function POST(
 
     const constraints = [
       `maxDurationSeconds ${encodeMetadataValue(String(MAX_DURATION_SECONDS))}`,
-      `expiry ${encodeMetadataValue(new Date(Date.now() + 60 * 60 * 1000).toISOString())}`,
+      `expiry ${encodeMetadataValue(
+        new Date(
+          Date.now() + UPLOAD_EXPIRY_HOURS * 60 * 60 * 1000,
+        ).toISOString(),
+      )}`,
     ];
     const uploadMetadata = [requestedMetadata, ...constraints]
       .filter(Boolean)
