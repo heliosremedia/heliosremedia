@@ -22,33 +22,9 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
-  const configuredNavigation = settings.headerNavigation.filter((item) => item.published !== false);
-  const navigationWithoutJournalOrLogin = configuredNavigation.filter(
-    (item) => item.href !== "/blog" && item.href !== "/client-portal",
+  const navigation = settings.headerNavigation.filter(
+    (item) => item.published !== false && item.displayInNav !== false,
   );
-  const journalItem = configuredNavigation.find((item) => item.href === "/blog") ?? {
-    label: "Journal",
-    href: "/blog",
-  };
-  const clientLoginItem = configuredNavigation.find(
-    (item) => item.href === "/client-portal",
-  );
-  const navigation = [
-    ...navigationWithoutJournalOrLogin,
-    journalItem,
-    ...(clientLoginItem ? [clientLoginItem] : []),
-  ];
-  const desktopNavigation = navigation
-    .filter((item) => item.href !== "/")
-    .map((item) => ({
-      ...item,
-      label:
-        item.href === "/about"
-          ? "About"
-          : item.href === "/client-portal"
-            ? "Client Portal"
-            : item.label,
-    }));
 
   useEffect(() => {
     if (variant !== "overlay") return;
@@ -175,7 +151,7 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
               ease,
             }}
           >
-            {desktopNavigation.map((item) => {
+            {navigation.map((item) => {
               const active = isActive(item.href);
               const isClientPortal = item.href === "/client-portal";
 

@@ -10,8 +10,9 @@ const ease = [0.22, 1, 0.36, 1] as const;
 export default function Footer() {
   const settings = useSiteSettings();
   const locations = useLocationPages();
-  const configuredExploreLinks = settings.footerNavigation.filter((item) => item.published !== false);
-  const exploreLinks = configuredExploreLinks.some((item) => item.href === "/blog") ? configuredExploreLinks : [...configuredExploreLinks, { label: "Journal", href: "/blog" }];
+  const exploreLinks = settings.footerNavigation.filter(
+    (item) => item.published !== false && item.displayInFooter !== false,
+  );
   const socialLinks = [
     ["Instagram", settings.instagramUrl], ["Facebook", settings.facebookUrl],
     ["YouTube", settings.youtubeUrl], ["LinkedIn", settings.linkedinUrl],

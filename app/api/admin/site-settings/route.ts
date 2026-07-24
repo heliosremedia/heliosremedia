@@ -38,7 +38,17 @@ function cards(value: unknown, max = 8) {
 }
 function navigation(value: unknown) {
   if (!Array.isArray(value) || value.length > 20) throw new Error("INVALID_NAVIGATION");
-  return value.map((item) => { const entry = item as Record<string, unknown>; return { label: text(entry.label, 80, true)!, href: assetUrl(entry.href) || "/", newTab: Boolean(entry.newTab), published: entry.published !== false }; });
+  return value.map((item) => {
+    const entry = item as Record<string, unknown>;
+    return {
+      label: text(entry.label, 80, true)!,
+      href: assetUrl(entry.href) || "/",
+      newTab: Boolean(entry.newTab),
+      published: entry.published !== false,
+      ...(typeof entry.displayInNav === "boolean" ? { displayInNav: entry.displayInNav } : {}),
+      ...(typeof entry.displayInFooter === "boolean" ? { displayInFooter: entry.displayInFooter } : {}),
+    };
+  });
 }
 
 export async function PATCH(request: Request) {

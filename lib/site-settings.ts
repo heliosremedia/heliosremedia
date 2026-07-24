@@ -1,6 +1,13 @@
 import { prisma } from "@/lib/prisma";
 
-export type PublicNavigationItem = { label: string; href: string; newTab?: boolean; published?: boolean };
+export type PublicNavigationItem = {
+  label: string;
+  href: string;
+  newTab?: boolean;
+  published?: boolean;
+  displayInNav?: boolean;
+  displayInFooter?: boolean;
+};
 export type PublicContentCard = { number: string; title: string; description: string; published?: boolean };
 
 export const defaultHeaderNavigation: PublicNavigationItem[] = [
