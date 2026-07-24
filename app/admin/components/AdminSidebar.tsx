@@ -316,7 +316,7 @@ function NavigationLink({
         href={item.href}
         onClick={onClose}
         aria-current={active ? "page" : undefined}
-        className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-3.5"
+        className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-3.5 text-[0.92rem]"
       >
         <span
           className={
