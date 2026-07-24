@@ -107,6 +107,13 @@
   white-space: nowrap;
 }
 
+.admin-nav-group-trigger {
+  font-size: 0.72rem !important;
+  font-weight: 400 !important;
+  line-height: 1rem !important;
+  letter-spacing: 0.1em !important;
+}
+
 @font-face {
   font-family: "Helios";
   src: url("/fonts/helios.otf") format("opentype");

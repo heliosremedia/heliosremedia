@@ -546,7 +546,7 @@ export default function AdminSidebar({
                           current === group.id ? null : group.id,
                         )
                       }
-                      className={`group flex w-full items-center justify-between rounded-lg border px-3.5 py-2 text-left text-[0.47rem] font-semibold uppercase tracking-[0.12em] transition duration-300 ${
+                      className={`admin-nav-group-trigger group flex w-full items-center justify-between rounded-lg border px-3.5 py-2 text-left uppercase transition duration-300 ${
                         groupIsActive
                           ? "border-[var(--helios-orange)]/25 bg-[var(--helios-orange)]/[0.1] text-[var(--helios-orange)]/85"
                           : "border-[var(--helios-orange)]/10 bg-[var(--helios-orange)]/[0.045] text-[var(--helios-orange)]/58 hover:border-[var(--helios-orange)]/20 hover:bg-[var(--helios-orange)]/[0.08] hover:text-[var(--helios-orange)]/80"
