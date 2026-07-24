@@ -9,6 +9,22 @@ type TrustedLogoArtworkProps = {
   className?: string;
 };
 
+function getDisplaySource(src: string) {
+  try {
+    const url = new URL(src, "https://helios.local");
+    const match = url.pathname.match(/^\/trusted-logos\/([^/]+)$/);
+
+    if (match) {
+      return `/trusted-logo-assets/${encodeURIComponent(match[1])}`;
+    }
+  } catch {
+    // Preserve malformed or browser-local preview URLs so the image can
+    // surface its normal loading failure without breaking the component.
+  }
+
+  return src;
+}
+
 export default function TrustedLogoArtwork({
   src,
   alt,
@@ -20,6 +36,7 @@ export default function TrustedLogoArtwork({
   className = "",
 }: TrustedLogoArtworkProps) {
   const transform = `scale(${scale})`;
+  const displaySource = getDisplaySource(src);
 
   if (monochrome) {
     return (
@@ -32,8 +49,8 @@ export default function TrustedLogoArtwork({
           backgroundColor: color,
           opacity,
           transform,
-          WebkitMaskImage: `url("${src}")`,
-          maskImage: `url("${src}")`,
+          WebkitMaskImage: `url("${displaySource}")`,
+          maskImage: `url("${displaySource}")`,
           WebkitMaskPosition: "center",
           maskPosition: "center",
           WebkitMaskRepeat: "no-repeat",
@@ -48,7 +65,7 @@ export default function TrustedLogoArtwork({
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={src}
+      src={displaySource}
       alt={decorative ? "" : alt}
       aria-hidden={decorative || undefined}
       className={`h-full w-full object-contain ${className}`}
