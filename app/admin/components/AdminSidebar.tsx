@@ -81,6 +81,11 @@ const navigation: NavigationItem[] = [
     icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><path d="M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8.5-1a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 21a6 6 0 0 1 12 0M13 14.5A5 5 0 0 1 22 18v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
   },
   {
+    label: "Clients",
+    href: "/admin/clients",
+    icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><circle cx="9" cy="8" r="3" stroke="currentColor" strokeWidth="1.5"/><circle cx="17" cy="9" r="2.5" stroke="currentColor" strokeWidth="1.5"/><path d="M3 20a6 6 0 0 1 12 0M14 14.5A4.5 4.5 0 0 1 21 18v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
+  },
+  {
     label: "Homepage",
     href: "/admin/homepage",
     icon: (
@@ -247,7 +252,7 @@ const navigationGroups: NavigationGroup[] = [
   {
     id: "operations",
     label: "Operations",
-    hrefs: ["/admin/client-portals", "/admin/inquiries", "/admin/projects"],
+    hrefs: ["/admin/clients", "/admin/client-portals", "/admin/inquiries", "/admin/projects"],
   },
   {
     id: "website-content",

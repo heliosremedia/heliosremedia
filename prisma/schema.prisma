@@ -818,6 +818,27 @@ model AdminUser {
   @@index([active, role])
 }
 
+model CommunicationClient {
+  id String @id @default(cuid())
+
+  hdPhotoHubUserId Int @unique
+  firstName        String
+  lastName         String
+  displayName      String
+  email            String
+  normalizedEmail  String
+  phone            String?
+  normalizedPhone  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastSyncedAt DateTime
+
+  @@index([displayName])
+  @@index([normalizedEmail])
+  @@index([lastSyncedAt])
+}
+
 model AdminInvitation {
   id String @id @default(cuid())
   email String

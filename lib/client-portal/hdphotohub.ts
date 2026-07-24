@@ -8,8 +8,10 @@ export type HdPhotoHubUser = {
   uid: number;
   bid: number;
   email: string;
+  name?: string;
   firstname?: string;
   lastname?: string;
+  phone?: string;
   status?: "active" | "inactive" | "deleted";
   type?: "team-member" | "group-admin" | "client" | "assistant";
   group?: { gid?: number; id?: number; name?: string } | null;
@@ -76,6 +78,35 @@ export async function getHdPhotoHubGroups() {
   return groups
     .filter((group) => Number.isInteger(Number(group.gid)) && Boolean(group.name?.trim()))
     .map((group) => ({ gid: Number(group.gid), name: group.name.trim() }));
+}
+
+export async function getHdPhotoHubUsers() {
+  const users = await request<HdPhotoHubUser[]>("/users");
+  if (!Array.isArray(users)) {
+    throw new HdPhotoHubError("HDPhotoHub returned an invalid user list.");
+  }
+
+  const clients = users
+    .filter(
+      (user) =>
+        user?.type === "client" &&
+        Number.isInteger(Number(user.uid)) &&
+        typeof user.email === "string" &&
+        Boolean(user.email.trim()),
+    )
+    .map((user) => ({
+      uid: Number(user.uid),
+      email: user.email.trim(),
+      firstName: user.firstname?.trim() || "",
+      lastName: user.lastname?.trim() || "",
+      displayName:
+        user.name?.trim() ||
+        `${user.firstname || ""} ${user.lastname || ""}`.trim() ||
+        user.email.trim(),
+      phone: user.phone?.trim() || null,
+    }));
+
+  return [...new Map(clients.map((client) => [client.uid, client])).values()];
 }
 
 export async function getHdPhotoHubUser(email: string) {
