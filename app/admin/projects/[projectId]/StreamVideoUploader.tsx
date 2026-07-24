@@ -10,7 +10,7 @@ import {
 
 import type { ProjectMediaItem } from "./ProjectMediaManager";
 
-const MAX_VIDEO_SIZE = 500 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 1024 * 1024 * 1024;
 const ACCEPTED_VIDEO_TYPES = new Set([
   "video/mp4",
   "video/quicktime",
@@ -104,7 +104,7 @@ export default function StreamVideoUploader({
       throw new Error("Choose an MP4 or MOV video.");
     }
     if (selectedFile.size > MAX_VIDEO_SIZE) {
-      throw new Error("Videos must be no larger than 500 MB.");
+      throw new Error("Videos must be no larger than 1 GB.");
     }
   }
 
@@ -228,7 +228,7 @@ export default function StreamVideoUploader({
             Upload a portfolio video
           </span>
           <span className="mt-1.5 block text-sm leading-6 text-white/35">
-            Resumable MP4 or MOV upload · up to 500 MB.
+            Resumable MP4 or MOV upload · up to 1 GB.
           </span>
         </span>
         <span

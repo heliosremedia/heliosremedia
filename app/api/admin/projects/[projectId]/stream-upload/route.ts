@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 
-const MAX_VIDEO_SIZE = 500 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 1024 * 1024 * 1024;
 const MAX_DURATION_SECONDS = 180;
 
 type StreamUploadRouteProps = {
@@ -35,7 +35,7 @@ export async function POST(
       return NextResponse.json(
         {
           success: false,
-          error: "Choose an MP4 or MOV video no larger than 500 MB.",
+          error: "Choose an MP4 or MOV video no larger than 1 GB.",
         },
         { status: 400 },
       );
