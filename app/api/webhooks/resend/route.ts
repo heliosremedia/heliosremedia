@@ -42,8 +42,51 @@ export async function POST(request: Request) {
       type?: string;
       data?: { email_id?: string; to?: unknown };
     };
-    if (!["email.bounced", "email.complained"].includes(event.type ?? "")) {
+    const communicationStatus = {
+      "email.delivered": "DELIVERED",
+      "email.opened": "OPENED",
+      "email.clicked": "CLICKED",
+      "email.bounced": "FAILED",
+      "email.complained": "UNSUBSCRIBED",
+    } as const;
+    const mappedCommunicationStatus = communicationStatus[event.type as keyof typeof communicationStatus];
+    if (!mappedCommunicationStatus) {
       return NextResponse.json({ success: true, ignored: true });
+    }
+    if (event.data?.email_id) {
+      const communication = await prisma.referralCommunication.findFirst({
+        where: { providerMessageId: event.data.email_id },
+        select: { id: true, invitationId: true, campaignId: true, submissionId: true },
+      });
+      if (communication) {
+        await prisma.$transaction([
+          prisma.referralCommunication.update({
+            where: { id: communication.id },
+            data: {
+              status: mappedCommunicationStatus,
+              failureCode: mappedCommunicationStatus === "FAILED" ? "PROVIDER_BOUNCE" : null,
+            },
+          }),
+          ...(communication.invitationId
+            ? [prisma.referralInvitation.update({
+                where: { id: communication.invitationId },
+                data: { status: mappedCommunicationStatus },
+              })]
+            : []),
+          prisma.referralAuditEvent.create({
+            data: {
+              campaignId: communication.campaignId,
+              submissionId: communication.submissionId,
+              action: `COMMUNICATION_${mappedCommunicationStatus}`,
+              summary: `Referral communication marked ${mappedCommunicationStatus.toLowerCase()}.`,
+              metadata: { communicationId: communication.id },
+            },
+          }),
+        ]);
+      }
+    }
+    if (!["email.bounced", "email.complained"].includes(event.type ?? "")) {
+      return NextResponse.json({ success: true });
     }
     const emails = normalizedEmails(event.data?.to);
     const reason = event.type === "email.complained" ? "COMPLAINT" : "BOUNCE";

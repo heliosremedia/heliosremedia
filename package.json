@@ -7,7 +7,7 @@
     "build": "node scripts/build.mjs",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test lib/newsletters/*.test.ts",
+    "test": "node --experimental-strip-types --test lib/newsletters/*.test.ts lib/referrals/*.test.ts",
     "auth:hash-password": "node scripts/hash-admin-password.mjs"
   },
   "dependencies": {
@@ -21,6 +21,7 @@
     "@prisma/client": "^7.8.0",
     "motion": "^12.42.2",
     "next": "16.2.10",
+    "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "sanitize-html": "^2.17.6",
@@ -29,6 +30,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/sanitize-html": "^2.16.1",
