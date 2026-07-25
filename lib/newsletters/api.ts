@@ -125,6 +125,11 @@ export async function serializeEdition(edition: {
         body: typeof content.body === "string" ? content.body : "",
         imageUrl: typeof content.imageUrl === "string" ? content.imageUrl : "",
         altText: typeof content.altText === "string" ? content.altText : "",
+        imageLink: typeof content.imageLink === "string" ? content.imageLink : "",
+        imageIsVideo: content.imageIsVideo === true,
+        imageSelection: content.imageSelection && typeof content.imageSelection === "object"
+          ? content.imageSelection : undefined,
+        imageCandidates: Array.isArray(content.imageCandidates) ? content.imageCandidates : [],
         link: typeof content.link === "string" ? content.link : "",
         buttonLabel: typeof content.buttonLabel === "string" ? content.buttonLabel : "",
         alignment: content.alignment === "center" ? "center" : "left",

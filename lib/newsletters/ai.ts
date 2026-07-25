@@ -12,6 +12,7 @@ export type NewsletterSourceReference = {
   label: string;
   excerpt: string;
   url?: string | null;
+  imageCandidates?: import("./types").NewsletterImageCandidate[];
 };
 
 const BLOCK_TYPES = new Set<string>(NEWSLETTER_BLOCK_TYPES);
@@ -67,7 +68,7 @@ export function validateGeneratedDraft(value: unknown, allowedSources: ReadonlyS
       eyebrow: optionalString(block.eyebrow, "eyebrow", 100) ?? undefined,
       heading: optionalString(block.heading, "heading", 240) ?? undefined,
       body: optionalString(block.body, "body", 8_000) ?? undefined,
-      imageUrl: safeUrl(block.imageUrl, "image URL") ?? undefined,
+      imageCandidateId: optionalString(block.imageCandidateId, "image candidate ID", 300) ?? undefined,
       altText: optionalString(block.altText, "image alt text", 300) ?? undefined,
       link: safeUrl(block.link, "link URL") ?? undefined,
       buttonLabel: optionalString(block.buttonLabel, "button label", 100) ?? undefined,
@@ -117,6 +118,7 @@ export async function generateNewsletterDraft(input: {
     "INTERNAL_NOTES guide your work but must never appear in publishable copy.",
     "Every factual block must cite supporting sourceIds. If material is insufficient, create a shorter edition and add a warning.",
     "Return editable blocks, not HTML. AI never approves, schedules, or sends an edition.",
+    "For imagery, select only an imageCandidateId supplied inside VERIFIED_SOURCES, or null. Never invent an image URL.",
   ].join("\n");
   const requestBody = {
     model,
@@ -150,7 +152,7 @@ export async function generateNewsletterDraft(input: {
                 type: "object",
                 additionalProperties: false,
                 required: [
-                  "type", "internalLabel", "eyebrow", "heading", "body", "imageUrl",
+                  "type", "internalLabel", "eyebrow", "heading", "body", "imageCandidateId",
                   "altText", "link", "buttonLabel", "alignment", "sourceIds",
                 ],
                 properties: {
@@ -159,7 +161,7 @@ export async function generateNewsletterDraft(input: {
                   eyebrow: { type: ["string", "null"] },
                   heading: { type: ["string", "null"] },
                   body: { type: ["string", "null"] },
-                  imageUrl: { type: ["string", "null"] },
+                  imageCandidateId: { type: ["string", "null"] },
                   altText: { type: ["string", "null"] },
                   link: { type: ["string", "null"] },
                   buttonLabel: { type: ["string", "null"] },

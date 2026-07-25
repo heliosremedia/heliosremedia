@@ -13,6 +13,12 @@ export type NewsletterBlock = {
   body?: string; imageUrl?: string; altText?: string; link?: string;
   buttonLabel?: string; alignment?: "left" | "center"; provenance?: string[];
   aiGenerated?: boolean; manuallyEdited?: boolean;
+  imageLink?: string; imageIsVideo?: boolean;
+  imageSelection?: { mode: "AUTO" | "SOURCE" | "CUSTOM" | "NONE"; candidateId?: string; sourceLabel?: string };
+  imageCandidates?: Array<{
+    id: string; url: string; thumbnailUrl?: string; altText?: string; label: string;
+    role: string; destinationUrl?: string; isVideo?: boolean; width?: number; height?: number;
+  }>;
 };
 
 export type NewsletterEdition = {
