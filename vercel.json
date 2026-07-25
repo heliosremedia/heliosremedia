@@ -1,3 +1,6 @@
 {
-  "crons": [{ "path": "/api/cron/google-reviews", "schedule": "0 11 * * *" }]
+  "crons": [
+    { "path": "/api/cron/google-reviews", "schedule": "0 11 * * *" },
+    { "path": "/api/cron/newsletters", "schedule": "*/5 * * * *" }
+  ]
 }

@@ -93,6 +93,92 @@ enum CampaignRecipientStatus {
   SKIPPED
 }
 
+enum CommunicationEmailStatus {
+  VALID
+  INVALID
+  BOUNCED
+  COMPLAINED
+}
+
+enum NewsletterSeriesStatus {
+  ACTIVE
+  PAUSED
+}
+
+enum NewsletterEditionStatus {
+  AWAITING_GENERATION
+  GENERATING
+  DRAFT_GENERATED
+  NEEDS_REVIEW
+  APPROVED
+  SCHEDULED
+  SENDING
+  SENT
+  PAUSED
+  MISSED_APPROVAL
+  GENERATION_FAILED
+  SEND_FAILED
+  PARTIALLY_SENT
+  CANCELLED
+}
+
+enum NewsletterBlockType {
+  HERO
+  OPENING_NOTE
+  FEATURED_STORY
+  PORTFOLIO_SPOTLIGHT
+  HELPFUL_TIP
+  SERVICE_SPOTLIGHT
+  EVENT_ANNOUNCEMENT
+  IMAGE
+  CALL_TO_ACTION
+  DIVIDER
+  SPACER
+  CLOSING_NOTE
+}
+
+enum NewsletterRecurrenceKind {
+  DAY_OF_MONTH
+  NTH_WEEKDAY
+}
+
+enum NewsletterWeekOrdinal {
+  FIRST
+  SECOND
+  THIRD
+  FOURTH
+  LAST
+}
+
+enum NewsletterGenerationMode {
+  RECURRENCE
+  DAYS_BEFORE_SEND
+  MANUAL
+}
+
+enum NewsletterGenerationStatus {
+  CLAIMED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  INSUFFICIENT_CONTENT
+}
+
+enum NewsletterJobType {
+  GENERATE
+  SEND
+  MISSED_APPROVAL
+  NOTIFY
+}
+
+enum NewsletterJobStatus {
+  PENDING
+  CLAIMED
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
 enum InquiryStatus {
   NEW
   CONTACTED
@@ -143,8 +229,8 @@ model TeamMember {
   portraitStorageKey String?
   portraitUrl        String?
   portraitAlt        String?
-  focalX             Float @default(0.5)
-  focalY             Float @default(0.25)
+  focalX             Float   @default(0.5)
+  focalY             Float   @default(0.25)
 
   displayOrder Int     @default(0)
   visible      Boolean @default(false)
@@ -390,12 +476,12 @@ model Testimonial {
   brokerage   String?
   testimonial String
 
-  photoStorageKey String?
-  photoUrl        String?
-  photoAlt        String?
-  sourceUrl       String?
-  sourceProvider  String  @default("MANUAL")
-  externalReviewId String? @unique
+  photoStorageKey  String?
+  photoUrl         String?
+  photoAlt         String?
+  sourceUrl        String?
+  sourceProvider   String    @default("MANUAL")
+  externalReviewId String?   @unique
   reviewerPhotoUrl String?
   reviewedAt       DateTime?
 
@@ -490,20 +576,20 @@ model SiteSettings {
   email        String?
   bookingUrl   String?
 
-  heroVideoUrl  String?
-  heroPosterUrl String? @default("/work/featured-estate.jpg")
-  heroPosterAlt String? @default("Luxury real estate exterior photographed by Helios Real Estate Media")
-  heroEyebrow String? @default("Fort Collins, Colorado")
-  heroHeadlineLineOne String? @default("Luxury Marketing")
-  heroHeadlineLineTwo String? @default("for Exceptional Homes")
-  heroBody String? @default("Photography, cinematic films, aerial imagery, and branding crafted to elevate Northern Colorado's most exceptional homes.")
-  heroPrimaryLabel String? @default("Book Now")
-  heroPrimaryDestination String?
-  heroSecondaryLabel String? @default("View Portfolio")
+  heroVideoUrl             String?
+  heroPosterUrl            String? @default("/work/featured-estate.jpg")
+  heroPosterAlt            String? @default("Luxury real estate exterior photographed by Helios Real Estate Media")
+  heroEyebrow              String? @default("Fort Collins, Colorado")
+  heroHeadlineLineOne      String? @default("Luxury Marketing")
+  heroHeadlineLineTwo      String? @default("for Exceptional Homes")
+  heroBody                 String? @default("Photography, cinematic films, aerial imagery, and branding crafted to elevate Northern Colorado's most exceptional homes.")
+  heroPrimaryLabel         String? @default("Book Now")
+  heroPrimaryDestination   String?
+  heroSecondaryLabel       String? @default("View Portfolio")
   heroSecondaryDestination String? @default("/portfolio")
-  availabilityEnabled Boolean @default(false)
-  availabilityLabel String? @default("Now booking")
-  availabilityMessage    String?
+  availabilityEnabled      Boolean @default(false)
+  availabilityLabel        String? @default("Now booking")
+  availabilityMessage      String?
 
   heliosStandardImageStorageKey String?
   heliosStandardImageUrl        String?
@@ -536,39 +622,39 @@ model SiteSettings {
   serviceAreaDescription String?
   footerDescription      String?
 
-  standardEyebrow String? @default("The Helios Standard")
-  standardHeading String? @default("Presentation Changes")
-  standardHeadingAccent String? @default("Perception.")
-  standardHeadingLineOne String? @default("Presentation")
-  standardHeadingLineTwo String? @default("Changes Perception.")
-  standardBody String? @default("Exceptional homes deserve more than documentation. They deserve a presentation that shapes how they are seen, remembered, and valued.")
-  standardPrinciples Json?
-  workEyebrow String? @default("Our Work")
-  workHeading String? @default("Crafted to Capture")
-  workHeadingLineOne String? @default("Crafted to")
-  workHeadingLineTwo String? @default("Capture")
-  workHeadingAccent String? @default("Attention.")
-  workBody String? @default("Every image, every frame, and every film is crafted to elevate perception, command attention, and inspire confidence before the first showing.")
-  workButtonLabel String? @default("Explore Portfolio")
-  workButtonDestination String? @default("/portfolio")
-  featuredProjectEyebrow String? @default("Featured Project")
-  portfolioEyebrow String? @default("Complete Portfolio")
-  portfolioHeading String? @default("Explore the Full Collection.")
-  portfolioButtonLabel String? @default("View Complete Portfolio")
+  standardEyebrow            String? @default("The Helios Standard")
+  standardHeading            String? @default("Presentation Changes")
+  standardHeadingAccent      String? @default("Perception.")
+  standardHeadingLineOne     String? @default("Presentation")
+  standardHeadingLineTwo     String? @default("Changes Perception.")
+  standardBody               String? @default("Exceptional homes deserve more than documentation. They deserve a presentation that shapes how they are seen, remembered, and valued.")
+  standardPrinciples         Json?
+  workEyebrow                String? @default("Our Work")
+  workHeading                String? @default("Crafted to Capture")
+  workHeadingLineOne         String? @default("Crafted to")
+  workHeadingLineTwo         String? @default("Capture")
+  workHeadingAccent          String? @default("Attention.")
+  workBody                   String? @default("Every image, every frame, and every film is crafted to elevate perception, command attention, and inspire confidence before the first showing.")
+  workButtonLabel            String? @default("Explore Portfolio")
+  workButtonDestination      String? @default("/portfolio")
+  featuredProjectEyebrow     String? @default("Featured Project")
+  portfolioEyebrow           String? @default("Complete Portfolio")
+  portfolioHeading           String? @default("Explore the Full Collection.")
+  portfolioButtonLabel       String? @default("View Complete Portfolio")
   portfolioButtonDestination String? @default("/portfolio")
-  approachEyebrow String? @default("Our Approach")
-  approachHeading String? @default("We Build")
-  approachHeadingAccent String? @default("Perceived Value.")
-  approachHeadingLineOne String? @default("We Build")
-  approachHeadingLineTwo String? @default("Perceived Value.")
-  approachBody String? @default("Every listing is treated like a campaign. Every image, frame, and film is shaped to capture attention, create emotion, and elevate the way a property is perceived.")
-  approachCards Json?
-  approachTagline String? @default("Light. Clarity. Vision.")
-  approachButtonLabel String? @default("Discover Helios")
-  approachButtonDestination String? @default("/about")
-  headerNavigation Json?
-  footerNavigation Json?
-  conversionImageCaption String? @default("Presentation shapes perception.")
+  approachEyebrow            String? @default("Our Approach")
+  approachHeading            String? @default("We Build")
+  approachHeadingAccent      String? @default("Perceived Value.")
+  approachHeadingLineOne     String? @default("We Build")
+  approachHeadingLineTwo     String? @default("Perceived Value.")
+  approachBody               String? @default("Every listing is treated like a campaign. Every image, frame, and film is shaped to capture attention, create emotion, and elevate the way a property is perceived.")
+  approachCards              Json?
+  approachTagline            String? @default("Light. Clarity. Vision.")
+  approachButtonLabel        String? @default("Discover Helios")
+  approachButtonDestination  String? @default("/about")
+  headerNavigation           Json?
+  footerNavigation           Json?
+  conversionImageCaption     String? @default("Presentation shapes perception.")
 
   websiteUrl   String?
   instagramUrl String?
@@ -576,10 +662,10 @@ model SiteSettings {
   youtubeUrl   String?
   linkedinUrl  String?
 
-  brandVoice          String?
-  brandAudience       String?
+  brandVoice           String?
+  brandAudience        String?
   brandWritingGuidance String?
-  defaultBlogAuthor   String?
+  defaultBlogAuthor    String?
 
   defaultSeoTitle       String @default("Helios Real Estate Media")
   defaultSeoDescription String @default("Luxury real estate photography, cinematic films, and branding for Northern Colorado's finest homes.")
@@ -594,11 +680,11 @@ model SiteSettings {
 model BlogPost {
   id String @id @default(cuid())
 
-  title   String
-  slug    String @unique
-  excerpt String?
-  content String
-  author  String?
+  title    String
+  slug     String  @unique
+  excerpt  String?
+  content  String
+  author   String?
   category String?
 
   status      BlogPostStatus @default(DRAFT)
@@ -607,7 +693,7 @@ model BlogPost {
   archivedAt  DateTime?
 
   featuredMediaId String?
-  featuredMedia   Media? @relation(fields: [featuredMediaId], references: [id], onDelete: SetNull)
+  featuredMedia   Media?  @relation(fields: [featuredMediaId], references: [id], onDelete: SetNull)
 
   featuredImageStorageKey String?
   featuredImageUrl        String?
@@ -631,18 +717,18 @@ model BlogPost {
 model LocationPage {
   id String @id @default(cuid())
 
-  slug            String @unique
-  city            String
-  state           String @default("Colorado")
-  county          String
-  seoTitle        String
-  seoDescription  String
-  heroLead        String
-  introduction    String
-  marketTitle     String
-  marketCopy      String
-  localDetails    Json
-  serviceArea     String
+  slug           String @unique
+  city           String
+  state          String @default("Colorado")
+  county         String
+  seoTitle       String
+  seoDescription String
+  heroLead       String
+  introduction   String
+  marketTitle    String
+  marketCopy     String
+  localDetails   Json
+  serviceArea    String
 
   published    Boolean @default(false)
   displayOrder Int     @default(0)
@@ -808,25 +894,29 @@ model CtaPlacement {
 model AdminUser {
   id String @id @default(cuid())
 
-  email       String    @unique
-  displayName String
-  role        AdminRole @default(EDITOR)
-  active      Boolean   @default(true)
-  passwordHash String?
-  sessionVersion Int @default(0)
+  email               String    @unique
+  displayName         String
+  role                AdminRole @default(EDITOR)
+  active              Boolean   @default(true)
+  passwordHash        String?
+  sessionVersion      Int       @default(0)
   navigationFavorites Json?
 
   failedLoginCount Int       @default(0)
   lockedUntil      DateTime?
   lastLoginAt      DateTime?
 
-  auditEvents       AuditEvent[]
-  assignedInquiries Inquiry[]            @relation("InquiryAssignee")
-  inquiryNotes      InquiryNote[]
-  inquiryActivities InquiryActivity[]
-  previewLinks      ProjectPreviewLink[]
-  invitationsCreated AdminInvitation[] @relation("InvitationCreator")
-  emailCampaigns     EmailCampaign[]
+  auditEvents               AuditEvent[]
+  assignedInquiries         Inquiry[]            @relation("InquiryAssignee")
+  inquiryNotes              InquiryNote[]
+  inquiryActivities         InquiryActivity[]
+  previewLinks              ProjectPreviewLink[]
+  invitationsCreated        AdminInvitation[]    @relation("InvitationCreator")
+  emailCampaigns            EmailCampaign[]
+  newsletterSeriesCreated   NewsletterSeries[]   @relation("NewsletterSeriesCreator")
+  newsletterEditionsCreated NewsletterEdition[]  @relation("NewsletterEditionCreator")
+  newsletterRevisions       NewsletterRevision[]
+  newsletterApprovals       NewsletterApproval[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -837,7 +927,7 @@ model AdminUser {
 model CommunicationClient {
   id String @id @default(cuid())
 
-  hdPhotoHubUserId Int @unique
+  hdPhotoHubUserId Int     @unique
   firstName        String
   lastName         String
   displayName      String
@@ -846,36 +936,43 @@ model CommunicationClient {
   phone            String?
   normalizedPhone  String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  lastSyncedAt DateTime
-  groupMemberships CommunicationGroupMembership[]
-  emailSubscribed Boolean   @default(true)
-  unsubscribedAt  DateTime?
-  campaignRecipients CampaignRecipient[]
+  createdAt                  DateTime                       @default(now())
+  updatedAt                  DateTime                       @updatedAt
+  lastSyncedAt               DateTime
+  groupMemberships           CommunicationGroupMembership[]
+  emailSubscribed            Boolean                        @default(true)
+  unsubscribedAt             DateTime?
+  archivedAt                 DateTime?
+  emailStatus                CommunicationEmailStatus       @default(VALID)
+  emailStatusUpdatedAt       DateTime?
+  campaignRecipients         CampaignRecipient[]
+  newsletterSeriesSelections NewsletterSeriesRecipient[]
+  newsletterSuppressions     CommunicationSuppression[]     @relation("SuppressedClient")
 
   @@index([displayName])
   @@index([normalizedEmail])
   @@index([lastSyncedAt])
+  @@index([emailSubscribed, emailStatus, archivedAt])
 }
 
 model EmailCampaign {
   id String @id @default(cuid())
 
-  subject      String
-  previewText  String?
-  body         String
-  status       EmailCampaignStatus @default(DRAFT)
-  recipientMode String
-  selection    Json
-  recipientCount Int @default(0)
-  sentCount      Int @default(0)
-  failedCount    Int @default(0)
+  subject        String
+  previewText    String?
+  body           String
+  status         EmailCampaignStatus @default(DRAFT)
+  recipientMode  String
+  selection      Json
+  recipientCount Int                 @default(0)
+  sentCount      Int                 @default(0)
+  failedCount    Int                 @default(0)
   sentAt         DateTime?
 
-  createdById String
-  createdBy   AdminUser @relation(fields: [createdById], references: [id], onDelete: Restrict)
-  recipients CampaignRecipient[]
+  createdById        String
+  createdBy          AdminUser           @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  recipients         CampaignRecipient[]
+  newsletterDelivery NewsletterDelivery?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -887,16 +984,16 @@ model EmailCampaign {
 model CampaignRecipient {
   id String @id @default(cuid())
 
-  campaignId String
-  campaign   EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  clientId   String
-  client     CommunicationClient @relation(fields: [clientId], references: [id], onDelete: Restrict)
-  email      String
-  displayName String
-  status     CampaignRecipientStatus @default(PENDING)
+  campaignId        String
+  campaign          EmailCampaign           @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  clientId          String
+  client            CommunicationClient     @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  email             String
+  displayName       String
+  status            CampaignRecipientStatus @default(PENDING)
   providerMessageId String?
-  error      String?
-  sentAt     DateTime?
+  error             String?
+  sentAt            DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -909,9 +1006,10 @@ model CampaignRecipient {
 model CommunicationGroup {
   id String @id @default(cuid())
 
-  name           String
-  normalizedName String @unique
-  memberships    CommunicationGroupMembership[]
+  name             String
+  normalizedName   String                         @unique
+  memberships      CommunicationGroupMembership[]
+  newsletterSeries NewsletterSeriesGroup[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -933,18 +1031,302 @@ model CommunicationGroupMembership {
   @@index([clientId])
 }
 
-model AdminInvitation {
+model CommunicationSuppression {
   id String @id @default(cuid())
-  email String
-  displayName String
-  role AdminRole @default(EDITOR)
-  tokenHash String @unique
-  createdById String
-  createdBy AdminUser @relation("InvitationCreator", fields: [createdById], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-  acceptedAt DateTime?
-  revokedAt DateTime?
+
+  normalizedEmail String
+  reason          String
+  provider        String?
+  providerEventId String?              @unique
+  clientId        String?
+  client          CommunicationClient? @relation("SuppressedClient", fields: [clientId], references: [id], onDelete: SetNull)
+  suppressedAt    DateTime             @default(now())
+  releasedAt      DateTime?
+  metadata        Json?
+
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([normalizedEmail, releasedAt])
+  @@index([clientId, releasedAt])
+}
+
+model NewsletterSeries {
+  id String @id @default(cuid())
+
+  name        String
+  description String?
+  status      NewsletterSeriesStatus @default(ACTIVE)
+  timeZone    String                 @default("America/Denver")
+
+  senderName                String?
+  senderEmail               String?
+  replyTo                   String?
+  brandInstructions         String?
+  toneInstructions          String?
+  goals                     String?
+  defaultContentPreferences Json?
+  defaultCallToAction       Json?
+
+  sendRecurrenceKind NewsletterRecurrenceKind
+  sendDayOfMonth     Int?
+  sendWeekOrdinal    NewsletterWeekOrdinal?
+  sendWeekday        Int?
+  sendLocalTime      String
+
+  generationMode           NewsletterGenerationMode
+  generationRecurrenceKind NewsletterRecurrenceKind?
+  generationDayOfMonth     Int?
+  generationWeekOrdinal    NewsletterWeekOrdinal?
+  generationWeekday        Int?
+  generationLocalTime      String?
+  generationDaysBeforeSend Int?
+
+  nextGenerationAt DateTime?
+  nextSendAt       DateTime?
+  lastGeneratedAt  DateTime?
+
+  createdById String
+  createdBy   AdminUser                   @relation("NewsletterSeriesCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  groups      NewsletterSeriesGroup[]
+  recipients  NewsletterSeriesRecipient[]
+  editions    NewsletterEdition[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, nextGenerationAt])
+  @@index([status, nextSendAt])
+  @@index([createdById])
+}
+
+model NewsletterSeriesGroup {
+  seriesId String
+  series   NewsletterSeries   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  groupId  String
+  group    CommunicationGroup @relation(fields: [groupId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@id([seriesId, groupId])
+  @@index([groupId])
+}
+
+model NewsletterSeriesRecipient {
+  seriesId String
+  series   NewsletterSeries    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  clientId String
+  client   CommunicationClient @relation(fields: [clientId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@id([seriesId, clientId])
+  @@index([clientId])
+}
+
+model NewsletterEdition {
+  id String @id @default(cuid())
+
+  seriesId String
+  series   NewsletterSeries        @relation(fields: [seriesId], references: [id], onDelete: Restrict)
+  cycleKey String
+  status   NewsletterEditionStatus @default(AWAITING_GENERATION)
+
+  subject               String?
+  subjectAlternatives   Json?
+  previewText           String?
+  contentNotes          Json?
+  internalNotes         String?
+  intendedSendAt        DateTime
+  generationDueAt       DateTime?
+  approvedRevisionId    String?   @unique
+  currentRevisionNumber Int       @default(0)
+  rowVersion            Int       @default(0)
+  warnings              Json?
+  cancelledAt           DateTime?
+  sentAt                DateTime?
+
+  createdById      String
+  createdBy        AdminUser                 @relation("NewsletterEditionCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  blocks           NewsletterBlock[]
+  revisions        NewsletterRevision[]      @relation("EditionRevisions")
+  approvedRevision NewsletterRevision?       @relation("ApprovedEditionRevision", fields: [approvedRevisionId], references: [id], onDelete: Restrict)
+  generationRuns   NewsletterGenerationRun[]
+  approvals        NewsletterApproval[]
+  delivery         NewsletterDelivery?
+  jobs             NewsletterJob[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([seriesId, cycleKey])
+  @@index([status, intendedSendAt])
+  @@index([status, generationDueAt])
+  @@index([createdById])
+}
+
+model NewsletterBlock {
+  id String @id @default(cuid())
+
+  editionId      String
+  edition        NewsletterEdition       @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  type           NewsletterBlockType
+  position       Int
+  internalLabel  String?
+  content        Json
+  aiGenerated    Boolean                 @default(false)
+  manuallyEdited Boolean                 @default(false)
+  contentVersion Int                     @default(1)
+  sources        NewsletterBlockSource[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([editionId, position])
+  @@index([editionId, type])
+}
+
+model NewsletterBlockSource {
+  id String @id @default(cuid())
+
+  blockId        String
+  block          NewsletterBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  sourceType     String
+  sourceId       String?
+  sourceTitle    String
+  sourceUrl      String?
+  sourceSnapshot Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([blockId])
+  @@index([sourceType, sourceId])
+}
+
+model NewsletterRevision {
+  id String @id @default(cuid())
+
+  editionId          String
+  edition            NewsletterEdition    @relation("EditionRevisions", fields: [editionId], references: [id], onDelete: Cascade)
+  approvedForEdition NewsletterEdition?   @relation("ApprovedEditionRevision")
+  approvals          NewsletterApproval[]
+  revisionNumber     Int
+  subject            String
+  previewText        String?
+  blocksSnapshot     Json
+  contentHash        String
+  changeSummary      String?
+  createdById        String?
+  createdBy          AdminUser?           @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@unique([editionId, revisionNumber])
+  @@index([editionId, createdAt])
+  @@index([contentHash])
+  @@index([createdById])
+}
+
+model NewsletterGenerationRun {
+  id String @id @default(cuid())
+
+  editionId            String
+  edition              NewsletterEdition          @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  status               NewsletterGenerationStatus
+  model                String?
+  promptVersion        String
+  instructionsSnapshot Json
+  sourceManifest       Json
+  outputSnapshot       Json?
+  errorCode            String?
+  errorMessage         String?
+  attempt              Int                        @default(1)
+  startedAt            DateTime                   @default(now())
+  completedAt          DateTime?
+
+  @@unique([editionId, attempt])
+  @@index([status, startedAt])
+}
+
+model NewsletterApproval {
+  id String @id @default(cuid())
+
+  editionId                  String
+  edition                    NewsletterEdition  @relation(fields: [editionId], references: [id], onDelete: Restrict)
+  revisionId                 String
+  revision                   NewsletterRevision @relation(fields: [revisionId], references: [id], onDelete: Restrict)
+  approvedById               String
+  approvedBy                 AdminUser          @relation(fields: [approvedById], references: [id], onDelete: Restrict)
+  approvedSendAt             DateTime
+  estimatedEligibleCount     Int
+  estimatedExcludedCount     Int
+  recipientSelectionSnapshot Json
+  revokedAt                  DateTime?
+  revocationReason           String?
+
+  approvedAt DateTime @default(now())
+
+  @@index([editionId, approvedAt])
+  @@index([approvedById, approvedAt])
+  @@index([revisionId])
+}
+
+model NewsletterDelivery {
+  id String @id @default(cuid())
+
+  editionId         String            @unique
+  edition           NewsletterEdition @relation(fields: [editionId], references: [id], onDelete: Restrict)
+  campaignId        String            @unique
+  campaign          EmailCampaign     @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  revisionId        String
+  recipientSnapshot Json
+  eligibleCount     Int
+  excludedCount     Int
+  contentHash       String
+  startedAt         DateTime?
+  completedAt       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model NewsletterJob {
+  id String @id @default(cuid())
+
+  editionId        String
+  edition          NewsletterEdition   @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  type             NewsletterJobType
+  status           NewsletterJobStatus @default(PENDING)
+  dueAt            DateTime
+  idempotencyKey   String              @unique
+  claimToken       String?             @unique
+  claimedAt        DateTime?
+  leaseExpiresAt   DateTime?
+  completedAt      DateTime?
+  attempts         Int                 @default(0)
+  lastErrorCode    String?
+  lastErrorMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([editionId, type, dueAt])
+  @@index([status, dueAt])
+  @@index([editionId, type])
+}
+
+model AdminInvitation {
+  id          String    @id @default(cuid())
+  email       String
+  displayName String
+  role        AdminRole @default(EDITOR)
+  tokenHash   String    @unique
+  createdById String
+  createdBy   AdminUser @relation("InvitationCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
 
   @@index([email, createdAt])
   @@index([expiresAt])

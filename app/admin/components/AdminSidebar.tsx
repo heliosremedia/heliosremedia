@@ -91,6 +91,11 @@ const navigation: NavigationItem[] = [
     icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="m4 7 8 6 8-6" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>,
   },
   {
+    label: "Newsletter Studio",
+    href: "/admin/newsletter-studio",
+    icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><path d="M4 5h16v14H4zM7.5 8.5h9M7.5 12h5M7.5 15.5h7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  },
+  {
     label: "Homepage",
     href: "/admin/homepage",
     icon: (
@@ -257,7 +262,7 @@ const navigationGroups: NavigationGroup[] = [
   {
     id: "operations",
     label: "Operations",
-    hrefs: ["/admin/clients", "/admin/email-studio", "/admin/client-portals", "/admin/inquiries", "/admin/projects"],
+    hrefs: ["/admin/client-portals", "/admin/clients", "/admin/email-studio", "/admin/inquiries", "/admin/newsletter-studio", "/admin/projects"],
   },
   {
     id: "website-content",
@@ -392,7 +397,9 @@ export default function AdminSidebar({
   const [favoriteError, setFavoriteError] = useState<string | null>(null);
   const visibleNavigation = navigation.filter(
     (item) =>
-      item.href !== "/admin/users" || role === "OWNER" || role === "ADMIN",
+      !["/admin/users", "/admin/newsletter-studio"].includes(item.href) ||
+      role === "OWNER" ||
+      role === "ADMIN",
   );
   const dashboard = visibleNavigation.find((item) => item.href === "/admin");
   const favoriteItems = favorites
