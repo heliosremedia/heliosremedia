@@ -11,8 +11,15 @@ function escapeHtml(value: string) {
 
 function secret() {
   const value = process.env.CAMPAIGN_UNSUBSCRIBE_SECRET?.trim();
-  if (!value) throw new Error("Bulk email unsubscribe protection is not configured.");
-  return value;
+  if (value) return value;
+
+  const authSecret = process.env.AUTH_SECRET?.trim();
+  if (!authSecret || authSecret.length < 32) {
+    throw new Error("Bulk email unsubscribe protection is not configured.");
+  }
+  return createHmac("sha256", authSecret)
+    .update("helios:campaign-unsubscribe:v1")
+    .digest("base64url");
 }
 
 export function createUnsubscribeToken(clientId: string) {
