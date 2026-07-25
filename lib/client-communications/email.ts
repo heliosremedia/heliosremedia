@@ -92,15 +92,19 @@ export async function sendTestCampaign(input: { to: string; subject: string; htm
 export async function sendCampaignBatch(input: {
   campaignId: string;
   messages: Array<{ to: string; subject: string; html: string }>;
+  from?: string | null;
+  replyTo?: string | null;
 }) {
-  const { apiKey, from, replyTo } = deliveryConfig();
+  const config = deliveryConfig();
+  const from = input.from?.trim() || config.from;
+  const replyTo = input.replyTo?.trim() || config.replyTo;
   const idempotencyKey = createHash("sha256")
     .update(`${input.campaignId}:${input.messages.map((message) => message.to).join(",")}`)
     .digest("hex");
   const response = await fetch("https://api.resend.com/emails/batch", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${config.apiKey}`,
       "Content-Type": "application/json",
       "Idempotency-Key": idempotencyKey,
     },

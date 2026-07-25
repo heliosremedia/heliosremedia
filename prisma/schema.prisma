@@ -188,6 +188,106 @@ enum InquiryStatus {
   SPAM
 }
 
+enum ReferralCampaignStatus {
+  DRAFT
+  APPROVED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  EXPIRED
+  CANCELLED
+}
+
+enum ReferralAudienceMode {
+  INDIVIDUALS
+  GROUPS
+  FILTERED
+  ALL_ELIGIBLE
+}
+
+enum ReferralInvitationStatus {
+  DRAFT
+  APPROVED
+  SCHEDULED
+  SENDING
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  FAILED
+  UNSUBSCRIBED
+  CANCELLED
+}
+
+enum ReferralStatus {
+  INVITED
+  VISITED
+  SUBMITTED
+  CONTACTED
+  QUALIFIED
+  BOOKED
+  COMPLETED
+  REWARD_ELIGIBLE
+  REWARD_ISSUED
+  DISQUALIFIED
+  DECLINED
+  EXPIRED
+  DUPLICATE
+  CANCELLED
+  NEEDS_REVIEW
+}
+
+enum ReferralAttributionStatus {
+  CONFIRMED
+  NEEDS_REVIEW
+  REJECTED
+}
+
+enum ReferralRewardType {
+  ACCOUNT_CREDIT
+  PERCENTAGE_DISCOUNT
+  FIXED_VALUE_GIFT
+  COMPLIMENTARY_SERVICE
+  CUSTOM
+  NONE
+}
+
+enum ReferralRewardStatus {
+  NOT_ELIGIBLE
+  PENDING_REVIEW
+  ELIGIBLE
+  APPROVED
+  ISSUED
+  DECLINED
+  REVERSED
+}
+
+enum ReferralCommunicationKind {
+  INVITATION
+  FOLLOW_UP
+  REFERRAL_RECEIVED
+  REFERRED_PERSON_ACKNOWLEDGMENT
+  QUALIFIED_UPDATE
+  COMPLETION_THANK_YOU
+  REWARD_ELIGIBLE
+  REWARD_ISSUED
+  TEST
+}
+
+enum ReferralCommunicationStatus {
+  DRAFT
+  APPROVED
+  SCHEDULED
+  SENDING
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  FAILED
+  CANCELLED
+  UNSUBSCRIBED
+}
+
 enum HomepageCardMediaMode {
   IMAGE
   LIBRARY_VIDEO
@@ -907,16 +1007,22 @@ model AdminUser {
   lastLoginAt      DateTime?
 
   auditEvents               AuditEvent[]
-  assignedInquiries         Inquiry[]            @relation("InquiryAssignee")
+  assignedInquiries         Inquiry[]                  @relation("InquiryAssignee")
   inquiryNotes              InquiryNote[]
   inquiryActivities         InquiryActivity[]
   previewLinks              ProjectPreviewLink[]
-  invitationsCreated        AdminInvitation[]    @relation("InvitationCreator")
+  invitationsCreated        AdminInvitation[]          @relation("InvitationCreator")
   emailCampaigns            EmailCampaign[]
-  newsletterSeriesCreated   NewsletterSeries[]   @relation("NewsletterSeriesCreator")
-  newsletterEditionsCreated NewsletterEdition[]  @relation("NewsletterEditionCreator")
+  newsletterSeriesCreated   NewsletterSeries[]         @relation("NewsletterSeriesCreator")
+  newsletterEditionsCreated NewsletterEdition[]        @relation("NewsletterEditionCreator")
   newsletterRevisions       NewsletterRevision[]
   newsletterApprovals       NewsletterApproval[]
+  referralCampaignsCreated  ReferralCampaign[]         @relation("ReferralCampaignCreator")
+  referralCampaignApprovals ReferralCampaignRevision[] @relation("ReferralRevisionApprover")
+  referralStatusEvents      ReferralStatusEvent[]
+  referralRewardsApproved   ReferralReward[]           @relation("ReferralRewardApprover")
+  referralRewardsIssued     ReferralReward[]           @relation("ReferralRewardIssuer")
+  referralAuditEvents       ReferralAuditEvent[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -948,6 +1054,9 @@ model CommunicationClient {
   campaignRecipients         CampaignRecipient[]
   newsletterSeriesSelections NewsletterSeriesRecipient[]
   newsletterSuppressions     CommunicationSuppression[]     @relation("SuppressedClient")
+  referralAdvocates          ReferralAdvocate[]
+  referralSubmissions        ReferralSubmission[]           @relation("ReferralMatchedClient")
+  referralAudiences          ReferralCampaignAudience[]
 
   @@index([displayName])
   @@index([normalizedEmail])
@@ -1006,10 +1115,11 @@ model CampaignRecipient {
 model CommunicationGroup {
   id String @id @default(cuid())
 
-  name             String
-  normalizedName   String                         @unique
-  memberships      CommunicationGroupMembership[]
-  newsletterSeries NewsletterSeriesGroup[]
+  name              String
+  normalizedName    String                         @unique
+  memberships       CommunicationGroupMembership[]
+  newsletterSeries  NewsletterSeriesGroup[]
+  referralAudiences ReferralCampaignAudience[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1315,6 +1425,341 @@ model NewsletterJob {
   @@index([editionId, type])
 }
 
+model ReferralCampaign {
+  id String @id @default(cuid())
+
+  internalName  String
+  publicTitle   String
+  purpose       String
+  status        ReferralCampaignStatus @default(DRAFT)
+  audienceMode  ReferralAudienceMode
+  audienceRules Json
+
+  referralOffer          String?
+  advocateReward         String?
+  referredCustomerOffer  String?
+  eligibilityRules       String?
+  qualificationRules     String?
+  rewardInstructions     String?
+  maxRewardsPerAdvocate  Int?
+  terms                  String
+  senderName             String?
+  senderEmail            String?
+  replyTo                String?
+  landingHeadline        String
+  landingBody            String
+  landingThankYou        String
+  privacyNotice          String
+  invitationSubject      String
+  invitationPreviewText  String?
+  invitationBody         String
+  followUpConfiguration  Json
+  communicationTemplates Json
+  aiMetadata             Json?
+
+  startsAt               DateTime?
+  endsAt                 DateTime?
+  referralExpirationDays Int       @default(90)
+  approvedRevisionId     String?   @unique
+  activatedAt            DateTime?
+  pausedAt               DateTime?
+
+  createdById String
+  createdBy   AdminUser @relation("ReferralCampaignCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  audiences        ReferralCampaignAudience[]
+  advocates        ReferralAdvocate[]
+  invitations      ReferralInvitation[]
+  links            ReferralLink[]
+  submissions      ReferralSubmission[]
+  revisions        ReferralCampaignRevision[] @relation("ReferralCampaignRevisions")
+  approvedRevision ReferralCampaignRevision?  @relation("ApprovedReferralRevision", fields: [approvedRevisionId], references: [id], onDelete: Restrict)
+  communications   ReferralCommunication[]
+  auditEvents      ReferralAuditEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, startsAt, endsAt])
+  @@index([createdById, createdAt])
+}
+
+model ReferralCampaignAudience {
+  id String @id @default(cuid())
+
+  campaignId String
+  campaign   ReferralCampaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  groupId    String?
+  group      CommunicationGroup?  @relation(fields: [groupId], references: [id], onDelete: Restrict)
+  clientId   String?
+  client     CommunicationClient? @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  excluded   Boolean              @default(false)
+  reason     String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([campaignId, groupId, clientId, excluded])
+  @@index([campaignId, excluded])
+  @@index([groupId])
+  @@index([clientId])
+}
+
+model ReferralAdvocate {
+  id String @id @default(cuid())
+
+  campaignId             String
+  campaign               ReferralCampaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  clientId               String
+  client                 CommunicationClient @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  recommendationReason   String?
+  recommendationScore    Int?
+  recommendationWarnings Json?
+  dismissedAt            DateTime?
+  includedAt             DateTime?
+
+  invitations ReferralInvitation[]
+  links       ReferralLink[]
+  submissions ReferralSubmission[]
+  rewards     ReferralReward[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([campaignId, clientId])
+  @@index([clientId, createdAt])
+  @@index([campaignId, dismissedAt])
+}
+
+model ReferralInvitation {
+  id String @id @default(cuid())
+
+  campaignId        String
+  campaign          ReferralCampaign         @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  advocateId        String
+  advocate          ReferralAdvocate         @relation(fields: [advocateId], references: [id], onDelete: Restrict)
+  status            ReferralInvitationStatus @default(DRAFT)
+  subject           String
+  previewText       String?
+  body              String
+  approvedSnapshot  Json?
+  scheduledAt       DateTime?
+  sentAt            DateTime?
+  providerMessageId String?
+  failureCode       String?
+  failureMessage    String?
+  followUpStoppedAt DateTime?
+
+  link           ReferralLink?
+  communications ReferralCommunication[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([campaignId, status, scheduledAt])
+  @@index([advocateId, createdAt])
+  @@index([providerMessageId])
+}
+
+model ReferralLink {
+  id String @id @default(cuid())
+
+  invitationId   String             @unique
+  invitation     ReferralInvitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  campaignId     String
+  campaign       ReferralCampaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  advocateId     String
+  advocate       ReferralAdvocate   @relation(fields: [advocateId], references: [id], onDelete: Restrict)
+  tokenHash      String             @unique
+  code           String             @unique
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  visitCount     Int                @default(0)
+  firstVisitedAt DateTime?
+  lastVisitedAt  DateTime?
+
+  submissions ReferralSubmission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([advocateId, createdAt])
+  @@index([campaignId, createdAt])
+  @@index([code, expiresAt])
+}
+
+model ReferralSubmission {
+  id String @id @default(cuid())
+
+  campaignId String
+  campaign   ReferralCampaign  @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  advocateId String?
+  advocate   ReferralAdvocate? @relation(fields: [advocateId], references: [id], onDelete: SetNull)
+  linkId     String?
+  link       ReferralLink?     @relation(fields: [linkId], references: [id], onDelete: SetNull)
+
+  firstName              String
+  lastName               String
+  email                  String
+  normalizedEmail        String
+  phone                  String?
+  normalizedPhone        String?
+  preferredContactMethod String
+  message                String?
+  submittedBy            String
+  consentAcknowledged    Boolean
+  consentText            String
+  consentedAt            DateTime
+  ipHash                 String?
+  userAgent              String?
+
+  status            ReferralStatus            @default(SUBMITTED)
+  attributionStatus ReferralAttributionStatus @default(CONFIRMED)
+  attributionReason String?
+  duplicateOfId     String?
+  duplicateOf       ReferralSubmission?       @relation("ReferralDuplicates", fields: [duplicateOfId], references: [id], onDelete: SetNull)
+  duplicates        ReferralSubmission[]      @relation("ReferralDuplicates")
+
+  matchedClientId String?
+  matchedClient   CommunicationClient? @relation("ReferralMatchedClient", fields: [matchedClientId], references: [id], onDelete: SetNull)
+  inquiryId       String?
+  inquiry         Inquiry?             @relation(fields: [inquiryId], references: [id], onDelete: SetNull)
+  externalOrderId String?
+  internalNotes   String?
+
+  statusEvents   ReferralStatusEvent[]
+  rewards        ReferralReward[]
+  communications ReferralCommunication[]
+  auditEvents    ReferralAuditEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([campaignId, status, createdAt])
+  @@index([advocateId, createdAt])
+  @@index([normalizedEmail, createdAt])
+  @@index([normalizedPhone, createdAt])
+  @@index([attributionStatus, createdAt])
+  @@index([inquiryId])
+}
+
+model ReferralStatusEvent {
+  id String @id @default(cuid())
+
+  submissionId String
+  submission   ReferralSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  fromStatus   ReferralStatus?
+  toStatus     ReferralStatus
+  reason       String?
+  actorId      String?
+  actor        AdminUser?         @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  metadata     Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([submissionId, createdAt])
+  @@index([actorId, createdAt])
+}
+
+model ReferralReward {
+  id String @id @default(cuid())
+
+  submissionId      String
+  submission        ReferralSubmission   @relation(fields: [submissionId], references: [id], onDelete: Restrict)
+  advocateId        String
+  advocate          ReferralAdvocate     @relation(fields: [advocateId], references: [id], onDelete: Restrict)
+  type              ReferralRewardType
+  status            ReferralRewardStatus @default(NOT_ELIGIBLE)
+  value             String?
+  eligibilityReason String?
+  fulfillmentNotes  String?
+  externalReference String?
+  approvedById      String?
+  approvedBy        AdminUser?           @relation("ReferralRewardApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt        DateTime?
+  issuedById        String?
+  issuedBy          AdminUser?           @relation("ReferralRewardIssuer", fields: [issuedById], references: [id], onDelete: SetNull)
+  issuedAt          DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([submissionId, advocateId])
+  @@index([status, createdAt])
+  @@index([advocateId, status])
+}
+
+model ReferralCommunication {
+  id String @id @default(cuid())
+
+  campaignId        String
+  campaign          ReferralCampaign            @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  invitationId      String?
+  invitation        ReferralInvitation?         @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+  submissionId      String?
+  submission        ReferralSubmission?         @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+  kind              ReferralCommunicationKind
+  status            ReferralCommunicationStatus @default(DRAFT)
+  recipientEmail    String
+  recipientName     String?
+  subject           String
+  htmlSnapshot      String?
+  contentHash       String?
+  scheduledAt       DateTime?
+  sentAt            DateTime?
+  providerMessageId String?
+  idempotencyKey    String?                     @unique
+  failureCode       String?
+  failureMessage    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([campaignId, status, scheduledAt])
+  @@index([invitationId, kind])
+  @@index([submissionId, kind])
+  @@index([providerMessageId])
+}
+
+model ReferralCampaignRevision {
+  id String @id @default(cuid())
+
+  campaignId          String
+  campaign            ReferralCampaign  @relation("ReferralCampaignRevisions", fields: [campaignId], references: [id], onDelete: Cascade)
+  approvedForCampaign ReferralCampaign? @relation("ApprovedReferralRevision")
+  revisionNumber      Int
+  snapshot            Json
+  contentHash         String
+  approvedById        String?
+  approvedBy          AdminUser?        @relation("ReferralRevisionApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt          DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@unique([campaignId, revisionNumber])
+  @@index([contentHash])
+  @@index([approvedById, approvedAt])
+}
+
+model ReferralAuditEvent {
+  id String @id @default(cuid())
+
+  campaignId   String?
+  campaign     ReferralCampaign?   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  submissionId String?
+  submission   ReferralSubmission? @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  actorId      String?
+  actor        AdminUser?          @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action       String
+  summary      String
+  metadata     Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([campaignId, createdAt])
+  @@index([submissionId, createdAt])
+  @@index([actorId, createdAt])
+}
+
 model AdminInvitation {
   id          String    @id @default(cuid())
   email       String
@@ -1384,9 +1829,10 @@ model Inquiry {
   assignedTo   AdminUser? @relation("InquiryAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
   followUpAt   DateTime?
 
-  requestedServices InquiryService[]
-  notes             InquiryNote[]
-  activities        InquiryActivity[]
+  requestedServices   InquiryService[]
+  notes               InquiryNote[]
+  activities          InquiryActivity[]
+  referralSubmissions ReferralSubmission[]
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
