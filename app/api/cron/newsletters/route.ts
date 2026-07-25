@@ -10,6 +10,7 @@ import {
   enqueueDueNewsletterJobs,
   failNewsletterJob,
 } from "@/lib/newsletters/scheduler";
+import { shouldExecuteNewsletterJob } from "@/lib/newsletters/presentation";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -32,10 +33,15 @@ export async function GET(request: Request) {
         where: { id: job.editionId },
         select: {
           id: true, subject: true, cycleKey: true, status: true, intendedSendAt: true,
-          series: { select: { name: true } },
+          series: { select: { name: true, status: true } },
         },
       });
       if (!edition) throw new Error("Newsletter edition no longer exists.");
+      if (!shouldExecuteNewsletterJob(edition.series.status)) {
+        await completeNewsletterJob(job);
+        results.push({ id: job.id, type: job.type, success: true });
+        continue;
+      }
       const label = edition.subject || `${edition.series.name} · ${edition.cycleKey}`;
       const reviewUrl = `${getSiteUrl()}/admin/newsletter-studio/editions/${edition.id}`;
 

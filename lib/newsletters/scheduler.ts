@@ -62,13 +62,16 @@ export async function claimDueNewsletterJobs(input?: { now?: Date; limit?: numbe
   const claimToken = randomUUID();
   const rows = await prisma.$queryRaw<ClaimedNewsletterJob[]>`
     WITH candidates AS (
-      SELECT "id"
-      FROM "NewsletterJob"
+      SELECT job."id"
+      FROM "NewsletterJob" AS job
+      INNER JOIN "NewsletterEdition" AS edition ON edition."id" = job."editionId"
+      INNER JOIN "NewsletterSeries" AS series ON series."id" = edition."seriesId"
       WHERE (
-        ("status" = 'PENDING' AND "dueAt" <= ${now})
-        OR ("status" = 'CLAIMED' AND "leaseExpiresAt" < ${now})
+        (job."status" = 'PENDING' AND job."dueAt" <= ${now})
+        OR (job."status" = 'CLAIMED' AND job."leaseExpiresAt" < ${now})
       )
-      ORDER BY "dueAt" ASC
+      AND series."status" = 'ACTIVE'
+      ORDER BY job."dueAt" ASC
       LIMIT ${limit}
       FOR UPDATE SKIP LOCKED
     )

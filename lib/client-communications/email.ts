@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { getSiteUrl } from "@/lib/site";
+import { testEmailSubject } from "@/lib/newsletters/presentation";
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>'"]/g, (character) => ({
@@ -58,8 +59,21 @@ function deliveryConfig() {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   const from = process.env.CAMPAIGN_EMAIL_FROM?.trim() || process.env.PORTAL_EMAIL_FROM?.trim();
   const replyTo = process.env.CAMPAIGN_REPLY_TO?.trim();
-  if (!apiKey || !from) throw new Error("Bulk email delivery is not configured.");
+  if (!apiKey || !from) throw new EmailDeliveryError(
+    "EMAIL_PROVIDER_NOT_CONFIGURED",
+    "Email delivery is not configured.",
+  );
   return { apiKey, from, replyTo };
+}
+
+export class EmailDeliveryError extends Error {
+  constructor(
+    public readonly code: "EMAIL_PROVIDER_NOT_CONFIGURED" | "EMAIL_PROVIDER_REJECTED",
+    message: string,
+  ) {
+    super(message);
+    this.name = "EmailDeliveryError";
+  }
 }
 
 export async function sendTestCampaign(input: { to: string; subject: string; html: string }) {
@@ -67,9 +81,12 @@ export async function sendTestCampaign(input: { to: string; subject: string; htm
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to: [input.to], replyTo: replyTo || undefined, subject: `[TEST] ${input.subject}`, html: input.html }),
+    body: JSON.stringify({ from, to: [input.to], replyTo: replyTo || undefined, subject: testEmailSubject(input.subject), html: input.html }),
   });
-  if (!response.ok) throw new Error(`Test email rejected (${response.status}).`);
+  if (!response.ok) throw new EmailDeliveryError(
+    "EMAIL_PROVIDER_REJECTED",
+    `The email provider rejected the test request (${response.status}).`,
+  );
 }
 
 export async function sendCampaignBatch(input: {

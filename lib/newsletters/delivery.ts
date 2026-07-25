@@ -51,6 +51,7 @@ export async function deliverApprovedNewsletter(editionId: string) {
     },
   });
   if (!edition || !edition.approvedRevision || !edition.approvals[0]) throw new Error("Newsletter approval is missing.");
+  if (edition.series.status !== "ACTIVE") throw new Error("This newsletter series is paused.");
   if (!["SCHEDULED", "SENDING"].includes(edition.status)) throw new Error("Only a scheduled newsletter can be sent.");
   if (edition.approvedRevision.id !== edition.approvedRevisionId) throw new Error("The approved newsletter revision no longer matches.");
 
@@ -77,7 +78,12 @@ export async function deliverApprovedNewsletter(editionId: string) {
   if (!campaign) {
     const created = await prisma.$transaction(async (transaction) => {
       const claimed = await transaction.newsletterEdition.updateMany({
-        where: { id: edition.id, status: "SCHEDULED", approvedRevisionId: edition.approvedRevision!.id },
+        where: {
+          id: edition.id,
+          status: "SCHEDULED",
+          approvedRevisionId: edition.approvedRevision!.id,
+          series: { status: "ACTIVE" },
+        },
         data: { status: "SENDING" },
       });
       if (claimed.count !== 1) throw new Error("Newsletter delivery was already claimed.");

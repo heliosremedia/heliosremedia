@@ -15,6 +15,7 @@ export async function generateNewsletterEdition(editionId: string, actorId?: str
     where: {
       id: editionId,
       status: { in: ["AWAITING_GENERATION", "NEEDS_REVIEW", "GENERATION_FAILED", "DRAFT_GENERATED"] },
+      series: { status: "ACTIVE" },
     },
     data: { status: "GENERATING", rowVersion: { increment: 1 } },
   });

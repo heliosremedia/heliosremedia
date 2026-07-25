@@ -10,7 +10,7 @@ import {
 import { deliverApprovedNewsletter } from "@/lib/newsletters/delivery";
 import { renderNewsletterEmail } from "@/lib/newsletters/email-renderer";
 import { generateNewsletterEdition, regenerateNewsletterBlock } from "@/lib/newsletters/generation";
-import { sendTestCampaign } from "@/lib/client-communications/email";
+import { EmailDeliveryError, sendTestCampaign } from "@/lib/client-communications/email";
 import { contentHash, recipientSelectionFromSeries } from "@/lib/newsletters/studio";
 import { resolveEligibleNewsletterRecipients } from "@/lib/newsletters/recipients";
 import { NEWSLETTER_BLOCK_TYPES } from "@/lib/newsletters/types";
@@ -215,11 +215,16 @@ async function approveAndSchedule(editionId: string, actorId: string) {
 }
 
 export async function GET(_request: Request, context: Context) {
-  if (!await requireNewsletterAdministrator()) return forbiddenNewsletterResponse();
+  const session = await requireNewsletterAdministrator();
+  if (!session) return forbiddenNewsletterResponse();
   const { editionId } = await context.params;
   const edition = await getEditionForStudio(editionId);
   if (!edition) return NextResponse.json({ success: false, error: "Edition not found." }, { status: 404 });
-  return NextResponse.json({ success: true, edition: await serializeEdition(edition) });
+  return NextResponse.json({
+    success: true,
+    edition: await serializeEdition(edition),
+    defaultTestRecipient: session.email,
+  });
 }
 
 export async function PATCH(request: Request, context: Context) {
@@ -351,22 +356,79 @@ export async function POST(request: Request, context: Context) {
       });
       message = `Edition duplicated (${duplicate.id}).`;
     } else if (action === "test") {
+      const recipient = clean(body.recipient, 320).toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
+        return NextResponse.json({
+          success: false,
+          code: "INVALID_RECIPIENT",
+          error: "Enter one valid test email address.",
+        }, { status: 400 });
+      }
+      try {
+        await saveEdition(editionId, body.edition, session.userId);
+      } catch {
+        return NextResponse.json({
+          success: false,
+          code: "NEWSLETTER_SAVE_FAILED",
+          error: "Newsletter could not be saved. Your test was not sent.",
+        }, { status: 400 });
+      }
       const edition = await getEditionForStudio(editionId);
-      if (!edition) throw new Error("Edition not found.");
+      if (!edition) {
+        return NextResponse.json({
+          success: false,
+          code: "NEWSLETTER_RENDER_FAILED",
+          error: "Newsletter could not be rendered. Your test was not sent.",
+        }, { status: 400 });
+      }
       const serialized = await serializeEdition(edition);
-      await sendTestCampaign({
-        to: session.email,
-        subject: `[TEST] ${serialized.subject}`,
-        html: renderNewsletterEmail({
+      let html: string;
+      try {
+        html = renderNewsletterEmail({
           previewText: serialized.previewText,
           blocks: serialized.blocks.map((block) => ({
             ...block, imageAlt: block.altText, linkUrl: block.link,
           })),
           clientId: "newsletter-test-preview",
           businessName: "Helios Real Estate Media",
-        }),
+        });
+      } catch {
+        return NextResponse.json({
+          success: false,
+          code: "NEWSLETTER_RENDER_FAILED",
+          error: "Newsletter could not be rendered. Your test was not sent.",
+        }, { status: 400 });
+      }
+      try {
+        await sendTestCampaign({ to: recipient, subject: serialized.subject, html });
+      } catch (error) {
+        if (error instanceof EmailDeliveryError) {
+          const notConfigured = error.code === "EMAIL_PROVIDER_NOT_CONFIGURED";
+          return NextResponse.json({
+            success: false,
+            code: error.code,
+            error: notConfigured
+              ? "Email provider not configured. Add the required Resend delivery settings before sending a test."
+              : "The email provider rejected the test request. Check the sender configuration and try again.",
+          }, { status: notConfigured ? 503 : 502 });
+        }
+        return NextResponse.json({
+          success: false,
+          code: "EMAIL_PROVIDER_REJECTED",
+          error: "The test email could not be delivered. Try again or review the email provider configuration.",
+        }, { status: 502 });
+      }
+      message = `Test newsletter sent to ${recipient}.`;
+      await recordAuditEvent({
+        actorId: session.userId,
+        actorEmail: session.email,
+        action: "NEWSLETTER_TEST_SENT",
+        entityType: "NewsletterEdition",
+        entityId: editionId,
+        summary: `Newsletter test sent to ${recipient}.`,
+        metadata: { recipient },
       });
-      message = `Test sent to ${session.email}.`;
+      return NextResponse.json({ success: true, message, edition: serialized });
     } else if (action === "send-now") {
       await deliverApprovedNewsletter(editionId);
       message = "Newsletter delivery completed.";
