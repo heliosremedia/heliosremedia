@@ -86,6 +86,11 @@ const navigation: NavigationItem[] = [
     icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><circle cx="9" cy="8" r="3" stroke="currentColor" strokeWidth="1.5"/><circle cx="17" cy="9" r="2.5" stroke="currentColor" strokeWidth="1.5"/><path d="M3 20a6 6 0 0 1 12 0M14 14.5A4.5 4.5 0 0 1 21 18v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
   },
   {
+    label: "Email Studio",
+    href: "/admin/email-studio",
+    icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="m4 7 8 6 8-6" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>,
+  },
+  {
     label: "Homepage",
     href: "/admin/homepage",
     icon: (
@@ -252,7 +257,7 @@ const navigationGroups: NavigationGroup[] = [
   {
     id: "operations",
     label: "Operations",
-    hrefs: ["/admin/clients", "/admin/client-portals", "/admin/inquiries", "/admin/projects"],
+    hrefs: ["/admin/clients", "/admin/email-studio", "/admin/client-portals", "/admin/inquiries", "/admin/projects"],
   },
   {
     id: "website-content",

@@ -78,6 +78,21 @@ enum AdminRole {
   VIEWER
 }
 
+enum EmailCampaignStatus {
+  DRAFT
+  SENDING
+  SENT
+  PARTIAL
+  FAILED
+}
+
+enum CampaignRecipientStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
 enum InquiryStatus {
   NEW
   CONTACTED
@@ -811,6 +826,7 @@ model AdminUser {
   inquiryActivities InquiryActivity[]
   previewLinks      ProjectPreviewLink[]
   invitationsCreated AdminInvitation[] @relation("InvitationCreator")
+  emailCampaigns     EmailCampaign[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -834,10 +850,60 @@ model CommunicationClient {
   updatedAt DateTime @updatedAt
   lastSyncedAt DateTime
   groupMemberships CommunicationGroupMembership[]
+  emailSubscribed Boolean   @default(true)
+  unsubscribedAt  DateTime?
+  campaignRecipients CampaignRecipient[]
 
   @@index([displayName])
   @@index([normalizedEmail])
   @@index([lastSyncedAt])
+}
+
+model EmailCampaign {
+  id String @id @default(cuid())
+
+  subject      String
+  previewText  String?
+  body         String
+  status       EmailCampaignStatus @default(DRAFT)
+  recipientMode String
+  selection    Json
+  recipientCount Int @default(0)
+  sentCount      Int @default(0)
+  failedCount    Int @default(0)
+  sentAt         DateTime?
+
+  createdById String
+  createdBy   AdminUser @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  recipients CampaignRecipient[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+}
+
+model CampaignRecipient {
+  id String @id @default(cuid())
+
+  campaignId String
+  campaign   EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  clientId   String
+  client     CommunicationClient @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  email      String
+  displayName String
+  status     CampaignRecipientStatus @default(PENDING)
+  providerMessageId String?
+  error      String?
+  sentAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([campaignId, clientId])
+  @@index([campaignId, status])
+  @@index([clientId])
 }
 
 model CommunicationGroup {
