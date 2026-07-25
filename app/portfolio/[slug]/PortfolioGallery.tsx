@@ -30,7 +30,7 @@ export default function PortfolioGallery({
   items,
 }: PortfolioGalleryProps) {
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
-  const [galleryView, setGalleryView] = useState<GalleryView>("showcase");
+  const [galleryView, setGalleryView] = useState<GalleryView>("gallery");
   const touchStartX = useRef<number | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
