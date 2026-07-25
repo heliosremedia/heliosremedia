@@ -16,6 +16,7 @@ const allowedDestinations = new Set([
   "/admin/inquiries",
   "/admin/locations",
   "/admin/media",
+  "/admin/newsletter-studio",
   "/admin/projects",
   "/admin/services",
   "/admin/settings",
