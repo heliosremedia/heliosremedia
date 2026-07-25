@@ -15,15 +15,15 @@ export default async function BlogPage(){
   const [settings,posts]=await Promise.all([getSiteSettings(),getPublishedPosts()]);
   return (
     <main className="min-h-screen bg-[#090909] text-white">
-      <Navbar />
-      <section className="relative overflow-hidden border-b border-white/[0.08] pt-28">
+      <Navbar variant="solid" />
+      <section className="relative overflow-hidden border-b border-white/[0.08] pt-24 sm:pt-28">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_14%,rgba(217,107,43,0.16),transparent_36%)]" />
-        <div className="container-shell relative py-20 sm:py-28">
+        <div className="container-shell relative pb-24 pt-16 sm:pb-32 sm:pt-24">
           <p className="eyebrow text-[var(--helios-orange)]">The journal</p>
-          <h1 className="mt-7 max-w-4xl font-display text-[clamp(3.8rem,8vw,7.5rem)] font-light leading-[0.92] tracking-[-0.055em]">
+          <h1 className="mt-7 max-w-5xl font-display text-[clamp(3.8rem,8vw,7.5rem)] font-light leading-[0.98] tracking-[-0.055em]">
             Ideas that shape how property is seen.
           </h1>
-          <p className="mobile-summary mt-12 max-w-2xl text-base leading-8 text-white/50 sm:mt-14">
+          <p className="mobile-summary mt-16 max-w-3xl text-base leading-8 text-white/50 sm:mt-20">
             Editorial perspective, marketing guidance, and stories from{" "}
             {settings.businessName}.
           </p>
