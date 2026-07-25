@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { updateSeriesActive } from "./dashboard-state";
 import StatusBadge from "./StatusBadge";
 import type { NewsletterDashboardData, NewsletterEdition } from "../types";
 
@@ -12,6 +13,7 @@ export default function NewsletterDashboard() {
   const [data, setData] = useState(empty);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
+  const [seriesBusy, setSeriesBusy] = useState<string | null>(null);
   useEffect(() => { void (async () => {
     try { const response = await fetch("/api/admin/newsletters", { cache: "no-store" }); const result = await response.json(); if (response.ok && result.success) setData(result.data); }
     finally { setLoading(false); }
@@ -20,6 +22,25 @@ export default function NewsletterDashboard() {
     setMessage("Working…");
     const response = await fetch("/api/admin/newsletters", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: actionName, ...payload }) });
     const result = await response.json(); setMessage(response.ok && result.success ? result.message || "Updated." : result.error || "The request could not be completed.");
+  }
+  async function toggleSeries(seriesId: string, active: boolean) {
+    setSeriesBusy(seriesId);
+    setMessage(null);
+    try {
+      const response = await fetch("/api/admin/newsletters", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: active ? "pause-series" : "resume-series", seriesId }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "The series could not be updated.");
+      setData(current => updateSeriesActive(current, seriesId, !active));
+      setMessage(result.message || `Series ${active ? "paused" : "resumed"}.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "The series could not be updated.");
+    } finally {
+      setSeriesBusy(null);
+    }
   }
   const needsReview = data.editions.filter(item => item.status === "NEEDS_REVIEW" || item.status === "MISSED_APPROVAL");
   const scheduled = data.editions.filter(item => item.status === "SCHEDULED");
@@ -43,7 +64,7 @@ export default function NewsletterDashboard() {
       <DashboardList title="Needs your review" editions={needsReview} emptyText="No editions are waiting for review." />
       <DashboardList title="Scheduled" editions={scheduled} emptyText="No editions are scheduled." />
       <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02]"><div className="flex items-center justify-between border-b border-white/[0.07] p-5 sm:px-6"><div><h2 className="text-2xl font-light text-white">Newsletter series</h2><p className="mt-1 text-sm text-white/35">Recurring editorial plans and their next milestones.</p></div></div>
-      <div className="divide-y divide-white/[0.06]">{data.series.map(series => <article key={series.id} className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6"><div><div className="flex items-center gap-3"><p className="text-white/75">{series.name}</p><span className={`text-[0.52rem] uppercase tracking-[.14em] ${series.active ? "text-emerald-200/70" : "text-white/30"}`}>{series.active ? "Active" : "Paused"}</span></div><p className="mt-2 text-sm text-white/30">Next draft {date(series.nextGenerationAt)} · Send {date(series.nextSendAt)}</p></div><div className="flex gap-2"><button className="admin-btn-secondary" onClick={() => action(series.active ? "pause-series" : "resume-series", { seriesId: series.id })}>{series.active ? "Pause" : "Resume"}</button><Link href={`/admin/newsletter-studio/series/${series.id}`} className="admin-btn-link">Edit</Link></div></article>)}{!data.series.length && <p className="p-6 text-sm text-white/30">No newsletter series yet.</p>}</div></section>
+      <div className="divide-y divide-white/[0.06]">{data.series.map(series => { const toggling = seriesBusy === series.id; return <article key={series.id} className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6"><div><div className="flex items-center gap-3"><p className="text-white/75">{series.name}</p><span className={`text-[0.52rem] uppercase tracking-[.14em] ${series.active ? "text-emerald-200/70" : "text-white/30"}`}>{series.active ? "Active" : "Paused"}</span></div><p className="mt-2 text-sm text-white/30">Next draft {date(series.nextGenerationAt)} · Send {date(series.nextSendAt)}</p></div><div className="flex gap-2"><button disabled={toggling} className="admin-btn-secondary" onClick={() => toggleSeries(series.id, series.active)}>{toggling ? (series.active ? "Pausing…" : "Resuming…") : (series.active ? "Pause" : "Resume")}</button><Link href={`/admin/newsletter-studio/series/${series.id}`} className="admin-btn-link">Edit</Link></div></article>; })}{!data.series.length && <p className="p-6 text-sm text-white/30">No newsletter series yet.</p>}</div></section>
       <DashboardList title="Recent editions" editions={data.editions.slice(0, 8)} emptyText="Generated editions will appear here." />
     </>}
   </div>;

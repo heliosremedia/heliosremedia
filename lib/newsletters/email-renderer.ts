@@ -3,6 +3,7 @@ import "server-only";
 import sanitizeHtml from "sanitize-html";
 import { createUnsubscribeToken } from "@/lib/client-communications/email";
 import { getSiteUrl } from "@/lib/site";
+import { renderNewsletterCta } from "./presentation";
 
 type RenderableBlock = {
   type: string;
@@ -43,7 +44,7 @@ function renderBlock(block: RenderableBlock) {
   const eyebrow = block.eyebrow ? `<p style="margin:0 0 12px;color:#c85f28;font-size:11px;line-height:1.4;font-weight:700;letter-spacing:.16em;text-transform:uppercase">${escape(block.eyebrow)}</p>` : "";
   const copy = block.body ? `<div style="color:#54504a;font-size:16px;line-height:1.75">${body(block.body)}</div>` : "";
   const artwork = image ? `<tr><td style="padding:0"><img src="${image}" alt="${escape(block.imageAlt || "")}" width="640" style="display:block;width:100%;max-width:640px;height:auto;border:0"></td></tr>` : "";
-  const button = link && block.buttonLabel ? `<p style="margin:24px 0 0"><a href="${link}" style="display:inline-block;background:#c85f28;color:#fff;text-decoration:none;padding:13px 22px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">${escape(block.buttonLabel)}</a></p>` : "";
+  const button = link && block.buttonLabel ? renderNewsletterCta(link, escape(block.buttonLabel)) : "";
   return `${artwork}<tr><td style="padding:34px 42px">${eyebrow}${heading}${copy}${button}</td></tr>`;
 }
 
