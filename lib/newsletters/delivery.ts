@@ -26,6 +26,8 @@ type SnapshotBlock = {
   body?: string | null;
   imageUrl?: string | null;
   imageAlt?: string | null;
+  imageLink?: string | null;
+  imageIsVideo?: boolean | null;
   altText?: string | null;
   linkUrl?: string | null;
   link?: string | null;

@@ -1,10 +1,16 @@
 import "server-only";
 
+import type { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings } from "@/lib/site-settings";
 import { generateNewsletterDraft } from "./ai";
 import { collectVerifiedNewsletterSources } from "./content-sources";
 import { contentHash } from "./studio";
+import {
+  preserveManualImage,
+  suggestedCandidate,
+  validateCandidateId,
+} from "./source-images";
 
 function notes(value: unknown) {
   return value && typeof value === "object" ? value as Record<string, unknown> : {};
@@ -23,7 +29,11 @@ export async function generateNewsletterEdition(editionId: string, actorId?: str
 
   const edition = await prisma.newsletterEdition.findUnique({
     where: { id: editionId },
-    include: { series: true, generationRuns: { select: { attempt: true }, orderBy: { attempt: "desc" }, take: 1 } },
+    include: {
+      series: true,
+      blocks: { orderBy: { position: "asc" }, include: { sources: true } },
+      generationRuns: { select: { attempt: true }, orderBy: { attempt: "desc" }, take: 1 },
+    },
   });
   if (!edition) throw new Error("Edition was not found.");
   const attempt = (edition.generationRuns[0]?.attempt ?? 0) + 1;
@@ -76,13 +86,43 @@ export async function generateNewsletterEdition(editionId: string, actorId?: str
       sources,
     });
     const sourceById = new Map(sources.map((source) => [source.id, source]));
+    const candidates = sources.flatMap((source) => source.imageCandidates ?? []);
+    const previousBySignature = new Map(edition.blocks.map((block) => [
+      `${block.type}:${block.sources.map((source) => source.sourceId).filter(Boolean).sort().join(",")}`,
+      block.content && typeof block.content === "object" ? block.content as Record<string, unknown> : {},
+    ]));
     const nextRevision = edition.currentRevisionNumber + 1;
-    const blockSnapshot = draft.blocks.map((block, position) => ({ ...block, position }));
+    const preparedBlocks = draft.blocks.map((block) => {
+      const selectedId = validateCandidateId(block.imageCandidateId, candidates);
+      const selected = candidates.find((item) => item.id === selectedId);
+      if (selected && !block.sourceIds.includes(selected.sourceId)) {
+        throw new Error("Generated draft selected an image from an unrelated source.");
+      }
+      const chosen = selected
+        ?? suggestedCandidate(block.type, block.sourceIds, candidates);
+      const generated = {
+        eyebrow: block.eyebrow, heading: block.heading, body: block.body,
+        imageUrl: chosen?.url, altText: chosen?.altText, imageLink: chosen?.destinationUrl,
+        imageSelection: chosen ? {
+          mode: "AUTO", candidateId: chosen.id,
+          sourceLabel: sourceById.get(chosen.sourceId)?.label,
+        } : { mode: "AUTO" },
+        imageCandidates: candidates.filter((item) => block.sourceIds.includes(item.sourceId)),
+        imageIsVideo: chosen?.isVideo ?? false,
+        link: block.link, buttonLabel: block.buttonLabel, alignment: "left",
+      };
+      const previous = previousBySignature.get(`${block.type}:${[...block.sourceIds].sort().join(",")}`);
+      return { ...block, content: previous ? preserveManualImage(previous, generated) : generated };
+    });
+    const blockSnapshot = preparedBlocks.map((block, position) => ({
+      type: block.type, internalLabel: block.internalLabel, ...block.content,
+      sourceIds: block.sourceIds, position,
+    }));
     const hash = contentHash({ subject: draft.subject, previewText: draft.previewText, blocks: blockSnapshot });
 
     await prisma.$transaction(async (tx) => {
       await tx.newsletterBlock.deleteMany({ where: { editionId } });
-      for (const [position, block] of draft.blocks.entries()) {
+      for (const [position, block] of preparedBlocks.entries()) {
         await tx.newsletterBlock.create({
           data: {
             editionId,
@@ -90,16 +130,7 @@ export async function generateNewsletterEdition(editionId: string, actorId?: str
             position,
             internalLabel: block.internalLabel,
             aiGenerated: true,
-            content: {
-              eyebrow: block.eyebrow,
-              heading: block.heading,
-              body: block.body,
-              imageUrl: block.imageUrl,
-              altText: block.altText,
-              link: block.link,
-              buttonLabel: block.buttonLabel,
-              alignment: "left",
-            },
+            content: block.content as Prisma.InputJsonValue,
             sources: {
               create: block.sourceIds.map((sourceId) => {
                 const source = sourceById.get(sourceId);
@@ -109,7 +140,7 @@ export async function generateNewsletterEdition(editionId: string, actorId?: str
                   sourceId,
                   sourceTitle: source.label,
                   sourceUrl: source.url,
-                  sourceSnapshot: { excerpt: source.excerpt },
+                  sourceSnapshot: { excerpt: source.excerpt, imageCandidates: source.imageCandidates ?? [] },
                 };
               }),
             },
@@ -146,7 +177,10 @@ export async function generateNewsletterEdition(editionId: string, actorId?: str
         data: {
           status: "SUCCEEDED",
           model: process.env.OPENAI_NEWSLETTER_MODEL?.trim() || process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-5-mini",
-          sourceManifest: sources.map((source) => ({ id: source.id, kind: source.kind, label: source.label })),
+          sourceManifest: sources.map((source) => ({
+            id: source.id, kind: source.kind, label: source.label,
+            imageCandidates: source.imageCandidates ?? [],
+          })),
           outputSnapshot: { subject: draft.subject, blockCount: draft.blocks.length, warnings: draft.warnings },
           completedAt: new Date(),
         },
@@ -203,6 +237,8 @@ export async function regenerateNewsletterBlock(input: {
         ? snapshot.excerpt
         : JSON.stringify(snapshot).slice(0, 4_000),
       url: source.sourceUrl,
+      imageCandidates: Array.isArray(snapshot.imageCandidates)
+        ? snapshot.imageCandidates as NonNullable<import("./ai").NewsletterSourceReference["imageCandidates"]> : [],
     };
   });
   if (!sources.length) throw new Error("Attach verified source material before using block AI.");
@@ -234,21 +270,34 @@ export async function regenerateNewsletterBlock(input: {
   });
   const replacement = draft.blocks.find((item) => item.type === block.type) ?? draft.blocks[0];
   if (!replacement) throw new Error("AI did not return a valid replacement block.");
-  const content = {
+  const candidates = sources.flatMap((source) => source.imageCandidates ?? []);
+  const selectedId = validateCandidateId(replacement.imageCandidateId, candidates);
+  const selected = candidates.find((item) => item.id === selectedId);
+  if (selected && !replacement.sourceIds.includes(selected.sourceId)) {
+    throw new Error("AI selected an image from an unrelated source.");
+  }
+  const chosen = selected
+    ?? suggestedCandidate(replacement.type, replacement.sourceIds, candidates);
+  const generatedContent = {
     eyebrow: replacement.eyebrow,
     heading: replacement.heading,
     body: replacement.body,
-    imageUrl: replacement.imageUrl,
-    altText: replacement.altText,
+    imageUrl: chosen?.url,
+    altText: chosen?.altText,
+    imageLink: chosen?.destinationUrl,
+    imageSelection: chosen ? { mode: "AUTO", candidateId: chosen.id } : { mode: "AUTO" },
+    imageCandidates: candidates,
+    imageIsVideo: chosen?.isVideo ?? false,
     link: replacement.link,
     buttonLabel: replacement.buttonLabel,
     alignment: replacement.alignment === "CENTER" ? "center" : "left",
   };
+  const content = preserveManualImage(current, generatedContent);
   await prisma.newsletterBlock.update({
     where: { id: block.id },
     data: {
       internalLabel: replacement.internalLabel || block.internalLabel,
-      content,
+      content: content as Prisma.InputJsonValue,
       aiGenerated: true,
       manuallyEdited: false,
       contentVersion: { increment: 1 },

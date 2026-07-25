@@ -4,6 +4,7 @@ import sanitizeHtml from "sanitize-html";
 import { createUnsubscribeToken } from "@/lib/client-communications/email";
 import { getSiteUrl } from "@/lib/site";
 import { renderNewsletterCta } from "./presentation";
+import { renderNewsletterImage } from "./email-images";
 
 type RenderableBlock = {
   type: string;
@@ -12,6 +13,8 @@ type RenderableBlock = {
   body?: string | null;
   imageUrl?: string | null;
   imageAlt?: string | null;
+  imageLink?: string | null;
+  imageIsVideo?: boolean | null;
   linkUrl?: string | null;
   buttonLabel?: string | null;
 };
@@ -38,12 +41,11 @@ function body(value: string | null | undefined) {
 function renderBlock(block: RenderableBlock) {
   if (block.type === "DIVIDER") return `<tr><td style="padding:18px 42px"><div style="border-top:1px solid #ded8ce"></div></td></tr>`;
   if (block.type === "SPACER") return `<tr><td height="28" style="height:28px;line-height:28px">&nbsp;</td></tr>`;
-  const image = url(block.imageUrl);
   const link = url(block.linkUrl);
   const heading = block.heading ? `<h2 style="margin:0 0 16px;color:#171614;font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:1.15;font-weight:400">${escape(block.heading)}</h2>` : "";
   const eyebrow = block.eyebrow ? `<p style="margin:0 0 12px;color:#c85f28;font-size:11px;line-height:1.4;font-weight:700;letter-spacing:.16em;text-transform:uppercase">${escape(block.eyebrow)}</p>` : "";
   const copy = block.body ? `<div style="color:#54504a;font-size:16px;line-height:1.75">${body(block.body)}</div>` : "";
-  const artwork = image ? `<tr><td style="padding:0"><img src="${image}" alt="${escape(block.imageAlt || "")}" width="640" style="display:block;width:100%;max-width:640px;height:auto;border:0"></td></tr>` : "";
+  const artwork = renderNewsletterImage(block);
   const button = link && block.buttonLabel ? renderNewsletterCta(link, escape(block.buttonLabel)) : "";
   return `${artwork}<tr><td style="padding:34px 42px">${eyebrow}${heading}${copy}${button}</td></tr>`;
 }

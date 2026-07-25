@@ -22,13 +22,30 @@ export const NEWSLETTER_BLOCK_TYPES = [
 ] as const;
 export type NewsletterBlockType = (typeof NEWSLETTER_BLOCK_TYPES)[number];
 
+export type NewsletterImageCandidate = {
+  id: string;
+  sourceId: string;
+  sourceKind: string;
+  sourceRecordId: string;
+  url: string;
+  thumbnailUrl?: string;
+  altText?: string;
+  label: string;
+  role: string;
+  priority: number;
+  width?: number;
+  height?: number;
+  destinationUrl?: string;
+  isVideo?: boolean;
+};
+
 export type NewsletterBlockOutput = {
   type: NewsletterBlockType;
   internalLabel?: string;
   heading?: string;
   eyebrow?: string;
   body?: string;
-  imageUrl?: string;
+  imageCandidateId?: string;
   altText?: string;
   link?: string;
   buttonLabel?: string;

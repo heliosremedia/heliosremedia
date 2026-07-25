@@ -71,7 +71,7 @@ function validateBlock(value: unknown): NewsletterBlockOutput {
     heading: text(input.heading, "Heading", 180),
     eyebrow: text(input.eyebrow, "Eyebrow", 80),
     body: text(input.body, "Body", 10_000),
-    imageUrl: text(input.imageUrl, "Image URL", 2_000),
+    imageCandidateId: text(input.imageCandidateId, "Image candidate ID", 300),
     altText: text(input.altText, "Alt text", 300),
     link: text(input.link, "Link", 2_000),
     buttonLabel: text(input.buttonLabel, "Button label", 80),

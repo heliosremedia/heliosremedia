@@ -29,6 +29,14 @@ function safeUrl(value: unknown) {
   return url.toString();
 }
 
+function safeImageUrl(value: unknown) {
+  const result = clean(value, 2_000);
+  if (!result) return "";
+  const url = new URL(result);
+  if (url.protocol !== "https:") throw new Error("Newsletter images must use a public HTTPS URL.");
+  return url.toString();
+}
+
 function parseEditorEdition(value: unknown) {
   const input = value && typeof value === "object" ? value as Record<string, unknown> : {};
   const blocks = Array.isArray(input.blocks) ? input.blocks : [];
@@ -42,6 +50,29 @@ function parseEditorEdition(value: unknown) {
       const block = value && typeof value === "object" ? value as Record<string, unknown> : {};
       const type = clean(block.type, 50);
       if (!NEWSLETTER_BLOCK_TYPES.includes(type as never)) throw new Error("A content block has an invalid type.");
+      const selectionInput = block.imageSelection && typeof block.imageSelection === "object"
+        ? block.imageSelection as Record<string, unknown> : {};
+      const imageMode = ["AUTO", "SOURCE", "CUSTOM", "NONE"].includes(String(selectionInput.mode))
+        ? String(selectionInput.mode) : (clean(block.imageUrl, 2_000) ? "CUSTOM" : "AUTO");
+      const candidates = Array.isArray(block.imageCandidates) ? block.imageCandidates.flatMap((value) => {
+        if (!value || typeof value !== "object") return [];
+        const candidate = value as Record<string, unknown>;
+        const id = clean(candidate.id, 300);
+        const url = safeImageUrl(candidate.url);
+        if (!id || !url) return [];
+        return [{
+          id, url, thumbnailUrl: safeImageUrl(candidate.thumbnailUrl),
+          altText: clean(candidate.altText, 300), label: clean(candidate.label, 200),
+          role: clean(candidate.role, 80), destinationUrl: safeUrl(candidate.destinationUrl),
+          isVideo: candidate.isVideo === true,
+          width: Number.isInteger(candidate.width) ? Number(candidate.width) : undefined,
+          height: Number.isInteger(candidate.height) ? Number(candidate.height) : undefined,
+        }];
+      }).slice(0, 50) : [];
+      const candidateId = clean(selectionInput.candidateId, 300);
+      if (imageMode === "SOURCE" && !candidates.some((item) =>
+        (item as { id?: unknown }).id === candidateId
+      )) throw new Error("The selected image is not available from this block's verified source.");
       return {
         id: clean(block.id, 100),
         type,
@@ -51,8 +82,16 @@ function parseEditorEdition(value: unknown) {
           eyebrow: clean(block.eyebrow, 100),
           heading: clean(block.heading, 240),
           body: clean(block.body, 10_000),
-          imageUrl: safeUrl(block.imageUrl),
+          imageUrl: imageMode === "NONE" ? "" : safeImageUrl(block.imageUrl),
           altText: clean(block.altText, 300),
+          imageLink: safeUrl(block.imageLink),
+          imageIsVideo: block.imageIsVideo === true,
+          imageSelection: {
+            mode: imageMode,
+            ...(candidateId ? { candidateId } : {}),
+            sourceLabel: clean(selectionInput.sourceLabel, 200),
+          },
+          imageCandidates: candidates,
           link: safeUrl(block.link),
           buttonLabel: clean(block.buttonLabel, 100),
           alignment: block.alignment === "center" ? "center" : "left",
@@ -82,6 +121,18 @@ async function saveEdition(editionId: string, value: unknown, actorId: string) {
   });
   if (!current || ["SENT", "PARTIALLY_SENT", "CANCELLED"].includes(current.status)) {
     throw new Error("This edition can no longer be edited.");
+  }
+  for (const block of editor.blocks) {
+    if (block.content.imageSelection.mode !== "SOURCE") continue;
+    const persisted = current.blocks.find((item) => item.id === block.id)?.content;
+    const persistedCandidates = persisted && typeof persisted === "object" &&
+      Array.isArray((persisted as Record<string, unknown>).imageCandidates)
+      ? (persisted as Record<string, unknown>).imageCandidates as Array<Record<string, unknown>> : [];
+    const selected = persistedCandidates.find((candidate) =>
+      candidate.id === block.content.imageSelection.candidateId &&
+      candidate.url === block.content.imageUrl
+    );
+    if (!selected) throw new Error("The selected source image is no longer available.");
   }
   const existingIds = new Set(current.blocks.map((block) => block.id));
   const retainedIds = editor.blocks.filter((block) => existingIds.has(block.id)).map((block) => block.id);
@@ -387,7 +438,7 @@ export async function POST(request: Request, context: Context) {
         html = renderNewsletterEmail({
           previewText: serialized.previewText,
           blocks: serialized.blocks.map((block) => ({
-            ...block, imageAlt: block.altText, linkUrl: block.link,
+            ...block, imageAlt: block.altText, imageLink: block.imageLink, linkUrl: block.link,
           })),
           clientId: "newsletter-test-preview",
           businessName: "Helios Real Estate Media",
