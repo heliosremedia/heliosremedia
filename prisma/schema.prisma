@@ -833,10 +833,38 @@ model CommunicationClient {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   lastSyncedAt DateTime
+  groupMemberships CommunicationGroupMembership[]
 
   @@index([displayName])
   @@index([normalizedEmail])
   @@index([lastSyncedAt])
+}
+
+model CommunicationGroup {
+  id String @id @default(cuid())
+
+  name           String
+  normalizedName String @unique
+  memberships    CommunicationGroupMembership[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+}
+
+model CommunicationGroupMembership {
+  id String @id @default(cuid())
+
+  groupId  String
+  group    CommunicationGroup  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  clientId String
+  client   CommunicationClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([groupId, clientId])
+  @@index([clientId])
 }
 
 model AdminInvitation {
