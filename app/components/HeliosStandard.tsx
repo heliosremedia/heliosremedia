@@ -292,7 +292,7 @@ export default function HeliosStandard({
                     </h3>
                   </div>
 
-                  <RichText content={principle.description} className="relative z-10 mt-7 max-w-[17rem] text-sm leading-7 text-white/46 transition-colors duration-700 group-hover:text-white/64" />
+                  <RichText content={principle.description} className="relative z-10 mt-7 max-w-[19rem] text-[1.075rem] font-normal leading-[1.65] text-white/58 transition-colors duration-700 group-hover:text-white/70 sm:max-w-[17rem] sm:text-sm sm:leading-7 sm:text-white/46" />
 
                   <span className="absolute bottom-0 left-0 z-10 h-px w-0 bg-[var(--helios-orange)] transition-all duration-700 ease-[var(--ease-luxury)] group-hover:w-full" />
                 </motion.article>
