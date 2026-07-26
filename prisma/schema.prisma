@@ -215,6 +215,7 @@ enum InquiryStatus {
 enum ReferralCampaignStatus {
   DRAFT
   APPROVED
+  LAUNCHING
   ACTIVE
   PAUSED
   COMPLETED
@@ -1639,13 +1640,26 @@ model ReferralCampaign {
   communicationTemplates Json
   aiMetadata             Json?
 
-  startsAt               DateTime?
-  endsAt                 DateTime?
-  referralExpirationDays Int       @default(90)
-  rowVersion             Int       @default(0)
-  approvedRevisionId     String?   @unique
-  activatedAt            DateTime?
-  pausedAt               DateTime?
+  startsAt                   DateTime?
+  endsAt                     DateTime?
+  referralExpirationDays     Int       @default(90)
+  rowVersion                 Int       @default(0)
+  approvedRevisionId         String?   @unique
+  activatedAt                DateTime?
+  pausedAt                   DateTime?
+  launchStartedAt            DateTime?
+  launchCompletedAt          DateTime?
+  launchFailedAt             DateTime?
+  launchLeaseExpiresAt       DateTime?
+  launchingAdminId           String?
+  launchRevisionId           String?
+  launchAttemptId            String?   @unique
+  expectedAdvocateCount      Int?
+  preparedAdvocateCount      Int       @default(0)
+  preparedInvitationCount    Int       @default(0)
+  preparedCommunicationCount Int       @default(0)
+  launchBatch                Int       @default(0)
+  lastLaunchError            String?
 
   createdById String
   createdBy   AdminUser @relation("ReferralCampaignCreator", fields: [createdById], references: [id], onDelete: Restrict)
@@ -1665,6 +1679,7 @@ model ReferralCampaign {
   updatedAt DateTime @updatedAt
 
   @@index([status, startsAt, endsAt])
+  @@index([status, launchLeaseExpiresAt])
   @@index([createdById, createdAt])
 }
 
@@ -1717,21 +1732,22 @@ model ReferralAdvocate {
 model ReferralInvitation {
   id String @id @default(cuid())
 
-  campaignId        String
-  campaign          ReferralCampaign         @relation(fields: [campaignId], references: [id], onDelete: Restrict)
-  advocateId        String
-  advocate          ReferralAdvocate         @relation(fields: [advocateId], references: [id], onDelete: Restrict)
-  status            ReferralInvitationStatus @default(DRAFT)
-  subject           String
-  previewText       String?
-  body              String
-  approvedSnapshot  Json?
-  scheduledAt       DateTime?
-  sentAt            DateTime?
-  providerMessageId String?
-  failureCode       String?
-  failureMessage    String?
-  followUpStoppedAt DateTime?
+  campaignId         String
+  campaign           ReferralCampaign         @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  advocateId         String
+  advocate           ReferralAdvocate         @relation(fields: [advocateId], references: [id], onDelete: Restrict)
+  status             ReferralInvitationStatus @default(DRAFT)
+  subject            String
+  previewText        String?
+  body               String
+  approvedSnapshot   Json?
+  scheduledAt        DateTime?
+  sentAt             DateTime?
+  providerMessageId  String?
+  failureCode        String?
+  failureMessage     String?
+  followUpStoppedAt  DateTime?
+  approvedRevisionId String?
 
   link           ReferralLink?
   communications ReferralCommunication[]
@@ -1739,6 +1755,7 @@ model ReferralInvitation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([campaignId, advocateId, approvedRevisionId])
   @@index([campaignId, status, scheduledAt])
   @@index([advocateId, createdAt])
   @@index([providerMessageId])

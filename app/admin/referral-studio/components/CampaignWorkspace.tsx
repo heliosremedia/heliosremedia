@@ -11,6 +11,9 @@ type Campaign = {
   landingHeadline: string; landingBody: string; landingThankYou: string; privacyNotice: string;
   invitationSubject: string; invitationPreviewText: string | null; invitationBody: string;
   startsAt: string | null; endsAt: string | null; approvedRevisionId: string | null;
+  expectedAdvocateCount: number | null; preparedAdvocateCount: number; preparedInvitationCount: number;
+  preparedCommunicationCount: number; launchBatch: number; launchFailedAt: string | null;
+  launchStartedAt: string | null; lastLaunchError: string | null;
   audiences: Array<{ id: string; excluded: boolean; group: { name: string } | null; client: { displayName: string; email: string } | null }>;
   advocates: Array<{ id: string; client: { displayName: string; email: string }; recommendationReason: string | null; recommendationScore: number | null; recommendationWarnings: unknown; _count: { submissions: number; rewards: number } }>;
   submissions: Array<{ id: string; firstName: string; lastName: string; status: string; attributionStatus: string; createdAt: string; advocate: { client: { displayName: string } } | null }>;
@@ -49,6 +52,11 @@ export default function CampaignWorkspace({ campaignId, adminEmail }: { campaign
     }).catch(error => { if (active) setMessage(error instanceof Error ? error.message : "Campaign could not be loaded."); });
     return () => { active = false; };
   }, [campaignId]);
+  useEffect(() => {
+    if (campaign?.status !== "LAUNCHING" || campaign.launchFailedAt) return;
+    const timer = window.setInterval(() => { void load().catch(() => undefined); }, 3000);
+    return () => window.clearInterval(timer);
+  }, [campaign?.launchFailedAt, campaign?.status, load]);
   async function action(name: string) {
     setBusy(name); setMessage(null);
     try {
@@ -101,7 +109,9 @@ export default function CampaignWorkspace({ campaignId, adminEmail }: { campaign
         <button disabled={!!busy} onClick={() => setTestOpen(true)} className="admin-btn-secondary">Send test</button>
         {campaign.status === "DRAFT" && <Link href={`/admin/referral-studio/campaigns/${campaign.id}/edit`} className="admin-btn-primary">Edit Campaign</Link>}
         {campaign.status === "DRAFT" && <button disabled={!!busy} onClick={() => setTab("Approval")} className="admin-btn-secondary">Review &amp; approve</button>}
-        {campaign.status === "APPROVED" && <button disabled={!!busy} onClick={() => action("launch")} className="admin-btn-primary">{busy === "launch" ? "Launching…" : "Launch campaign"}</button>}
+        {campaign.status === "APPROVED" && <button disabled={!!busy} onClick={() => action("launch")} className="admin-btn-primary">{busy === "launch" ? "Preparing Campaign…" : "Launch campaign"}</button>}
+        {campaign.status === "LAUNCHING" && campaign.launchFailedAt && <button disabled={!!busy} onClick={() => action("launch")} className="admin-btn-primary">{busy === "launch" ? "Retrying…" : "Retry Launch"}</button>}
+        {campaign.status === "LAUNCHING" && !campaign.launchFailedAt && <button disabled className="admin-btn-primary">Preparing Campaign…</button>}
         {campaign.status === "APPROVED" && <button disabled={!!busy} onClick={() => void returnToDraft(false)} className="admin-btn-secondary">{busy === "return-to-draft" ? "Returning…" : "Return to Draft"}</button>}
         {campaign.status === "APPROVED" && <button disabled={!!busy} onClick={() => void returnToDraft(true)} className="admin-btn-secondary">{busy === "edit" ? "Opening…" : "Edit Campaign"}</button>}
         {campaign.status === "ACTIVE" && <button disabled={!!busy} onClick={() => action("pause")} className="admin-btn-secondary">{busy === "pause" ? "Pausing…" : "Pause"}</button>}
@@ -111,6 +121,13 @@ export default function CampaignWorkspace({ campaignId, adminEmail }: { campaign
       </div>
     </header>
     {message && <p role="status" className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/60">{message}</p>}
+    {campaign.status === "LAUNCHING" && <section aria-live="polite" className={`rounded-xl border px-5 py-4 ${campaign.launchFailedAt ? "border-red-300/15 bg-red-300/[0.04]" : "border-[#e7ddc8]/15 bg-[#e7ddc8]/[0.04]"}`}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div><p className="text-sm text-white/70">{campaign.launchFailedAt ? "Campaign preparation stopped before completion." : "Preparing campaign…"}</p><p className="mt-1 text-xs text-white/35">{campaign.launchFailedAt ? (campaign.lastLaunchError || "Retry is safe and will not create duplicates.") : `${campaign.preparedAdvocateCount} of ${campaign.expectedAdvocateCount ?? 0} advocates prepared`}</p></div>
+        {!campaign.launchFailedAt && <span className="text-xs text-white/30">Batch {campaign.launchBatch + 1}</span>}
+      </div>
+      {!campaign.launchFailedAt && <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/[0.06]"><div className="h-full rounded-full bg-[var(--helios-orange)] transition-[width]" style={{ width: `${Math.min(100, Math.round((campaign.preparedAdvocateCount / Math.max(1, campaign.expectedAdvocateCount ?? 1)) * 100))}%` }} /></div>}
+    </section>}
     {!campaign.removalEligibility.canDelete && campaign.removalEligibility.hasActivity && ["DRAFT", "APPROVED"].includes(campaign.status) && <p className="rounded-xl border border-amber-200/15 bg-amber-200/[0.04] px-4 py-3 text-sm text-amber-50/60">Permanent deletion is unavailable because this campaign has referral activity. Archive it to preserve historical and compliance records.</p>}
     {testOpen && <div role="presentation" className="fixed inset-0 z-[100] grid place-items-center bg-black/75 p-4 backdrop-blur-sm" onMouseDown={event => { if (event.currentTarget === event.target) setTestOpen(false); }}><form role="dialog" aria-modal="true" aria-labelledby="referral-test-title" onSubmit={sendTest} className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#141412] p-6 shadow-2xl sm:p-7"><p className="text-[0.56rem] uppercase tracking-[.18em] text-[var(--helios-orange)]">Test only</p><h2 id="referral-test-title" className="mt-3 text-2xl font-light text-white">Send referral invitation test</h2><p className="mt-3 text-sm leading-6 text-white/40">No client recipient will receive this test. It does not change campaign analytics or referral status. The subject includes [TEST].</p><div className="mt-5 rounded-xl border border-white/[0.07] bg-white/[0.02] p-4"><p className="text-[0.52rem] uppercase tracking-[.14em] text-white/25">Subject</p><p className="mt-2 text-sm text-white/60">[TEST] {campaign.invitationSubject.replace(/^\\[TEST\\]\\s*/i, "")}</p></div><label className="mt-5 block text-[0.56rem] uppercase tracking-[.15em] text-white/35">Send test to<input autoFocus required type="email" value={testEmail} onChange={event => setTestEmail(event.target.value)} className="admin-input mt-2 w-full" /></label><div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setTestOpen(false)} className="admin-btn-link">Cancel</button><button disabled={busy === "test"} className="admin-btn-primary">{busy === "test" ? "Sending…" : "Send test"}</button></div></form></div>}
     <nav aria-label="Campaign sections" className="flex gap-1 overflow-x-auto border-b border-white/[0.08] pb-px">{tabs.map(item => <button key={item} onClick={() => setTab(item)} className={`whitespace-nowrap border-b px-4 py-3 text-xs uppercase tracking-[.12em] transition ${tab === item ? "border-[var(--helios-orange)] text-white" : "border-transparent text-white/30 hover:text-white/60"}`}>{item}</button>)}</nav>

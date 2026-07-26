@@ -4,12 +4,8 @@ import { createHash } from "node:crypto";
 import type { Prisma, ReferralAudienceMode, ReferralCampaignStatus, ReferralRewardStatus, ReferralRewardType, ReferralStatus } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { recordAuditEvent } from "@/lib/audit";
-import { getSiteUrl } from "@/lib/site";
 import { resolveAudience } from "./audience";
-import { createReferralCredentials } from "./tokens";
 import { assertReferralTransition, campaignDraftUpdateIssue, mayArchiveReferralCampaign, mayPermanentlyDeleteReferralCampaign, mayReturnReferralCampaignToDraft } from "./state-machine";
-import { personalizeReferralCopy, renderReferralInvitationEmail } from "./email-renderer";
-import { generatePreferenceToken, hashPreferenceToken, MARKETING_TOKEN_TTL_DAYS } from "@/lib/client-communications/preferences";
 
 export type CampaignInput = {
   internalName: string;
@@ -528,145 +524,6 @@ export async function approveReferralCampaign(id: string, actor: { userId: strin
     metadata: { revisionId: approved.id, eligible: audience.eligible.length, excluded: audience.excluded.length },
   });
   return { revision: approved, audience };
-}
-
-export async function launchReferralCampaign(id: string, actor: { userId: string; email: string }) {
-  const campaign = await prisma.referralCampaign.findUnique({ where: { id }, include: { approvedRevision: true } });
-  if (!campaign?.approvedRevision || campaign.status !== "APPROVED") throw new Error("Approve the campaign before launch.");
-  const snapshot = campaign.approvedRevision.snapshot as {
-    audience?: { eligible?: Array<{ id: string; displayName: string; firstName: string; email: string }> };
-    campaign?: {
-      invitationSubject?: string;
-      invitationPreviewText?: string | null;
-      invitationBody?: string;
-      followUpConfiguration?: { enabled?: boolean; count?: number; delayDays?: number };
-      communicationTemplates?: { followUp?: string };
-    };
-  };
-  const audience = snapshot.audience?.eligible ?? [];
-  if (!audience.length) throw new Error("The approved campaign has no eligible advocates.");
-  const scheduledAt = campaign.startsAt && campaign.startsAt > new Date() ? campaign.startsAt : new Date();
-  await prisma.$transaction(async tx => {
-    for (const recipient of audience) {
-      const advocate = await tx.referralAdvocate.upsert({
-        where: { campaignId_clientId: { campaignId: id, clientId: recipient.id } },
-        create: { campaignId: id, clientId: recipient.id, includedAt: new Date() },
-        update: { includedAt: new Date(), dismissedAt: null },
-      });
-      const invitation = await tx.referralInvitation.create({
-        data: {
-          campaignId: id, advocateId: advocate.id, status: "SCHEDULED",
-          subject: snapshot.campaign?.invitationSubject ?? campaign.invitationSubject,
-          previewText: snapshot.campaign?.invitationPreviewText ?? campaign.invitationPreviewText,
-          body: snapshot.campaign?.invitationBody ?? campaign.invitationBody,
-          approvedSnapshot: snapshot as Prisma.InputJsonValue,
-          scheduledAt,
-        },
-      });
-      let credentials = createReferralCredentials();
-      for (let attempt = 0; attempt < 3; attempt += 1) {
-        const exists = await tx.referralLink.findFirst({ where: { OR: [{ tokenHash: credentials.tokenHash }, { code: credentials.code }] } });
-        if (!exists) break;
-        credentials = createReferralCredentials();
-      }
-      await tx.referralLink.create({
-        data: {
-          invitationId: invitation.id, campaignId: id, advocateId: advocate.id,
-          tokenHash: credentials.tokenHash, code: credentials.code,
-          expiresAt: new Date(scheduledAt.getTime() + campaign.referralExpirationDays * 86_400_000),
-        },
-      });
-      const referralUrl = `${getSiteUrl()}/refer/${encodeURIComponent(credentials.token)}`;
-      const preference = await tx.marketingEmailPreference.upsert({
-        where: { normalizedEmail: recipient.email.trim().toLowerCase() },
-        create: { normalizedEmail: recipient.email.trim().toLowerCase(), status: "UNKNOWN", source: "REFERRAL_CAMPAIGN" },
-        update: {},
-      });
-      const unsubscribeToken = generatePreferenceToken();
-      await tx.marketingEmailPreferenceToken.create({
-        data: {
-          preferenceId: preference.id,
-          tokenHash: hashPreferenceToken(unsubscribeToken),
-          expiresAt: new Date(Date.now() + MARKETING_TOKEN_TTL_DAYS * 86_400_000),
-          campaignId: id,
-        },
-      });
-      const personalizedBody = personalizeReferralCopy(invitation.body, {
-        firstName: recipient.firstName || recipient.displayName.split(/\s+/)[0] || "there",
-        referralUrl,
-        referralCode: credentials.code,
-        campaignTitle: campaign.publicTitle,
-      });
-      await tx.referralCommunication.create({
-        data: {
-          campaignId: id, invitationId: invitation.id, kind: "INVITATION", status: "SCHEDULED",
-          recipientEmail: recipient.email, recipientName: recipient.displayName,
-          subject: personalizeReferralCopy(invitation.subject, {
-            firstName: recipient.firstName || recipient.displayName.split(/\s+/)[0] || "there",
-            referralUrl,
-            referralCode: credentials.code,
-            campaignTitle: campaign.publicTitle,
-          }),
-          htmlSnapshot: renderReferralInvitationEmail({
-            body: personalizedBody,
-            previewText: invitation.previewText,
-            unsubscribeToken,
-            referralUrl,
-            referralCode: credentials.code,
-            campaignTitle: campaign.publicTitle,
-          }),
-          contentHash: createHash("sha256").update(personalizedBody).digest("hex"),
-          scheduledAt,
-          idempotencyKey: `referral:${invitation.id}:invitation`,
-        },
-      });
-      const followUp = snapshot.campaign?.followUpConfiguration;
-      const followUpBody = snapshot.campaign?.communicationTemplates?.followUp?.trim();
-      if (followUp?.enabled && followUpBody) {
-        const count = Math.max(0, Math.min(3, Number(followUp.count) || 0));
-        const delayDays = Math.max(2, Math.min(60, Number(followUp.delayDays) || 7));
-        for (let followUpNumber = 1; followUpNumber <= count; followUpNumber += 1) {
-          const body = personalizeReferralCopy(followUpBody, {
-            firstName: recipient.firstName || recipient.displayName.split(/\s+/)[0] || "there",
-            referralUrl,
-            referralCode: credentials.code,
-            campaignTitle: campaign.publicTitle,
-          });
-          await tx.referralCommunication.create({
-            data: {
-              campaignId: id,
-              invitationId: invitation.id,
-              kind: "FOLLOW_UP",
-              status: "SCHEDULED",
-              recipientEmail: recipient.email,
-              recipientName: recipient.displayName,
-              subject: `A gentle reminder: ${invitation.subject}`,
-              htmlSnapshot: renderReferralInvitationEmail({
-                body,
-                previewText: invitation.previewText,
-                unsubscribeToken,
-                referralUrl,
-                referralCode: credentials.code,
-                campaignTitle: campaign.publicTitle,
-              }),
-              contentHash: createHash("sha256").update(body).digest("hex"),
-              scheduledAt: new Date(scheduledAt.getTime() + delayDays * followUpNumber * 86_400_000),
-              idempotencyKey: `referral:${invitation.id}:follow-up:${followUpNumber}`,
-            },
-          });
-        }
-      }
-    }
-    await tx.referralCampaign.update({ where: { id }, data: { status: "ACTIVE", activatedAt: new Date() } });
-    await tx.referralAuditEvent.create({
-      data: { campaignId: id, actorId: actor.userId, action: "CAMPAIGN_LAUNCHED", summary: `Launched campaign for ${audience.length} advocates.`, metadata: { advocateCount: audience.length } },
-    });
-  });
-  await recordAuditEvent({
-    actorId: actor.userId, actorEmail: actor.email, action: "REFERRAL_CAMPAIGN_LAUNCHED",
-    entityType: "ReferralCampaign", entityId: id, summary: `Launched referral campaign "${campaign.internalName}" for ${audience.length} advocates.`,
-  });
-  return audience.length;
 }
 
 export async function transitionReferral(id: string, toStatus: ReferralStatus, reason: string, actor: { userId: string; email: string }) {
