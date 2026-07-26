@@ -217,6 +217,7 @@ enum ReferralCampaignStatus {
   COMPLETED
   EXPIRED
   CANCELLED
+  ARCHIVED
 }
 
 enum ReferralAudienceMode {
@@ -1103,6 +1104,7 @@ model AdminUser {
   referralRewardsApproved   ReferralReward[]                @relation("ReferralRewardApprover")
   referralRewardsIssued     ReferralReward[]                @relation("ReferralRewardIssuer")
   referralAuditEvents       ReferralAuditEvent[]
+  referralTestTokens        ReferralTestToken[]
   marketingPreferencesActed MarketingEmailPreference[]
   marketingPreferenceEvents MarketingEmailPreferenceEvent[]
 
@@ -1642,6 +1644,7 @@ model ReferralCampaign {
   approvedRevision ReferralCampaignRevision?  @relation("ApprovedReferralRevision", fields: [approvedRevisionId], references: [id], onDelete: Restrict)
   communications   ReferralCommunication[]
   auditEvents      ReferralAuditEvent[]
+  testTokens       ReferralTestToken[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1924,6 +1927,26 @@ model ReferralAuditEvent {
   @@index([campaignId, createdAt])
   @@index([submissionId, createdAt])
   @@index([actorId, createdAt])
+}
+
+model ReferralTestToken {
+  id String @id @default(cuid())
+
+  campaignId     String
+  campaign       ReferralCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  createdById    String
+  createdBy      AdminUser        @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  recipientEmail String
+  tokenHash      String           @unique
+  expiresAt      DateTime
+  usedAt         DateTime?
+  revokedAt      DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([campaignId, createdAt])
+  @@index([createdById, createdAt])
+  @@index([expiresAt])
 }
 
 model AdminInvitation {

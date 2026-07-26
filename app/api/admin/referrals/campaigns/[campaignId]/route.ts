@@ -5,8 +5,10 @@ import { recordAuditEvent } from "@/lib/audit";
 import { EmailDeliveryError, sendTestCampaign } from "@/lib/client-communications/email";
 import { getReferralAdminSession } from "@/lib/referrals/access";
 import { renderReferralInvitationEmail } from "@/lib/referrals/email-renderer";
-import { approveReferralCampaign, estimateReferralAudience, launchReferralCampaign, ReferralCampaignConflictError, updateCampaignStatus, updateReferralCampaignDraft } from "@/lib/referrals/studio";
+import { approveReferralCampaign, archiveReferralCampaign, deleteReferralCampaign, estimateReferralAudience, launchReferralCampaign, ReferralCampaignConflictError, referralCampaignRemovalEligibility, returnReferralCampaignToDraft, updateCampaignStatus, updateReferralCampaignDraft } from "@/lib/referrals/studio";
 import { email, integer, optionalDate, ReferralValidationError, stringArray, text } from "@/lib/referrals/validation";
+import { createReferralTestPreview } from "@/lib/referrals/test-preview";
+import { getSiteUrl } from "@/lib/site";
 
 const audienceModes = new Set<ReferralAudienceMode>(["INDIVIDUALS", "GROUPS", "FILTERED", "ALL_ELIGIBLE"]);
 
@@ -37,7 +39,8 @@ export async function GET(_request: Request, context: { params: Promise<{ campai
     excludedClientIds: rules.excludedClientIds ?? [],
     filters: rules.filters,
   });
-  return NextResponse.json({ success: true, campaign: { ...campaign, audienceEstimate } });
+  const removalEligibility = await referralCampaignRemovalEligibility(campaignId);
+  return NextResponse.json({ success: true, campaign: { ...campaign, audienceEstimate, removalEligibility } });
 }
 
 export async function PUT(request: Request, context: { params: Promise<{ campaignId: string }> }) {
@@ -121,29 +124,45 @@ export async function POST(request: Request, context: { params: Promise<{ campai
   if (!session) return NextResponse.json({ success: false, error: "Administrator access is required." }, { status: 403 });
   try {
     const { campaignId } = await context.params;
-    const body = await request.json() as { action?: string; testEmail?: unknown };
+    const body = await request.json() as { action?: string; testEmail?: unknown; rowVersion?: unknown };
     if (body.action === "test") {
       const campaign = await prisma.referralCampaign.findUnique({ where: { id: campaignId } });
       if (!campaign) throw new Error("Campaign not found.");
       const recipient = email(body.testEmail);
-      await sendTestCampaign({
-        to: recipient,
-        subject: campaign.invitationSubject,
-        html: renderReferralInvitationEmail({
-          body: campaign.invitationBody.replaceAll("{{first_name}}", "Jake").replaceAll("{{campaign_title}}", campaign.publicTitle).replaceAll("{{referral_link}}", "#").replaceAll("{{referral_code}}", "HEL-TESTONLY"),
-          previewText: campaign.invitationPreviewText,
-          unsubscribeToken: "test-preview-disabled",
-          referralUrl: "#",
-          referralCode: "HEL-TESTONLY",
-          campaignTitle: campaign.publicTitle,
-        }),
-      });
+      const preview = await createReferralTestPreview({ campaignId, recipientEmail: recipient, actorId: session.userId });
+      const referralUrl = `${getSiteUrl()}/refer/test/${encodeURIComponent(preview.token)}`;
+      try {
+        await sendTestCampaign({
+          to: recipient,
+          subject: campaign.invitationSubject,
+          html: renderReferralInvitationEmail({
+            body: campaign.invitationBody.replaceAll("{{first_name}}", "Jake").replaceAll("{{campaign_title}}", campaign.publicTitle).replaceAll("{{referral_link}}", referralUrl).replaceAll("{{referral_code}}", "HEL-TESTONLY"),
+            previewText: campaign.invitationPreviewText,
+            unsubscribeToken: "test-preview-disabled",
+            referralUrl,
+            referralCode: "HEL-TESTONLY",
+            campaignTitle: campaign.publicTitle,
+          }),
+        });
+      } catch (error) {
+        await prisma.$transaction([
+          prisma.referralTestToken.update({ where: { id: preview.id }, data: { revokedAt: new Date() } }),
+          prisma.referralAuditEvent.create({
+            data: {
+              campaignId, actorId: session.userId, action: "TEST_SEND_FAILED",
+              summary: `Test invitation delivery failed for ${recipient}.`,
+              metadata: { testTokenId: preview.id },
+            },
+          }),
+        ]);
+        throw error;
+      }
       await recordAuditEvent({
         actorId: session.userId, actorEmail: session.email, action: "REFERRAL_TEST_SENT",
         entityType: "ReferralCampaign", entityId: campaignId, summary: `Referral invitation test sent to ${recipient}.`,
       });
       await prisma.referralAuditEvent.create({
-        data: { campaignId, actorId: session.userId, action: "TEST_SENT", summary: `Test invitation sent to ${recipient}.` },
+        data: { campaignId, actorId: session.userId, action: "TEST_SENT", summary: `Test invitation sent to ${recipient}.`, metadata: { testTokenId: preview.id, expiresAt: preview.expiresAt.toISOString() } },
       });
       return NextResponse.json({ success: true, message: `Test referral invitation sent to ${recipient}.` });
     }
@@ -154,6 +173,20 @@ export async function POST(request: Request, context: { params: Promise<{ campai
     if (body.action === "launch") {
       const count = await launchReferralCampaign(campaignId, { userId: session.userId, email: session.email });
       return NextResponse.json({ success: true, message: `Campaign launched for ${count} advocates.` });
+    }
+    if (body.action === "return-to-draft" || body.action === "edit-approved") {
+      const rowVersion = Number(body.rowVersion);
+      if (!Number.isInteger(rowVersion) || rowVersion < 0) throw new ReferralValidationError("STALE_CAMPAIGN", "Reload this campaign before changing its approval.");
+      const campaign = await returnReferralCampaignToDraft(campaignId, rowVersion, { userId: session.userId, email: session.email }, body.action === "edit-approved");
+      return NextResponse.json({ success: true, campaign, message: "Campaign returned to Draft. Approval was removed and reapproval is required before launch." });
+    }
+    if (body.action === "delete") {
+      await deleteReferralCampaign(campaignId, { userId: session.userId, email: session.email });
+      return NextResponse.json({ success: true, deleted: true, message: "Campaign permanently deleted." });
+    }
+    if (body.action === "archive") {
+      await archiveReferralCampaign(campaignId, { userId: session.userId, email: session.email });
+      return NextResponse.json({ success: true, message: "Campaign archived with its history preserved." });
     }
     if (body.action === "pause" || body.action === "resume" || body.action === "cancel") {
       const status = await updateCampaignStatus(campaignId, body.action, { userId: session.userId, email: session.email });

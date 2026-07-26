@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 type Campaign = {
-  id: string; internalName: string; publicTitle: string; purpose: string; status: string;
+  id: string; internalName: string; publicTitle: string; purpose: string; status: string; rowVersion: number;
   referralOffer: string | null; advocateReward: string | null; referredCustomerOffer: string | null;
   eligibilityRules: string | null; qualificationRules: string | null; terms: string;
   senderName: string | null; senderEmail: string | null; replyTo: string | null;
@@ -18,6 +18,7 @@ type Campaign = {
   auditEvents: Array<{ id: string; action: string; summary: string; createdAt: string }>;
   _count: { invitations: number; submissions: number };
   audienceEstimate: { eligible: Array<{ id: string; displayName: string; email: string }>; excluded: Array<{ id: string; displayName: string; reasons: string[] }> };
+  removalEligibility: { hasActivity: boolean; canDelete: boolean; canArchive: boolean };
 };
 
 const tabs = ["Overview", "Audience", "Invitation", "Landing Page", "Pipeline", "Approval", "History"] as const;
@@ -51,12 +52,36 @@ export default function CampaignWorkspace({ campaignId, adminEmail }: { campaign
   async function action(name: string) {
     setBusy(name); setMessage(null);
     try {
-      const response = await fetch(`/api/admin/referrals/campaigns/${campaignId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: name }) });
+      const response = await fetch(`/api/admin/referrals/campaigns/${campaignId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: name, rowVersion: campaign?.rowVersion }) });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.error || "The action could not be completed.");
+      if (result.deleted) { window.location.assign("/admin/referral-studio?notice=campaign-deleted"); return; }
       setMessage(result.message); await load();
     } catch (error) { setMessage(error instanceof Error ? error.message : "The action could not be completed."); }
     finally { setBusy(null); }
+  }
+  async function returnToDraft(editAfter = false) {
+    if (!campaign || !window.confirm("Returning this campaign to Draft removes its approval. You may edit it, but it must be approved again before launch.")) return;
+    setBusy(editAfter ? "edit" : "return-to-draft"); setMessage(null);
+    try {
+      const response = await fetch(`/api/admin/referrals/campaigns/${campaignId}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: editAfter ? "edit-approved" : "return-to-draft", rowVersion: campaign.rowVersion }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "The campaign could not be returned to Draft.");
+      if (editAfter) window.location.assign(`/admin/referral-studio/campaigns/${campaign.id}/edit`);
+      else { setMessage(result.message); await load(); }
+    } catch (error) { setMessage(error instanceof Error ? error.message : "The campaign could not be returned to Draft."); }
+    finally { setBusy(null); }
+  }
+  async function removeCampaign() {
+    if (!campaign || !window.confirm(`Permanently delete “${campaign.internalName}”? This cannot be undone.`)) return;
+    await action("delete");
+  }
+  async function archiveCampaign() {
+    if (!campaign || !window.confirm(`Archive “${campaign.internalName}”? Its history will remain available.`)) return;
+    await action("archive");
   }
   async function sendTest(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy("test"); setMessage(null);
@@ -77,11 +102,16 @@ export default function CampaignWorkspace({ campaignId, adminEmail }: { campaign
         {campaign.status === "DRAFT" && <Link href={`/admin/referral-studio/campaigns/${campaign.id}/edit`} className="admin-btn-primary">Edit Campaign</Link>}
         {campaign.status === "DRAFT" && <button disabled={!!busy} onClick={() => setTab("Approval")} className="admin-btn-secondary">Review &amp; approve</button>}
         {campaign.status === "APPROVED" && <button disabled={!!busy} onClick={() => action("launch")} className="admin-btn-primary">{busy === "launch" ? "Launching…" : "Launch campaign"}</button>}
+        {campaign.status === "APPROVED" && <button disabled={!!busy} onClick={() => void returnToDraft(false)} className="admin-btn-secondary">{busy === "return-to-draft" ? "Returning…" : "Return to Draft"}</button>}
+        {campaign.status === "APPROVED" && <button disabled={!!busy} onClick={() => void returnToDraft(true)} className="admin-btn-secondary">{busy === "edit" ? "Opening…" : "Edit Campaign"}</button>}
         {campaign.status === "ACTIVE" && <button disabled={!!busy} onClick={() => action("pause")} className="admin-btn-secondary">{busy === "pause" ? "Pausing…" : "Pause"}</button>}
         {campaign.status === "PAUSED" && <button disabled={!!busy} onClick={() => action("resume")} className="admin-btn-primary">{busy === "resume" ? "Resuming…" : "Resume"}</button>}
+        {campaign.removalEligibility.canDelete && <button disabled={!!busy} onClick={() => void removeCampaign()} className="admin-btn-destructive">{busy === "delete" ? "Deleting…" : "Delete Campaign"}</button>}
+        {!campaign.removalEligibility.canDelete && campaign.removalEligibility.canArchive && <button disabled={!!busy} onClick={() => void archiveCampaign()} className="admin-btn-destructive">{busy === "archive" ? "Archiving…" : "Archive Campaign"}</button>}
       </div>
     </header>
     {message && <p role="status" className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/60">{message}</p>}
+    {!campaign.removalEligibility.canDelete && campaign.removalEligibility.hasActivity && ["DRAFT", "APPROVED"].includes(campaign.status) && <p className="rounded-xl border border-amber-200/15 bg-amber-200/[0.04] px-4 py-3 text-sm text-amber-50/60">Permanent deletion is unavailable because this campaign has referral activity. Archive it to preserve historical and compliance records.</p>}
     {testOpen && <div role="presentation" className="fixed inset-0 z-[100] grid place-items-center bg-black/75 p-4 backdrop-blur-sm" onMouseDown={event => { if (event.currentTarget === event.target) setTestOpen(false); }}><form role="dialog" aria-modal="true" aria-labelledby="referral-test-title" onSubmit={sendTest} className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#141412] p-6 shadow-2xl sm:p-7"><p className="text-[0.56rem] uppercase tracking-[.18em] text-[var(--helios-orange)]">Test only</p><h2 id="referral-test-title" className="mt-3 text-2xl font-light text-white">Send referral invitation test</h2><p className="mt-3 text-sm leading-6 text-white/40">No client recipient will receive this test. It does not change campaign analytics or referral status. The subject includes [TEST].</p><div className="mt-5 rounded-xl border border-white/[0.07] bg-white/[0.02] p-4"><p className="text-[0.52rem] uppercase tracking-[.14em] text-white/25">Subject</p><p className="mt-2 text-sm text-white/60">[TEST] {campaign.invitationSubject.replace(/^\\[TEST\\]\\s*/i, "")}</p></div><label className="mt-5 block text-[0.56rem] uppercase tracking-[.15em] text-white/35">Send test to<input autoFocus required type="email" value={testEmail} onChange={event => setTestEmail(event.target.value)} className="admin-input mt-2 w-full" /></label><div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setTestOpen(false)} className="admin-btn-link">Cancel</button><button disabled={busy === "test"} className="admin-btn-primary">{busy === "test" ? "Sending…" : "Send test"}</button></div></form></div>}
     <nav aria-label="Campaign sections" className="flex gap-1 overflow-x-auto border-b border-white/[0.08] pb-px">{tabs.map(item => <button key={item} onClick={() => setTab(item)} className={`whitespace-nowrap border-b px-4 py-3 text-xs uppercase tracking-[.12em] transition ${tab === item ? "border-[var(--helios-orange)] text-white" : "border-transparent text-white/30 hover:text-white/60"}`}>{item}</button>)}</nav>
     {tab === "Overview" && <div className="grid gap-5 xl:grid-cols-[1fr_.7fr]"><Card title="Campaign direction"><Data label="Public title" value={campaign.publicTitle} /><Data label="Referral offer" value={campaign.referralOffer} /><Data label="Advocate reward" value={campaign.advocateReward} /><Data label="Referred-customer offer" value={campaign.referredCustomerOffer} /><Data label="Eligibility" value={campaign.eligibilityRules} /><Data label="Qualification" value={campaign.qualificationRules} /></Card><div className="grid gap-5"><Metric label="Advocates" value={campaign.advocates.length} /><Metric label="Invitations" value={campaign._count.invitations} /><Metric label="Referrals" value={campaign._count.submissions} /></div></div>}
