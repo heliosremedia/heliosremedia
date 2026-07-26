@@ -1,51 +1,72 @@
 import { NextResponse } from "next/server";
 import { recordAuditEvent } from "@/lib/audit";
 import { getAdminSession } from "@/lib/auth/session";
+import { processEmailCampaign } from "@/lib/client-communications/campaign-delivery";
+import { renderCampaignEmail, sendTestCampaign } from "@/lib/client-communications/email";
+import { findUnsupportedVariables, renderPersonalizedEmail } from "@/lib/client-communications/personalization";
+import { DEFAULT_CAMPAIGN_TIME_ZONE, zonedLocalToUtc } from "@/lib/client-communications/scheduling";
 import { prisma } from "@/lib/prisma";
-import { renderCampaignEmail, sendCampaignBatch, sendTestCampaign } from "@/lib/client-communications/email";
-import { addressIsMarketingEligible, createPreferenceToken } from "@/lib/client-communications/preferences";
-import { getSiteUrl } from "@/lib/site";
 
 type Payload = {
-  action?: "test" | "send";
-  subject?: string;
-  previewText?: string;
-  body?: string;
+  action?: "test" | "send" | "schedule";
+  subject?: string; previewText?: string; body?: string;
   mode?: "ALL" | "GROUPS" | "INDIVIDUALS";
-  groupIds?: string[];
-  clientIds?: string[];
-  testEmail?: string;
+  groupIds?: string[]; clientIds?: string[];
+  testEmail?: string; previewClientId?: string; useSampleProfile?: boolean;
+  scheduledLocal?: string; scheduledTimeZone?: string;
 };
 
 function cleanText(value: unknown, max: number) {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
-export async function POST(request: Request) {
+async function authorizedSession() {
   const session = await getAdminSession();
-  if (!session || (session.role !== "OWNER" && session.role !== "ADMIN")) {
-    return NextResponse.json({ success: false, error: "Owner or administrator access is required." }, { status: 403 });
-  }
+  return session && ["OWNER", "ADMIN"].includes(session.role) ? session : null;
+}
+
+export async function POST(request: Request) {
+  const session = await authorizedSession();
+  if (!session) return NextResponse.json({ success: false, error: "Owner or administrator access is required." }, { status: 403 });
   try {
     const input = await request.json() as Payload;
     const subject = cleanText(input.subject, 160);
     const previewText = cleanText(input.previewText, 180);
     const body = cleanText(input.body, 20_000);
-    if (!subject || !body) {
-      return NextResponse.json({ success: false, error: "Subject and message are required." }, { status: 400 });
+    if (!subject || !body) return NextResponse.json({ success: false, error: "Subject and message are required." }, { status: 400 });
+    const unsupported = findUnsupportedVariables(subject, previewText, body);
+    if (unsupported.length) {
+      return NextResponse.json({ success: false, error: `Unsupported personalization variable: {{${unsupported[0]}}}` }, { status: 400 });
     }
+
     if (input.action === "test") {
       const testEmail = cleanText(input.testEmail, 320).toLowerCase();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(testEmail)) {
         return NextResponse.json({ success: false, error: "Enter a valid test email." }, { status: 400 });
       }
+      const selected = input.previewClientId ? await prisma.communicationClient.findFirst({
+        where: { id: input.previewClientId, emailSubscribed: true, archivedAt: null },
+        select: { firstName: true, lastName: true, displayName: true, email: true, phone: true },
+      }) : null;
+      const profile = selected ? {
+        firstName: selected.firstName, lastName: selected.lastName, fullName: selected.displayName,
+        email: selected.email, phone: selected.phone,
+      } : {
+        firstName: "Jake", lastName: "Guerin", fullName: "Jake Guerin",
+        email: "jake@heliosrealestatemedia.com", phone: "970.682.5533",
+      };
+      const personalized = renderPersonalizedEmail({ subject, previewText, body, recipient: profile });
       await sendTestCampaign({
         to: testEmail,
-        subject,
-        html: renderCampaignEmail({ body, previewText, unsubscribeToken: "test-preview-disabled" }),
+        subject: personalized.subject,
+        html: renderCampaignEmail({ body: personalized.body, previewText: personalized.previewText, unsubscribeToken: "test-preview-disabled" }),
       });
-      await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: "EMAIL_CAMPAIGN_TEST_SENT", entityType: "EmailCampaign", summary: `Campaign test sent to ${testEmail}.` });
-      return NextResponse.json({ success: true, message: `Test sent to ${testEmail}.` });
+      await recordAuditEvent({
+        actorId: session.userId, actorEmail: session.email, action: "EMAIL_CAMPAIGN_TEST_SENT",
+        entityType: "EmailCampaign", summary: `Personalized campaign test sent to ${testEmail}.`,
+        metadata: { previewClientId: selected ? input.previewClientId : null, sampleProfile: !selected },
+      });
+      return NextResponse.json({ success: true, message: `Personalized test sent to ${testEmail}.` });
     }
 
     const mode = input.mode;
@@ -56,77 +77,60 @@ export async function POST(request: Request) {
     }
     const clients = await prisma.communicationClient.findMany({
       where: {
-        emailSubscribed: true,
-        normalizedEmail: { not: "" },
+        emailSubscribed: true, emailStatus: "VALID", archivedAt: null, normalizedEmail: { not: "" },
         ...(mode === "GROUPS" ? { groupMemberships: { some: { groupId: { in: groupIds } } } } : {}),
         ...(mode === "INDIVIDUALS" ? { id: { in: clientIds } } : {}),
       },
       orderBy: { displayName: "asc" },
-      select: { id: true, displayName: true, email: true, normalizedEmail: true },
+      select: { id: true, firstName: true, lastName: true, displayName: true, email: true, normalizedEmail: true, phone: true },
     });
-    const unique = [...new Map(
-      clients
-        .filter((client) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(client.normalizedEmail))
-        .map((client) => [client.normalizedEmail, client]),
-    ).values()];
-    if (!unique.length) return NextResponse.json({ success: false, error: "No subscribed recipients with valid email addresses were found." }, { status: 400 });
+    const unique = [...new Map(clients.filter(({ normalizedEmail }) =>
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)).map((client) => [client.normalizedEmail, client])).values()];
+    if (!unique.length) return NextResponse.json({ success: false, error: "No eligible subscribed recipients were found." }, { status: 400 });
     if (unique.length > 1_000) return NextResponse.json({ success: false, error: "Campaigns are limited to 1,000 recipients." }, { status: 400 });
 
-    const campaign = await prisma.emailCampaign.create({
-      data: {
-        subject, previewText: previewText || null, body, status: "SENDING", recipientMode: mode,
-        selection: { groupIds, clientIds }, recipientCount: unique.length, createdById: session.userId,
-        recipients: { create: unique.map((client) => ({ clientId: client.id, email: client.email, displayName: client.displayName })) },
-      },
-      include: { recipients: true },
-    });
-
-    let sent = 0;
-    let failed = 0;
-    for (let index = 0; index < campaign.recipients.length; index += 100) {
-      const candidates = campaign.recipients.slice(index, index + 100);
-      const eligibility = await Promise.all(candidates.map(async recipient => ({
-        recipient,
-        eligible: await addressIsMarketingEligible(recipient.email.trim().toLowerCase()),
-      })));
-      const skipped = eligibility.filter(item => !item.eligible).map(item => item.recipient);
-      if (skipped.length) await prisma.campaignRecipient.updateMany({
-        where: { id: { in: skipped.map(recipient => recipient.id) } },
-        data: { status: "SKIPPED", error: "Recipient opted out or became suppressed before delivery." },
-      });
-      const batch = eligibility.filter(item => item.eligible).map(item => item.recipient);
-      if (!batch.length) continue;
-      try {
-        const tokens = await Promise.all(batch.map(recipient =>
-          createPreferenceToken({ clientId: recipient.clientId, campaignId: campaign.id })));
-        const result = await sendCampaignBatch({
-          campaignId: `${campaign.id}-${index / 100}`,
-          messages: batch.map((recipient, offset) => ({
-            to: recipient.email, subject,
-            html: renderCampaignEmail({ body, previewText, unsubscribeToken: tokens[offset] }),
-            unsubscribeUrl: `${getSiteUrl()}/api/unsubscribe?token=${encodeURIComponent(tokens[offset])}`,
-          })),
-        });
-        await prisma.$transaction(batch.map((recipient, offset) => prisma.campaignRecipient.update({
-          where: { id: recipient.id },
-          data: { status: "SENT", sentAt: new Date(), providerMessageId: result[offset]?.id ?? null },
-        })));
-        sent += batch.length;
-      } catch (error) {
-        const message = error instanceof Error ? error.message.slice(0, 500) : "Unknown delivery error";
-        await prisma.campaignRecipient.updateMany({ where: { id: { in: batch.map((recipient) => recipient.id) } }, data: { status: "FAILED", error: message } });
-        failed += batch.length;
+    let scheduledAt: Date | null = null;
+    const timeZone = cleanText(input.scheduledTimeZone, 100) || DEFAULT_CAMPAIGN_TIME_ZONE;
+    if (input.action === "schedule") {
+      scheduledAt = zonedLocalToUtc(cleanText(input.scheduledLocal, 40), timeZone);
+      if (scheduledAt.getTime() <= Date.now() + 60_000) {
+        return NextResponse.json({ success: false, error: "Choose a delivery time at least one minute in the future." }, { status: 400 });
       }
     }
-    const status = sent && failed ? "PARTIAL" : sent ? "SENT" : "FAILED";
-    await prisma.emailCampaign.update({ where: { id: campaign.id }, data: { status, sentCount: sent, failedCount: failed, sentAt: sent ? new Date() : null } });
-    await recordAuditEvent({
-      actorId: session.userId, actorEmail: session.email, action: "EMAIL_CAMPAIGN_SENT",
-      entityType: "EmailCampaign", entityId: campaign.id,
-      summary: `Campaign "${subject}" completed: ${sent} sent, ${failed} failed.`,
-      metadata: { recipientMode: mode, recipients: unique.length, sent, failed },
+    if (!["send", "schedule"].includes(input.action ?? "")) {
+      return NextResponse.json({ success: false, error: "Choose Send Now or Schedule Email." }, { status: 400 });
+    }
+    const status = input.action === "schedule" ? "SCHEDULED" : "PROCESSING";
+    const campaign = await prisma.emailCampaign.create({
+      data: {
+        subject, previewText: previewText || null, body, status, recipientMode: mode,
+        selection: { groupIds, clientIds }, recipientCount: unique.length, createdById: session.userId,
+        scheduledAt, scheduledTimeZone: scheduledAt ? timeZone : null,
+        scheduledById: scheduledAt ? session.userId : null,
+        processingStartedAt: scheduledAt ? null : new Date(),
+        recipients: { create: unique.map((client) => ({
+          clientId: client.id, email: client.email, displayName: client.displayName,
+          firstNameSnapshot: client.firstName, lastNameSnapshot: client.lastName,
+          fullNameSnapshot: client.displayName, phoneSnapshot: client.phone,
+        })) },
+      },
     });
-    return NextResponse.json({ success: sent > 0, campaignId: campaign.id, sent, failed, message: `${sent} email${sent === 1 ? "" : "s"} sent${failed ? `; ${failed} failed` : ""}.` }, { status: sent ? 200 : 502 });
+    await recordAuditEvent({
+      actorId: session.userId, actorEmail: session.email,
+      action: scheduledAt ? "EMAIL_CAMPAIGN_SCHEDULED" : "EMAIL_CAMPAIGN_SEND_NOW",
+      entityType: "EmailCampaign", entityId: campaign.id,
+      summary: scheduledAt ? `Campaign "${subject}" scheduled for ${scheduledAt.toISOString()}.` : `Campaign "${subject}" started immediately.`,
+      metadata: { recipientMode: mode, recipients: unique.length, scheduledAt: scheduledAt?.toISOString(), timeZone, variables: [...new Set([subject, previewText, body].flatMap((value) => [...value.matchAll(/\{\{([A-Z_]+)\}\}/g)].map((match) => match[1])))] },
+    });
+    if (scheduledAt) {
+      return NextResponse.json({ success: true, campaignId: campaign.id, scheduledAt: scheduledAt.toISOString(), message: `Email scheduled for ${unique.length} recipients.` });
+    }
+    const completed = await processEmailCampaign(campaign.id);
+    return NextResponse.json({
+      success: completed.sentCount > 0, campaignId: campaign.id,
+      sent: completed.sentCount, failed: completed.failedCount,
+      message: `${completed.sentCount} email${completed.sentCount === 1 ? "" : "s"} sent${completed.failedCount ? `; ${completed.failedCount} failed` : ""}.`,
+    }, { status: completed.sentCount ? 200 : 502 });
   } catch (error) {
     console.error("Unable to process email campaign:", error);
     return NextResponse.json({ success: false, error: error instanceof Error ? error.message : "The campaign could not be processed." }, { status: 500 });

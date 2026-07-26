@@ -93,10 +93,13 @@ enum AdminRole {
 
 enum EmailCampaignStatus {
   DRAFT
+  SCHEDULED
+  PROCESSING
   SENDING
   SENT
   PARTIAL
   FAILED
+  CANCELLED
 }
 
 enum CampaignRecipientStatus {
@@ -1151,16 +1154,23 @@ model CommunicationClient {
 model EmailCampaign {
   id String @id @default(cuid())
 
-  subject        String
-  previewText    String?
-  body           String
-  status         EmailCampaignStatus @default(DRAFT)
-  recipientMode  String
-  selection      Json
-  recipientCount Int                 @default(0)
-  sentCount      Int                 @default(0)
-  failedCount    Int                 @default(0)
-  sentAt         DateTime?
+  subject             String
+  previewText         String?
+  body                String
+  status              EmailCampaignStatus @default(DRAFT)
+  recipientMode       String
+  selection           Json
+  recipientCount      Int                 @default(0)
+  sentCount           Int                 @default(0)
+  failedCount         Int                 @default(0)
+  sentAt              DateTime?
+  scheduledAt         DateTime?
+  scheduledTimeZone   String?
+  scheduledById       String?
+  cancelledAt         DateTime?
+  processingStartedAt DateTime?
+  scheduleError       String?
+  rowVersion          Int                 @default(1)
 
   createdById        String
   createdBy          AdminUser           @relation(fields: [createdById], references: [id], onDelete: Restrict)
@@ -1172,6 +1182,7 @@ model EmailCampaign {
 
   @@index([createdAt])
   @@index([status, createdAt])
+  @@index([status, scheduledAt])
 }
 
 model CampaignRecipient {
@@ -1183,6 +1194,10 @@ model CampaignRecipient {
   client            CommunicationClient     @relation(fields: [clientId], references: [id], onDelete: Restrict)
   email             String
   displayName       String
+  firstNameSnapshot String?
+  lastNameSnapshot  String?
+  fullNameSnapshot  String?
+  phoneSnapshot     String?
   status            CampaignRecipientStatus @default(PENDING)
   providerMessageId String?
   error             String?
