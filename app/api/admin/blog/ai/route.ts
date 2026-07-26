@@ -51,9 +51,13 @@ export async function POST(request: Request) {
     const instruction = `You are the editorial assistant for ${settings.businessName}. Write polished, accurate real-estate media marketing content. Brand voice: ${settings.brandVoice || "refined, intentional, cinematic, knowledgeable, and human"}. Audience: ${settings.brandAudience || "real estate agents, builders, designers, and property professionals"}. Guidance: ${settings.brandWritingGuidance || "Avoid hype, clichés, fabricated statistics, legal claims, and keyword stuffing."} Always preserve factual uncertainty and never invent sources.`;
     const actionPrompt: Record<string, string> = {
       draft: "Create a complete blog draft. Return JSON with title, excerpt, content, category, seoTitle, seoDescription, socialCaption, and suggestedInternalLinks. Content must be plain text with Markdown headings.",
+      outline: "Create a useful, non-generic article outline with a working title and Markdown headings. Return JSON with title and content.",
       improve: "Improve clarity, structure, brand voice, and SEO without changing the facts. Return JSON with content, excerpt, seoTitle, seoDescription, and socialCaption.",
+      rewriteSelection: "Rewrite only this selected passage for clarity and brand voice. Preserve every factual claim and return JSON with content.",
       shorten: "Shorten this article by about 30 percent while preserving its strongest ideas. Return JSON with content and excerpt.",
       expand: "Expand this article with useful context and practical detail without inventing facts. Return JSON with content, excerpt, seoTitle, and seoDescription.",
+      headings: "Improve the article's Markdown headings for clarity, scanability, and natural SEO without changing body copy. Return JSON with content.",
+      seo: "Improve natural SEO, title, excerpt, headings, and meta description without keyword stuffing or changing factual claims. Return JSON with content, title, excerpt, seoTitle, and seoDescription.",
       headlines: "Create eight refined headline options. Return JSON with a headlines array.",
       social: "Create platform-ready social captions for Facebook, LinkedIn, Instagram, and X. Return JSON with facebook, linkedin, instagram, and x.",
     };
