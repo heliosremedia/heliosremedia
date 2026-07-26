@@ -285,28 +285,32 @@ export default function InTheirWords({ testimonials, googleReviews }: { testimon
           <button
             type="button"
             onClick={showPrevious}
-            aria-label="Show previous testimonial"
-            className="absolute bottom-0 left-0 z-40 flex h-11 items-center gap-3 text-[0.59rem] font-medium uppercase tracking-[0.24em] text-white/32 transition-colors duration-300 hover:text-white focus-visible:outline-none focus-visible:text-white"
+            aria-label="Previous testimonial"
+            className="absolute bottom-0 left-0 z-40 flex h-12 min-w-12 items-center justify-center gap-3 rounded-full text-[0.59rem] font-medium uppercase tracking-[0.24em] text-white/55 transition-colors duration-300 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f06b24] sm:justify-start sm:text-white/32"
           >
             <span aria-hidden="true" className="text-lg">
               ←
             </span>
-            Previous
+            <span className="hidden sm:inline">Previous</span>
           </button>
 
           <button
             type="button"
             onClick={showNext}
-            aria-label="Show next testimonial"
-            className="absolute bottom-0 right-0 z-40 flex h-11 items-center gap-3 text-[0.59rem] font-medium uppercase tracking-[0.24em] text-white/32 transition-colors duration-300 hover:text-white focus-visible:outline-none focus-visible:text-white"
+            aria-label="Next testimonial"
+            className="absolute bottom-0 right-0 z-40 flex h-12 min-w-12 items-center justify-center gap-3 rounded-full text-[0.59rem] font-medium uppercase tracking-[0.24em] text-white/55 transition-colors duration-300 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f06b24] sm:justify-end sm:text-white/32"
           >
-            Next
+            <span className="hidden sm:inline">Next</span>
             <span aria-hidden="true" className="text-lg">
               →
             </span>
           </button>
 
-          <div className="absolute bottom-0 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3">
+          <p aria-live="polite" aria-atomic="true" className="absolute bottom-0 left-1/2 z-40 flex h-12 -translate-x-1/2 items-center font-mono text-xs tracking-[0.18em] text-white/55 sm:hidden">
+            {String(activeIndex + 1).padStart(2, "0")} / {String(testimonials.length).padStart(2, "0")}
+          </p>
+
+          <div className="absolute bottom-0 left-1/2 z-40 hidden -translate-x-1/2 items-center gap-3 sm:flex">
             {testimonials.map((testimonial, index) => {
               const isActive = index === activeIndex;
 
