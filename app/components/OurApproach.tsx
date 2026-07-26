@@ -156,7 +156,7 @@ export default function OurApproach({ settings }: { settings: PublicSiteSettings
                   onFocus={() => setActivePrinciple(index)}
                   onBlur={() => setActivePrinciple(null)}
                   tabIndex={0}
-                  className={`group relative isolate min-h-[27rem] overflow-hidden border-white/10 px-7 py-10 outline-none sm:min-h-[28rem] sm:px-9 sm:py-12 lg:min-h-[29rem] lg:border-l lg:px-10 lg:py-14 first:lg:border-l-0 xl:px-12 ${
+                  className={`group relative isolate overflow-hidden border-white/10 px-7 py-10 outline-none sm:px-9 sm:py-12 lg:border-l lg:px-10 lg:py-14 first:lg:border-l-0 xl:px-12 ${
                     index > 0 ? "border-t lg:border-t-0" : ""
                   }`}
                 >
@@ -185,7 +185,7 @@ export default function OurApproach({ settings }: { settings: PublicSiteSettings
                     className="absolute left-0 top-1/2 h-24 w-px -translate-y-1/2 origin-center bg-[#f06b24]"
                   />
 
-                  <div className="flex h-full items-center">
+                  <div className="flex">
                     <motion.div
                       animate={{
                         y: prefersReducedMotion || !isActive ? 0 : -5,
@@ -204,7 +204,7 @@ export default function OurApproach({ settings }: { settings: PublicSiteSettings
                         {principle.number}
                       </span>
 
-                      <div className="mt-9 min-h-[7.75rem] sm:min-h-[8.25rem]">
+                      <div className="mt-9">
                         <h3
                           className={`max-w-[19rem] font-serif text-[clamp(2.5rem,3.45vw,4.15rem)] leading-[0.92] tracking-[-0.045em] transition-colors duration-500 ${
                             isActive ? "text-white" : "text-[#ece6df]"
@@ -216,7 +216,7 @@ export default function OurApproach({ settings }: { settings: PublicSiteSettings
 
                       <RichText
                         content={principle.copy}
-                        className={`mt-8 max-w-[25rem] text-sm leading-7 transition-colors duration-500 sm:text-base sm:leading-8 ${
+                        className={`mt-10 max-w-[25rem] text-sm leading-7 transition-colors duration-500 sm:text-base sm:leading-8 ${
                           isActive ? "text-white/74" : "text-white/56"
                         }`}
                       />

@@ -16,7 +16,7 @@ type NavbarProps = {
 export default function Navbar({ variant = "overlay" }: NavbarProps) {
   const settings = useSiteSettings();
   const pathname = usePathname();
-  const bookingHref = settings.bookingUrl || "/inquire";
+  const bookingHref = "/book";
   const [menuOpen, setMenuOpen] = useState(false);
   const [heroVisible, setHeroVisible] = useState(variant === "overlay");
   const menuButtonRef = useRef<HTMLButtonElement>(null);

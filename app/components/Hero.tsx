@@ -12,7 +12,7 @@ const reveal = {
 const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function Hero({ settings }: { settings: PublicSiteSettings }) {
-  const bookingHref = settings.heroPrimaryDestination || settings.bookingUrl || "/inquire";
+  const bookingHref = settings.heroPrimaryDestination && !settings.heroPrimaryLabel?.toLowerCase().includes("book") ? settings.heroPrimaryDestination : "/book";
   const shouldReduceMotion = useReducedMotion();
   const [videoReady, setVideoReady] = useState(false);
   const poster = settings.heroPosterUrl || undefined;

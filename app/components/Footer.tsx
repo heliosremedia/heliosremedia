@@ -52,7 +52,7 @@ export default function Footer() {
     ["Instagram", settings.instagramUrl], ["Facebook", settings.facebookUrl],
     ["YouTube", settings.youtubeUrl], ["LinkedIn", settings.linkedinUrl],
   ].filter((item): item is [string,string] => Boolean(item[1]));
-  const bookingHref = settings.bookingUrl || "/inquire";
+  const bookingHref = "/book";
   const connectLinks = [
     { label: "Book Your Shoot", href: bookingHref },
     { label: "Contact Helios", href: "/contact" },

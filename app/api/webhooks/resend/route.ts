@@ -41,7 +41,8 @@ export async function POST(request: Request) {
   try {
     const event = JSON.parse(rawBody) as {
       type?: string;
-      data?: { email_id?: string; to?: unknown };
+      created_at?: string;
+      data?: { email_id?: string; to?: unknown; click?: { link?: string } };
     };
     const communicationStatus = {
       "email.delivered": "DELIVERED",
@@ -49,12 +50,24 @@ export async function POST(request: Request) {
       "email.clicked": "CLICKED",
       "email.bounced": "FAILED",
       "email.complained": "UNSUBSCRIBED",
+      "email.delivery_delayed": "SENT",
     } as const;
     const mappedCommunicationStatus = communicationStatus[event.type as keyof typeof communicationStatus];
     if (!mappedCommunicationStatus) {
       return NextResponse.json({ success: true, ignored: true });
     }
     if (event.data?.email_id) {
+      const recipient = await prisma.campaignRecipient.findFirst({ where: { providerMessageId: event.data.email_id }, select: { id: true } });
+      if (recipient) {
+        const rawType = event.type?.replace("email.", "").toUpperCase();
+        const normalizedType = rawType === "DELIVERY_DELAYED" ? "DELAYED" : rawType;
+        const eventId = request.headers.get("svix-id")!;
+        await prisma.campaignDeliveryEvent.upsert({
+          where: { providerEventId: eventId },
+          create: { providerEventId: eventId, providerMessageId: event.data.email_id, campaignRecipientId: recipient.id, eventType: normalizedType === "BOUNCED" ? "BOUNCED" : normalizedType === "COMPLAINED" ? "COMPLAINED" : normalizedType || "UNKNOWN", linkUrl: event.data.click?.link || null, occurredAt: event.created_at ? new Date(event.created_at) : new Date(), payload: event as never },
+          update: {},
+        });
+      }
       const communication = await prisma.referralCommunication.findFirst({
         where: { providerMessageId: event.data.email_id },
         select: { id: true, invitationId: true, campaignId: true, submissionId: true },
