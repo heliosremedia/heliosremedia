@@ -14,6 +14,7 @@ import { EmailDeliveryError, sendTestCampaign } from "@/lib/client-communication
 import { contentHash, recipientSelectionFromSeries } from "@/lib/newsletters/studio";
 import { resolveEligibleNewsletterRecipients } from "@/lib/newsletters/recipients";
 import { NEWSLETTER_BLOCK_TYPES } from "@/lib/newsletters/types";
+import { getNewsletterAnalytics } from "@/lib/newsletters/analytics";
 
 type Context = { params: Promise<{ editionId: string }> };
 
@@ -333,6 +334,7 @@ export async function GET(_request: Request, context: Context) {
   return NextResponse.json({
     success: true,
     edition: await serializeEdition(edition),
+    analytics: await getNewsletterAnalytics(editionId),
     defaultTestRecipient: session.email,
   });
 }

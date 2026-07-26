@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import type { AdminRole } from "@/app/generated/prisma/client";
+import { movePinnedItem } from "@/lib/booking-controls";
 
 type AdminSidebarProps = {
   isOpen: boolean;
@@ -400,6 +401,7 @@ export default function AdminSidebar({
   const [favorites, setFavorites] = useState(initialFavorites);
   const [savingFavorite, setSavingFavorite] = useState<string | null>(null);
   const [favoriteError, setFavoriteError] = useState<string | null>(null);
+  const [draggedFavorite, setDraggedFavorite] = useState<string | null>(null);
   const visibleNavigation = navigation.filter(
     (item) =>
       !["/admin/users", "/admin/newsletter-studio"].includes(item.href) ||
@@ -450,6 +452,22 @@ export default function AdminSidebar({
     } finally {
       setSavingFavorite(null);
     }
+  }
+  async function reorderFavorites(nextFavorites: string[]) {
+    if (savingFavorite || nextFavorites.join("|") === favorites.join("|")) return;
+    const previousFavorites = favorites; setFavorites(nextFavorites); setSavingFavorite("order"); setFavoriteError(null);
+    try {
+      const response = await fetch("/api/admin/navigation-favorites", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ favorites: nextFavorites }) });
+      const result = await response.json() as { success?: boolean; favorites?: string[]; error?: string };
+      if (!response.ok || !result.success || !Array.isArray(result.favorites)) throw new Error(result.error || "Favorite order could not be saved.");
+      setFavorites(result.favorites);
+    } catch (error) { setFavorites(previousFavorites); setFavoriteError(error instanceof Error ? error.message : "Favorite order could not be saved."); }
+    finally { setSavingFavorite(null); setDraggedFavorite(null); }
+  }
+  function moveFavorite(href: string, direction: -1 | 1) {
+    const index = favorites.indexOf(href); const target = index + direction;
+    if (index < 0 || target < 0 || target >= favorites.length) return;
+    void reorderFavorites(movePinnedItem(favorites, href, direction));
   }
 
   return (
@@ -528,8 +546,9 @@ export default function AdminSidebar({
                   Favorites
                 </p>
                 <div className="mt-1 space-y-1">
-                  {favoriteItems.map((item) => (
-                    <NavigationLink
+                  {favoriteItems.map((item, index) => (
+                    <div key={`favorite-${item.href}`} draggable={!savingFavorite} onDragStart={() => setDraggedFavorite(item.href)} onDragOver={(event) => event.preventDefault()} onDrop={() => { if (!draggedFavorite || draggedFavorite === item.href) return; const next = favorites.filter(href => href !== draggedFavorite); next.splice(next.indexOf(item.href), 0, draggedFavorite); void reorderFavorites(next); }} className="group/favorite grid grid-cols-[1.5rem_minmax(0,1fr)] items-center">
+                      <div className="flex flex-col items-center text-white/25"><span aria-hidden className="cursor-grab text-sm leading-none" title="Drag to reorder">⠿</span><div className="mt-1 flex"><button type="button" disabled={index === 0 || Boolean(savingFavorite)} onClick={() => moveFavorite(item.href, -1)} aria-label={`Move ${item.label} up`} className="px-0.5 text-[10px] disabled:opacity-20">↑</button><button type="button" disabled={index === favoriteItems.length - 1 || Boolean(savingFavorite)} onClick={() => moveFavorite(item.href, 1)} aria-label={`Move ${item.label} down`} className="px-0.5 text-[10px] disabled:opacity-20">↓</button></div></div><NavigationLink
                       key={`favorite-${item.href}`}
                       item={item}
                       pathname={pathname}
@@ -537,7 +556,7 @@ export default function AdminSidebar({
                       favorite
                       onToggleFavorite={toggleFavorite}
                       savingFavorite={savingFavorite === item.href}
-                    />
+                    /></div>
                   ))}
                 </div>
               </section>

@@ -50,6 +50,16 @@ function navigation(value: unknown) {
     };
   });
 }
+function bookingMode(value: unknown) {
+  if (!["ONLINE", "UNAVAILABLE", "PAUSED"].includes(String(value))) throw new Error("INVALID_BOOKING_MODE");
+  return value as "ONLINE" | "UNAVAILABLE" | "PAUSED";
+}
+function optionalDate(value: unknown) {
+  if (!value) return null;
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) throw new Error("INVALID_DATE");
+  return date;
+}
 
 export async function PATCH(request: Request) {
   try {
@@ -76,7 +86,13 @@ export async function PATCH(request: Request) {
     if (primaryConversionImageStorageKey !== existing?.primaryConversionImageStorageKey) await verifyContentImage(primaryConversionImageStorageKey);
     const data = {
       businessName: text(body.businessName, 160, true)!, phoneDisplay: text(body.phoneDisplay, 40, true)!, phoneE164, email,
-      bookingUrl: url(body.bookingUrl), heroVideoUrl: assetUrl(body.heroVideoUrl), heroPosterUrl: assetUrl(body.heroPosterUrl), heroPosterAlt: text(body.heroPosterAlt, 240),
+      bookingUrl: url(body.bookingUrl), bookingMode: bookingMode(body.bookingMode),
+      bookingHeadline: text(body.bookingHeadline, 180), bookingExplanation: text(body.bookingExplanation, 1200),
+      bookingEstimatedRestoreAt: optionalDate(body.bookingEstimatedRestoreAt),
+      bookingContactPhone: text(body.bookingContactPhone, 40), bookingContactEmail: text(body.bookingContactEmail, 320),
+      bookingBannerMessage: text(body.bookingBannerMessage, 280), bookingBannerEnabled: body.bookingBannerEnabled !== false,
+      bookingRequestEnabled: body.bookingRequestEnabled !== false,
+      heroVideoUrl: assetUrl(body.heroVideoUrl), heroPosterUrl: assetUrl(body.heroPosterUrl), heroPosterAlt: text(body.heroPosterAlt, 240),
       heroEyebrow: text(body.heroEyebrow, 120), heroHeadlineLineOne: text(body.heroHeadlineLineOne, 120), heroHeadlineLineTwo: text(body.heroHeadlineLineTwo, 120), heroBody: text(body.heroBody, 420), heroPrimaryLabel: text(body.heroPrimaryLabel, 80), heroPrimaryDestination: assetUrl(body.heroPrimaryDestination), heroSecondaryLabel: text(body.heroSecondaryLabel, 80), heroSecondaryDestination: assetUrl(body.heroSecondaryDestination), availabilityEnabled: Boolean(body.availabilityEnabled), availabilityLabel: text(body.availabilityLabel, 80),
       heliosStandardImageStorageKey, heliosStandardImageUrl: assetUrl(body.heliosStandardImageUrl), heliosStandardImageAlt: text(body.heliosStandardImageAlt, 240),
       primaryConversionImageStorageKey, primaryConversionImageUrl: assetUrl(body.primaryConversionImageUrl), primaryConversionImageAlt: text(body.primaryConversionImageAlt, 240),

@@ -13,11 +13,13 @@ export default function ImageLibraryDialog({
   initialTab,
   onClose,
   onChoose,
+  allowGenerate = true,
 }: {
   open: boolean;
   initialTab: "gallery" | "generate";
   onClose: () => void;
   onChoose: (item: NewsletterGalleryImage) => void;
+  allowGenerate?: boolean;
 }) {
   const [tab, setTab] = useState<"gallery" | "generate">(initialTab);
   const [items, setItems] = useState<NewsletterGalleryImage[]>([]);
@@ -125,10 +127,10 @@ export default function ImageLibraryDialog({
       <button type="button" disabled={Boolean(busy)} onClick={onClose} className="admin-btn-link">Close</button>
     </header>
     <div className="p-5 sm:p-6">
-      <div className="flex rounded-lg border border-white/10 p-1">
+      {allowGenerate && <div className="flex rounded-lg border border-white/10 p-1">
         <button type="button" onClick={() => setTab("gallery")} className={`flex-1 rounded-md px-3 py-2 text-xs ${tab === "gallery" ? "bg-white/10 text-white" : "text-white/35"}`}>Browse gallery</button>
         <button type="button" onClick={() => setTab("generate")} className={`flex-1 rounded-md px-3 py-2 text-xs ${tab === "generate" ? "bg-white/10 text-white" : "text-white/35"}`}>Generate with AI</button>
-      </div>
+      </div>}
       {error && <p role="alert" className="mt-4 rounded-xl border border-red-300/20 bg-red-300/[0.06] px-4 py-3 text-sm text-red-100/80">{error}</p>}
       {tab === "gallery" ? <div className="mt-5">
         <form onSubmit={event => { event.preventDefault(); setPage(1); void load(1); }} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(12rem,1fr)_minmax(14rem,1fr)_12rem_auto]">

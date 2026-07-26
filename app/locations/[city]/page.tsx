@@ -77,7 +77,7 @@ export default async function LocationLandingPage({
     getSiteSettings(),
     getPublishedLocationPages(),
   ]);
-  const bookingHref = settings.bookingUrl || "/inquire";
+  const bookingHref = "/book";
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "ProfessionalService",

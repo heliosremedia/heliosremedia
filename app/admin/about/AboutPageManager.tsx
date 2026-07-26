@@ -4,6 +4,8 @@ import { useState } from "react";
 import Image from "next/image";
 
 import type { AboutListItem, PublicAboutPageContent } from "@/lib/about-page";
+import ImageLibraryDialog from "@/app/admin/newsletter-studio/components/ImageLibraryDialog";
+import type { NewsletterGalleryImage } from "@/app/admin/newsletter-studio/types";
 
 type TeamMemberCategory = "LEADERSHIP" | "PRODUCTION" | "POST_PRODUCTION" | "CLIENT_CARE" | "MARKETING" | "OPERATIONS";
 const teamMemberCategories: TeamMemberCategory[] = ["LEADERSHIP", "PRODUCTION", "POST_PRODUCTION", "CLIENT_CARE", "MARKETING", "OPERATIONS"];
@@ -23,6 +25,7 @@ export default function AboutPageManager({ initialContent, initialTeamMembers }:
   const [content, setContent] = useState(initialContent);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [galleryTarget, setGalleryTarget] = useState<"galleryOne" | "galleryTwo" | "galleryThree" | null>(null);
 
   function field<K extends keyof PublicAboutPageContent>(key: K, value: PublicAboutPageContent[K]) {
     setContent((current) => ({ ...current, [key]: value }));
@@ -46,6 +49,27 @@ export default function AboutPageManager({ initialContent, initialTeamMembers }:
       await jsonRequest("/api/admin/about", { method: "PATCH", body: JSON.stringify(content) });
       setMessage("About page saved and published.");
     } catch (error) { setMessage(error instanceof Error ? error.message : "The About page could not be saved."); }
+    finally { setBusy(false); }
+  }
+
+  function chooseGalleryImage(item: NewsletterGalleryImage) {
+    if (!galleryTarget) return;
+    setContent((current) => ({ ...current, [`${galleryTarget}StorageKey`]: null, [`${galleryTarget}Url`]: item.url, [`${galleryTarget}Alt`]: item.altText || item.label }));
+    setGalleryTarget(null); setMessage("Gallery image selected. Save the About page to publish it.");
+  }
+
+  async function randomizeGallery() {
+    setBusy(true); setMessage("");
+    try {
+      const response = await fetch("/api/admin/newsletters/images?source=PORTFOLIO&page=1", { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "The gallery could not be loaded.");
+      const candidates = (result.items as NewsletterGalleryImage[]).filter((item, index, list) => list.findIndex((other) => other.assetId === item.assetId) === index);
+      if (candidates.length < 3) throw new Error("At least three eligible gallery images are required.");
+      const chosen = [...candidates].sort(() => Math.random() - 0.5).slice(0, 3);
+      setContent((current) => ({ ...current, galleryOneStorageKey: null, galleryOneUrl: chosen[0].url, galleryOneAlt: chosen[0].altText || chosen[0].label, galleryTwoStorageKey: null, galleryTwoUrl: chosen[1].url, galleryTwoAlt: chosen[1].altText || chosen[1].label, galleryThreeStorageKey: null, galleryThreeUrl: chosen[2].url, galleryThreeAlt: chosen[2].altText || chosen[2].label }));
+      setMessage("Three distinct gallery images selected. Save to publish or refresh to cancel.");
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Images could not be randomized."); }
     finally { setBusy(false); }
   }
 
@@ -90,10 +114,11 @@ export default function AboutPageManager({ initialContent, initialTeamMembers }:
     </Panel>
 
     <Panel eyebrow="Miniature gallery" title="About imagery" description="These three images preserve the editorial layout while making every frame replaceable.">
+      <div className="mb-5 flex justify-end"><button type="button" disabled={busy} onClick={randomizeGallery} className="admin-btn-secondary">Randomize Three Images</button></div>
       <div className="grid gap-5 lg:grid-cols-3">
-        <ImageField label="Large image" value={content.galleryOneUrl} alt={content.galleryOneAlt} onAlt={(value) => field("galleryOneAlt", value)} onFile={(file) => upload("gallery-one", "galleryOne", file)} busy={busy} />
-        <ImageField label="Upper image" value={content.galleryTwoUrl} alt={content.galleryTwoAlt} onAlt={(value) => field("galleryTwoAlt", value)} onFile={(file) => upload("gallery-two", "galleryTwo", file)} busy={busy} />
-        <ImageField label="Lower image" value={content.galleryThreeUrl} alt={content.galleryThreeAlt} onAlt={(value) => field("galleryThreeAlt", value)} onFile={(file) => upload("gallery-three", "galleryThree", file)} busy={busy} />
+        <ImageField label="Large image" value={content.galleryOneUrl} alt={content.galleryOneAlt} onAlt={(value) => field("galleryOneAlt", value)} onFile={(file) => upload("gallery-one", "galleryOne", file)} onGallery={() => setGalleryTarget("galleryOne")} busy={busy} />
+        <ImageField label="Upper image" value={content.galleryTwoUrl} alt={content.galleryTwoAlt} onAlt={(value) => field("galleryTwoAlt", value)} onFile={(file) => upload("gallery-two", "galleryTwo", file)} onGallery={() => setGalleryTarget("galleryTwo")} busy={busy} />
+        <ImageField label="Lower image" value={content.galleryThreeUrl} alt={content.galleryThreeAlt} onAlt={(value) => field("galleryThreeAlt", value)} onFile={(file) => upload("gallery-three", "galleryThree", file)} onGallery={() => setGalleryTarget("galleryThree")} busy={busy} />
       </div>
     </Panel>
 
@@ -102,6 +127,7 @@ export default function AboutPageManager({ initialContent, initialTeamMembers }:
       <ListEditor items={content.process} onChange={(items) => field("process", items)} />
     </Panel>
 
+    <ImageLibraryDialog open={galleryTarget !== null} initialTab="gallery" allowGenerate={false} onClose={() => setGalleryTarget(null)} onChoose={chooseGalleryImage} />
     <div className="sticky bottom-4 z-20 flex justify-end rounded-2xl border border-white/10 bg-[#111]/95 p-4 shadow-2xl backdrop-blur"><button type="button" disabled={busy} onClick={() => void save()} className="admin-btn-primary">{busy ? "Saving…" : "Save About page"}</button></div>
   </div>;
 }
@@ -118,8 +144,8 @@ function Textarea({ label, value, onChange, rows, maxLength }: { label: string; 
   return <label className="block text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-white/30"><span className="flex items-center justify-between gap-4"><span>{label} <span className="font-normal normal-case tracking-normal text-white/20">· safe HTML supported</span></span>{maxLength && <span className="text-[0.5rem] font-normal tracking-[0.08em] text-white/22">{value.length.toLocaleString()} / {maxLength.toLocaleString()} characters</span>}</span><textarea value={value} rows={rows} maxLength={maxLength} onChange={(event) => onChange(event.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 p-4 text-sm leading-6 normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label>;
 }
 
-function ImageField({ label, value, alt, onAlt, onFile, busy, aspect = "landscape" }: { label: string; value: string | null; alt: string; onAlt: (value: string) => void; onFile: (file: File) => void; busy: boolean; aspect?: "landscape" | "portrait" }) {
-  return <div className="rounded-2xl border border-white/[0.08] bg-black/20 p-4"><p className="text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-white/30">{label}</p><div className={`relative mt-3 overflow-hidden rounded-xl bg-white/[0.03] ${aspect === "portrait" ? "aspect-[4/5]" : "aspect-[4/3]"}`}>{value ? <Image src={value} alt="" fill unoptimized sizes="(max-width: 1024px) 100vw, 33vw" className="object-cover" /> : <div className="flex h-full items-center justify-center text-sm text-white/20">No image</div>}</div><label className="mt-4 block text-[0.5rem] uppercase tracking-[0.13em] text-white/25">Image alt text<input value={alt} onChange={(event) => onAlt(event.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-black/25 px-3 text-sm normal-case tracking-normal text-white" /></label><label className="mt-4 admin-btn-primary cursor-pointer"><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; if (file) onFile(file); event.currentTarget.value = ""; }} className="sr-only" />{busy ? "Working…" : "Upload image"}</label></div>;
+function ImageField({ label, value, alt, onAlt, onFile, onGallery, busy, aspect = "landscape" }: { label: string; value: string | null; alt: string; onAlt: (value: string) => void; onFile: (file: File) => void; onGallery?: () => void; busy: boolean; aspect?: "landscape" | "portrait" }) {
+  return <div className="rounded-2xl border border-white/[0.08] bg-black/20 p-4"><p className="text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-white/30">{label}</p><div className={`relative mt-3 overflow-hidden rounded-xl bg-white/[0.03] ${aspect === "portrait" ? "aspect-[4/5]" : "aspect-[4/3]"}`}>{value ? <Image src={value} alt="" fill unoptimized sizes="(max-width: 1024px) 100vw, 33vw" className="object-cover" /> : <div className="flex h-full items-center justify-center text-sm text-white/20">No image</div>}</div><label className="mt-4 block text-[0.5rem] uppercase tracking-[0.13em] text-white/25">Image alt text<input value={alt} onChange={(event) => onAlt(event.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-black/25 px-3 text-sm normal-case tracking-normal text-white" /></label><div className="mt-4 flex flex-wrap gap-2"><label className="admin-btn-primary cursor-pointer"><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; if (file) onFile(file); event.currentTarget.value = ""; }} className="sr-only" />{busy ? "Working…" : "Upload image"}</label>{onGallery && <button type="button" disabled={busy} onClick={onGallery} className="admin-btn-secondary">Choose from Gallery</button>}</div></div>;
 }
 
 function ListEditor({ items, onChange }: { items: AboutListItem[]; onChange: (items: AboutListItem[]) => void }) {

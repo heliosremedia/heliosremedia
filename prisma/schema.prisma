@@ -320,6 +320,12 @@ enum HomepageCardMediaMode {
   UPLOADED_VIDEO
 }
 
+enum BookingMode {
+  ONLINE
+  UNAVAILABLE
+  PAUSED
+}
+
 enum LegalDocumentType {
   PRIVACY_POLICY
   TERMS_OF_SERVICE
@@ -696,11 +702,20 @@ model HomepageWorkCard {
 model SiteSettings {
   id String @id @default("default")
 
-  businessName String  @default("Helios Real Estate Media")
-  phoneDisplay String  @default("970.682.5533")
-  phoneE164    String  @default("+19706825533")
-  email        String?
-  bookingUrl   String?
+  businessName              String      @default("Helios Real Estate Media")
+  phoneDisplay              String      @default("970.682.5533")
+  phoneE164                 String      @default("+19706825533")
+  email                     String?
+  bookingUrl                String?
+  bookingMode               BookingMode @default(ONLINE)
+  bookingHeadline           String?     @default("Online booking is temporarily unavailable")
+  bookingExplanation        String?
+  bookingEstimatedRestoreAt DateTime?
+  bookingContactPhone       String?
+  bookingContactEmail       String?
+  bookingBannerMessage      String?
+  bookingBannerEnabled      Boolean     @default(true)
+  bookingRequestEnabled     Boolean     @default(true)
 
   heroVideoUrl             String?
   heroPosterUrl            String? @default("/work/featured-estate.jpg")
@@ -1207,9 +1222,29 @@ model CampaignRecipient {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  events CampaignDeliveryEvent[]
+
   @@unique([campaignId, clientId])
   @@index([campaignId, status])
   @@index([clientId])
+}
+
+model CampaignDeliveryEvent {
+  id String @id @default(cuid())
+
+  providerEventId     String            @unique
+  providerMessageId   String
+  campaignRecipientId String
+  campaignRecipient   CampaignRecipient @relation(fields: [campaignRecipientId], references: [id], onDelete: Cascade)
+  eventType           String
+  linkUrl             String?
+  occurredAt          DateTime
+  payload             Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([campaignRecipientId, eventType])
+  @@index([providerMessageId, occurredAt])
 }
 
 model CommunicationGroup {
