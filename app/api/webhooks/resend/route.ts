@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { setMarketingPreference } from "@/lib/client-communications/preferences";
 
 export const dynamic = "force-dynamic";
 
@@ -117,6 +118,13 @@ export async function POST(request: Request) {
           update: { releasedAt: null, reason, clientId: clients[0]?.id },
         }),
       ]);
+      await setMarketingPreference({
+        email,
+        status: event.type === "email.complained" ? "UNSUBSCRIBED" : "SUPPRESSED",
+        source: "RESEND_WEBHOOK",
+        reason,
+        messageId: event.data?.email_id,
+      });
     }
     return NextResponse.json({ success: true });
   } catch (error) {

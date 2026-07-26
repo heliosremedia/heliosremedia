@@ -1,7 +1,6 @@
 import "server-only";
 
 import sanitizeHtml from "sanitize-html";
-import { createUnsubscribeToken } from "@/lib/client-communications/email";
 import { getSiteUrl } from "@/lib/site";
 import { renderNewsletterCta } from "./presentation";
 import { renderNewsletterImage } from "./email-images";
@@ -53,11 +52,11 @@ function renderBlock(block: RenderableBlock) {
 export function renderNewsletterEmail(input: {
   previewText?: string | null;
   blocks: RenderableBlock[];
-  clientId: string;
+  unsubscribeToken: string;
   businessName?: string;
   businessAddress?: string | null;
 }) {
-  const unsubscribeUrl = `${getSiteUrl()}/unsubscribe?token=${encodeURIComponent(createUnsubscribeToken(input.clientId))}`;
+  const unsubscribeUrl = `${getSiteUrl()}/unsubscribe?token=${encodeURIComponent(input.unsubscribeToken)}`;
   const preview = input.previewText ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">${escape(input.previewText)}</div>` : "";
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:0;background:#ece7de">${preview}<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#ece7de"><tr><td align="center" style="padding:28px 12px"><table role="presentation" width="640" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:640px;background:#f8f5ef"><tr><td style="padding:28px 42px;background:#11110f;color:#f8f5ef;font-family:Arial,sans-serif;font-size:12px;letter-spacing:.18em;text-transform:uppercase">${escape(input.businessName || "Helios Real Estate Media")}</td></tr>${input.blocks.map(renderBlock).join("")}<tr><td style="padding:30px 42px;background:#11110f;color:#8f8b84;font-family:Arial,sans-serif;font-size:11px;line-height:1.7"><p style="margin:0">You are receiving this email because you are a Helios client.</p>${input.businessAddress ? `<p style="margin:5px 0 0">${escape(input.businessAddress)}</p>` : ""}<p style="margin:12px 0 0"><a href="${escape(unsubscribeUrl)}" style="color:#d6d0c8">Unsubscribe from marketing emails</a></p></td></tr></table></td></tr></table></body></html>`;
 }

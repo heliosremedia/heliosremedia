@@ -9,6 +9,7 @@ import { resolveAudience } from "./audience";
 import { createReferralCredentials } from "./tokens";
 import { assertReferralTransition } from "./state-machine";
 import { personalizeReferralCopy, renderReferralInvitationEmail } from "./email-renderer";
+import { generatePreferenceToken, hashPreferenceToken, MARKETING_TOKEN_TTL_DAYS } from "@/lib/client-communications/preferences";
 
 export type CampaignInput = {
   internalName: string;
@@ -370,6 +371,20 @@ export async function launchReferralCampaign(id: string, actor: { userId: string
         },
       });
       const referralUrl = `${getSiteUrl()}/refer/${encodeURIComponent(credentials.token)}`;
+      const preference = await tx.marketingEmailPreference.upsert({
+        where: { normalizedEmail: recipient.email.trim().toLowerCase() },
+        create: { normalizedEmail: recipient.email.trim().toLowerCase(), status: "UNKNOWN", source: "REFERRAL_CAMPAIGN" },
+        update: {},
+      });
+      const unsubscribeToken = generatePreferenceToken();
+      await tx.marketingEmailPreferenceToken.create({
+        data: {
+          preferenceId: preference.id,
+          tokenHash: hashPreferenceToken(unsubscribeToken),
+          expiresAt: new Date(Date.now() + MARKETING_TOKEN_TTL_DAYS * 86_400_000),
+          campaignId: id,
+        },
+      });
       const personalizedBody = personalizeReferralCopy(invitation.body, {
         firstName: recipient.firstName || recipient.displayName.split(/\s+/)[0] || "there",
         referralUrl,
@@ -389,7 +404,7 @@ export async function launchReferralCampaign(id: string, actor: { userId: string
           htmlSnapshot: renderReferralInvitationEmail({
             body: personalizedBody,
             previewText: invitation.previewText,
-            clientId: recipient.id,
+            unsubscribeToken,
             referralUrl,
             referralCode: credentials.code,
             campaignTitle: campaign.publicTitle,
@@ -423,7 +438,7 @@ export async function launchReferralCampaign(id: string, actor: { userId: string
               htmlSnapshot: renderReferralInvitationEmail({
                 body,
                 previewText: invitation.previewText,
-                clientId: recipient.id,
+                unsubscribeToken,
                 referralUrl,
                 referralCode: credentials.code,
                 campaignTitle: campaign.publicTitle,

@@ -53,7 +53,7 @@ export async function POST(request: Request, context: { params: Promise<{ campai
         html: renderReferralInvitationEmail({
           body: campaign.invitationBody.replaceAll("{{first_name}}", "Jake").replaceAll("{{campaign_title}}", campaign.publicTitle).replaceAll("{{referral_link}}", "#").replaceAll("{{referral_code}}", "HEL-TESTONLY"),
           previewText: campaign.invitationPreviewText,
-          clientId: "referral-test-preview",
+          unsubscribeToken: "test-preview-disabled",
           referralUrl: "#",
           referralCode: "HEL-TESTONLY",
           campaignTitle: campaign.publicTitle,

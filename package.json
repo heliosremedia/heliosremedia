@@ -7,7 +7,7 @@
     "build": "node scripts/build.mjs",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test lib/newsletters/*.test.ts lib/referrals/*.test.ts",
+    "test": "node --experimental-strip-types --test lib/client-communications/*.test.ts lib/newsletters/*.test.ts lib/referrals/*.test.ts",
     "auth:hash-password": "node scripts/hash-admin-password.mjs"
   },
   "dependencies": {

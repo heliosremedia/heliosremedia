@@ -3,6 +3,8 @@ import { recordAuditEvent } from "@/lib/audit";
 import { getAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { renderCampaignEmail, sendCampaignBatch, sendTestCampaign } from "@/lib/client-communications/email";
+import { addressIsMarketingEligible, createPreferenceToken } from "@/lib/client-communications/preferences";
+import { getSiteUrl } from "@/lib/site";
 
 type Payload = {
   action?: "test" | "send";
@@ -40,7 +42,7 @@ export async function POST(request: Request) {
       await sendTestCampaign({
         to: testEmail,
         subject,
-        html: renderCampaignEmail({ body, previewText, clientId: "test-preview" }),
+        html: renderCampaignEmail({ body, previewText, unsubscribeToken: "test-preview-disabled" }),
       });
       await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: "EMAIL_CAMPAIGN_TEST_SENT", entityType: "EmailCampaign", summary: `Campaign test sent to ${testEmail}.` });
       return NextResponse.json({ success: true, message: `Test sent to ${testEmail}.` });
@@ -82,13 +84,27 @@ export async function POST(request: Request) {
     let sent = 0;
     let failed = 0;
     for (let index = 0; index < campaign.recipients.length; index += 100) {
-      const batch = campaign.recipients.slice(index, index + 100);
+      const candidates = campaign.recipients.slice(index, index + 100);
+      const eligibility = await Promise.all(candidates.map(async recipient => ({
+        recipient,
+        eligible: await addressIsMarketingEligible(recipient.email.trim().toLowerCase()),
+      })));
+      const skipped = eligibility.filter(item => !item.eligible).map(item => item.recipient);
+      if (skipped.length) await prisma.campaignRecipient.updateMany({
+        where: { id: { in: skipped.map(recipient => recipient.id) } },
+        data: { status: "SKIPPED", error: "Recipient opted out or became suppressed before delivery." },
+      });
+      const batch = eligibility.filter(item => item.eligible).map(item => item.recipient);
+      if (!batch.length) continue;
       try {
+        const tokens = await Promise.all(batch.map(recipient =>
+          createPreferenceToken({ clientId: recipient.clientId, campaignId: campaign.id })));
         const result = await sendCampaignBatch({
           campaignId: `${campaign.id}-${index / 100}`,
-          messages: batch.map((recipient) => ({
+          messages: batch.map((recipient, offset) => ({
             to: recipient.email, subject,
-            html: renderCampaignEmail({ body, previewText, clientId: recipient.clientId }),
+            html: renderCampaignEmail({ body, previewText, unsubscribeToken: tokens[offset] }),
+            unsubscribeUrl: `${getSiteUrl()}/api/unsubscribe?token=${encodeURIComponent(tokens[offset])}`,
           })),
         });
         await prisma.$transaction(batch.map((recipient, offset) => prisma.campaignRecipient.update({

@@ -3,6 +3,13 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { sendCampaignBatch } from "@/lib/client-communications/email";
 import { campaignCanExecute, followUpShouldStop } from "./state-machine";
+import { addressIsMarketingEligible } from "@/lib/client-communications/preferences";
+import { getSiteUrl } from "@/lib/site";
+
+function unsubscribeUrl(html: string) {
+  const match = html.match(/href="([^"]*\/unsubscribe\?token=[^"]+)"/);
+  return match?.[1]?.replaceAll("&amp;", "&") ?? `${getSiteUrl()}/unsubscribe`;
+}
 
 export async function processReferralCommunications(now = new Date(), limit = 50) {
   const due = await prisma.referralCommunication.findMany({
@@ -44,7 +51,8 @@ export async function processReferralCommunications(now = new Date(), limit = 50
           now,
         })
       : false;
-    const ineligible = client && (!client.emailSubscribed || client.archivedAt || client.emailStatus !== "VALID" || client.newsletterSuppressions.length > 0);
+    const addressEligible = client ? await addressIsMarketingEligible(client.normalizedEmail) : false;
+    const ineligible = client && (!client.emailSubscribed || !addressEligible || client.archivedAt || client.emailStatus !== "VALID" || client.newsletterSuppressions.length > 0);
     if (!campaignActive || stopFollowUp || ineligible || !communication.htmlSnapshot) {
       await prisma.referralCommunication.update({
         where: { id: communication.id },
@@ -65,7 +73,12 @@ export async function processReferralCommunications(now = new Date(), limit = 50
           ? `${communication.campaign.senderName || "Helios Real Estate Media"} <${communication.campaign.senderEmail}>`
           : undefined,
         replyTo: communication.campaign.replyTo,
-        messages: [{ to: communication.recipientEmail, subject: communication.subject, html: communication.htmlSnapshot }],
+        messages: [{
+          to: communication.recipientEmail,
+          subject: communication.subject,
+          html: communication.htmlSnapshot,
+          unsubscribeUrl: unsubscribeUrl(communication.htmlSnapshot),
+        }],
       });
       await prisma.$transaction([
         prisma.referralCommunication.update({
