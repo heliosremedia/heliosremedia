@@ -1096,6 +1096,7 @@ model AdminUser {
   newsletterEditionsCreated NewsletterEdition[]             @relation("NewsletterEditionCreator")
   newsletterRevisions       NewsletterRevision[]
   newsletterApprovals       NewsletterApproval[]
+  newsletterImageAssets     NewsletterImageAsset[]
   referralCampaignsCreated  ReferralCampaign[]              @relation("ReferralCampaignCreator")
   referralCampaignApprovals ReferralCampaignRevision[]      @relation("ReferralRevisionApprover")
   referralStatusEvents      ReferralStatusEvent[]
@@ -1452,6 +1453,29 @@ model NewsletterBlockSource {
 
   @@index([blockId])
   @@index([sourceType, sourceId])
+}
+
+model NewsletterImageAsset {
+  id String @id @default(cuid())
+
+  storageKey  String @unique
+  publicUrl   String
+  prompt      String
+  altText     String
+  attribution String
+  model       String
+  quality     String
+  width       Int
+  height      Int
+  fileSize    Int
+
+  createdById String
+  createdBy   AdminUser @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([createdById])
 }
 
 model NewsletterRevision {

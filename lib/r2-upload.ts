@@ -128,6 +128,11 @@ export function createBlogImageKey(mimeType: string) {
   return `blog/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
 }
 
+export function createNewsletterAiImageKey() {
+  const timestamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "-");
+  return `newsletter/ai/${timestamp}-${randomUUID().slice(0, 8)}.webp`;
+}
+
 export function createTrustedLogoKey(mimeType: string) {
   const timestamp = new Date()
     .toISOString()

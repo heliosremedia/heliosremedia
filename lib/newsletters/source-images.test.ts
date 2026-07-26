@@ -55,7 +55,7 @@ test("newsletter image URLs require public HTTPS", () => {
 });
 
 test("manual source, custom, and no-image choices survive block regeneration", () => {
-  for (const mode of ["SOURCE", "CUSTOM", "NONE"] as const) {
+  for (const mode of ["SOURCE", "GALLERY", "AI", "CUSTOM", "NONE"] as const) {
     const current = {
       imageUrl: mode === "NONE" ? "" : "https://cdn.example.com/manual.jpg",
       altText: "Administrator choice",

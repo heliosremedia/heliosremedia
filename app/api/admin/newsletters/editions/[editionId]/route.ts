@@ -52,7 +52,7 @@ function parseEditorEdition(value: unknown) {
       if (!NEWSLETTER_BLOCK_TYPES.includes(type as never)) throw new Error("A content block has an invalid type.");
       const selectionInput = block.imageSelection && typeof block.imageSelection === "object"
         ? block.imageSelection as Record<string, unknown> : {};
-      const imageMode = ["AUTO", "SOURCE", "CUSTOM", "NONE"].includes(String(selectionInput.mode))
+      const imageMode = ["AUTO", "SOURCE", "GALLERY", "AI", "CUSTOM", "NONE"].includes(String(selectionInput.mode))
         ? String(selectionInput.mode) : (clean(block.imageUrl, 2_000) ? "CUSTOM" : "AUTO");
       const candidates = Array.isArray(block.imageCandidates) ? block.imageCandidates.flatMap((value) => {
         if (!value || typeof value !== "object") return [];
@@ -70,6 +70,9 @@ function parseEditorEdition(value: unknown) {
         }];
       }).slice(0, 50) : [];
       const candidateId = clean(selectionInput.candidateId, 300);
+      const assetId = clean(selectionInput.assetId, 300);
+      const assetSource = ["PORTFOLIO", "BLOG", "AI"].includes(String(selectionInput.assetSource))
+        ? String(selectionInput.assetSource) : "";
       if (imageMode === "SOURCE" && !candidates.some((item) =>
         (item as { id?: unknown }).id === candidateId
       )) throw new Error("The selected image is not available from this block's verified source.");
@@ -89,7 +92,10 @@ function parseEditorEdition(value: unknown) {
           imageSelection: {
             mode: imageMode,
             ...(candidateId ? { candidateId } : {}),
+            ...(assetId ? { assetId } : {}),
+            ...(assetSource ? { assetSource } : {}),
             sourceLabel: clean(selectionInput.sourceLabel, 200),
+            attribution: clean(selectionInput.attribution, 300),
           },
           imageCandidates: candidates,
           link: safeUrl(block.link),
@@ -133,6 +139,59 @@ async function saveEdition(editionId: string, value: unknown, actorId: string) {
       candidate.url === block.content.imageUrl
     );
     if (!selected) throw new Error("The selected source image is no longer available.");
+  }
+  const managedSelections = editor.blocks.filter((block) =>
+    block.content.imageSelection.mode === "AI" || block.content.imageSelection.mode === "GALLERY"
+  );
+  const aiAssetIds = managedSelections
+    .filter((block) => block.content.imageSelection.mode === "AI")
+    .map((block) => block.content.imageSelection.assetId)
+    .filter((value): value is string => Boolean(value));
+  const aiAssets = aiAssetIds.length
+    ? await prisma.newsletterImageAsset.findMany({ where: { id: { in: aiAssetIds } } })
+    : [];
+  const mediaAssetIds = managedSelections
+    .filter((block) => block.content.imageSelection.assetSource === "PORTFOLIO")
+    .map((block) => block.content.imageSelection.assetId)
+    .filter((value): value is string => Boolean(value));
+  const blogAssetIds = managedSelections
+    .filter((block) => block.content.imageSelection.assetSource === "BLOG")
+    .map((block) => block.content.imageSelection.assetId)
+    .filter((value): value is string => Boolean(value));
+  const [mediaAssets, blogAssets] = await Promise.all([
+    mediaAssetIds.length ? prisma.media.findMany({
+      where: { id: { in: mediaAssetIds }, visibility: "VISIBLE" },
+      select: { id: true, storageKey: true, externalUrl: true },
+    }) : [],
+    blogAssetIds.length ? prisma.blogPost.findMany({
+      where: { id: { in: blogAssetIds } },
+      select: { id: true, featuredImageStorageKey: true, featuredImageUrl: true },
+    }) : [],
+  ]);
+  for (const block of managedSelections) {
+    const selection = block.content.imageSelection;
+    if (!selection.assetId) throw new Error("The selected gallery image is invalid.");
+    if (selection.mode === "AI" && selection.assetSource !== "AI") {
+      throw new Error("The selected AI image is invalid.");
+    }
+    if (selection.mode === "GALLERY" && !["PORTFOLIO", "BLOG"].includes(selection.assetSource || "")) {
+      throw new Error("The selected gallery image is invalid.");
+    }
+    if (selection.mode === "AI" && !aiAssets.some((asset) =>
+      asset.id === selection.assetId && asset.publicUrl === block.content.imageUrl
+    )) throw new Error("The selected AI image is no longer available.");
+    if (selection.assetSource === "PORTFOLIO" && !mediaAssets.some((asset) => {
+      const url = asset.storageKey
+        ? `${process.env.R2_PUBLIC_URL?.replace(/\/+$/, "")}/${asset.storageKey}`
+        : asset.externalUrl;
+      return asset.id === selection.assetId && url === block.content.imageUrl;
+    })) throw new Error("The selected portfolio image is no longer available.");
+    if (selection.assetSource === "BLOG" && !blogAssets.some((asset) => {
+      const url = asset.featuredImageStorageKey
+        ? `${process.env.R2_PUBLIC_URL?.replace(/\/+$/, "")}/${asset.featuredImageStorageKey}`
+        : asset.featuredImageUrl;
+      return asset.id === selection.assetId && url === block.content.imageUrl;
+    })) throw new Error("The selected blog image is no longer available.");
   }
   const existingIds = new Set(current.blocks.map((block) => block.id));
   const retainedIds = editor.blocks.filter((block) => existingIds.has(block.id)).map((block) => block.id);

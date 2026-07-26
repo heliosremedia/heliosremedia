@@ -1,11 +1,14 @@
 import type { NewsletterBlockType, NewsletterImageCandidate } from "./types";
 
-export type NewsletterImageMode = "AUTO" | "SOURCE" | "CUSTOM" | "NONE";
+export type NewsletterImageMode = "AUTO" | "SOURCE" | "GALLERY" | "AI" | "CUSTOM" | "NONE";
 
 export type NewsletterImageSelection = {
   mode: NewsletterImageMode;
   candidateId?: string;
+  assetId?: string;
+  assetSource?: "PORTFOLIO" | "BLOG" | "AI";
   sourceLabel?: string;
+  attribution?: string;
 };
 
 export function safeNewsletterImageUrl(value: unknown, custom = false) {
@@ -53,7 +56,7 @@ export function preserveManualImage(
   const selection = current.imageSelection;
   const mode = selection && typeof selection === "object"
     ? (selection as { mode?: unknown }).mode : undefined;
-  if (mode === "SOURCE" || mode === "CUSTOM" || mode === "NONE") {
+  if (mode === "SOURCE" || mode === "GALLERY" || mode === "AI" || mode === "CUSTOM" || mode === "NONE") {
     return {
       ...replacement,
       imageUrl: current.imageUrl,
