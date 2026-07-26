@@ -5,7 +5,8 @@ import { recordAuditEvent } from "@/lib/audit";
 import { EmailDeliveryError, sendTestCampaign } from "@/lib/client-communications/email";
 import { getReferralAdminSession } from "@/lib/referrals/access";
 import { renderReferralInvitationEmail } from "@/lib/referrals/email-renderer";
-import { approveReferralCampaign, archiveReferralCampaign, deleteReferralCampaign, estimateReferralAudience, launchReferralCampaign, ReferralCampaignConflictError, referralCampaignRemovalEligibility, returnReferralCampaignToDraft, updateCampaignStatus, updateReferralCampaignDraft } from "@/lib/referrals/studio";
+import { approveReferralCampaign, archiveReferralCampaign, deleteReferralCampaign, estimateReferralAudience, ReferralCampaignConflictError, referralCampaignRemovalEligibility, returnReferralCampaignToDraft, updateCampaignStatus, updateReferralCampaignDraft } from "@/lib/referrals/studio";
+import { claimReferralCampaignLaunch, ReferralLaunchConflictError } from "@/lib/referrals/launch";
 import { email, integer, optionalDate, ReferralValidationError, stringArray, text } from "@/lib/referrals/validation";
 import { createReferralTestPreview } from "@/lib/referrals/test-preview";
 import { getSiteUrl } from "@/lib/site";
@@ -171,8 +172,11 @@ export async function POST(request: Request, context: { params: Promise<{ campai
       return NextResponse.json({ success: true, message: `Campaign approved for ${result.audience.eligible.length} eligible advocates.` });
     }
     if (body.action === "launch") {
-      const count = await launchReferralCampaign(campaignId, { userId: session.userId, email: session.email });
-      return NextResponse.json({ success: true, message: `Campaign launched for ${count} advocates.` });
+      const launch = await claimReferralCampaignLaunch(campaignId, { userId: session.userId, email: session.email });
+      return NextResponse.json({
+        success: true, launch,
+        message: `Campaign preparation started for ${launch.expectedAdvocateCount} advocates.`,
+      }, { status: 202 });
     }
     if (body.action === "return-to-draft" || body.action === "edit-approved") {
       const rowVersion = Number(body.rowVersion);
@@ -194,6 +198,9 @@ export async function POST(request: Request, context: { params: Promise<{ campai
     }
     return NextResponse.json({ success: false, error: "Unsupported campaign action." }, { status: 400 });
   } catch (error) {
+    if (error instanceof ReferralLaunchConflictError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 409 });
+    }
     if (error instanceof EmailDeliveryError) {
       const messages = {
         EMAIL_PROVIDER_NOT_CONFIGURED: "Email delivery is not configured. Add the required Resend sender configuration.",
