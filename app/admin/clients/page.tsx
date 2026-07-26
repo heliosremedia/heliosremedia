@@ -15,6 +15,8 @@ export default async function ClientsPage() {
         email: true,
         phone: true,
         lastSyncedAt: true,
+        normalizedEmail: true,
+        emailSubscribed: true,
         groupMemberships: { select: { groupId: true } },
       },
     }),
@@ -27,6 +29,11 @@ export default async function ClientsPage() {
       },
     }),
   ]);
+  const preferences = await prisma.marketingEmailPreference.findMany({
+    where: { normalizedEmail: { in: clients.map(client => client.normalizedEmail) } },
+    select: { normalizedEmail: true, status: true, effectiveAt: true, source: true },
+  });
+  const preferenceByEmail = new Map(preferences.map(preference => [preference.normalizedEmail, preference]));
 
   return (
     <div className="space-y-7">
@@ -44,6 +51,10 @@ export default async function ClientsPage() {
           ...client,
           lastSyncedAt: client.lastSyncedAt.toISOString(),
           groupIds: client.groupMemberships.map((membership) => membership.groupId),
+          emailStatus: preferenceByEmail.get(client.normalizedEmail)?.status
+            ?? (client.emailSubscribed ? "UNKNOWN" : "UNSUBSCRIBED"),
+          emailStatusEffectiveAt: preferenceByEmail.get(client.normalizedEmail)?.effectiveAt.toISOString() ?? null,
+          emailStatusSource: preferenceByEmail.get(client.normalizedEmail)?.source ?? null,
           groupMemberships: undefined,
         }))}
         initialGroups={groups.map((group) => ({

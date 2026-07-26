@@ -1,8 +1,9 @@
 import "server-only";
 
-import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { createHash } from "node:crypto";
 import { getSiteUrl } from "@/lib/site";
 import { testEmailSubject } from "@/lib/newsletters/presentation";
+import { oneClickUnsubscribeHeaders } from "./preference-rules";
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>'"]/g, (character) => ({
@@ -10,45 +11,17 @@ function escapeHtml(value: string) {
   })[character] ?? character);
 }
 
-function secret() {
-  const value = process.env.CAMPAIGN_UNSUBSCRIBE_SECRET?.trim();
-  if (value) return value;
-
-  const authSecret = process.env.AUTH_SECRET?.trim();
-  if (!authSecret || authSecret.length < 32) {
-    throw new Error("Bulk email unsubscribe protection is not configured.");
-  }
-  return createHmac("sha256", authSecret)
-    .update("helios:campaign-unsubscribe:v1")
-    .digest("base64url");
-}
-
-export function createUnsubscribeToken(clientId: string) {
-  const encoded = Buffer.from(clientId, "utf8").toString("base64url");
-  const signature = createHmac("sha256", secret()).update(encoded).digest("base64url");
-  return `${encoded}.${signature}`;
-}
-
-export function verifyUnsubscribeToken(token: string) {
-  const [encoded, signature] = token.split(".");
-  if (!encoded || !signature) return null;
-  const expected = createHmac("sha256", secret()).update(encoded).digest();
-  const provided = Buffer.from(signature, "base64url");
-  if (expected.length !== provided.length || !timingSafeEqual(expected, provided)) return null;
-  return Buffer.from(encoded, "base64url").toString("utf8");
-}
-
 export function renderCampaignEmail(input: {
   body: string;
   previewText?: string | null;
-  clientId: string;
+  unsubscribeToken: string;
 }) {
   const paragraphs = input.body
     .trim()
     .split(/\n{2,}/)
     .map((paragraph) => `<p style="margin:0 0 20px;color:#d7d1c8;font-size:16px;line-height:1.75">${escapeHtml(paragraph).replace(/\n/g, "<br>")}</p>`)
     .join("");
-  const unsubscribeUrl = `${getSiteUrl()}/unsubscribe?token=${encodeURIComponent(createUnsubscribeToken(input.clientId))}`;
+  const unsubscribeUrl = `${getSiteUrl()}/unsubscribe?token=${encodeURIComponent(input.unsubscribeToken)}`;
   const preview = input.previewText
     ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0">${escapeHtml(input.previewText)}</div>`
     : "";
@@ -91,7 +64,7 @@ export async function sendTestCampaign(input: { to: string; subject: string; htm
 
 export async function sendCampaignBatch(input: {
   campaignId: string;
-  messages: Array<{ to: string; subject: string; html: string }>;
+  messages: Array<{ to: string; subject: string; html: string; unsubscribeUrl?: string }>;
   from?: string | null;
   replyTo?: string | null;
 }) {
@@ -110,6 +83,7 @@ export async function sendCampaignBatch(input: {
     },
     body: JSON.stringify(input.messages.map((message) => ({
       from, to: [message.to], replyTo: replyTo || undefined, subject: message.subject, html: message.html,
+      headers: message.unsubscribeUrl ? oneClickUnsubscribeHeaders(message.unsubscribeUrl) : undefined,
     }))),
   });
   if (!response.ok) {

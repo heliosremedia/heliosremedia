@@ -1,6 +1,5 @@
 import "server-only";
 
-import { createUnsubscribeToken } from "@/lib/client-communications/email";
 import { getSiteUrl } from "@/lib/site";
 
 function escape(value: string) {
@@ -31,12 +30,12 @@ export function personalizeReferralCopy(value: string, input: {
 export function renderReferralInvitationEmail(input: {
   body: string;
   previewText?: string | null;
-  clientId: string;
+  unsubscribeToken: string;
   referralUrl: string;
   referralCode: string;
   campaignTitle: string;
 }) {
-  const unsubscribeUrl = `${getSiteUrl()}/unsubscribe?token=${encodeURIComponent(createUnsubscribeToken(input.clientId))}`;
+  const unsubscribeUrl = `${getSiteUrl()}/unsubscribe?token=${encodeURIComponent(input.unsubscribeToken)}`;
   const preview = input.previewText
     ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0">${escape(input.previewText)}</div>`
     : "";

@@ -6,6 +6,8 @@ import { sendCampaignBatch } from "@/lib/client-communications/email";
 import { renderNewsletterEmail } from "@/lib/newsletters/email-renderer";
 import { resolveEligibleNewsletterRecipients } from "@/lib/newsletters/recipients";
 import type { RecipientSelection } from "@/lib/newsletters/types";
+import { createPreferenceToken } from "@/lib/client-communications/preferences";
+import { getSiteUrl } from "@/lib/site";
 
 function parseSelection(value: unknown): RecipientSelection {
   const candidate = value && typeof value === "object" && !Array.isArray(value)
@@ -144,21 +146,24 @@ export async function deliverApprovedNewsletter(editionId: string) {
   for (let index = 0; index < pending.length; index += 100) {
     const batch = pending.slice(index, index + 100);
     try {
+      const tokens = await Promise.all(batch.map(recipient =>
+        createPreferenceToken({ clientId: recipient.clientId, campaignId: campaign!.id })));
       const batchKey = createHash("sha256")
         .update(batch.map((recipient) => recipient.id).sort().join(":"))
         .digest("hex")
         .slice(0, 24);
       const result = await sendCampaignBatch({
         campaignId: `${campaign.id}:newsletter:${batchKey}`,
-        messages: batch.map((recipient) => ({
+        messages: batch.map((recipient, offset) => ({
           to: recipient.email,
           subject: campaign!.subject,
           html: renderNewsletterEmail({
             previewText: campaign!.previewText,
             blocks,
-            clientId: recipient.clientId,
+            unsubscribeToken: tokens[offset],
             businessName: edition.series.senderName || "Helios Real Estate Media",
           }),
+          unsubscribeUrl: `${getSiteUrl()}/api/unsubscribe?token=${encodeURIComponent(tokens[offset])}`,
         })),
       });
       await prisma.$transaction(batch.map((recipient, offset) => prisma.campaignRecipient.update({

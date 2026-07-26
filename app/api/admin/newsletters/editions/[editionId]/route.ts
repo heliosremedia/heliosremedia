@@ -440,7 +440,7 @@ export async function POST(request: Request, context: Context) {
           blocks: serialized.blocks.map((block) => ({
             ...block, imageAlt: block.altText, imageLink: block.imageLink, linkUrl: block.link,
           })),
-          clientId: "newsletter-test-preview",
+          unsubscribeToken: "test-preview-disabled",
           businessName: "Helios Real Estate Media",
         });
       } catch {

@@ -83,7 +83,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ success: false, error: "Group not found." }, { status: 404 });
     }
     const group = await prisma.communicationGroup.update({
-      where: { id: groupId },
+      where: { id: groupId, systemManaged: false },
       data: normalizeName(body.name),
       select: { id: true, name: true },
     });
@@ -114,10 +114,13 @@ export async function DELETE(request: Request) {
   const groupId = typeof body.groupId === "string" ? body.groupId : "";
   const group = await prisma.communicationGroup.findUnique({
     where: { id: groupId },
-    select: { id: true, name: true, _count: { select: { memberships: true } } },
+    select: { id: true, name: true, systemManaged: true, _count: { select: { memberships: true } } },
   });
   if (!group) {
     return NextResponse.json({ success: false, error: "Group not found." }, { status: 404 });
+  }
+  if (group.systemManaged) {
+    return NextResponse.json({ success: false, error: "System-managed groups cannot be deleted or repurposed." }, { status: 409 });
   }
   await prisma.communicationGroup.delete({ where: { id: group.id } });
   await recordAuditEvent({

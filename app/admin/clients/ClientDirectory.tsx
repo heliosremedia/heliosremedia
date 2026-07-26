@@ -10,6 +10,9 @@ type Client = {
   phone: string | null;
   lastSyncedAt: string;
   groupIds: string[];
+  emailStatus: string;
+  emailStatusEffectiveAt: string | null;
+  emailStatusSource: string | null;
 };
 
 type Group = {
@@ -194,6 +197,30 @@ export default function ClientDirectory({
       );
       setSelected(new Set());
     }
+  }
+
+  async function updatePreference(client: Client) {
+    const resubscribe = ["UNSUBSCRIBED", "SUPPRESSED"].includes(client.emailStatus);
+    let consentSource = "";
+    if (resubscribe) {
+      consentSource = window.prompt("Enter the documented consent source (for example: written client request on July 25):")?.trim() ?? "";
+      if (!consentSource) return;
+      if (!window.confirm(`Confirm ${client.displayName} explicitly consented to marketing email at ${client.email}?`)) return;
+    } else if (!window.confirm(`Unsubscribe ${client.email} from all Helios marketing email?`)) return;
+    const result = await request(
+      "/api/admin/clients/preferences",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          clientId: client.id,
+          action: resubscribe ? "resubscribe" : "unsubscribe",
+          consentSource,
+          confirmation: resubscribe,
+        }),
+      },
+      "Email preference could not be updated.",
+    );
+    if (result) setMessage(resubscribe ? "Consent recorded and address resubscribed." : "Address unsubscribed from marketing.");
   }
 
   function toggleClient(clientId: string) {
@@ -405,7 +432,7 @@ export default function ClientDirectory({
                   className="h-4 w-4 accent-[var(--helios-orange)]"
                 />
               ) : null}
-              <span>Name</span><span>Email</span><span>Phone</span>
+              <span>Name</span><span>Email preference</span><span>Phone</span>
             </div>
             {visibleClients.length ? (
               <div className="divide-y divide-white/[0.07]">
@@ -434,7 +461,13 @@ export default function ClientDirectory({
                         </p>
                       ) : null}
                     </div>
-                    <a href={`mailto:${client.email}`} className="truncate text-sm text-white/45 transition hover:text-white">{client.email}</a>
+                    <div className="min-w-0">
+                      <a href={`mailto:${client.email}`} className="block truncate text-sm text-white/45 transition hover:text-white">{client.email}</a>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <span className={`rounded-full border px-2 py-0.5 text-[0.58rem] uppercase tracking-[.1em] ${["UNSUBSCRIBED", "SUPPRESSED"].includes(client.emailStatus) ? "border-amber-300/20 bg-amber-300/[0.06] text-amber-100/60" : "border-emerald-300/15 bg-emerald-300/[0.05] text-emerald-100/55"}`}>{client.emailStatus.replaceAll("_", " ")}</span>
+                        {canManage ? <button type="button" disabled={busy} onClick={() => updatePreference(client)} className="text-[0.62rem] text-white/30 underline decoration-white/15 underline-offset-2 hover:text-white/60">{["UNSUBSCRIBED", "SUPPRESSED"].includes(client.emailStatus) ? "Record resubscription" : "Unsubscribe"}</button> : null}
+                      </div>
+                    </div>
                     <p className="text-sm text-white/45">{client.phone || "—"}</p>
                   </article>
                 ))}

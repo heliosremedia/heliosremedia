@@ -42,7 +42,15 @@ export async function resolveEligibleNewsletterRecipients(
     },
     select: { normalizedEmail: true },
   });
+  const preferences = await prisma.marketingEmailPreference.findMany({
+    where: {
+      normalizedEmail: { in: [...new Set(candidates.map(client => client.normalizedEmail).filter(Boolean))] },
+      status: { in: ["UNSUBSCRIBED", "SUPPRESSED"] },
+    },
+    select: { normalizedEmail: true },
+  });
   const suppressedEmails = new Set(suppressed.map((entry) => entry.normalizedEmail));
+  preferences.forEach(preference => suppressedEmails.add(preference.normalizedEmail));
   const eligibleByEmail = new Map<string, EligibleRecipient>();
   for (const client of candidates) {
     if (!client.emailSubscribed || client.archivedAt || client.emailStatus !== "VALID" ||

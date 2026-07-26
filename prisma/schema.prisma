@@ -100,6 +100,14 @@ enum CommunicationEmailStatus {
   COMPLAINED
 }
 
+enum MarketingEmailPreferenceStatus {
+  SUBSCRIBED
+  UNSUBSCRIBED
+  SUPPRESSED
+  PENDING_CONFIRMATION
+  UNKNOWN
+}
+
 enum NewsletterSeriesStatus {
   ACTIVE
   PAUSED
@@ -1007,22 +1015,24 @@ model AdminUser {
   lastLoginAt      DateTime?
 
   auditEvents               AuditEvent[]
-  assignedInquiries         Inquiry[]                  @relation("InquiryAssignee")
+  assignedInquiries         Inquiry[]                       @relation("InquiryAssignee")
   inquiryNotes              InquiryNote[]
   inquiryActivities         InquiryActivity[]
   previewLinks              ProjectPreviewLink[]
-  invitationsCreated        AdminInvitation[]          @relation("InvitationCreator")
+  invitationsCreated        AdminInvitation[]               @relation("InvitationCreator")
   emailCampaigns            EmailCampaign[]
-  newsletterSeriesCreated   NewsletterSeries[]         @relation("NewsletterSeriesCreator")
-  newsletterEditionsCreated NewsletterEdition[]        @relation("NewsletterEditionCreator")
+  newsletterSeriesCreated   NewsletterSeries[]              @relation("NewsletterSeriesCreator")
+  newsletterEditionsCreated NewsletterEdition[]             @relation("NewsletterEditionCreator")
   newsletterRevisions       NewsletterRevision[]
   newsletterApprovals       NewsletterApproval[]
-  referralCampaignsCreated  ReferralCampaign[]         @relation("ReferralCampaignCreator")
-  referralCampaignApprovals ReferralCampaignRevision[] @relation("ReferralRevisionApprover")
+  referralCampaignsCreated  ReferralCampaign[]              @relation("ReferralCampaignCreator")
+  referralCampaignApprovals ReferralCampaignRevision[]      @relation("ReferralRevisionApprover")
   referralStatusEvents      ReferralStatusEvent[]
-  referralRewardsApproved   ReferralReward[]           @relation("ReferralRewardApprover")
-  referralRewardsIssued     ReferralReward[]           @relation("ReferralRewardIssuer")
+  referralRewardsApproved   ReferralReward[]                @relation("ReferralRewardApprover")
+  referralRewardsIssued     ReferralReward[]                @relation("ReferralRewardIssuer")
   referralAuditEvents       ReferralAuditEvent[]
+  marketingPreferencesActed MarketingEmailPreference[]
+  marketingPreferenceEvents MarketingEmailPreferenceEvent[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1120,6 +1130,8 @@ model CommunicationGroup {
   memberships       CommunicationGroupMembership[]
   newsletterSeries  NewsletterSeriesGroup[]
   referralAudiences ReferralCampaignAudience[]
+  systemKey         String?                        @unique
+  systemManaged     Boolean                        @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1159,6 +1171,64 @@ model CommunicationSuppression {
 
   @@index([normalizedEmail, releasedAt])
   @@index([clientId, releasedAt])
+}
+
+model MarketingEmailPreference {
+  id String @id @default(cuid())
+
+  normalizedEmail   String                          @unique
+  status            MarketingEmailPreferenceStatus  @default(UNKNOWN)
+  effectiveAt       DateTime                        @default(now())
+  source            String
+  reason            String?
+  messageId         String?
+  campaignId        String?
+  resubscribedAt    DateTime?
+  resubscribeMethod String?
+  actingAdminId     String?
+  actingAdmin       AdminUser?                      @relation(fields: [actingAdminId], references: [id], onDelete: SetNull)
+  history           MarketingEmailPreferenceEvent[]
+  tokens            MarketingEmailPreferenceToken[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, effectiveAt])
+}
+
+model MarketingEmailPreferenceEvent {
+  id String @id @default(cuid())
+
+  preferenceId   String
+  preference     MarketingEmailPreference        @relation(fields: [preferenceId], references: [id], onDelete: Cascade)
+  previousStatus MarketingEmailPreferenceStatus?
+  status         MarketingEmailPreferenceStatus
+  source         String
+  reason         String?
+  messageId      String?
+  campaignId     String?
+  actorId        String?
+  actor          AdminUser?                      @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  metadata       Json?
+  createdAt      DateTime                        @default(now())
+
+  @@index([preferenceId, createdAt])
+  @@index([status, createdAt])
+}
+
+model MarketingEmailPreferenceToken {
+  id String @id @default(cuid())
+
+  preferenceId String
+  preference   MarketingEmailPreference @relation(fields: [preferenceId], references: [id], onDelete: Cascade)
+  tokenHash    String                   @unique
+  expiresAt    DateTime
+  lastUsedAt   DateTime?
+  messageId    String?
+  campaignId   String?
+  createdAt    DateTime                 @default(now())
+
+  @@index([preferenceId, expiresAt])
 }
 
 model NewsletterSeries {

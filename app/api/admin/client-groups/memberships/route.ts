@@ -28,7 +28,7 @@ export async function PATCH(request: Request) {
   }
 
   const [group, validClients] = await Promise.all([
-    prisma.communicationGroup.findUnique({ where: { id: groupId }, select: { id: true, name: true } }),
+    prisma.communicationGroup.findUnique({ where: { id: groupId }, select: { id: true, name: true, systemManaged: true } }),
     prisma.communicationClient.findMany({
       where: { id: { in: clientIds } },
       select: { id: true },
@@ -36,6 +36,9 @@ export async function PATCH(request: Request) {
   ]);
   if (!group) {
     return NextResponse.json({ success: false, error: "Group not found." }, { status: 404 });
+  }
+  if (group.systemManaged) {
+    return NextResponse.json({ success: false, error: "System-managed group membership is reconciled from email preferences." }, { status: 409 });
   }
   const validIds = validClients.map((client) => client.id);
   if (!validIds.length) {
