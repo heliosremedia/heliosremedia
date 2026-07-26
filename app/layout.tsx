@@ -6,7 +6,6 @@ import { getAbsoluteUrl, getSiteUrl } from "@/lib/site";
 import { getSiteSettings } from "@/lib/site-settings";
 import { SiteSettingsProvider } from "@/app/components/SiteSettingsProvider";
 import { getPublishedLocationPages } from "@/lib/location-pages";
-import BookingStatusBanner from "@/app/components/BookingStatusBanner";
 
 import "./globals.css";
 
@@ -76,7 +75,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={`${cormorant.variable} ${inter.variable}`}>
-        <SiteSettingsProvider settings={settings} locations={locations}><BookingStatusBanner />{children}</SiteSettingsProvider>
+        <SiteSettingsProvider settings={settings} locations={locations}>{children}</SiteSettingsProvider>
         <Script id="helios-structured-data" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} />
         {analyticsId ? <><Script src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(analyticsId)}`} strategy="afterInteractive" /><Script id="google-analytics" strategy="afterInteractive">{`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${analyticsId.replace(/[^A-Za-z0-9_-]/g, "")}');`}</Script></> : null}
       </body>

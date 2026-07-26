@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import BookingStatusBanner from "./BookingStatusBanner";
 import { useSiteSettings } from "./SiteSettingsProvider";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -19,12 +20,34 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
   const bookingHref = "/book";
   const [menuOpen, setMenuOpen] = useState(false);
   const [heroVisible, setHeroVisible] = useState(variant === "overlay");
+  const shellRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
   const navigation = settings.headerNavigation.filter(
     (item) => item.published !== false && item.displayInNav !== false,
   );
+
+  useEffect(() => {
+    const shell = shellRef.current;
+    if (!shell) return;
+
+    const updateShellHeight = () => {
+      const height = shell.getBoundingClientRect().height;
+      document.documentElement.style.setProperty(
+        "--public-shell-offset",
+        `${height}px`,
+      );
+    };
+    const observer = new ResizeObserver(updateShellHeight);
+    observer.observe(shell);
+    updateShellHeight();
+
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty("--public-shell-offset");
+    };
+  }, []);
 
   useEffect(() => {
     if (variant !== "overlay") return;
@@ -99,13 +122,19 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
 
   return (
     <>
-      <header
-        className={
-          variant === "solid" || !heroVisible || menuOpen
-            ? "fixed inset-x-0 top-0 z-50 border-b border-white/[0.08] bg-[#090909]/95 backdrop-blur-xl"
-            : "fixed inset-x-0 top-0 z-50 bg-transparent transition-colors duration-500"
-        }
+      <div
+        ref={shellRef}
+        className="fixed inset-x-0 top-0 z-50"
+        data-public-header-shell
       >
+        <header
+          className={
+            variant === "solid" || !heroVisible || menuOpen
+              ? "relative border-b border-white/[0.08] bg-[#090909]/95 backdrop-blur-xl"
+              : "relative bg-transparent transition-colors duration-500"
+          }
+          data-public-navigation
+        >
         <div
           className={`mx-auto flex w-full max-w-[1600px] items-center justify-between px-5 sm:px-8 md:px-10 lg:px-12 xl:px-14 ${
             variant === "solid" || !heroVisible || menuOpen
@@ -252,7 +281,17 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
             </span>
           </motion.button>
         </div>
-      </header>
+        </header>
+        <BookingStatusBanner />
+      </div>
+
+      {variant === "solid" ? (
+        <div
+          aria-hidden="true"
+          data-public-header-spacer
+          className="h-[var(--public-shell-offset,4.5rem)]"
+        />
+      ) : null}
 
       <AnimatePresence>
         {menuOpen && (
