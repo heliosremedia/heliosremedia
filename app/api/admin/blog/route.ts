@@ -88,7 +88,21 @@ export async function PATCH(request: Request) {
     const body = await request.json() as Record<string, unknown>;
     const postId = required(body.postId, 200);
     const previous = await prisma.blogPost.findUniqueOrThrow({ where: { id: postId }, select: { slug: true } });
-    const post = await prisma.blogPost.update({ where: { id: postId }, data: data(body) });
+    const next = data(body);
+    const post = await prisma.$transaction(async transaction => {
+      const current = await transaction.blogPost.findUniqueOrThrow({ where: { id: postId } });
+      await transaction.blogPostRevision.create({
+        data: {
+          postId, title: current.title, excerpt: current.excerpt, content: current.content,
+          seoTitle: current.seoTitle, seoDescription: current.seoDescription,
+          sourceLinks: current.sourceLinks ?? [], changeSummary: "Manual save", aiGenerated: false,
+        },
+      });
+      return transaction.blogPost.update({
+        where: { id: postId },
+        data: { ...next, manualContent: next.content !== current.content || current.manualContent },
+      });
+    });
     refresh(previous.slug); refresh(post.slug);
     return NextResponse.json({ success: true, post });
   } catch (cause) {

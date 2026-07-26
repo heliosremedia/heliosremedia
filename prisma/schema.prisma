@@ -15,9 +15,22 @@ enum ProjectStatus {
 
 enum BlogPostStatus {
   DRAFT
+  NEEDS_REVIEW
   SCHEDULED
   PUBLISHED
   ARCHIVED
+}
+
+enum BlogSeriesStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum BlogSeriesCadence {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
 }
 
 enum MediaSourceType {
@@ -814,12 +827,70 @@ model BlogPost {
   socialCaption String?
   sourceLinks   Json?
 
+  seriesId          String?
+  series            BlogSeries?        @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  intendedPublishAt DateTime?
+  aiGenerated       Boolean            @default(false)
+  manualContent     Boolean            @default(false)
+  generationNotes   Json?
+  revisions         BlogPostRevision[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([status, publishedAt])
   @@index([category])
   @@index([featuredMediaId])
+  @@index([seriesId, intendedPublishAt])
+}
+
+model BlogSeries {
+  id String @id @default(cuid())
+
+  name             String
+  purpose          String
+  targetAudience   String
+  cadence          BlogSeriesCadence @default(BIWEEKLY)
+  generationHour   Int               @default(8)
+  leadDays         Int               @default(7)
+  nextGenerationAt DateTime?
+  nextPublishAt    DateTime?
+  timezone         String            @default("America/Denver")
+
+  contentPillars   Json
+  brandVoice       String
+  prioritizeTopics String?
+  avoidTopics      String?
+  targetLength     Int              @default(1000)
+  seoFocus         String?
+  preferredCta     String?
+  imagePreferences String?
+  status           BlogSeriesStatus @default(ACTIVE)
+  lastPillarIndex  Int              @default(-1)
+
+  posts     BlogPost[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([status, nextGenerationAt])
+}
+
+model BlogPostRevision {
+  id String @id @default(cuid())
+
+  postId         String
+  post           BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  title          String
+  excerpt        String?
+  content        String
+  seoTitle       String?
+  seoDescription String?
+  sourceLinks    Json?
+  changeSummary  String
+  aiGenerated    Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([postId, createdAt])
 }
 
 model LocationPage {
