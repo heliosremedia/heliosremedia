@@ -257,9 +257,9 @@ export default async function PortfolioPage({
   const displayedProjects = projects.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const pageProjects = displayedProjects;
   const carouselProjects: FeaturedProjectCard[] = featuredProjects.map((project) => {
-    const assignedServiceIds = new Set(project.services.filter(({ service }) => service.active).map(({ service }) => service.id));
-    const mediaCategories = new Set(project.media.map((media) => media.mediaCategory));
-    const badges = services.filter((service) => assignedServiceIds.has(service.id) || getServiceMediaCategories(service).some((category) => mediaCategories.has(category)) || (Boolean(project.details?.propertyWebsiteUrl) && getServiceMediaCategories(service).includes("PROPERTY_WEBSITE"))).map(({ id, name }) => ({ id, name }));
+    const badges = project.services
+      .filter(({ service }) => service.active)
+      .map(({ service: { id, name } }) => ({ id, name }));
     const firstVideo =
       project.media.find(
         (media) =>
@@ -380,34 +380,9 @@ export default async function PortfolioPage({
               : "xl:grid-cols-3"
           }`}>
             {pageProjects.map((project) => {
-              const assignedServiceIds = new Set(
-                project.services
-                  .filter(({ service }) => service.active)
-                  .map(({ service }) => service.id),
-              );
-              const mediaCategories = new Set(
-                project.media.map((media) => media.mediaCategory),
-              );
-              const badgeServices = services.filter((service) => {
-                if (assignedServiceIds.has(service.id)) {
-                  return true;
-                }
-
-                const inferredFromMedia = getServiceMediaCategories(
-                  service,
-                ).some((category) => mediaCategories.has(category));
-
-                if (inferredFromMedia) {
-                  return true;
-                }
-
-                return (
-                  Boolean(project.details?.propertyWebsiteUrl) &&
-                  getServiceMediaCategories(service).includes(
-                    "PROPERTY_WEBSITE",
-                  )
-                );
-              });
+              const badgeServices = project.services
+                .filter(({ service }) => service.active)
+                .map(({ service }) => service);
               const firstVideo =
                 project.media.find(
                   (media) =>
