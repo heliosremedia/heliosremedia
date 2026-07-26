@@ -148,6 +148,97 @@
   line-height: 1.65 !important;
 }
 
+/*
+ * Referral Studio campaign controls are intentionally scoped so the stronger
+ * resting-state contrast does not alter forms in other admin studios.
+ */
+.referral-campaign-builder .referral-form-control {
+  display: block;
+  width: 100%;
+  min-height: 3rem;
+  border: 1px solid rgba(245, 241, 234, 0.2);
+  border-radius: 0.75rem;
+  background: #1a1a1d;
+  padding: 0.75rem 1rem;
+  color: rgba(255, 255, 255, 0.92);
+  outline: 0;
+  color-scheme: dark;
+  transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+}
+
+.referral-campaign-builder textarea.referral-form-control {
+  min-height: 8rem;
+  resize: vertical;
+}
+
+.referral-campaign-builder select.referral-form-control {
+  cursor: pointer;
+}
+
+.referral-campaign-builder .referral-form-control::placeholder {
+  color: rgba(255, 255, 255, 0.38);
+  opacity: 1;
+}
+
+.referral-campaign-builder .referral-form-control:hover:not(:disabled):not([readonly]) {
+  border-color: rgba(245, 241, 234, 0.34);
+  background: #1d1d20;
+}
+
+.referral-campaign-builder .referral-form-control:focus,
+.referral-campaign-builder .referral-form-control:focus-visible {
+  border-color: var(--helios-orange);
+  outline: 0;
+  box-shadow: 0 0 0 2px rgba(217, 107, 43, 0.22);
+}
+
+.referral-campaign-builder .referral-form-control:disabled,
+.referral-campaign-builder .referral-form-control[readonly] {
+  cursor: not-allowed;
+  border-color: rgba(245, 241, 234, 0.1);
+  background: rgba(0, 0, 0, 0.28);
+  color: rgba(255, 255, 255, 0.48);
+  opacity: 1;
+}
+
+.referral-campaign-builder .referral-form-checkbox {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: 0 0 1.125rem;
+  appearance: none;
+  border: 1px solid rgba(245, 241, 234, 0.38);
+  border-radius: 0.25rem;
+  background-color: #1a1a1d;
+  background-position: center;
+  background-repeat: no-repeat;
+  cursor: pointer;
+  transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+}
+
+.referral-campaign-builder .referral-form-checkbox:hover:not(:disabled) {
+  border-color: rgba(245, 241, 234, 0.58);
+}
+
+.referral-campaign-builder .referral-form-checkbox:checked {
+  border-color: var(--helios-orange);
+  background-color: var(--helios-orange);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m3.5 8 3 3 6-6' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.referral-campaign-builder .referral-form-checkbox:focus,
+.referral-campaign-builder .referral-form-checkbox:focus-visible {
+  border-color: var(--helios-orange);
+  outline: 0;
+  box-shadow: 0 0 0 2px rgba(217, 107, 43, 0.24);
+}
+
+.referral-campaign-builder .referral-form-checkbox:disabled {
+  cursor: not-allowed;
+  border-color: rgba(245, 241, 234, 0.14);
+  background-color: rgba(255, 255, 255, 0.05);
+  opacity: 0.55;
+}
+
 @font-face {
   font-family: "Helios";
   src: url("/fonts/helios.otf") format("opentype");
