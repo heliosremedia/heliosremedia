@@ -42,6 +42,18 @@ export function campaignDraftUpdateIssue(status: string, currentVersion: number,
   return null;
 }
 
+export function mayReturnReferralCampaignToDraft(status: string) {
+  return status === "APPROVED";
+}
+
+export function mayPermanentlyDeleteReferralCampaign(status: string, hasActivity: boolean) {
+  return (status === "DRAFT" || status === "APPROVED") && !hasActivity;
+}
+
+export function mayArchiveReferralCampaign(status: string) {
+  return ["APPROVED", "ACTIVE", "PAUSED", "COMPLETED", "EXPIRED", "CANCELLED"].includes(status);
+}
+
 export function campaignCanExecute(status: string, now: Date, startsAt?: Date | null, endsAt?: Date | null) {
   return status === "ACTIVE" && (!startsAt || startsAt <= now) && (!endsAt || endsAt >= now);
 }

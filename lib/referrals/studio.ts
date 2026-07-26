@@ -7,7 +7,7 @@ import { recordAuditEvent } from "@/lib/audit";
 import { getSiteUrl } from "@/lib/site";
 import { resolveAudience } from "./audience";
 import { createReferralCredentials } from "./tokens";
-import { assertReferralTransition, campaignDraftUpdateIssue } from "./state-machine";
+import { assertReferralTransition, campaignDraftUpdateIssue, mayArchiveReferralCampaign, mayPermanentlyDeleteReferralCampaign, mayReturnReferralCampaignToDraft } from "./state-machine";
 import { personalizeReferralCopy, renderReferralInvitationEmail } from "./email-renderer";
 import { generatePreferenceToken, hashPreferenceToken, MARKETING_TOKEN_TTL_DAYS } from "@/lib/client-communications/preferences";
 
@@ -346,6 +346,127 @@ export async function updateCampaignStatus(id: string, action: "pause" | "resume
     entityType: "ReferralCampaign", entityId: id, summary: `${status === "PAUSED" ? "Paused" : status === "ACTIVE" ? "Resumed" : "Cancelled"} referral campaign "${campaign.internalName}".`,
   });
   return status;
+}
+
+export async function returnReferralCampaignToDraft(
+  id: string,
+  expectedRowVersion: number,
+  actor: { userId: string; email: string },
+  openedForEditing = false,
+) {
+  const campaign = await prisma.referralCampaign.findUnique({
+    where: { id },
+    select: { internalName: true, status: true, rowVersion: true, approvedRevisionId: true },
+  });
+  if (!campaign) throw new Error("Campaign not found.");
+  if (!mayReturnReferralCampaignToDraft(campaign.status)) throw new Error("Only an approved campaign can be returned to Draft.");
+  if (campaign.rowVersion !== expectedRowVersion) throw new ReferralCampaignConflictError();
+  const updated = await prisma.$transaction(async tx => {
+    const result = await tx.referralCampaign.updateMany({
+      where: { id, status: "APPROVED", rowVersion: expectedRowVersion },
+      data: { status: "DRAFT", approvedRevisionId: null, rowVersion: { increment: 1 } },
+    });
+    if (result.count !== 1) throw new ReferralCampaignConflictError();
+    await tx.referralAuditEvent.create({
+      data: {
+        campaignId: id,
+        actorId: actor.userId,
+        action: "CAMPAIGN_RETURNED_TO_DRAFT",
+        summary: "Returned approved campaign to Draft. Reapproval is required before launch.",
+        metadata: {
+          previousStatus: campaign.status,
+          newStatus: "DRAFT",
+          previousApprovedRevisionId: campaign.approvedRevisionId,
+          previousVersion: expectedRowVersion,
+          newVersion: expectedRowVersion + 1,
+        },
+      },
+    });
+    if (openedForEditing) {
+      await tx.referralAuditEvent.create({
+        data: {
+          campaignId: id,
+          actorId: actor.userId,
+          action: "APPROVED_CAMPAIGN_OPENED_FOR_EDITING",
+          summary: "Approved campaign was returned to Draft and opened for editing.",
+        },
+      });
+    }
+    return tx.referralCampaign.findUniqueOrThrow({ where: { id } });
+  });
+  await recordAuditEvent({
+    actorId: actor.userId, actorEmail: actor.email, action: "REFERRAL_CAMPAIGN_RETURNED_TO_DRAFT",
+    entityType: "ReferralCampaign", entityId: id,
+    summary: `Returned referral campaign "${campaign.internalName}" to Draft.`,
+    metadata: { previousApprovedRevisionId: campaign.approvedRevisionId },
+  });
+  return updated;
+}
+
+export async function referralCampaignRemovalEligibility(id: string) {
+  const campaign = await prisma.referralCampaign.findUnique({
+    where: { id },
+    select: {
+      status: true,
+      _count: { select: { invitations: true, submissions: true, advocates: true, communications: true, links: true } },
+      submissions: { select: { _count: { select: { rewards: true } } }, take: 1 },
+    },
+  });
+  if (!campaign) throw new Error("Campaign not found.");
+  const counts = campaign._count;
+  const hasActivity = counts.invitations > 0 || counts.submissions > 0 || counts.advocates > 0
+    || counts.communications > 0 || counts.links > 0 || campaign.submissions.some(item => item._count.rewards > 0);
+  return {
+    status: campaign.status,
+    hasActivity,
+    canDelete: mayPermanentlyDeleteReferralCampaign(campaign.status, hasActivity),
+    canArchive: mayArchiveReferralCampaign(campaign.status),
+  };
+}
+
+export async function deleteReferralCampaign(id: string, actor: { userId: string; email: string }) {
+  const campaign = await prisma.referralCampaign.findUnique({ where: { id }, select: { internalName: true, status: true } });
+  if (!campaign) throw new Error("Campaign not found.");
+  const eligibility = await referralCampaignRemovalEligibility(id);
+  if (!eligibility.canDelete) {
+    throw new Error(eligibility.hasActivity
+      ? "This campaign has production activity and cannot be permanently deleted. Archive it instead."
+      : "Only Draft or Approved campaigns can be permanently deleted.");
+  }
+  await prisma.$transaction(async tx => {
+    await tx.referralCampaign.update({ where: { id }, data: { approvedRevisionId: null } });
+    await tx.referralCampaign.delete({ where: { id } });
+  });
+  await recordAuditEvent({
+    actorId: actor.userId, actorEmail: actor.email, action: "REFERRAL_CAMPAIGN_DELETED",
+    entityType: "ReferralCampaign", entityId: id,
+    summary: `Permanently deleted referral campaign "${campaign.internalName}".`,
+    metadata: { previousStatus: campaign.status },
+  });
+}
+
+export async function archiveReferralCampaign(id: string, actor: { userId: string; email: string }) {
+  const campaign = await prisma.referralCampaign.findUnique({ where: { id }, select: { internalName: true, status: true } });
+  if (!campaign) throw new Error("Campaign not found.");
+  if (!mayArchiveReferralCampaign(campaign.status)) throw new Error("This campaign cannot be archived.");
+  await prisma.$transaction([
+    prisma.referralCampaign.update({
+      where: { id },
+      data: { status: "ARCHIVED", approvedRevisionId: null, rowVersion: { increment: 1 } },
+    }),
+    prisma.referralAuditEvent.create({
+      data: {
+        campaignId: id, actorId: actor.userId, action: "CAMPAIGN_ARCHIVED",
+        summary: `Archived campaign from ${campaign.status}.`,
+        metadata: { previousStatus: campaign.status, newStatus: "ARCHIVED" },
+      },
+    }),
+  ]);
+  await recordAuditEvent({
+    actorId: actor.userId, actorEmail: actor.email, action: "REFERRAL_CAMPAIGN_ARCHIVED",
+    entityType: "ReferralCampaign", entityId: id, summary: `Archived referral campaign "${campaign.internalName}".`,
+    metadata: { previousStatus: campaign.status },
+  });
 }
 
 function approvalSnapshot(campaign: Awaited<ReturnType<typeof loadCampaignForApproval>>, audience: Awaited<ReturnType<typeof estimateReferralAudience>>) {

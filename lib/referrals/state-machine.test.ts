@@ -1,12 +1,23 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { campaignDraftUpdateIssue, canTransitionReferral, campaignCanExecute, followUpShouldStop, invitationCanExecute, mayEditReferralCampaign } from "./state-machine.ts";
+import { campaignDraftUpdateIssue, canTransitionReferral, campaignCanExecute, followUpShouldStop, invitationCanExecute, mayArchiveReferralCampaign, mayEditReferralCampaign, mayPermanentlyDeleteReferralCampaign, mayReturnReferralCampaignToDraft } from "./state-machine.ts";
 
 test("referral lifecycle permits intended forward transitions and blocks reward skipping", () => {
   assert.equal(canTransitionReferral("SUBMITTED", "CONTACTED"), true);
   assert.equal(canTransitionReferral("COMPLETED", "REWARD_ELIGIBLE"), true);
   assert.equal(canTransitionReferral("SUBMITTED", "REWARD_ISSUED"), false);
   assert.equal(canTransitionReferral("REWARD_ISSUED", "COMPLETED"), false);
+});
+
+test("campaign administration preserves approval and production history", () => {
+  assert.equal(mayReturnReferralCampaignToDraft("APPROVED"), true);
+  assert.equal(mayReturnReferralCampaignToDraft("ACTIVE"), false);
+  assert.equal(mayPermanentlyDeleteReferralCampaign("DRAFT", false), true);
+  assert.equal(mayPermanentlyDeleteReferralCampaign("APPROVED", false), true);
+  assert.equal(mayPermanentlyDeleteReferralCampaign("APPROVED", true), false);
+  assert.equal(mayPermanentlyDeleteReferralCampaign("ACTIVE", false), false);
+  assert.equal(mayArchiveReferralCampaign("APPROVED"), true);
+  assert.equal(mayArchiveReferralCampaign("DRAFT"), false);
 });
 
 test("paused campaigns cannot execute invitations", () => {
