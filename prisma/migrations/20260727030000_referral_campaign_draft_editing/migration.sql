@@ -1,0 +1,2 @@
+ALTER TABLE "ReferralCampaign"
+ADD COLUMN "rowVersion" INTEGER NOT NULL DEFAULT 0;

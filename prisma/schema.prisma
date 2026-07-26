@@ -1601,6 +1601,7 @@ model ReferralCampaign {
   startsAt               DateTime?
   endsAt                 DateTime?
   referralExpirationDays Int       @default(90)
+  rowVersion             Int       @default(0)
   approvedRevisionId     String?   @unique
   activatedAt            DateTime?
   pausedAt               DateTime?
