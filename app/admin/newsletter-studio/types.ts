@@ -14,11 +14,21 @@ export type NewsletterBlock = {
   buttonLabel?: string; alignment?: "left" | "center"; provenance?: string[];
   aiGenerated?: boolean; manuallyEdited?: boolean;
   imageLink?: string; imageIsVideo?: boolean;
-  imageSelection?: { mode: "AUTO" | "SOURCE" | "CUSTOM" | "NONE"; candidateId?: string; sourceLabel?: string };
+  imageSelection?: {
+    mode: "AUTO" | "SOURCE" | "GALLERY" | "AI" | "CUSTOM" | "NONE";
+    candidateId?: string; assetId?: string; assetSource?: "PORTFOLIO" | "BLOG" | "AI";
+    sourceLabel?: string; attribution?: string;
+  };
   imageCandidates?: Array<{
     id: string; url: string; thumbnailUrl?: string; altText?: string; label: string;
     role: string; destinationUrl?: string; isVideo?: boolean; width?: number; height?: number;
   }>;
+};
+
+export type NewsletterGalleryImage = {
+  id: string; assetId: string; source: "PORTFOLIO" | "BLOG" | "AI";
+  url: string; thumbnailUrl?: string; label: string; altText: string;
+  attribution: string; destinationUrl?: string; width?: number | null; height?: number | null;
 };
 
 export type NewsletterEdition = {
