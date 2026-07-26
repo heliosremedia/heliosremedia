@@ -53,13 +53,20 @@ export async function sendTestCampaign(input: { to: string; subject: string; htm
   const { apiKey, from, replyTo } = deliveryConfig();
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "User-Agent": "helios-studio/1.0",
+    },
     body: JSON.stringify({ from, to: [input.to], replyTo: replyTo || undefined, subject: testEmailSubject(input.subject), html: input.html }),
   });
-  if (!response.ok) throw new EmailDeliveryError(
-    "EMAIL_PROVIDER_REJECTED",
-    `The email provider rejected the test request (${response.status}).`,
-  );
+  if (!response.ok) {
+    const details = await response.text();
+    throw new EmailDeliveryError(
+      "EMAIL_PROVIDER_REJECTED",
+      `The email provider rejected the test request (${response.status}): ${details.slice(0, 300)}`,
+    );
+  }
 }
 
 export async function sendCampaignBatch(input: {
@@ -79,6 +86,7 @@ export async function sendCampaignBatch(input: {
     headers: {
       Authorization: `Bearer ${config.apiKey}`,
       "Content-Type": "application/json",
+      "User-Agent": "helios-studio/1.0",
       "Idempotency-Key": idempotencyKey,
     },
     body: JSON.stringify(input.messages.map((message) => ({
