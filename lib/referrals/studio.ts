@@ -7,7 +7,7 @@ import { recordAuditEvent } from "@/lib/audit";
 import { getSiteUrl } from "@/lib/site";
 import { resolveAudience } from "./audience";
 import { createReferralCredentials } from "./tokens";
-import { assertReferralTransition } from "./state-machine";
+import { assertReferralTransition, campaignDraftUpdateIssue } from "./state-machine";
 import { personalizeReferralCopy, renderReferralInvitationEmail } from "./email-renderer";
 import { generatePreferenceToken, hashPreferenceToken, MARKETING_TOKEN_TTL_DAYS } from "@/lib/client-communications/preferences";
 
@@ -44,6 +44,13 @@ export type CampaignInput = {
   followUpConfiguration: Prisma.InputJsonValue;
   communicationTemplates: Prisma.InputJsonValue;
 };
+
+export class ReferralCampaignConflictError extends Error {
+  constructor() {
+    super("This campaign was updated in another tab. Reload the latest draft before saving again.");
+    this.name = "ReferralCampaignConflictError";
+  }
+}
 
 export async function referralDashboardData(from: Date, to: Date) {
   const [campaigns, submissions, invitationCounts, rewards, clients, groups, linkVisits] = await Promise.all([
@@ -223,6 +230,84 @@ export async function createReferralCampaign(input: CampaignInput, actor: { user
     entityType: "ReferralCampaign", entityId: campaign.id, summary: `Created referral campaign "${campaign.internalName}".`,
   });
   return campaign;
+}
+
+export async function updateReferralCampaignDraft(
+  id: string,
+  input: CampaignInput,
+  expectedRowVersion: number,
+  actor: { userId: string; email: string },
+) {
+  await estimateReferralAudience({
+    mode: input.audienceMode, groupIds: input.groupIds, clientIds: input.clientIds,
+    excludedClientIds: input.excludedClientIds, filters: input.filters,
+  });
+  const before = await prisma.referralCampaign.findUnique({
+    where: { id },
+    select: { id: true, internalName: true, status: true, rowVersion: true },
+  });
+  if (!before) throw new Error("Campaign not found.");
+  const updateIssue = campaignDraftUpdateIssue(before.status, before.rowVersion, expectedRowVersion);
+  if (updateIssue === "STATUS") throw new Error("Only draft campaigns can be edited.");
+  if (updateIssue === "STALE") throw new ReferralCampaignConflictError();
+
+  const data = campaignData(input);
+  const snapshot = JSON.parse(JSON.stringify({ campaign: data, audience: data.audienceRules })) as Prisma.InputJsonValue;
+  const contentHash = createHash("sha256").update(JSON.stringify(snapshot)).digest("hex");
+  const updated = await prisma.$transaction(async tx => {
+    const result = await tx.referralCampaign.updateMany({
+      where: { id, status: "DRAFT", rowVersion: expectedRowVersion },
+      data: { ...data, approvedRevisionId: null, rowVersion: { increment: 1 } },
+    });
+    if (result.count !== 1) throw new ReferralCampaignConflictError();
+    await tx.referralCampaignAudience.deleteMany({ where: { campaignId: id } });
+    const audienceRows = [
+      ...input.groupIds.map(groupId => ({ campaignId: id, groupId, excluded: false })),
+      ...input.clientIds.map(clientId => ({ campaignId: id, clientId, excluded: false })),
+      ...input.excludedClientIds.map(clientId => ({ campaignId: id, clientId, excluded: true })),
+    ];
+    if (audienceRows.length) await tx.referralCampaignAudience.createMany({ data: audienceRows });
+    const latest = await tx.referralCampaignRevision.findFirst({
+      where: { campaignId: id },
+      orderBy: { revisionNumber: "desc" },
+      select: { revisionNumber: true },
+    });
+    const revision = await tx.referralCampaignRevision.create({
+      data: {
+        campaignId: id,
+        revisionNumber: (latest?.revisionNumber ?? 0) + 1,
+        snapshot,
+        contentHash,
+      },
+    });
+    await tx.referralAuditEvent.create({
+      data: {
+        campaignId: id,
+        actorId: actor.userId,
+        action: "CAMPAIGN_EDITED",
+        summary: `Saved draft revision ${revision.revisionNumber}.`,
+        metadata: {
+          previousVersion: expectedRowVersion,
+          newVersion: expectedRowVersion + 1,
+          previousRevision: latest?.revisionNumber ?? null,
+          newRevision: revision.revisionNumber,
+          statusBefore: before.status,
+          statusAfter: "DRAFT",
+        },
+      },
+    });
+    return tx.referralCampaign.findUniqueOrThrow({ where: { id } });
+  });
+  await recordAuditEvent({
+    actorId: actor.userId,
+    actorEmail: actor.email,
+    action: "REFERRAL_CAMPAIGN_EDITED",
+    entityType: "ReferralCampaign",
+    entityId: id,
+    summary: `Edited referral campaign "${updated.internalName}".`,
+    metadata: { previousVersion: expectedRowVersion, newVersion: updated.rowVersion, statusBefore: before.status, statusAfter: updated.status },
+  });
+  return updated;
 }
 
 export async function updateCampaignStatus(id: string, action: "pause" | "resume" | "cancel", actor: { userId: string; email: string }) {

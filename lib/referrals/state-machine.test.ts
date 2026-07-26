@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { canTransitionReferral, campaignCanExecute, followUpShouldStop, invitationCanExecute } from "./state-machine.ts";
+import { campaignDraftUpdateIssue, canTransitionReferral, campaignCanExecute, followUpShouldStop, invitationCanExecute, mayEditReferralCampaign } from "./state-machine.ts";
 
 test("referral lifecycle permits intended forward transitions and blocks reward skipping", () => {
   assert.equal(canTransitionReferral("SUBMITTED", "CONTACTED"), true);
@@ -14,6 +14,16 @@ test("paused campaigns cannot execute invitations", () => {
   assert.equal(campaignCanExecute("PAUSED", now), false);
   assert.equal(invitationCanExecute("PAUSED", "SCHEDULED", now, now), false);
   assert.equal(invitationCanExecute("ACTIVE", "SCHEDULED", now, now), true);
+});
+
+test("only draft referral campaigns may be edited directly", () => {
+  assert.equal(mayEditReferralCampaign("DRAFT"), true);
+  assert.equal(campaignDraftUpdateIssue("DRAFT", 4, 4), null);
+  assert.equal(campaignDraftUpdateIssue("DRAFT", 5, 4), "STALE");
+  for (const status of ["APPROVED", "ACTIVE", "PAUSED", "COMPLETED", "EXPIRED", "CANCELLED", "ARCHIVED"]) {
+    assert.equal(mayEditReferralCampaign(status), false, `${status} must remain read-only`);
+    assert.equal(campaignDraftUpdateIssue(status, 4, 4), "STATUS");
+  }
 });
 
 test("follow-ups stop after submission, pause, unsubscribe, failure, or campaign expiration", () => {

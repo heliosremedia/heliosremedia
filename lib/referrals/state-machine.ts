@@ -32,6 +32,16 @@ export function assertReferralTransition(from: ReferralStatusName, to: ReferralS
   if (!canTransitionReferral(from, to)) throw new Error(`Referral cannot move from ${from} to ${to}.`);
 }
 
+export function mayEditReferralCampaign(status: string) {
+  return status === "DRAFT";
+}
+
+export function campaignDraftUpdateIssue(status: string, currentVersion: number, expectedVersion: number) {
+  if (!mayEditReferralCampaign(status)) return "STATUS";
+  if (currentVersion !== expectedVersion) return "STALE";
+  return null;
+}
+
 export function campaignCanExecute(status: string, now: Date, startsAt?: Date | null, endsAt?: Date | null) {
   return status === "ACTIVE" && (!startsAt || startsAt <= now) && (!endsAt || endsAt >= now);
 }

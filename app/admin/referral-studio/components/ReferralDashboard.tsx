@@ -76,10 +76,10 @@ export default function ReferralDashboard() {
       <section className="grid gap-5 xl:grid-cols-[1fr_.85fr]">
         <article className="rounded-2xl border border-white/[0.08] bg-white/[0.02]">
           <div className="border-b border-white/[0.07] p-5 sm:px-6"><h2 className="text-2xl font-light text-white">Campaigns</h2><p className="mt-1 text-sm text-white/35">Draft, active, paused, and completed programs.</p></div>
-          <div className="divide-y divide-white/[0.06]">{data.campaigns.map(campaign => <Link key={campaign.id} href={`/admin/referral-studio/campaigns/${campaign.id}`} className="flex flex-col gap-3 p-5 transition hover:bg-white/[0.025] sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <div><p className="text-white/75">{campaign.internalName}</p><p className="mt-1 text-xs text-white/30">{campaign._count.advocates} advocates · {campaign._count.submissions} referrals</p></div>
-            <span className={`w-fit rounded-full border px-2.5 py-1 text-[0.54rem] uppercase tracking-[.14em] ${statusTone(campaign.status)}`}>{campaign.status}</span>
-          </Link>)}{!data.campaigns.length && <Empty title="No referral campaigns yet" body="Create a deliberate campaign, choose its audience, and review the complete experience before launch." />}</div>
+          <div className="divide-y divide-white/[0.06]">{data.campaigns.map(campaign => <div key={campaign.id} className="flex flex-col gap-3 p-5 transition hover:bg-white/[0.025] sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <Link href={`/admin/referral-studio/campaigns/${campaign.id}`} className="min-w-0 flex-1"><p className="truncate text-white/75">{campaign.internalName}</p><p className="mt-1 text-xs text-white/30">{campaign._count.advocates} advocates · {campaign._count.submissions} referrals</p></Link>
+            <div className="flex flex-wrap items-center gap-2"><span className={`w-fit rounded-full border px-2.5 py-1 text-[0.54rem] uppercase tracking-[.14em] ${statusTone(campaign.status)}`}>{campaign.status}</span>{campaign.status === "DRAFT" && <Link href={`/admin/referral-studio/campaigns/${campaign.id}/edit`} className="admin-btn-link">Edit Campaign</Link>}</div>
+          </div>)}{!data.campaigns.length && <Empty title="No referral campaigns yet" body="Create a deliberate campaign, choose its audience, and review the complete experience before launch." />}</div>
         </article>
         <article className="rounded-2xl border border-white/[0.08] bg-white/[0.02]">
           <div className="border-b border-white/[0.07] p-5 sm:px-6"><h2 className="text-2xl font-light text-white">Recent referral activity</h2><p className="mt-1 text-sm text-white/35">Submissions and attribution decisions.</p></div>
