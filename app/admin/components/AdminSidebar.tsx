@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, type DragEvent } from "react";
 import type { AdminRole } from "@/app/generated/prisma/client";
-import { movePinnedItem } from "@/lib/booking-controls";
 
 type AdminSidebarProps = {
   isOpen: boolean;
@@ -402,6 +401,10 @@ export default function AdminSidebar({
   const [savingFavorite, setSavingFavorite] = useState<string | null>(null);
   const [favoriteError, setFavoriteError] = useState<string | null>(null);
   const [draggedFavorite, setDraggedFavorite] = useState<string | null>(null);
+  const [favoriteDropTarget, setFavoriteDropTarget] = useState<{
+    href: string;
+    edge: "before" | "after";
+  } | null>(null);
   const visibleNavigation = navigation.filter(
     (item) =>
       !["/admin/users", "/admin/newsletter-studio"].includes(item.href) ||
@@ -462,14 +465,29 @@ export default function AdminSidebar({
       if (!response.ok || !result.success || !Array.isArray(result.favorites)) throw new Error(result.error || "Favorite order could not be saved.");
       setFavorites(result.favorites);
     } catch (error) { setFavorites(previousFavorites); setFavoriteError(error instanceof Error ? error.message : "Favorite order could not be saved."); }
-    finally { setSavingFavorite(null); setDraggedFavorite(null); }
+    finally { setSavingFavorite(null); setDraggedFavorite(null); setFavoriteDropTarget(null); }
   }
-  function moveFavorite(href: string, direction: -1 | 1) {
-    const index = favorites.indexOf(href); const target = index + direction;
-    if (index < 0 || target < 0 || target >= favorites.length) return;
-    void reorderFavorites(movePinnedItem(favorites, href, direction));
+  function previewFavoriteDrop(event: DragEvent<HTMLDivElement>, href: string) {
+    event.preventDefault();
+    if (!draggedFavorite || draggedFavorite === href) {
+      setFavoriteDropTarget(null);
+      return;
+    }
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const edge = event.clientY < bounds.top + bounds.height / 2 ? "before" : "after";
+    setFavoriteDropTarget({ href, edge });
   }
-
+  function dropFavorite(event: DragEvent<HTMLDivElement>, href: string) {
+    event.preventDefault();
+    if (!draggedFavorite || draggedFavorite === href || !favoriteDropTarget) {
+      setFavoriteDropTarget(null);
+      return;
+    }
+    const next = favorites.filter((favoriteHref) => favoriteHref !== draggedFavorite);
+    const targetIndex = next.indexOf(href);
+    next.splice(targetIndex + (favoriteDropTarget.edge === "after" ? 1 : 0), 0, draggedFavorite);
+    void reorderFavorites(next);
+  }
   return (
     <>
       <button
@@ -546,9 +564,31 @@ export default function AdminSidebar({
                   Favorites
                 </p>
                 <div className="mt-1 space-y-1">
-                  {favoriteItems.map((item, index) => (
-                    <div key={`favorite-${item.href}`} draggable={!savingFavorite} onDragStart={() => setDraggedFavorite(item.href)} onDragOver={(event) => event.preventDefault()} onDrop={() => { if (!draggedFavorite || draggedFavorite === item.href) return; const next = favorites.filter(href => href !== draggedFavorite); next.splice(next.indexOf(item.href), 0, draggedFavorite); void reorderFavorites(next); }} className="group/favorite grid grid-cols-[1.5rem_minmax(0,1fr)] items-center">
-                      <div className="flex flex-col items-center text-white/25"><span aria-hidden className="cursor-grab text-sm leading-none" title="Drag to reorder">⠿</span><div className="mt-1 flex"><button type="button" disabled={index === 0 || Boolean(savingFavorite)} onClick={() => moveFavorite(item.href, -1)} aria-label={`Move ${item.label} up`} className="px-0.5 text-[10px] disabled:opacity-20">↑</button><button type="button" disabled={index === favoriteItems.length - 1 || Boolean(savingFavorite)} onClick={() => moveFavorite(item.href, 1)} aria-label={`Move ${item.label} down`} className="px-0.5 text-[10px] disabled:opacity-20">↓</button></div></div><NavigationLink
+                  {favoriteItems.map((item) => (
+                    <div
+                      key={`favorite-${item.href}`}
+                      draggable={!savingFavorite}
+                      onDragStart={() => {
+                        setDraggedFavorite(item.href);
+                        setFavoriteDropTarget(null);
+                      }}
+                      onDragEnd={() => {
+                        setDraggedFavorite(null);
+                        setFavoriteDropTarget(null);
+                      }}
+                      onDragOver={(event) => previewFavoriteDrop(event, item.href)}
+                      onDrop={(event) => dropFavorite(event, item.href)}
+                      className="group/favorite relative grid grid-cols-[1.5rem_minmax(0,1fr)] items-center"
+                    >
+                      {favoriteDropTarget?.href === item.href ? (
+                        <span
+                          aria-hidden
+                          className={`pointer-events-none absolute left-6 right-1 z-10 h-0.5 rounded-full bg-[var(--helios-orange)] shadow-[0_0_10px_rgba(217,107,43,0.65)] ${
+                            favoriteDropTarget.edge === "before" ? "-top-[3px]" : "-bottom-[3px]"
+                          }`}
+                        />
+                      ) : null}
+                      <div className="flex items-center justify-center text-white/25"><span aria-hidden className="cursor-grab text-sm leading-none" title="Drag to reorder">⠿</span></div><NavigationLink
                       key={`favorite-${item.href}`}
                       item={item}
                       pathname={pathname}
