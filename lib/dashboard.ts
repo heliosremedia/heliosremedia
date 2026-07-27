@@ -45,6 +45,7 @@ export async function getDashboardData(days = 30) {
             referralSchedule,
             socialAttention,
             socialSchedule,
+            socialAnalyticsHealth,
             settings,
           ] = await Promise.all([
             prisma.newsletterEdition.findMany({
@@ -136,6 +137,19 @@ export async function getDashboardData(days = 30) {
               select: { id: true, platform: true, postType: true, status: true, scheduledAt: true, campaignId: true, campaign: { select: { internalName: true } } },
               orderBy: { scheduledAt: "asc" },
             }),
+            prisma.socialConnection.findMany({
+              where: {
+                OR: [
+                  { analyticsPermissionState: { in: ["PERMISSION_REQUIRED", "REFRESH_FAILED"] } },
+                  { state: "REAUTHORIZATION_REQUIRED" },
+                  { analyticsFailureCount: { gte: 3 } },
+                  { analyticsLastSuccessfulAt: { lt: new Date(now.getTime() - 72 * 60 * 60 * 1000) } },
+                ],
+              },
+              select: { id: true, platform: true, analyticsPermissionState: true, analyticsLastAttemptAt: true, analyticsError: true, updatedAt: true },
+              take: 8,
+              orderBy: { updatedAt: "asc" },
+            }),
             prisma.siteSettings.findUnique({
               where: { id: "default" },
               select: { bookingMode: true, bookingEstimatedRestoreAt: true },
@@ -198,6 +212,15 @@ export async function getDashboardData(days = 30) {
               date: item.scheduledAt || item.updatedAt,
               href: `/admin/social-studio/campaigns/${item.campaignId}?variant=${item.id}`,
               action: item.status === "READY_TO_PUBLISH" ? "Publish manually" : "Open post",
+            })),
+            ...socialAnalyticsHealth.map((item) => ({
+              id: `social-analytics:${item.id}`,
+              severity: "attention" as const,
+              type: "Social analytics",
+              message: `${item.platform.toLowerCase()} analytics · ${item.analyticsPermissionState.replaceAll("_", " ").toLowerCase()}`,
+              date: item.analyticsLastAttemptAt || item.updatedAt,
+              href: "/admin/social-studio/analytics",
+              action: "Review data health",
             })),
             ...(settings?.bookingMode && settings.bookingMode !== "ONLINE"
               ? [{
