@@ -6,6 +6,7 @@ import Image from "next/image";
 import type { AboutListItem, PublicAboutPageContent } from "@/lib/about-page";
 import ImageLibraryDialog from "@/app/admin/newsletter-studio/components/ImageLibraryDialog";
 import type { NewsletterGalleryImage } from "@/app/admin/newsletter-studio/types";
+import { selectBalancedAboutImages } from "@/lib/about-gallery";
 
 type TeamMemberCategory = "LEADERSHIP" | "PRODUCTION" | "POST_PRODUCTION" | "CLIENT_CARE" | "MARKETING" | "OPERATIONS";
 const teamMemberCategories: TeamMemberCategory[] = ["LEADERSHIP", "PRODUCTION", "POST_PRODUCTION", "CLIENT_CARE", "MARKETING", "OPERATIONS"];
@@ -26,6 +27,7 @@ export default function AboutPageManager({ initialContent, initialTeamMembers }:
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [galleryTarget, setGalleryTarget] = useState<"galleryOne" | "galleryTwo" | "galleryThree" | null>(null);
+  const [galleryUndo, setGalleryUndo] = useState<Pick<PublicAboutPageContent, "galleryOneStorageKey" | "galleryOneUrl" | "galleryOneAlt" | "galleryTwoStorageKey" | "galleryTwoUrl" | "galleryTwoAlt" | "galleryThreeStorageKey" | "galleryThreeUrl" | "galleryThreeAlt"> | null>(null);
 
   function field<K extends keyof PublicAboutPageContent>(key: K, value: PublicAboutPageContent[K]) {
     setContent((current) => ({ ...current, [key]: value }));
@@ -47,6 +49,7 @@ export default function AboutPageManager({ initialContent, initialTeamMembers }:
     setBusy(true); setMessage("");
     try {
       await jsonRequest("/api/admin/about", { method: "PATCH", body: JSON.stringify(content) });
+      setGalleryUndo(null);
       setMessage("About page saved and published.");
     } catch (error) { setMessage(error instanceof Error ? error.message : "The About page could not be saved."); }
     finally { setBusy(false); }
@@ -66,7 +69,19 @@ export default function AboutPageManager({ initialContent, initialTeamMembers }:
       if (!response.ok || !result.success) throw new Error(result.error || "The gallery could not be loaded.");
       const candidates = (result.items as NewsletterGalleryImage[]).filter((item, index, list) => list.findIndex((other) => other.assetId === item.assetId) === index);
       if (candidates.length < 3) throw new Error("At least three eligible gallery images are required.");
-      const chosen = [...candidates].sort(() => Math.random() - 0.5).slice(0, 3);
+      const chosen = selectBalancedAboutImages(candidates);
+      if (chosen.length < 3) throw new Error("At least three eligible gallery images are required.");
+      setGalleryUndo((previous) => previous || {
+        galleryOneStorageKey: content.galleryOneStorageKey,
+        galleryOneUrl: content.galleryOneUrl,
+        galleryOneAlt: content.galleryOneAlt,
+        galleryTwoStorageKey: content.galleryTwoStorageKey,
+        galleryTwoUrl: content.galleryTwoUrl,
+        galleryTwoAlt: content.galleryTwoAlt,
+        galleryThreeStorageKey: content.galleryThreeStorageKey,
+        galleryThreeUrl: content.galleryThreeUrl,
+        galleryThreeAlt: content.galleryThreeAlt,
+      });
       setContent((current) => ({ ...current, galleryOneStorageKey: null, galleryOneUrl: chosen[0].url, galleryOneAlt: chosen[0].altText || chosen[0].label, galleryTwoStorageKey: null, galleryTwoUrl: chosen[1].url, galleryTwoAlt: chosen[1].altText || chosen[1].label, galleryThreeStorageKey: null, galleryThreeUrl: chosen[2].url, galleryThreeAlt: chosen[2].altText || chosen[2].label }));
       setMessage("Three distinct gallery images selected. Save to publish or refresh to cancel.");
     } catch (error) { setMessage(error instanceof Error ? error.message : "Images could not be randomized."); }
@@ -114,7 +129,7 @@ export default function AboutPageManager({ initialContent, initialTeamMembers }:
     </Panel>
 
     <Panel eyebrow="Miniature gallery" title="About imagery" description="These three images preserve the editorial layout while making every frame replaceable.">
-      <div className="mb-5 flex justify-end"><button type="button" disabled={busy} onClick={randomizeGallery} className="admin-btn-secondary">Randomize Three Images</button></div>
+      <div className="mb-5 flex justify-end gap-2">{galleryUndo && <button type="button" disabled={busy} onClick={() => { setContent(current => ({ ...current, ...galleryUndo })); setGalleryUndo(null); setMessage("Randomized selections were undone."); }} className="admin-btn-link">Undo randomize</button>}<button type="button" disabled={busy} onClick={randomizeGallery} className="admin-btn-secondary">Randomize Three Images</button></div>
       <div className="grid gap-5 lg:grid-cols-3">
         <ImageField label="Large image" value={content.galleryOneUrl} alt={content.galleryOneAlt} onAlt={(value) => field("galleryOneAlt", value)} onFile={(file) => upload("gallery-one", "galleryOne", file)} onGallery={() => setGalleryTarget("galleryOne")} busy={busy} />
         <ImageField label="Upper image" value={content.galleryTwoUrl} alt={content.galleryTwoAlt} onAlt={(value) => field("galleryTwoAlt", value)} onFile={(file) => upload("gallery-two", "galleryTwo", file)} onGallery={() => setGalleryTarget("galleryTwo")} busy={busy} />
