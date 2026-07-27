@@ -11,15 +11,19 @@ export async function PATCH(request: Request) {
   if (!session || !["OWNER", "ADMIN"].includes(session.role)) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   const body = await request.json() as Record<string, unknown>;
   if (body.kind === "connection") {
-    await prisma.socialConnection.upsert({
-      where: { platform: clean(body.platform, 30) as SocialPlatform },
-      create: {
+    const platform = clean(body.platform, 30) as SocialPlatform;
+    const existing = await prisma.socialConnection.findFirst({ where: { platform, providerAccountId: null } });
+    if (existing) await prisma.socialConnection.update({
+      where: { id: existing.id },
+      data: {
+        intendedAccountName: clean(body.intendedAccountName, 200),
+        manualPublishingUrl: clean(body.manualPublishingUrl, 2000),
+      },
+    });
+    else await prisma.socialConnection.create({
+      data: {
         platform: clean(body.platform, 30) as SocialPlatform, state: clean(body.state, 40) as SocialConnectionState,
         intendedAccountName: clean(body.intendedAccountName, 200), manualPublishingUrl: clean(body.manualPublishingUrl, 2000),
-      },
-      update: {
-        state: clean(body.state, 40) as SocialConnectionState, intendedAccountName: clean(body.intendedAccountName, 200),
-        manualPublishingUrl: clean(body.manualPublishingUrl, 2000),
       },
     });
   } else {

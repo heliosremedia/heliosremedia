@@ -100,6 +100,14 @@ export async function updateVariantContent(input: {
       },
     });
     if (status === "NEEDS_REVIEW" && current.status !== "NEEDS_REVIEW") {
+      await tx.socialPublishingSnapshot.updateMany({
+        where: { variantId: input.variantId, invalidatedAt: null },
+        data: { invalidatedAt: new Date() },
+      });
+      await tx.socialPublishingJob.updateMany({
+        where: { variantId: input.variantId, status: { in: ["SCHEDULED", "VALIDATING", "READY", "DELAYED", "RETRY_SCHEDULED"] } },
+        data: { status: "CANCELLED", cancelledAt: new Date(), claimToken: null, lastErrorCategory: "CANCELLED", lastErrorMessage: "Publishable content changed after approval." },
+      });
       await tx.socialApprovalEvent.create({
         data: {
           variantId: input.variantId, actorId: input.actorId, action: "REVOKED",

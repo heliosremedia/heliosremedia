@@ -2,12 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 type Media = { id: string; url: string; altText: string; mimeType: string | null; project: string; aspectRatio: number | null };
 type VariantMedia = { id: string; mediaId: string; altText: string; cropAspect: string | null; media: Media };
 type Variant = { id: string; platform: string; postType: string; status: string; caption: string; openingHook: string; hashtags: string[]; callToAction: string; destinationLink: string; altText: string; onScreenText: string; videoConcept: string; platformNotes: string; internalNotes: string; scheduledLocal: string; media: VariantMedia[]; suggestedCover: string; publicUrl: string; publishedAt: string | null };
 type Campaign = { id: string; internalName: string; purpose: string; targetAudience: string; primaryMessage: string; sourceType: string; verifiedSourceFacts: Record<string, unknown>; generationStatus: string | null; generationError: string | null; variants: Variant[] };
+type Connection = { id:string; platform:string; label:string };
 
 const postTypes: Record<string, string[]> = {
   INSTAGRAM: ["SINGLE_IMAGE","CAROUSEL","REEL","STORY_CONCEPT"],
@@ -17,17 +18,17 @@ const postTypes: Record<string, string[]> = {
 };
 const aspectClasses: Record<string, string> = { "1:1": "aspect-square", "4:5": "aspect-[4/5]", "9:16": "aspect-[9/16]", "16:9": "aspect-video" };
 
-export default function SocialCampaignEditor({ initialCampaign, library }: { initialCampaign: Campaign; library: Media[] }) {
+export default function SocialCampaignEditor({ initialCampaign, library, connections }: { initialCampaign: Campaign; library: Media[]; connections:Connection[] }) {
   const [campaign, setCampaign] = useState(initialCampaign);
-  const [active, setActive] = useState(initialCampaign.variants[0]?.id || "");
+  const [active, setActive] = useState(() => {
+    const requested = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("variant");
+    return requested && initialCampaign.variants.some((item) => item.id === requested) ? requested : initialCampaign.variants[0]?.id || "";
+  });
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
   const [mediaOpen, setMediaOpen] = useState(false);
   const [aspect, setAspect] = useState("4:5");
-  useEffect(() => {
-    const requested = new URLSearchParams(window.location.search).get("variant");
-    if (requested && initialCampaign.variants.some((item) => item.id === requested)) setActive(requested);
-  }, [initialCampaign.variants]);
+  const [connectionId,setConnectionId]=useState("");
   const variant = campaign.variants.find((item) => item.id === active)!;
   const published = variant.status === "PUBLISHED";
   const patchVariant = (key: keyof Variant, value: Variant[keyof Variant]) => setCampaign((current) => ({ ...current, variants: current.variants.map((item) => item.id === active ? { ...item, [key]: value } : item) }));
@@ -80,6 +81,7 @@ export default function SocialCampaignEditor({ initialCampaign, library }: { ini
         <div className="mt-6 flex flex-wrap gap-2"><button disabled={Boolean(busy) || published} onClick={() => action("update-variant")} className="admin-btn-primary">{busy === "update-variant" ? "Saving…" : "Save changes"}</button><button disabled={Boolean(busy) || published} onClick={() => generate("alternate-hook")} className="admin-btn-secondary">Alternate hook</button><button disabled={Boolean(busy) || published} onClick={() => generate("shorten")} className="admin-btn-secondary">Shorten</button><button disabled={Boolean(busy) || published} onClick={() => generate("adjust-tone")} className="admin-btn-secondary">Adjust tone</button><button disabled={Boolean(busy) || published} onClick={() => generate("suggest-hashtags")} className="admin-btn-secondary">Suggest hashtags</button></div>
         <div className="mt-7 border-t border-white/[.08] pt-6"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-lg font-light text-white">Selected media</h3><p className="mt-1 text-xs text-white/30">Presentation crops never modify the original asset.</p></div><div className="flex gap-2"><button disabled={Boolean(busy) || published} onClick={generateImage} className="admin-btn-secondary">{busy === "image" ? "Generating…" : "Generate concept image"}</button><button disabled={published} onClick={() => setMediaOpen(true)} className="admin-btn-secondary">Choose media</button></div></div><div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">{variant.suggestedCover && <div className="relative aspect-square overflow-hidden rounded-xl border border-[var(--helios-orange)]/30"><Image src={variant.suggestedCover} alt={variant.altText || "AI-generated social concept"} fill unoptimized className="object-cover"/><span className="absolute inset-x-0 bottom-0 bg-black/80 p-2 text-[.55rem] text-white/70">AI-generated concept · not Helios photography</span></div>}{variant.media.map((item) => <div key={item.id} className="relative aspect-square overflow-hidden rounded-xl border border-white/10"><Image src={item.media.url} alt={item.altText || item.media.altText} fill unoptimized className="object-cover"/></div>)}{!variant.media.length && !variant.suggestedCover && <p className="col-span-full rounded-xl border border-dashed border-white/10 p-6 text-center text-sm text-white/30">No media selected.</p>}</div><Link href="/admin/media" className="mt-3 inline-block text-xs text-white/35 hover:text-white">Upload new media in Media Library →</Link></div>
         <div className="mt-7 border-t border-white/[.08] pt-6"><h3 className="text-lg font-light text-white">Review & schedule</h3><div className="mt-4 flex flex-wrap gap-2"><button disabled={Boolean(busy) || published} onClick={() => action("submit-review")} className="admin-btn-secondary">Submit for review</button><button disabled={Boolean(busy) || variant.status !== "NEEDS_REVIEW"} onClick={() => action("approve")} className="admin-btn-primary">Approve variant</button></div><label className="mt-5 block text-xs text-white/40">Mountain Time schedule<input type="datetime-local" className={input} value={variant.scheduledLocal} onChange={(e) => patchVariant("scheduledLocal", e.target.value)}/></label><button disabled={Boolean(busy) || !["APPROVED","SCHEDULED","READY_TO_PUBLISH"].includes(variant.status)} onClick={() => action("schedule", { timeZone: "America/Denver" })} className="admin-btn-secondary mt-3">Schedule</button>
+        {variant.status==="SCHEDULED"&&connections.some(item=>item.platform===variant.platform)&&<div className="mt-5 rounded-xl border border-white/10 bg-white/[.02] p-4"><p className="text-sm text-white/65">Optional direct publishing</p><p className="mt-2 text-xs leading-5 text-white/35">This post remains manual unless you deliberately select an enabled account. Social Studio will lock the exact approved revision.</p><div className="mt-3 flex flex-wrap gap-2"><select aria-label="Direct publishing account" className={input} value={connectionId} onChange={e=>setConnectionId(e.target.value)}><option value="">Choose enabled account…</option>{connections.filter(item=>item.platform===variant.platform).map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select><button disabled={!connectionId||Boolean(busy)} onClick={()=>action("enable-direct-publishing",{connectionId})} className="admin-btn-primary">Use direct publishing for this post</button></div></div>}
         {["READY_TO_PUBLISH","SCHEDULED"].includes(variant.status) && <div className="mt-5 rounded-xl border border-[var(--helios-orange)]/20 bg-[var(--helios-orange)]/[.04] p-4"><p className="text-sm text-white/65">Manual publishing checklist</p><ol className="mt-2 list-decimal space-y-1 pl-5 text-xs text-white/40"><li>Confirm the intended account and platform.</li><li>Copy caption and hashtags.</li><li>Download or open selected media.</li><li>Publish on the platform, then record the result.</li></ol><div className="mt-4 flex flex-wrap gap-2"><button onClick={() => navigator.clipboard.writeText(variant.caption)} className="admin-btn-secondary">Copy caption</button><button onClick={() => navigator.clipboard.writeText(variant.hashtags.join(" "))} className="admin-btn-secondary">Copy hashtags</button><a href={`https://www.${variant.platform.toLowerCase()}.com/`} target="_blank" rel="noreferrer" className="admin-btn-secondary">Open platform</a><button onClick={() => action("publish", { publishedAt: new Date().toISOString(), publicUrl: variant.publicUrl })} className="admin-btn-primary">Mark published</button></div></div>}</div>
         {message && <p role="status" aria-live="polite" className="mt-5 text-sm text-white/55">{message}</p>}
       </section>

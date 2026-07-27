@@ -18,7 +18,7 @@ export default function SocialCalendar({ items }: { items: Item[] }) {
     const count = view === "month" ? new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate() : 7;
     return Array.from({ length: count }, (_, index) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + index));
   }, [cursor, view]);
-  function move(direction: number) { const next = new Date(cursor); view === "month" ? next.setMonth(next.getMonth() + direction) : next.setDate(next.getDate() + 7 * direction); setCursor(next); }
+  function move(direction: number) { const next = new Date(cursor); if (view === "month") next.setMonth(next.getMonth() + direction); else next.setDate(next.getDate() + 7 * direction); setCursor(next); }
   async function reschedule(item: Item, day: Date) {
     if (!confirm(`${item.status.replaceAll("_", " ")} content will move to ${day.toLocaleDateString()}. Keep its existing time?`)) return;
     const current = new Date(item.scheduledAt);

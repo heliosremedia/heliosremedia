@@ -9,9 +9,10 @@ const localValue = (date: Date | null) => date ? new Intl.DateTimeFormat("sv-SE"
 
 export default async function SocialCampaignPage({ params }: { params: Promise<{ campaignId: string }> }) {
   const { campaignId } = await params;
-  const [campaign, media] = await Promise.all([
+  const [campaign, media, connections] = await Promise.all([
     prisma.socialCampaign.findUnique({ where: { id: campaignId }, include: { variants: { orderBy: { createdAt: "asc" }, include: { media: { orderBy: { displayOrder: "asc" }, include: { media: { include: { project: { select: { title: true } } } } } } } } } }),
     prisma.media.findMany({ where: { visibility: "VISIBLE" }, orderBy: { updatedAt: "desc" }, take: 240, include: { project: { select: { title: true } } } }),
+    prisma.socialConnection.findMany({where:{state:"CONNECTED",directPublishingEnabled:true},select:{id:true,platform:true,intendedAccountName:true,providerUsername:true,supportedPostTypes:true}}),
   ]);
   if (!campaign) notFound();
   const serializeMedia = (item: (typeof media)[number]) => ({ id: item.id, url: item.storageKey ? getPublicAssetUrl(item.storageKey) : item.externalUrl || "", altText: item.altText || item.originalFilename || "Helios media", mimeType: item.mimeType, project: item.project.title, aspectRatio: item.aspectRatio });
@@ -28,5 +29,5 @@ export default async function SocialCampaignPage({ params }: { params: Promise<{
       suggestedCover: variant.suggestedCover || "",
       media: variant.media.map((relation) => ({ id: relation.id, mediaId: relation.mediaId, altText: relation.altText || "", cropAspect: relation.cropAspect, media: serializeMedia(relation.media) })),
     })),
-  }} library={library}/>;
+  }} library={library} connections={connections.map(item=>({id:item.id,platform:item.platform,label:item.providerUsername||item.intendedAccountName||`${item.platform} account`}))}/>;
 }

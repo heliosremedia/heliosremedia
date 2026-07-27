@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { canApprove, scheduleState } from "@/lib/social/core";
 import { updateVariantContent } from "@/lib/social/studio";
 import { zonedLocalToUtc } from "@/lib/client-communications/scheduling";
+import { createPublishingJob } from "@/lib/social/publishing";
 
 const clean = (value: unknown, max = 10_000) => typeof value === "string" ? value.trim().slice(0, max) : "";
 
@@ -64,10 +65,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
       const zone = clean(body.timeZone, 80) || "America/Denver";
       const scheduledAt = local ? zonedLocalToUtc(local, zone) : null;
       const status = scheduleState(variant.status as never, scheduledAt) as SocialVariantStatus;
-      await prisma.socialVariant.update({
-        where: { id: variantId },
-        data: { scheduledAt, scheduledTimeZone: zone, status, scheduleVersion: { increment: 1 }, readyProcessedAt: null },
+      await prisma.$transaction(async(tx)=>{
+        if(variant.scheduledAt?.getTime()!==scheduledAt?.getTime()){
+          await tx.socialPublishingSnapshot.updateMany({where:{variantId,invalidatedAt:null},data:{invalidatedAt:new Date()}});
+          await tx.socialPublishingJob.updateMany({where:{variantId,status:{in:["SCHEDULED","VALIDATING","READY","DELAYED","RETRY_SCHEDULED"]}},data:{status:"CANCELLED",cancelledAt:new Date(),claimToken:null,lastErrorCategory:"CANCELLED",lastErrorMessage:"Schedule changed; create a new revision-locked publishing job."}});
+        }
+        await tx.socialVariant.update({
+          where: { id: variantId },
+          data: { scheduledAt, scheduledTimeZone: zone, status, scheduleVersion: { increment: 1 }, readyProcessedAt: null },
+        });
       });
+    } else if (action === "enable-direct-publishing" && variant) {
+      const connectionId=clean(body.connectionId,100);
+      const job=await createPublishingJob({variantId,connectionId});
+      return NextResponse.json({success:true,jobId:job.id});
     } else if (action === "publish" && variant) {
       if (!["READY_TO_PUBLISH", "SCHEDULED"].includes(variant.status)) return NextResponse.json({ success: false, error: "Only scheduled or ready posts can be marked published." }, { status: 400 });
       const publishedAt = body.publishedAt ? new Date(clean(body.publishedAt, 80)) : new Date();
@@ -90,6 +101,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
           });
         }
         if (changed && ["APPROVED", "SCHEDULED", "READY_TO_PUBLISH"].includes(variant.status)) {
+          await tx.socialPublishingSnapshot.updateMany({where:{variantId,invalidatedAt:null},data:{invalidatedAt:new Date()}});
+          await tx.socialPublishingJob.updateMany({where:{variantId,status:{in:["SCHEDULED","VALIDATING","READY","DELAYED","RETRY_SCHEDULED"]}},data:{status:"CANCELLED",cancelledAt:new Date(),claimToken:null,lastErrorCategory:"CANCELLED",lastErrorMessage:"Selected media changed after approval."}});
           await tx.socialVariant.update({ where: { id: variantId }, data: { status: "NEEDS_REVIEW", approvedAt: null, approvalActorId: null, contentVersion: { increment: 1 }, lastEditedById: session.userId } });
           await tx.socialApprovalEvent.create({ data: { variantId, actorId: session.userId, action: "REVOKED", contentVersion: variant.contentVersion + 1, reason: "Selected media changed." } });
         }
