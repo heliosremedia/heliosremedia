@@ -9,11 +9,11 @@ export async function POST(request: Request) {
   const token = typeof body.token === "string" ? body.token : "";
   const password = typeof body.password === "string" ? body.password : "";
   if (password.length < 12 || !/[a-z]/i.test(password) || !/\d/.test(password)) return NextResponse.json({ success: false, error: "Use at least 12 characters with a letter and number." }, { status: 400 });
-  const invitation = await prisma.adminInvitation.findUnique({ where: { tokenHash: hashInvitationToken(token) } });
+  const invitation = await prisma.adminInvitation.findUnique({ where: { tokenHash: hashInvitationToken(token) }, include: { createdBy: { select: { workspaceId: true } } } });
   if (!invitation || invitation.acceptedAt || invitation.revokedAt || invitation.expiresAt <= new Date()) return NextResponse.json({ success: false, error: "This invitation is invalid or expired." }, { status: 400 });
   const passwordHash = await hashPassword(password);
   const user = await prisma.$transaction(async (tx) => {
-    const created = await tx.adminUser.create({ data: { email: invitation.email, displayName: invitation.displayName, role: invitation.role, passwordHash } });
+    const created = await tx.adminUser.create({ data: { email: invitation.email, displayName: invitation.displayName, role: invitation.role, passwordHash, workspaceId: invitation.createdBy.workspaceId } });
     await tx.adminInvitation.update({ where: { id: invitation.id }, data: { acceptedAt: new Date() } });
     return created;
   });

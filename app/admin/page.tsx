@@ -4,6 +4,7 @@ import DashboardRefresh from "./components/DashboardRefresh";
 import { requireAdminSession } from "@/lib/auth/session";
 import { getDashboardData, HELIOS_TIME_ZONE } from "@/lib/dashboard";
 import { buildBriefing } from "@/lib/dashboard-core";
+import { getPublicMonitorSummary } from "@/lib/uptimerobot";
 
 export const dynamic = "force-dynamic";
 
@@ -103,7 +104,7 @@ export default async function AdminPage({
   const session = await requireAdminSession();
   const requestedRange = Number((await searchParams).range);
   const days = [7, 30, 90].includes(requestedRange) ? requestedRange : 30;
-  const dashboard = await getDashboardData(days);
+  const [dashboard, publicMonitor] = await Promise.all([getDashboardData(days), getPublicMonitorSummary()]);
   const mountainHour = Number(
     new Intl.DateTimeFormat("en-US", {
       timeZone: HELIOS_TIME_ZONE,
@@ -175,9 +176,9 @@ export default async function AdminPage({
     },
     {
       label: "Public website",
-      status: "Not monitored",
+      status: publicMonitor.tone === "NOT_CONFIGURED" ? "Monitoring not configured" : `${publicMonitor.tone.charAt(0)}${publicMonitor.tone.slice(1).toLowerCase()}${publicMonitor.stale ? " · stale" : ""}${publicMonitor.responseTimeMs !== null ? ` · ${publicMonitor.responseTimeMs} ms` : ""}`,
       href: "/admin/settings",
-      tone: "unknown",
+      tone: publicMonitor.tone === "ONLINE" ? "healthy" : ["OFFLINE", "DEGRADED"].includes(publicMonitor.tone) ? "attention" : "unknown",
     },
   ];
 

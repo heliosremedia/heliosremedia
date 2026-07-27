@@ -373,6 +373,17 @@ enum SocialConnectionState {
   DRAFT_TRANSFER_ONLY
 }
 
+enum AvailabilityStatus {
+  AVAILABLE
+  ADVISORY
+  CRITICAL
+}
+
+enum OperationalIncidentState {
+  OPEN
+  RECOVERED
+}
+
 enum SocialPublishingJobStatus {
   SCHEDULED
   VALIDATING
@@ -745,6 +756,7 @@ model Testimonial {
   displayOrder Int     @default(0)
   published    Boolean @default(false)
   featured     Boolean @default(false)
+  rowVersion   Int     @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -852,6 +864,7 @@ model SiteSettings {
   availabilityEnabled      Boolean @default(false)
   availabilityLabel        String? @default("Now booking")
   availabilityMessage      String?
+  availabilityStatus       AvailabilityStatus @default(AVAILABLE)
 
   heliosStandardImageStorageKey String?
   heliosStandardImageUrl        String?
@@ -1221,6 +1234,8 @@ model AdminUser {
   passwordHash        String?
   sessionVersion      Int       @default(0)
   navigationFavorites Json?
+  workspaceId         String
+  workspace           Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
 
   failedLoginCount Int       @default(0)
   lockedUntil      DateTime?
@@ -1260,6 +1275,21 @@ model AdminUser {
   updatedAt DateTime @updatedAt
 
   @@index([active, role])
+  @@index([workspaceId])
+}
+
+model Workspace {
+  id   String @id @default(cuid())
+  name String
+  slug String @unique
+
+  users             AdminUser[]
+  socialCampaigns   SocialCampaign[]
+  socialSettings    SocialStudioSettings[]
+  socialConnections SocialConnection[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model SocialCampaign {
@@ -1287,6 +1317,8 @@ model SocialCampaign {
 
   createdById String
   createdBy   AdminUser @relation("SocialCampaignCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
 
   variants SocialVariant[]
   analyticsRecommendations SocialAnalyticsRecommendation[]
@@ -1296,6 +1328,7 @@ model SocialCampaign {
   updatedAt  DateTime  @updatedAt
 
   @@index([createdById, updatedAt])
+  @@index([workspaceId, updatedAt])
   @@index([sourceType, sourceProjectId])
   @@index([archivedAt, updatedAt])
 }
@@ -1416,7 +1449,9 @@ model SocialPublication {
 }
 
 model SocialStudioSettings {
-  id String @id @default("default")
+  id String @id @default(cuid())
+  workspaceId String @unique
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
 
   brandVoice          String
   primaryAudience     String
@@ -1436,6 +1471,8 @@ model SocialConnection {
   id String @id @default(cuid())
 
   platform                    SocialPlatform
+  workspaceId                 String
+  workspace                   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
   state                       SocialConnectionState      @default(NOT_CONFIGURED)
   intendedAccountName         String?
   supportedWorkflow           String                     @default("Manual publishing and export")
@@ -1470,9 +1507,25 @@ model SocialConnection {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([platform, providerAccountId])
-  @@index([platform, state])
+  @@unique([workspaceId, platform, providerAccountId])
+  @@index([workspaceId, platform, state])
   @@index([directPublishingEnabled, state])
+}
+
+model OperationalIncident {
+  id                 String @id @default(cuid())
+  providerEventId    String @unique
+  monitorName        String?
+  monitorExternalId  String?
+  state              OperationalIncidentState
+  startedAt          DateTime
+  recoveredAt        DateTime?
+  responseTimeMs     Int?
+  sanitizedSummary   String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([state, startedAt])
 }
 
 model SocialConnectionAudit {

@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import SocialCampaignEditor from "./SocialCampaignEditor";
+import { getAdminSession } from "@/lib/auth/session";
+import { requireWorkspaceId } from "@/lib/workspaces";
 
 export const dynamic = "force-dynamic";
 
@@ -9,10 +11,13 @@ const localValue = (date: Date | null) => date ? new Intl.DateTimeFormat("sv-SE"
 
 export default async function SocialCampaignPage({ params }: { params: Promise<{ campaignId: string }> }) {
   const { campaignId } = await params;
+  const session = await getAdminSession();
+  if (!session) notFound();
+  const workspaceId = await requireWorkspaceId(session.userId);
   const [campaign, media, connections] = await Promise.all([
-    prisma.socialCampaign.findUnique({ where: { id: campaignId }, include: { variants: { orderBy: { createdAt: "asc" }, include: { media: { orderBy: { displayOrder: "asc" }, include: { media: { include: { project: { select: { title: true } } } } } } } } } }),
+    prisma.socialCampaign.findFirst({ where: { id: campaignId, workspaceId }, include: { variants: { orderBy: { createdAt: "asc" }, include: { media: { orderBy: { displayOrder: "asc" }, include: { media: { include: { project: { select: { title: true } } } } } } } } } }),
     prisma.media.findMany({ where: { visibility: "VISIBLE" }, orderBy: { updatedAt: "desc" }, take: 240, include: { project: { select: { title: true } } } }),
-    prisma.socialConnection.findMany({where:{state:"CONNECTED",directPublishingEnabled:true},select:{id:true,platform:true,intendedAccountName:true,providerUsername:true,supportedPostTypes:true}}),
+    prisma.socialConnection.findMany({where:{workspaceId,state:"CONNECTED",directPublishingEnabled:true},select:{id:true,platform:true,intendedAccountName:true,providerUsername:true,supportedPostTypes:true}}),
   ]);
   if (!campaign) notFound();
   const serializeMedia = (item: (typeof media)[number]) => ({ id: item.id, url: item.storageKey ? getPublicAssetUrl(item.storageKey) : item.externalUrl || "", altText: item.altText || item.originalFilename || "Helios media", mimeType: item.mimeType, project: item.project.title, aspectRatio: item.aspectRatio });

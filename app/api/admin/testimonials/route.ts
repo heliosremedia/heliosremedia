@@ -26,6 +26,7 @@ const testimonialSelect = {
   displayOrder: true,
   published: true,
   featured: true,
+  rowVersion: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -101,6 +102,7 @@ export async function POST(request: Request) {
     refreshTestimonials();
     return NextResponse.json({ success: true, testimonial }, { status: 201 });
   } catch (error) {
+    if (error instanceof Error && error.message === "REORDER_CONFLICT") return NextResponse.json({ success: false, error: "Another administrator changed the testimonial list. Refresh and try again." }, { status: 409 });
     const message = validationResponse(error);
     if (message) return NextResponse.json({ success: false, error: message }, { status: 400 });
     console.error("Unable to create testimonial:", error);
@@ -116,13 +118,23 @@ export async function PATCH(request: Request) {
 
     if (action === "reorder") {
       const ids = Array.isArray(body.testimonialIds) ? body.testimonialIds.filter((id): id is string => typeof id === "string") : [];
-      const current = await prisma.testimonial.findMany({ select: { id: true } });
+      const current = await prisma.testimonial.findMany({ select: { id: true, rowVersion: true } });
+      const versions = body.versions && typeof body.versions === "object" ? body.versions as Record<string, unknown> : {};
       if (ids.length !== current.length || new Set(ids).size !== ids.length || current.some(({ id }) => !ids.includes(id))) {
         return NextResponse.json({ success: false, error: "The testimonial list changed before the order was saved. Refresh and try again." }, { status: 409 });
       }
-      await prisma.$transaction(ids.map((id, displayOrder) => prisma.testimonial.update({ where: { id }, data: { displayOrder } })));
+      if (current.some((item) => Number(versions[item.id]) !== item.rowVersion)) return NextResponse.json({ success: false, error: "Another administrator changed the testimonial list. Refresh and try again." }, { status: 409 });
+      const updated = await prisma.$transaction(async (tx) => {
+        const results: Array<{ id: string; rowVersion: number }> = [];
+        for (const [displayOrder, id] of ids.entries()) {
+          const result = await tx.testimonial.updateMany({ where: { id, rowVersion: Number(versions[id]) }, data: { displayOrder: displayOrder * 1000, rowVersion: { increment: 1 } } });
+          if (result.count !== 1) throw new Error("REORDER_CONFLICT");
+          results.push({ id, rowVersion: Number(versions[id]) + 1 });
+        }
+        return results;
+      });
       refreshTestimonials();
-      return NextResponse.json({ success: true, testimonialIds: ids });
+      return NextResponse.json({ success: true, testimonialIds: ids, versions: Object.fromEntries(updated.map((item) => [item.id, item.rowVersion])) });
     }
 
     const testimonialId = typeof body.testimonialId === "string" ? body.testimonialId : "";

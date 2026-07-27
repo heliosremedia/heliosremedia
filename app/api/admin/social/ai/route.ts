@@ -4,6 +4,7 @@ import { getAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { platformPrompt, sanitizedVerifiedFacts, SOCIAL_PLATFORMS } from "@/lib/social/core";
 import { ensureSocialSettings } from "@/lib/social/studio";
+import { requireWorkspaceId } from "@/lib/workspaces";
 
 export const maxDuration = 120;
 
@@ -12,7 +13,8 @@ export async function POST(request: Request) {
   if (!session || session.role === "VIEWER") return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   const body = await request.json() as { campaignId?: string; variantId?: string; action?: string; requestId?: string; tone?: string };
   if (!body.campaignId || !body.requestId) return NextResponse.json({ success: false, error: "Campaign and request ID are required." }, { status: 400 });
-  const campaign = await prisma.socialCampaign.findUnique({ where: { id: body.campaignId }, include: { variants: true } });
+  const workspaceId = await requireWorkspaceId(session.userId);
+  const campaign = await prisma.socialCampaign.findFirst({ where: { id: body.campaignId, workspaceId }, include: { variants: true } });
   if (!campaign) return NextResponse.json({ success: false, error: "Campaign not found." }, { status: 404 });
   if (campaign.generationStatus === "RUNNING") return NextResponse.json({ success: false, error: "Generation is already in progress." }, { status: 409 });
   if (campaign.generationRequestId === body.requestId && campaign.generationStatus === "SUCCEEDED") return NextResponse.json({ success: true, duplicate: true });
@@ -20,7 +22,7 @@ export async function POST(request: Request) {
   if (!apiKey) return NextResponse.json({ success: false, error: "AI writing is not configured yet." }, { status: 503 });
   await prisma.socialCampaign.update({ where: { id: campaign.id }, data: { generationStatus: "RUNNING", generationError: null, generationRequestId: body.requestId } });
   try {
-    const settings = await ensureSocialSettings();
+    const settings = await ensureSocialSettings(workspaceId);
     const requested = body.variantId ? campaign.variants.filter((variant) => variant.id === body.variantId) : campaign.variants;
     const chosen = requested.filter((variant) => variant.status !== "PUBLISHED");
     if (!chosen.length) {

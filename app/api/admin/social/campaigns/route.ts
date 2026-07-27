@@ -4,6 +4,7 @@ import { getAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { POST_TYPES, SOCIAL_PLATFORMS } from "@/lib/social/core";
 import { verifiedSourceFacts } from "@/lib/social/studio";
+import { requireWorkspaceId } from "@/lib/workspaces";
 
 const allowedSources = ["PROJECT", "PORTFOLIO_ITEM", "MEDIA_LIBRARY", "BLOG", "NEWSLETTER", "UPLOADED_IMAGE", "UPLOADED_VIDEO", "AI_GENERATED_IMAGE", "BLANK"];
 const clean = (value: unknown, max = 5000) => typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -12,6 +13,7 @@ export async function POST(request: Request) {
   const session = await getAdminSession();
   if (!session || session.role === "VIEWER") return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   try {
+    const workspaceId = await requireWorkspaceId(session.userId);
     const body = await request.json() as Record<string, unknown>;
     const sourceType = clean(body.sourceType, 40).toUpperCase();
     const platforms = Array.isArray(body.platforms)
@@ -33,6 +35,7 @@ export async function POST(request: Request) {
         destinationLink: clean(body.destinationLink, 2000), scheduleNotes: clean(body.scheduleNotes, 3000),
         internalAiInstructions: clean(body.internalAiInstructions, 5000), selectedPlatforms: platforms,
         createdById: session.userId,
+        workspaceId,
         variants: {
           create: platforms.map((platform) => ({
             platform: platform as SocialPlatform,

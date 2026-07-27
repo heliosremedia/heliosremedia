@@ -149,7 +149,7 @@ export default function PrimaryConversion({ cta, imageUrl, imageAlt, imageCaptio
 
               {settings.availabilityEnabled && settings.availabilityMessage && (
                 <p className="mt-5 flex items-start gap-2.5 text-xs leading-5 text-white/42">
-                  <span aria-hidden="true" className="mt-[0.42rem] h-1.5 w-1.5 shrink-0 rounded-full bg-[#f06b24] shadow-[0_0_12px_rgba(240,107,36,0.55)]" />
+                  <span aria-hidden="true" className={`mt-[0.42rem] h-1.5 w-1.5 shrink-0 rounded-full ${settings.availabilityStatus === "CRITICAL" ? "bg-red-400" : settings.availabilityStatus === "ADVISORY" ? "bg-amber-400" : "bg-emerald-400"}`} />
                   {settings.availabilityLabel ? `${settings.availabilityLabel}: ` : ""}{settings.availabilityMessage}
                 </p>
               )}

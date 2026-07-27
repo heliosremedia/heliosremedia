@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     const passwordHash = normalizeEnvironmentValue(process.env.HELIOS_ADMIN_PASSWORD_HASH, "HELIOS_ADMIN_PASSWORD_HASH");
     if (ownerEmail && passwordHash && !/^scrypt:[a-f0-9]{32}:[a-f0-9]{128}$/i.test(passwordHash)) return NextResponse.json({ success: false, error: "The admin password hash is not valid. Generate and replace it in the deployment settings." }, { status: 503 });
 
-    if (ownerEmail && passwordHash) await prisma.adminUser.upsert({ where: { email: ownerEmail }, create: { email: ownerEmail, displayName: process.env.HELIOS_ADMIN_NAME?.trim() || "Helios Owner", role: "OWNER" }, update: {} });
+    if (ownerEmail && passwordHash) await prisma.adminUser.upsert({ where: { email: ownerEmail }, create: { email: ownerEmail, displayName: process.env.HELIOS_ADMIN_NAME?.trim() || "Helios Owner", role: "OWNER", workspace: { connectOrCreate: { where: { slug: "helios" }, create: { name: "Helios Real Estate Media", slug: "helios" } } } }, update: {} });
     const user = await prisma.adminUser.findUnique({ where: { email } });
     if (!user) return NextResponse.json({ success: false, error: "The email or password is incorrect." }, { status: 401 });
     const context = requestContext(request);

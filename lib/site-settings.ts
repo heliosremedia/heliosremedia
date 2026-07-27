@@ -39,7 +39,7 @@ export type PublicSiteSettings = {
   bookingContactPhone: string | null; bookingContactEmail: string | null;
   bookingBannerMessage: string | null; bookingBannerEnabled: boolean; bookingRequestEnabled: boolean;
   heroVideoUrl: string | null; heroPosterUrl: string | null; heroPosterAlt: string | null; locationLabel: string;
-  heroEyebrow: string | null; heroHeadlineLineOne: string | null; heroHeadlineLineTwo: string | null; heroBody: string | null; heroPrimaryLabel: string | null; heroPrimaryDestination: string | null; heroSecondaryLabel: string | null; heroSecondaryDestination: string | null; availabilityEnabled: boolean; availabilityLabel: string | null;
+  heroEyebrow: string | null; heroHeadlineLineOne: string | null; heroHeadlineLineTwo: string | null; heroBody: string | null; heroPrimaryLabel: string | null; heroPrimaryDestination: string | null; heroSecondaryLabel: string | null; heroSecondaryDestination: string | null; availabilityEnabled: boolean; availabilityLabel: string | null; availabilityStatus: "AVAILABLE" | "ADVISORY" | "CRITICAL";
   heliosStandardImageStorageKey: string | null; heliosStandardImageUrl: string | null;
   heliosStandardImageAlt: string | null; primaryConversionImageStorageKey: string | null;
   primaryConversionImageUrl: string | null; primaryConversionImageAlt: string | null;
@@ -94,6 +94,7 @@ export const defaultSiteSettings: PublicSiteSettings = {
   heroSecondaryDestination: "/portfolio",
   availabilityEnabled: false,
   availabilityLabel: "Now booking",
+  availabilityStatus: "AVAILABLE",
   heliosStandardImageStorageKey: null,
   heliosStandardImageUrl: null,
   heliosStandardImageAlt: "Luxury interior photographed by Helios Real Estate Media",
