@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSiteSettings } from "@/lib/site-settings";
+import { getAdminSession } from "@/lib/auth/session";
 
 function text(value: unknown, max: number) {
   const result = typeof value === "string" ? value.trim() : "";
@@ -41,6 +42,8 @@ function openAiErrorMessage(status: number, payload: OpenAiError) {
 }
 
 export async function POST(request: Request) {
+  const session = await getAdminSession();
+  if (!session) return NextResponse.json({ success: false, error: "Authentication is required." }, { status: 401 });
   try {
     const apiKey = process.env.OPENAI_API_KEY?.trim();
     if (!apiKey) return NextResponse.json({ success: false, error: "AI writing is not configured yet." }, { status: 503 });

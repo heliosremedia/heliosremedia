@@ -38,6 +38,9 @@ export type PublicSiteSettings = {
   bookingEstimatedRestoreAt: Date | string | null;
   bookingContactPhone: string | null; bookingContactEmail: string | null;
   bookingBannerMessage: string | null; bookingBannerEnabled: boolean; bookingRequestEnabled: boolean;
+  bookingHandoffEnabled: boolean; bookingProviderName: string | null; bookingEyebrow: string | null;
+  bookingPrimaryLabel: string | null; bookingCallLabel: string | null; bookingEmailLabel: string | null;
+  bookingPhoneVisible: boolean; bookingEmailVisible: boolean;
   heroVideoUrl: string | null; heroPosterUrl: string | null; heroPosterAlt: string | null; locationLabel: string;
   heroEyebrow: string | null; heroHeadlineLineOne: string | null; heroHeadlineLineTwo: string | null; heroBody: string | null; heroPrimaryLabel: string | null; heroPrimaryDestination: string | null; heroSecondaryLabel: string | null; heroSecondaryDestination: string | null; availabilityEnabled: boolean; availabilityLabel: string | null; availabilityStatus: "AVAILABLE" | "ADVISORY" | "CRITICAL";
   heliosStandardImageStorageKey: string | null; heliosStandardImageUrl: string | null;
@@ -81,6 +84,14 @@ export const defaultSiteSettings: PublicSiteSettings = {
   bookingBannerMessage: "Online booking is temporarily unavailable. We are still here to help.",
   bookingBannerEnabled: true,
   bookingRequestEnabled: true,
+  bookingHandoffEnabled: true,
+  bookingProviderName: null,
+  bookingEyebrow: null,
+  bookingPrimaryLabel: null,
+  bookingCallLabel: null,
+  bookingEmailLabel: null,
+  bookingPhoneVisible: true,
+  bookingEmailVisible: true,
   heroVideoUrl: null,
   heroPosterUrl: "/work/featured-estate.jpg",
   heroPosterAlt: "Luxury real estate exterior photographed by Helios Real Estate Media",

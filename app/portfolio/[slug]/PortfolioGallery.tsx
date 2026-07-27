@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { tryResolveExternalMedia } from "@/lib/external-media";
+import ViewportVideoFrame from "./ViewportVideoFrame";
 
 export type PortfolioGalleryItem = {
   id: string;
@@ -19,6 +20,7 @@ export type PortfolioGalleryItem = {
 type PortfolioGalleryProps = {
   projectTitle: string;
   collectionLabel: string;
+  cinematic?: boolean;
   items: PortfolioGalleryItem[];
 };
 
@@ -27,10 +29,12 @@ type GalleryView = "list" | "gallery" | "showcase";
 export default function PortfolioGallery({
   projectTitle,
   collectionLabel,
+  cinematic = false,
   items,
 }: PortfolioGalleryProps) {
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
-  const [galleryView, setGalleryView] = useState<GalleryView>("gallery");
+  const storageKey = `helios-portfolio-view:${cinematic ? "film" : "image"}`;
+  const [galleryView, setGalleryView] = useState<GalleryView>(cinematic ? "list" : "gallery");
   const touchStartX = useRef<number | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -67,6 +71,18 @@ export default function PortfolioGallery({
     [activeMediaId, previewItems],
   );
   const activeMedia = activeIndex >= 0 ? previewItems[activeIndex] : null;
+
+  useEffect(() => {
+    const saved = window.sessionStorage.getItem(storageKey);
+    if (saved !== "list" && saved !== "gallery" && saved !== "showcase") return;
+    const frame = window.requestAnimationFrame(() => setGalleryView(saved));
+    return () => window.cancelAnimationFrame(frame);
+  }, [storageKey]);
+
+  function chooseView(view: GalleryView) {
+    setGalleryView(view);
+    window.sessionStorage.setItem(storageKey, view);
+  }
 
   const closePreview = useCallback(() => {
     const trigger = triggerRef.current;
@@ -147,7 +163,7 @@ export default function PortfolioGallery({
         >
           <button
             type="button"
-            onClick={() => setGalleryView("gallery")}
+            onClick={() => chooseView("gallery")}
             aria-label="Show compact gallery view"
             aria-pressed={galleryView === "gallery"}
             title="Gallery view"
@@ -172,7 +188,7 @@ export default function PortfolioGallery({
 
           <button
             type="button"
-            onClick={() => setGalleryView("list")}
+            onClick={() => chooseView("list")}
             aria-label="Show full-width list view"
             aria-pressed={galleryView === "list"}
             title="List view"
@@ -197,7 +213,7 @@ export default function PortfolioGallery({
 
           <button
             type="button"
-            onClick={() => setGalleryView("showcase")}
+            onClick={() => chooseView("showcase")}
             aria-label="Show large showcase view"
             aria-pressed={galleryView === "showcase"}
             title="Showcase view"
@@ -245,12 +261,10 @@ export default function PortfolioGallery({
                 <span className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
               </button>
             ) : showcaseExternalMedia?.embedUrl ? (
-              <iframe
+              <ViewportVideoFrame
                 src={showcaseExternalMedia.embedUrl}
                 title={showcaseMedia.alt}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-                referrerPolicy="strict-origin-when-cross-origin"
+                autoplay={cinematic}
                 className={`max-h-full border-0 bg-black ${
                   showcaseMedia.isVertical
                     ? "aspect-[9/16] h-[72svh] w-auto max-w-full"
@@ -431,13 +445,10 @@ export default function PortfolioGallery({
                     </span>
                   </button>
                 ) : externalMedia?.embedUrl ? (
-                  <iframe
+                  <ViewportVideoFrame
                     src={externalMedia.embedUrl}
                     title={item.alt}
-                    loading="lazy"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                    referrerPolicy="strict-origin-when-cross-origin"
+                    autoplay={cinematic}
                     className={`mx-auto h-full border-0 bg-black ${
                       item.isVertical
                         ? "aspect-[9/16] w-auto max-w-full"

@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 
 import { createPresignedUploadUrl, createTeamMemberPortraitKey, getPublicAssetUrl } from "@/lib/r2-upload";
+import { getAdminSession } from "@/lib/auth/session";
 
 const imageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 
 export async function POST(request: Request) {
+  const session = await getAdminSession();
+  if (!session || !["OWNER","ADMIN","EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
   try {
     const body = (await request.json()) as Record<string, unknown>;
     const fileType = typeof body.fileType === "string" ? body.fileType : "";

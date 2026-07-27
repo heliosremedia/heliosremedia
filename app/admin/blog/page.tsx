@@ -4,6 +4,7 @@ import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { getSiteSettings } from "@/lib/site-settings";
 import BlogStudio, { type BlogEditorPost, type BlogImageOption } from "./BlogStudio";
 import type { BlogSeriesEditor } from "./BlogSeriesPanel";
+import AdminSummaryCards from "@/app/admin/components/AdminSummaryCards";
 
 export const dynamic = "force-dynamic";
 
@@ -40,5 +41,11 @@ export default async function BlogStudioPage() {
     ...item, nextPublishAt:item.nextPublishAt?.toISOString()||null,
     contentPillars:Array.isArray(item.contentPillars)?item.contentPillars.filter((value):value is string=>typeof value==="string"):[],
   }));
-  return <BlogStudio initialPosts={serialized} images={images} defaultAuthor={settings.defaultBlogAuthor || settings.businessName} series={series} />;
+  const count = (status: BlogEditorPost["status"]) => serialized.filter(item=>item.status===status).length;
+  return <div className="space-y-7"><AdminSummaryCards items={[
+    { label: "Total articles", value: serialized.length, detail: "All editorial records" },
+    { label: "Published", value: count("PUBLISHED"), detail: "Visible publicly", tone: "good" },
+    { label: "Drafts", value: count("DRAFT"), detail: "In progress" },
+    { label: "Scheduled", value: count("SCHEDULED"), detail: "Awaiting publish time" },
+  ]}/><BlogStudio initialPosts={serialized} images={images} defaultAuthor={settings.defaultBlogAuthor || settings.businessName} series={series} /></div>;
 }

@@ -480,6 +480,20 @@ enum TeamMemberCategory {
   OPERATIONS
 }
 
+enum TeamDiscipline {
+  PHOTOGRAPHER
+  VIDEOGRAPHER
+  DRONE_PILOT
+  EDITOR
+  CREATIVE_DIRECTOR
+  OTHER
+}
+
+enum WorkspaceUserState {
+  ACTIVE
+  DEACTIVATED
+}
+
 model TeamMember {
   id String @id @default(cuid())
 
@@ -543,12 +557,40 @@ model Project {
   previewLinks      ProjectPreviewLink[]
   collectionHeroes  ProjectMediaCollectionHero[]
   socialCampaigns   SocialCampaign[]
+  contributors      ProjectContributor[]
 
   @@index([status])
   @@index([featured])
   @@index([displayOrder])
   @@index([publishedAt])
   @@index([status, displayOrder])
+}
+
+model ProjectContributor {
+  id String @id @default(cuid())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  adminUserId String?
+  adminUser   AdminUser? @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  displayNameSnapshot String
+  disciplinesSnapshot Json
+  externalName        String?
+  externalDiscipline  String?
+  public              Boolean @default(true)
+  displayOrder        Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, adminUserId])
+  @@index([projectId, displayOrder])
+  @@index([workspaceId, adminUserId])
 }
 
 model ProjectDetails {
@@ -834,6 +876,8 @@ model HomepageWorkCard {
 
 model SiteSettings {
   id String @id @default("default")
+  workspaceId String? @unique
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
 
   businessName              String      @default("Helios Real Estate Media")
   phoneDisplay              String      @default("970.682.5533")
@@ -849,6 +893,14 @@ model SiteSettings {
   bookingBannerMessage      String?
   bookingBannerEnabled      Boolean     @default(true)
   bookingRequestEnabled     Boolean     @default(true)
+  bookingHandoffEnabled     Boolean     @default(true)
+  bookingProviderName       String?
+  bookingEyebrow            String?
+  bookingPrimaryLabel       String?
+  bookingCallLabel          String?
+  bookingEmailLabel         String?
+  bookingPhoneVisible       Boolean     @default(true)
+  bookingEmailVisible       Boolean     @default(true)
 
   heroVideoUrl             String?
   heroPosterUrl            String? @default("/work/featured-estate.jpg")
@@ -1229,6 +1281,14 @@ model AdminUser {
 
   email               String    @unique
   displayName         String
+  firstName           String?
+  lastName            String?
+  phone               String?
+  profilePhotoStorageKey String?
+  profilePhotoUrl     String?
+  notificationPreferences Json?
+  disciplines        TeamDiscipline[]
+  state               WorkspaceUserState @default(ACTIVE)
   role                AdminRole @default(EDITOR)
   active              Boolean   @default(true)
   passwordHash        String?
@@ -1270,6 +1330,7 @@ model AdminUser {
   socialConnectionAudits    SocialConnectionAudit[]
   socialPublishingApprovals SocialPublishingSnapshot[]      @relation("SocialPublishingApprovedBy")
   socialRecommendationsActed SocialAnalyticsRecommendation[] @relation("SocialRecommendationActor")
+  projectCredits            ProjectContributor[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1287,6 +1348,9 @@ model Workspace {
   socialCampaigns   SocialCampaign[]
   socialSettings    SocialStudioSettings[]
   socialConnections SocialConnection[]
+  siteSettings      SiteSettings?
+  projectContributors ProjectContributor[]
+  invitations       AdminInvitation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2584,6 +2648,12 @@ model AdminInvitation {
   email       String
   displayName String
   role        AdminRole @default(EDITOR)
+  firstName   String?
+  lastName    String?
+  phone       String?
+  disciplines TeamDiscipline[]
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   tokenHash   String    @unique
   createdById String
   createdBy   AdminUser @relation("InvitationCreator", fields: [createdById], references: [id], onDelete: Cascade)
@@ -2593,6 +2663,7 @@ model AdminInvitation {
   createdAt   DateTime  @default(now())
 
   @@index([email, createdAt])
+  @@index([workspaceId, expiresAt])
   @@index([expiresAt])
 }
 

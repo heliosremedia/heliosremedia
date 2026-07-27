@@ -14,6 +14,7 @@ import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { getAbsoluteUrl } from "@/lib/site";
 
 import PortfolioGallery from "./PortfolioGallery";
+import ShareProject from "./ShareProject";
 
 export const dynamic = "force-dynamic";
 
@@ -87,6 +88,11 @@ async function getProject(slug: string, previewToken?: string) {
             },
           },
         },
+      },
+      contributors: {
+        where: { public: true },
+        orderBy: { displayOrder: "asc" },
+        select: { displayNameSnapshot: true, disciplinesSnapshot: true, externalDiscipline: true },
       },
       media: {
         where: {
@@ -331,6 +337,10 @@ export default async function PortfolioProjectPage({
       : null,
   ].filter((fact): fact is { label: string; value: string } => Boolean(fact));
   const credits = [
+    ...project.contributors.map(contributor => ({
+      label: contributor.externalDiscipline || (Array.isArray(contributor.disciplinesSnapshot) ? contributor.disciplinesSnapshot.map(String).join(" · ").replaceAll("_"," ") : "Contributor"),
+      value: contributor.displayNameSnapshot,
+    })),
     project.details?.listingAgent
       ? { label: "Listing agent", value: project.details.listingAgent }
       : null,
@@ -469,11 +479,12 @@ export default async function PortfolioProjectPage({
       )}
 
       <nav id="project-overview" aria-label="Project navigation" className="scroll-mt-24 border-b border-white/[0.08] bg-[#090909]">
-        <div className="container-shell py-5">
+        <div className="container-shell flex flex-wrap items-center justify-between gap-4 py-5">
           <Link href="/portfolio" className="inline-flex items-center gap-3 text-[0.58rem] font-semibold uppercase tracking-[0.17em] text-white/50 transition hover:text-white">
             <span aria-hidden="true">←</span>
             Back to all projects
           </Link>
+          <ShareProject url={projectUrl} title={project.seoTitle||project.title} summary={project.seoDescription||project.shortDescription||project.description||`Explore ${project.title}.`}/>
         </div>
       </nav>
 
@@ -566,6 +577,7 @@ export default async function PortfolioProjectPage({
           <PortfolioGallery
             projectTitle={project.title}
             collectionLabel={collection.label}
+            cinematic={collection.value === "CINEMATIC_FILM"}
             items={collection.media.map((media) => ({
               id: media.id,
               imageUrl: media.storageKey

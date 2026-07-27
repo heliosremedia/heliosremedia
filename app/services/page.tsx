@@ -148,13 +148,13 @@ export default async function ServicesPage() {
       <section className="container-shell border-b border-white/[0.08] py-8 sm:py-10">
         <nav
           aria-label="Service index"
-          className="flex gap-2 overflow-x-auto pb-2"
+          className="flex flex-wrap justify-center gap-2"
         >
           {services.map((service, index) => (
             <a
               key={service.id}
               href={`#${service.slug}`}
-              className="shrink-0 rounded-full border border-white/10 px-4 py-2.5 text-[0.54rem] font-semibold uppercase tracking-[0.14em] text-white/38 transition hover:border-white/25 hover:text-white"
+              className="min-h-11 rounded-full border border-white/10 px-4 py-2.5 text-[0.54rem] font-semibold uppercase tracking-[0.14em] text-white/38 transition hover:border-white/25 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--helios-orange)]"
             >
               {String(index + 1).padStart(2, "0")} {service.name}
             </a>

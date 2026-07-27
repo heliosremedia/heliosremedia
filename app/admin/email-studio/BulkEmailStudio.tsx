@@ -14,6 +14,7 @@ type Campaign = {
 };
 type Mode = "ALL" | "GROUPS" | "INDIVIDUALS";
 type Field = "subject" | "previewText" | "body";
+type AiDraft = { subjectOptions?: string[]; previewText?: string; body?: string; cta?: string };
 
 const variables = [
   ["First Name", "{{FIRST_NAME}}"], ["Last Name", "{{LAST_NAME}}"],
@@ -42,6 +43,10 @@ export default function BulkEmailStudio({ clients, groups, campaigns, canSend, d
   const [scheduleLocal, setScheduleLocal] = useState("");
   const [minimumScheduleLocal, setMinimumScheduleLocal] = useState("");
   const [scheduleTimeZone, setScheduleTimeZone] = useState("America/Denver");
+  const [aiBrief, setAiBrief] = useState("");
+  const [aiTone, setAiTone] = useState("Refined and warm");
+  const [aiLength, setAiLength] = useState("Concise");
+  const [aiDraft, setAiDraft] = useState<AiDraft | null>(null);
   const subjectRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
@@ -82,6 +87,23 @@ export default function BulkEmailStudio({ clients, groups, campaigns, canSend, d
       element?.focus();
       element?.setSelectionRange(start + token.length, start + token.length);
     });
+  }
+
+  async function writeWithAi() {
+    setBusy("ai"); setMessage(null);
+    try {
+      const response = await fetch("/api/admin/email-ai", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({brief:aiBrief,tone:aiTone,length:aiLength}) });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || "AI could not complete the draft.");
+      setAiDraft(data.draft); setMessage({tone:"ok",text:"AI draft ready. Review it before accepting any field."});
+    } catch(error) { setMessage({tone:"error",text:error instanceof Error?error.message:"AI could not complete the draft."}); }
+    finally { setBusy(null); }
+  }
+  function acceptAiDraft() {
+    if ((subject.trim()||previewText.trim()||body.trim())&&!window.confirm("Replace the populated email fields with this AI draft?")) return;
+    const option=aiDraft?.subjectOptions?.[0]||"";
+    setSubject(option); setPreviewText(aiDraft?.previewText||""); setBody([aiDraft?.body,aiDraft?.cta].filter(Boolean).join("\n\n"));
+    setAiDraft(null); setMessage({tone:"ok",text:"AI draft accepted. You remain in full control—review and edit before testing or sending."});
   }
 
   async function submit(action: "test" | "send" | "schedule") {
@@ -173,6 +195,13 @@ export default function BulkEmailStudio({ clients, groups, campaigns, canSend, d
       </section>
       <section className="rounded-2xl border border-white/[0.08] bg-[#111] p-6">
         <p className="text-xs uppercase tracking-[0.16em] text-white/30">02 · Message</p><h2 className="mt-2 text-2xl font-light text-white">Compose email</h2>
+        <div className="mt-5 rounded-xl border border-[var(--helios-orange)]/20 bg-[var(--helios-orange)]/[0.04] p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-[0.54rem] font-semibold uppercase tracking-[0.16em] text-[var(--helios-orange)]">Write with AI</p><p className="mt-2 text-xs leading-5 text-white/35">Generate a reviewable draft only. AI cannot choose recipients, schedule, approve, or send.</p></div>{busy==="ai"&&<span role="status" className="text-sm text-emerald-300">AI is writing…</span>}</div>
+          <textarea rows={4} maxLength={5000} value={aiBrief} onChange={e=>setAiBrief(e.target.value)} placeholder="Describe the purpose, verified facts, audience, and desired call to action…" className="mt-4 w-full rounded-xl border border-white/10 bg-black/25 p-3 text-sm text-white outline-none focus:border-[var(--helios-orange)]"/>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="text-xs text-white/35">Tone<select value={aiTone} onChange={e=>setAiTone(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#111] px-3 py-2.5 text-sm text-white"><option>Refined and warm</option><option>Professional and direct</option><option>Conversational</option><option>Celebratory</option></select></label><label className="text-xs text-white/35">Length<select value={aiLength} onChange={e=>setAiLength(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#111] px-3 py-2.5 text-sm text-white"><option>Concise</option><option>Standard</option><option>Detailed</option></select></label></div>
+          <div className="mt-4 flex flex-wrap gap-2"><button type="button" disabled={busy!==null||aiBrief.trim().length<12} onClick={writeWithAi} className="admin-btn-primary">{aiDraft?"Retry":"Generate"}</button>{aiDraft&&<><button type="button" onClick={acceptAiDraft} className="admin-btn-secondary">Accept draft</button><button type="button" onClick={()=>setAiDraft(null)} className="admin-btn-link">Discard</button></>}</div>
+          {aiDraft&&<div className="mt-4 rounded-xl border border-white/[0.08] bg-black/25 p-4 text-sm text-white/55"><p className="font-medium text-white/75">{aiDraft.subjectOptions?.[0]||"Subject option unavailable"}</p>{aiDraft.previewText&&<p className="mt-2 text-xs text-white/35">{aiDraft.previewText}</p>}<p className="mt-4 whitespace-pre-wrap leading-6">{aiDraft.body}</p>{aiDraft.cta&&<p className="mt-3 text-[var(--helios-orange)]">{aiDraft.cta}</p>}</div>}
+        </div>
         <div className="mt-5 space-y-4">
           <label className="block text-xs text-white/35">Subject<input ref={subjectRef} value={subject} maxLength={160} onFocus={() => setActiveField("subject")} onChange={(event) => setSubject(event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm font-normal text-white" /></label>
           <label className="block text-xs text-white/35">Preview text <span className="text-white/20">(optional)</span><input ref={previewRef} value={previewText} maxLength={180} onFocus={() => setActiveField("previewText")} onChange={(event) => setPreviewText(event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm font-normal text-white" /></label>

@@ -26,10 +26,22 @@ export default function UserManager({ initialUsers, invitations, currentUserId, 
   }
 
   async function update(user: User, patch: { role?: AdminRole; active?: boolean }) {
+    if (!window.confirm(patch.role ? `Change ${user.displayName}'s role to ${patch.role}?` : `${patch.active ? "Reactivate" : "Deactivate"} ${user.displayName}?`)) return;
     setBusy(true); setMessage(null);
     try { const response = await fetch("/api/admin/users", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: user.id, ...patch }) }); const data = await response.json(); if (!response.ok || !data.success) throw new Error(data.error || "Unable to update user."); setUsers(current => current.map(item => item.id === user.id ? { ...item, ...data.user } : item)); setMessage("Account access updated."); }
     catch (caught) { setMessage(caught instanceof Error ? caught.message : "Unable to update user."); }
     finally { setBusy(false); }
+  }
+
+  async function revokeInvitation(invitationId: string) {
+    if (!window.confirm("Revoke this pending invitation? The current link will stop working.")) return;
+    setBusy(true); setMessage(null);
+    try {
+      const response = await fetch("/api/admin/users", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ invitationId }) });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || "Unable to revoke invitation.");
+      setMessage("Invitation revoked. Refreshing…"); window.location.reload();
+    } catch (caught) { setMessage(caught instanceof Error ? caught.message : "Unable to revoke invitation."); setBusy(false); }
   }
 
   async function resetPassword(event: React.FormEvent) {
@@ -52,7 +64,7 @@ export default function UserManager({ initialUsers, invitations, currentUserId, 
         </form>
         {inviteUrl && <div className="mt-5 rounded-xl border border-[var(--helios-orange)]/20 bg-[var(--helios-orange)]/[0.05] p-4"><p className="text-xs text-white/45">Single-use link · expires in 7 days</p><input readOnly value={inviteUrl} onFocus={event => event.currentTarget.select()} className="mt-2 w-full rounded-lg border border-white/10 bg-black/30 p-3 text-xs text-white/65" /><button type="button" onClick={() => navigator.clipboard.writeText(inviteUrl)} className="admin-btn-secondary mt-3">Copy link</button></div>}
         {message && <p role="status" className="mt-5 text-sm text-white/50">{message}</p>}
-        {invitations.length > 0 && <div className="mt-7 border-t border-white/[0.08] pt-5"><p className="text-xs uppercase tracking-[0.14em] text-white/25">Pending invitations</p>{invitations.map(item => <p key={item.id} className="mt-3 text-xs text-white/45">{item.displayName} · {item.role}<span className="block text-white/25">{item.email} · expires {new Date(item.expiresAt).toLocaleDateString()}</span></p>)}</div>}
+        {invitations.length > 0 && <div className="mt-7 border-t border-white/[0.08] pt-5"><p className="text-xs uppercase tracking-[0.14em] text-white/25">Invitations</p>{invitations.map(item => { const expired=new Date(item.expiresAt)<=new Date(); return <div key={item.id} className="mt-3 flex items-start justify-between gap-3 rounded-xl border border-white/[0.06] p-3"><p className="text-xs text-white/45">{item.displayName} · {item.role}<span className="block text-white/25">{item.email} · {expired?"Expired":`expires ${new Date(item.expiresAt).toLocaleDateString()}`}</span></p><button type="button" disabled={busy} onClick={()=>revokeInvitation(item.id)} className="admin-btn-link">Revoke</button></div>;})}</div>}
       </section>
       <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111]">
         <div className="border-b border-white/[0.08] p-6"><h2 className="text-2xl font-light text-white">Workspace accounts</h2><p className="mt-2 text-sm text-white/35">Manage roles, reset passwords, and revoke account access without deleting activity history.</p></div>
