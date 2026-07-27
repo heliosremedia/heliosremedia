@@ -444,6 +444,9 @@ export default async function AdminPage({
                 <Metric label="Blog drafts" value={content.data.blogDrafts} />
                 <Metric label="Active blog series" value={content.data.activeBlogSeries} />
                 <Metric label="Active newsletters" value={content.data.activeNewsletterSeries} />
+                <Metric label="Social drafts" value={content.data.socialDraftCampaigns} />
+                <Metric label="Social planned" value={content.data.socialPlanned} />
+                <Metric label="Social published · month" value={content.data.socialPublishedThisMonth} />
               </div>
               <p className="mt-4 text-sm leading-6 text-white/45">
                 {content.data.blogDrafts + content.data.newsletterReviews
@@ -453,6 +456,7 @@ export default async function AdminPage({
               <div className="mt-4 flex flex-wrap gap-3">
                 <Link href="/admin/blog" className="admin-btn-secondary">Manage blog</Link>
                 <Link href="/admin/newsletter-studio" className="admin-btn-secondary">Manage newsletter</Link>
+                <Link href="/admin/social-studio" className="admin-btn-secondary">Social Studio</Link>
               </div>
             </>
           )}
