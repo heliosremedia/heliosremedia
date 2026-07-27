@@ -43,6 +43,8 @@ export async function getDashboardData(days = 30) {
             blogSchedule,
             blogSeries,
             referralSchedule,
+            socialAttention,
+            socialSchedule,
             settings,
           ] = await Promise.all([
             prisma.newsletterEdition.findMany({
@@ -117,6 +119,23 @@ export async function getDashboardData(days = 30) {
               },
               select: { id: true, internalName: true, status: true, startsAt: true, endsAt: true },
             }),
+            prisma.socialVariant.findMany({
+              where: {
+                OR: [
+                  { status: { in: ["NEEDS_REVIEW", "READY_TO_PUBLISH", "FAILED"] } },
+                  { status: "SCHEDULED", scheduledAt: { lt: now } },
+                  { status: "APPROVED", scheduledAt: null },
+                ],
+              },
+              select: { id: true, platform: true, status: true, scheduledAt: true, updatedAt: true, campaignId: true, campaign: { select: { internalName: true, generationStatus: true } } },
+              take: 16,
+              orderBy: { updatedAt: "asc" },
+            }),
+            prisma.socialVariant.findMany({
+              where: { status: "SCHEDULED", scheduledAt: { gte: now, lte: upcomingEnd } },
+              select: { id: true, platform: true, postType: true, status: true, scheduledAt: true, campaignId: true, campaign: { select: { internalName: true } } },
+              orderBy: { scheduledAt: "asc" },
+            }),
             prisma.siteSettings.findUnique({
               where: { id: "default" },
               select: { bookingMode: true, bookingEstimatedRestoreAt: true },
@@ -170,6 +189,15 @@ export async function getDashboardData(days = 30) {
               date: item.updatedAt,
               href: `/admin/newsletter-studio/editions/${item.editionId}`,
               action: "Review job",
+            })),
+            ...socialAttention.map((item) => ({
+              id: `social:${item.id}`,
+              severity: (item.status === "FAILED" || (item.status === "SCHEDULED" && item.scheduledAt && item.scheduledAt < now) ? "critical" : "attention") as DashboardAttention["severity"],
+              type: "Social",
+              message: `${item.campaign.internalName} · ${item.platform.toLowerCase()} · ${item.status.replaceAll("_", " ").toLowerCase()}`,
+              date: item.scheduledAt || item.updatedAt,
+              href: `/admin/social-studio/campaigns/${item.campaignId}?variant=${item.id}`,
+              action: item.status === "READY_TO_PUBLISH" ? "Publish manually" : "Open post",
             })),
             ...(settings?.bookingMode && settings.bookingMode !== "ONLINE"
               ? [{
@@ -263,6 +291,14 @@ export async function getDashboardData(days = 30) {
                   }]
                 : []),
             ]),
+            ...socialSchedule.flatMap((item) => item.scheduledAt ? [{
+              id: `social:${item.id}`,
+              type: "Social",
+              title: `${item.campaign.internalName} · ${item.platform}`,
+              date: item.scheduledAt,
+              href: `/admin/social-studio/campaigns/${item.campaignId}?variant=${item.id}`,
+              state: item.status.replaceAll("_", " "),
+            }] : []),
             ...(settings?.bookingEstimatedRestoreAt &&
             settings.bookingEstimatedRestoreAt >= now &&
             settings.bookingEstimatedRestoreAt <= upcomingEnd
@@ -345,6 +381,9 @@ export async function getDashboardData(days = 30) {
           newsletterReviews: 0,
           nextBlog: null as Date | null,
           nextNewsletter: null as Date | null,
+          socialDraftCampaigns: 0,
+          socialPlanned: 0,
+          socialPublishedThisMonth: 0,
         },
         async () => {
           const [
@@ -355,6 +394,9 @@ export async function getDashboardData(days = 30) {
             newsletterReviews,
             nextBlogSeries,
             nextNewsletterSeries,
+            socialDraftCampaigns,
+            socialPlanned,
+            socialPublishedThisMonth,
           ] = await Promise.all([
             prisma.blogPost.count({ where: { status: "PUBLISHED", publishedAt: { gte: rangeStart } } }),
             prisma.blogPost.count({ where: { status: { in: ["DRAFT", "NEEDS_REVIEW"] } } }),
@@ -363,6 +405,9 @@ export async function getDashboardData(days = 30) {
             prisma.newsletterEdition.count({ where: { status: "NEEDS_REVIEW" } }),
             prisma.blogSeries.findFirst({ where: { status: "ACTIVE", nextGenerationAt: { not: null } }, orderBy: { nextGenerationAt: "asc" }, select: { nextGenerationAt: true } }),
             prisma.newsletterSeries.findFirst({ where: { status: "ACTIVE", nextGenerationAt: { not: null } }, orderBy: { nextGenerationAt: "asc" }, select: { nextGenerationAt: true } }),
+            prisma.socialCampaign.count({ where: { archivedAt: null, variants: { some: { status: { in: ["DRAFT", "NEEDS_REVIEW"] } } } } }),
+            prisma.socialVariant.count({ where: { status: { in: ["APPROVED", "SCHEDULED", "READY_TO_PUBLISH"] } } }),
+            prisma.socialVariant.count({ where: { status: "PUBLISHED", publishedAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } } }),
           ]);
           return {
             publishedBlogs,
@@ -372,6 +417,9 @@ export async function getDashboardData(days = 30) {
             newsletterReviews,
             nextBlog: nextBlogSeries?.nextGenerationAt || null,
             nextNewsletter: nextNewsletterSeries?.nextGenerationAt || null,
+            socialDraftCampaigns,
+            socialPlanned,
+            socialPublishedThisMonth,
           };
         },
       ),
