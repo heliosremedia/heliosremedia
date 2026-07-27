@@ -517,7 +517,7 @@ export default function AdminSidebar({
               HELIOS
             </span>
             <span className="mt-1 block text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-[var(--helios-orange)]">
-              Studio Admin
+              Studio Admin · V1.8.3
             </span>
           </Link>
 
