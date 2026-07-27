@@ -28,12 +28,13 @@ export function deriveCampaignStatus(states: VariantState[]) {
 }
 
 export function contentEditState(state: VariantState) {
+  if (state === "PUBLISHED") throw new Error("Published variants are immutable. Create a new campaign or variant revision instead.");
   return ["APPROVED", "SCHEDULED", "READY_TO_PUBLISH"].includes(state) ? "NEEDS_REVIEW" : state;
 }
 
-export function canApprove(input: { caption?: string | null; postType: string; mediaCount: number }) {
+export function canApprove(input: { caption?: string | null; postType: string; mediaCount: number; hasGeneratedCover?: boolean }) {
   return Boolean(input.caption?.trim()) && (
-    ["TEXT_POST", "LINK_POST"].includes(input.postType) || input.mediaCount > 0
+    ["TEXT_POST", "LINK_POST"].includes(input.postType) || input.mediaCount > 0 || input.hasGeneratedCover === true
   );
 }
 
