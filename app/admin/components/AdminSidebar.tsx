@@ -101,6 +101,11 @@ const navigation: NavigationItem[] = [
     icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><path d="M8.5 12.5 6 15a3 3 0 1 0 4.2 4.2l3-3M15.5 11.5 18 9a3 3 0 1 0-4.2-4.2l-3 3M8.5 15.5l7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>,
   },
   {
+    label: "Social Studio",
+    href: "/admin/social-studio",
+    icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><path d="M7 8.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM17 14a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM8 7l6 2.5M8 17l6-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><circle cx="6" cy="18" r="3.5" stroke="currentColor" strokeWidth="1.5"/></svg>,
+  },
+  {
     label: "Homepage",
     href: "/admin/homepage",
     icon: (
@@ -267,7 +272,7 @@ const navigationGroups: NavigationGroup[] = [
   {
     id: "operations",
     label: "Operations",
-    hrefs: ["/admin/client-portals", "/admin/clients", "/admin/email-studio", "/admin/inquiries", "/admin/newsletter-studio", "/admin/projects", "/admin/referral-studio"],
+    hrefs: ["/admin/client-portals", "/admin/clients", "/admin/email-studio", "/admin/inquiries", "/admin/newsletter-studio", "/admin/projects", "/admin/referral-studio", "/admin/social-studio"],
   },
   {
     id: "website-content",
