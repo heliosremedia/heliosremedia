@@ -6,7 +6,7 @@ export function resolveBookingDestination(mode: BookingModeValue, configuredUrl:
   try {
     const parsed = new URL(configuredUrl);
     if (!["http:", "https:"].includes(parsed.protocol)) return { kind: "status" as const, href: "/book" };
-    return { kind: "redirect" as const, href: parsed.toString() };
+    return { kind: "handoff" as const, href: parsed.toString() };
   } catch { return { kind: "status" as const, href: "/book" }; }
 }
 

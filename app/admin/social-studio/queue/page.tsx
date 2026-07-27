@@ -1,11 +1,16 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import PublishingQueue from "./PublishingQueue";
+import { getAdminSession } from "@/lib/auth/session";
+import { requireWorkspaceId } from "@/lib/workspaces";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function PublishingQueuePage() {
+  const session=await getAdminSession();if(!session)redirect("/login");const workspaceId=await requireWorkspaceId(session.userId);
   const jobs = await prisma.socialPublishingJob.findMany({
+    where: { connection: { workspaceId } },
     orderBy: [{ scheduledAt: "asc" }, { createdAt: "desc" }],
     take: 200,
     include: {
@@ -28,4 +33,3 @@ export default async function PublishingQueuePage() {
     }))}/>
   </div>;
 }
-

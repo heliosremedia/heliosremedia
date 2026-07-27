@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type DragEvent, type KeyboardEvent, type PointerEvent } from "react";
 import { TESTIMONIAL_CHARACTER_LIMIT } from "@/lib/testimonials";
 
 export type AdminTestimonial = {
@@ -25,6 +25,7 @@ export type AdminTestimonial = {
   featured: boolean;
   createdAt: string;
   updatedAt: string;
+  rowVersion: number;
 };
 
 type Draft = {
@@ -57,6 +58,8 @@ export default function TestimonialManager({ initialTestimonials, googleConfigur
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dropId, setDropId] = useState<string | null>(null);
   const publishedCount = useMemo(() => testimonials.filter((item) => item.published).length, [testimonials]);
   const featuredCount = useMemo(() => testimonials.filter((item) => item.featured).length, [testimonials]);
   const googleCount = useMemo(() => testimonials.filter((item) => item.sourceProvider === "GOOGLE").length, [testimonials]);
@@ -134,16 +137,51 @@ export default function TestimonialManager({ initialTestimonials, googleConfigur
     finally { setBusy(null); }
   }
 
+  async function persistOrder(reordered: AdminTestimonial[], previous: AdminTestimonial[]) {
+    setTestimonials(reordered); setBusy("order"); setError(null);
+    try {
+      const data = await jsonRequest("/api/admin/testimonials", { method: "PATCH", body: JSON.stringify({ action: "reorder", testimonialIds: reordered.map(({ id }) => id), versions: Object.fromEntries(previous.map((item) => [item.id, item.rowVersion])) }) });
+      const versions = data.versions as Record<string, number>;
+      setTestimonials((current) => current.map((item, index) => ({ ...item, displayOrder: index * 1000, rowVersion: versions[item.id] ?? item.rowVersion })));
+    } catch (caught) { setTestimonials(previous); setError(caught instanceof Error ? caught.message : "Unable to save testimonial order."); }
+    finally { setBusy(null); setDraggedId(null); setDropId(null); }
+  }
+
   async function move(index: number, direction: -1 | 1) {
     const target = index + direction;
     if (target < 0 || target >= testimonials.length) return;
     const previous = testimonials;
     const reordered = [...testimonials];
     [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
-    setTestimonials(reordered); setBusy("order"); setError(null);
-    try { await jsonRequest("/api/admin/testimonials", { method: "PATCH", body: JSON.stringify({ action: "reorder", testimonialIds: reordered.map(({ id }) => id) }) }); }
-    catch (caught) { setTestimonials(previous); setError(caught instanceof Error ? caught.message : "Unable to save testimonial order."); }
-    finally { setBusy(null); }
+    await persistOrder(reordered, previous);
+  }
+
+  async function dropOn(targetId: string) {
+    if (!draggedId || draggedId === targetId) return;
+    const previous = testimonials;
+    const reordered = testimonials.filter((item) => item.id !== draggedId);
+    const target = reordered.findIndex((item) => item.id === targetId);
+    const moved = testimonials.find((item) => item.id === draggedId);
+    if (!moved || target < 0) return;
+    reordered.splice(target, 0, moved);
+    await persistOrder(reordered, previous);
+  }
+
+  function dragOver(event: DragEvent<HTMLElement>, targetId: string) {
+    event.preventDefault();
+    setDropId(targetId);
+    if (event.clientY < 90) window.scrollBy({ top: -18, behavior: "auto" });
+    if (event.clientY > window.innerHeight - 90) window.scrollBy({ top: 18, behavior: "auto" });
+  }
+
+  function reorderKey(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    if (!event.altKey || !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
+    event.preventDefault();
+    void move(index, ["ArrowUp", "ArrowLeft"].includes(event.key) ? -1 : 1);
+  }
+
+  function pointerStart(event: PointerEvent<HTMLButtonElement>, id: string) {
+    if (event.pointerType !== "mouse") setDraggedId(id);
   }
 
   async function remove(item: AdminTestimonial) {
@@ -186,9 +224,10 @@ export default function TestimonialManager({ initialTestimonials, googleConfigur
           <button type="button" onClick={openCreate} className="self-start admin-btn-primary sm:self-auto">Add testimonial</button>
         </div>
 
-        <div className="mt-6 grid gap-4 xl:grid-cols-2">
+        <div className="mt-6 grid gap-4 xl:grid-cols-2" aria-busy={busy === "order"}>
           {testimonials.map((item, index) => (
-            <article key={item.id} className={`grid overflow-hidden rounded-2xl border bg-white/[0.02] sm:grid-cols-[9rem_minmax(0,1fr)] ${item.published ? "border-white/[0.09]" : "border-white/[0.06] opacity-70"}`}>
+            <article key={item.id} onDragOver={(event)=>dragOver(event,item.id)} onDrop={(event)=>{event.preventDefault();void dropOn(item.id);}} onPointerUp={()=>{if(draggedId)void dropOn(item.id);}} className={`relative grid overflow-hidden rounded-2xl border bg-white/[0.02] transition sm:grid-cols-[9rem_minmax(0,1fr)] ${draggedId===item.id?"scale-[.985] border-[var(--helios-orange)]/50 opacity-70 shadow-2xl":dropId===item.id?"border-[var(--helios-orange)]/60":"border-white/[0.09]"} ${item.published ? "" : "opacity-70"}`}>
+              <button type="button" draggable disabled={busy!==null} onDragStart={(event)=>{setDraggedId(item.id);event.dataTransfer.effectAllowed="move";}} onDragEnd={()=>{setDraggedId(null);setDropId(null);}} onPointerDown={(event)=>pointerStart(event,item.id)} onKeyDown={(event)=>reorderKey(event,index)} aria-label={`Reorder ${item.agentName}. Use drag, touch, or Alt plus arrow keys.`} className="absolute left-2 top-2 z-10 flex h-11 w-11 touch-none items-center justify-center rounded-xl border border-white/15 bg-black/75 text-lg text-white/65 shadow-lg focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)]">⠿</button>
               <div className="relative min-h-44 bg-white/[0.03] sm:min-h-full">
                 {item.photoUrl ? <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -200,8 +239,8 @@ export default function TestimonialManager({ initialTestimonials, googleConfigur
                 {item.sourceProvider === "GOOGLE" && <p className="mt-3 text-[0.48rem] font-semibold uppercase tracking-[0.14em] text-blue-200/45">Google review · curated draft</p>}
                 <blockquote className="mt-4 line-clamp-4 font-display text-lg leading-6 text-white/55">“{item.testimonial}”</blockquote>
                 <div className="mt-auto flex flex-wrap items-center gap-1 border-t border-white/[0.06] pt-4">
-                  <button type="button" aria-label={`Move ${item.agentName} up`} disabled={index === 0 || busy !== null} onClick={() => move(index, -1)} className="admin-btn-link">↑</button>
-                  <button type="button" aria-label={`Move ${item.agentName} down`} disabled={index === testimonials.length - 1 || busy !== null} onClick={() => move(index, 1)} className="admin-btn-link">↓</button>
+                  <button type="button" aria-label={`Move ${item.agentName} up`} disabled={index === 0 || busy !== null} onClick={() => move(index, -1)} className="admin-btn-link min-h-10 min-w-10 text-base">↑</button>
+                  <button type="button" aria-label={`Move ${item.agentName} down`} disabled={index === testimonials.length - 1 || busy !== null} onClick={() => move(index, 1)} className="admin-btn-link min-h-10 min-w-10 text-base">↓</button>
                   <button type="button" disabled={busy !== null} onClick={() => setStatus(item, "featured")} className="ml-auto admin-btn-link">{item.featured ? "Unfeature" : "Feature"}</button>
                   <button type="button" disabled={busy !== null} onClick={() => setStatus(item, "published")} className="admin-btn-link">{item.published ? "Unpublish" : "Publish"}</button>
                   <button type="button" onClick={() => openEdit(item)} className="admin-btn-link">Edit</button>

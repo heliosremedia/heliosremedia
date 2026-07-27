@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
+import { requireWorkspaceId } from "@/lib/workspaces";
 
 const clean=(value:unknown,max=100)=>typeof value==="string"?value.trim().slice(0,max):"";
 export async function PATCH(request:Request){
   const session=await getAdminSession();
   if(!session||!["OWNER","ADMIN"].includes(session.role)) return NextResponse.json({success:false,error:"Unauthorized"},{status:401});
   const body=await request.json() as Record<string,unknown>;const connectionId=clean(body.connectionId);const action=clean(body.action);
-  const connection=await prisma.socialConnection.findUnique({where:{id:connectionId}});
+  const workspaceId=await requireWorkspaceId(session.userId);
+  const connection=await prisma.socialConnection.findFirst({where:{id:connectionId,workspaceId}});
   if(!connection) return NextResponse.json({success:false,error:"Connection not found."},{status:404});
   if(action==="enable"){
     if(!["CONNECTED","CONNECTED_DIRECT_PUBLISHING_DISABLED"].includes(connection.state)||!connection.encryptedTokenPayload||!connection.providerAccountId) return NextResponse.json({success:false,error:"Complete OAuth and select an eligible destination before enabling direct publishing."},{status:409});

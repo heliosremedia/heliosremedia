@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type DragEvent } from "react";
 import type { AdminRole } from "@/app/generated/prisma/client";
+import { STUDIO_VERSION } from "@/lib/version";
 
 type AdminSidebarProps = {
   isOpen: boolean;
@@ -516,8 +517,9 @@ export default function AdminSidebar({
             <span className="font-helios text-lg tracking-[0.12em] text-white">
               HELIOS
             </span>
-            <span className="mt-1 block text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-[var(--helios-orange)]">
-              Studio Admin · V1.8.3
+            <span className="mt-1 block text-[0.54rem] font-semibold uppercase tracking-[0.2em]">
+              <span className="text-[var(--helios-orange)]">STUDIO ADMIN</span>
+              <span className="text-white/35"> — {STUDIO_VERSION}</span>
             </span>
           </Link>
 

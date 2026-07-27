@@ -6,6 +6,7 @@ import { canApprove, scheduleState } from "@/lib/social/core";
 import { updateVariantContent } from "@/lib/social/studio";
 import { zonedLocalToUtc } from "@/lib/client-communications/scheduling";
 import { createPublishingJob } from "@/lib/social/publishing";
+import { requireWorkspaceId } from "@/lib/workspaces";
 
 const clean = (value: unknown, max = 10_000) => typeof value === "string" ? value.trim().slice(0, max) : "";
 
@@ -14,11 +15,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
   if (!session || session.role === "VIEWER") return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   const { campaignId } = await params;
   try {
+    const workspaceId = await requireWorkspaceId(session.userId);
     const body = await request.json() as Record<string, unknown>;
     const action = clean(body.action, 40);
     const variantId = clean(body.variantId, 100);
     const variant = variantId ? await prisma.socialVariant.findFirst({
-      where: { id: variantId, campaignId },
+      where: { id: variantId, campaignId, campaign: { workspaceId } },
       include: { _count: { select: { media: true } } },
     }) : null;
     const publishedMutations = ["update-variant", "submit-review", "approve", "schedule", "set-media", "update-media-presentation", "set-ai-image", "archive"];
@@ -26,8 +28,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
       return NextResponse.json({ success: false, error: "Published posts are immutable. Create a new campaign or variant revision instead." }, { status: 409 });
     }
     if (action === "update-campaign") {
-      await prisma.socialCampaign.update({
-        where: { id: campaignId },
+      const changed = await prisma.socialCampaign.updateMany({
+        where: { id: campaignId, workspaceId },
         data: {
           internalName: clean(body.internalName, 180), purpose: clean(body.purpose, 5000),
           targetAudience: clean(body.targetAudience, 1000), primaryMessage: clean(body.primaryMessage, 2000),
@@ -35,6 +37,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
           scheduleNotes: clean(body.scheduleNotes, 3000), internalAiInstructions: clean(body.internalAiInstructions, 5000),
         },
       });
+      if (!changed.count) return NextResponse.json({ success: false, error: "Campaign not found." }, { status: 404 });
     } else if (action === "update-variant" && variant) {
       const hashtags = Array.isArray(body.hashtags) ? body.hashtags.map((value) => clean(value, 100)).filter(Boolean).slice(0, 30) : clean(body.hashtags, 2000).split(/\s+/).filter(Boolean);
       await updateVariantContent({
@@ -86,7 +89,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
       const notes = clean(body.notes, 5000);
       const externalPostId = clean(body.externalPostId, 300) || null;
       const requestedConnectionId = clean(body.connectionId, 100);
-      const linkedConnection = requestedConnectionId ? await prisma.socialConnection.findFirst({ where: { id: requestedConnectionId, platform: variant.platform }, select: { id: true } }) : null;
+      const linkedConnection = requestedConnectionId ? await prisma.socialConnection.findFirst({ where: { id: requestedConnectionId, workspaceId, platform: variant.platform }, select: { id: true } }) : null;
       await prisma.$transaction([
         prisma.socialVariant.update({ where: { id: variantId }, data: { status: "PUBLISHED", publishedAt, publicUrl, publicationNotes: notes } }),
         prisma.socialPublication.create({ data: { variantId, actorId: session.userId, publishedAt, publicUrl, notes, externalPostId, connectionId: linkedConnection?.id } }),

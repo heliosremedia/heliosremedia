@@ -11,10 +11,10 @@ export const SOCIAL_SETTINGS_DEFAULTS = {
   prohibitedTopics: "Unsupported claims, fabricated results, politics, legal advice, and representation of AI imagery as authentic Helios property photography.",
 };
 
-export async function ensureSocialSettings() {
+export async function ensureSocialSettings(workspaceId: string) {
   return prisma.socialStudioSettings.upsert({
-    where: { id: "default" },
-    create: { id: "default", ...SOCIAL_SETTINGS_DEFAULTS },
+    where: { workspaceId },
+    create: { workspaceId, ...SOCIAL_SETTINGS_DEFAULTS },
     update: {},
   });
 }

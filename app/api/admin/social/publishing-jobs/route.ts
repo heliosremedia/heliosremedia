@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
+import { requireWorkspaceId } from "@/lib/workspaces";
 
 const clean = (value: unknown, max=100) => typeof value === "string" ? value.trim().slice(0,max) : "";
 export async function PATCH(request:Request) {
   const session = await getAdminSession();
   if (!session || !["OWNER","ADMIN"].includes(session.role)) return NextResponse.json({success:false,error:"Unauthorized"},{status:401});
-  const body = await request.json() as Record<string,unknown>; const jobId=clean(body.jobId); const action=clean(body.action);
-  const job=await prisma.socialPublishingJob.findUnique({where:{id:jobId}});
+  const workspaceId=await requireWorkspaceId(session.userId);const body = await request.json() as Record<string,unknown>; const jobId=clean(body.jobId); const action=clean(body.action);
+  const job=await prisma.socialPublishingJob.findFirst({where:{id:jobId,connection:{workspaceId}}});
   if(!job) return NextResponse.json({success:false,error:"Publishing job not found."},{status:404});
   if(action==="retry" && ["FAILED","RETRY_SCHEDULED","DELAYED"].includes(job.status)) {
     await prisma.socialPublishingJob.update({where:{id:job.id},data:{status:"RETRY_SCHEDULED",nextAttemptAt:new Date(),claimToken:null}});

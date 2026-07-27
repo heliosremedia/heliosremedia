@@ -12,10 +12,11 @@ export { publishingIdempotencyKey, retryDelayMs };
 export async function createPublishingJob(input: { variantId: string; connectionId: string }) {
   const variant = await prisma.socialVariant.findUniqueOrThrow({
     where: { id: input.variantId },
-    include: { media: { orderBy: { displayOrder: "asc" }, include: { media: true } } },
+    include: { campaign: { select: { workspaceId: true } }, media: { orderBy: { displayOrder: "asc" }, include: { media: true } } },
   });
   if (!variant.approvedAt || !variant.approvalActorId || !variant.scheduledAt || !["APPROVED","SCHEDULED"].includes(variant.status)) throw new Error("An approved, scheduled variant is required.");
   const connection = await prisma.socialConnection.findUniqueOrThrow({ where: { id: input.connectionId } });
+  if (connection.workspaceId !== variant.campaign.workspaceId) throw new Error("The selected account belongs to a different workspace.");
   if (connection.platform !== variant.platform || !connection.directPublishingEnabled || connection.state !== "CONNECTED") throw new Error("Direct publishing is not enabled for the selected account.");
   const payload: PublishPayload = {
     platform: variant.platform, postType: variant.postType, caption: variant.caption || "",

@@ -1,25 +1,31 @@
 import { prisma } from "@/lib/prisma";
 import { deriveCampaignStatus } from "@/lib/social/core";
 import SocialDashboard from "./SocialDashboard";
+import { getAdminSession } from "@/lib/auth/session";
+import { requireWorkspaceId } from "@/lib/workspaces";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function SocialStudioPage() {
+  const session = await getAdminSession();
+  if (!session) redirect("/login");
+  const workspaceId = await requireWorkspaceId(session.userId);
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const [campaignRows, projects, blogs, newsletters, counts] = await Promise.all([
-    prisma.socialCampaign.findMany({ where: { archivedAt: null }, orderBy: { updatedAt: "desc" }, take: 40, include: { variants: { select: { id: true, platform: true, postType: true, status: true, scheduledAt: true } } } }),
+    prisma.socialCampaign.findMany({ where: { workspaceId, archivedAt: null }, orderBy: { updatedAt: "desc" }, take: 40, include: { variants: { select: { id: true, platform: true, postType: true, status: true, scheduledAt: true } } } }),
     prisma.project.findMany({ orderBy: { updatedAt: "desc" }, take: 100, select: { id: true, title: true, locationLabel: true } }),
     prisma.blogPost.findMany({ where: { status: "PUBLISHED" }, orderBy: { publishedAt: "desc" }, take: 100, select: { id: true, title: true } }),
     prisma.newsletterEdition.findMany({ where: { status: "SENT" }, orderBy: { intendedSendAt: "desc" }, take: 100, select: { id: true, subject: true } }),
     Promise.all([
-      prisma.socialCampaign.count({ where: { archivedAt: null, variants: { some: { status: "DRAFT" } } } }),
-      prisma.socialVariant.count({ where: { status: "NEEDS_REVIEW" } }),
-      prisma.socialVariant.count({ where: { status: "APPROVED" } }),
-      prisma.socialVariant.count({ where: { status: "SCHEDULED" } }),
-      prisma.socialVariant.count({ where: { status: "READY_TO_PUBLISH" } }),
-      prisma.socialVariant.count({ where: { status: "PUBLISHED" } }),
-      prisma.socialVariant.count({ where: { status: "PUBLISHED", publishedAt: { gte: monthStart } } }),
+      prisma.socialCampaign.count({ where: { workspaceId, archivedAt: null, variants: { some: { status: "DRAFT" } } } }),
+      prisma.socialVariant.count({ where: { campaign: { workspaceId }, status: "NEEDS_REVIEW" } }),
+      prisma.socialVariant.count({ where: { campaign: { workspaceId }, status: "APPROVED" } }),
+      prisma.socialVariant.count({ where: { campaign: { workspaceId }, status: "SCHEDULED" } }),
+      prisma.socialVariant.count({ where: { campaign: { workspaceId }, status: "READY_TO_PUBLISH" } }),
+      prisma.socialVariant.count({ where: { campaign: { workspaceId }, status: "PUBLISHED" } }),
+      prisma.socialVariant.count({ where: { campaign: { workspaceId }, status: "PUBLISHED", publishedAt: { gte: monthStart } } }),
     ]),
   ]);
   const campaigns = campaignRows.map((item) => ({
