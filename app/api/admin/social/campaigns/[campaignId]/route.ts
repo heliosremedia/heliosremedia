@@ -84,9 +84,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
       const publishedAt = body.publishedAt ? new Date(clean(body.publishedAt, 80)) : new Date();
       const publicUrl = clean(body.publicUrl, 2000);
       const notes = clean(body.notes, 5000);
+      const externalPostId = clean(body.externalPostId, 300) || null;
+      const requestedConnectionId = clean(body.connectionId, 100);
+      const linkedConnection = requestedConnectionId ? await prisma.socialConnection.findFirst({ where: { id: requestedConnectionId, platform: variant.platform }, select: { id: true } }) : null;
       await prisma.$transaction([
         prisma.socialVariant.update({ where: { id: variantId }, data: { status: "PUBLISHED", publishedAt, publicUrl, publicationNotes: notes } }),
-        prisma.socialPublication.create({ data: { variantId, actorId: session.userId, publishedAt, publicUrl, notes } }),
+        prisma.socialPublication.create({ data: { variantId, actorId: session.userId, publishedAt, publicUrl, notes, externalPostId, connectionId: linkedConnection?.id } }),
       ]);
     } else if (action === "set-media" && variant) {
       const mediaIds = Array.isArray(body.mediaIds) ? body.mediaIds.map((value) => clean(value, 100)).filter(Boolean).slice(0, 20) : [];
