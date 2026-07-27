@@ -98,6 +98,8 @@ export async function PATCH(request: Request) {
       bookingHandoffEnabled: body.bookingHandoffEnabled !== false,
       bookingProviderName: text(body.bookingProviderName, 120),
       bookingEyebrow: text(body.bookingEyebrow, 120),
+      bookingHandoffHeadline: text(body.bookingHandoffHeadline, 180),
+      bookingHandoffExplanation: text(body.bookingHandoffExplanation, 1200),
       bookingPrimaryLabel: text(body.bookingPrimaryLabel, 80),
       bookingCallLabel: text(body.bookingCallLabel, 80),
       bookingEmailLabel: text(body.bookingEmailLabel, 80),

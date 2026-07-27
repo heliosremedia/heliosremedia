@@ -896,6 +896,8 @@ model SiteSettings {
   bookingHandoffEnabled     Boolean     @default(true)
   bookingProviderName       String?
   bookingEyebrow            String?
+  bookingHandoffHeadline    String?
+  bookingHandoffExplanation String?
   bookingPrimaryLabel       String?
   bookingCallLabel          String?
   bookingEmailLabel         String?

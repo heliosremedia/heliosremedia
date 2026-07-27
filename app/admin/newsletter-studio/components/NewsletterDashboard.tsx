@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { updateSeriesActive } from "./dashboard-state";
 import StatusBadge from "./StatusBadge";
 import type { NewsletterDashboardData, NewsletterEdition } from "../types";
+import AdminPageLayout, { AdminPageHeader } from "@/app/admin/components/AdminPageLayout";
 
 const empty: NewsletterDashboardData = { nextEdition: null, editions: [], series: [], groups: [] };
 const date = (value?: string | null) => value ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Denver" }).format(new Date(value)) : "Not planned";
 
-export default function NewsletterDashboard() {
+export default function NewsletterDashboard({ summary }: { summary: ReactNode }) {
   const [data, setData] = useState(empty);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
@@ -44,11 +46,11 @@ export default function NewsletterDashboard() {
   }
   const needsReview = data.editions.filter(item => item.status === "NEEDS_REVIEW" || item.status === "MISSED_APPROVAL");
   const scheduled = data.editions.filter(item => item.status === "SCHEDULED");
-  return <div className="space-y-7">
-    <section className="flex flex-col gap-5 border-b border-white/[0.08] pb-7 sm:flex-row sm:items-end sm:justify-between">
-      <div><p className="eyebrow text-[var(--helios-orange)]">Editorial &amp; marketing</p><h1 className="mt-3 text-3xl font-light tracking-[-0.03em] text-white sm:text-4xl">Newsletter Studio</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-white/40">Prepare verified, brand-led monthly newsletters with AI assistance and a mandatory approval gate.</p></div>
-      <div className="flex flex-wrap gap-2"><Link href="/admin/newsletter-studio/series/new" className="admin-btn-secondary">Create newsletter series</Link><button className="admin-btn-primary" disabled={!data.nextEdition} onClick={() => data.nextEdition && action("generate", { editionId: data.nextEdition.id })}>Generate now</button></div>
-    </section>
+  return <AdminPageLayout
+    header={<AdminPageHeader eyebrow="Editorial & marketing" title="Newsletter Studio" description="Prepare verified, brand-led monthly newsletters with AI assistance and a mandatory approval gate." actions={<><Link href="/admin/newsletter-studio/series/new" className="admin-btn-secondary">Create newsletter series</Link><button className="admin-btn-primary" disabled={!data.nextEdition} onClick={() => data.nextEdition && action("generate", { editionId: data.nextEdition.id })}>Generate now</button></>}/>}
+    summary={summary}
+  >
+    <div className="space-y-7">
     {message && <p role="status" className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/60">{message}</p>}
     {loading ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[1,2,3,4].map(item => <div key={item} className="h-32 animate-pulse rounded-2xl border border-white/[0.07] bg-white/[0.02]" />)}</div> :
     <>
@@ -67,7 +69,8 @@ export default function NewsletterDashboard() {
       <div className="divide-y divide-white/[0.06]">{data.series.map(series => { const toggling = seriesBusy === series.id; return <article key={series.id} className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6"><div><div className="flex items-center gap-3"><p className="text-white/75">{series.name}</p><span className={`text-[0.52rem] uppercase tracking-[.14em] ${series.active ? "text-emerald-200/70" : "text-white/30"}`}>{series.active ? "Active" : "Paused"}</span></div><p className="mt-2 text-sm text-white/30">Next draft {date(series.nextGenerationAt)} · Send {date(series.nextSendAt)}</p></div><div className="flex gap-2"><button disabled={toggling} className="admin-btn-secondary" onClick={() => toggleSeries(series.id, series.active)}>{toggling ? (series.active ? "Pausing…" : "Resuming…") : (series.active ? "Pause" : "Resume")}</button><Link href={`/admin/newsletter-studio/series/${series.id}`} className="admin-btn-link">Edit</Link></div></article>; })}{!data.series.length && <p className="p-6 text-sm text-white/30">No newsletter series yet.</p>}</div></section>
       <DashboardList title="Recent editions" editions={data.editions.slice(0, 8)} emptyText="Generated editions will appear here." />
     </>}
-  </div>;
+    </div>
+  </AdminPageLayout>;
 }
 
 function Metric({ label, value }: { label: string; value: string }) { return <div><p className="text-[0.52rem] font-semibold uppercase tracking-[.15em] text-white/25">{label}</p><p className="mt-2 text-sm text-white/65">{value}</p></div>; }

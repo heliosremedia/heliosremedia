@@ -3,8 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { prepareBlogImagePrompt, suggestBlogImageAltText } from "@/lib/blog-image";
 import BlogSeriesPanel, { type BlogSeriesEditor } from "./BlogSeriesPanel";
+import AdminPageLayout, { AdminPageHeader } from "@/app/admin/components/AdminPageLayout";
 
 type Status = "DRAFT" | "NEEDS_REVIEW" | "SCHEDULED" | "PUBLISHED" | "ARCHIVED";
 export type BlogEditorPost = {
@@ -25,7 +27,7 @@ const normalize = (value:string) => value.toLowerCase().replace(/[_-]+/g," ").re
 const hash = (value:string) => {let result=2166136261;for(let index=0;index<value.length;index++){result^=value.charCodeAt(index);result=Math.imul(result,16777619);}return result>>>0;};
 const searchText = (item:BlogImageOption) => normalize(`${item.property} ${item.location} ${item.caption} ${item.alt} ${item.category} ${item.categoryLabel}`);
 
-export default function BlogStudio({initialPosts,images,defaultAuthor,series}:{initialPosts:BlogEditorPost[];images:BlogImageOption[];defaultAuthor:string;series:BlogSeriesEditor[]}) {
+export default function BlogStudio({initialPosts,images,defaultAuthor,series,summary}:{initialPosts:BlogEditorPost[];images:BlogImageOption[];defaultAuthor:string;series:BlogSeriesEditor[];summary:ReactNode}) {
   const [posts,setPosts]=useState(initialPosts); const [activeId,setActiveId]=useState<string|null>(null); const [draft,setDraft]=useState<Draft>(empty(defaultAuthor));
   const [brief,setBrief]=useState(""); const [busy,setBusy]=useState(false); const [message,setMessage]=useState<string|null>(null); const [imageQuery,setImageQuery]=useState("");
   const [gallerySeed,setGallerySeed]=useState(0); const [visibleImageCount,setVisibleImageCount]=useState(15);
@@ -107,8 +109,11 @@ export default function BlogStudio({initialPosts,images,defaultAuthor,series}:{i
     setGallerySeed(Math.floor(Math.random()*1_000_000_000));
   }
   const selected=images.find(item=>item.id===draft.featuredMediaId);const imageUrl=draft.featuredImageUrl||selected?.url||null;
-  return <div className="space-y-7">
-    <section className="flex flex-col gap-5 border-b border-white/[0.08] pb-7 sm:flex-row sm:items-end sm:justify-between"><div><p className="eyebrow text-[var(--helios-orange)]">Editorial</p><h1 className="mt-3 text-3xl font-light text-white sm:text-4xl">Blog Studio</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-white/40">Write, refine, preview, schedule, and publish brand-led articles from one place.</p></div><button onClick={create} className="admin-btn-primary">New article</button></section>
+  return <AdminPageLayout
+    header={<AdminPageHeader eyebrow="Editorial" title="Blog Studio" description="Write, refine, preview, schedule, and publish brand-led articles from one place." actions={<button onClick={create} className="admin-btn-primary">New article</button>}/>}
+    summary={summary}
+  >
+    <div className="space-y-7">
     <BlogSeriesPanel initialSeries={series} onDraftGenerated={()=>window.location.reload()}/>
     <div className="grid gap-6 xl:grid-cols-[18rem_minmax(0,1fr)]">
       <aside className="space-y-2">{posts.map(post=><button key={post.id} onClick={()=>edit(post)} className={`w-full rounded-xl border p-4 text-left transition ${activeId===post.id?"border-[var(--helios-orange)] bg-[var(--helios-orange)]/[0.06]":"border-white/[0.08] bg-white/[0.02] hover:border-white/20"}`}><p className="line-clamp-2 text-sm text-white/75">{post.title}</p><p className="mt-2 text-[0.5rem] uppercase tracking-[0.13em] text-white/30">{post.status} · {new Date(post.updatedAt).toLocaleDateString()}</p></button>)}{!posts.length&&<p className="rounded-xl border border-dashed border-white/10 p-6 text-sm text-white/30">Your first article will appear here.</p>}</aside>
@@ -125,5 +130,6 @@ export default function BlogStudio({initialPosts,images,defaultAuthor,series}:{i
       </main>
     </div>
     {imageGeneratorOpen&&<div className="fixed inset-0 z-[100] overflow-y-auto bg-black/85 p-4 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="blog-image-generator-title"><div className="mx-auto my-6 max-w-3xl rounded-2xl border border-white/10 bg-[#151515] p-5 shadow-2xl sm:p-7"><div className="flex items-start justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Blog Studio</p><h2 id="blog-image-generator-title" className="mt-2 text-2xl font-light text-white">Generate featured image</h2></div><button type="button" disabled={imageGenerating} onClick={()=>setImageGeneratorOpen(false)} className="admin-btn-link">Close</button></div><p className="mt-5 rounded-xl border border-[var(--helios-orange)]/20 bg-[var(--helios-orange)]/[0.04] p-4 text-sm leading-6 text-white/50">Creates one paid medium-quality landscape image with gpt-image-1.5. It is stored in the shared Helios gallery only after generation; you must explicitly select it and save the article. Use authentic photography for real listings and completed Helios work.</p><label className="mt-5 block text-xs text-white/40">Creative direction<textarea rows={9} maxLength={2000} value={imagePrompt} onChange={e=>setImagePrompt(e.target.value)} className={input}/></label><label className="mt-4 block text-xs text-white/40">Alt text<input maxLength={300} value={imageAltText} onChange={e=>setImageAltText(e.target.value)} className={input}/></label>{message&&<p role="alert" className="mt-4 text-sm text-red-200">{message}</p>}{generatedImage&&<div className="mt-5"><div className="relative aspect-[3/2] overflow-hidden rounded-xl border border-white/10"><Image src={generatedImage.url} alt={imageAltText} fill unoptimized className="object-cover"/></div><p className="mt-2 text-xs text-white/30">{generatedImage.attribution}</p></div>}<div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" disabled={imageGenerating} onClick={()=>setImageGeneratorOpen(false)} className="admin-btn-secondary">Cancel</button>{generatedImage?<button type="button" onClick={approveGeneratedImage} className="admin-btn-primary">Use this image</button>:<button type="button" disabled={imageGenerating||imagePrompt.trim().length<12||imageAltText.trim().length<3} onClick={generateFeaturedImage} className="admin-btn-primary">{imageGenerating?"Generating… up to 2 minutes":"Generate image"}</button>}</div></div></div>}
-  </div>;
+    </div>
+  </AdminPageLayout>;
 }

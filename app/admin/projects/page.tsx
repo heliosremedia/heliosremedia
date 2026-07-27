@@ -6,6 +6,8 @@ import { getPublicAssetUrl } from "@/lib/r2-upload";
 
 import ProjectListManager from "./ProjectListManager";
 import AdminSummaryCards from "@/app/admin/components/AdminSummaryCards";
+import AdminPageLayout, { AdminPageHeader } from "@/app/admin/components/AdminPageLayout";
+import ThumbnailRepairButton from "./ThumbnailRepairButton";
 
 export const dynamic = "force-dynamic";
 
@@ -201,23 +203,17 @@ export default async function ProjectsPage({
   const lastShown = Math.min(pageStart + items.length, totalProjects);
 
   return (
-    <div className="space-y-7">
-      <section className="border-b border-white/[0.08] pb-7">
-        <p className="eyebrow text-[var(--helios-orange)]">Portfolio</p>
-        <h1 className="mt-3 text-3xl font-light tracking-[-0.03em] text-white sm:text-4xl">
-          Projects
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-white/40">
-          Create, organize, publish, and arrange the work displayed across the
-          Helios portfolio.
-        </p>
-      </section>
-      <AdminSummaryCards items={[
+    <AdminPageLayout
+      header={<AdminPageHeader eyebrow="Portfolio" title="Projects" description="Create, organize, publish, and arrange the work displayed across the Helios portfolio." />}
+      summary={<AdminSummaryCards items={[
         { label: "Total", value: statusCounts.reduce((total,item)=>total+item._count._all,0), detail: "All portfolio projects" },
         { label: "Published", value: countFor("PUBLISHED"), detail: "Visible publicly", tone: "good" },
         { label: "Drafts", value: countFor("DRAFT"), detail: "In progress" },
         { label: "Archived", value: countFor("ARCHIVED"), detail: "Retained privately" },
-      ]}/>
+      ]}/>}
+    >
+      <div className="space-y-7">
+      <ThumbnailRepairButton />
 
       <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 sm:p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -373,6 +369,7 @@ export default async function ProjectsPage({
           ) : null}
         </div>
       </section>
-    </div>
+      </div>
+    </AdminPageLayout>
   );
 }

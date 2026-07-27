@@ -42,10 +42,16 @@ export default async function BlogStudioPage() {
     contentPillars:Array.isArray(item.contentPillars)?item.contentPillars.filter((value):value is string=>typeof value==="string"):[],
   }));
   const count = (status: BlogEditorPost["status"]) => serialized.filter(item=>item.status===status).length;
-  return <div className="space-y-7"><AdminSummaryCards items={[
-    { label: "Total articles", value: serialized.length, detail: "All editorial records" },
-    { label: "Published", value: count("PUBLISHED"), detail: "Visible publicly", tone: "good" },
-    { label: "Drafts", value: count("DRAFT"), detail: "In progress" },
-    { label: "Scheduled", value: count("SCHEDULED"), detail: "Awaiting publish time" },
-  ]}/><BlogStudio initialPosts={serialized} images={images} defaultAuthor={settings.defaultBlogAuthor || settings.businessName} series={series} /></div>;
+  return <BlogStudio
+    summary={<AdminSummaryCards items={[
+      { label: "Total articles", value: serialized.length, detail: "All editorial records" },
+      { label: "Published", value: count("PUBLISHED"), detail: "Visible publicly", tone: "good" },
+      { label: "Drafts", value: count("DRAFT"), detail: "In progress" },
+      { label: "Scheduled", value: count("SCHEDULED"), detail: "Awaiting publish time" },
+    ]}/>}
+    initialPosts={serialized}
+    images={images}
+    defaultAuthor={settings.defaultBlogAuthor || settings.businessName}
+    series={series}
+  />;
 }

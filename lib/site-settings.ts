@@ -39,6 +39,7 @@ export type PublicSiteSettings = {
   bookingContactPhone: string | null; bookingContactEmail: string | null;
   bookingBannerMessage: string | null; bookingBannerEnabled: boolean; bookingRequestEnabled: boolean;
   bookingHandoffEnabled: boolean; bookingProviderName: string | null; bookingEyebrow: string | null;
+  bookingHandoffHeadline: string | null; bookingHandoffExplanation: string | null;
   bookingPrimaryLabel: string | null; bookingCallLabel: string | null; bookingEmailLabel: string | null;
   bookingPhoneVisible: boolean; bookingEmailVisible: boolean;
   heroVideoUrl: string | null; heroPosterUrl: string | null; heroPosterAlt: string | null; locationLabel: string;
@@ -87,6 +88,8 @@ export const defaultSiteSettings: PublicSiteSettings = {
   bookingHandoffEnabled: true,
   bookingProviderName: null,
   bookingEyebrow: null,
+  bookingHandoffHeadline: null,
+  bookingHandoffExplanation: null,
   bookingPrimaryLabel: null,
   bookingCallLabel: null,
   bookingEmailLabel: null,

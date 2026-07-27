@@ -138,7 +138,11 @@ export default async function ProjectEditorPage({
         displayOrder: true,
       },
     }),
-    prisma.adminUser.findMany({ where: { workspaceId: session.workspaceId, active: true, disciplines: { isEmpty: false } }, orderBy: { displayName: "asc" }, select: { id: true, displayName: true, disciplines: true } }),
+    prisma.adminUser.findMany({
+      where: { workspaceId: session.workspaceId, active: true },
+      orderBy: { displayName: "asc" },
+      select: { id: true, displayName: true, firstName: true, lastName: true, email: true, disciplines: true },
+    }),
   ]);
 
   if (!project) {

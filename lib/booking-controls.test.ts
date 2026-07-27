@@ -12,6 +12,7 @@ test("booking outages and pauses never redirect externally", () => {
 
 test("online booking redirects only to valid HTTP destinations", () => {
   assert.equal(resolveBookingDestination("ONLINE", "https://booking.example.com").kind, "handoff");
+  assert.equal(resolveBookingDestination("ONLINE", "https://booking.example.com", false).kind, "external");
   assert.equal(resolveBookingDestination("ONLINE", "javascript:alert(1)").kind, "status");
   assert.equal(resolveBookingDestination("ONLINE", null).kind, "status");
 });
@@ -21,9 +22,9 @@ test("keyboard pinned navigation reordering preserves every stable identifier", 
   assert.deepEqual(movePinnedItem(["email", "blog"], "email", -1), ["email", "blog"]);
 });
 
-test("V1.8.4 operational controls fail safely and expose no diagnostics", () => {
-  assert.equal(STUDIO_VERSION, "V.1.8.5");
-  assert.equal(STUDIO_ADMIN_LABEL, "STUDIO ADMIN — V.1.8.5");
+test("operational controls fail safely and expose no diagnostics", () => {
+  assert.equal(STUDIO_VERSION, "V.1.8.5.1");
+  assert.equal(STUDIO_ADMIN_LABEL, "STUDIO ADMIN — V.1.8.5.1");
   assert.equal(normalizeMonitorStatus("up"), "ONLINE");
   assert.equal(normalizeMonitorStatus("seems_down"), "DEGRADED");
   assert.equal(normalizeMonitorStatus("down"), "OFFLINE");

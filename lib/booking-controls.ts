@@ -1,12 +1,12 @@
 export type BookingModeValue = "ONLINE" | "UNAVAILABLE" | "PAUSED";
 
-export function resolveBookingDestination(mode: BookingModeValue, configuredUrl: string | null) {
+export function resolveBookingDestination(mode: BookingModeValue, configuredUrl: string | null, handoffEnabled = true) {
   if (mode !== "ONLINE") return { kind: "status" as const, href: "/book" };
   if (!configuredUrl) return { kind: "status" as const, href: "/book" };
   try {
     const parsed = new URL(configuredUrl);
     if (!["http:", "https:"].includes(parsed.protocol)) return { kind: "status" as const, href: "/book" };
-    return { kind: "handoff" as const, href: parsed.toString() };
+    return { kind: handoffEnabled ? "handoff" as const : "external" as const, href: parsed.toString() };
   } catch { return { kind: "status" as const, href: "/book" }; }
 }
 
