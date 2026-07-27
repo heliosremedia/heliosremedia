@@ -1,0 +1,29 @@
+-- V1.8.2 is additive. It does not request permissions, enqueue backfill,
+-- reconnect accounts, or alter publishing state.
+CREATE TYPE "SocialMetricAvailability" AS ENUM ('AVAILABLE','NOT_AVAILABLE','PERMISSION_REQUIRED','NOT_SUPPORTED','AWAITING_DATA','CONNECTION_REQUIRED','REFRESH_FAILED','OUTSIDE_AVAILABLE_HISTORY');
+CREATE TYPE "SocialMetricPeriod" AS ENUM ('CUMULATIVE','DAILY','PERIOD','LIFETIME','CURRENT','PROVIDER_RATE');
+CREATE TYPE "SocialAnalyticsJobStatus" AS ENUM ('PENDING','RUNNING','SUCCEEDED','PARTIAL','RETRY_SCHEDULED','FAILED','CANCELLED');
+ALTER TABLE "SocialConnection" ADD COLUMN "analyticsPermissionState" "SocialMetricAvailability" NOT NULL DEFAULT 'CONNECTION_REQUIRED', ADD COLUMN "analyticsLastSuccessfulAt" TIMESTAMP(3), ADD COLUMN "analyticsLastAttemptAt" TIMESTAMP(3), ADD COLUMN "analyticsFailureCount" INTEGER NOT NULL DEFAULT 0, ADD COLUMN "analyticsError" TEXT;
+ALTER TABLE "SocialPublication" ADD COLUMN "externalPostId" TEXT, ADD COLUMN "connectionId" TEXT;
+CREATE INDEX "SocialPublication_connectionId_publishedAt_idx" ON "SocialPublication"("connectionId","publishedAt");
+ALTER TABLE "SocialPublication" ADD CONSTRAINT "SocialPublication_connectionId_fkey" FOREIGN KEY ("connectionId") REFERENCES "SocialConnection"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+CREATE TABLE "SocialMetricSnapshot" ("id" TEXT NOT NULL,"connectionId" TEXT NOT NULL,"variantId" TEXT,"publicationId" TEXT,"platform" "SocialPlatform" NOT NULL,"externalAccountId" TEXT NOT NULL,"externalPostId" TEXT,"normalizedCategory" TEXT,"providerMetricName" TEXT NOT NULL,"metricDefinition" TEXT NOT NULL,"value" DECIMAL(20,4),"periodType" "SocialMetricPeriod" NOT NULL,"periodStart" TIMESTAMP(3),"periodEnd" TIMESTAMP(3),"measuredAt" TIMESTAMP(3) NOT NULL,"availability" "SocialMetricAvailability" NOT NULL DEFAULT 'AVAILABLE',"unavailableReason" TEXT,"importSource" TEXT NOT NULL,"providerApiVersion" TEXT,"sourceFingerprint" TEXT NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "SocialMetricSnapshot_pkey" PRIMARY KEY ("id"));
+CREATE UNIQUE INDEX "SocialMetricSnapshot_sourceFingerprint_key" ON "SocialMetricSnapshot"("sourceFingerprint");
+CREATE INDEX "SocialMetricSnapshot_connectionId_measuredAt_idx" ON "SocialMetricSnapshot"("connectionId","measuredAt");
+CREATE INDEX "SocialMetricSnapshot_variantId_measuredAt_idx" ON "SocialMetricSnapshot"("variantId","measuredAt");
+CREATE INDEX "SocialMetricSnapshot_platform_normalizedCategory_measuredAt_idx" ON "SocialMetricSnapshot"("platform","normalizedCategory","measuredAt");
+CREATE INDEX "SocialMetricSnapshot_publicationId_measuredAt_idx" ON "SocialMetricSnapshot"("publicationId","measuredAt");
+ALTER TABLE "SocialMetricSnapshot" ADD CONSTRAINT "SocialMetricSnapshot_connectionId_fkey" FOREIGN KEY ("connectionId") REFERENCES "SocialConnection"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "SocialMetricSnapshot" ADD CONSTRAINT "SocialMetricSnapshot_variantId_fkey" FOREIGN KEY ("variantId") REFERENCES "SocialVariant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "SocialMetricSnapshot" ADD CONSTRAINT "SocialMetricSnapshot_publicationId_fkey" FOREIGN KEY ("publicationId") REFERENCES "SocialPublication"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+CREATE TABLE "SocialAnalyticsJob" ("id" TEXT NOT NULL,"connectionId" TEXT NOT NULL,"status" "SocialAnalyticsJobStatus" NOT NULL DEFAULT 'PENDING',"rangeStart" TIMESTAMP(3) NOT NULL,"rangeEnd" TIMESTAMP(3) NOT NULL,"idempotencyKey" TEXT NOT NULL,"attempts" INTEGER NOT NULL DEFAULT 0,"nextAttemptAt" TIMESTAMP(3) NOT NULL,"claimedAt" TIMESTAMP(3),"claimToken" TEXT,"lastErrorCategory" TEXT,"lastErrorMessage" TEXT,"importedSnapshots" INTEGER NOT NULL DEFAULT 0,"durationMs" INTEGER,"completedAt" TIMESTAMP(3),"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"updatedAt" TIMESTAMP(3) NOT NULL,CONSTRAINT "SocialAnalyticsJob_pkey" PRIMARY KEY ("id"));
+CREATE UNIQUE INDEX "SocialAnalyticsJob_idempotencyKey_key" ON "SocialAnalyticsJob"("idempotencyKey");
+CREATE INDEX "SocialAnalyticsJob_status_nextAttemptAt_idx" ON "SocialAnalyticsJob"("status","nextAttemptAt");
+CREATE INDEX "SocialAnalyticsJob_connectionId_createdAt_idx" ON "SocialAnalyticsJob"("connectionId","createdAt");
+ALTER TABLE "SocialAnalyticsJob" ADD CONSTRAINT "SocialAnalyticsJob_connectionId_fkey" FOREIGN KEY ("connectionId") REFERENCES "SocialConnection"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+CREATE TABLE "SocialAnalyticsRecommendation" ("id" TEXT NOT NULL,"campaignId" TEXT,"variantId" TEXT,"title" TEXT NOT NULL,"recommendation" TEXT NOT NULL,"evidence" JSONB NOT NULL,"platforms" JSONB NOT NULL,"sampleSize" INTEGER NOT NULL,"metricName" TEXT NOT NULL,"confidence" TEXT NOT NULL,"rangeStart" TIMESTAMP(3) NOT NULL,"rangeEnd" TIMESTAMP(3) NOT NULL,"status" TEXT NOT NULL DEFAULT 'ACTIVE',"actedById" TEXT,"actedAt" TIMESTAMP(3),"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"updatedAt" TIMESTAMP(3) NOT NULL,CONSTRAINT "SocialAnalyticsRecommendation_pkey" PRIMARY KEY ("id"));
+CREATE INDEX "SocialAnalyticsRecommendation_status_createdAt_idx" ON "SocialAnalyticsRecommendation"("status","createdAt");
+CREATE INDEX "SocialAnalyticsRecommendation_campaignId_createdAt_idx" ON "SocialAnalyticsRecommendation"("campaignId","createdAt");
+ALTER TABLE "SocialAnalyticsRecommendation" ADD CONSTRAINT "SocialAnalyticsRecommendation_campaignId_fkey" FOREIGN KEY ("campaignId") REFERENCES "SocialCampaign"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "SocialAnalyticsRecommendation" ADD CONSTRAINT "SocialAnalyticsRecommendation_variantId_fkey" FOREIGN KEY ("variantId") REFERENCES "SocialVariant"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "SocialAnalyticsRecommendation" ADD CONSTRAINT "SocialAnalyticsRecommendation_actedById_fkey" FOREIGN KEY ("actedById") REFERENCES "AdminUser"("id") ON DELETE SET NULL ON UPDATE CASCADE;

@@ -84,6 +84,7 @@ async function executeClaim(jobId: string, claimToken: string, now: Date) {
       prisma.socialPublishingJob.update({ where: { id: job.id }, data: { status, providerSubmissionId: result.providerSubmissionId, externalPostId: result.externalPostId, publicUrl: result.publicUrl, completedAt: status === "PUBLISHED" ? now : null, claimToken: null } }),
       prisma.socialPublishingAttempt.create({ data: { jobId: job.id, attemptNumber, status, providerSubmissionId: result.providerSubmissionId, externalPostId: result.externalPostId, publicUrl: result.publicUrl, durationMs: Date.now() - started } }),
       ...(status === "PUBLISHED" ? [prisma.socialVariant.update({ where: { id: job.variantId }, data: { status: "PUBLISHED", publishedAt: now, publicUrl: result.publicUrl } })] : []),
+      ...(status === "PUBLISHED" ? [prisma.socialPublication.create({ data: { variantId: job.variantId, actorId: job.snapshot.approvedById, connectionId: job.connectionId, externalPostId: result.externalPostId, publishedAt: now, publicUrl: result.publicUrl, notes: "Recorded by the official direct-publishing workflow." } })] : []),
     ]);
   } catch (error) {
     const normalized = normalizeProviderError(error);
