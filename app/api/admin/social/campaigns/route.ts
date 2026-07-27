@@ -3,7 +3,7 @@ import type { SocialPlatform, SocialSourceType } from "@/app/generated/prisma/cl
 import { getAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { POST_TYPES, SOCIAL_PLATFORMS } from "@/lib/social/core";
-import { verifiedProjectFacts } from "@/lib/social/studio";
+import { verifiedSourceFacts } from "@/lib/social/studio";
 
 const allowedSources = ["PROJECT", "PORTFOLIO_ITEM", "MEDIA_LIBRARY", "BLOG", "NEWSLETTER", "UPLOADED_IMAGE", "UPLOADED_VIDEO", "AI_GENERATED_IMAGE", "BLANK"];
 const clean = (value: unknown, max = 5000) => typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -20,8 +20,9 @@ export async function POST(request: Request) {
     if (!clean(body.internalName, 180) || !allowedSources.includes(sourceType) || !platforms.length) {
       return NextResponse.json({ success: false, error: "Add a campaign name, source, and at least one platform." }, { status: 400 });
     }
-    const sourceProjectId = sourceType === "PROJECT" || sourceType === "PORTFOLIO_ITEM" ? clean(body.sourceRecordId, 80) || null : null;
-    const verifiedFacts = sourceProjectId ? await verifiedProjectFacts(sourceProjectId) : {};
+    const sourceRecordId = clean(body.sourceRecordId, 100);
+    const sourceProjectId = sourceType === "PROJECT" || sourceType === "PORTFOLIO_ITEM" ? sourceRecordId || null : null;
+    const verifiedFacts = sourceRecordId ? await verifiedSourceFacts(sourceType, sourceRecordId) : {};
     const campaign = await prisma.socialCampaign.create({
       data: {
         internalName: clean(body.internalName, 180), purpose: clean(body.purpose), sourceType: sourceType as SocialSourceType,
