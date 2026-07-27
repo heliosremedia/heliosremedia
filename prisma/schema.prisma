@@ -359,10 +359,54 @@ enum SocialApprovalAction {
 
 enum SocialConnectionState {
   NOT_CONFIGURED
+  PROVIDER_CREDENTIALS_MISSING
+  APP_REVIEW_REQUIRED
+  READY_TO_CONNECT
   MANUAL_WORKFLOW
   CONNECTION_PLANNED
   CONNECTED
+  CONNECTED_DIRECT_PUBLISHING_DISABLED
   REAUTHORIZATION_REQUIRED
+  PERMISSION_MISSING
+  DISCONNECTED
+  ERROR
+  DRAFT_TRANSFER_ONLY
+}
+
+enum SocialPublishingJobStatus {
+  SCHEDULED
+  VALIDATING
+  READY
+  PUBLISHING
+  PROVIDER_PROCESSING
+  PUBLISHED
+  TRANSFERRED_AS_DRAFT
+  REQUIRES_MANUAL_COMPLETION
+  DELAYED
+  RETRY_SCHEDULED
+  FAILED
+  CANCELLED
+  REAUTHORIZATION_REQUIRED
+  MANUAL_FALLBACK
+}
+
+enum SocialPublishingErrorCategory {
+  AUTHENTICATION
+  PERMISSION
+  VALIDATION
+  RATE_LIMIT
+  TRANSIENT
+  PROVIDER_PROCESSING
+  AMBIGUOUS
+  CONFIGURATION
+  CANCELLED
+  UNKNOWN
+}
+
+enum SocialPublicationMethod {
+  AUTOMATED
+  MANUAL
+  DRAFT_TRANSFER
 }
 
 enum BookingMode {
@@ -1177,6 +1221,9 @@ model AdminUser {
   socialVariantsEdited      SocialVariant[]                 @relation("SocialVariantEditor")
   socialApprovalEvents      SocialApprovalEvent[]
   socialPublications        SocialPublication[]
+  socialConnectionsEnabled  SocialConnection[]              @relation("SocialConnectionEnabledBy")
+  socialConnectionAudits    SocialConnectionAudit[]
+  socialPublishingApprovals SocialPublishingSnapshot[]      @relation("SocialPublishingApprovedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1259,9 +1306,11 @@ model SocialVariant {
   lastEditedById String?
   lastEditedBy   AdminUser? @relation("SocialVariantEditor", fields: [lastEditedById], references: [id], onDelete: SetNull)
 
-  media        SocialVariantMedia[]
-  approvals    SocialApprovalEvent[]
-  publications SocialPublication[]
+  media               SocialVariantMedia[]
+  approvals           SocialApprovalEvent[]
+  publications        SocialPublication[]
+  publishingSnapshots SocialPublishingSnapshot[]
+  publishingJobs      SocialPublishingJob[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1347,15 +1396,122 @@ model SocialStudioSettings {
 model SocialConnection {
   id String @id @default(cuid())
 
-  platform              SocialPlatform        @unique
-  state                 SocialConnectionState @default(NOT_CONFIGURED)
-  intendedAccountName   String?
-  supportedWorkflow     String                @default("Manual publishing and export")
-  manualPublishingUrl   String?
-  configurationMetadata Json?
+  platform                    SocialPlatform
+  state                       SocialConnectionState      @default(NOT_CONFIGURED)
+  intendedAccountName         String?
+  supportedWorkflow           String                     @default("Manual publishing and export")
+  manualPublishingUrl         String?
+  configurationMetadata       Json?
+  providerAccountId           String?
+  providerUsername            String?
+  profileImageUrl             String?
+  encryptedTokenPayload       String?
+  grantedScopes               Json?
+  supportedPostTypes          Json?
+  directPublishingEnabled     Boolean                    @default(false)
+  directPublishingEnabledAt   DateTime?
+  directPublishingEnabledById String?
+  directPublishingEnabledBy   AdminUser?                 @relation("SocialConnectionEnabledBy", fields: [directPublishingEnabledById], references: [id], onDelete: SetNull)
+  tokenExpiresAt              DateTime?
+  lastAuthorizationCheckAt    DateTime?
+  lastSuccessfulPublicationAt DateTime?
+  disconnectedAt              DateTime?
+  audits                      SocialConnectionAudit[]
+  snapshots                   SocialPublishingSnapshot[]
+  jobs                        SocialPublishingJob[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([platform, providerAccountId])
+  @@index([platform, state])
+  @@index([directPublishingEnabled, state])
+}
+
+model SocialConnectionAudit {
+  id                String           @id @default(cuid())
+  connectionId      String
+  connection        SocialConnection @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  actorId           String?
+  actor             AdminUser?       @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action            String
+  sanitizedMetadata Json?
+  createdAt         DateTime         @default(now())
+
+  @@index([connectionId, createdAt])
+  @@index([actorId, createdAt])
+}
+
+model SocialPublishingSnapshot {
+  id             String                @id @default(cuid())
+  variantId      String
+  variant        SocialVariant         @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  connectionId   String
+  connection     SocialConnection      @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  contentVersion Int
+  contentDigest  String
+  payload        Json
+  approvedById   String
+  approvedBy     AdminUser             @relation("SocialPublishingApprovedBy", fields: [approvedById], references: [id], onDelete: Restrict)
+  approvedAt     DateTime
+  scheduledAt    DateTime
+  invalidatedAt  DateTime?
+  createdAt      DateTime              @default(now())
+  jobs           SocialPublishingJob[]
+
+  @@unique([variantId, connectionId, contentVersion, scheduledAt])
+  @@index([variantId, invalidatedAt])
+  @@index([connectionId, createdAt])
+}
+
+model SocialPublishingJob {
+  id                   String                         @id @default(cuid())
+  variantId            String
+  variant              SocialVariant                  @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  connectionId         String
+  connection           SocialConnection               @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  snapshotId           String
+  snapshot             SocialPublishingSnapshot       @relation(fields: [snapshotId], references: [id], onDelete: Restrict)
+  idempotencyKey       String                         @unique
+  status               SocialPublishingJobStatus      @default(SCHEDULED)
+  scheduledAt          DateTime
+  nextAttemptAt        DateTime
+  claimedAt            DateTime?
+  claimToken           String?
+  attempts             Int                            @default(0)
+  maxAttempts          Int                            @default(5)
+  providerSubmissionId String?
+  externalPostId       String?
+  publicUrl            String?
+  lastErrorCategory    SocialPublishingErrorCategory?
+  lastErrorMessage     String?
+  completedAt          DateTime?
+  cancelledAt          DateTime?
+  createdAt            DateTime                       @default(now())
+  updatedAt            DateTime                       @updatedAt
+  attemptsLog          SocialPublishingAttempt[]
+
+  @@index([status, nextAttemptAt])
+  @@index([variantId, createdAt])
+  @@index([connectionId, status])
+}
+
+model SocialPublishingAttempt {
+  id                   String                         @id @default(cuid())
+  jobId                String
+  job                  SocialPublishingJob            @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  attemptNumber        Int
+  status               SocialPublishingJobStatus
+  providerSubmissionId String?
+  externalPostId       String?
+  publicUrl            String?
+  errorCategory        SocialPublishingErrorCategory?
+  sanitizedError       String?
+  durationMs           Int?
+  createdAt            DateTime                       @default(now())
+
+  @@unique([jobId, attemptNumber])
+  @@index([jobId, createdAt])
 }
 
 model CommunicationClient {
