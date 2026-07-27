@@ -488,6 +488,15 @@ export default function AdminSidebar({
     next.splice(targetIndex + (favoriteDropTarget.edge === "after" ? 1 : 0), 0, draggedFavorite);
     void reorderFavorites(next);
   }
+  function moveFavoriteKeyboard(href: string, direction: -1 | 1) {
+    const visibleIndex = favoriteItems.findIndex((item) => item.href === href);
+    const target = favoriteItems[visibleIndex + direction];
+    if (visibleIndex < 0 || !target) return;
+    const next = favorites.filter((favoriteHref) => favoriteHref !== href);
+    const targetIndex = next.indexOf(target.href);
+    next.splice(targetIndex + (direction === 1 ? 1 : 0), 0, href);
+    void reorderFavorites(next);
+  }
   return (
     <>
       <button
@@ -564,7 +573,7 @@ export default function AdminSidebar({
                   Favorites
                 </p>
                 <div className="mt-1 space-y-1">
-                  {favoriteItems.map((item) => (
+                  {favoriteItems.map((item, favoriteIndex) => (
                     <div
                       key={`favorite-${item.href}`}
                       draggable={!savingFavorite}
@@ -578,7 +587,7 @@ export default function AdminSidebar({
                       }}
                       onDragOver={(event) => previewFavoriteDrop(event, item.href)}
                       onDrop={(event) => dropFavorite(event, item.href)}
-                      className="group/favorite relative grid grid-cols-[1.5rem_minmax(0,1fr)] items-center"
+                      className="group/favorite relative grid grid-cols-[2rem_minmax(0,1fr)] items-center"
                     >
                       {favoriteDropTarget?.href === item.href ? (
                         <span
@@ -588,7 +597,13 @@ export default function AdminSidebar({
                           }`}
                         />
                       ) : null}
-                      <div className="flex items-center justify-center text-white/25"><span aria-hidden className="cursor-grab text-sm leading-none" title="Drag to reorder">⠿</span></div><NavigationLink
+                      <div className="grid items-center justify-center gap-0.5 text-white/25">
+                        <span aria-hidden className="cursor-grab text-center text-sm leading-none" title="Drag to reorder">⠿</span>
+                        <span className="flex">
+                          <button type="button" aria-label={`Move ${item.label} up in favorites`} disabled={Boolean(savingFavorite) || favoriteIndex === 0} onClick={(event) => { event.stopPropagation(); moveFavoriteKeyboard(item.href, -1); }} className="h-5 w-4 text-[10px] hover:text-white disabled:opacity-20">↑</button>
+                          <button type="button" aria-label={`Move ${item.label} down in favorites`} disabled={Boolean(savingFavorite) || favoriteIndex === favoriteItems.length - 1} onClick={(event) => { event.stopPropagation(); moveFavoriteKeyboard(item.href, 1); }} className="h-5 w-4 text-[10px] hover:text-white disabled:opacity-20">↓</button>
+                        </span>
+                      </div><NavigationLink
                       key={`favorite-${item.href}`}
                       item={item}
                       pathname={pathname}

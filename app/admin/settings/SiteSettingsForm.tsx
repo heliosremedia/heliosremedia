@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PublicSiteSettings } from "@/lib/site-settings";
 
 type UploadKind = "video" | "poster" | "logo" | "monogram" | "standard" | "conversion";
@@ -67,6 +67,16 @@ export default function SiteSettingsForm({
   const [uploading, setUploading] = useState<UploadState>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [voiceExpanded, setVoiceExpanded] = useState(false);
+  const voiceCloseRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!voiceExpanded) return;
+    voiceCloseRef.current?.focus();
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !saving) setVoiceExpanded(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [saving, voiceExpanded]);
 
   function update(key: keyof PublicSiteSettings, value: string) {
     setSettings(
@@ -597,7 +607,7 @@ export default function SiteSettingsForm({
       </section>
 
       <section className="mt-6 rounded-2xl border border-white/[0.08] bg-[#111] p-6"><div className="flex items-start justify-between gap-4"><div><h2 className="text-xl font-light text-white">Blog Studio Voice</h2><p className="mt-2 text-sm text-white/35">Long-form guidance used by the existing Blog Studio AI workflow.</p></div><button type="button" onClick={() => setVoiceExpanded(true)} className="admin-btn-secondary">Expand Editor</button></div><div className="mt-6 grid gap-5 lg:grid-cols-3">{([["brandVoice","Brand voice"],["brandAudience","Primary audience"],["brandWritingGuidance","Writing guardrails"]] as const).map(([key,label]) => <label key={key} className="text-xs uppercase tracking-[.14em] text-white/35">{label}<textarea rows={7} value={settings[key] ?? ""} onChange={(e) => update(key,e.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 p-4 text-sm font-normal normal-case leading-6 tracking-normal text-white" /></label>)}</div><label className="mt-5 block text-xs uppercase tracking-[.14em] text-white/35">Default article author<input value={settings.defaultBlogAuthor ?? ""} onChange={(e) => update("defaultBlogAuthor",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm font-normal normal-case tracking-normal text-white" /></label></section>
-      {voiceExpanded && <div role="dialog" aria-modal="true" aria-labelledby="voice-editor-title" className="fixed inset-0 z-[100] overflow-y-auto bg-black/85 p-4 backdrop-blur"><div className="mx-auto my-4 min-h-[calc(100vh-2rem)] max-w-6xl rounded-2xl border border-white/10 bg-[#111] p-6 sm:p-8"><div className="flex justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Blog Studio</p><h2 id="voice-editor-title" className="mt-2 text-3xl font-light text-white">Voice Editor</h2></div><button onClick={() => setVoiceExpanded(false)} className="admin-btn-secondary">Close</button></div><div className="mt-8 grid gap-6">{([["brandVoice","Brand voice"],["brandAudience","Primary audience"],["brandWritingGuidance","Writing guardrails"]] as const).map(([key,label]) => <label key={key} className="text-xs uppercase tracking-[.14em] text-white/35">{label}<textarea rows={8} value={settings[key] ?? ""} onChange={(e) => update(key,e.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 p-5 text-base font-normal normal-case leading-7 tracking-normal text-white" /></label>)}</div><div className="mt-8 flex justify-end gap-3"><button onClick={() => setVoiceExpanded(false)} className="admin-btn-secondary">Keep editing later</button><button disabled={saving} onClick={async () => { await persist(settings, "Blog Studio Voice saved."); setVoiceExpanded(false); }} className="admin-btn-primary">{saving ? "Saving…" : "Save Settings"}</button></div></div></div>}
+      {voiceExpanded && <div role="dialog" aria-modal="true" aria-labelledby="voice-editor-title" aria-describedby="voice-editor-description" className="fixed inset-0 z-[100] overflow-y-auto bg-black/85 p-4 backdrop-blur"><div className="mx-auto my-4 min-h-[calc(100vh-2rem)] max-w-6xl rounded-2xl border border-white/10 bg-[#111] p-6 sm:p-8"><div className="flex justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Blog Studio</p><h2 id="voice-editor-title" className="mt-2 text-3xl font-light text-white">Voice Editor</h2><p id="voice-editor-description" className="mt-2 text-sm text-white/35">Changes remain available in the standard editor until you save settings.</p></div><button ref={voiceCloseRef} onClick={() => setVoiceExpanded(false)} className="admin-btn-secondary">Close</button></div><div className="mt-8 grid gap-6">{([["brandVoice","Brand voice"],["brandAudience","Primary audience"],["brandWritingGuidance","Writing guardrails"]] as const).map(([key,label]) => <label key={key} className="text-xs uppercase tracking-[.14em] text-white/35">{label}<textarea rows={8} value={settings[key] ?? ""} onChange={(e) => update(key,e.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 p-5 text-base font-normal normal-case leading-7 tracking-normal text-white" /></label>)}</div><div className="mt-8 flex justify-end gap-3"><button onClick={() => setVoiceExpanded(false)} className="admin-btn-secondary">Keep editing later</button><button disabled={saving} onClick={async () => { await persist(settings, "Blog Studio Voice saved."); setVoiceExpanded(false); }} className="admin-btn-primary">{saving ? "Saving…" : "Save Settings"}</button></div></div></div>}
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
         {groups.map((group) => (
