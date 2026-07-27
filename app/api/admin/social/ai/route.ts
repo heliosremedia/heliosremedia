@@ -21,8 +21,16 @@ export async function POST(request: Request) {
   await prisma.socialCampaign.update({ where: { id: campaign.id }, data: { generationStatus: "RUNNING", generationError: null, generationRequestId: body.requestId } });
   try {
     const settings = await ensureSocialSettings();
-    const chosen = body.variantId ? campaign.variants.filter((variant) => variant.id === body.variantId) : campaign.variants;
+    const requested = body.variantId ? campaign.variants.filter((variant) => variant.id === body.variantId) : campaign.variants;
+    const chosen = requested.filter((variant) => variant.status !== "PUBLISHED");
+    if (!chosen.length) {
+      await prisma.socialCampaign.update({ where: { id: campaign.id }, data: { generationStatus: "FAILED", generationError: "Published variants are immutable and cannot be regenerated." } });
+      return NextResponse.json({ success: false, error: "Published variants are immutable. Create a new campaign or variant revision instead." }, { status: 409 });
+    }
     const platforms = chosen.map((variant) => variant.platform).filter((platform) => SOCIAL_PLATFORMS.includes(platform));
+    const savedPlatformGuidance = settings.platformGuidance && typeof settings.platformGuidance === "object" && !Array.isArray(settings.platformGuidance)
+      ? settings.platformGuidance as Record<string, unknown>
+      : {};
     const facts = sanitizedVerifiedFacts(campaign.verifiedSourceFacts);
     const action = body.action || "create-platform-variants";
     const prompt = [
@@ -35,7 +43,10 @@ export async function POST(request: Request) {
       `Requested operation: ${action}.`,
       `VERIFIED FACTS (the only facts you may state): ${JSON.stringify(facts)}.`,
       `Internal creative instructions, never quote as facts: ${campaign.internalAiInstructions || "None"}.`,
-      ...platforms.map((platform) => `${platform}: ${platformPrompt(platform)}`),
+      ...platforms.map((platform) => {
+        const savedGuidance = savedPlatformGuidance[platform];
+        return `${platform}: ${platformPrompt(platform)} Saved administrator guidance: ${typeof savedGuidance === "string" && savedGuidance.trim() ? savedGuidance.trim() : "None supplied"}.`;
+      }),
       "Return one JSON object keyed by platform. Each platform object must contain caption, openingHook, hashtags array, callToAction, onScreenText, videoConcept, and altText. Never approve, schedule, publish, invent a link, or claim performance.",
     ].join("\n");
     const response = await fetch("https://api.openai.com/v1/responses", {
