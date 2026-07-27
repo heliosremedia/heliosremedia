@@ -14,6 +14,7 @@ test("campaign state is derived without contradicting variants", () => {
 test("content changes revoke approval but schedule changes preserve it", () => {
   assert.equal(contentEditState("APPROVED"), "NEEDS_REVIEW");
   assert.equal(contentEditState("SCHEDULED"), "NEEDS_REVIEW");
+  assert.throws(() => contentEditState("PUBLISHED"), /immutable/);
   assert.equal(scheduleState("APPROVED", new Date()), "SCHEDULED");
   assert.equal(scheduleState("SCHEDULED", new Date()), "SCHEDULED");
   assert.throws(() => scheduleState("DRAFT", new Date()), /approved/);
@@ -28,7 +29,8 @@ test("due scheduled posts become ready but never published", () => {
 test("approval requires copy and media where applicable", () => {
   assert.equal(canApprove({ caption: "A useful post", postType: "TEXT_POST", mediaCount: 0 }), true);
   assert.equal(canApprove({ caption: "A useful post", postType: "REEL", mediaCount: 0 }), false);
-  assert.equal(canApprove({ caption: "", postType: "IMAGE_POST", mediaCount: 1 }), false);
+  assert.equal(canApprove({ caption: "A useful post", postType: "IMAGE_POST", mediaCount: 0, hasGeneratedCover: true }), true);
+  assert.equal(canApprove({ caption: "", postType: "IMAGE_POST", mediaCount: 1, hasGeneratedCover: true }), false);
 });
 
 test("media checks are non-destructive recommendations", () => {
