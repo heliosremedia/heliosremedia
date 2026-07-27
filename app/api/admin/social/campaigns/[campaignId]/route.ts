@@ -20,6 +20,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
       where: { id: variantId, campaignId },
       include: { _count: { select: { media: true } } },
     }) : null;
+    const publishedMutations = ["update-variant", "submit-review", "approve", "schedule", "set-media", "update-media-presentation", "set-ai-image", "archive"];
+    if (variant?.status === "PUBLISHED" && publishedMutations.includes(action)) {
+      return NextResponse.json({ success: false, error: "Published posts are immutable. Create a new campaign or variant revision instead." }, { status: 409 });
+    }
     if (action === "update-campaign") {
       await prisma.socialCampaign.update({
         where: { id: campaignId },
@@ -48,7 +52,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
         prisma.socialApprovalEvent.create({ data: { variantId, actorId: session.userId, action: "SUBMITTED", contentVersion: variant.contentVersion } }),
       ]);
     } else if (action === "approve" && variant) {
-      if (!canApprove({ caption: variant.caption, postType: variant.postType, mediaCount: variant._count.media })) {
+      if (!canApprove({ caption: variant.caption, postType: variant.postType, mediaCount: variant._count.media, hasGeneratedCover: Boolean(variant.suggestedCover) })) {
         return NextResponse.json({ success: false, error: "Complete the copy and required media before approval." }, { status: 400 });
       }
       await prisma.$transaction([
