@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { deleteContentImage, verifyContentImage } from "@/lib/content-image-storage";
+import { getAdminSession } from "@/lib/auth/session";
 
 function text(value: unknown, max: number, required = false) { const result = typeof value === "string" ? value.trim() : ""; if ((required && !result) || result.length > max) throw new Error("INVALID_TEXT"); return result || null; }
 type UrlKind = "website" | "instagram" | "facebook" | "youtube" | "linkedin";
@@ -62,6 +63,8 @@ function optionalDate(value: unknown) {
 }
 
 export async function PATCH(request: Request) {
+  const session = await getAdminSession();
+  if (!session || (session.role !== "OWNER" && session.role !== "ADMIN")) return NextResponse.json({ success: false, error: "Owner or administrator access is required." }, { status: 403 });
   try {
     const body = (await request.json()) as Record<string, unknown>;
     const phoneE164 = text(body.phoneE164, 30, true)!;
@@ -92,6 +95,14 @@ export async function PATCH(request: Request) {
       bookingContactPhone: text(body.bookingContactPhone, 40), bookingContactEmail: text(body.bookingContactEmail, 320),
       bookingBannerMessage: text(body.bookingBannerMessage, 280), bookingBannerEnabled: body.bookingBannerEnabled !== false,
       bookingRequestEnabled: body.bookingRequestEnabled !== false,
+      bookingHandoffEnabled: body.bookingHandoffEnabled !== false,
+      bookingProviderName: text(body.bookingProviderName, 120),
+      bookingEyebrow: text(body.bookingEyebrow, 120),
+      bookingPrimaryLabel: text(body.bookingPrimaryLabel, 80),
+      bookingCallLabel: text(body.bookingCallLabel, 80),
+      bookingEmailLabel: text(body.bookingEmailLabel, 80),
+      bookingPhoneVisible: body.bookingPhoneVisible !== false,
+      bookingEmailVisible: body.bookingEmailVisible !== false,
       heroVideoUrl: assetUrl(body.heroVideoUrl), heroPosterUrl: assetUrl(body.heroPosterUrl), heroPosterAlt: text(body.heroPosterAlt, 240),
       heroEyebrow: text(body.heroEyebrow, 120), heroHeadlineLineOne: text(body.heroHeadlineLineOne, 120), heroHeadlineLineTwo: text(body.heroHeadlineLineTwo, 120), heroBody: text(body.heroBody, 420), heroPrimaryLabel: text(body.heroPrimaryLabel, 80), heroPrimaryDestination: assetUrl(body.heroPrimaryDestination), heroSecondaryLabel: text(body.heroSecondaryLabel, 80), heroSecondaryDestination: assetUrl(body.heroSecondaryDestination), availabilityEnabled: Boolean(body.availabilityEnabled), availabilityLabel: text(body.availabilityLabel, 80), availabilityStatus: ["AVAILABLE", "ADVISORY", "CRITICAL"].includes(String(body.availabilityStatus).toUpperCase()) ? String(body.availabilityStatus).toUpperCase() as "AVAILABLE" | "ADVISORY" | "CRITICAL" : "AVAILABLE",
       heliosStandardImageStorageKey, heliosStandardImageUrl: assetUrl(body.heliosStandardImageUrl), heliosStandardImageAlt: text(body.heliosStandardImageAlt, 240),
@@ -111,7 +122,7 @@ export async function PATCH(request: Request) {
       brandVoice: text(body.brandVoice, 1000), brandAudience: text(body.brandAudience, 1000), brandWritingGuidance: text(body.brandWritingGuidance, 2000), defaultBlogAuthor: text(body.defaultBlogAuthor, 160),
       defaultSeoTitle: text(body.defaultSeoTitle, 160, true)!, defaultSeoDescription: text(body.defaultSeoDescription, 320, true)!,
     };
-    const settings = await prisma.siteSettings.upsert({ where: { id: "default" }, create: { id: "default", ...data }, update: data });
+    const settings = await prisma.siteSettings.upsert({ where: { id: "default" }, create: { id: "default", workspaceId: session.workspaceId, ...data }, update: { ...data, workspaceId: session.workspaceId } });
     if (brandLogoStorageKey !== existing?.brandLogoStorageKey) await deleteContentImage(existing?.brandLogoStorageKey ?? null);
     if (brandMonogramStorageKey !== existing?.brandMonogramStorageKey) await deleteContentImage(existing?.brandMonogramStorageKey ?? null);
     if (faviconStorageKey !== existing?.faviconStorageKey) await deleteContentImage(existing?.faviconStorageKey ?? null);

@@ -322,12 +322,12 @@ export default async function PortfolioPage({
 
       <section id="portfolio-filters" className="container-shell scroll-mt-24 py-8 sm:py-10">
         <div
-          className="flex gap-2 overflow-x-auto pb-2"
+          className="flex flex-wrap justify-center gap-2"
           aria-label="Filter portfolio"
         >
           <Link
             href="/portfolio#selected-work"
-            className={`shrink-0 rounded-full border px-4 py-2.5 text-[0.56rem] font-semibold uppercase tracking-[0.15em] transition ${
+            className={`min-h-11 rounded-full border px-4 py-2.5 text-[0.56rem] font-semibold uppercase tracking-[0.15em] transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--helios-orange)] ${
               !selectedService
                 ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] text-black"
                 : "border-white/10 text-white/45 hover:border-white/25 hover:text-white"
@@ -340,7 +340,7 @@ export default async function PortfolioPage({
             <Link
               key={service.id}
               href={`/portfolio?service=${service.slug}#${service.slug}`}
-              className={`shrink-0 rounded-full border px-4 py-2.5 text-[0.56rem] font-semibold uppercase tracking-[0.15em] transition ${
+              className={`min-h-11 rounded-full border px-4 py-2.5 text-[0.56rem] font-semibold uppercase tracking-[0.15em] transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--helios-orange)] ${
                 selectedService?.id === service.id
                   ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] text-black"
                   : "border-white/10 text-white/45 hover:border-white/25 hover:text-white"

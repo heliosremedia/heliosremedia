@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 
 import ProjectListManager from "./ProjectListManager";
+import AdminSummaryCards from "@/app/admin/components/AdminSummaryCards";
 
 export const dynamic = "force-dynamic";
 
@@ -102,7 +103,11 @@ export default async function ProjectsPage({
         }
       : {}),
   };
-  const totalProjects = await prisma.project.count({ where });
+  const [totalProjects, statusCounts] = await Promise.all([
+    prisma.project.count({ where }),
+    prisma.project.groupBy({ by: ["status"], _count: { _all: true } }),
+  ]);
+  const countFor = (status: "PUBLISHED"|"DRAFT"|"ARCHIVED") => statusCounts.find(item=>item.status===status)?._count._all || 0;
   const totalPages = Math.max(1, Math.ceil(totalProjects / pageSize));
   const currentPage = Math.min(requestedPage, totalPages);
   const pageStart = (currentPage - 1) * pageSize;
@@ -207,6 +212,12 @@ export default async function ProjectsPage({
           Helios portfolio.
         </p>
       </section>
+      <AdminSummaryCards items={[
+        { label: "Total", value: statusCounts.reduce((total,item)=>total+item._count._all,0), detail: "All portfolio projects" },
+        { label: "Published", value: countFor("PUBLISHED"), detail: "Visible publicly", tone: "good" },
+        { label: "Drafts", value: countFor("DRAFT"), detail: "In progress" },
+        { label: "Archived", value: countFor("ARCHIVED"), detail: "Retained privately" },
+      ]}/>
 
       <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 sm:p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">

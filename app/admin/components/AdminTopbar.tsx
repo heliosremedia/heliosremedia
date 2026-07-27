@@ -5,11 +5,13 @@ import LogoutButton from "./LogoutButton";
 type AdminTopbarProps = {
   onMenuOpen: () => void;
   session: AdminSession;
+  businessName: string;
 };
 
 export default function AdminTopbar({
   onMenuOpen,
   session,
+  businessName,
 }: AdminTopbarProps) {
   return (
     <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-white/[0.08] bg-[#09090a]/90 px-5 backdrop-blur-xl sm:px-8 lg:px-10">
@@ -37,7 +39,7 @@ export default function AdminTopbar({
 
         <div>
           <p className="text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-white/30">
-            Helios Real Estate Media
+            {businessName || "Your business"}
           </p>
 
           <p className="mt-1 text-sm text-white/65">

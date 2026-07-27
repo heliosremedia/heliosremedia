@@ -8,6 +8,8 @@ import ProjectDetailsEditor from "./ProjectDetailsEditor";
 import ProjectMediaManager from "./ProjectMediaManager";
 import ProjectWorkflowManager from "./ProjectWorkflowManager";
 import ProjectPreviewManager from "./ProjectPreviewManager";
+import ProjectContributors from "./ProjectContributors";
+import { requireAdminSession } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +42,7 @@ export default async function ProjectEditorPage({
   searchParams,
 }: ProjectEditorPageProps) {
   const { projectId } = await params;
+  const session = await requireAdminSession();
   const { returnTo: requestedReturnTo } = await searchParams;
   const returnTo =
     requestedReturnTo?.startsWith("/admin/projects") &&
@@ -47,7 +50,7 @@ export default async function ProjectEditorPage({
       ? requestedReturnTo
       : "/admin/projects";
 
-  const [project, services] = await Promise.all([
+  const [project, services, contributorUsers] = await Promise.all([
     prisma.project.findUnique({
       where: {
         id: projectId,
@@ -114,6 +117,7 @@ export default async function ProjectEditorPage({
           },
         },
         previewLinks: { orderBy: { createdAt: "desc" }, take: 25, select: { id: true, label: true, expiresAt: true, createdAt: true, lastUsedAt: true, revokedAt: true } },
+        contributors: { where: { workspaceId: session.workspaceId }, orderBy: { displayOrder: "asc" }, select: { adminUserId: true, displayNameSnapshot: true, externalName: true, externalDiscipline: true, public: true } },
       },
     }),
     prisma.service.findMany({
@@ -134,6 +138,7 @@ export default async function ProjectEditorPage({
         displayOrder: true,
       },
     }),
+    prisma.adminUser.findMany({ where: { workspaceId: session.workspaceId, active: true, disciplines: { isEmpty: false } }, orderBy: { displayName: "asc" }, select: { id: true, displayName: true, disciplines: true } }),
   ]);
 
   if (!project) {
@@ -342,6 +347,8 @@ export default async function ProjectEditorPage({
           </a>
         </aside>
       </section>
+
+      <ProjectContributors projectId={project.id} users={contributorUsers} initial={project.contributors}/>
 
       <section
         id="project-media"

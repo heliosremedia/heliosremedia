@@ -1,0 +1,9 @@
+"use client";
+import { useEffect,useMemo,useRef } from "react";
+
+export default function ViewportVideoFrame({src,title,className,autoplay}:{src:string;title:string;className:string;autoplay:boolean}){
+ const ref=useRef<HTMLIFrameElement>(null);
+ const source=useMemo(()=>{if(!autoplay||!/(youtube\.com|youtu\.be)/i.test(src))return src;const url=new URL(src);url.searchParams.set("enablejsapi","1");url.searchParams.set("playsinline","1");url.searchParams.set("mute","1");return url.toString();},[autoplay,src]);
+ useEffect(()=>{const frame=ref.current;if(!frame||!autoplay||!/(youtube\.com|youtu\.be)/i.test(src))return;const reduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches;const connection=(navigator as Navigator&{connection?:{saveData?:boolean}}).connection;if(reduced||connection?.saveData)return;const command=(func:string)=>frame.contentWindow?.postMessage(JSON.stringify({event:"command",func,args:[]}),"*");const stopOthers=(event:Event)=>{if((event as CustomEvent).detail!==frame)command("pauseVideo");};window.addEventListener("helios:video-active",stopOthers);const observer=new IntersectionObserver(entries=>{const visible=(entries[0]?.intersectionRatio||0)>=.65;if(visible){window.dispatchEvent(new CustomEvent("helios:video-active",{detail:frame}));command("mute");command("playVideo");window.dispatchEvent(new CustomEvent("helios:video-engagement",{detail:{action:"viewport-play",title}}));}else command("pauseVideo");},{threshold:[0,.65,.8]});observer.observe(frame);return()=>{observer.disconnect();window.removeEventListener("helios:video-active",stopOthers);command("pauseVideo");};},[autoplay,src,title]);
+ return <iframe ref={ref} src={source} title={title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" className={className}/>;
+}

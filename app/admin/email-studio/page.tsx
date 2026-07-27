@@ -1,6 +1,7 @@
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import BulkEmailStudio from "./BulkEmailStudio";
+import AdminSummaryCards from "@/app/admin/components/AdminSummaryCards";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,12 @@ export default async function EmailStudioPage() {
       <h1 className="mt-3 text-3xl font-light tracking-[-0.03em] text-white sm:text-4xl">Bulk Email Studio</h1>
       <p className="mt-3 max-w-3xl text-sm leading-6 text-white/40">Create polished updates for all clients, selected groups, or individual recipients—with a test step and unsubscribe protection built in.</p>
     </section>
+    <AdminSummaryCards items={[
+      { label: "Eligible recipients", value: clients.filter(client=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(client.email)).length, detail: "Subscribed and deliverable" },
+      { label: "Scheduled campaigns", value: campaigns.filter(item=>item.status==="SCHEDULED").length, detail: "Awaiting delivery" },
+      { label: "Recently sent", value: campaigns.filter(item=>item.status==="SENT").length, detail: "Within recent campaign history", tone: "good" },
+      { label: "Delivery health", value: campaigns.some(item=>item.sentCount>0) ? `${Math.round(100*campaigns.reduce((n,item)=>n+item.sentCount-item.failedCount,0)/Math.max(1,campaigns.reduce((n,item)=>n+item.sentCount,0)))}%` : null, detail: campaigns.some(item=>item.sentCount>0)?"Based on recorded sends":"No completed delivery data" },
+    ]}/>
     <BulkEmailStudio
       clients={clients.filter((client) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(client.email)).map((client) => ({ id: client.id, firstName: client.firstName, lastName: client.lastName, displayName: client.displayName, email: client.email, phone: client.phone, groupIds: client.groupMemberships.map((membership) => membership.groupId) }))}
       groups={groups.map((group) => ({ id: group.id, name: group.name, count: group._count.memberships }))}
