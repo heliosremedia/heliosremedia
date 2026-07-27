@@ -320,6 +320,51 @@ enum HomepageCardMediaMode {
   UPLOADED_VIDEO
 }
 
+enum SocialSourceType {
+  PROJECT
+  PORTFOLIO_ITEM
+  MEDIA_LIBRARY
+  BLOG
+  NEWSLETTER
+  UPLOADED_IMAGE
+  UPLOADED_VIDEO
+  AI_GENERATED_IMAGE
+  BLANK
+}
+
+enum SocialPlatform {
+  INSTAGRAM
+  FACEBOOK
+  LINKEDIN
+  TIKTOK
+}
+
+enum SocialVariantStatus {
+  DRAFT
+  NEEDS_REVIEW
+  APPROVED
+  SCHEDULED
+  READY_TO_PUBLISH
+  PUBLISHED
+  FAILED
+  ARCHIVED
+}
+
+enum SocialApprovalAction {
+  SUBMITTED
+  APPROVED
+  REVOKED
+  RESTORED
+}
+
+enum SocialConnectionState {
+  NOT_CONFIGURED
+  MANUAL_WORKFLOW
+  CONNECTION_PLANNED
+  CONNECTED
+  REAUTHORIZATION_REQUIRED
+}
+
 enum BookingMode {
   ONLINE
   UNAVAILABLE
@@ -412,6 +457,7 @@ model Project {
   homepagePlacement HomepageProject?
   previewLinks      ProjectPreviewLink[]
   collectionHeroes  ProjectMediaCollectionHero[]
+  socialCampaigns   SocialCampaign[]
 
   @@index([status])
   @@index([featured])
@@ -484,6 +530,7 @@ model Media {
   homepageWorkCards   HomepageWorkCard[]
   collectionHero      ProjectMediaCollectionHero?
   featuredBlogPosts   BlogPost[]
+  socialVariants      SocialVariantMedia[]
 
   @@index([projectId])
   @@index([projectId, displayOrder])
@@ -1126,11 +1173,189 @@ model AdminUser {
   referralTestTokens        ReferralTestToken[]
   marketingPreferencesActed MarketingEmailPreference[]
   marketingPreferenceEvents MarketingEmailPreferenceEvent[]
+  socialCampaignsCreated    SocialCampaign[]                @relation("SocialCampaignCreator")
+  socialVariantsEdited      SocialVariant[]                 @relation("SocialVariantEditor")
+  socialApprovalEvents      SocialApprovalEvent[]
+  socialPublications        SocialPublication[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([active, role])
+}
+
+model SocialCampaign {
+  id String @id @default(cuid())
+
+  internalName           String
+  purpose                String?
+  sourceType             SocialSourceType
+  sourceRecordIds        Json?
+  verifiedSourceFacts    Json?
+  targetAudience         String?
+  primaryMessage         String?
+  objective              String?
+  desiredCallToAction    String?
+  destinationLink        String?
+  selectedPlatforms      Json
+  scheduleNotes          String?
+  internalAiInstructions String?
+  generationStatus       String?
+  generationError        String?
+  generationRequestId    String?          @unique
+
+  sourceProjectId String?
+  sourceProject   Project? @relation(fields: [sourceProjectId], references: [id], onDelete: SetNull)
+
+  createdById String
+  createdBy   AdminUser @relation("SocialCampaignCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  variants SocialVariant[]
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([createdById, updatedAt])
+  @@index([sourceType, sourceProjectId])
+  @@index([archivedAt, updatedAt])
+}
+
+model SocialVariant {
+  id String @id @default(cuid())
+
+  campaignId String
+  campaign   SocialCampaign @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+
+  platform SocialPlatform
+  postType String
+  status   SocialVariantStatus @default(DRAFT)
+
+  caption         String?
+  openingHook     String?
+  hashtags        Json?
+  callToAction    String?
+  destinationLink String?
+  altText         String?
+  onScreenText    String?
+  videoConcept    String?
+  suggestedCover  String?
+  platformNotes   String?
+  internalNotes   String?
+  aiMetadata      Json?
+  contentVersion  Int     @default(1)
+
+  scheduledAt       DateTime?
+  scheduledTimeZone String    @default("America/Denver")
+  scheduleVersion   Int       @default(0)
+  readyProcessedAt  DateTime?
+  approvalActorId   String?
+  approvedAt        DateTime?
+  publishedAt       DateTime?
+  publicUrl         String?
+  publicationNotes  String?
+  archivedAt        DateTime?
+
+  lastEditedById String?
+  lastEditedBy   AdminUser? @relation("SocialVariantEditor", fields: [lastEditedById], references: [id], onDelete: SetNull)
+
+  media        SocialVariantMedia[]
+  approvals    SocialApprovalEvent[]
+  publications SocialPublication[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([campaignId, platform])
+  @@index([status, scheduledAt])
+  @@index([campaignId, status])
+  @@index([platform, status])
+}
+
+model SocialVariantMedia {
+  id String @id @default(cuid())
+
+  variantId String
+  variant   SocialVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  mediaId   String
+  media     Media         @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+
+  displayOrder Int     @default(0)
+  altText      String?
+  cropAspect   String?
+  cropX        Float   @default(0.5)
+  cropY        Float   @default(0.5)
+  cropScale    Float   @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([variantId, mediaId])
+  @@index([variantId, displayOrder])
+  @@index([mediaId])
+}
+
+model SocialApprovalEvent {
+  id String @id @default(cuid())
+
+  variantId      String
+  variant        SocialVariant        @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  actorId        String
+  actor          AdminUser            @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  action         SocialApprovalAction
+  contentVersion Int
+  reason         String?
+  createdAt      DateTime             @default(now())
+
+  @@index([variantId, createdAt])
+  @@index([actorId, createdAt])
+}
+
+model SocialPublication {
+  id String @id @default(cuid())
+
+  variantId   String
+  variant     SocialVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  actorId     String
+  actor       AdminUser     @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  publishedAt DateTime
+  publicUrl   String?
+  notes       String?
+  createdAt   DateTime      @default(now())
+
+  @@index([variantId, publishedAt])
+  @@index([actorId, publishedAt])
+}
+
+model SocialStudioSettings {
+  id String @id @default("default")
+
+  brandVoice          String
+  primaryAudience     String
+  writingGuardrails   String
+  defaultCallToAction String?
+  hashtagGuidance     String?
+  platformGuidance    Json?
+  prohibitedTopics    String?
+  cadenceGoals        Json?
+  timeZone            String  @default("America/Denver")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SocialConnection {
+  id String @id @default(cuid())
+
+  platform              SocialPlatform        @unique
+  state                 SocialConnectionState @default(NOT_CONFIGURED)
+  intendedAccountName   String?
+  supportedWorkflow     String                @default("Manual publishing and export")
+  manualPublishingUrl   String?
+  configurationMetadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model CommunicationClient {
