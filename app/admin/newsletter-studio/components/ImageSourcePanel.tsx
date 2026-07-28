@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import type { NewsletterBlock, NewsletterGalleryImage } from "../types";
 import ImageLibraryDialog from "./ImageLibraryDialog";
+import { buildNewsletterImageDirection } from "@/lib/newsletters/image-direction";
 
 const input = "mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-white outline-none focus:border-[var(--helios-orange)]";
 
@@ -13,6 +14,7 @@ export default function ImageSourcePanel({ block, onPatch }: {
 }) {
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [libraryTab, setLibraryTab] = useState<"gallery" | "generate">("gallery");
+  const blockDirection = buildNewsletterImageDirection(block);
   const candidates = block.imageCandidates ?? [];
   const mode = block.imageSelection?.mode ?? (block.imageUrl ? "CUSTOM" : "AUTO");
   const choose = (candidate: NonNullable<NewsletterBlock["imageCandidates"]>[number]) => onPatch({
@@ -52,6 +54,6 @@ export default function ImageSourcePanel({ block, onPatch }: {
     {(mode === "CUSTOM" || (!candidates.length && mode !== "NONE")) && <label className="block text-xs text-white/40">Custom public HTTPS image URL<input type="url" className={input} value={block.imageUrl || ""} placeholder="https://…" onChange={event => onPatch({ imageUrl: event.target.value, imageSelection: { mode: "CUSTOM", sourceLabel: "Custom image supplied by administrator" } })} /><span className="mt-2 block text-[11px] text-white/25">The image must remain publicly accessible over HTTPS.</span></label>}
     {mode !== "NONE" && <details><summary className="cursor-pointer text-xs text-white/40">Advanced image details</summary><div className="mt-3 grid gap-4 sm:grid-cols-2"><label className="text-xs text-white/40">Alt text<input className={input} value={block.altText || ""} onChange={event => onPatch({ altText: event.target.value })} /></label><label className="text-xs text-white/40">Linked destination<input type="url" className={input} value={block.imageLink || ""} onChange={event => onPatch({ imageLink: event.target.value })} /></label></div></details>}
     {block.imageSelection?.attribution && mode !== "NONE" && <p className="text-[11px] text-white/25">Attribution: {block.imageSelection.attribution}</p>}
-    {libraryOpen && <ImageLibraryDialog open initialTab={libraryTab} onClose={() => setLibraryOpen(false)} onChoose={chooseGallery} />}
+    {libraryOpen && <ImageLibraryDialog open initialTab={libraryTab} initialPrompt={blockDirection} contextLabel={block.label} onClose={() => setLibraryOpen(false)} onChoose={chooseGallery} />}
   </section>;
 }

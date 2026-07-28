@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -29,8 +29,13 @@ export default function ClientPortalManager({ initialPortals }: { initialPortals
   const [emailConfigured, setEmailConfigured] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [initialDraft, setInitialDraft] = useState<Draft | null>(null);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const editTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const dialogRef = useRef<HTMLElement | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const editing = Boolean(draft.id);
+  const dirty = editing && initialDraft !== null && JSON.stringify(draft) !== JSON.stringify(initialDraft);
   const selectedGroup = useMemo(() => groups.find((group) => group.gid === draft.hdphGroupId), [draft.hdphGroupId, groups]);
 
   const field = (key: keyof Draft, value: string | boolean | number | null) => setDraft((current) => ({ ...current, [key]: value }));
@@ -54,7 +59,12 @@ export default function ClientPortalManager({ initialPortals }: { initialPortals
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
       setPortals((current) => editing ? current.map((portal) => portal.id === result.portal.id ? result.portal : (result.portal.isDefault ? { ...portal, isDefault: false } : portal)) : [...current.map((portal) => result.portal.isDefault ? { ...portal, isDefault: false } : portal), result.portal]);
-      setDraft(emptyDraft); setMessage(editing ? "Portal updated." : "Portal created.");
+      if (editing) {
+        setHighlightedId(result.portal.id);
+        window.setTimeout(() => setHighlightedId(null), 2400);
+      }
+      setDraft(emptyDraft); setInitialDraft(null); setMessage(editing ? "Portal updated." : "Portal created.");
+      if (editing) window.setTimeout(() => editTriggerRef.current?.focus(), 0);
     } catch (error) { setMessage(error instanceof Error ? error.message : "The portal could not be saved."); }
     finally { setBusy(false); }
   }
@@ -71,7 +81,43 @@ export default function ClientPortalManager({ initialPortals }: { initialPortals
     finally { setBusy(false); }
   }
 
-  function edit(portal: Portal) { setDraft({ ...portal }); }
+  function edit(portal: Portal, trigger?: HTMLButtonElement) {
+    editTriggerRef.current = trigger ?? null;
+    const next = { ...portal };
+    setDraft(next);
+    setInitialDraft(next);
+  }
+
+  const closeEditor = useCallback(() => {
+    if (dirty && !window.confirm("Discard unsaved portal changes?")) return;
+    setDraft(emptyDraft);
+    setInitialDraft(null);
+    window.setTimeout(() => editTriggerRef.current?.focus(), 0);
+  }, [dirty]);
+
+  useEffect(() => {
+    if (!editing) return;
+    const priorOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const first = dialogRef.current?.querySelector<HTMLElement>("input, select, textarea, button");
+    first?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeEditor();
+        return;
+      }
+      if (event.key !== "Tab" || !dialogRef.current) return;
+      const controls = [...dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href]')];
+      if (!controls.length) return;
+      const firstControl = controls[0];
+      const lastControl = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === firstControl) { event.preventDefault(); lastControl.focus(); }
+      else if (!event.shiftKey && document.activeElement === lastControl) { event.preventDefault(); firstControl.focus(); }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => { document.body.style.overflow = priorOverflow; document.removeEventListener("keydown", onKeyDown); };
+  }, [closeEditor, editing]);
 
   async function reorder(event: DragEndEvent) {
     const { active, over } = event;
@@ -96,8 +142,11 @@ export default function ClientPortalManager({ initialPortals }: { initialPortals
       </div>
     </section>
 
-    <section role={editing ? "dialog" : undefined} aria-modal={editing ? true : undefined} aria-label={editing ? `Edit ${draft.name}` : undefined} className={`${editing ? "fixed inset-0 z-[100] overflow-y-auto bg-[#0b0b0b] p-5 sm:p-8 lg:inset-8 lg:rounded-2xl lg:border lg:border-white/10" : "rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6"}`}>
-      <div className="flex items-end justify-between gap-5"><div><p className="eyebrow text-[var(--helios-orange)]">{editing ? "Edit portal" : "New portal"}</p><h2 className="mt-3 text-2xl text-white">Map a branded entry point</h2></div>{editing && <button type="button" onClick={() => setDraft(emptyDraft)} className="admin-btn-link">Cancel edit</button>}</div>
+    <section ref={dialogRef} role={editing ? "dialog" : undefined} aria-modal={editing ? true : undefined} aria-label={editing ? `Edit ${draft.name}` : undefined} className={`${editing ? "fixed inset-0 z-[100] overflow-y-auto bg-black/80 p-0 backdrop-blur sm:p-5" : "rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6"}`}>
+      <div className={editing ? "mx-auto flex min-h-full w-full max-w-[1000px] items-center sm:min-h-0 sm:py-5" : ""}>
+      <div className={editing ? "flex max-h-[100dvh] w-full flex-col overflow-hidden bg-[#111] p-5 shadow-2xl sm:max-h-[calc(100dvh-2.5rem)] sm:rounded-2xl sm:border sm:border-white/10 sm:p-7" : ""}>
+      <div className="flex items-end justify-between gap-5"><div><p className="eyebrow text-[var(--helios-orange)]">{editing ? "Edit portal" : "New portal"}</p><h2 className="mt-3 text-2xl text-white">Map a branded entry point</h2></div></div>
+      <div className={editing ? "overflow-y-auto pr-1" : ""}>
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <label className="space-y-2 text-xs uppercase tracking-[0.16em] text-white/35">Portal name<input value={draft.name} onChange={(event) => field("name", event.target.value)} placeholder="RE/MAX Alliance — Fort Collins" className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label>
         <label className="space-y-2 text-xs uppercase tracking-[0.16em] text-white/35">URL slug<input value={draft.slug} onChange={(event) => field("slug", event.target.value)} placeholder="remax-fort-collins" className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label>
@@ -108,9 +157,11 @@ export default function ClientPortalManager({ initialPortals }: { initialPortals
         <label className="space-y-2 text-xs uppercase tracking-[0.16em] text-white/35">Booking cart URL<input value={draft.bookingUrl ?? ""} onChange={(event) => field("bookingUrl", event.target.value)} placeholder="Optional custom booking cart" className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none" /></label>
       </div>
       <div className="mt-5 flex flex-wrap gap-5 text-sm text-white/55">{[["active", "Visible"], ["registrationEnabled", "Allow account creation"], ["isDefault", "Default portal"]].map(([key, label]) => <label key={key} className="flex items-center gap-2"><input type="checkbox" checked={Boolean(draft[key as keyof Draft])} onChange={(event) => field(key as keyof Draft, event.target.checked)} className="accent-[var(--helios-orange)]" />{label}</label>)}</div>
-      <div className="mt-6 flex items-center gap-4"><button type="button" disabled={busy || !draft.name.trim()} onClick={save} className="admin-btn-primary">{editing ? "Save portal" : "Create portal"}</button>{editing && <button type="button" disabled={busy} onClick={()=>setDraft(emptyDraft)} className="admin-btn-secondary">Close without saving</button>}{message && <p role="status" className="text-sm text-white/45">{message}</p>}</div>
+      </div>
+      <div className="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-white/[0.08] pt-5"><button type="button" disabled={busy} onClick={editing ? closeEditor : () => setDraft(emptyDraft)} className="admin-btn-secondary">Cancel</button><button type="button" disabled={busy || !draft.name.trim()} onClick={save} className="admin-btn-primary">{editing ? "Save portal" : "Create portal"}</button>{message && <p role="status" className="basis-full text-right text-sm text-white/45">{message}</p>}</div>
+      </div></div>
     </section>
 
-    <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]"><div className="flex flex-col gap-2 border-b border-white/[0.08] px-6 py-5 sm:flex-row sm:items-end sm:justify-between"><div><h2 className="text-2xl text-white">Client entry points</h2><p className="mt-1 text-sm text-white/35">{portals.length} configured portals · drag rows to set the public display order</p></div>{message && <p role="status" className="text-xs text-white/40">{message}</p>}</div>{portals.length ? <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={reorder}><SortableContext items={portals.map(({ id }) => id)} strategy={verticalListSortingStrategy}><div className="divide-y divide-white/[0.07]">{portals.map((portal) => <SortablePortalRow key={portal.id} portal={portal} disabled={busy} onEdit={edit} onRemove={remove} />)}</div></SortableContext></DndContext> : <p className="px-6 py-10 text-sm text-white/35">No portals yet. Discover the HDPhotoHub groups, then create the first entry point.</p>}</section>
+    <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]"><div className="flex flex-col gap-2 border-b border-white/[0.08] px-6 py-5 sm:flex-row sm:items-end sm:justify-between"><div><h2 className="text-2xl text-white">Client entry points</h2><p className="mt-1 text-sm text-white/35">{portals.length} configured portals · drag rows to set the public display order</p></div>{message && <p role="status" className="text-xs text-white/40">{message}</p>}</div>{portals.length ? <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={reorder}><SortableContext items={portals.map(({ id }) => id)} strategy={verticalListSortingStrategy}><div className="divide-y divide-white/[0.07]">{portals.map((portal) => <div key={portal.id} className={highlightedId === portal.id ? "bg-emerald-300/[0.07] ring-1 ring-inset ring-emerald-300/30" : ""}><SortablePortalRow portal={portal} disabled={busy} onEdit={(item) => edit(item, document.activeElement instanceof HTMLButtonElement ? document.activeElement : undefined)} onRemove={remove} /></div>)}</div></SortableContext></DndContext> : <p className="px-6 py-10 text-sm text-white/35">No portals yet. Discover the HDPhotoHub groups, then create the first entry point.</p>}</section>
   </div>;
 }

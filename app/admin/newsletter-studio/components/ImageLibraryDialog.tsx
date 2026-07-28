@@ -14,12 +14,16 @@ export default function ImageLibraryDialog({
   onClose,
   onChoose,
   allowGenerate = true,
+  initialPrompt = "",
+  contextLabel,
 }: {
   open: boolean;
   initialTab: "gallery" | "generate";
   onClose: () => void;
   onChoose: (item: NewsletterGalleryImage) => void;
   allowGenerate?: boolean;
+  initialPrompt?: string;
+  contextLabel?: string;
 }) {
   const [tab, setTab] = useState<"gallery" | "generate">(initialTab);
   const [items, setItems] = useState<NewsletterGalleryImage[]>([]);
@@ -39,6 +43,12 @@ export default function ImageLibraryDialog({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
   const projectInput = useRef<HTMLInputElement>(null);
+  const promptEdited = useRef(false);
+
+  useEffect(() => {
+    if (!open || tab !== "generate" || promptEdited.current || prompt.trim() || !initialPrompt) return;
+    setPrompt(initialPrompt);
+  }, [initialPrompt, open, prompt, tab]);
 
   const load = useCallback(async (requestedPage = 1, append = false) => {
     setBusy("gallery"); setError("");
@@ -192,8 +202,10 @@ export default function ImageLibraryDialog({
         </button>)}{hasMore && <button type="button" disabled={Boolean(busy)} onClick={() => void load(page + 1, true)} className="admin-btn-secondary col-span-full mx-auto mt-2">{busy === "gallery" ? "Loading…" : "Load more"}</button>}</div> : <div className="mt-10 text-center"><p className="text-sm text-white/35">{project ? "No eligible newsletter images were found for this project." : "No matching images were found."}</p>{project && <button type="button" onClick={() => selectProject(null)} className="admin-btn-link mt-3">Clear project filter</button>}</div>}
       </div> : <div className="mx-auto mt-6 max-w-2xl space-y-5">
         <div className="rounded-xl border border-[var(--helios-orange)]/20 bg-[var(--helios-orange)]/[0.04] p-4 text-sm leading-6 text-white/50">Creates one medium-quality landscape image with paid OpenAI usage. Generated images are stored in the Helios gallery for reuse. Review every result before selecting it.</div>
-        <label className="block text-xs text-white/40">Creative direction<textarea rows={6} className={field} maxLength={2000} value={prompt} onChange={event => setPrompt(event.target.value)} placeholder="Describe the setting, subject, mood, lighting, composition, and what to avoid…" /></label>
-        <label className="block text-xs text-white/40">Alt text<input className={field} maxLength={300} value={altText} onChange={event => setAltText(event.target.value)} placeholder="Concise description for recipients using screen readers" /></label>
+        {initialPrompt&&<div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-3"><p className="text-xs text-white/40">Suggested from selected block{contextLabel?`: ${contextLabel}`:""}.</p><button type="button" onClick={()=>{setPrompt(initialPrompt);promptEdited.current=false;}} className="admin-btn-link">Reset from Block Content</button></div>}
+        <label className="block text-xs text-white/40">Creative direction<textarea rows={6} className={field} maxLength={2000} value={prompt} onChange={event => {promptEdited.current=true;setPrompt(event.target.value);}} placeholder="Describe the setting, subject, mood, lighting, composition, and what to avoid…" /></label>
+        {busy!=="generate"&&<p className="text-xs leading-5 text-white/30">Alt text will be reviewed after the generated image exists. The temporary generation description is not final recipient-facing alt text.</p>}
+        <label className="block text-xs text-white/40">Alt text review<input className={field} maxLength={300} value={altText} onChange={event => setAltText(event.target.value)} placeholder="Review and edit after the image is generated" /></label>
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" disabled={Boolean(busy)} onClick={onClose} className="admin-btn-secondary">Cancel</button><button type="button" disabled={Boolean(busy) || prompt.trim().length < 12 || altText.trim().length < 3} onClick={generate} className="admin-btn-primary">{busy === "generate" ? "Generating… up to 2 minutes" : "Generate image"}</button></div>
       </div>}
     </div>

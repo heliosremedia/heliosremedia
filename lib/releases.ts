@@ -19,6 +19,36 @@ export type StudioRelease = {
 // repository records.
 export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
+    version: "V1.8.9.1",
+    slug: "v1-8-9-1",
+    releaseDate: null,
+    title: "Post-Release QA & Operational Recovery",
+    summary: "Completes post-release operational safeguards and refines core Studio workflows without releasing the contained referral campaign.",
+    newFeatures: [
+      "Confirmed, permission-restricted zero-delivery referral recovery controls",
+      "Blog structure preview, comparison, confirmation, and pre-publish guidance",
+      "Context-derived newsletter image direction and clear edition exit workflows",
+    ],
+    improvements: [
+      "Focused Client Entry Points editing with unsaved-change and focus safeguards",
+      "Scalable Blog Studio article search, status filtering, contained scrolling, and load-more controls",
+      "Inline Homepage hero preview, full-width imagery, and coherent Site Settings information architecture",
+    ],
+    bugFixes: [
+      "Long newsletter titles wrap without crowding status or edition actions",
+      "Core business and contact settings now precede booking, content, and legal configuration",
+    ],
+    securityInfrastructure: [
+      "Contained referral launches cannot silently resume and still require fresh human confirmation",
+      "Existing tenant scoping, immutable delivery history, sanitized diagnostics, and analytics privacy controls remain enforced",
+    ],
+    administratorActions: [
+      "Complete authenticated read-only referral and provider verification before any campaign recovery.",
+      "Complete one controlled signed-out Portfolio Intelligence event after deployment.",
+    ],
+    status: "PLANNED",
+  },
+  {
     version: "V1.8.9",
     slug: "v1-8-9",
     releaseDate: "2026-07-28",
