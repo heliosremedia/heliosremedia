@@ -19,6 +19,34 @@ export type StudioRelease = {
 // repository records.
 export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
+    version: "V1.8.6.1",
+    slug: "v1-8-6-1",
+    releaseDate: "2026-07-27",
+    title: "Portfolio Sharing Production Hotfix",
+    summary: "Reliable project images and complete server-rendered metadata for Facebook, LinkedIn, X, messaging, and other Open Graph consumers.",
+    newFeatures: [
+      "Explicit Social Sharing Image selection in Project Management",
+      "Shared server-side social-image resolver with a durable global fallback",
+    ],
+    improvements: [
+      "Complete absolute Open Graph and large-image Twitter metadata",
+      "Validated hero, gallery, and video-thumbnail fallback selection",
+    ],
+    bugFixes: [
+      "Prevents blank social previews when a project hero is unavailable",
+      "Excludes hidden, unsupported, video, and preview-only media from published metadata",
+    ],
+    securityInfrastructure: [
+      "Private previews and unpublished projects remain noindex and expose no public social metadata",
+      "Published share URLs remain canonical and free of preview tokens",
+    ],
+    administratorActions: [
+      "Optionally choose a Social Sharing Image for projects that need a specific share composition.",
+      "Use each platform's re-scrape tool when an older shared URL remains cached.",
+    ],
+    status: "LIVE",
+  },
+  {
     version: "V1.8.6",
     slug: "v1-8-6",
     releaseDate: "2026-07-27",

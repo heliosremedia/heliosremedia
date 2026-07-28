@@ -555,6 +555,7 @@ model Project {
 
   heroMediaId      String? @unique
   thumbnailMediaId String? @unique
+  socialImageMediaId String? @unique
 
   seoTitle       String?
   seoDescription String?
@@ -566,6 +567,7 @@ model Project {
 
   heroMedia      Media? @relation("ProjectHeroMedia", fields: [heroMediaId], references: [id], onDelete: SetNull)
   thumbnailMedia Media? @relation("ProjectThumbnailMedia", fields: [thumbnailMediaId], references: [id], onDelete: SetNull)
+  socialImageMedia Media? @relation("ProjectSocialImageMedia", fields: [socialImageMediaId], references: [id], onDelete: SetNull)
 
   media             Media[]                      @relation("ProjectMedia")
   details           ProjectDetails?
@@ -675,6 +677,7 @@ model Media {
 
   heroForProject      Project?                    @relation("ProjectHeroMedia")
   thumbnailForProject Project?                    @relation("ProjectThumbnailMedia")
+  socialImageForProject Project?                  @relation("ProjectSocialImageMedia")
   homepageWorkCards   HomepageWorkCard[]
   collectionHero      ProjectMediaCollectionHero?
   featuredBlogPosts   BlogPost[]

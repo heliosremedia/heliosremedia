@@ -13,6 +13,7 @@ import {
   isCloudflareStreamUid,
 } from "@/lib/cloudflare-stream";
 import { resolveExternalMedia } from "@/lib/external-media";
+import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { r2Client, r2Config } from "@/lib/r2";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
@@ -96,6 +97,7 @@ export async function GET(_request: Request, { params }: MediaRouteProps) {
       select: {
         id: true,
         heroMediaId: true,
+        socialImageMediaId: true,
         collectionHeroes: {
           select: { mediaId: true, mediaCategory: true },
         },
@@ -153,6 +155,7 @@ export async function GET(_request: Request, { params }: MediaRouteProps) {
 
     return NextResponse.json({
       success: true,
+      socialImageMediaId: project.socialImageMediaId,
       media: media.map((item) => ({
         ...item,
         publicUrl: item.storageKey ? getPublicAssetUrl(item.storageKey) : "",
@@ -1288,6 +1291,38 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
         heroMediaId: media.id,
         mediaCategory: media.mediaCategory,
       });
+    }
+
+    if (action === "set-social-image") {
+      const session = await requireAdminSession();
+      const ownedProject = await prisma.project.findFirst({
+        where: { id: projectId, workspaceId: session.workspaceId },
+        select: { id: true },
+      });
+      if (!ownedProject) {
+        return NextResponse.json({ success: false, error: "Project not found." }, { status: 404 });
+      }
+      const mediaId = typeof body.mediaId === "string" ? body.mediaId.trim() : "";
+      if (!mediaId) {
+        await prisma.project.update({ where: { id: projectId }, data: { socialImageMediaId: null } });
+        revalidatePath("/portfolio");
+        revalidatePath("/portfolio/[slug]", "page");
+        return NextResponse.json({ success: true, socialImageMediaId: null });
+      }
+      const media = await prisma.media.findFirst({
+        where: {
+          id: mediaId, projectId, sourceType: "UPLOADED_IMAGE", storageKey: { not: null },
+          visibility: "VISIBLE", mimeType: { in: ["image/jpeg", "image/png", "image/webp"] },
+        },
+        select: { id: true },
+      });
+      if (!media) {
+        return NextResponse.json({ success: false, error: "Choose a visible JPEG, PNG, or WebP project image." }, { status: 400 });
+      }
+      await prisma.project.update({ where: { id: projectId }, data: { socialImageMediaId: media.id } });
+      revalidatePath("/portfolio");
+      revalidatePath("/portfolio/[slug]", "page");
+      return NextResponse.json({ success: true, socialImageMediaId: media.id });
     }
 
     return NextResponse.json(
