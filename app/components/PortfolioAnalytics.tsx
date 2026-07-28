@@ -36,19 +36,27 @@ export function sendPortfolioEvent(detail: Detail) {
       eventId: safeEventId(detail.eventName),
       sessionId: sessionId(),
     });
-    const accepted = navigator.sendBeacon?.(
-      "/api/portfolio-analytics",
-      new Blob([body], { type: "application/json" }),
-    ) ?? false;
-    if (accepted) {
-      if (onceKey) window.sessionStorage.setItem(onceKey, "1");
-      return;
-    }
-    void fetch("/api/portfolio-analytics", {
+    const deliver = (attempt = 0): Promise<void> => fetch("/api/portfolio-analytics", {
         method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true,
-      }).then(response => {
-        if (response.ok && onceKey) window.sessionStorage.setItem(onceKey, "1");
-      }).catch(() => undefined);
+      }).then(async response => {
+        const result = response.ok
+          ? await response.json().catch(() => null) as { stored?: boolean } | null
+          : null;
+        if (result?.stored) {
+          if (onceKey) window.sessionStorage.setItem(onceKey, "1");
+          return;
+        }
+        if (attempt < 2) {
+          await new Promise(resolve => window.setTimeout(resolve, 400 * (attempt + 1)));
+          return deliver(attempt + 1);
+        }
+      }).catch(async () => {
+        if (attempt < 2) {
+          await new Promise(resolve => window.setTimeout(resolve, 400 * (attempt + 1)));
+          return deliver(attempt + 1);
+        }
+      });
+    void deliver();
   } catch {
     // Measurement must never block the public experience.
   }

@@ -77,8 +77,18 @@ export async function getPortfolioAnalyticsHealth(workspaceId: string) {
       }),
     ]);
     if (!settings) return { state: "workspace" as const, label: "Workspace configuration needed", detail: "Managed Site Settings are not connected to this workspace." };
-    if (latestEvent) return { state: "recent" as const, label: "Tracking active", detail: `Most recent verified event: ${latestEvent.occurredAt.toLocaleString("en-US")}.` };
-    return { state: "awaiting" as const, label: "Awaiting first verified event", detail: settings.websiteUrl ? "The managed public host is configured and ready to receive events." : "Single-site tracking is ready; add the public website address before enabling multiple companies." };
+    if (latestEvent) return {
+      state: "recent" as const,
+      label: "Verified ingestion",
+      detail: `Most recent database-confirmed event: ${latestEvent.occurredAt.toLocaleString("en-US")}. Reporting query is healthy.`,
+    };
+    return {
+      state: "awaiting" as const,
+      label: "No verified ingestion yet",
+      detail: settings.websiteUrl
+        ? "Workspace configuration and reporting query are healthy, but no database-confirmed public event exists."
+        : "Reporting is healthy. Add the public website address before enabling multiple companies.",
+    };
   } catch (error) {
     const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
     if (code === "P2021" || code === "P2022") return { state: "schema" as const, label: "Analytics schema unavailable", detail: "The analytics database migration requires administrator attention." };

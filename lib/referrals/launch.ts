@@ -13,6 +13,8 @@ import {
   referralLaunchClaimMode,
   referralLaunchBatches,
   referralLaunchIsComplete,
+  REFERRAL_STALE_LAUNCH_MS,
+  referralRecoveryMode,
   missingReferralRecipients,
 } from "./launch-contract";
 
@@ -232,7 +234,7 @@ export async function processReferralLaunch(campaignId: string, attemptId: strin
   const audience = snapshot.audience?.eligible ?? [];
   const plan = launchPlan(snapshot, campaign);
   const existing = await prisma.referralInvitation.findMany({
-    where: { campaignId, approvedRevisionId: campaign.approvedRevisionId },
+    where: { campaignId, approvedRevisionId: campaign.approvedRevisionId, status: { not: "CANCELLED" } },
     select: { advocate: { select: { clientId: true } } },
   });
   const missing = missingReferralRecipients(audience, existing.map(item => item.advocate.clientId));
@@ -248,8 +250,8 @@ export async function processReferralLaunch(campaignId: string, attemptId: strin
       await prepareBatch(campaign, snapshot, batches[batchIndex], batchNumber, attemptId, plan);
       const [advocates, invitations, communications] = await Promise.all([
         prisma.referralAdvocate.count({ where: { campaignId } }),
-        prisma.referralInvitation.count({ where: { campaignId, approvedRevisionId: campaign.approvedRevisionId } }),
-        prisma.referralCommunication.count({ where: { campaignId, invitation: { approvedRevisionId: campaign.approvedRevisionId } } }),
+        prisma.referralInvitation.count({ where: { campaignId, approvedRevisionId: campaign.approvedRevisionId, status: { not: "CANCELLED" } } }),
+        prisma.referralCommunication.count({ where: { campaignId, status: { not: "CANCELLED" }, invitation: { approvedRevisionId: campaign.approvedRevisionId } } }),
       ]);
       await prisma.referralCampaign.updateMany({
         where: { id: campaignId, status: "LAUNCHING", launchAttemptId: attemptId },
@@ -262,8 +264,8 @@ export async function processReferralLaunch(campaignId: string, attemptId: strin
     }
 
     const [invitations, communications] = await Promise.all([
-      prisma.referralInvitation.count({ where: { campaignId, approvedRevisionId: campaign.approvedRevisionId } }),
-      prisma.referralCommunication.count({ where: { campaignId, invitation: { approvedRevisionId: campaign.approvedRevisionId } } }),
+      prisma.referralInvitation.count({ where: { campaignId, approvedRevisionId: campaign.approvedRevisionId, status: { not: "CANCELLED" } } }),
+      prisma.referralCommunication.count({ where: { campaignId, status: { not: "CANCELLED" }, invitation: { approvedRevisionId: campaign.approvedRevisionId } } }),
     ]);
     if (!referralLaunchIsComplete({
       expectedAdvocates: audience.length, preparedInvitations: invitations,
@@ -316,9 +318,11 @@ export async function processReferralLaunch(campaignId: string, attemptId: strin
 
 export async function processPendingReferralLaunches(limit = 2) {
   const now = new Date();
+  const recentLaunchCutoff = new Date(now.getTime() - REFERRAL_STALE_LAUNCH_MS);
   const candidates = await prisma.referralCampaign.findMany({
     where: {
       status: "LAUNCHING", launchFailedAt: null,
+      launchStartedAt: { gte: recentLaunchCutoff },
       OR: [{ launchLeaseExpiresAt: null }, { launchLeaseExpiresAt: { lt: now } }],
     },
     orderBy: { launchStartedAt: "asc" },
@@ -352,4 +356,79 @@ export async function processPendingReferralLaunches(limit = 2) {
     }
   }
   return results;
+}
+
+export async function stopReferralCampaignPreparation(
+  campaignId: string,
+  actor: LaunchActor,
+  returnToApproved: boolean,
+) {
+  const campaign = await prisma.referralCampaign.findUnique({
+    where: { id: campaignId },
+    select: {
+      id: true, internalName: true, status: true, approvedRevisionId: true,
+      launchAttemptId: true, preparedCommunicationCount: true,
+    },
+  });
+  if (!campaign || campaign.status !== "LAUNCHING" || !campaign.approvedRevisionId) {
+    throw new Error("Only a campaign currently being prepared can be stopped.");
+  }
+  const sentCount = await prisma.referralCommunication.count({
+    where: { campaignId, status: "SENT" },
+  });
+  const mode = referralRecoveryMode({
+    status: campaign.status,
+    sentCount,
+    preparedCommunicationCount: campaign.preparedCommunicationCount,
+  });
+  if (mode === "PARTIAL_DELIVERY") {
+    throw new Error("This campaign has already sent communications. Pause or cancel it; it cannot return to Approved.");
+  }
+  const status = returnToApproved ? "APPROVED" : "CANCELLED";
+  await prisma.$transaction(async tx => {
+    const stopped = await tx.referralCampaign.updateMany({
+      where: {
+        id: campaignId,
+        status: "LAUNCHING",
+        launchAttemptId: campaign.launchAttemptId,
+      },
+      data: {
+        status,
+        launchAttemptId: null,
+        launchLeaseExpiresAt: null,
+        launchFailedAt: new Date(),
+        lastLaunchError: returnToApproved
+          ? "Preparation was stopped by an administrator before delivery. Fresh confirmation is required."
+          : "Campaign was cancelled by an administrator before delivery.",
+      },
+    });
+    if (stopped.count !== 1) throw new ReferralLaunchConflictError("Campaign state changed. Refresh before trying again.");
+    await tx.referralCommunication.updateMany({
+      where: { campaignId, status: { in: ["DRAFT", "APPROVED", "SCHEDULED", "SENDING"] } },
+      data: { status: "CANCELLED", failureCode: "PREPARATION_STOPPED" },
+    });
+    await tx.referralInvitation.updateMany({
+      where: { campaignId, status: { in: ["DRAFT", "APPROVED", "SCHEDULED", "SENDING"] } },
+      data: { status: "CANCELLED" },
+    });
+    await tx.referralAuditEvent.create({
+      data: {
+        campaignId, actorId: actor.userId,
+        action: returnToApproved ? "CAMPAIGN_PREPARATION_RETURNED_TO_APPROVED" : "CAMPAIGN_PREPARATION_CANCELLED",
+        summary: returnToApproved
+          ? "Stopped preparation before delivery and returned the approved snapshot for fresh confirmation."
+          : "Stopped preparation before delivery and cancelled the campaign.",
+        metadata: { recoveryMode: mode, sentCount: 0, previousStatus: "LAUNCHING", newStatus: status },
+      },
+    });
+  });
+  await recordAuditEvent({
+    actorId: actor.userId,
+    actorEmail: actor.email,
+    action: returnToApproved ? "REFERRAL_PREPARATION_RETURNED_TO_APPROVED" : "REFERRAL_PREPARATION_CANCELLED",
+    entityType: "ReferralCampaign",
+    entityId: campaignId,
+    summary: `${returnToApproved ? "Stopped preparation for" : "Cancelled"} referral campaign "${campaign.internalName}" before delivery.`,
+  });
+  return { status, recoveryMode: mode, sentCount };
 }

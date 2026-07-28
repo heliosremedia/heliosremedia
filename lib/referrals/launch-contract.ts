@@ -1,4 +1,31 @@
 export const REFERRAL_LAUNCH_BATCH_SIZE = 20;
+export const REFERRAL_STALE_LAUNCH_MS = 15 * 60_000;
+
+export function referralLaunchIsStalled(input: {
+  status: string;
+  launchStartedAt: Date | string | null;
+  launchLeaseExpiresAt: Date | string | null;
+  lastProgressAt?: Date | string | null;
+  preparedAdvocateCount: number;
+  now?: Date;
+}) {
+  if (input.status !== "LAUNCHING" || !input.launchStartedAt) return false;
+  const now = input.now?.getTime() ?? Date.now();
+  const started = new Date(input.launchStartedAt).getTime();
+  const lastProgress = input.lastProgressAt ? new Date(input.lastProgressAt).getTime() : started;
+  const leaseExpired = !input.launchLeaseExpiresAt || new Date(input.launchLeaseExpiresAt).getTime() < now;
+  return leaseExpired && now - Math.max(started, lastProgress) >= REFERRAL_STALE_LAUNCH_MS;
+}
+
+export function referralRecoveryMode(input: {
+  status: string;
+  sentCount: number;
+  preparedCommunicationCount: number;
+}) {
+  if (input.status !== "LAUNCHING") return "UNAVAILABLE" as const;
+  if (input.sentCount > 0) return "PARTIAL_DELIVERY" as const;
+  return input.preparedCommunicationCount > 0 ? "PARTIAL_PREPARATION" as const : "ZERO_DELIVERY" as const;
+}
 
 export function referralLaunchBatches<T>(items: T[], batchSize = REFERRAL_LAUNCH_BATCH_SIZE) {
   if (!Number.isInteger(batchSize) || batchSize < 1 || batchSize > 50) throw new Error("Invalid referral launch batch size.");

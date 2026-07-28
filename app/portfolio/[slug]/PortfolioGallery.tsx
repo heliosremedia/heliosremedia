@@ -507,7 +507,7 @@ export default function PortfolioGallery({
                     <span className="mt-4 font-display text-3xl font-light text-white/65">
                       Open {collectionLabel}
                     </span>
-                    <span className="mt-6 text-xl text-white/35">↗</span>
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="mt-6 h-5 w-5 text-white/35"><path d="M7 17 17 7M8 7h9v9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </a>
                 ) : (
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_25%,rgba(217,107,43,0.15),transparent_35%),#111]" />
@@ -614,7 +614,7 @@ export default function PortfolioGallery({
                   type="button"
                   onClick={showPrevious}
                   aria-label="Previous image"
-                  className="absolute left-3 top-1/2 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/35 text-white/50 backdrop-blur-md transition hover:border-white/30 hover:text-white sm:flex lg:left-7"
+                  className="absolute left-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/45 text-white/70 backdrop-blur-md transition hover:border-white/30 hover:text-white lg:left-7"
                 >
                   <svg
                     aria-hidden="true"
@@ -635,7 +635,7 @@ export default function PortfolioGallery({
                   type="button"
                   onClick={showNext}
                   aria-label="Next image"
-                  className="absolute right-3 top-1/2 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/35 text-white/50 backdrop-blur-md transition hover:border-white/30 hover:text-white sm:flex lg:right-7"
+                  className="absolute right-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/45 text-white/70 backdrop-blur-md transition hover:border-white/30 hover:text-white lg:right-7"
                 >
                   <svg
                     aria-hidden="true"

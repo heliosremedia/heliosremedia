@@ -13,7 +13,9 @@ type Campaign = {
   startsAt: string | null; endsAt: string | null; approvedRevisionId: string | null;
   expectedAdvocateCount: number | null; preparedAdvocateCount: number; preparedInvitationCount: number;
   preparedCommunicationCount: number; launchBatch: number; launchFailedAt: string | null;
-  launchStartedAt: string | null; lastLaunchError: string | null;
+  launchStartedAt: string | null; launchLeaseExpiresAt: string | null; lastLaunchError: string | null;
+  lastProgressAt: string | null; stalled: boolean; recoveryMode: string; sentCount: number;
+  communicationCounts: Record<string, number>;
   audiences: Array<{ id: string; excluded: boolean; group: { name: string } | null; client: { displayName: string; email: string } | null }>;
   advocates: Array<{ id: string; client: { displayName: string; email: string }; recommendationReason: string | null; recommendationScore: number | null; recommendationWarnings: unknown; _count: { submissions: number; rewards: number } }>;
   submissions: Array<{ id: string; firstName: string; lastName: string; status: string; attributionStatus: string; createdAt: string; advocate: { client: { displayName: string } } | null }>;
@@ -68,6 +70,15 @@ export default function CampaignWorkspace({ campaignId, adminEmail }: { campaign
     } catch (error) { setMessage(error instanceof Error ? error.message : "The action could not be completed."); }
     finally { setBusy(null); }
   }
+  async function recoveryAction(name: "stop-preparation" | "return-to-approved" | "retry-safe") {
+    const copy = name === "retry-safe"
+      ? "Retry preparation from the approved snapshot? No already-prepared active recipient will be duplicated, and delivery still follows the approved schedule."
+      : name === "return-to-approved"
+        ? "Stop preparation and return to the existing Approved snapshot? No communications will be sent. Fresh launch confirmation will be required."
+        : "Stop preparation and cancel this campaign? Unsent records will be cancelled and audit history will remain.";
+    if (!window.confirm(copy)) return;
+    await action(name);
+  }
   async function returnToDraft(editAfter = false) {
     if (!campaign || !window.confirm("Returning this campaign to Draft removes its approval. You may edit it, but it must be approved again before launch.")) return;
     setBusy(editAfter ? "edit" : "return-to-draft"); setMessage(null);
@@ -110,7 +121,7 @@ export default function CampaignWorkspace({ campaignId, adminEmail }: { campaign
         {campaign.status === "DRAFT" && <Link href={`/admin/referral-studio/campaigns/${campaign.id}/edit`} className="admin-btn-primary">Edit Campaign</Link>}
         {campaign.status === "DRAFT" && <button disabled={!!busy} onClick={() => setTab("Approval")} className="admin-btn-secondary">Review &amp; approve</button>}
         {campaign.status === "APPROVED" && <button disabled={!!busy} onClick={() => action("launch")} className="admin-btn-primary">{busy === "launch" ? "Preparing Campaign…" : "Launch campaign"}</button>}
-        {campaign.status === "LAUNCHING" && campaign.launchFailedAt && <button disabled={!!busy} onClick={() => action("launch")} className="admin-btn-primary">{busy === "launch" ? "Retrying…" : "Retry Launch"}</button>}
+        {campaign.status === "LAUNCHING" && campaign.launchFailedAt && <button disabled={!!busy} onClick={() => void recoveryAction("retry-safe")} className="admin-btn-primary">{busy === "retry-safe" ? "Retrying…" : "Retry Safely"}</button>}
         {campaign.status === "LAUNCHING" && !campaign.launchFailedAt && <button disabled className="admin-btn-primary">Preparing Campaign…</button>}
         {campaign.status === "APPROVED" && <button disabled={!!busy} onClick={() => void returnToDraft(false)} className="admin-btn-secondary">{busy === "return-to-draft" ? "Returning…" : "Return to Draft"}</button>}
         {campaign.status === "APPROVED" && <button disabled={!!busy} onClick={() => void returnToDraft(true)} className="admin-btn-secondary">{busy === "edit" ? "Opening…" : "Edit Campaign"}</button>}
@@ -121,12 +132,28 @@ export default function CampaignWorkspace({ campaignId, adminEmail }: { campaign
       </div>
     </header>
     {message && <p role="status" className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/60">{message}</p>}
-    {campaign.status === "LAUNCHING" && <section aria-live="polite" className={`rounded-xl border px-5 py-4 ${campaign.launchFailedAt ? "border-red-300/15 bg-red-300/[0.04]" : "border-[#e7ddc8]/15 bg-[#e7ddc8]/[0.04]"}`}>
+    {campaign.status === "LAUNCHING" && <section aria-live="polite" className={`rounded-xl border px-5 py-5 ${campaign.launchFailedAt || campaign.stalled ? "border-red-300/15 bg-red-300/[0.04]" : "border-[#e7ddc8]/15 bg-[#e7ddc8]/[0.04]"}`}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div><p className="text-sm text-white/70">{campaign.launchFailedAt ? "Campaign preparation stopped before completion." : "Preparing campaign…"}</p><p className="mt-1 text-xs text-white/35">{campaign.launchFailedAt ? (campaign.lastLaunchError || "Retry is safe and will not create duplicates.") : `${campaign.preparedAdvocateCount} of ${campaign.expectedAdvocateCount ?? 0} advocates prepared`}</p></div>
+        <div><p className="text-sm text-white/70">{campaign.stalled ? "Campaign preparation is stalled." : campaign.launchFailedAt ? "Campaign preparation stopped before completion." : "Preparing campaign…"}</p><p className="mt-1 text-xs leading-5 text-white/35">{campaign.stalled ? "Automatic recovery is disabled. Review the verified counts below and choose an explicit recovery action." : campaign.launchFailedAt ? (campaign.lastLaunchError || "Retry is safe and will not create duplicates.") : `${campaign.preparedAdvocateCount} of ${campaign.expectedAdvocateCount ?? 0} advocates prepared`}</p></div>
         {!campaign.launchFailedAt && <span className="text-xs text-white/30">Batch {campaign.launchBatch + 1}</span>}
       </div>
       {!campaign.launchFailedAt && <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/[0.06]"><div className="h-full rounded-full bg-[var(--helios-orange)] transition-[width]" style={{ width: `${Math.min(100, Math.round((campaign.preparedAdvocateCount / Math.max(1, campaign.expectedAdvocateCount ?? 1)) * 100))}%` }} /></div>}
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Metric label="Approved audience" value={campaign.expectedAdvocateCount ?? 0} />
+        <Metric label="Prepared" value={campaign.preparedAdvocateCount} />
+        <Metric label="Scheduled" value={campaign.communicationCounts.SCHEDULED ?? 0} />
+        <Metric label="Sent" value={campaign.sentCount} />
+      </div>
+      <dl className="mt-5 grid gap-3 text-xs text-white/40 sm:grid-cols-2">
+        <div><dt className="uppercase tracking-[.12em] text-white/25">Started</dt><dd className="mt-1">{campaign.launchStartedAt ? new Date(campaign.launchStartedAt).toLocaleString() : "Not recorded"}</dd></div>
+        <div><dt className="uppercase tracking-[.12em] text-white/25">Last progress</dt><dd className="mt-1">{campaign.lastProgressAt ? new Date(campaign.lastProgressAt).toLocaleString() : "No completed batch recorded"}</dd></div>
+      </dl>
+      {(campaign.stalled || campaign.launchFailedAt) && campaign.sentCount === 0 && <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <button disabled={!!busy} onClick={() => void recoveryAction("return-to-approved")} className="admin-btn-secondary">Return to Approved</button>
+        <button disabled={!!busy} onClick={() => void recoveryAction("retry-safe")} className="admin-btn-primary">Retry Safely</button>
+        <button disabled={!!busy} onClick={() => void recoveryAction("stop-preparation")} className="admin-btn-destructive">Cancel Campaign</button>
+      </div>}
+      {campaign.sentCount > 0 && <p className="mt-5 text-xs leading-5 text-amber-100/65">Some communications have already been sent. Return to Approved is unavailable; pause or cancel with the existing lifecycle controls to preserve delivery history.</p>}
     </section>}
     {!campaign.removalEligibility.canDelete && campaign.removalEligibility.hasActivity && ["DRAFT", "APPROVED"].includes(campaign.status) && <p className="rounded-xl border border-amber-200/15 bg-amber-200/[0.04] px-4 py-3 text-sm text-amber-50/60">Permanent deletion is unavailable because this campaign has referral activity. Archive it to preserve historical and compliance records.</p>}
     {testOpen && <div role="presentation" className="fixed inset-0 z-[100] grid place-items-center bg-black/75 p-4 backdrop-blur-sm" onMouseDown={event => { if (event.currentTarget === event.target) setTestOpen(false); }}><form role="dialog" aria-modal="true" aria-labelledby="referral-test-title" onSubmit={sendTest} className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#141412] p-6 shadow-2xl sm:p-7"><p className="text-[0.56rem] uppercase tracking-[.18em] text-[var(--helios-orange)]">Test only</p><h2 id="referral-test-title" className="mt-3 text-2xl font-light text-white">Send referral invitation test</h2><p className="mt-3 text-sm leading-6 text-white/40">No client recipient will receive this test. It does not change campaign analytics or referral status. The subject includes [TEST].</p><div className="mt-5 rounded-xl border border-white/[0.07] bg-white/[0.02] p-4"><p className="text-[0.52rem] uppercase tracking-[.14em] text-white/25">Subject</p><p className="mt-2 text-sm text-white/60">[TEST] {campaign.invitationSubject.replace(/^\\[TEST\\]\\s*/i, "")}</p></div><label className="mt-5 block text-[0.56rem] uppercase tracking-[.15em] text-white/35">Send test to<input autoFocus required type="email" value={testEmail} onChange={event => setTestEmail(event.target.value)} className="admin-input mt-2 w-full" /></label><div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setTestOpen(false)} className="admin-btn-link">Cancel</button><button disabled={busy === "test"} className="admin-btn-primary">{busy === "test" ? "Sending…" : "Send test"}</button></div></form></div>}
