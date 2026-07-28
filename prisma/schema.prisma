@@ -553,8 +553,8 @@ model Project {
   featured     Boolean       @default(false)
   displayOrder Int           @default(0)
 
-  heroMediaId      String? @unique
-  thumbnailMediaId String? @unique
+  heroMediaId        String? @unique
+  thumbnailMediaId   String? @unique
   socialImageMediaId String? @unique
 
   seoTitle       String?
@@ -565,8 +565,8 @@ model Project {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  heroMedia      Media? @relation("ProjectHeroMedia", fields: [heroMediaId], references: [id], onDelete: SetNull)
-  thumbnailMedia Media? @relation("ProjectThumbnailMedia", fields: [thumbnailMediaId], references: [id], onDelete: SetNull)
+  heroMedia        Media? @relation("ProjectHeroMedia", fields: [heroMediaId], references: [id], onDelete: SetNull)
+  thumbnailMedia   Media? @relation("ProjectThumbnailMedia", fields: [thumbnailMediaId], references: [id], onDelete: SetNull)
   socialImageMedia Media? @relation("ProjectSocialImageMedia", fields: [socialImageMediaId], references: [id], onDelete: SetNull)
 
   media             Media[]                      @relation("ProjectMedia")
@@ -675,13 +675,13 @@ model Media {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  heroForProject      Project?                    @relation("ProjectHeroMedia")
-  thumbnailForProject Project?                    @relation("ProjectThumbnailMedia")
-  socialImageForProject Project?                  @relation("ProjectSocialImageMedia")
-  homepageWorkCards   HomepageWorkCard[]
-  collectionHero      ProjectMediaCollectionHero?
-  featuredBlogPosts   BlogPost[]
-  socialVariants      SocialVariantMedia[]
+  heroForProject        Project?                    @relation("ProjectHeroMedia")
+  thumbnailForProject   Project?                    @relation("ProjectThumbnailMedia")
+  socialImageForProject Project?                    @relation("ProjectSocialImageMedia")
+  homepageWorkCards     HomepageWorkCard[]
+  collectionHero        ProjectMediaCollectionHero?
+  featuredBlogPosts     BlogPost[]
+  socialVariants        SocialVariantMedia[]
 
   @@index([projectId])
   @@index([projectId, displayOrder])

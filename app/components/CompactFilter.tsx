@@ -11,6 +11,7 @@ export function CompactFilterLink({
     aria-current={active ? "true" : undefined}
     data-analytics-event="PORTFOLIO_FILTER_USE"
     data-analytics-channel="portfolio"
+    data-analytics-target={analyticsLabel || href}
     data-analytics-label={analyticsLabel}
     className={`${compactFilterClass} ${active
       ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] text-black"
