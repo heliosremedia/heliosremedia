@@ -19,6 +19,30 @@ export type StudioRelease = {
 // repository records.
 export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
+    version: "V1.8.7.1",
+    slug: "v1-8-7-1",
+    releaseDate: null,
+    title: "Workspace Accounts Repair",
+    summary: "Restores clear account identity, compact responsive controls, and durable workspace-owner protections.",
+    newFeatures: [],
+    improvements: [
+      "Display name, email, professional title, and permission role now have a clear information hierarchy",
+      "Compact desktop account rows become intentional touch-friendly cards on mobile and tablet widths",
+      "Account action feedback and disabled-control explanations are accessible",
+    ],
+    bugFixes: [
+      "Restored visible account names and email addresses without destructive truncation",
+      "Corrected oversized, poorly aligned role and account-action controls",
+      "Prevents workspace-owner deactivation or demotion through the general account editor",
+    ],
+    securityInfrastructure: [
+      "Server-enforced workspace-owner protection complements disabled interface controls",
+      "Workspace-scoped account lookup continues to reject altered cross-tenant account identifiers",
+    ],
+    administratorActions: [],
+    status: "PLANNED",
+  },
+  {
     version: "V1.8.7",
     slug: "v1-8-7",
     releaseDate: null,
