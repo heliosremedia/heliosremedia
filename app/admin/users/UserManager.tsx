@@ -87,6 +87,7 @@ export default function UserManager({ initialUsers, invitations, currentUserId, 
             const titleControlId = `professional-title-${user.id}`;
             const ownerReasonId = `owner-protection-${user.id}`;
             const canResetPassword = currentRole === "OWNER" || user.id === currentUserId;
+            const ownerProtectedFromAdmin = isOwner && currentRole === "ADMIN";
             return (
               <article
                 key={user.id}
@@ -116,12 +117,13 @@ export default function UserManager({ initialUsers, invitations, currentUserId, 
                     defaultValue={user.title || ""}
                     placeholder="Not provided"
                     maxLength={120}
-                    disabled={busy}
+                    disabled={busy || ownerProtectedFromAdmin}
+                    aria-describedby={ownerProtectedFromAdmin ? ownerReasonId : undefined}
                     title={user.title || "No professional title provided"}
                     onBlur={event => {
                       if (event.currentTarget.value.trim() !== (user.title || "")) void updateTitle(user, event.currentTarget.value.trim());
                     }}
-                    className={`${styles.titleInput} mt-2 min-h-11 w-full min-w-0 rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm font-normal normal-case leading-5 tracking-normal text-white outline-none placeholder:text-white/25 focus:border-[var(--helios-orange)] focus:ring-1 focus:ring-[var(--helios-orange)]`}
+                    className={`${styles.titleInput} mt-2 min-h-11 w-full min-w-0 rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm font-normal normal-case leading-5 tracking-normal text-white outline-none placeholder:text-white/25 focus:border-[var(--helios-orange)] focus:ring-1 focus:ring-[var(--helios-orange)] disabled:cursor-not-allowed disabled:text-white/55`}
                   />
                   <span className="mt-1.5 block text-[0.66rem] font-normal normal-case leading-4 tracking-normal text-white/25">Public-facing credit</span>
                 </label>

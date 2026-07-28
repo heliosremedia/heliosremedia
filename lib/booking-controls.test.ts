@@ -23,8 +23,8 @@ test("keyboard pinned navigation reordering preserves every stable identifier", 
 });
 
 test("operational controls fail safely and expose no diagnostics", () => {
-  assert.equal(STUDIO_VERSION, "V1.8.7.1");
-  assert.equal(STUDIO_ADMIN_LABEL, "STUDIO ADMIN — V1.8.7.1");
+  assert.equal(STUDIO_VERSION, "V1.8.8");
+  assert.equal(STUDIO_ADMIN_LABEL, "STUDIO ADMIN — V1.8.8");
   assert.equal(normalizeMonitorStatus("up"), "ONLINE");
   assert.equal(normalizeMonitorStatus("seems_down"), "DEGRADED");
   assert.equal(normalizeMonitorStatus("down"), "OFFLINE");

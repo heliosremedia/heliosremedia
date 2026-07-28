@@ -400,9 +400,7 @@ export default function Navbar({ variant = "overlay" }: NavbarProps) {
                       >
                         <span>{item.label}</span>
 
-                        <span className="mb-1 text-base font-light text-[var(--helios-orange)] transition-transform duration-500 group-hover:translate-x-1">
-                          ↗
-                        </span>
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="mb-1 h-5 w-5 text-[var(--helios-orange)] transition-transform duration-500 group-hover:translate-x-1"><path d="M7 17 17 7M8 7h9v9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                       </Link>
                     </motion.div>
                   ))}

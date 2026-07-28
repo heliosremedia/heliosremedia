@@ -6,6 +6,8 @@ import {
   referralLaunchClaimMode,
   referralLaunchBatches,
   referralLaunchIsComplete,
+  referralLaunchIsStalled,
+  referralRecoveryMode,
   missingReferralRecipients,
 } from "./launch-contract.ts";
 
@@ -55,4 +57,29 @@ test("only approved campaigns can be claimed and failed launches can be retried"
 test("retry skips recipients already committed by earlier batches", () => {
   const audience = [{ id: "one" }, { id: "two" }, { id: "three" }];
   assert.deepEqual(missingReferralRecipients(audience, ["one", "two"]), [{ id: "three" }]);
+});
+
+test("stalled launch requires an expired lease and no recent progress", () => {
+  const now = new Date("2026-07-28T18:00:00Z");
+  assert.equal(referralLaunchIsStalled({
+    status: "LAUNCHING",
+    launchStartedAt: "2026-07-28T17:30:00Z",
+    launchLeaseExpiresAt: "2026-07-28T17:35:00Z",
+    lastProgressAt: "2026-07-28T17:31:00Z",
+    preparedAdvocateCount: 0,
+    now,
+  }), true);
+  assert.equal(referralLaunchIsStalled({
+    status: "LAUNCHING",
+    launchStartedAt: "2026-07-28T17:30:00Z",
+    launchLeaseExpiresAt: "2026-07-28T18:02:00Z",
+    preparedAdvocateCount: 0,
+    now,
+  }), false);
+});
+
+test("recovery never treats partial delivery as a safe return to approved", () => {
+  assert.equal(referralRecoveryMode({ status: "LAUNCHING", sentCount: 0, preparedCommunicationCount: 0 }), "ZERO_DELIVERY");
+  assert.equal(referralRecoveryMode({ status: "LAUNCHING", sentCount: 0, preparedCommunicationCount: 20 }), "PARTIAL_PREPARATION");
+  assert.equal(referralRecoveryMode({ status: "LAUNCHING", sentCount: 1, preparedCommunicationCount: 20 }), "PARTIAL_DELIVERY");
 });

@@ -17,6 +17,7 @@ export default async function ClientsPage() {
         lastSyncedAt: true,
         normalizedEmail: true,
         emailSubscribed: true,
+        archivedAt: true,
         groupMemberships: { select: { groupId: true } },
       },
     }),
@@ -46,6 +47,14 @@ export default async function ClientsPage() {
           A streamlined contact directory synchronized manually from HDPhotoHub.
         </p>
       </section>
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Client summary">
+        {[
+          ["Total clients", clients.length],
+          ["Active clients", clients.filter(client => !client.archivedAt).length],
+          ["Email eligible", clients.filter(client => client.emailSubscribed && !client.archivedAt).length],
+          ["Client groups", groups.length],
+        ].map(([label, value]) => <div key={label} className="rounded-xl border border-white/[0.08] bg-white/[0.025] p-4"><p className="text-[0.56rem] uppercase tracking-[0.15em] text-white/30">{label}</p><p className="mt-3 text-3xl font-light text-white">{value}</p></div>)}
+      </section>
       <ClientDirectory
         initialClients={clients.map((client) => ({
           ...client,
@@ -56,6 +65,7 @@ export default async function ClientsPage() {
           emailStatusEffectiveAt: preferenceByEmail.get(client.normalizedEmail)?.effectiveAt.toISOString() ?? null,
           emailStatusSource: preferenceByEmail.get(client.normalizedEmail)?.source ?? null,
           groupMemberships: undefined,
+          archivedAt: undefined,
         }))}
         initialGroups={groups.map((group) => ({
           id: group.id,

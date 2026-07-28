@@ -19,9 +19,39 @@ export type StudioRelease = {
 // repository records.
 export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
+    version: "V1.8.8",
+    slug: "v1-8-8",
+    releaseDate: null,
+    title: "Stabilization & Experience Refinements",
+    summary: "Repairs Portfolio Intelligence ingestion confirmation and Referral Studio launch recovery while refining core Studio and public experiences.",
+    newFeatures: [
+      "Explicit stalled-referral recovery with Stop Preparation, Return to Approved, Retry Safely, and Cancel safeguards",
+      "Database-confirmed Portfolio Intelligence delivery and truthful analytics health",
+    ],
+    improvements: [
+      "Referral lifecycle progress, approved audience, delivery counts, and next-action guidance",
+      "Focused Blog Studio, Site Settings, Client Portal, Email Studio, and responsive public refinements",
+      "Consistent booking controls and accessible public navigation behavior",
+    ],
+    bugFixes: [
+      "Prevents browser-queued analytics requests from being marked stored before database confirmation",
+      "Prevents days-old referral launches from automatically resuming without fresh human confirmation",
+      "Corrects deployed V1.8.7 and V1.8.7.1 release states",
+    ],
+    securityInfrastructure: [
+      "Tenant-scoped analytics reporting and campaign recovery authorization",
+      "No recipient details, raw visitor identifiers, or sensitive URLs in operational diagnostics",
+    ],
+    administratorActions: [
+      "Review stalled campaign counts before choosing any recovery action.",
+      "Complete controlled signed-out analytics QA before production approval.",
+    ],
+    status: "DEPLOYING",
+  },
+  {
     version: "V1.8.7.1",
     slug: "v1-8-7-1",
-    releaseDate: null,
+    releaseDate: "2026-07-27",
     title: "Workspace Accounts Repair",
     summary: "Restores clear account identity, compact responsive controls, and durable workspace-owner protections.",
     newFeatures: [],
@@ -40,12 +70,12 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
       "Workspace-scoped account lookup continues to reject altered cross-tenant account identifiers",
     ],
     administratorActions: [],
-    status: "PLANNED",
+    status: "LIVE",
   },
   {
     version: "V1.8.7",
     slug: "v1-8-7",
-    releaseDate: null,
+    releaseDate: "2026-07-27",
     title: "AI Social Series",
     summary: "Expands Social Studio into a human-reviewed campaign and recurring editorial planning workspace.",
     newFeatures: [
@@ -70,7 +100,7 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
       "Review every AI-assisted draft before approval.",
       "Complete publication manually unless an existing, explicitly enabled provider connection is available.",
     ],
-    status: "PLANNED",
+    status: "LIVE",
   },
   {
     version: "V1.8.6.2",

@@ -6,7 +6,8 @@ import { EmailDeliveryError, sendTestCampaign } from "@/lib/client-communication
 import { getReferralAdminSession } from "@/lib/referrals/access";
 import { renderReferralInvitationEmail } from "@/lib/referrals/email-renderer";
 import { approveReferralCampaign, archiveReferralCampaign, deleteReferralCampaign, estimateReferralAudience, ReferralCampaignConflictError, referralCampaignRemovalEligibility, returnReferralCampaignToDraft, updateCampaignStatus, updateReferralCampaignDraft } from "@/lib/referrals/studio";
-import { claimReferralCampaignLaunch, ReferralLaunchConflictError } from "@/lib/referrals/launch";
+import { claimReferralCampaignLaunch, ReferralLaunchConflictError, stopReferralCampaignPreparation } from "@/lib/referrals/launch";
+import { referralLaunchIsStalled, referralRecoveryMode } from "@/lib/referrals/launch-contract";
 import { email, integer, optionalDate, ReferralValidationError, stringArray, text } from "@/lib/referrals/validation";
 import { createReferralTestPreview } from "@/lib/referrals/test-preview";
 import { getSiteUrl } from "@/lib/site";
@@ -17,8 +18,8 @@ export async function GET(_request: Request, context: { params: Promise<{ campai
   const session = await getReferralAdminSession();
   if (!session) return NextResponse.json({ success: false, error: "Administrator access is required." }, { status: 403 });
   const { campaignId } = await context.params;
-  const campaign = await prisma.referralCampaign.findUnique({
-    where: { id: campaignId },
+  const campaign = await prisma.referralCampaign.findFirst({
+    where: { id: campaignId, createdBy: { workspaceId: session.workspaceId } },
     include: {
       audiences: { include: { group: true, client: true } },
       advocates: { include: { client: true, _count: { select: { submissions: true, rewards: true } } }, orderBy: { client: { displayName: "asc" } } },
@@ -41,7 +42,46 @@ export async function GET(_request: Request, context: { params: Promise<{ campai
     filters: rules.filters,
   });
   const removalEligibility = await referralCampaignRemovalEligibility(campaignId);
-  return NextResponse.json({ success: true, campaign: { ...campaign, audienceEstimate, removalEligibility } });
+  const [communicationStates, lastProgress] = await Promise.all([
+    prisma.referralCommunication.groupBy({
+      by: ["status"],
+      where: { campaignId },
+      _count: { _all: true },
+    }),
+    prisma.referralAuditEvent.findFirst({
+      where: { campaignId, action: { in: ["CAMPAIGN_LAUNCH_BATCH_COMPLETED", "CAMPAIGN_LAUNCH_COMPLETED"] } },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    }),
+  ]);
+  const communicationCounts = Object.fromEntries(
+    communicationStates.map(item => [item.status, item._count._all]),
+  ) as Record<string, number>;
+  const sentCount = communicationCounts.SENT ?? 0;
+  const stalled = referralLaunchIsStalled({
+    status: campaign.status,
+    launchStartedAt: campaign.launchStartedAt,
+    launchLeaseExpiresAt: campaign.launchLeaseExpiresAt,
+    lastProgressAt: lastProgress?.createdAt,
+    preparedAdvocateCount: campaign.preparedAdvocateCount,
+  });
+  return NextResponse.json({
+    success: true,
+    campaign: {
+      ...campaign,
+      audienceEstimate,
+      removalEligibility,
+      communicationCounts,
+      sentCount,
+      lastProgressAt: lastProgress?.createdAt ?? null,
+      stalled,
+      recoveryMode: referralRecoveryMode({
+        status: campaign.status,
+        sentCount,
+        preparedCommunicationCount: campaign.preparedCommunicationCount,
+      }),
+    },
+  });
 }
 
 export async function PUT(request: Request, context: { params: Promise<{ campaignId: string }> }) {
@@ -49,6 +89,11 @@ export async function PUT(request: Request, context: { params: Promise<{ campaig
   if (!session) return NextResponse.json({ success: false, error: "Administrator access is required." }, { status: 403 });
   try {
     const { campaignId } = await context.params;
+    const authorizedCampaign = await prisma.referralCampaign.findFirst({
+      where: { id: campaignId, createdBy: { workspaceId: session.workspaceId } },
+      select: { id: true },
+    });
+    if (!authorizedCampaign) return NextResponse.json({ success: false, error: "Campaign not found." }, { status: 404 });
     const body = await request.json() as Record<string, unknown>;
     const mode = typeof body.audienceMode === "string" && audienceModes.has(body.audienceMode as ReferralAudienceMode)
       ? body.audienceMode as ReferralAudienceMode
@@ -125,6 +170,11 @@ export async function POST(request: Request, context: { params: Promise<{ campai
   if (!session) return NextResponse.json({ success: false, error: "Administrator access is required." }, { status: 403 });
   try {
     const { campaignId } = await context.params;
+    const authorizedCampaign = await prisma.referralCampaign.findFirst({
+      where: { id: campaignId, createdBy: { workspaceId: session.workspaceId } },
+      select: { id: true },
+    });
+    if (!authorizedCampaign) return NextResponse.json({ success: false, error: "Campaign not found." }, { status: 404 });
     const body = await request.json() as { action?: string; testEmail?: unknown; rowVersion?: unknown };
     if (body.action === "test") {
       const campaign = await prisma.referralCampaign.findUnique({ where: { id: campaignId } });
@@ -171,12 +221,26 @@ export async function POST(request: Request, context: { params: Promise<{ campai
       const result = await approveReferralCampaign(campaignId, { userId: session.userId, email: session.email });
       return NextResponse.json({ success: true, message: `Campaign approved for ${result.audience.eligible.length} eligible advocates.` });
     }
-    if (body.action === "launch") {
+    if (body.action === "launch" || body.action === "retry-safe") {
       const launch = await claimReferralCampaignLaunch(campaignId, { userId: session.userId, email: session.email });
       return NextResponse.json({
         success: true, launch,
         message: `Campaign preparation started for ${launch.expectedAdvocateCount} advocates.`,
       }, { status: 202 });
+    }
+    if (body.action === "stop-preparation" || body.action === "return-to-approved") {
+      const result = await stopReferralCampaignPreparation(
+        campaignId,
+        { userId: session.userId, email: session.email },
+        body.action === "return-to-approved",
+      );
+      return NextResponse.json({
+        success: true,
+        result,
+        message: body.action === "return-to-approved"
+          ? "Preparation stopped before delivery. The approved snapshot is preserved; fresh launch confirmation is required."
+          : "Campaign preparation stopped and the campaign was cancelled before delivery.",
+      });
     }
     if (body.action === "return-to-draft" || body.action === "edit-approved") {
       const rowVersion = Number(body.rowVersion);

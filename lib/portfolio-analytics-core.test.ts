@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   analyticsEventKey,
@@ -61,4 +62,15 @@ test("page-view event ids must use the public event-id character contract", () =
     eventName: "PORTFOLIO_VIEW",
     eventId: "portfolio_view:portfolio:index",
   }), null);
+});
+
+test("analytics client confirms storage before suppressing one-time retries", () => {
+  const source = readFileSync(
+    new URL("../app/components/PortfolioAnalytics.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(source, /result\?\.stored/);
+  assert.match(source, /attempt < 2/);
+  assert.doesNotMatch(source, /sendBeacon/);
+  assert.doesNotMatch(source, /response\.ok && onceKey/);
 });
