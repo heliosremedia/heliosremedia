@@ -21,7 +21,7 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
     version: "V1.8.9.3",
     slug: "v1-8-9-3",
-    releaseDate: null,
+    releaseDate: "2026-07-28",
     title: "Referral Launch Processor Recovery",
     summary: "Connects every claimed Referral Studio launch to reliable server-side campaign preparation.",
     newFeatures: [
@@ -44,7 +44,7 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
       "Verify the stalled campaign has no sent communications before recovery.",
       "Use Retry Safely and confirm all approved advocates are prepared before considering the campaign recovered.",
     ],
-    status: "PLANNED",
+    status: "LIVE",
   },
   {
     version: "V1.8.9.2",
