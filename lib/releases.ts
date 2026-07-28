@@ -21,7 +21,7 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
     version: "V1.8.9.5",
     slug: "v1-8-9-5",
-    releaseDate: null,
+    releaseDate: "2026-07-28",
     title: "Referral Scheduling Completion",
     summary: "Completes deliberate, versioned referral schedule review, editing, cancellation, and truthful legacy-state containment.",
     newFeatures: [
@@ -45,7 +45,7 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
       "Open Review & Schedule and inspect all four approved messages before choosing a future time.",
       "Do not confirm the production schedule until the internal test is separately authorized and completed.",
     ],
-    status: "PLANNED",
+    status: "LIVE",
   },
   {
     version: "V1.8.9.4",
