@@ -24,18 +24,27 @@ export async function POST(request: Request) {
     }
     const sourceRecordId = clean(body.sourceRecordId, 100);
     const sourceProjectId = sourceType === "PROJECT" || sourceType === "PORTFOLIO_ITEM" ? sourceRecordId || null : null;
-    const verifiedFacts = sourceRecordId ? await verifiedSourceFacts(sourceType, sourceRecordId) : {};
+    const requestedProjectIds = Array.isArray(body.projectIds) ? body.projectIds.map((value) => clean(value, 100)).filter(Boolean).slice(0, 50) : [];
+    const projectIds = [...new Set([...(sourceProjectId ? [sourceProjectId] : []), ...requestedProjectIds])];
+    const authorizedProjects = projectIds.length ? await prisma.project.findMany({ where: { id: { in: projectIds }, workspaceId }, select: { id: true } }) : [];
+    if (authorizedProjects.length !== projectIds.length) return NextResponse.json({ success: false, error: "One or more selected projects are unavailable to this workspace." }, { status: 403 });
+    const verifiedFacts = sourceRecordId ? await verifiedSourceFacts(sourceType, sourceRecordId, workspaceId) : {};
     const campaign = await prisma.socialCampaign.create({
       data: {
-        internalName: clean(body.internalName, 180), purpose: clean(body.purpose), sourceType: sourceType as SocialSourceType,
+        internalName: clean(body.internalName, 180), description: clean(body.description), purpose: clean(body.purpose), sourceType: sourceType as SocialSourceType,
         sourceRecordIds: body.sourceRecordId ? [clean(body.sourceRecordId, 100)] : [],
         verifiedSourceFacts: verifiedFacts, sourceProjectId,
-        targetAudience: clean(body.targetAudience, 1000), primaryMessage: clean(body.primaryMessage, 2000),
+        targetAudience: clean(body.targetAudience, 1000), brandVoice: clean(body.tone, 1000), primaryMessage: clean(body.primaryMessage, 2000),
         objective: clean(body.objective, 160), desiredCallToAction: clean(body.callToAction, 1000),
         destinationLink: clean(body.destinationLink, 2000), scheduleNotes: clean(body.scheduleNotes, 3000),
-        internalAiInstructions: clean(body.internalAiInstructions, 5000), selectedPlatforms: platforms,
+        internalAiInstructions: clean(body.internalAiInstructions, 5000), internalNotes: clean(body.internalNotes, 5000),
+        startAt: clean(body.startAt, 40) ? new Date(clean(body.startAt, 40)) : null,
+        endAt: clean(body.endAt, 40) ? new Date(clean(body.endAt, 40)) : null,
+        selectedPlatforms: platforms,
         createdById: session.userId,
+        lastEditedById: session.userId,
         workspaceId,
+        projects: authorizedProjects.length ? { create: authorizedProjects.map((item) => ({ projectId: item.id })) } : undefined,
         variants: {
           create: platforms.map((platform) => ({
             platform: platform as SocialPlatform,

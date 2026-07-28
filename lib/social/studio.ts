@@ -21,9 +21,9 @@ export async function ensureSocialSettings(workspaceId: string) {
 
 const text = (value: string | null | undefined, max = 12_000) => value?.trim().slice(0, max) || "";
 
-export async function verifiedProjectFacts(projectId: string) {
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
+export async function verifiedProjectFacts(projectId: string, workspaceId: string) {
+  const project = await prisma.project.findFirst({
+    where: { id: projectId, workspaceId },
     select: {
       id: true, title: true, slug: true, shortDescription: true, description: true,
       city: true, state: true, locationLabel: true, projectType: true, propertyType: true,
@@ -47,8 +47,8 @@ export async function verifiedProjectFacts(projectId: string) {
   } satisfies Prisma.InputJsonValue;
 }
 
-export async function verifiedSourceFacts(sourceType: string, sourceRecordId: string) {
-  if (sourceType === "PROJECT" || sourceType === "PORTFOLIO_ITEM") return verifiedProjectFacts(sourceRecordId);
+export async function verifiedSourceFacts(sourceType: string, sourceRecordId: string, workspaceId: string) {
+  if (sourceType === "PROJECT" || sourceType === "PORTFOLIO_ITEM") return verifiedProjectFacts(sourceRecordId, workspaceId);
   if (sourceType === "BLOG") {
     const post = await prisma.blogPost.findFirst({
       where: { id: sourceRecordId, status: "PUBLISHED" },

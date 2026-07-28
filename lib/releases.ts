@@ -19,6 +19,36 @@ export type StudioRelease = {
 // repository records.
 export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
+    version: "V1.8.7",
+    slug: "v1-8-7",
+    releaseDate: null,
+    title: "AI Social Series",
+    summary: "Expands Social Studio into a human-reviewed campaign and recurring editorial planning workspace.",
+    newFeatures: [
+      "Reusable Social Series with retry-safe planned occurrences",
+      "Independent Instagram, Facebook, LinkedIn, TikTok, and provider-neutral drafts",
+      "Workspace-scoped campaign project and media relationships",
+      "Human review, changes-requested, approval, and manual-publication records",
+    ],
+    improvements: [
+      "AI-assisted platform drafts constrained to verified project facts",
+      "Campaign duplication and reversible archiving",
+      "Calendar and agenda filters for platform, series, and review status",
+      "Clearly disclosed AI concept-image provenance",
+    ],
+    bugFixes: [],
+    securityInfrastructure: [
+      "Server-side workspace validation for project facts and selected media",
+      "Idempotent recurring occurrence generation and approval invalidation after material edits",
+      "No fabricated provider accounts, metrics, or publication confirmation",
+    ],
+    administratorActions: [
+      "Review every AI-assisted draft before approval.",
+      "Complete publication manually unless an existing, explicitly enabled provider connection is available.",
+    ],
+    status: "PLANNED",
+  },
+  {
     version: "V1.8.6.2",
     slug: "v1-8-6-2",
     releaseDate: null,
@@ -43,7 +73,7 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
       "Tenant-isolated reporting and ambiguous-host rejection",
     ],
     administratorActions: [],
-    status: "DEPLOYING",
+    status: "LIVE",
   },
   {
     version: "V1.8.6.1",

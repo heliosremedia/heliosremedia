@@ -8,6 +8,7 @@ export const ANALYTICS_CAPABILITIES = {
   FACEBOOK: { scopes:["read_insights","pages_read_engagement"], review:true, account:["page_impressions","page_post_engagements","page_fans"], post:["post_impressions","post_impressions_unique","reactions","comments","shares","clicks"], history:"Page and post history available only within provider-supported reporting windows." },
   LINKEDIN: { scopes:["rw_organization_admin"], review:true, account:["page_views","followers"], post:["impressions","unique_impressions","clicks","likes","comments","shares","engagement_rate"], history:"Organization reporting supports lifetime or bounded day/month intervals depending on endpoint." },
   TIKTOK: { scopes:["video.list"], review:true, account:[], post:["view_count","like_count","comment_count","share_count"], history:"Only verified videos owned by the authorized account; transferred drafts require a confirmed public-post link." },
+  OTHER: { scopes:[], review:false, account:[], post:[], history:"Provider-neutral drafts do not have a connected analytics source." },
 } as const;
 
 export function metricFingerprint(input:{connectionId:string;externalPostId?:string|null;providerName:string;measuredAt:Date;periodStart?:Date|null;periodEnd?:Date|null}) {
