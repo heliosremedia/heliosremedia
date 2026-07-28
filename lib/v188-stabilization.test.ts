@@ -24,6 +24,21 @@ test("referral cron cannot automatically resume a stale launch", () => {
   assert.match(route, /createdBy: \{ workspaceId: session\.workspaceId \}/);
 });
 
+test("every claimed referral launch queues the owned processor", () => {
+  const launch = read("lib/referrals/launch.ts");
+  const route = read("app/api/admin/referrals/campaigns/[campaignId]/route.ts");
+  assert.match(route, /import \{ after, NextResponse \} from "next\/server"/);
+  assert.match(route, /processReferralLaunch\(campaignId, launch\.attemptId\)/);
+  assert.match(route, /body\.action === "launch" \|\| body\.action === "retry-safe"/);
+  assert.match(route, /export const maxDuration = 300/);
+  assert.doesNotMatch(route, /void processReferralLaunch/);
+  assert.match(launch, /CAMPAIGN_LAUNCH_PROCESSOR_STARTED/);
+  assert.match(launch, /launchAttemptId: attemptId/);
+  assert.match(launch, /launchLeaseExpiresAt: new Date\(processingStartedAt\.getTime\(\) \+ LEASE_MS\)/);
+  assert.match(launch, /\[referral-launch\] \$\{event\}/);
+  assert.match(launch, /Retry Safely will continue from the existing prepared records/);
+});
+
 test("experience refinements preserve explicit user context", () => {
   const blog = read("app/admin/blog/BlogSeriesPanel.tsx");
   const portals = read("app/admin/client-portals/ClientPortalManager.tsx");
