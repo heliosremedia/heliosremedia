@@ -677,6 +677,13 @@ export default function ProjectMediaManager({
     () => media.find((item) => item.id === activeMediaId) ?? null,
     [activeMediaId, media],
   );
+  const socialPreviewMedia = useMemo(
+    () => media.find((item) => item.id === socialImageMediaId)
+      ?? media.find((item) => item.isHero && item.visibility === "VISIBLE" && item.sourceType === "UPLOADED_IMAGE")
+      ?? media.find((item) => item.visibility === "VISIBLE" && item.sourceType === "UPLOADED_IMAGE")
+      ?? null,
+    [media, socialImageMediaId],
+  );
 
   const activeExternalMedia = useMemo(
     () => tryResolveExternalMedia(activeMedia?.externalUrl),
@@ -1509,17 +1516,27 @@ export default function ProjectMediaManager({
 
         <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5 sm:p-6">
           <p className="text-[0.62rem] font-semibold uppercase tracking-[0.19em] text-[var(--helios-orange)]">
-            Social Sharing Image
+            Social Sharing
           </p>
-          <h3 className="mt-3 text-xl font-normal text-white">Choose the project share preview</h3>
+          <h3 className="mt-3 text-xl font-normal text-white">Project share preview</h3>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-white/35">
             Used when this project is shared to Facebook, LinkedIn, X, messaging apps, and other platforms.
-            Leave this on automatic to use the hero, best gallery image, video thumbnail, or Helios fallback.
+            Automatic preview uses the project cover first, then the workspace share image, and only uses the brand monogram as an emergency fallback.
           </p>
+          <div className="mt-5 grid gap-5 lg:grid-cols-[1.25fr_0.75fr]">
+            <div className="aspect-[1.91/1] overflow-hidden rounded-xl border border-white/[0.08] bg-black">
+              {socialPreviewMedia?.publicUrl ? <Image src={socialPreviewMedia.publicUrl} alt={socialPreviewMedia.altText || "Current project social preview"} width={1200} height={630} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center px-6 text-center text-sm text-white/30">Workspace automatic fallback will be used.</div>}
+            </div>
+            <dl className="rounded-xl border border-white/[0.08] bg-black/25 p-4 text-sm">
+              <div><dt className="text-[0.52rem] uppercase tracking-[0.14em] text-white/30">Recommended size</dt><dd className="mt-1 text-white/65">1200 × 630</dd></div>
+              <div className="mt-4"><dt className="text-[0.52rem] uppercase tracking-[0.14em] text-white/30">Image source</dt><dd className="mt-1 break-words text-white/65">{socialImageMediaId ? "Custom project image" : socialPreviewMedia?.isHero ? "Project cover / hero" : socialPreviewMedia ? "Project gallery" : "Workspace fallback"}</dd></div>
+              <div className="mt-4"><dt className="text-[0.52rem] uppercase tracking-[0.14em] text-white/30">Preview metadata</dt><dd className="mt-1 text-white/45">The project SEO title and description remain authoritative.</dd></div>
+            </dl>
+          </div>
           <div className="mt-5 flex flex-wrap gap-2">
             <button type="button" disabled={isUpdatingSocialImage} onClick={() => void handleSetSocialImage("")}
               className={socialImageMediaId ? "admin-btn-secondary" : "admin-btn-primary"}>
-              Automatic fallback
+              Restore Automatic Preview
             </button>
             {media.filter((item) => item.visibility === "VISIBLE" && item.sourceType === "UPLOADED_IMAGE" &&
               Boolean(item.publicUrl) && ["image/jpeg", "image/png", "image/webp"].includes(item.mimeType || ""))
@@ -1527,10 +1544,11 @@ export default function ProjectMediaManager({
                 <button key={item.id} type="button" disabled={isUpdatingSocialImage}
                   onClick={() => void handleSetSocialImage(item.id)}
                   className={socialImageMediaId === item.id ? "admin-btn-primary" : "admin-btn-secondary"}>
-                  {item.isHero ? "Use hero image" : item.originalFilename || "Use gallery image"}
+                  {item.isHero ? "Generate from Project Cover" : socialImageMediaId === item.id ? "Custom Share Image Selected" : item.originalFilename || "Use gallery image"}
                 </button>
               ))}
           </div>
+          <p className="mt-3 text-xs leading-5 text-white/30">To upload a custom share image, add it with the image uploader above, then select it here. Removing a custom selection never changes the project cover or public gallery.</p>
           {heroError ? <p className="mt-3 text-sm text-red-200/75">{heroError}</p> : null}
         </section>
 

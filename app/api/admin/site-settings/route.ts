@@ -77,14 +77,17 @@ export async function PATCH(request: Request) {
     if (brandMonogramStorageKey && !brandMonogramStorageKey.startsWith("site/brand/")) throw new Error("INVALID_MONOGRAM_KEY");
     const faviconStorageKey = text(body.faviconStorageKey, 1000);
     if (faviconStorageKey && !faviconStorageKey.startsWith("site/brand/favicon-")) throw new Error("INVALID_FAVICON_KEY");
+    const defaultSocialImageStorageKey = text(body.defaultSocialImageStorageKey, 1000);
+    if (defaultSocialImageStorageKey && !defaultSocialImageStorageKey.startsWith("site/brand/social-")) throw new Error("INVALID_SOCIAL_IMAGE_KEY");
     const heliosStandardImageStorageKey = text(body.heliosStandardImageStorageKey, 1000);
     if (heliosStandardImageStorageKey && !heliosStandardImageStorageKey.startsWith("site/homepage/helios-standard/")) throw new Error("INVALID_HOMEPAGE_IMAGE_KEY");
     const primaryConversionImageStorageKey = text(body.primaryConversionImageStorageKey, 1000);
     if (primaryConversionImageStorageKey && !primaryConversionImageStorageKey.startsWith("site/homepage/primary-conversion/")) throw new Error("INVALID_HOMEPAGE_IMAGE_KEY");
-    const existing = await prisma.siteSettings.findUnique({ where: { id: "default" }, select: { brandLogoStorageKey: true, brandMonogramStorageKey: true, faviconStorageKey: true, faviconVersion: true, heliosStandardImageStorageKey: true, primaryConversionImageStorageKey: true } });
+    const existing = await prisma.siteSettings.findUnique({ where: { id: "default" }, select: { brandLogoStorageKey: true, brandMonogramStorageKey: true, faviconStorageKey: true, faviconVersion: true, defaultSocialImageStorageKey: true, defaultSocialImageVersion: true, heliosStandardImageStorageKey: true, primaryConversionImageStorageKey: true } });
     if (brandLogoStorageKey !== existing?.brandLogoStorageKey) await verifyContentImage(brandLogoStorageKey);
     if (brandMonogramStorageKey !== existing?.brandMonogramStorageKey) await verifyContentImage(brandMonogramStorageKey);
     if (faviconStorageKey !== existing?.faviconStorageKey) await verifyContentImage(faviconStorageKey);
+    if (defaultSocialImageStorageKey !== existing?.defaultSocialImageStorageKey) await verifyContentImage(defaultSocialImageStorageKey);
     if (heliosStandardImageStorageKey !== existing?.heliosStandardImageStorageKey) await verifyContentImage(heliosStandardImageStorageKey);
     if (primaryConversionImageStorageKey !== existing?.primaryConversionImageStorageKey) await verifyContentImage(primaryConversionImageStorageKey);
     const data = {
@@ -112,6 +115,9 @@ export async function PATCH(request: Request) {
       brandLogoStorageKey, brandLogoUrl: assetUrl(body.brandLogoUrl), brandLogoAlt: text(body.brandLogoAlt, 240),
       brandMonogramStorageKey, brandMonogramUrl: assetUrl(body.brandMonogramUrl),
       faviconStorageKey, faviconUrl: assetUrl(body.faviconUrl), faviconVersion: faviconStorageKey !== existing?.faviconStorageKey ? (existing?.faviconVersion ?? 0) + 1 : (typeof body.faviconVersion === "number" ? body.faviconVersion : existing?.faviconVersion ?? 0),
+      defaultSocialImageStorageKey, defaultSocialImageUrl: assetUrl(body.defaultSocialImageUrl),
+      defaultSocialImageAlt: text(body.defaultSocialImageAlt, 240),
+      defaultSocialImageVersion: defaultSocialImageStorageKey !== existing?.defaultSocialImageStorageKey ? (existing?.defaultSocialImageVersion ?? 0) + 1 : (typeof body.defaultSocialImageVersion === "number" ? body.defaultSocialImageVersion : existing?.defaultSocialImageVersion ?? 0),
       locationLabel: text(body.locationLabel, 160, true)!, serviceArea: text(body.serviceArea, 160, true)!,
       serviceAreaDescription: text(body.serviceAreaDescription, 500), footerDescription: text(body.footerDescription, 500), availabilityMessage: text(body.availabilityMessage, 240),
       standardEyebrow: text(body.standardEyebrow, 120), standardHeadingLineOne: text(body.standardHeadingLineOne, 120), standardHeadingLineTwo: text(body.standardHeadingLineTwo, 120), standardBody: text(body.standardBody, 500),
@@ -128,12 +134,13 @@ export async function PATCH(request: Request) {
     if (brandLogoStorageKey !== existing?.brandLogoStorageKey) await deleteContentImage(existing?.brandLogoStorageKey ?? null);
     if (brandMonogramStorageKey !== existing?.brandMonogramStorageKey) await deleteContentImage(existing?.brandMonogramStorageKey ?? null);
     if (faviconStorageKey !== existing?.faviconStorageKey) await deleteContentImage(existing?.faviconStorageKey ?? null);
+    if (defaultSocialImageStorageKey !== existing?.defaultSocialImageStorageKey) await deleteContentImage(existing?.defaultSocialImageStorageKey ?? null);
     if (heliosStandardImageStorageKey !== existing?.heliosStandardImageStorageKey) await deleteContentImage(existing?.heliosStandardImageStorageKey ?? null);
     if (primaryConversionImageStorageKey !== existing?.primaryConversionImageStorageKey) await deleteContentImage(existing?.primaryConversionImageStorageKey ?? null);
     revalidatePath("/", "layout"); revalidatePath("/admin/settings"); revalidatePath("/admin/homepage");
     return NextResponse.json({ success: true, settings });
   } catch (error) {
-    const messages: Record<string, string> = { INVALID_CARDS: "Homepage cards need a title and description.", INVALID_NAVIGATION: "Navigation items need a valid label and destination.", INVALID_TEXT: "Complete every required field and stay within the displayed limits.", INVALID_URL: "One or more links are not valid web addresses.", INVALID_PHONE: "Enter the phone number in international format, such as +19706825533.", INVALID_EMAIL: "Enter a valid email address.", INVALID_LOGO_KEY: "The brand logo storage location is invalid.", INVALID_MONOGRAM_KEY: "The brand monogram storage location is invalid.", INVALID_FAVICON_KEY: "The favicon storage location is invalid.", INVALID_HOMEPAGE_IMAGE_KEY: "The homepage image storage location is invalid." };
+    const messages: Record<string, string> = { INVALID_CARDS: "Homepage cards need a title and description.", INVALID_NAVIGATION: "Navigation items need a valid label and destination.", INVALID_TEXT: "Complete every required field and stay within the displayed limits.", INVALID_URL: "One or more links are not valid web addresses.", INVALID_PHONE: "Enter the phone number in international format, such as +19706825533.", INVALID_EMAIL: "Enter a valid email address.", INVALID_LOGO_KEY: "The brand logo storage location is invalid.", INVALID_MONOGRAM_KEY: "The brand monogram storage location is invalid.", INVALID_FAVICON_KEY: "The favicon storage location is invalid.", INVALID_SOCIAL_IMAGE_KEY: "The default social share image storage location is invalid.", INVALID_HOMEPAGE_IMAGE_KEY: "The homepage image storage location is invalid." };
     if (error instanceof Error && messages[error.message]) return NextResponse.json({ success: false, error: messages[error.message] }, { status: 400 });
     console.error("Unable to update site settings:", error); return NextResponse.json({ success: false, error: "Global site settings could not be saved." }, { status: 500 });
   }
