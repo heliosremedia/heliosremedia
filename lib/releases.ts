@@ -19,6 +19,34 @@ export type StudioRelease = {
 // repository records.
 export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
+    version: "V1.8.9.3",
+    slug: "v1-8-9-3",
+    releaseDate: null,
+    title: "Referral Launch Processor Recovery",
+    summary: "Connects every claimed Referral Studio launch to reliable server-side campaign preparation.",
+    newFeatures: [
+      "Vercel-supported background launch processing through Next.js after()",
+      "Structured processor, batch, failure, completion, and stale-attempt operational logs",
+    ],
+    improvements: [
+      "Immediate processing lease acquisition and renewal after every completed batch",
+      "Visible server-side progress that continues when the administrator leaves the page",
+    ],
+    bugFixes: [
+      "Launch and Retry Safely now start the existing referral preparation processor",
+      "Failed preparation records sanitized errors and verified committed counts immediately",
+    ],
+    securityInfrastructure: [
+      "Attempt-ID ownership rejects stale or duplicate processors",
+      "Existing recipient uniqueness, idempotency keys, bounded batches, and completion verification remain enforced",
+    ],
+    administratorActions: [
+      "Verify the stalled campaign has no sent communications before recovery.",
+      "Use Retry Safely and confirm all approved advocates are prepared before considering the campaign recovered.",
+    ],
+    status: "PLANNED",
+  },
+  {
     version: "V1.8.9.2",
     slug: "v1-8-9-2",
     releaseDate: "2026-07-28",

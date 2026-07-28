@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import type { ReferralAudienceMode } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { recordAuditEvent } from "@/lib/audit";
@@ -6,13 +6,15 @@ import { EmailDeliveryError, sendTestCampaign } from "@/lib/client-communication
 import { getReferralAdminSession } from "@/lib/referrals/access";
 import { renderReferralInvitationEmail } from "@/lib/referrals/email-renderer";
 import { approveReferralCampaign, archiveReferralCampaign, deleteReferralCampaign, estimateReferralAudience, ReferralCampaignConflictError, referralCampaignRemovalEligibility, returnReferralCampaignToDraft, updateCampaignStatus, updateReferralCampaignDraft } from "@/lib/referrals/studio";
-import { claimReferralCampaignLaunch, ReferralLaunchConflictError, stopReferralCampaignPreparation } from "@/lib/referrals/launch";
+import { claimReferralCampaignLaunch, processReferralLaunch, ReferralLaunchConflictError, stopReferralCampaignPreparation } from "@/lib/referrals/launch";
 import { referralLaunchIsStalled, referralRecoveryMode } from "@/lib/referrals/launch-contract";
 import { email, integer, optionalDate, ReferralValidationError, stringArray, text } from "@/lib/referrals/validation";
 import { createReferralTestPreview } from "@/lib/referrals/test-preview";
 import { getSiteUrl } from "@/lib/site";
 
 const audienceModes = new Set<ReferralAudienceMode>(["INDIVIDUALS", "GROUPS", "FILTERED", "ALL_ELIGIBLE"]);
+
+export const maxDuration = 300;
 
 export async function GET(_request: Request, context: { params: Promise<{ campaignId: string }> }) {
   const session = await getReferralAdminSession();
@@ -223,9 +225,18 @@ export async function POST(request: Request, context: { params: Promise<{ campai
     }
     if (body.action === "launch" || body.action === "retry-safe") {
       const launch = await claimReferralCampaignLaunch(campaignId, { userId: session.userId, email: session.email });
+      after(async () => {
+        try {
+          await processReferralLaunch(campaignId, launch.attemptId);
+        } catch {
+          // processReferralLaunch records a sanitized, recoverable failure before
+          // rejecting. Swallow here so the after() callback itself cannot leak
+          // operational details or produce an unhandled rejection.
+        }
+      });
       return NextResponse.json({
         success: true, launch,
-        message: `Campaign preparation started for ${launch.expectedAdvocateCount} advocates.`,
+        message: `Campaign preparation queued for ${launch.expectedAdvocateCount} advocates.`,
       }, { status: 202 });
     }
     if (body.action === "stop-preparation" || body.action === "return-to-approved") {

@@ -40,6 +40,14 @@ export class ReferralLaunchConflictError extends Error {
   }
 }
 
+function launchLog(
+  event: "claimed" | "processor_started" | "batch_started" | "batch_completed" | "processor_failed" | "completed" | "stale_attempt_ignored",
+  details: Record<string, string | number | null>,
+) {
+  const method = event === "processor_failed" ? console.error : console.info;
+  method(`[referral-launch] ${event}`, details);
+}
+
 export async function claimReferralCampaignLaunch(campaignId: string, actor: LaunchActor) {
   const campaign = await prisma.referralCampaign.findUnique({
     where: { id: campaignId },
@@ -107,6 +115,12 @@ export async function claimReferralCampaignLaunch(campaignId: string, actor: Lau
     entityType: "ReferralCampaign", entityId: campaignId,
     summary: `${retry ? "Retried" : "Requested"} preparation of referral campaign "${campaign.internalName}".`,
     metadata: { launchAttemptId: attemptId, approvedRevisionId: campaign.approvedRevisionId, expectedAdvocateCount: audience.length },
+  });
+  launchLog("claimed", {
+    campaignId,
+    launchAttemptId: attemptId,
+    expectedCount: audience.length,
+    preparedCount: campaign.preparedAdvocateCount,
   });
   return { attemptId, expectedAdvocateCount: audience.length, preparedAdvocateCount: campaign.preparedAdvocateCount };
 }
@@ -229,7 +243,60 @@ export async function processReferralLaunch(campaignId: string, attemptId: strin
     where: { id: campaignId },
     include: { approvedRevision: true },
   });
-  if (!campaign?.approvedRevision || campaign.status !== "LAUNCHING" || campaign.launchAttemptId !== attemptId) return null;
+  if (!campaign?.approvedRevision || campaign.status !== "LAUNCHING" || campaign.launchAttemptId !== attemptId) {
+    launchLog("stale_attempt_ignored", {
+      campaignId,
+      launchAttemptId: attemptId,
+      expectedCount: campaign?.expectedAdvocateCount ?? 0,
+      preparedCount: campaign?.preparedAdvocateCount ?? 0,
+    });
+    return null;
+  }
+  const processingStartedAt = new Date();
+  const ownsAttempt = await prisma.$transaction(async tx => {
+    const acquired = await tx.referralCampaign.updateMany({
+      where: {
+        id: campaignId,
+        status: "LAUNCHING",
+        launchAttemptId: attemptId,
+        launchFailedAt: null,
+        OR: [
+          { launchLeaseExpiresAt: null },
+          { launchLeaseExpiresAt: { lt: processingStartedAt } },
+        ],
+      },
+      data: { launchLeaseExpiresAt: new Date(processingStartedAt.getTime() + LEASE_MS) },
+    });
+    if (acquired.count !== 1) return false;
+    await tx.referralAuditEvent.create({
+      data: {
+        campaignId,
+        actorId: campaign.launchingAdminId,
+        action: "CAMPAIGN_LAUNCH_PROCESSOR_STARTED",
+        summary: "Started secure campaign preparation.",
+        metadata: {
+          launchAttemptId: attemptId,
+          expectedAdvocateCount: campaign.expectedAdvocateCount,
+        },
+      },
+    });
+    return true;
+  });
+  if (!ownsAttempt) {
+    launchLog("stale_attempt_ignored", {
+      campaignId,
+      launchAttemptId: attemptId,
+      expectedCount: campaign.expectedAdvocateCount ?? 0,
+      preparedCount: campaign.preparedAdvocateCount,
+    });
+    return null;
+  }
+  launchLog("processor_started", {
+    campaignId,
+    launchAttemptId: attemptId,
+    expectedCount: campaign.expectedAdvocateCount ?? 0,
+    preparedCount: campaign.preparedAdvocateCount,
+  });
   const snapshot = campaign.approvedRevision.snapshot as ApprovedSnapshot;
   const audience = snapshot.audience?.eligible ?? [];
   const plan = launchPlan(snapshot, campaign);
@@ -246,7 +313,14 @@ export async function processReferralLaunch(campaignId: string, attemptId: strin
         where: { id: campaignId }, select: { status: true, launchAttemptId: true },
       });
       if (latest?.status !== "LAUNCHING" || latest.launchAttemptId !== attemptId) throw new Error("Launch ownership changed.");
-      const batchNumber = batchIndex + 1;
+      const batchNumber = campaign.launchBatch + batchIndex + 1;
+      launchLog("batch_started", {
+        campaignId,
+        launchAttemptId: attemptId,
+        batchNumber,
+        expectedCount: audience.length,
+        preparedCount: campaign.preparedAdvocateCount,
+      });
       await prepareBatch(campaign, snapshot, batches[batchIndex], batchNumber, attemptId, plan);
       const [advocates, invitations, communications] = await Promise.all([
         prisma.referralAdvocate.count({ where: { campaignId } }),
@@ -260,6 +334,13 @@ export async function processReferralLaunch(campaignId: string, attemptId: strin
           preparedCommunicationCount: communications, launchBatch: batchNumber,
           launchLeaseExpiresAt: new Date(Date.now() + LEASE_MS),
         },
+      });
+      launchLog("batch_completed", {
+        campaignId,
+        launchAttemptId: attemptId,
+        batchNumber,
+        expectedCount: audience.length,
+        preparedCount: advocates,
       });
     }
 
@@ -293,25 +374,47 @@ export async function processReferralLaunch(campaignId: string, attemptId: strin
         },
       });
     });
+    launchLog("completed", {
+      campaignId,
+      launchAttemptId: attemptId,
+      expectedCount: audience.length,
+      preparedCount: audience.length,
+    });
     return { advocateCount: audience.length, communicationCount: communications };
   } catch (error) {
     const category = error instanceof Prisma.PrismaClientKnownRequestError ? error.code : "LAUNCH_PREPARATION_FAILED";
-    await prisma.$transaction([
-      prisma.referralCampaign.updateMany({
+    const [advocates, invitations, communications] = await Promise.all([
+      prisma.referralAdvocate.count({ where: { campaignId } }),
+      prisma.referralInvitation.count({ where: { campaignId, approvedRevisionId: campaign.approvedRevisionId, status: { not: "CANCELLED" } } }),
+      prisma.referralCommunication.count({ where: { campaignId, status: { not: "CANCELLED" }, invitation: { approvedRevisionId: campaign.approvedRevisionId } } }),
+    ]);
+    await prisma.$transaction(async tx => {
+      const failed = await tx.referralCampaign.updateMany({
         where: { id: campaignId, status: "LAUNCHING", launchAttemptId: attemptId },
         data: {
           launchFailedAt: new Date(), launchLeaseExpiresAt: null,
-          lastLaunchError: "Campaign preparation stopped before completion. Retry is safe and will not create duplicates.",
+          preparedAdvocateCount: advocates,
+          preparedInvitationCount: invitations,
+          preparedCommunicationCount: communications,
+          lastLaunchError: "Campaign preparation stopped before completion. Retry Safely will continue from the existing prepared records.",
         },
-      }),
-      prisma.referralAuditEvent.create({
+      });
+      if (failed.count !== 1) return;
+      await tx.referralAuditEvent.create({
         data: {
           campaignId, actorId: campaign.launchingAdminId, action: "CAMPAIGN_LAUNCH_FAILED",
           summary: "Campaign preparation stopped before completion.",
           metadata: { launchAttemptId: attemptId, sanitizedErrorCategory: category },
         },
-      }),
-    ]);
+      });
+    });
+    launchLog("processor_failed", {
+      campaignId,
+      launchAttemptId: attemptId,
+      expectedCount: audience.length,
+      preparedCount: advocates,
+      errorCategory: category,
+    });
     throw error;
   }
 }
@@ -332,14 +435,6 @@ export async function processPendingReferralLaunches(limit = 2) {
   const results = [];
   for (const candidate of candidates) {
     if (!candidate.launchAttemptId) continue;
-    const claimed = await prisma.referralCampaign.updateMany({
-      where: {
-        id: candidate.id, status: "LAUNCHING", launchAttemptId: candidate.launchAttemptId,
-        launchFailedAt: null, OR: [{ launchLeaseExpiresAt: null }, { launchLeaseExpiresAt: { lt: now } }],
-      },
-      data: { launchLeaseExpiresAt: new Date(Date.now() + LEASE_MS) },
-    });
-    if (!claimed.count) continue;
     if (candidate.launchStartedAt && Date.now() - candidate.launchStartedAt.getTime() > LEASE_MS) {
       await prisma.referralAuditEvent.create({
         data: {
