@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import ApprovalDialog from "./ApprovalDialog";
 import NewsletterPreview from "./NewsletterPreview";
 import PreviewDialog from "./PreviewDialog";
@@ -14,6 +16,7 @@ const input = "mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py
 const placeholder: NewsletterEdition = { id: "", seriesId: "", seriesName: "", subject: "", previewText: "", status: "AWAITING_GENERATION", groupNames: [], eligibleCount: 0, excludedCount: 0, warnings: [], publishableNotes: "", internalNotes: "", blocks: [] };
 
 export default function EditionEditor({ editionId }: { editionId: string }) {
+  const router = useRouter();
   const [edition, setEdition] = useState(placeholder); const [selectedId, setSelectedId] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop"); const [tab, setTab] = useState<"edit" | "preview">("edit");
   const [busy, setBusy] = useState<string | null>("load"); const [message, setMessage] = useState<string | null>(null); const [approvalOpen, setApprovalOpen] = useState(false);
@@ -49,6 +52,15 @@ export default function EditionEditor({ editionId }: { editionId: string }) {
     preview?.classList.remove("newsletter-preview-highlight");
     requestAnimationFrame(() => preview?.classList.add("newsletter-preview-highlight"));
   }, [selectedId]);
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+  async function saveAndClose() {
+    if (await perform("save")) router.push("/admin/newsletter-studio");
+  }
   function patchEdition(values: Partial<NewsletterEdition>) { setDirty(true); setEdition(current => ({ ...current, ...values })); }
   function patchBlock(values: Partial<NewsletterBlock>) { setDirty(true); setEdition(current => ({ ...current, blocks: current.blocks.map(block => block.id === selectedId ? { ...block, ...values, manuallyEdited: true } : block) })); }
   function move(index: number, direction: -1 | 1) { const target = index + direction; if (target < 0 || target >= edition.blocks.length) return; const blocks = [...edition.blocks]; [blocks[index], blocks[target]] = [blocks[target], blocks[index]]; patchEdition({ blocks }); }
@@ -82,7 +94,7 @@ export default function EditionEditor({ editionId }: { editionId: string }) {
   }
   if (busy === "load") return <div className="h-80 animate-pulse rounded-2xl border border-white/[0.07] bg-white/[0.02]" />;
   return <div className="space-y-6">
-    <section ref={originalActionsRef} className="flex flex-col gap-5 border-b border-white/[0.08] pb-6 lg:flex-row lg:items-end lg:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-3"><p className="eyebrow text-[var(--helios-orange)]">Newsletter Studio</p><StatusBadge status={edition.status} /></div><h1 className="mt-3 truncate text-3xl font-light text-white sm:text-4xl">{edition.subject || "Untitled edition"}</h1><p className="mt-2 text-sm text-white/35">{edition.seriesName}</p></div><div className="flex flex-wrap gap-2"><button onClick={() => perform("save")} disabled={Boolean(busy)} className="admin-btn-secondary">Save draft</button><button onClick={() => setPreviewOpen(true)} className="admin-btn-secondary">Preview</button><button onClick={() => void prepareApproval()} disabled={Boolean(busy) || edition.status !== "NEEDS_REVIEW"} className="admin-btn-primary">Approve &amp; schedule</button></div></section>
+    <section ref={originalActionsRef} className="flex flex-col gap-5 border-b border-white/[0.08] pb-6 xl:flex-row xl:items-end xl:justify-between"><div className="min-w-0 flex-1"><Link href="/admin/newsletter-studio" onClick={event=>{if(dirty&&!confirm("Leave this edition with unsaved changes?"))event.preventDefault();}} className="admin-btn-link">← Back to Newsletter Studio</Link><div className="mt-3 flex flex-wrap items-center gap-3"><p className="eyebrow text-[var(--helios-orange)]">Newsletter Studio</p><StatusBadge status={edition.status} /></div><h1 className="mt-3 max-w-4xl break-words text-3xl font-light leading-tight text-white sm:text-4xl">{edition.subject || "Untitled edition"}</h1><p className="mt-2 text-sm text-white/35">{edition.seriesName}</p></div><div className="flex flex-wrap gap-2 xl:justify-end"><button onClick={() => perform("save")} disabled={Boolean(busy)} className="admin-btn-secondary">Save Draft</button><button onClick={()=>void saveAndClose()} disabled={Boolean(busy)} className="admin-btn-secondary">Save &amp; Close</button><button onClick={() => setPreviewOpen(true)} className="admin-btn-secondary">Preview</button><button onClick={() => void prepareApproval()} disabled={Boolean(busy) || edition.status !== "NEEDS_REVIEW"} className="admin-btn-primary">Approve &amp; schedule</button></div></section>
     {aiStatus && <p role="status" aria-live="polite" className="flex items-center gap-3 rounded-xl border border-[var(--helios-orange)]/25 bg-[var(--helios-orange)]/[0.04] px-4 py-3 text-sm text-white/65"><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/15 border-t-[var(--helios-orange)]" aria-hidden="true" /><span>{aiStatus}{slowAi && <span className="mt-1 block text-xs text-white/38">Still writing—this may take a moment.</span>}</span></p>}
     {message && <p role="status" className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/60">{message}</p>}
     <div className="flex gap-1 rounded-lg border border-white/[0.08] bg-black/20 p-1 lg:hidden"><button onClick={() => setTab("edit")} className={`flex-1 rounded-md py-2 text-xs ${tab === "edit" ? "bg-white/10 text-white" : "text-white/35"}`}>Editor</button><button onClick={() => setTab("preview")} className={`flex-1 rounded-md py-2 text-xs ${tab === "preview" ? "bg-white/10 text-white" : "text-white/35"}`}>Preview</button></div>

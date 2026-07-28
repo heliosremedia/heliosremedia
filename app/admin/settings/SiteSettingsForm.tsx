@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import type { PublicSiteSettings } from "@/lib/site-settings";
 
 type UploadKind = "video" | "poster" | "logo" | "monogram" | "standard" | "conversion";
@@ -58,9 +59,11 @@ function uploadToR2(
 export default function SiteSettingsForm({
   initialSettings,
   mode = "global",
+  brandIdentityAddon,
 }: {
   initialSettings: PublicSiteSettings;
   mode?: "global" | "homepage";
+  brandIdentityAddon?: ReactNode;
 }) {
   const [settings, setSettings] = useState(initialSettings);
   const [savedSettings, setSavedSettings] = useState(initialSettings);
@@ -360,11 +363,10 @@ export default function SiteSettingsForm({
       ],
     },
     {
-      title: "Location and messaging",
+      title: "Location and public messaging",
       fields: [
         ["locationLabel", "Location label"],
         ["serviceArea", "Primary service area"],
-        ["availabilityMessage", "Availability message"],
         ["footerDescription", "Footer description"],
         ["serviceAreaDescription", "Footer service-area line"],
       ],
@@ -390,6 +392,30 @@ export default function SiteSettingsForm({
       ? "border-red-400/30 bg-red-400/[0.08] text-red-200"
       : "border-amber-300/30 bg-amber-300/[0.08] text-amber-100";
   const bookingLabel = settings.bookingMode === "ONLINE" ? "Online" : settings.bookingMode === "UNAVAILABLE" ? "Temporarily Unavailable" : "Booking Paused";
+  const globalIdentityCards = <div id="business-contact" className="mt-6 grid scroll-mt-28 gap-6 xl:grid-cols-2">
+    {groups.map((group) => (
+      <section
+        id={group.title === "Business and contact" ? "business-contact-card" : group.title.startsWith("Location") ? "location-messaging" : "social-website"}
+        key={group.title}
+        className="scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-6"
+      >
+        <p className="eyebrow text-[var(--helios-orange)]">Business identity</p>
+        <h2 className="mt-2 text-xl font-light text-white">{group.title}</h2>
+        <div className="mt-6 grid gap-5 sm:grid-cols-2">
+          {group.fields.map(([key, label]) => (
+            <label key={key} className={`block text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35 ${["footerDescription", "serviceAreaDescription"].includes(key) ? "sm:col-span-2" : ""}`}>
+              {label}
+              {["footerDescription", "serviceAreaDescription"].includes(key) ? (
+                <textarea rows={3} value={settings[key] ?? ""} onChange={(event) => update(key, event.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case leading-6 tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" />
+              ) : (
+                <input value={settings[key] ?? ""} onChange={(event) => update(key, event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" />
+              )}
+            </label>
+          ))}
+        </div>
+      </section>
+    ))}
+  </div>;
 
   return (
     <div>
@@ -414,9 +440,12 @@ export default function SiteSettingsForm({
               <p className="text-[0.55rem] font-semibold uppercase tracking-[0.16em] text-white/45">
                 Hero video
               </p>
-              <div className="mt-4 aspect-video overflow-hidden rounded-xl border border-white/[0.08] bg-black">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {settings.heroPosterUrl ? <img src={settings.heroPosterUrl} alt="" className="h-full w-full object-cover opacity-75" /> : <div className="flex h-full items-center justify-center text-sm text-white/25">No preview available</div>}
+              <div className="relative mt-4 aspect-video overflow-hidden rounded-xl border border-white/[0.08] bg-black">
+                {mediaPreview === "video" ? <video src={settings.heroVideoUrl || undefined} poster={settings.heroPosterUrl || undefined} controls muted playsInline loop autoPlay className="h-full w-full object-cover" /> : <button type="button" disabled={!settings.heroVideoUrl} onClick={(event) => { previewTriggerRef.current = event.currentTarget; setMediaPreview("video"); }} className="relative h-full w-full disabled:cursor-default">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {settings.heroPosterUrl ? <img src={settings.heroPosterUrl} alt="" className="h-full w-full object-cover opacity-75" /> : <span className="flex h-full items-center justify-center text-sm text-white/25">No preview available</span>}
+                  {settings.heroVideoUrl&&<span className="absolute inset-0 flex items-center justify-center"><span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/30 bg-black/65 text-xl text-white" aria-hidden="true">▶</span><span className="sr-only">Play hero video preview</span></span>}
+                </button>}
               </div>
               <p className="mt-3 text-sm text-white/70">
                 MP4 or WebM · 16:9 recommended · up to 500 MB
@@ -438,7 +467,7 @@ export default function SiteSettingsForm({
                 </div>
               ) : null}
               <div className="mt-5 flex flex-wrap gap-3">
-                {settings.heroVideoUrl ? <button type="button" ref={(node) => { if (node && mediaPreview === null) previewTriggerRef.current = node; }} onClick={(event) => { previewTriggerRef.current = event.currentTarget; setMediaPreview("video"); }} className="admin-btn-secondary">Preview</button> : null}
+                {settings.heroVideoUrl ? mediaPreview === "video" ? <button type="button" onClick={()=>setMediaPreview(null)} className="admin-btn-secondary">Stop preview</button> : <button type="button" ref={(node) => { if (node) previewTriggerRef.current = node; }} onClick={(event) => { previewTriggerRef.current = event.currentTarget; setMediaPreview("video"); }} className="admin-btn-secondary">Preview inline</button> : null}
                 <label className={`admin-btn-primary cursor-pointer ${uploadBusy ? "pointer-events-none opacity-40" : ""}`}>
                   {settings.heroVideoUrl ? "Replace video" : "Upload video"}
                   <input
@@ -544,13 +573,13 @@ export default function SiteSettingsForm({
       </section>
 
       <section className="mt-6 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111]">
-        <div className="grid gap-8 p-6 lg:grid-cols-[0.8fr_1.2fr] lg:p-8">
+        <div className="p-6 lg:p-8">
           <div>
             <p className="text-[0.54rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">Homepage imagery</p>
             <h2 className="mt-3 text-2xl font-light text-white">Section images</h2>
             <p className="mt-3 max-w-lg text-sm leading-6 text-white/40">Replace the editorial image in The Helios Standard and the image above the footer at any time.</p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="mt-7 grid gap-4 md:grid-cols-2">
             {([
               { kind: "standard" as const, title: "The Helios Standard", src: settings.heliosStandardImageUrl || "/standard/standard-8.jpg", altKey: "heliosStandardImageAlt" as const, managed: settings.heliosStandardImageUrl },
               { kind: "conversion" as const, title: "Pre-footer call to action", src: settings.primaryConversionImageUrl || "/standard/standard-16.jpg", altKey: "primaryConversionImageAlt" as const, managed: settings.primaryConversionImageUrl },
@@ -583,8 +612,14 @@ export default function SiteSettingsForm({
 
       {mode === "global" ? (
         <>
+      <nav aria-label="Site Settings sections" className="sticky top-3 z-30 mt-6 flex flex-wrap gap-2 rounded-2xl border border-white/10 bg-[#151515]/95 p-3 shadow-xl backdrop-blur">
+        <a href="#brand-identity" className="admin-btn-secondary">Business Identity</a>
+        <a href="#booking-experience" className="admin-btn-secondary">Booking Experience</a>
+        <a href="#content-discovery" className="admin-btn-secondary">Content &amp; Discovery</a>
+        <a href="#legal-privacy" className="admin-btn-secondary">Legal &amp; Privacy</a>
+      </nav>
 
-      <section className="mt-6 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111]">
+      <section id="brand-identity" className="mt-6 scroll-mt-28 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111]">
         <div className="grid gap-8 p-6 lg:grid-cols-[0.8fr_1.2fr] lg:p-8">
           <div>
             <p className="text-[0.54rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">Brand identity</p>
@@ -643,8 +678,10 @@ export default function SiteSettingsForm({
           </div>
         </div>
       </section>
+      {brandIdentityAddon}
+      {globalIdentityCards}
 
-      <section className="mt-6 rounded-2xl border border-white/[0.08] bg-[#111] p-6"><p className="eyebrow text-[var(--helios-orange)]">Booking & availability</p><h2 className="mt-2 text-2xl font-light text-white">Secure booking handoff</h2><p className="mt-2 text-sm text-white/38">Business identity and contact details inherit from Business & Contact unless an override is entered.</p><div className="mt-6 grid gap-5 sm:grid-cols-2"><label className="flex items-center gap-3 text-sm text-white/50"><input type="checkbox" checked={settings.bookingHandoffEnabled} onChange={e=>setSettings(current=>({...current,bookingHandoffEnabled:e.target.checked}))}/>Enable handoff page</label><label className="text-xs uppercase tracking-[.14em] text-white/35">Provider name<input value={settings.bookingProviderName||""} onChange={e=>update("bookingProviderName",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label><label className="text-xs uppercase tracking-[.14em] text-white/35">Eyebrow<input value={settings.bookingEyebrow||""} onChange={e=>update("bookingEyebrow",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label><label className="text-xs uppercase tracking-[.14em] text-white/35 sm:col-span-2">Handoff headline<input value={settings.bookingHandoffHeadline||""} onChange={e=>update("bookingHandoffHeadline",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label><label className="text-xs uppercase tracking-[.14em] text-white/35 sm:col-span-2">Handoff explanation<textarea rows={3} value={settings.bookingHandoffExplanation||""} onChange={e=>update("bookingHandoffExplanation",e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 p-4 text-sm normal-case leading-6 tracking-normal text-white"/></label><label className="text-xs uppercase tracking-[.14em] text-white/35">Primary button label<input value={settings.bookingPrimaryLabel||""} onChange={e=>update("bookingPrimaryLabel",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label><label className="text-xs uppercase tracking-[.14em] text-white/35">Call button label<input value={settings.bookingCallLabel||""} onChange={e=>update("bookingCallLabel",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label><label className="text-xs uppercase tracking-[.14em] text-white/35">Email button label<input value={settings.bookingEmailLabel||""} onChange={e=>update("bookingEmailLabel",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label><label className="flex items-center gap-3 text-sm text-white/50"><input type="checkbox" checked={settings.bookingPhoneVisible} onChange={e=>setSettings(current=>({...current,bookingPhoneVisible:e.target.checked}))}/>Show phone action</label><label className="flex items-center gap-3 text-sm text-white/50"><input type="checkbox" checked={settings.bookingEmailVisible} onChange={e=>setSettings(current=>({...current,bookingEmailVisible:e.target.checked}))}/>Show email action</label></div></section>
+      <section id="booking-experience" className="mt-6 scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-6"><p className="eyebrow text-[var(--helios-orange)]">Booking Experience</p><h2 className="mt-2 text-2xl font-light text-white">Secure booking handoff</h2><p className="mt-2 text-sm text-white/38">Business identity and contact details inherit from Business & Contact unless an override is entered.</p><div className="mt-6 grid gap-5 sm:grid-cols-2"><label className="flex items-center gap-3 text-sm text-white/50"><input type="checkbox" checked={settings.bookingHandoffEnabled} onChange={e=>setSettings(current=>({...current,bookingHandoffEnabled:e.target.checked}))}/>Enable handoff page</label><label className="text-xs uppercase tracking-[.14em] text-white/35">Provider name<input value={settings.bookingProviderName||""} onChange={e=>update("bookingProviderName",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label><label className="text-xs uppercase tracking-[.14em] text-white/35">Eyebrow<input value={settings.bookingEyebrow||""} onChange={e=>update("bookingEyebrow",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label><label className="text-xs uppercase tracking-[.14em] text-white/35 sm:col-span-2">Handoff headline<input value={settings.bookingHandoffHeadline||""} onChange={e=>update("bookingHandoffHeadline",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label><label className="text-xs uppercase tracking-[.14em] text-white/35 sm:col-span-2">Handoff explanation<textarea rows={3} value={settings.bookingHandoffExplanation||""} onChange={e=>update("bookingHandoffExplanation",e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 p-4 text-sm normal-case leading-6 tracking-normal text-white"/></label><label className="text-xs uppercase tracking-[.14em] text-white/35">Primary button label<input value={settings.bookingPrimaryLabel||""} onChange={e=>update("bookingPrimaryLabel",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label><label className="text-xs uppercase tracking-[.14em] text-white/35">Call button label<input value={settings.bookingCallLabel||""} onChange={e=>update("bookingCallLabel",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label><label className="text-xs uppercase tracking-[.14em] text-white/35">Email button label<input value={settings.bookingEmailLabel||""} onChange={e=>update("bookingEmailLabel",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label><label className="flex items-center gap-3 text-sm text-white/50"><input type="checkbox" checked={settings.bookingPhoneVisible} onChange={e=>setSettings(current=>({...current,bookingPhoneVisible:e.target.checked}))}/>Show phone action</label><label className="flex items-center gap-3 text-sm text-white/50"><input type="checkbox" checked={settings.bookingEmailVisible} onChange={e=>setSettings(current=>({...current,bookingEmailVisible:e.target.checked}))}/>Show email action</label></div></section>
 
       <section className={`mt-6 rounded-2xl border p-6 ${settings.bookingMode === "ONLINE" ? "border-white/[0.08] bg-[#111]" : "border-[var(--helios-orange)]/45 bg-[var(--helios-orange)]/[0.045]"}`}>
         <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Global control</p><h2 className="mt-2 text-2xl font-light text-white">Booking availability</h2><p className="mt-2 text-sm text-white/38">Every public booking action follows the saved workspace configuration.</p></div><div className="flex flex-col items-end gap-2"><span className={`rounded-full border px-3 py-1.5 text-xs uppercase tracking-[.12em] ${bookingPill}`}>{bookingLabel}</span>{bookingDirty&&<span className="text-xs text-amber-200">Unsaved changes</span>}</div></div>
@@ -653,43 +690,9 @@ export default function SiteSettingsForm({
         <div className="mt-6 rounded-xl border border-white/10 bg-black/25 p-5"><p className="text-[.52rem] uppercase tracking-[.14em] text-white/30">Unavailable-state preview</p><p className="mt-3 text-xl font-light text-white">{settings.bookingHeadline}</p><p className="mt-2 text-sm leading-6 text-white/40">{settings.bookingExplanation}</p></div>
       </section>
 
-      <section className="mt-6 rounded-2xl border border-white/[0.08] bg-[#111] p-6"><div className="flex items-start justify-between gap-4"><div><h2 className="text-xl font-light text-white">Blog Studio Voice</h2><p className="mt-2 text-sm text-white/35">Long-form guidance used by the existing Blog Studio AI workflow.</p></div><button type="button" onClick={() => setVoiceExpanded(true)} className="admin-btn-secondary">Expand Editor</button></div><div className="mt-6 grid gap-5 lg:grid-cols-3">{([["brandVoice","Brand voice"],["brandAudience","Primary audience"],["brandWritingGuidance","Writing guardrails"]] as const).map(([key,label]) => <label key={key} className="text-xs uppercase tracking-[.14em] text-white/35">{label}<textarea rows={7} value={settings[key] ?? ""} onChange={(e) => update(key,e.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 p-4 text-sm font-normal normal-case leading-6 tracking-normal text-white" /></label>)}</div><label className="mt-5 block text-xs uppercase tracking-[.14em] text-white/35">Default article author<input value={settings.defaultBlogAuthor ?? ""} onChange={(e) => update("defaultBlogAuthor",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm font-normal normal-case tracking-normal text-white" /></label></section>
+      <div id="content-discovery" className="scroll-mt-28" />
+      <section className="mt-6 rounded-2xl border border-white/[0.08] bg-[#111] p-6"><div className="flex items-start justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Content &amp; Discovery</p><h2 className="mt-2 text-xl font-light text-white">Blog Studio Voice</h2><p className="mt-2 text-sm text-white/35">Long-form guidance used by the existing Blog Studio AI workflow.</p></div><button type="button" onClick={() => setVoiceExpanded(true)} className="admin-btn-secondary">Expand Editor</button></div><div className="mt-6 grid gap-5 lg:grid-cols-3">{([["brandVoice","Brand voice"],["brandAudience","Primary audience"],["brandWritingGuidance","Writing guardrails"]] as const).map(([key,label]) => <label key={key} className="text-xs uppercase tracking-[.14em] text-white/35">{label}<textarea rows={7} value={settings[key] ?? ""} onChange={(e) => update(key,e.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 p-4 text-sm font-normal normal-case leading-6 tracking-normal text-white" /></label>)}</div><label className="mt-5 block text-xs uppercase tracking-[.14em] text-white/35">Default article author<input value={settings.defaultBlogAuthor ?? ""} onChange={(e) => update("defaultBlogAuthor",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm font-normal normal-case tracking-normal text-white" /></label></section>
       {voiceExpanded && <div role="dialog" aria-modal="true" aria-labelledby="voice-editor-title" aria-describedby="voice-editor-description" className="fixed inset-0 z-[100] overflow-y-auto bg-black/85 p-4 backdrop-blur"><div className="mx-auto my-4 min-h-[calc(100vh-2rem)] max-w-6xl rounded-2xl border border-white/10 bg-[#111] p-6 sm:p-8"><div className="flex justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Blog Studio</p><h2 id="voice-editor-title" className="mt-2 text-3xl font-light text-white">Voice Editor</h2><p id="voice-editor-description" className="mt-2 text-sm text-white/35">Changes remain available in the standard editor until you save settings.</p></div><button ref={voiceCloseRef} onClick={() => setVoiceExpanded(false)} className="admin-btn-secondary">Close</button></div><div className="mt-8 grid gap-6">{([["brandVoice","Brand voice"],["brandAudience","Primary audience"],["brandWritingGuidance","Writing guardrails"]] as const).map(([key,label]) => <label key={key} className="text-xs uppercase tracking-[.14em] text-white/35">{label}<textarea rows={8} value={settings[key] ?? ""} onChange={(e) => update(key,e.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 p-5 text-base font-normal normal-case leading-7 tracking-normal text-white" /></label>)}</div><div className="mt-8 flex justify-end gap-3"><button onClick={() => setVoiceExpanded(false)} className="admin-btn-secondary">Keep editing later</button><button disabled={saving} onClick={async () => { await persist(settings, "Blog Studio Voice saved."); setVoiceExpanded(false); }} className="admin-btn-primary">{saving ? "Saving…" : "Save Settings"}</button></div></div></div>}
-
-      <div className="mt-6 grid gap-6 xl:grid-cols-2">
-        {groups.map((group) => (
-          <section
-            key={group.title}
-            className="rounded-2xl border border-white/[0.08] bg-[#111] p-6"
-          >
-            <h2 className="text-xl font-light text-white">{group.title}</h2>
-            <div className="mt-6 space-y-5">
-              {group.fields.map(([key, label]) => (
-                <label
-                  key={key}
-                  className="block text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35"
-                >
-                  {label}
-                  {["footerDescription", "serviceAreaDescription", "defaultSeoDescription"].includes(key) ? (
-                    <textarea
-                      rows={3}
-                      value={settings[key] ?? ""}
-                      onChange={(event) => update(key, event.target.value)}
-                      className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case leading-6 tracking-normal text-white outline-none focus:border-[var(--helios-orange)]"
-                    />
-                  ) : (
-                    <input
-                      value={settings[key] ?? ""}
-                      onChange={(event) => update(key, event.target.value)}
-                      className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]"
-                    />
-                  )}
-                </label>
-              ))}
-            </div>
-          </section>
-        ))}
-      </div>
 
       <section className="mt-6 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111] p-6 lg:p-8">
         <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr]">
@@ -727,10 +730,10 @@ export default function SiteSettingsForm({
           {saving ? "Saving…" : mode === "homepage" ? "Save Homepage Settings" : "Save settings"}
         </button>
       </div>
-      {mediaPreview ? <div role="dialog" aria-modal="true" aria-label={`${mediaPreview === "video" ? "Hero video" : "Poster image"} preview`} className="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setMediaPreview(null); }}><div className="w-full max-w-5xl rounded-2xl border border-white/10 bg-[#111] p-5"><div className="mb-4 flex items-center justify-between gap-4"><p className="text-sm text-white/60">{mediaPreview === "video" ? "Hero video preview" : "Poster image preview"}</p><button type="button" autoFocus onClick={() => setMediaPreview(null)} className="admin-btn-secondary">Close</button></div>{mediaPreview === "video" ? <video src={settings.heroVideoUrl || undefined} poster={settings.heroPosterUrl || undefined} controls muted playsInline className="max-h-[75vh] w-full bg-black" /> : <>
+      {mediaPreview === "poster" ? <div role="dialog" aria-modal="true" aria-label="Poster image preview" className="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setMediaPreview(null); }}><div className="w-full max-w-5xl rounded-2xl border border-white/10 bg-[#111] p-5"><div className="mb-4 flex items-center justify-between gap-4"><p className="text-sm text-white/60">Poster image preview</p><button type="button" autoFocus onClick={() => setMediaPreview(null)} className="admin-btn-secondary">Close</button></div><>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={settings.heroPosterUrl || ""} alt={settings.heroPosterAlt || "Current homepage poster"} className="max-h-[75vh] w-full object-contain" />
-      </>}</div></div> : null}
+      </></div></div> : null}
     </div>
   );
 }
