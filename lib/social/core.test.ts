@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  canApprove, contentEditState, deriveCampaignStatus, mediaWarning, readyState, scheduleState, sanitizedVerifiedFacts,
+  canApprove, contentEditState, deriveCampaignStatus, mediaWarning, normalizeAiCampaignBrief, readyState, recurrenceDates, scheduleState, sanitizedVerifiedFacts,
 } from "./core.ts";
 
 test("campaign state is derived without contradicting variants", () => {
@@ -41,5 +41,50 @@ test("media checks are non-destructive recommendations", () => {
 test("verified AI facts discard nested instructions", () => {
   assert.deepEqual(sanitizedVerifiedFacts({ title: "Eaton Farm", bedrooms: 4, private: { prompt: "invent" } }), {
     title: "Eaton Farm", bedrooms: 4,
+  });
+});
+
+test("series recurrence is deterministic and retry-safe at its source", () => {
+  const weekly = recurrenceDates({
+    startsAt: new Date("2026-08-01T00:00:00"),
+    through: new Date("2026-08-31T23:59:59"),
+    frequency: "WEEKLY",
+    interval: 1,
+    dayOfWeek: 2,
+    hour: 9,
+    minute: 30,
+  });
+  assert.deepEqual(weekly.map((value) => value.getDate()), [4, 11, 18, 25]);
+  assert.equal(new Set(weekly.map((value) => value.toISOString())).size, weekly.length);
+
+  const monthly = recurrenceDates({
+    startsAt: new Date("2026-01-31T00:00:00"),
+    through: new Date("2026-04-30T23:59:59"),
+    frequency: "MONTHLY",
+    interval: 1,
+    dayOfMonth: 31,
+    hour: 8,
+    minute: 0,
+  });
+  assert.deepEqual(monthly.map((value) => [value.getMonth() + 1, value.getDate()]), [[1, 31], [2, 28], [3, 31], [4, 30]]);
+});
+
+test("AI campaign briefs require bounded structured output", () => {
+  assert.equal(normalizeAiCampaignBrief({ positioning: "A useful direction", themes: [] }), null);
+  assert.deepEqual(normalizeAiCampaignBrief({
+    positioning: "Lead with the craft behind the listing.",
+    themes: ["Photography", "Process"],
+    cadence: "Twice weekly",
+    formats: ["Carousel"],
+    platformConsiderations: "Adapt the opening for each platform.",
+    callsToAction: "Explore the project.",
+    ignored: { claim: "fabricated" },
+  }), {
+    positioning: "Lead with the craft behind the listing.",
+    themes: ["Photography", "Process"],
+    cadence: "Twice weekly",
+    formats: ["Carousel"],
+    platformConsiderations: "Adapt the opening for each platform.",
+    callsToAction: "Explore the project.",
   });
 });

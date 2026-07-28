@@ -16,7 +16,7 @@ export default async function SocialCampaignPage({ params }: { params: Promise<{
   const workspaceId = await requireWorkspaceId(session.userId);
   const [campaign, media, connections] = await Promise.all([
     prisma.socialCampaign.findFirst({ where: { id: campaignId, workspaceId }, include: { variants: { orderBy: { createdAt: "asc" }, include: { media: { orderBy: { displayOrder: "asc" }, include: { media: { include: { project: { select: { title: true } } } } } } } } } }),
-    prisma.media.findMany({ where: { visibility: "VISIBLE" }, orderBy: { updatedAt: "desc" }, take: 240, include: { project: { select: { title: true } } } }),
+    prisma.media.findMany({ where: { visibility: "VISIBLE", project: { workspaceId } }, orderBy: { updatedAt: "desc" }, take: 240, include: { project: { select: { title: true } } } }),
     prisma.socialConnection.findMany({where:{workspaceId,state:"CONNECTED",directPublishingEnabled:true},select:{id:true,platform:true,intendedAccountName:true,providerUsername:true,supportedPostTypes:true}}),
   ]);
   if (!campaign) notFound();

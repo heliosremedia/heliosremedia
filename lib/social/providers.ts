@@ -118,13 +118,14 @@ export const providerAdapters: Record<SocialPlatformName, SocialProviderAdapter>
   FACEBOOK: { platform: "FACEBOOK", validatePost: (p) => [...commonValidation(p), ...(["TEXT_POST","IMAGE_POST","MULTI_IMAGE_POST","VIDEO_POST","LINK_POST"].includes(p.postType) ? [] : [{ severity: "BLOCKING" as const, code: "unsupported_type", message: "This Facebook Page format is not supported." }])], publish: publishFacebook },
   LINKEDIN: { platform: "LINKEDIN", validatePost: (p) => [...commonValidation(p), ...(["TEXT_POST","LINK_POST"].includes(p.postType) ? [] : [{ severity: "BLOCKING" as const, code: "review_required", message: "LinkedIn media publishing remains manual until asset-upload capability is approved and verified." }])], publish: publishLinkedIn },
   TIKTOK: { platform: "TIKTOK", validatePost: (p) => [...commonValidation(p), ...(["VIDEO_POST","DRAFT_EXPORT"].includes(p.postType) ? [] : [{ severity: "BLOCKING" as const, code: "draft_only", message: "Use TikTok draft transfer or the manual workflow for this format." }])], publish: (p,t) => transferTikTok(p,t) },
+  OTHER: { platform: "OTHER", validatePost: () => [{ severity: "BLOCKING", code: "manual_only", message: "Provider-neutral drafts use the manual publishing handoff." }], publish: async () => unconfiguredPublish("Provider-neutral") },
 };
 
 export function providerConfiguration(platform: SocialPlatformName) {
-  const names = platform === "INSTAGRAM" || platform === "FACEBOOK"
+  const names = platform === "OTHER" ? [] : platform === "INSTAGRAM" || platform === "FACEBOOK"
     ? ["META_APP_ID", "META_APP_SECRET"]
     : platform === "LINKEDIN" ? ["LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET"] : ["TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET"];
-  const missing = [...names, "SOCIAL_TOKEN_ENCRYPTION_KEY", "SOCIAL_OAUTH_BASE_URL"].filter((name) => !process.env[name]);
+  const missing = platform === "OTHER" ? ["PROVIDER_NEUTRAL_MANUAL_ONLY"] : [...names, "SOCIAL_TOKEN_ENCRYPTION_KEY", "SOCIAL_OAUTH_BASE_URL"].filter((name) => !process.env[name]);
   return { configured: missing.length === 0, missing };
 }
 

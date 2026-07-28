@@ -35,9 +35,51 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
           targetAudience: clean(body.targetAudience, 1000), primaryMessage: clean(body.primaryMessage, 2000),
           desiredCallToAction: clean(body.callToAction, 1000), destinationLink: clean(body.destinationLink, 2000),
           scheduleNotes: clean(body.scheduleNotes, 3000), internalAiInstructions: clean(body.internalAiInstructions, 5000),
+          lastEditedById: session.userId,
         },
       });
       if (!changed.count) return NextResponse.json({ success: false, error: "Campaign not found." }, { status: 404 });
+    } else if (action === "archive-campaign") {
+      const changed = await prisma.socialCampaign.updateMany({
+        where: { id: campaignId, workspaceId },
+        data: { status: "ARCHIVED", archivedAt: new Date(), lastEditedById: session.userId },
+      });
+      if (!changed.count) return NextResponse.json({ success: false, error: "Campaign not found." }, { status: 404 });
+    } else if (action === "duplicate-campaign") {
+      const source = await prisma.socialCampaign.findFirst({
+        where: { id: campaignId, workspaceId },
+        include: { projects: true, media: true, variants: { include: { media: true } } },
+      });
+      if (!source) return NextResponse.json({ success: false, error: "Campaign not found." }, { status: 404 });
+      const copy = await prisma.socialCampaign.create({
+        data: {
+          internalName: `${source.internalName} — Copy`,
+          description: source.description, purpose: source.purpose, status: "DRAFT", sourceType: source.sourceType,
+          sourceRecordIds: source.sourceRecordIds === null ? undefined : source.sourceRecordIds as Prisma.InputJsonValue,
+          verifiedSourceFacts: source.verifiedSourceFacts === null ? undefined : source.verifiedSourceFacts as Prisma.InputJsonValue,
+          targetAudience: source.targetAudience, brandVoice: source.brandVoice, primaryMessage: source.primaryMessage,
+          objective: source.objective, desiredCallToAction: source.desiredCallToAction, destinationLink: source.destinationLink,
+          selectedPlatforms: source.selectedPlatforms as Prisma.InputJsonValue, scheduleNotes: source.scheduleNotes, internalNotes: source.internalNotes,
+          internalAiInstructions: source.internalAiInstructions, sourceProjectId: source.sourceProjectId,
+          createdById: session.userId, lastEditedById: session.userId, workspaceId,
+          projects: { create: source.projects.map((item) => ({ projectId: item.projectId })) },
+          media: { create: source.media.map((item) => ({ mediaId: item.mediaId, displayOrder: item.displayOrder })) },
+          variants: { create: source.variants.map((item) => ({
+            platform: item.platform, postType: item.postType, status: "DRAFT",
+            caption: item.caption, openingHook: item.openingHook, hashtags: item.hashtags === null ? undefined : item.hashtags as Prisma.InputJsonValue,
+            callToAction: item.callToAction, destinationLink: item.destinationLink, altText: item.altText,
+            onScreenText: item.onScreenText, videoConcept: item.videoConcept, suggestedCover: item.suggestedCover,
+            platformNotes: item.platformNotes, internalNotes: item.internalNotes, aiMetadata: item.aiMetadata === null ? undefined : item.aiMetadata as Prisma.InputJsonValue,
+            lastEditedById: session.userId,
+            media: { create: item.media.map((relation) => ({
+              mediaId: relation.mediaId, displayOrder: relation.displayOrder, altText: relation.altText,
+              cropAspect: relation.cropAspect, cropX: relation.cropX, cropY: relation.cropY, cropScale: relation.cropScale,
+            })) },
+          })) },
+        },
+        select: { id: true },
+      });
+      return NextResponse.json({ success: true, campaignId: copy.id });
     } else if (action === "update-variant" && variant) {
       const hashtags = Array.isArray(body.hashtags) ? body.hashtags.map((value) => clean(value, 100)).filter(Boolean).slice(0, 30) : clean(body.hashtags, 2000).split(/\s+/).filter(Boolean);
       await updateVariantContent({
@@ -50,18 +92,32 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
           internalNotes: clean(body.internalNotes, 5000),
         } as Prisma.SocialVariantUpdateInput,
       });
+      await prisma.socialCampaign.update({ where: { id: campaignId }, data: { status: "IN_PROGRESS", lastEditedById: session.userId } });
     } else if (action === "submit-review" && variant) {
       await prisma.$transaction([
         prisma.socialVariant.update({ where: { id: variantId }, data: { status: "NEEDS_REVIEW", lastEditedById: session.userId } }),
         prisma.socialApprovalEvent.create({ data: { variantId, actorId: session.userId, action: "SUBMITTED", contentVersion: variant.contentVersion } }),
+        prisma.socialCampaign.update({ where: { id: campaignId }, data: { status: "READY_FOR_REVIEW", lastEditedById: session.userId } }),
       ]);
     } else if (action === "approve" && variant) {
       if (!canApprove({ caption: variant.caption, postType: variant.postType, mediaCount: variant._count.media, hasGeneratedCover: Boolean(variant.suggestedCover) })) {
         return NextResponse.json({ success: false, error: "Complete the copy and required media before approval." }, { status: 400 });
       }
+      const otherPending = await prisma.socialVariant.count({
+        where: { campaignId, id: { not: variantId }, status: { notIn: ["APPROVED", "PUBLISHED", "ARCHIVED"] } },
+      });
       await prisma.$transaction([
         prisma.socialVariant.update({ where: { id: variantId }, data: { status: "APPROVED", approvedAt: new Date(), approvalActorId: session.userId } }),
         prisma.socialApprovalEvent.create({ data: { variantId, actorId: session.userId, action: "APPROVED", contentVersion: variant.contentVersion } }),
+        prisma.socialGeneratedAsset.updateMany({ where: { variantId, workspaceId, reviewedAt: null }, data: { reviewedAt: new Date(), reviewedById: session.userId } }),
+        prisma.socialCampaign.update({ where: { id: campaignId }, data: { status: otherPending ? "IN_PROGRESS" : "APPROVED", lastEditedById: session.userId } }),
+      ]);
+    } else if (action === "request-changes" && variant) {
+      const reason = clean(body.reason, 2000);
+      await prisma.$transaction([
+        prisma.socialVariant.update({ where: { id: variantId }, data: { status: "CHANGES_REQUESTED", approvedAt: null, approvalActorId: null } }),
+        prisma.socialApprovalEvent.create({ data: { variantId, actorId: session.userId, action: "CHANGES_REQUESTED", contentVersion: variant.contentVersion, reason } }),
+        prisma.socialCampaign.update({ where: { id: campaignId }, data: { status: "IN_PROGRESS", lastEditedById: session.userId } }),
       ]);
     } else if (action === "schedule" && variant) {
       const local = clean(body.scheduledLocal, 40);
@@ -101,9 +157,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
         const changed = existing.map((item) => item.mediaId).join("|") !== mediaIds.join("|");
         await tx.socialVariantMedia.deleteMany({ where: { variantId } });
         if (mediaIds.length) {
-          const valid = await tx.media.findMany({ where: { id: { in: mediaIds } }, select: { id: true, altText: true } });
+          const valid = await tx.media.findMany({ where: { id: { in: mediaIds }, visibility: "VISIBLE", project: { workspaceId } }, select: { id: true, altText: true } });
+          if (valid.length !== mediaIds.length) throw new Error("One or more selected assets are unavailable to this workspace.");
           await tx.socialVariantMedia.createMany({
             data: valid.map((item, index) => ({ variantId, mediaId: item.id, displayOrder: index, altText: item.altText })),
+          });
+          await tx.socialCampaignMedia.createMany({
+            data: valid.map((item, index) => ({ campaignId, mediaId: item.id, displayOrder: index })),
+            skipDuplicates: true,
           });
         }
         if (changed && ["APPROVED", "SCHEDULED", "READY_TO_PUBLISH"].includes(variant.status)) {
@@ -126,6 +187,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
     } else if (action === "set-ai-image" && variant) {
       const suggestedCover = clean(body.url, 3000);
       if (!suggestedCover.startsWith("https://")) return NextResponse.json({ success: false, error: "A valid generated image URL is required." }, { status: 400 });
+      await prisma.$transaction(async (tx) => {
+        await tx.socialGeneratedAsset.create({
+          data: {
+            workspaceId, variantId, kind: "AI_GENERATED", publicUrl: suggestedCover,
+            provider: clean(body.provider, 120) || "OpenAI", model: clean(body.model, 120) || null,
+            disclosure: "AI-generated concept image — not authentic Helios property photography.",
+          },
+        });
+      });
       await updateVariantContent({ variantId, actorId: session.userId, data: { suggestedCover, aiMetadata: { generatedImageAssetId: clean(body.assetId, 100), generatedImageDisclosure: "AI-generated image; never represent as authentic Helios photography or a real property." } } });
     } else if (action === "archive" && variant) {
       await prisma.socialVariant.update({ where: { id: variantId }, data: { status: "ARCHIVED", archivedAt: new Date(), scheduledAt: null } });

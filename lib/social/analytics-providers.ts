@@ -46,4 +46,5 @@ export const analyticsAdapters:Record<SocialPlatformName,AnalyticsAdapter>={
   FACEBOOK:{platform:"FACEBOOK",capability:ANALYTICS_CAPABILITIES.FACEBOOK,fetch:input=>fetchMeta("FACEBOOK",input)},
   LINKEDIN:{platform:"LINKEDIN",capability:ANALYTICS_CAPABILITIES.LINKEDIN,fetch:fetchLinkedIn},
   TIKTOK:{platform:"TIKTOK",capability:ANALYTICS_CAPABILITIES.TIKTOK,fetch:fetchTikTok},
+  OTHER:{platform:"OTHER",capability:ANALYTICS_CAPABILITIES.OTHER,fetch:async()=>[]},
 };

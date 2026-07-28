@@ -15,7 +15,7 @@ export default async function SocialStudioPage() {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const [campaignRows, projects, blogs, newsletters, counts] = await Promise.all([
     prisma.socialCampaign.findMany({ where: { workspaceId, archivedAt: null }, orderBy: { updatedAt: "desc" }, take: 40, include: { variants: { select: { id: true, platform: true, postType: true, status: true, scheduledAt: true } } } }),
-    prisma.project.findMany({ orderBy: { updatedAt: "desc" }, take: 100, select: { id: true, title: true, locationLabel: true } }),
+    prisma.project.findMany({ where: { workspaceId }, orderBy: { updatedAt: "desc" }, take: 100, select: { id: true, title: true, locationLabel: true } }),
     prisma.blogPost.findMany({ where: { status: "PUBLISHED" }, orderBy: { publishedAt: "desc" }, take: 100, select: { id: true, title: true } }),
     prisma.newsletterEdition.findMany({ where: { status: "SENT" }, orderBy: { intendedSendAt: "desc" }, take: 100, select: { id: true, subject: true } }),
     Promise.all([

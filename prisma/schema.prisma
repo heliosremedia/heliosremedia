@@ -353,11 +353,13 @@ enum SocialPlatform {
   FACEBOOK
   LINKEDIN
   TIKTOK
+  OTHER
 }
 
 enum SocialVariantStatus {
   DRAFT
   NEEDS_REVIEW
+  CHANGES_REQUESTED
   APPROVED
   SCHEDULED
   READY_TO_PUBLISH
@@ -369,8 +371,32 @@ enum SocialVariantStatus {
 enum SocialApprovalAction {
   SUBMITTED
   APPROVED
+  CHANGES_REQUESTED
   REVOKED
   RESTORED
+}
+
+enum SocialCampaignStatus {
+  DRAFT
+  IN_PROGRESS
+  READY_FOR_REVIEW
+  APPROVED
+  ARCHIVED
+}
+
+enum SocialSeriesStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum SocialRecurrenceFrequency {
+  WEEKLY
+  MONTHLY
+}
+
+enum SocialGeneratedAssetKind {
+  AI_GENERATED
+  AI_ASSISTED_DERIVATIVE
 }
 
 enum SocialConnectionState {
@@ -569,16 +595,17 @@ model Project {
   thumbnailMedia   Media? @relation("ProjectThumbnailMedia", fields: [thumbnailMediaId], references: [id], onDelete: SetNull)
   socialImageMedia Media? @relation("ProjectSocialImageMedia", fields: [socialImageMediaId], references: [id], onDelete: SetNull)
 
-  media             Media[]                      @relation("ProjectMedia")
-  details           ProjectDetails?
-  services          ProjectService[]
-  tags              ProjectTag[]
-  homepagePlacement HomepageProject?
-  previewLinks      ProjectPreviewLink[]
-  collectionHeroes  ProjectMediaCollectionHero[]
-  socialCampaigns   SocialCampaign[]
-  contributors      ProjectContributor[]
-  analyticsEvents   PortfolioAnalyticsEvent[]
+  media                  Media[]                      @relation("ProjectMedia")
+  details                ProjectDetails?
+  services               ProjectService[]
+  tags                   ProjectTag[]
+  homepagePlacement      HomepageProject?
+  previewLinks           ProjectPreviewLink[]
+  collectionHeroes       ProjectMediaCollectionHero[]
+  socialCampaigns        SocialCampaign[]
+  socialCampaignProjects SocialCampaignProject[]
+  contributors           ProjectContributor[]
+  analyticsEvents        PortfolioAnalyticsEvent[]
 
   @@index([status])
   @@index([workspaceId, status])
@@ -675,13 +702,15 @@ model Media {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  heroForProject        Project?                    @relation("ProjectHeroMedia")
-  thumbnailForProject   Project?                    @relation("ProjectThumbnailMedia")
-  socialImageForProject Project?                    @relation("ProjectSocialImageMedia")
-  homepageWorkCards     HomepageWorkCard[]
-  collectionHero        ProjectMediaCollectionHero?
-  featuredBlogPosts     BlogPost[]
-  socialVariants        SocialVariantMedia[]
+  heroForProject              Project?                    @relation("ProjectHeroMedia")
+  thumbnailForProject         Project?                    @relation("ProjectThumbnailMedia")
+  socialImageForProject       Project?                    @relation("ProjectSocialImageMedia")
+  homepageWorkCards           HomepageWorkCard[]
+  collectionHero              ProjectMediaCollectionHero?
+  featuredBlogPosts           BlogPost[]
+  socialVariants              SocialVariantMedia[]
+  socialCampaignMedia         SocialCampaignMedia[]
+  socialGeneratedAssetSources SocialGeneratedAsset[]      @relation("SocialGeneratedAssetSource")
 
   @@index([projectId])
   @@index([projectId, displayOrder])
@@ -1329,37 +1358,41 @@ model AdminUser {
   lockedUntil      DateTime?
   lastLoginAt      DateTime?
 
-  auditEvents                AuditEvent[]
-  assignedInquiries          Inquiry[]                       @relation("InquiryAssignee")
-  inquiryNotes               InquiryNote[]
-  inquiryActivities          InquiryActivity[]
-  previewLinks               ProjectPreviewLink[]
-  invitationsCreated         AdminInvitation[]               @relation("InvitationCreator")
-  emailCampaigns             EmailCampaign[]
-  newsletterSeriesCreated    NewsletterSeries[]              @relation("NewsletterSeriesCreator")
-  newsletterEditionsCreated  NewsletterEdition[]             @relation("NewsletterEditionCreator")
-  newsletterRevisions        NewsletterRevision[]
-  newsletterApprovals        NewsletterApproval[]
-  newsletterImageAssets      NewsletterImageAsset[]
-  referralCampaignsCreated   ReferralCampaign[]              @relation("ReferralCampaignCreator")
-  referralCampaignApprovals  ReferralCampaignRevision[]      @relation("ReferralRevisionApprover")
-  referralStatusEvents       ReferralStatusEvent[]
-  referralRewardsApproved    ReferralReward[]                @relation("ReferralRewardApprover")
-  referralRewardsIssued      ReferralReward[]                @relation("ReferralRewardIssuer")
-  referralAuditEvents        ReferralAuditEvent[]
-  referralTestTokens         ReferralTestToken[]
-  marketingPreferencesActed  MarketingEmailPreference[]
-  marketingPreferenceEvents  MarketingEmailPreferenceEvent[]
-  socialCampaignsCreated     SocialCampaign[]                @relation("SocialCampaignCreator")
-  socialVariantsEdited       SocialVariant[]                 @relation("SocialVariantEditor")
-  socialApprovalEvents       SocialApprovalEvent[]
-  socialPublications         SocialPublication[]
-  socialConnectionsEnabled   SocialConnection[]              @relation("SocialConnectionEnabledBy")
-  socialConnectionAudits     SocialConnectionAudit[]
-  socialPublishingApprovals  SocialPublishingSnapshot[]      @relation("SocialPublishingApprovedBy")
-  socialRecommendationsActed SocialAnalyticsRecommendation[] @relation("SocialRecommendationActor")
-  projectCredits             ProjectContributor[]
-  portfolioAnalyticsEvents   PortfolioAnalyticsEvent[]
+  auditEvents                   AuditEvent[]
+  assignedInquiries             Inquiry[]                       @relation("InquiryAssignee")
+  inquiryNotes                  InquiryNote[]
+  inquiryActivities             InquiryActivity[]
+  previewLinks                  ProjectPreviewLink[]
+  invitationsCreated            AdminInvitation[]               @relation("InvitationCreator")
+  emailCampaigns                EmailCampaign[]
+  newsletterSeriesCreated       NewsletterSeries[]              @relation("NewsletterSeriesCreator")
+  newsletterEditionsCreated     NewsletterEdition[]             @relation("NewsletterEditionCreator")
+  newsletterRevisions           NewsletterRevision[]
+  newsletterApprovals           NewsletterApproval[]
+  newsletterImageAssets         NewsletterImageAsset[]
+  referralCampaignsCreated      ReferralCampaign[]              @relation("ReferralCampaignCreator")
+  referralCampaignApprovals     ReferralCampaignRevision[]      @relation("ReferralRevisionApprover")
+  referralStatusEvents          ReferralStatusEvent[]
+  referralRewardsApproved       ReferralReward[]                @relation("ReferralRewardApprover")
+  referralRewardsIssued         ReferralReward[]                @relation("ReferralRewardIssuer")
+  referralAuditEvents           ReferralAuditEvent[]
+  referralTestTokens            ReferralTestToken[]
+  marketingPreferencesActed     MarketingEmailPreference[]
+  marketingPreferenceEvents     MarketingEmailPreferenceEvent[]
+  socialCampaignsCreated        SocialCampaign[]                @relation("SocialCampaignCreator")
+  socialCampaignsEdited         SocialCampaign[]                @relation("SocialCampaignEditor")
+  socialSeriesCreated           SocialSeries[]                  @relation("SocialSeriesCreator")
+  socialSeriesEdited            SocialSeries[]                  @relation("SocialSeriesEditor")
+  socialGeneratedAssetsReviewed SocialGeneratedAsset[]          @relation("SocialGeneratedAssetReviewer")
+  socialVariantsEdited          SocialVariant[]                 @relation("SocialVariantEditor")
+  socialApprovalEvents          SocialApprovalEvent[]
+  socialPublications            SocialPublication[]
+  socialConnectionsEnabled      SocialConnection[]              @relation("SocialConnectionEnabledBy")
+  socialConnectionAudits        SocialConnectionAudit[]
+  socialPublishingApprovals     SocialPublishingSnapshot[]      @relation("SocialPublishingApprovedBy")
+  socialRecommendationsActed    SocialAnalyticsRecommendation[] @relation("SocialRecommendationActor")
+  projectCredits                ProjectContributor[]
+  portfolioAnalyticsEvents      PortfolioAnalyticsEvent[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1375,6 +1408,8 @@ model Workspace {
 
   users                    AdminUser[]
   socialCampaigns          SocialCampaign[]
+  socialSeries             SocialSeries[]
+  socialGeneratedAssets    SocialGeneratedAsset[]
   socialSettings           SocialStudioSettings[]
   socialConnections        SocialConnection[]
   siteSettings             SiteSettings?
@@ -1421,31 +1456,43 @@ model SocialCampaign {
   id String @id @default(cuid())
 
   internalName           String
+  description            String?
   purpose                String?
+  status                 SocialCampaignStatus @default(DRAFT)
   sourceType             SocialSourceType
   sourceRecordIds        Json?
   verifiedSourceFacts    Json?
   targetAudience         String?
+  brandVoice             String?
   primaryMessage         String?
   objective              String?
   desiredCallToAction    String?
   destinationLink        String?
   selectedPlatforms      Json
   scheduleNotes          String?
+  internalNotes          String?
+  startAt                DateTime?
+  endAt                  DateTime?
   internalAiInstructions String?
   generationStatus       String?
   generationError        String?
-  generationRequestId    String?          @unique
+  generationRequestId    String?              @unique
 
   sourceProjectId String?
   sourceProject   Project? @relation(fields: [sourceProjectId], references: [id], onDelete: SetNull)
 
-  createdById String
-  createdBy   AdminUser @relation("SocialCampaignCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  createdById    String
+  createdBy      AdminUser @relation("SocialCampaignCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  lastEditedById String
+  lastEditedBy   AdminUser @relation("SocialCampaignEditor", fields: [lastEditedById], references: [id], onDelete: Restrict)
+  workspaceId    String
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
 
   variants                 SocialVariant[]
+  projects                 SocialCampaignProject[]
+  media                    SocialCampaignMedia[]
+  seriesLinks              SocialSeriesCampaign[]
+  occurrences              SocialSeriesOccurrence[]
   analyticsRecommendations SocialAnalyticsRecommendation[]
 
   archivedAt DateTime?
@@ -1454,8 +1501,98 @@ model SocialCampaign {
 
   @@index([createdById, updatedAt])
   @@index([workspaceId, updatedAt])
+  @@index([workspaceId, status, updatedAt])
   @@index([sourceType, sourceProjectId])
   @@index([archivedAt, updatedAt])
+}
+
+model SocialCampaignProject {
+  campaignId String
+  campaign   SocialCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  projectId  String
+  project    Project        @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  createdAt  DateTime       @default(now())
+
+  @@id([campaignId, projectId])
+  @@index([projectId])
+}
+
+model SocialCampaignMedia {
+  campaignId   String
+  campaign     SocialCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  mediaId      String
+  media        Media          @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+  displayOrder Int            @default(0)
+  createdAt    DateTime       @default(now())
+
+  @@id([campaignId, mediaId])
+  @@index([mediaId])
+}
+
+model SocialSeries {
+  id                  String                    @id @default(cuid())
+  workspaceId         String
+  workspace           Workspace                 @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  name                String
+  description         String?
+  objective           String?
+  defaultPlatforms    Json
+  frequency           SocialRecurrenceFrequency
+  interval            Int                       @default(1)
+  dayOfWeek           Int?
+  dayOfMonth          Int?
+  localTime           String
+  timeZone            String                    @default("America/Denver")
+  defaultTone         String?
+  defaultCallToAction String?
+  promptGuidance      String?
+  status              SocialSeriesStatus        @default(ACTIVE)
+  startsAt            DateTime
+  endsAt              DateTime?
+  generationThrough   DateTime?
+  createdById         String
+  createdBy           AdminUser                 @relation("SocialSeriesCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  lastEditedById      String
+  lastEditedBy        AdminUser                 @relation("SocialSeriesEditor", fields: [lastEditedById], references: [id], onDelete: Restrict)
+  campaigns           SocialSeriesCampaign[]
+  occurrences         SocialSeriesOccurrence[]
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  @@index([workspaceId, status, updatedAt])
+}
+
+model SocialSeriesCampaign {
+  seriesId   String
+  series     SocialSeries   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  campaignId String
+  campaign   SocialCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  createdAt  DateTime       @default(now())
+
+  @@id([seriesId, campaignId])
+  @@index([campaignId])
+}
+
+model SocialSeriesOccurrence {
+  id                  String          @id @default(cuid())
+  seriesId            String
+  series              SocialSeries    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  campaignId          String?
+  campaign            SocialCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  variantId           String?
+  variant             SocialVariant?  @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  platform            SocialPlatform
+  scheduledAt         DateTime
+  timeZone            String
+  sequence            Int
+  editedIndependently Boolean         @default(false)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  @@unique([seriesId, platform, scheduledAt])
+  @@index([seriesId, scheduledAt])
+  @@index([campaignId])
+  @@index([variantId])
 }
 
 model SocialVariant {
@@ -1503,6 +1640,8 @@ model SocialVariant {
   publishingJobs           SocialPublishingJob[]
   metricSnapshots          SocialMetricSnapshot[]
   analyticsRecommendations SocialAnalyticsRecommendation[]
+  seriesOccurrences        SocialSeriesOccurrence[]
+  generatedAssets          SocialGeneratedAsset[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1511,6 +1650,30 @@ model SocialVariant {
   @@index([status, scheduledAt])
   @@index([campaignId, status])
   @@index([platform, status])
+}
+
+model SocialGeneratedAsset {
+  id            String                   @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  variantId     String
+  variant       SocialVariant            @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  kind          SocialGeneratedAssetKind
+  publicUrl     String
+  sourceMediaId String?
+  sourceMedia   Media?                   @relation("SocialGeneratedAssetSource", fields: [sourceMediaId], references: [id], onDelete: SetNull)
+  promptDigest  String?
+  provider      String?
+  model         String?
+  disclosure    String
+  reviewedAt    DateTime?
+  reviewedById  String?
+  reviewedBy    AdminUser?               @relation("SocialGeneratedAssetReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  createdAt     DateTime                 @default(now())
+
+  @@index([workspaceId, createdAt])
+  @@index([variantId])
+  @@index([sourceMediaId])
 }
 
 model SocialVariantMedia {

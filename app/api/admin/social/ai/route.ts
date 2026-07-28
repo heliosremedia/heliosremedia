@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { getAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
-import { platformPrompt, sanitizedVerifiedFacts, SOCIAL_PLATFORMS } from "@/lib/social/core";
+import { normalizeAiCampaignBrief, platformPrompt, sanitizedVerifiedFacts, SOCIAL_PLATFORMS } from "@/lib/social/core";
 import { ensureSocialSettings } from "@/lib/social/studio";
 import { requireWorkspaceId } from "@/lib/workspaces";
 
@@ -49,7 +49,9 @@ export async function POST(request: Request) {
         const savedGuidance = savedPlatformGuidance[platform];
         return `${platform}: ${platformPrompt(platform)} Saved administrator guidance: ${typeof savedGuidance === "string" && savedGuidance.trim() ? savedGuidance.trim() : "None supplied"}.`;
       }),
-      "Return one JSON object keyed by platform. Each platform object must contain caption, openingHook, hashtags array, callToAction, onScreenText, videoConcept, and altText. Never approve, schedule, publish, invent a link, or claim performance.",
+      "Return one JSON object with a campaignBrief object and one object keyed by each requested platform.",
+      "campaignBrief must contain positioning, themes array, cadence, formats array, platformConsiderations, and callsToAction.",
+      "Each platform object must contain caption, openingHook, hashtags array, callToAction, onScreenText, videoConcept, and altText. Never approve, schedule, publish, invent a link, or claim performance.",
     ].join("\n");
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
@@ -65,6 +67,8 @@ export async function POST(request: Request) {
     const result = await response.json() as { output_text?: string; output?: Array<{ content?: Array<{ text?: string }> }> };
     const output = result.output_text || result.output?.flatMap((item) => item.content || []).map((item) => item.text || "").join("") || "{}";
     const drafts = JSON.parse(output) as Record<string, Record<string, unknown>>;
+    const brief = normalizeAiCampaignBrief(drafts.campaignBrief);
+    if (!brief) throw new Error("OpenAI returned an invalid campaign brief.");
     await prisma.$transaction(async (tx) => {
       for (const variant of chosen) {
         const draft = drafts[variant.platform] || {};
@@ -80,7 +84,22 @@ export async function POST(request: Request) {
           },
         });
       }
-      await tx.socialCampaign.update({ where: { id: campaign.id }, data: { generationStatus: "SUCCEEDED", generationError: null } });
+      await tx.socialCampaign.update({
+        where: { id: campaign.id },
+        data: {
+          purpose: [
+            brief.positioning,
+            brief.themes.length ? `Content themes: ${brief.themes.join("; ")}` : "",
+            brief.cadence ? `Recommended cadence: ${brief.cadence}` : "",
+            brief.formats.length ? `Suggested formats: ${brief.formats.join("; ")}` : "",
+            brief.platformConsiderations ? `Platform considerations: ${brief.platformConsiderations}` : "",
+            brief.callsToAction ? `Calls to action: ${brief.callsToAction}` : "",
+          ].filter(Boolean).join("\n\n"),
+          generationStatus: "SUCCEEDED",
+          generationError: null,
+          lastEditedById: session.userId,
+        },
+      });
     });
     return NextResponse.json({ success: true });
   } catch (error) {
