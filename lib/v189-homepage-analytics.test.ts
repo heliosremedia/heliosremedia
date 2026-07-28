@@ -34,10 +34,10 @@ test("analytics persistence states and health output are accurate and sanitized"
   assert.doesNotMatch(health, /DATABASE_URL|stack|sessionId|connectionString|rawError/);
 });
 
-test("V1.8.9 is documented but the deployed Studio version remains unchanged", () => {
+test("V1.8.9 is documented as the deployed Studio version", () => {
   const releases = read("lib/releases.ts");
   const version = read("lib/version.ts");
   assert.match(releases, /version: "V1\.8\.9"/);
-  assert.match(releases, /status: "PLANNED"/);
-  assert.match(version, /V1\.8\.8/);
+  assert.match(releases, /status: "LIVE"/);
+  assert.match(version, /V1\.8\.9/);
 });
