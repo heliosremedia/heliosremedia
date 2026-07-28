@@ -21,7 +21,7 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
     version: "V1.8.9.2",
     slug: "v1-8-9-2",
-    releaseDate: null,
+    releaseDate: "2026-07-28",
     title: "Site Settings, Brand Sharing & Homepage Polish",
     summary: "Completes the Site Settings hierarchy and adds workspace-aware, project-focused social sharing previews.",
     newFeatures: [
@@ -44,7 +44,7 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
       "Review the workspace default social share image before publishing the hotfix.",
       "Refresh a newly shared project link to validate current Open Graph metadata after deployment.",
     ],
-    status: "PLANNED",
+    status: "LIVE",
   },
   {
     version: "V1.8.9.1",
