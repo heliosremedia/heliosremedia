@@ -36,3 +36,12 @@ test("missing dimensions are omitted safely and WebP is supported", () => {
   const result = resolveProjectSocialImage({ title: "Home", media: [image("webp", { mimeType: "image/webp", width: null, height: null })] });
   assert.equal(result.type, "image/webp"); assert.equal("width" in result, false); assert.equal("height" in result, false);
 });
+test("workspace default precedes the monogram and changes only with its stable version", () => {
+  const workspace = { businessName: "Studio", defaultSocialImageUrl: "https://cdn.example.com/share.jpg", defaultSocialImageAlt: "Studio share", defaultSocialImageVersion: 4, brandMonogramUrl: "https://cdn.example.com/mark.png" };
+  const result = resolveProjectSocialImage({ title: "Empty", media: [], workspace });
+  assert.equal(result.source, "WORKSPACE_DEFAULT");
+  assert.equal(result.url, "https://cdn.example.com/share.jpg?v=4");
+  assert.equal(result.alt, "Studio share");
+  const monogram = resolveProjectSocialImage({ title: "Empty", media: [], workspace: { ...workspace, defaultSocialImageUrl: null } });
+  assert.equal(monogram.source, "MONOGRAM");
+});

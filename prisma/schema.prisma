@@ -992,6 +992,11 @@ model SiteSettings {
   faviconUrl        String?
   faviconVersion    Int     @default(0)
 
+  defaultSocialImageStorageKey String?
+  defaultSocialImageUrl        String?
+  defaultSocialImageAlt        String?
+  defaultSocialImageVersion    Int     @default(0)
+
   featuredFilmEnabled          Boolean @default(false)
   featuredFilmVideoStorageKey  String?
   featuredFilmVideoUrl         String?

@@ -10,7 +10,7 @@ function getStablePublicAssetUrl(storageKey: string) {
   return `${publicBase}/${storageKey.replace(/^\/+/, "")}`;
 }
 
-export type SocialImageSource = "SOCIAL" | "HERO" | "GALLERY" | "VIDEO_THUMBNAIL" | "GLOBAL_FALLBACK";
+export type SocialImageSource = "SOCIAL" | "HERO" | "GALLERY" | "VIDEO_THUMBNAIL" | "WORKSPACE_DEFAULT" | "MONOGRAM" | "GLOBAL_FALLBACK";
 export type ProjectSocialMedia = {
   id: string; sourceType: string; storageKey: string | null; mimeType: string | null;
   altText: string | null; originalFilename?: string | null; width: number | null;
@@ -22,6 +22,13 @@ export type ProjectSocialImageInput = {
   socialImageMedia?: ProjectSocialMedia | null;
   heroMedia?: ProjectSocialMedia | null;
   media: ProjectSocialMedia[];
+  workspace?: {
+    businessName: string;
+    defaultSocialImageUrl?: string | null;
+    defaultSocialImageAlt?: string | null;
+    defaultSocialImageVersion?: number | null;
+    brandMonogramUrl?: string | null;
+  } | null;
 };
 export type ResolvedProjectSocialImage = {
   url: string; alt: string; width?: number; height?: number; type: string; source: SocialImageSource;
@@ -59,6 +66,22 @@ export function resolveProjectSocialImage(project: ProjectSocialImageInput): Res
     if (thumbnail?.startsWith("https://")) return {
       url: thumbnail, alt: media.altText || `${project.title} video preview`,
       type: "image/jpeg", source: "VIDEO_THUMBNAIL",
+    };
+  }
+  if (project.workspace?.defaultSocialImageUrl) {
+    const separator = project.workspace.defaultSocialImageUrl.includes("?") ? "&" : "?";
+    const version = project.workspace.defaultSocialImageVersion || 0;
+    return {
+      url: `${project.workspace.defaultSocialImageUrl}${separator}v=${version}`,
+      alt: project.workspace.defaultSocialImageAlt || `${project.workspace.businessName} social share image`,
+      width: 1200, height: 630, type: "image/jpeg", source: "WORKSPACE_DEFAULT",
+    };
+  }
+  if (project.workspace?.brandMonogramUrl) {
+    return {
+      url: project.workspace.brandMonogramUrl,
+      alt: `${project.workspace.businessName} brand mark`,
+      type: "image/png", source: "MONOGRAM",
     };
   }
   return {

@@ -13,6 +13,7 @@ import { validateProjectPreview } from "@/lib/project-preview";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { getAbsoluteUrl } from "@/lib/site";
+import { getSiteSettings } from "@/lib/site-settings";
 
 import PortfolioGallery from "./PortfolioGallery";
 import ShareProject from "./ShareProject";
@@ -155,7 +156,7 @@ export async function generateMetadata({
   const previewValue = (await searchParams).preview;
   const previewToken = typeof previewValue === "string" ? previewValue : undefined;
   const preview = await validateProjectPreview(slug, previewToken);
-  const project = await prisma.project.findFirst({
+  const [project, settings] = await Promise.all([prisma.project.findFirst({
     where: {
       slug,
       ...(preview ? { id: preview.projectId } : { status: "PUBLISHED" as const }),
@@ -193,7 +194,7 @@ export async function generateMetadata({
         },
       },
     },
-  });
+  }), getSiteSettings()]);
 
   if (!project) {
     return {
@@ -212,7 +213,7 @@ export async function generateMetadata({
   }
 
   const canonical = getAbsoluteUrl(`/portfolio/${slug}`);
-  const image = resolveProjectSocialImage(project);
+  const image = resolveProjectSocialImage({ ...project, workspace: settings });
   return {
     title,
     description,

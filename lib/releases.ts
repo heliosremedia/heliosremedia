@@ -19,6 +19,34 @@ export type StudioRelease = {
 // repository records.
 export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
+    version: "V1.8.9.2",
+    slug: "v1-8-9-2",
+    releaseDate: null,
+    title: "Site Settings, Brand Sharing & Homepage Polish",
+    summary: "Completes the Site Settings hierarchy and adds workspace-aware, project-focused social sharing previews.",
+    newFeatures: [
+      "Configurable 1200 × 630 workspace social share image",
+      "Project share-preview selection with project imagery before workspace branding",
+    ],
+    improvements: [
+      "Unified Brand Assets, responsive Booking Handoff, and aligned Homepage hero media cards",
+      "Clear Business Identity, Booking Experience, Content & Discovery, and Legal & Privacy navigation",
+    ],
+    bugFixes: [
+      "Brand monograms are now the final emergency project-sharing fallback",
+      "Long Homepage media paths no longer break the editor layout",
+    ],
+    securityInfrastructure: [
+      "Workspace settings and project media remain server-authorized and tenant-scoped",
+      "Stable versioned preview URLs update only when the managed share image changes",
+    ],
+    administratorActions: [
+      "Review the workspace default social share image before publishing the hotfix.",
+      "Refresh a newly shared project link to validate current Open Graph metadata after deployment.",
+    ],
+    status: "PLANNED",
+  },
+  {
     version: "V1.8.9.1",
     slug: "v1-8-9-1",
     releaseDate: "2026-07-28",
