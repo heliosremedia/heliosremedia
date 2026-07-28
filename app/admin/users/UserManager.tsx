@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { AdminRole } from "@/app/generated/prisma/client";
 import { getAccountIdentity } from "@/lib/workspace-account-policy";
+import styles from "./UserManager.module.css";
 
 type User = { id: string; email: string; displayName: string; title: string | null; role: AdminRole; active: boolean; lastLoginAt: string | null; createdAt: string };
 type Invitation = { id: string; email: string; displayName: string; title: string | null; role: AdminRole; expiresAt: string; createdAt: string };
@@ -62,8 +63,8 @@ export default function UserManager({ initialUsers, invitations, currentUserId, 
 
   const roleOptions = roles.filter(item => currentRole === "OWNER" || item !== "OWNER");
   return <>
-    <div className="grid gap-7 xl:grid-cols-[0.85fr_1.15fr]">
-      <section className="rounded-2xl border border-white/[0.08] bg-[#111] p-6">
+    <div className={styles.workspaceLayout}>
+      <section className={`${styles.invitePanel} rounded-2xl border border-white/[0.08] bg-[#111] p-6`}>
         <p className="text-[0.54rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">Invite teammate</p>
         <form onSubmit={invite} className="mt-6 space-y-4">
           <label className="block text-xs text-white/35">Display name<input required maxLength={120} value={name} onChange={event => setName(event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white" /></label>
@@ -76,7 +77,7 @@ export default function UserManager({ initialUsers, invitations, currentUserId, 
         {message && <p role="status" className="mt-5 text-sm text-white/50">{message}</p>}
         {invitations.length > 0 && <div className="mt-7 border-t border-white/[0.08] pt-5"><p className="text-xs uppercase tracking-[0.14em] text-white/25">Invitations</p>{invitations.map(item => { const expired=new Date(item.expiresAt)<=new Date(); return <div key={item.id} className="mt-3 flex items-start justify-between gap-3 rounded-xl border border-white/[0.06] p-3"><p className="text-xs text-white/45">{item.displayName} · {item.role}<span className="block text-white/25">{item.email} · {expired?"Expired":`expires ${new Date(item.expiresAt).toLocaleDateString()}`}</span></p><button type="button" disabled={busy} onClick={()=>revokeInvitation(item.id)} className="admin-btn-link">Revoke</button></div>;})}</div>}
       </section>
-      <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111]">
+      <section className={`${styles.accountsPanel} overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111]`}>
         <div className="border-b border-white/[0.08] p-6"><h2 className="text-2xl font-light text-white">Workspace accounts</h2><p className="mt-2 text-sm text-white/35">Manage roles, reset passwords, and revoke account access without deleting activity history.</p></div>
         <div className="divide-y divide-white/[0.06]">
           {users.map(user => {
@@ -90,9 +91,9 @@ export default function UserManager({ initialUsers, invitations, currentUserId, 
               <article
                 key={user.id}
                 aria-busy={busy}
-                className="grid min-w-0 gap-4 p-5 sm:p-6 xl:grid-cols-[minmax(11rem,1.05fr)_minmax(12rem,0.95fr)_minmax(8.5rem,0.55fr)_auto] xl:items-end"
+                className={`${styles.accountRow} min-w-0 p-5 sm:p-6`}
               >
-                <div className="min-w-0 self-center">
+                <div className={`${styles.identity} min-w-0 self-center`}>
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="break-words text-base font-medium leading-6 text-white/85">
                       {identity.displayName}
@@ -100,7 +101,7 @@ export default function UserManager({ initialUsers, invitations, currentUserId, 
                     {user.id === currentUserId && <span className="rounded-full border border-[var(--helios-orange)]/25 bg-[var(--helios-orange)]/[0.06] px-2 py-1 text-[0.52rem] font-semibold uppercase tracking-[0.12em] text-[var(--helios-orange)]">You</span>}
                     {!user.active && <span className="rounded-full border border-white/10 px-2 py-1 text-[0.52rem] font-semibold uppercase tracking-[0.12em] text-white/35">Inactive</span>}
                   </div>
-                  <a href={`mailto:${user.email}`} className="mt-1 block break-all text-sm text-white/45 transition hover:text-white focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)]">
+                  <a href={`mailto:${user.email}`} title={user.email} className={`${styles.email} mt-1 block text-sm text-white/45 transition hover:text-white focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)]`}>
                     {user.email}
                   </a>
                   <p className="mt-2 text-xs leading-5 text-white/25">
@@ -108,7 +109,7 @@ export default function UserManager({ initialUsers, invitations, currentUserId, 
                   </p>
                 </div>
 
-                <label htmlFor={titleControlId} className="min-w-0 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-white/30">
+                <label htmlFor={titleControlId} className={`${styles.professionalTitle} min-w-0 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-white/30`}>
                   Professional title
                   <input
                     id={titleControlId}
@@ -120,48 +121,59 @@ export default function UserManager({ initialUsers, invitations, currentUserId, 
                     onBlur={event => {
                       if (event.currentTarget.value.trim() !== (user.title || "")) void updateTitle(user, event.currentTarget.value.trim());
                     }}
-                    className="mt-2 min-h-11 w-full min-w-0 rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm font-normal normal-case leading-5 tracking-normal text-white outline-none placeholder:text-white/25 focus:border-[var(--helios-orange)] focus:ring-1 focus:ring-[var(--helios-orange)]"
+                    className={`${styles.titleInput} mt-2 min-h-11 w-full min-w-0 rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm font-normal normal-case leading-5 tracking-normal text-white outline-none placeholder:text-white/25 focus:border-[var(--helios-orange)] focus:ring-1 focus:ring-[var(--helios-orange)]`}
                   />
                   <span className="mt-1.5 block text-[0.66rem] font-normal normal-case leading-4 tracking-normal text-white/25">Public-facing credit</span>
                 </label>
 
-                <label htmlFor={roleControlId} className="min-w-0 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-white/30">
+                <div className={`${styles.permissionRole} min-w-0 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-white/30`}>
                   Permission role
-                  <select
-                    id={roleControlId}
-                    aria-describedby={isOwner ? ownerReasonId : undefined}
-                    disabled={busy || isOwner}
-                    value={user.role}
-                    onChange={event => update(user, { role: event.target.value as AdminRole })}
-                    className="mt-2 min-h-11 w-full min-w-0 rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm font-normal tracking-normal text-white outline-none focus:border-[var(--helios-orange)] focus:ring-1 focus:ring-[var(--helios-orange)] disabled:cursor-not-allowed disabled:opacity-55"
-                  >
-                    {roles.map(item => <option key={item} disabled={item === "OWNER" && currentRole !== "OWNER"}>{item}</option>)}
-                  </select>
-                  <span className="mt-1.5 block text-[0.66rem] font-normal normal-case leading-4 tracking-normal text-white/25">Administrative access</span>
-                </label>
+                  {isOwner ? (
+                    <div
+                      id={roleControlId}
+                      role="status"
+                      aria-label="Owner permission role, read-only"
+                      aria-describedby={ownerReasonId}
+                      className="mt-2 flex min-h-11 w-full min-w-0 items-center justify-between gap-3 rounded-xl border border-[var(--helios-orange)]/20 bg-[var(--helios-orange)]/[0.05] px-3 py-2.5"
+                    >
+                      <span className="text-sm font-semibold tracking-[0.08em] text-white/80">OWNER</span>
+                      <span className="shrink-0 text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-[var(--helios-orange)]/70">Read-only</span>
+                    </div>
+                  ) : (
+                    <select
+                      id={roleControlId}
+                      disabled={busy}
+                      value={user.role}
+                      onChange={event => update(user, { role: event.target.value as AdminRole })}
+                      className="mt-2 min-h-11 w-full min-w-0 rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm font-normal tracking-normal text-white outline-none focus:border-[var(--helios-orange)] focus:ring-1 focus:ring-[var(--helios-orange)] disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      {roles.map(item => <option key={item} disabled={item === "OWNER" && currentRole !== "OWNER"}>{item}</option>)}
+                    </select>
+                  )}
+                  <span className="mt-1.5 block text-[0.66rem] font-normal normal-case leading-4 tracking-normal text-white/25">{isOwner ? "Ownership-protected access" : "Administrative access"}</span>
+                </div>
 
-                <div className="flex min-w-0 flex-wrap gap-2 xl:justify-end">
+                <div className={`${styles.actions} min-w-0`}>
                   <button
                     type="button"
                     disabled={busy || !canResetPassword}
                     title={!canResetPassword ? "Only an owner can reset another user's password." : undefined}
                     onClick={() => { setResetUser(user); setPassword(""); setMessage(null); }}
-                    className="admin-btn-secondary h-11! min-h-11!"
+                    className="admin-btn-secondary h-11! min-h-11! w-full"
                   >
                     Reset password
                   </button>
-                  <button
+                  {!isOwner && <button
                     type="button"
-                    aria-describedby={isOwner ? ownerReasonId : undefined}
-                    disabled={busy || isOwner || user.id === currentUserId}
-                    title={isOwner ? "The workspace owner cannot be deactivated." : user.id === currentUserId ? "You cannot deactivate your own account." : undefined}
+                    disabled={busy || user.id === currentUserId}
+                    title={user.id === currentUserId ? "You cannot deactivate your own account." : undefined}
                     onClick={() => update(user, { active: !user.active })}
-                    className={`${user.active ? "admin-btn-danger" : "admin-btn-secondary"} h-11! min-h-11!`}
+                    className={`${user.active ? "admin-btn-danger" : "admin-btn-secondary"} h-11! min-h-11! w-full`}
                   >
                     {user.active ? "Deactivate" : "Reactivate"}
-                  </button>
+                  </button>}
                 </div>
-                {isOwner && <p id={ownerReasonId} className="text-xs leading-5 text-[var(--helios-orange)]/65 xl:col-start-2 xl:col-span-3">The workspace owner cannot be deactivated or demoted here. Use the ownership transfer workflow to change ownership.</p>}
+                {isOwner && <div id={ownerReasonId} className={`${styles.ownerNotice} rounded-xl border border-[var(--helios-orange)]/15 bg-[var(--helios-orange)]/[0.035] px-4 py-3 text-xs leading-5 text-white/45`}><span className="font-medium text-[var(--helios-orange)]/75">Ownership protected.</span> The workspace owner cannot be deactivated or assigned a lower role here. Use the ownership-transfer workflow to change ownership.</div>}
               </article>
             );
           })}
