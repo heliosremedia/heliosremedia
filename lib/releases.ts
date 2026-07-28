@@ -21,7 +21,7 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
     version: "V1.8.9.1",
     slug: "v1-8-9-1",
-    releaseDate: null,
+    releaseDate: "2026-07-28",
     title: "Post-Release QA & Operational Recovery",
     summary: "Completes post-release operational safeguards and refines core Studio workflows without releasing the contained referral campaign.",
     newFeatures: [
@@ -46,7 +46,7 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
       "Complete authenticated read-only referral and provider verification before any campaign recovery.",
       "Complete one controlled signed-out Portfolio Intelligence event after deployment.",
     ],
-    status: "PLANNED",
+    status: "LIVE",
   },
   {
     version: "V1.8.9",
