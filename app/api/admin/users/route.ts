@@ -7,6 +7,7 @@ import { getAbsoluteUrl } from "@/lib/site";
 import { recordAuditEvent } from "@/lib/audit";
 import type { AdminRole, TeamDiscipline } from "@/app/generated/prisma/client";
 import { hashPassword } from "@/lib/auth/password";
+import { getProtectedOwnerMutationError } from "@/lib/workspace-account-policy";
 
 const roles: AdminRole[] = ["OWNER", "ADMIN", "EDITOR", "VIEWER"];
 const disciplineOptions: TeamDiscipline[] = ["PHOTOGRAPHER","VIDEOGRAPHER","DRONE_PILOT","EDITOR","CREATIVE_DIRECTOR","OTHER"];
@@ -64,10 +65,8 @@ export async function PATCH(request: Request) {
   if (target.role === "OWNER" && session.role !== "OWNER") return NextResponse.json({ success: false, error: "Only an owner can manage owner accounts." }, { status: 403 });
   if (target.id === session.userId && active === false) return NextResponse.json({ success: false, error: "You cannot deactivate your own account." }, { status: 400 });
   if (role === "OWNER" && session.role !== "OWNER") return NextResponse.json({ success: false, error: "Only an owner can grant owner access." }, { status: 403 });
-  if (target.role === "OWNER" && (role && role !== "OWNER" || active === false)) {
-    const ownerCount = await prisma.adminUser.count({ where: { workspaceId: session.workspaceId, role: "OWNER", active: true } });
-    if (ownerCount <= 1) return NextResponse.json({ success: false, error: "The final active owner cannot be demoted or deactivated." }, { status: 409 });
-  }
+  const protectedOwnerError = getProtectedOwnerMutationError(target.role, { role, active });
+  if (protectedOwnerError) return NextResponse.json({ success: false, error: protectedOwnerError }, { status: 409 });
   if (password !== null && (password.length < 12 || password.length > 128)) return NextResponse.json({ success: false, error: "Passwords must contain 12–128 characters." }, { status: 400 });
   if (password !== null && session.role !== "OWNER" && target.id !== session.userId) return NextResponse.json({ success: false, error: "Only an owner can reset another user's password." }, { status: 403 });
   if (nextDisplayName !== null && (!nextDisplayName || nextDisplayName.length > 120)) return NextResponse.json({ success: false, error: "Enter a valid display name." }, { status: 400 });
