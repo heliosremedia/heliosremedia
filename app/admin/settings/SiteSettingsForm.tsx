@@ -63,11 +63,32 @@ export default function SiteSettingsForm({
   mode?: "global" | "homepage";
 }) {
   const [settings, setSettings] = useState(initialSettings);
+  const [savedSettings, setSavedSettings] = useState(initialSettings);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<UploadState>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [voiceExpanded, setVoiceExpanded] = useState(false);
+  const [mediaPreview, setMediaPreview] = useState<"video" | "poster" | null>(null);
   const voiceCloseRef = useRef<HTMLButtonElement>(null);
+  const previewTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const dirty = JSON.stringify(settings) !== JSON.stringify(savedSettings);
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+  useEffect(() => {
+    if (!mediaPreview) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMediaPreview(null);
+    };
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("keydown", close);
+      previewTriggerRef.current?.focus();
+    };
+  }, [mediaPreview]);
   useEffect(() => {
     if (!voiceExpanded) return;
     voiceCloseRef.current?.focus();
@@ -105,6 +126,7 @@ export default function SiteSettingsForm({
       }
 
       setSettings(data.settings);
+      setSavedSettings(data.settings);
       setMessage(successMessage);
       return data.settings as PublicSiteSettings;
     } catch (error) {
@@ -360,7 +382,7 @@ export default function SiteSettingsForm({
   ] as const;
 
   const uploadBusy = uploading !== null || saving;
-  const bookingDirty = JSON.stringify(settings) !== JSON.stringify(initialSettings);
+  const bookingDirty = dirty;
   const bookingOnline = settings.bookingMode === "ONLINE";
   const bookingPill = settings.bookingMode === "ONLINE"
     ? "border-emerald-400/30 bg-emerald-400/[0.08] text-emerald-200"
@@ -373,8 +395,8 @@ export default function SiteSettingsForm({
     <div>
       {mode === "homepage" ? (
         <>
-      <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111]">
-        <div className="grid gap-8 border-b border-white/[0.08] p-6 lg:grid-cols-[0.8fr_1.2fr] lg:p-8">
+      <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111] p-6 lg:p-8">
+        <div>
           <div>
             <p className="text-[0.54rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">
               Homepage media
@@ -387,15 +409,19 @@ export default function SiteSettingsForm({
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="mt-7 grid gap-5 lg:grid-cols-2">
             <div className="rounded-2xl border border-white/[0.08] bg-black/25 p-5">
               <p className="text-[0.55rem] font-semibold uppercase tracking-[0.16em] text-white/45">
                 Hero video
               </p>
+              <div className="mt-4 aspect-video overflow-hidden rounded-xl border border-white/[0.08] bg-black">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {settings.heroPosterUrl ? <img src={settings.heroPosterUrl} alt="" className="h-full w-full object-cover opacity-75" /> : <div className="flex h-full items-center justify-center text-sm text-white/25">No preview available</div>}
+              </div>
               <p className="mt-3 text-sm text-white/70">
                 MP4 or WebM · 16:9 recommended · up to 500 MB
               </p>
-              <p className="mt-2 truncate text-xs text-white/30">
+              <p className="mt-2 break-all text-xs text-white/30" title={settings.heroVideoUrl || undefined}>
                 {settings.heroVideoUrl || "No video connected"}
               </p>
               {uploading?.kind === "video" ? (
@@ -412,6 +438,7 @@ export default function SiteSettingsForm({
                 </div>
               ) : null}
               <div className="mt-5 flex flex-wrap gap-3">
+                {settings.heroVideoUrl ? <button type="button" ref={(node) => { if (node && mediaPreview === null) previewTriggerRef.current = node; }} onClick={(event) => { previewTriggerRef.current = event.currentTarget; setMediaPreview("video"); }} className="admin-btn-secondary">Preview</button> : null}
                 <label className={`admin-btn-primary cursor-pointer ${uploadBusy ? "pointer-events-none opacity-40" : ""}`}>
                   {settings.heroVideoUrl ? "Replace video" : "Upload video"}
                   <input
@@ -446,7 +473,11 @@ export default function SiteSettingsForm({
               <p className="mt-3 text-sm text-white/70">
                 JPG, PNG, WebP, or AVIF · 1920×1080 recommended
               </p>
-              <p className="mt-2 truncate text-xs text-white/30">
+              <div className="mt-4 aspect-video overflow-hidden rounded-xl border border-white/[0.08] bg-black">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {settings.heroPosterUrl ? <img src={settings.heroPosterUrl} alt={settings.heroPosterAlt || "Current homepage poster"} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-sm text-white/25">No poster connected</div>}
+              </div>
+              <p className="mt-2 break-all text-xs text-white/30" title={settings.heroPosterUrl || undefined}>
                 {settings.heroPosterUrl || "No poster connected"}
               </p>
               {uploading?.kind === "poster" ? (
@@ -462,7 +493,8 @@ export default function SiteSettingsForm({
                   </p>
                 </div>
               ) : null}
-              <div className="mt-5">
+              <div className="mt-5 flex flex-wrap gap-3">
+                {settings.heroPosterUrl ? <button type="button" onClick={(event) => { previewTriggerRef.current = event.currentTarget; setMediaPreview("poster"); }} className="admin-btn-secondary">Full preview</button> : null}
                 <label className={`admin-btn-secondary cursor-pointer ${uploadBusy ? "pointer-events-none opacity-40" : ""}`}>
                   {settings.heroPosterUrl ? "Replace poster" : "Upload poster"}
                   <input
@@ -483,19 +515,23 @@ export default function SiteSettingsForm({
         </div>
       </section>
 
+      <section className="mt-6 rounded-2xl border border-white/[0.08] bg-[#111] p-6 lg:p-8">
+        <div className="flex flex-wrap items-start justify-between gap-5">
+          <div><p className="text-[0.54rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">Availability message</p><h2 className="mt-3 text-2xl font-light text-white">Public availability</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-white/40">Shown as the homepage availability signal. Global booking availability remains the authoritative control for whether booking actions are online.</p></div>
+          <label className="inline-flex min-h-11 items-center gap-3 text-xs uppercase tracking-[0.14em] text-white/55"><input type="checkbox" checked={settings.availabilityEnabled} onChange={(event) => setSettings((current) => ({ ...current, availabilityEnabled: event.target.checked }))} /> Enabled</label>
+        </div>
+        <div className="mt-6 grid gap-4 md:grid-cols-3"><label className="text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Status<select value={settings.availabilityStatus} onChange={(event) => setSettings((current) => ({ ...current, availabilityStatus: event.target.value as PublicSiteSettings["availabilityStatus"] }))} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]"><option value="AVAILABLE">Available · green</option><option value="ADVISORY">Advisory · amber</option><option value="CRITICAL">Critical · red</option></select></label><label className="text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Label<input value={settings.availabilityLabel ?? ""} onChange={(event) => update("availabilityLabel", event.target.value)} placeholder="Now booking" className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label><label className="text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Message or month<input value={settings.availabilityMessage ?? ""} onChange={(event) => update("availabilityMessage", event.target.value)} placeholder="August" className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label></div>
+        <div className="mt-5 rounded-xl border border-white/[0.08] bg-black/25 p-4" role="status"><p className="text-[0.52rem] uppercase tracking-[0.15em] text-white/30">Public preview</p><p className="mt-2 text-sm text-white/65">{settings.availabilityEnabled && settings.availabilityMessage ? `${settings.availabilityLabel ? `${settings.availabilityLabel}: ` : ""}${settings.availabilityMessage}` : "Hidden"}</p></div>
+      </section>
 
       <section className="mt-6 rounded-2xl border border-white/[0.08] bg-[#111] p-6 lg:p-8">
-        <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
+        <div>
           <div>
             <p className="text-[0.54rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">Homepage copy</p>
             <h2 className="mt-3 text-2xl font-light text-white">Public section content</h2>
             <p className="mt-3 max-w-lg text-sm leading-6 text-white/40">Edit homepage-only headlines, labels, links, captions, and availability language. Empty fields fall back to the current production copy.</p>
           </div>
-          <div className="space-y-6">
-            <div className="rounded-2xl border border-white/[0.08] bg-black/25 p-5">
-              <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-[0.55rem] font-semibold uppercase tracking-[0.16em] text-white/45">Availability message</p><p className="mt-2 text-xs leading-5 text-white/35">Preview: {settings.availabilityEnabled && settings.availabilityMessage ? `${settings.availabilityLabel ? `${settings.availabilityLabel}: ` : ""}${settings.availabilityMessage}` : "Hidden"}</p></div><label className="inline-flex items-center gap-3 text-xs uppercase tracking-[0.14em] text-white/55"><input type="checkbox" checked={settings.availabilityEnabled} onChange={(event) => setSettings((current) => ({ ...current, availabilityEnabled: event.target.checked }))} /> Enabled</label></div>
-              <div className="mt-4 grid gap-4 sm:grid-cols-3"><label className="text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Status<select value={settings.availabilityStatus} onChange={(event) => setSettings((current) => ({ ...current, availabilityStatus: event.target.value as PublicSiteSettings["availabilityStatus"] }))} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]"><option value="AVAILABLE">Available · green</option><option value="ADVISORY">Advisory · amber</option><option value="CRITICAL">Critical · red</option></select></label><label className="text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Label<input value={settings.availabilityLabel ?? ""} onChange={(event) => update("availabilityLabel", event.target.value)} placeholder="Now booking" className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label><label className="text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Message or month<input value={settings.availabilityMessage ?? ""} onChange={(event) => update("availabilityMessage", event.target.value)} placeholder="August" className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label></div>
-            </div>
+          <div className="mt-7 space-y-6">
             {([
               ["Hero", [["heroEyebrow","Eyebrow"],["heroHeadlineLineOne","Heading line 1"],["heroHeadlineLineTwo","Heading line 2"],["heroBody","Body copy"],["heroPrimaryLabel","Primary button"],["heroPrimaryDestination","Primary destination"],["heroSecondaryLabel","Secondary button"],["heroSecondaryDestination","Secondary destination"],["heroPosterAlt","Poster alt text"]]],
               ["Our Standard", [["standardEyebrow","Eyebrow"],["standardHeading","Headline"],["standardHeadingAccent","Accent"],["standardBody","Body copy"]]],
@@ -680,19 +716,21 @@ export default function SiteSettingsForm({
       <div className="sticky bottom-5 mt-6 flex items-center justify-between gap-5 rounded-2xl border border-white/10 bg-[#161616]/95 p-4 shadow-2xl backdrop-blur-xl">
         <p role="status" className="text-sm text-white/40">
           {message ||
-            (mode === "homepage"
-              ? "Homepage media changes apply after saving."
-              : "Changes apply across the public website after saving.")}
+            (dirty ? "Unsaved changes." : "All settings are saved.")}
         </p>
         <button
           type="button"
           onClick={() => void persist(settings)}
-          disabled={saving || uploading !== null}
+          disabled={saving || uploading !== null || !dirty}
           className="shrink-0 admin-btn-primary"
         >
-          {saving ? "Saving…" : "Save settings"}
+          {saving ? "Saving…" : mode === "homepage" ? "Save Homepage Settings" : "Save settings"}
         </button>
       </div>
+      {mediaPreview ? <div role="dialog" aria-modal="true" aria-label={`${mediaPreview === "video" ? "Hero video" : "Poster image"} preview`} className="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setMediaPreview(null); }}><div className="w-full max-w-5xl rounded-2xl border border-white/10 bg-[#111] p-5"><div className="mb-4 flex items-center justify-between gap-4"><p className="text-sm text-white/60">{mediaPreview === "video" ? "Hero video preview" : "Poster image preview"}</p><button type="button" autoFocus onClick={() => setMediaPreview(null)} className="admin-btn-secondary">Close</button></div>{mediaPreview === "video" ? <video src={settings.heroVideoUrl || undefined} poster={settings.heroPosterUrl || undefined} controls muted playsInline className="max-h-[75vh] w-full bg-black" /> : <>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={settings.heroPosterUrl || ""} alt={settings.heroPosterAlt || "Current homepage poster"} className="max-h-[75vh] w-full object-contain" />
+      </>}</div></div> : null}
     </div>
   );
 }

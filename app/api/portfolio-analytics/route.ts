@@ -30,21 +30,21 @@ export async function POST(request: Request) {
     const key = clientKey(request);
     if (rateLimited(key)) {
       console.info("[portfolio-analytics] rate_limited");
-      return NextResponse.json({ stored: false, category: "rate_limited" }, { status: 429 });
+      return NextResponse.json({ state: "rejected", stored: false, category: "rate_limited" }, { status: 429 });
     }
     let body: Record<string, unknown>;
     try {
       body = await request.json() as Record<string, unknown>;
     } catch {
       console.info("[portfolio-analytics] invalid_payload");
-      return NextResponse.json({ stored: false, category: "invalid_payload" }, { status: 400 });
+      return NextResponse.json({ state: "rejected", stored: false, category: "invalid_payload" }, { status: 400 });
     }
     const event = parsePortfolioEvent(body);
     const sessionId = typeof body.sessionId === "string" && /^[a-zA-Z0-9_-]{12,80}$/.test(body.sessionId)
       ? body.sessionId : null;
     if (!event || !sessionId) {
       console.info("[portfolio-analytics] invalid_payload");
-      return NextResponse.json({ stored: false, category: "invalid_payload" }, { status: 400 });
+      return NextResponse.json({ state: "rejected", stored: false, category: "invalid_payload" }, { status: 400 });
     }
 
     let projectId: string | null = null;
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
       });
       if (!project) {
         console.info("[portfolio-analytics] unknown_project");
-        return NextResponse.json({ stored: false, category: "unknown_project" }, { status: 404 });
+        return NextResponse.json({ state: "rejected", stored: false, category: "unknown_project" }, { status: 404 });
       }
       projectId = project.id;
       workspaceId = project.workspaceId;
@@ -72,13 +72,13 @@ export async function POST(request: Request) {
     }
     if (!workspaceId) {
       console.warn("[portfolio-analytics] workspace_resolution_failed");
-      return NextResponse.json({ stored: false, category: "workspace_resolution_failed" }, { status: 422 });
+      return NextResponse.json({ state: "rejected", stored: false, category: "workspace_resolution_failed" }, { status: 422 });
     }
 
     const deviceCategory = classifyDevice(request.headers.get("user-agent"));
     if (deviceCategory === "automated") {
       console.info("[portfolio-analytics] automated_traffic_ignored");
-      return NextResponse.json({ stored: false, category: "automated_traffic_ignored" }, { status: 202 });
+      return NextResponse.json({ state: "accepted", stored: false, category: "automated_traffic_ignored" }, { status: 202 });
     }
     const { trafficSource, referrerHost } = normalizeReferrer(request.headers.get("referer"));
     const created = await prisma.portfolioAnalyticsEvent.create({
@@ -108,13 +108,21 @@ export async function POST(request: Request) {
     if (created && created.eventKey?.startsWith("00")) {
       console.info("[portfolio-analytics] accepted_event_sample");
     }
-    return NextResponse.json({ stored: true, duplicate: !created }, { status: created ? 201 : 200 });
+    return NextResponse.json({
+      state: "stored",
+      stored: true,
+      duplicate: !created,
+      receipt: event.eventId,
+    }, { status: created ? 201 : 200 });
   } catch (error) {
     const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
     const category = code === "P2021" || code === "P2022"
       ? "migration_or_schema_failure"
       : code.startsWith("P") ? "database_write_failure" : "unexpected_server_failure";
     console.error(`[portfolio-analytics] ${category}`);
-    return NextResponse.json({ stored: false, category }, { status: 202 });
+    return NextResponse.json(
+      { state: "failed", stored: false, category: "storage_unavailable" },
+      { status: category === "migration_or_schema_failure" ? 503 : 500 },
+    );
   }
 }
