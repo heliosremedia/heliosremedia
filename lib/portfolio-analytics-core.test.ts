@@ -69,7 +69,7 @@ test("analytics client confirms storage before suppressing one-time retries", ()
     new URL("../app/components/PortfolioAnalytics.tsx", import.meta.url),
     "utf8",
   );
-  assert.match(source, /result\?\.stored/);
+  assert.match(source, /result\?\.state === "stored"/);
   assert.match(source, /attempt < 2/);
   assert.doesNotMatch(source, /sendBeacon/);
   assert.doesNotMatch(source, /response\.ok && onceKey/);

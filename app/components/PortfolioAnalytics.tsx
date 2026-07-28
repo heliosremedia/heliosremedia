@@ -40,9 +40,9 @@ export function sendPortfolioEvent(detail: Detail) {
         method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true,
       }).then(async response => {
         const result = response.ok
-          ? await response.json().catch(() => null) as { stored?: boolean } | null
+          ? await response.json().catch(() => null) as { state?: string; stored?: boolean } | null
           : null;
-        if (result?.stored) {
+        if (result?.state === "stored" && result.stored) {
           if (onceKey) window.sessionStorage.setItem(onceKey, "1");
           return;
         }

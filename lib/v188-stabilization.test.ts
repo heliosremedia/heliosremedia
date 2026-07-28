@@ -7,7 +7,7 @@ const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.ur
 test("portfolio ingestion confirms storage before one-time suppression", () => {
   const client = read("app/components/PortfolioAnalytics.tsx");
   const route = read("app/api/portfolio-analytics/route.ts");
-  assert.match(client, /result\?\.stored/);
+  assert.match(client, /result\?\.state === "stored"/);
   assert.match(client, /attempt < 2/);
   assert.doesNotMatch(client, /sendBeacon/);
   assert.match(route, /stored: true/);

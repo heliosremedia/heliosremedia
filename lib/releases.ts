@@ -19,6 +19,37 @@ export type StudioRelease = {
 // repository records.
 export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
+    version: "V1.8.9",
+    slug: "v1-8-9",
+    releaseDate: null,
+    title: "Homepage Curation & Portfolio Intelligence Recovery",
+    summary: "Refines Homepage Curation and restores accurate, privacy-conscious Portfolio Intelligence ingestion and health reporting.",
+    newFeatures: [
+      "Dedicated Homepage Media, Availability Message, and full-width Homepage Copy workspaces",
+      "User-initiated hero video and poster previews",
+      "Sanitized public analytics health reporting across configuration, ingestion, storage, and reporting",
+    ],
+    improvements: [
+      "Clear page-level dirty, saving, saved, error, and upload progress states",
+      "Responsive homepage editors with intentional long-media metadata handling",
+      "Database-confirmed analytics receipts and bounded retry behavior",
+    ],
+    bugFixes: [
+      "Persistence failures now return accurate server-error statuses instead of accepted responses",
+      "One-time public events are suppressed only after confirmed storage",
+      "Availability guidance clarifies its relationship to authoritative global booking controls",
+    ],
+    securityInfrastructure: [
+      "Health responses expose sanitized categories without database, tenant, session, or connection details",
+      "Existing tenant-scoped analytics writes, idempotency, and privacy filtering remain enforced",
+    ],
+    administratorActions: [
+      "Complete a controlled signed-out production event after deployment and confirm it in Portfolio Intelligence.",
+      "Review the stalled referral campaign only through sanitized read-only diagnostics.",
+    ],
+    status: "PLANNED",
+  },
+  {
     version: "V1.8.8",
     slug: "v1-8-8",
     releaseDate: "2026-07-28",
