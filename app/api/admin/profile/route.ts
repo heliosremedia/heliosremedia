@@ -32,6 +32,7 @@ export async function PATCH(request: Request) {
     const firstName = optionalText(body.firstName, 80);
     const lastName = optionalText(body.lastName, 80);
     const displayName = optionalText(body.displayName, 120);
+    const title = optionalText(body.title, 120);
     if (!displayName) throw new Error("INVALID_INPUT");
     const email = String(body.email || "").trim().toLowerCase();
     if (!emailPattern.test(email) || email.length > 320) throw new Error("INVALID_EMAIL");
@@ -56,11 +57,11 @@ export async function PATCH(request: Request) {
     const updated = await prisma.adminUser.update({
       where: { id: current.id },
       data: {
-        firstName, lastName, displayName, email, phone, notificationPreferences,
+        firstName, lastName, displayName, title, email, phone, notificationPreferences,
         ...(passwordChanged ? { passwordHash: await hashPassword(newPassword), sessionVersion: { increment: 1 }, failedLoginCount: 0, lockedUntil: null } : {}),
         ...(emailChanged ? { sessionVersion: { increment: 1 } } : {}),
       },
-      select: { id: true, firstName: true, lastName: true, displayName: true, email: true, phone: true, notificationPreferences: true },
+      select: { id: true, firstName: true, lastName: true, displayName: true, title: true, email: true, phone: true, notificationPreferences: true },
     });
     if (emailChanged || passwordChanged) {
       await recordAuditEvent({

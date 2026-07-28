@@ -2,10 +2,10 @@
 
 import { useEffect,useRef,useState } from "react";
 
-export default function ShareProject({ url, title, summary }: { url: string; title: string; summary: string }) {
+export default function ShareProject({ url, title, summary, projectId }: { url: string; title: string; summary: string; projectId: string }) {
   const [open,setOpen]=useState(false); const [copied,setCopied]=useState(false); const rootRef=useRef<HTMLDivElement>(null); const triggerRef=useRef<HTMLButtonElement>(null);
   useEffect(()=>{if(!open)return;function close(event:MouseEvent){if(!rootRef.current?.contains(event.target as Node))setOpen(false);}function key(event:KeyboardEvent){if(event.key==="Escape"){setOpen(false);triggerRef.current?.focus();}}document.addEventListener("mousedown",close);document.addEventListener("keydown",key);return()=>{document.removeEventListener("mousedown",close);document.removeEventListener("keydown",key);};},[open]);
-  function track(method:string){ window.dispatchEvent(new CustomEvent("helios:project-share",{detail:{method,url}})); }
+  function track(method:string){ window.dispatchEvent(new CustomEvent("helios:portfolio-analytics",{detail:{eventName:"PROJECT_SHARE",projectId,channel:method,target:url}})); }
   async function copy(){try{await navigator.clipboard.writeText(url);}catch{const field=document.createElement("textarea");field.value=url;document.body.append(field);field.select();document.execCommand("copy");field.remove();}setCopied(true);setOpen(false);track("copy");setTimeout(()=>setCopied(false),2500);}
   async function activate(){const mobile=window.matchMedia("(max-width: 767px)").matches;if(mobile&&navigator.share){try{await navigator.share({title,text:summary,url});track("native");return;}catch(error){if(error instanceof DOMException&&error.name==="AbortError")return;}}if(mobile){await copy();return;}setOpen(value=>!value);}
   const links=[

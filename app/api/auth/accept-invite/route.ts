@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   if (!invitation || invitation.acceptedAt || invitation.revokedAt || invitation.expiresAt <= new Date()) return NextResponse.json({ success: false, error: "This invitation is invalid or expired." }, { status: 400 });
   const passwordHash = await hashPassword(password);
   const user = await prisma.$transaction(async (tx) => {
-    const created = await tx.adminUser.create({ data: { email: invitation.email, displayName: invitation.displayName, firstName: invitation.firstName, lastName: invitation.lastName, phone: invitation.phone, disciplines: invitation.disciplines, role: invitation.role, passwordHash, workspaceId: invitation.workspaceId } });
+    const created = await tx.adminUser.create({ data: { email: invitation.email, displayName: invitation.displayName, title: invitation.title, firstName: invitation.firstName, lastName: invitation.lastName, phone: invitation.phone, disciplines: invitation.disciplines, role: invitation.role, passwordHash, workspaceId: invitation.workspaceId } });
     await tx.adminInvitation.update({ where: { id: invitation.id }, data: { acceptedAt: new Date() } });
     return created;
   });

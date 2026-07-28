@@ -4,6 +4,7 @@ import { useState } from "react";
 
 type Profile = {
   firstName: string | null; lastName: string | null; displayName: string;
+  title: string | null;
   email: string; phone: string | null;
   notificationPreferences: unknown;
 };
@@ -15,7 +16,7 @@ export default function ProfileManager({ initialProfile }: { initialProfile: Pro
     ? initialProfile.notificationPreferences as Record<string, boolean> : {};
   const [form, setForm] = useState({
     firstName: initialProfile.firstName || "", lastName: initialProfile.lastName || "",
-    displayName: initialProfile.displayName, email: initialProfile.email, phone: initialProfile.phone || "",
+    displayName: initialProfile.displayName, title: initialProfile.title || "", email: initialProfile.email, phone: initialProfile.phone || "",
     currentPassword: "", newPassword: "",
     security: preferences.security !== false, invitations: preferences.invitations !== false,
     publishing: preferences.publishing !== false, operations: preferences.operations !== false,
@@ -49,7 +50,10 @@ export default function ProfileManager({ initialProfile }: { initialProfile: Pro
         <label className="text-xs text-white/35">First name<input value={form.firstName} onChange={e=>patch("firstName",e.target.value)} className={field}/></label>
         <label className="text-xs text-white/35">Last name<input value={form.lastName} onChange={e=>patch("lastName",e.target.value)} className={field}/></label>
       </div>
-      <label className="block text-xs text-white/35">Display name<input required value={form.displayName} onChange={e=>patch("displayName",e.target.value)} className={field}/></label>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block text-xs text-white/35">Display name<input required value={form.displayName} onChange={e=>patch("displayName",e.target.value)} className={field}/><span className="mt-2 block text-[0.68rem] leading-5 text-white/25">Your name in Studio and public project credits.</span></label>
+        <label className="block text-xs text-white/35">Professional title<input maxLength={120} value={form.title} onChange={e=>patch("title",e.target.value)} className={field}/><span className="mt-2 block text-[0.68rem] leading-5 text-white/25">Public-facing title only. This never changes account permissions.</span></label>
+      </div>
       <label className="block text-xs text-white/35">Email address<input required type="email" value={form.email} onChange={e=>patch("email",e.target.value)} className={field}/></label>
       <label className="block text-xs text-white/35">Phone number<input type="tel" value={form.phone} onChange={e=>patch("phone",e.target.value)} className={field}/></label>
       <fieldset className="rounded-xl border border-white/[0.07] p-4"><legend className="px-2 text-xs text-white/35">Notifications</legend><div className="grid gap-3 sm:grid-cols-2">{([["security","Security alerts"],["invitations","Invitations"],["publishing","Publishing activity"],["operations","Operational incidents"]] as const).map(([key,label])=><label key={key} className="flex items-center gap-3 text-sm text-white/50"><input type="checkbox" checked={form[key]} onChange={e=>patch(key,e.target.checked)}/>{label}</label>)}</div></fieldset>

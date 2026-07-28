@@ -15,6 +15,8 @@ import { getAbsoluteUrl } from "@/lib/site";
 
 import PortfolioGallery from "./PortfolioGallery";
 import ShareProject from "./ShareProject";
+import PortfolioAnalytics from "@/app/components/PortfolioAnalytics";
+import TrackedProjectVideo from "./TrackedProjectVideo";
 
 export const dynamic = "force-dynamic";
 
@@ -92,7 +94,7 @@ async function getProject(slug: string, previewToken?: string) {
       contributors: {
         where: { public: true },
         orderBy: { displayOrder: "asc" },
-        select: { displayNameSnapshot: true, disciplinesSnapshot: true, externalDiscipline: true },
+        select: { displayNameSnapshot: true, titleSnapshot: true, disciplinesSnapshot: true, externalDiscipline: true },
       },
       media: {
         where: {
@@ -338,29 +340,31 @@ export default async function PortfolioProjectPage({
   ].filter((fact): fact is { label: string; value: string } => Boolean(fact));
   const credits = [
     ...project.contributors.map(contributor => ({
-      label: contributor.externalDiscipline || (Array.isArray(contributor.disciplinesSnapshot) ? contributor.disciplinesSnapshot.map(String).join(" · ").replaceAll("_"," ") : "Contributor"),
+      label: contributor.externalDiscipline || contributor.titleSnapshot,
       value: contributor.displayNameSnapshot,
+      internal: !contributor.externalDiscipline,
     })),
     project.details?.listingAgent
-      ? { label: "Listing agent", value: project.details.listingAgent }
+      ? { label: "Listing agent", value: project.details.listingAgent, internal: false }
       : null,
     project.details?.brokerage
-      ? { label: "Brokerage", value: project.details.brokerage }
+      ? { label: "Brokerage", value: project.details.brokerage, internal: false }
       : null,
     project.details?.builder
-      ? { label: "Builder", value: project.details.builder }
+      ? { label: "Builder", value: project.details.builder, internal: false }
       : null,
     project.details?.architect
-      ? { label: "Architect", value: project.details.architect }
+      ? { label: "Architect", value: project.details.architect, internal: false }
       : null,
     project.details?.interiorDesigner
       ? {
           label: "Interior designer",
           value: project.details.interiorDesigner,
+          internal: false,
         }
       : null,
-  ].filter((credit): credit is { label: string; value: string } =>
-    Boolean(credit),
+  ].filter((credit): credit is { label: string | null; value: string; internal: boolean } =>
+    Boolean(credit?.value),
   );
 
   return (
@@ -373,6 +377,7 @@ export default async function PortfolioProjectPage({
         }}
       />
       <Navbar />
+      {!preview && <PortfolioAnalytics page="project" projectId={project.id}/>}
 
       {leadVideoMedia && leadVideo ? (
         <section id="project-film" className="relative scroll-mt-24 overflow-hidden border-b border-white/[0.08] bg-[#0b0b0c]">
@@ -381,26 +386,7 @@ export default async function PortfolioProjectPage({
 
           <div className="container-shell relative pb-16 pt-32 sm:pb-20 sm:pt-36">
             <div className="overflow-hidden border border-white/[0.09] bg-black shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
-              {leadVideo.embedUrl ? (
-                <iframe
-                  src={leadVideo.embedUrl}
-                  title={leadVideoMedia.originalFilename || project.title}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  className="aspect-video w-full border-0 bg-black"
-                />
-              ) : leadVideo.playbackUrl ? (
-                <video
-                  src={leadVideo.playbackUrl}
-                  controls
-                  playsInline
-                  preload="metadata"
-                  className="aspect-video w-full bg-black object-contain"
-                >
-                  Your browser cannot play this hosted video.
-                </video>
-              ) : null}
+              <TrackedProjectVideo projectId={project.id} mediaId={leadVideoMedia.id} title={leadVideoMedia.originalFilename || project.title} embedUrl={leadVideo.embedUrl || undefined} playbackUrl={leadVideo.playbackUrl || undefined}/>
             </div>
 
             <div className="mt-10 max-w-5xl sm:mt-14">
@@ -484,7 +470,7 @@ export default async function PortfolioProjectPage({
             <span aria-hidden="true">←</span>
             Back to all projects
           </Link>
-          <ShareProject url={projectUrl} title={project.seoTitle||project.title} summary={project.seoDescription||project.shortDescription||project.description||`Explore ${project.title}.`}/>
+          <ShareProject projectId={project.id} url={projectUrl} title={project.seoTitle||project.title} summary={project.seoDescription||project.shortDescription||project.description||`Explore ${project.title}.`}/>
         </div>
       </nav>
 
@@ -575,6 +561,7 @@ export default async function PortfolioProjectPage({
           </div>
 
           <PortfolioGallery
+            projectId={project.id}
             projectTitle={project.title}
             collectionLabel={collection.label}
             cinematic={collection.value === "CINEMATIC_FILM"}
@@ -616,11 +603,11 @@ export default async function PortfolioProjectPage({
 
               <div className="mt-7 grid gap-x-12 gap-y-6 sm:grid-cols-2">
                 {credits.map((credit) => (
-                  <div key={credit.label}>
-                    <p className="text-[0.53rem] font-semibold uppercase tracking-[0.17em] text-white/25">
+                  <div key={`${credit.label || "contributor"}-${credit.value}`}>
+                    {credit.label&&<p className={`text-[0.53rem] font-semibold uppercase tracking-[0.17em] ${credit.internal?"text-[var(--helios-orange)]/75":"text-white/25"}`}>
                       {credit.label}
-                    </p>
-                    <p className="mt-2 font-display text-2xl font-light text-white/75">
+                    </p>}
+                    <p className={`${credit.label?"mt-2":""} font-display text-2xl font-light text-white/75`}>
                       {credit.value}
                     </p>
                   </div>
@@ -633,6 +620,9 @@ export default async function PortfolioProjectPage({
                 href={project.details.propertyWebsiteUrl}
                 target="_blank"
                 rel="noreferrer"
+                data-analytics-event="OUTBOUND_LINK_CLICK"
+                data-analytics-channel="outbound"
+                data-analytics-target={project.details.propertyWebsiteUrl}
                 className="inline-flex min-h-12 items-center justify-center rounded-[3px] bg-[var(--helios-orange)] px-7 text-[0.58rem] font-semibold uppercase tracking-[0.17em] text-white transition hover:bg-[var(--helios-orange-hover)]"
               >
                 View property website

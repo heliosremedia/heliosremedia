@@ -12,16 +12,16 @@ export default async function UsersPage() {
     prisma.adminUser.findMany({
       where: { workspaceId: session.workspaceId },
       orderBy: [{ active: "desc" }, { displayName: "asc" }],
-      select: { id: true, email: true, displayName: true, firstName: true, lastName: true, phone: true, disciplines: true, role: true, active: true, lastLoginAt: true, createdAt: true },
+      select: { id: true, email: true, displayName: true, title: true, firstName: true, lastName: true, phone: true, disciplines: true, role: true, active: true, lastLoginAt: true, createdAt: true },
     }),
     prisma.adminInvitation.findMany({
       where: { workspaceId: session.workspaceId, acceptedAt: null, revokedAt: null },
       orderBy: { createdAt: "desc" },
-      select: { id: true, email: true, displayName: true, role: true, expiresAt: true, createdAt: true },
+      select: { id: true, email: true, displayName: true, title: true, role: true, expiresAt: true, createdAt: true },
     }),
     prisma.adminUser.findUniqueOrThrow({
       where: { id: session.userId },
-      select: { firstName: true, lastName: true, displayName: true, email: true, phone: true, notificationPreferences: true },
+      select: { firstName: true, lastName: true, displayName: true, title: true, email: true, phone: true, notificationPreferences: true },
     }),
   ]);
   return <div className="space-y-7">

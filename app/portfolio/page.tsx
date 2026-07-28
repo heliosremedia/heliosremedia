@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import PortfolioAnalytics from "@/app/components/PortfolioAnalytics";
+import { CompactFilterLink } from "@/app/components/CompactFilter";
 
 import Footer from "@/app/components/Footer";
 import ManagedCtaSection from "@/app/components/ManagedCtaSection";
@@ -297,6 +299,7 @@ export default async function PortfolioPage({
   return (
     <main className="min-h-screen bg-[var(--background)] text-white">
       <Navbar variant="solid" />
+      <PortfolioAnalytics page="portfolio"/>
 
       <section className="relative overflow-hidden border-b border-white/[0.08]">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_20%,rgba(217,107,43,0.14),transparent_34%)]" />
@@ -325,29 +328,23 @@ export default async function PortfolioPage({
           className="flex flex-wrap justify-center gap-2"
           aria-label="Filter portfolio"
         >
-          <Link
+          <CompactFilterLink
             href="/portfolio#selected-work"
-            className={`min-h-11 rounded-full border px-4 py-2.5 text-[0.56rem] font-semibold uppercase tracking-[0.15em] transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--helios-orange)] ${
-              !selectedService
-                ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] text-black"
-                : "border-white/10 text-white/45 hover:border-white/25 hover:text-white"
-            }`}
+            active={!selectedService}
+            analyticsLabel="all-work"
           >
             All work
-          </Link>
+          </CompactFilterLink>
 
           {services.map((service) => (
-            <Link
+            <CompactFilterLink
               key={service.id}
               href={`/portfolio?service=${service.slug}#${service.slug}`}
-              className={`min-h-11 rounded-full border px-4 py-2.5 text-[0.56rem] font-semibold uppercase tracking-[0.15em] transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--helios-orange)] ${
-                selectedService?.id === service.id
-                  ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] text-black"
-                  : "border-white/10 text-white/45 hover:border-white/25 hover:text-white"
-              }`}
+              active={selectedService?.id === service.id}
+              analyticsLabel={service.slug}
             >
               {service.name}
-            </Link>
+            </CompactFilterLink>
           ))}
         </div>
       </section>
@@ -449,6 +446,9 @@ export default async function PortfolioPage({
                 >
                   <Link
                     href={`/portfolio/${project.slug}`}
+                    data-analytics-event="PORTFOLIO_CARD_CLICK"
+                    data-analytics-project={project.id}
+                    data-analytics-channel="portfolio"
                     aria-label={`View ${project.title}`}
                     className="absolute inset-0 z-20"
                   />
