@@ -21,7 +21,7 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
     version: "V1.8.9.4",
     slug: "v1-8-9-4",
-    releaseDate: null,
+    releaseDate: "2026-07-28",
     title: "Referral Campaign Scheduling & Visibility",
     summary: "Separates safe campaign preparation from explicitly approved delivery scheduling and makes every next action visible.",
     newFeatures: [
@@ -44,7 +44,7 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
       "Review the prepared audience, sender, content, sequence, and proposed time before confirming a schedule.",
       "Do not schedule the production audience until an authorized internal test has been completed.",
     ],
-    status: "PLANNED",
+    status: "LIVE",
   },
   {
     version: "V1.8.9.3",
