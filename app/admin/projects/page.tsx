@@ -8,6 +8,7 @@ import ProjectListManager from "./ProjectListManager";
 import AdminSummaryCards from "@/app/admin/components/AdminSummaryCards";
 import AdminPageLayout, { AdminPageHeader } from "@/app/admin/components/AdminPageLayout";
 import ThumbnailRepairButton from "./ThumbnailRepairButton";
+import { requireAdminSession } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +61,7 @@ export default async function ProjectsPage({
   searchParams,
 }: ProjectsPageProps) {
   const params = await searchParams;
+  const session = await requireAdminSession();
   const search = params.search?.trim() ?? "";
   const requestedStatus = params.status?.toUpperCase() ?? "ALL";
   const activeStatus = statusOptions.some(
@@ -73,6 +75,7 @@ export default async function ProjectsPage({
     Number.parseInt(params.page ?? "1", 10) || 1,
   );
   const where = {
+    workspaceId: session.workspaceId,
     ...(activeStatus !== "ALL"
       ? {
           status: activeStatus as "DRAFT" | "PUBLISHED" | "ARCHIVED",

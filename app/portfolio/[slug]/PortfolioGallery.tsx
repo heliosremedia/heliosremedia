@@ -18,6 +18,7 @@ export type PortfolioGalleryItem = {
 };
 
 type PortfolioGalleryProps = {
+  projectId: string;
   projectTitle: string;
   collectionLabel: string;
   cinematic?: boolean;
@@ -27,6 +28,7 @@ type PortfolioGalleryProps = {
 type GalleryView = "list" | "gallery" | "showcase";
 
 export default function PortfolioGallery({
+  projectId,
   projectTitle,
   collectionLabel,
   cinematic = false,
@@ -71,6 +73,21 @@ export default function PortfolioGallery({
     [activeMediaId, previewItems],
   );
   const activeMedia = activeIndex >= 0 ? previewItems[activeIndex] : null;
+  function track(eventName: string, mediaId: string, milestone?: number) {
+    window.dispatchEvent(new CustomEvent("helios:portfolio-analytics", { detail: {
+      eventName, projectId, channel: cinematic ? "video" : "gallery",
+      target: `#media-${mediaId}`, metadata: milestone ? { milestone } : undefined,
+      onceKey: `${eventName}:${projectId}:${mediaId}`,
+    } }));
+  }
+  function trackNativeVideo(event: React.SyntheticEvent<HTMLVideoElement>, mediaId: string) {
+    const video = event.currentTarget;
+    if (!video.duration) return;
+    const percent = video.currentTime / video.duration;
+    if (percent >= .75) track("VIDEO_PROGRESS_75", mediaId, 75);
+    else if (percent >= .5) track("VIDEO_PROGRESS_50", mediaId, 50);
+    else if (percent >= .25) track("VIDEO_PROGRESS_25", mediaId, 25);
+  }
 
   useEffect(() => {
     const saved = window.sessionStorage.getItem(storageKey);
@@ -245,6 +262,7 @@ export default function PortfolioGallery({
                 onClick={(event) => {
                   triggerRef.current = event.currentTarget;
                   setActiveMediaId(showcaseMedia.id);
+                  track("GALLERY_IMAGE_OPEN", showcaseMedia.id);
                 }}
                 aria-label={`Open ${showcaseMedia.alt} in fullscreen`}
                 className="relative flex w-full cursor-zoom-in items-center justify-center sm:h-full"
@@ -265,6 +283,8 @@ export default function PortfolioGallery({
                 src={showcaseExternalMedia.embedUrl}
                 title={showcaseMedia.alt}
                 autoplay={cinematic}
+                projectId={projectId}
+                mediaId={showcaseMedia.id}
                 className={`max-h-full border-0 bg-black ${
                   showcaseMedia.isVertical
                     ? "aspect-[9/16] h-[72svh] w-auto max-w-full"
@@ -277,6 +297,9 @@ export default function PortfolioGallery({
                 controls
                 playsInline
                 preload="metadata"
+                onPlay={()=>track("VIDEO_START",showcaseMedia.id)}
+                onTimeUpdate={event=>trackNativeVideo(event,showcaseMedia.id)}
+                onEnded={()=>track("VIDEO_COMPLETE",showcaseMedia.id,100)}
                 className={`max-h-full bg-black ${
                   showcaseMedia.isVertical
                     ? "aspect-[9/16] h-[72svh] w-auto max-w-full"
@@ -407,6 +430,7 @@ export default function PortfolioGallery({
                     onClick={(event) => {
                       triggerRef.current = event.currentTarget;
                       setActiveMediaId(item.id);
+                      track("GALLERY_IMAGE_OPEN", item.id);
                     }}
                     aria-label={`Open ${item.alt} in fullscreen`}
                     className="relative block h-full w-full cursor-zoom-in overflow-hidden text-left"
@@ -449,6 +473,8 @@ export default function PortfolioGallery({
                     src={externalMedia.embedUrl}
                     title={item.alt}
                     autoplay={cinematic}
+                    projectId={projectId}
+                    mediaId={item.id}
                     className={`mx-auto h-full border-0 bg-black ${
                       item.isVertical
                         ? "aspect-[9/16] w-auto max-w-full"
@@ -461,6 +487,9 @@ export default function PortfolioGallery({
                     controls
                     playsInline
                     preload="metadata"
+                    onPlay={()=>track("VIDEO_START",item.id)}
+                    onTimeUpdate={event=>trackNativeVideo(event,item.id)}
+                    onEnded={()=>track("VIDEO_COMPLETE",item.id,100)}
                     className="h-full w-full bg-black object-contain"
                   >
                     Your browser cannot play this hosted video.

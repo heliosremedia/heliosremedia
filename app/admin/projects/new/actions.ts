@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
+import { requireAdminSession } from "@/lib/auth/session";
 
 export type CreateProjectState = {
   error: string | null;
@@ -51,6 +52,7 @@ export async function createProject(
   _previousState: CreateProjectState,
   formData: FormData,
 ): Promise<CreateProjectState> {
+  const session = await requireAdminSession();
   const title = getString(formData, "title");
   const requestedSlug = getString(formData, "slug");
   const shortDescription = getString(
@@ -77,6 +79,7 @@ export async function createProject(
     const project = await prisma.project.create({
       data: {
         title,
+        workspaceId: session.workspaceId,
         slug,
         shortDescription: shortDescription || null,
         city: city || null,

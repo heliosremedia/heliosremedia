@@ -51,9 +51,10 @@ export default async function ProjectEditorPage({
       : "/admin/projects";
 
   const [project, services, contributorUsers] = await Promise.all([
-    prisma.project.findUnique({
+    prisma.project.findFirst({
       where: {
         id: projectId,
+        workspaceId: session.workspaceId,
       },
       select: {
         id: true,
@@ -117,7 +118,7 @@ export default async function ProjectEditorPage({
           },
         },
         previewLinks: { orderBy: { createdAt: "desc" }, take: 25, select: { id: true, label: true, expiresAt: true, createdAt: true, lastUsedAt: true, revokedAt: true } },
-        contributors: { where: { workspaceId: session.workspaceId }, orderBy: { displayOrder: "asc" }, select: { adminUserId: true, displayNameSnapshot: true, externalName: true, externalDiscipline: true, public: true } },
+        contributors: { where: { workspaceId: session.workspaceId }, orderBy: { displayOrder: "asc" }, select: { adminUserId: true, displayNameSnapshot: true, titleSnapshot: true, externalName: true, externalDiscipline: true, public: true } },
       },
     }),
     prisma.service.findMany({
@@ -141,7 +142,7 @@ export default async function ProjectEditorPage({
     prisma.adminUser.findMany({
       where: { workspaceId: session.workspaceId, active: true },
       orderBy: { displayName: "asc" },
-      select: { id: true, displayName: true, firstName: true, lastName: true, email: true, disciplines: true },
+      select: { id: true, displayName: true, title: true, firstName: true, lastName: true, email: true, disciplines: true },
     }),
   ]);
 

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type DragEvent } from "react";
 import type { AdminRole } from "@/app/generated/prisma/client";
-import { STUDIO_VERSION } from "@/lib/version";
+import { STUDIO_VERSION, STUDIO_VERSION_HREF } from "@/lib/version";
 
 type AdminSidebarProps = {
   isOpen: boolean;
@@ -43,6 +43,11 @@ const navigation: NavigationItem[] = [
         />
       </svg>
     ),
+  },
+  {
+    label: "Portfolio Intelligence",
+    href: "/admin/portfolio-intelligence",
+    icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
   },
   {
     label: "Projects",
@@ -253,6 +258,11 @@ const navigation: NavigationItem[] = [
     icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
   },
   {
+    label: "Release Notes",
+    href: "/admin/release-notes",
+    icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><path d="M6 3h9l3 3v15H6V3Z" stroke="currentColor" strokeWidth="1.5"/><path d="M9 10h6M9 14h6M9 18h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
+  },
+  {
     label: "Activity",
     href: "/admin/activity",
     icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><circle cx="6" cy="6" r="1" fill="currentColor"/><circle cx="6" cy="12" r="1" fill="currentColor"/><circle cx="6" cy="18" r="1" fill="currentColor"/></svg>,
@@ -268,12 +278,12 @@ const navigationGroups: NavigationGroup[] = [
   {
     id: "administration",
     label: "Administration",
-    hrefs: ["/admin/users", "/admin/activity", "/admin/settings"],
+    hrefs: ["/admin/users", "/admin/activity", "/admin/settings", "/admin/release-notes"],
   },
   {
     id: "operations",
     label: "Operations",
-    hrefs: ["/admin/client-portals", "/admin/clients", "/admin/email-studio", "/admin/inquiries", "/admin/newsletter-studio", "/admin/projects", "/admin/referral-studio", "/admin/social-studio"],
+    hrefs: ["/admin/client-portals", "/admin/clients", "/admin/email-studio", "/admin/inquiries", "/admin/newsletter-studio", "/admin/projects", "/admin/portfolio-intelligence", "/admin/referral-studio", "/admin/social-studio"],
   },
   {
     id: "website-content",
@@ -513,15 +523,17 @@ export default function AdminSidebar({
         }`}
       >
         <div className="flex h-[4.5rem] items-center justify-between border-b border-white/[0.08] px-6">
+          <div>
           <Link href="/admin" onClick={onClose}>
             <span className="font-helios text-lg tracking-[0.12em] text-white">
               HELIOS
             </span>
+          </Link>
             <span className="mt-1 block text-[0.54rem] font-semibold uppercase tracking-[0.2em]">
               <span className="text-[var(--helios-orange)]">STUDIO ADMIN</span>
-              <span className="text-white/35"> — {STUDIO_VERSION}</span>
+              <Link href={STUDIO_VERSION_HREF} onClick={onClose} className="text-white/35 transition hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--helios-orange)]"> — {STUDIO_VERSION}</Link>
             </span>
-          </Link>
+          </div>
 
           <button
             type="button"

@@ -91,6 +91,22 @@ enum AdminRole {
   VIEWER
 }
 
+enum PortfolioAnalyticsEventName {
+  PORTFOLIO_VIEW
+  PROJECT_VIEW
+  PORTFOLIO_CARD_CLICK
+  PORTFOLIO_FILTER_USE
+  GALLERY_IMAGE_OPEN
+  VIDEO_START
+  VIDEO_PROGRESS_25
+  VIDEO_PROGRESS_50
+  VIDEO_PROGRESS_75
+  VIDEO_COMPLETE
+  PROJECT_SHARE
+  CTA_CLICK
+  OUTBOUND_LINK_CLICK
+}
+
 enum EmailCampaignStatus {
   DRAFT
   SCHEDULED
@@ -519,9 +535,11 @@ model TeamMember {
 }
 
 model Project {
-  id               String  @id @default(cuid())
+  id               String    @id @default(cuid())
+  workspaceId      String
+  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
   title            String
-  slug             String  @unique
+  slug             String    @unique
   shortDescription String?
   description      String?
 
@@ -558,8 +576,10 @@ model Project {
   collectionHeroes  ProjectMediaCollectionHero[]
   socialCampaigns   SocialCampaign[]
   contributors      ProjectContributor[]
+  analyticsEvents   PortfolioAnalyticsEvent[]
 
   @@index([status])
+  @@index([workspaceId, status])
   @@index([featured])
   @@index([displayOrder])
   @@index([publishedAt])
@@ -579,11 +599,12 @@ model ProjectContributor {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
 
   displayNameSnapshot String
+  titleSnapshot       String?
   disciplinesSnapshot Json
   externalName        String?
   externalDiscipline  String?
   public              Boolean @default(true)
-  displayOrder        Int @default(0)
+  displayOrder        Int     @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -875,9 +896,9 @@ model HomepageWorkCard {
 }
 
 model SiteSettings {
-  id String @id @default("default")
-  workspaceId String? @unique
-  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  id          String     @id @default("default")
+  workspaceId String?    @unique
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
 
   businessName              String      @default("Helios Real Estate Media")
   phoneDisplay              String      @default("970.682.5533")
@@ -905,18 +926,18 @@ model SiteSettings {
   bookingEmailVisible       Boolean     @default(true)
 
   heroVideoUrl             String?
-  heroPosterUrl            String? @default("/work/featured-estate.jpg")
-  heroPosterAlt            String? @default("Luxury real estate exterior photographed by Helios Real Estate Media")
-  heroEyebrow              String? @default("Fort Collins, Colorado")
-  heroHeadlineLineOne      String? @default("Luxury Marketing")
-  heroHeadlineLineTwo      String? @default("for Exceptional Homes")
-  heroBody                 String? @default("Photography, cinematic films, aerial imagery, and branding crafted to elevate Northern Colorado's most exceptional homes.")
-  heroPrimaryLabel         String? @default("Book Now")
+  heroPosterUrl            String?            @default("/work/featured-estate.jpg")
+  heroPosterAlt            String?            @default("Luxury real estate exterior photographed by Helios Real Estate Media")
+  heroEyebrow              String?            @default("Fort Collins, Colorado")
+  heroHeadlineLineOne      String?            @default("Luxury Marketing")
+  heroHeadlineLineTwo      String?            @default("for Exceptional Homes")
+  heroBody                 String?            @default("Photography, cinematic films, aerial imagery, and branding crafted to elevate Northern Colorado's most exceptional homes.")
+  heroPrimaryLabel         String?            @default("Book Now")
   heroPrimaryDestination   String?
-  heroSecondaryLabel       String? @default("View Portfolio")
-  heroSecondaryDestination String? @default("/portfolio")
-  availabilityEnabled      Boolean @default(false)
-  availabilityLabel        String? @default("Now booking")
+  heroSecondaryLabel       String?            @default("View Portfolio")
+  heroSecondaryDestination String?            @default("/portfolio")
+  availabilityEnabled      Boolean            @default(false)
+  availabilityLabel        String?            @default("Now booking")
   availabilityMessage      String?
   availabilityStatus       AvailabilityStatus @default(AVAILABLE)
 
@@ -1281,58 +1302,61 @@ model CtaPlacement {
 model AdminUser {
   id String @id @default(cuid())
 
-  email               String    @unique
-  displayName         String
-  firstName           String?
-  lastName            String?
-  phone               String?
-  profilePhotoStorageKey String?
-  profilePhotoUrl     String?
+  email                   String             @unique
+  displayName             String
+  title                   String?
+  legacyDisplayName       String?
+  firstName               String?
+  lastName                String?
+  phone                   String?
+  profilePhotoStorageKey  String?
+  profilePhotoUrl         String?
   notificationPreferences Json?
-  disciplines        TeamDiscipline[]
-  state               WorkspaceUserState @default(ACTIVE)
-  role                AdminRole @default(EDITOR)
-  active              Boolean   @default(true)
-  passwordHash        String?
-  sessionVersion      Int       @default(0)
-  navigationFavorites Json?
-  workspaceId         String
-  workspace           Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  disciplines             TeamDiscipline[]
+  state                   WorkspaceUserState @default(ACTIVE)
+  role                    AdminRole          @default(EDITOR)
+  active                  Boolean            @default(true)
+  passwordHash            String?
+  sessionVersion          Int                @default(0)
+  navigationFavorites     Json?
+  workspaceId             String
+  workspace               Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
 
   failedLoginCount Int       @default(0)
   lockedUntil      DateTime?
   lastLoginAt      DateTime?
 
-  auditEvents               AuditEvent[]
-  assignedInquiries         Inquiry[]                       @relation("InquiryAssignee")
-  inquiryNotes              InquiryNote[]
-  inquiryActivities         InquiryActivity[]
-  previewLinks              ProjectPreviewLink[]
-  invitationsCreated        AdminInvitation[]               @relation("InvitationCreator")
-  emailCampaigns            EmailCampaign[]
-  newsletterSeriesCreated   NewsletterSeries[]              @relation("NewsletterSeriesCreator")
-  newsletterEditionsCreated NewsletterEdition[]             @relation("NewsletterEditionCreator")
-  newsletterRevisions       NewsletterRevision[]
-  newsletterApprovals       NewsletterApproval[]
-  newsletterImageAssets     NewsletterImageAsset[]
-  referralCampaignsCreated  ReferralCampaign[]              @relation("ReferralCampaignCreator")
-  referralCampaignApprovals ReferralCampaignRevision[]      @relation("ReferralRevisionApprover")
-  referralStatusEvents      ReferralStatusEvent[]
-  referralRewardsApproved   ReferralReward[]                @relation("ReferralRewardApprover")
-  referralRewardsIssued     ReferralReward[]                @relation("ReferralRewardIssuer")
-  referralAuditEvents       ReferralAuditEvent[]
-  referralTestTokens        ReferralTestToken[]
-  marketingPreferencesActed MarketingEmailPreference[]
-  marketingPreferenceEvents MarketingEmailPreferenceEvent[]
-  socialCampaignsCreated    SocialCampaign[]                @relation("SocialCampaignCreator")
-  socialVariantsEdited      SocialVariant[]                 @relation("SocialVariantEditor")
-  socialApprovalEvents      SocialApprovalEvent[]
-  socialPublications        SocialPublication[]
-  socialConnectionsEnabled  SocialConnection[]              @relation("SocialConnectionEnabledBy")
-  socialConnectionAudits    SocialConnectionAudit[]
-  socialPublishingApprovals SocialPublishingSnapshot[]      @relation("SocialPublishingApprovedBy")
+  auditEvents                AuditEvent[]
+  assignedInquiries          Inquiry[]                       @relation("InquiryAssignee")
+  inquiryNotes               InquiryNote[]
+  inquiryActivities          InquiryActivity[]
+  previewLinks               ProjectPreviewLink[]
+  invitationsCreated         AdminInvitation[]               @relation("InvitationCreator")
+  emailCampaigns             EmailCampaign[]
+  newsletterSeriesCreated    NewsletterSeries[]              @relation("NewsletterSeriesCreator")
+  newsletterEditionsCreated  NewsletterEdition[]             @relation("NewsletterEditionCreator")
+  newsletterRevisions        NewsletterRevision[]
+  newsletterApprovals        NewsletterApproval[]
+  newsletterImageAssets      NewsletterImageAsset[]
+  referralCampaignsCreated   ReferralCampaign[]              @relation("ReferralCampaignCreator")
+  referralCampaignApprovals  ReferralCampaignRevision[]      @relation("ReferralRevisionApprover")
+  referralStatusEvents       ReferralStatusEvent[]
+  referralRewardsApproved    ReferralReward[]                @relation("ReferralRewardApprover")
+  referralRewardsIssued      ReferralReward[]                @relation("ReferralRewardIssuer")
+  referralAuditEvents        ReferralAuditEvent[]
+  referralTestTokens         ReferralTestToken[]
+  marketingPreferencesActed  MarketingEmailPreference[]
+  marketingPreferenceEvents  MarketingEmailPreferenceEvent[]
+  socialCampaignsCreated     SocialCampaign[]                @relation("SocialCampaignCreator")
+  socialVariantsEdited       SocialVariant[]                 @relation("SocialVariantEditor")
+  socialApprovalEvents       SocialApprovalEvent[]
+  socialPublications         SocialPublication[]
+  socialConnectionsEnabled   SocialConnection[]              @relation("SocialConnectionEnabledBy")
+  socialConnectionAudits     SocialConnectionAudit[]
+  socialPublishingApprovals  SocialPublishingSnapshot[]      @relation("SocialPublishingApprovedBy")
   socialRecommendationsActed SocialAnalyticsRecommendation[] @relation("SocialRecommendationActor")
-  projectCredits            ProjectContributor[]
+  projectCredits             ProjectContributor[]
+  portfolioAnalyticsEvents   PortfolioAnalyticsEvent[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1346,16 +1370,48 @@ model Workspace {
   name String
   slug String @unique
 
-  users             AdminUser[]
-  socialCampaigns   SocialCampaign[]
-  socialSettings    SocialStudioSettings[]
-  socialConnections SocialConnection[]
-  siteSettings      SiteSettings?
-  projectContributors ProjectContributor[]
-  invitations       AdminInvitation[]
+  users                    AdminUser[]
+  socialCampaigns          SocialCampaign[]
+  socialSettings           SocialStudioSettings[]
+  socialConnections        SocialConnection[]
+  siteSettings             SiteSettings?
+  projectContributors      ProjectContributor[]
+  portfolioAnalyticsEvents PortfolioAnalyticsEvent[]
+  projects                 Project[]
+  invitations              AdminInvitation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model PortfolioAnalyticsEvent {
+  id String @id @default(cuid())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  eventName      PortfolioAnalyticsEventName
+  eventKey       String?                     @unique
+  sessionId      String
+  deviceCategory String
+  trafficSource  String
+  referrerHost   String?
+  channel        String?
+  target         String?
+  metadata       Json?
+  occurredAt     DateTime                    @default(now())
+  createdAt      DateTime                    @default(now())
+  adminUser      AdminUser?                  @relation(fields: [adminUserId], references: [id])
+  adminUserId    String?
+
+  @@index([workspaceId, occurredAt])
+  @@index([workspaceId, eventName, occurredAt])
+  @@index([workspaceId, projectId, occurredAt])
+  @@index([projectId, eventName, occurredAt])
+  @@index([sessionId, occurredAt])
 }
 
 model SocialCampaign {
@@ -1386,7 +1442,7 @@ model SocialCampaign {
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
 
-  variants SocialVariant[]
+  variants                 SocialVariant[]
   analyticsRecommendations SocialAnalyticsRecommendation[]
 
   archivedAt DateTime?
@@ -1437,12 +1493,12 @@ model SocialVariant {
   lastEditedById String?
   lastEditedBy   AdminUser? @relation("SocialVariantEditor", fields: [lastEditedById], references: [id], onDelete: SetNull)
 
-  media               SocialVariantMedia[]
-  approvals           SocialApprovalEvent[]
-  publications        SocialPublication[]
-  publishingSnapshots SocialPublishingSnapshot[]
-  publishingJobs      SocialPublishingJob[]
-  metricSnapshots     SocialMetricSnapshot[]
+  media                    SocialVariantMedia[]
+  approvals                SocialApprovalEvent[]
+  publications             SocialPublication[]
+  publishingSnapshots      SocialPublishingSnapshot[]
+  publishingJobs           SocialPublishingJob[]
+  metricSnapshots          SocialMetricSnapshot[]
   analyticsRecommendations SocialAnalyticsRecommendation[]
 
   createdAt DateTime @default(now())
@@ -1496,18 +1552,18 @@ model SocialApprovalEvent {
 model SocialPublication {
   id String @id @default(cuid())
 
-  variantId   String
-  variant     SocialVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
-  actorId     String
-  actor       AdminUser     @relation(fields: [actorId], references: [id], onDelete: Restrict)
-  publishedAt DateTime
-  publicUrl   String?
-  notes       String?
-  externalPostId String?
-  connectionId String?
-  connection SocialConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  variantId       String
+  variant         SocialVariant          @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  actorId         String
+  actor           AdminUser              @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  publishedAt     DateTime
+  publicUrl       String?
+  notes           String?
+  externalPostId  String?
+  connectionId    String?
+  connection      SocialConnection?      @relation(fields: [connectionId], references: [id], onDelete: SetNull)
   metricSnapshots SocialMetricSnapshot[]
-  createdAt   DateTime      @default(now())
+  createdAt       DateTime               @default(now())
 
   @@index([variantId, publishedAt])
   @@index([actorId, publishedAt])
@@ -1515,9 +1571,9 @@ model SocialPublication {
 }
 
 model SocialStudioSettings {
-  id String @id @default(cuid())
-  workspaceId String @unique
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  id          String    @id @default(cuid())
+  workspaceId String    @unique
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
 
   brandVoice          String
   primaryAudience     String
@@ -1538,7 +1594,7 @@ model SocialConnection {
 
   platform                    SocialPlatform
   workspaceId                 String
-  workspace                   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  workspace                   Workspace                  @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
   state                       SocialConnectionState      @default(NOT_CONFIGURED)
   intendedAccountName         String?
   supportedWorkflow           String                     @default("Manual publishing and export")
@@ -1564,10 +1620,10 @@ model SocialConnection {
   publications                SocialPublication[]
   metricSnapshots             SocialMetricSnapshot[]
   analyticsJobs               SocialAnalyticsJob[]
-  analyticsPermissionState    SocialMetricAvailability @default(CONNECTION_REQUIRED)
+  analyticsPermissionState    SocialMetricAvailability   @default(CONNECTION_REQUIRED)
   analyticsLastSuccessfulAt   DateTime?
   analyticsLastAttemptAt      DateTime?
-  analyticsFailureCount       Int @default(0)
+  analyticsFailureCount       Int                        @default(0)
   analyticsError              String?
 
   createdAt DateTime @default(now())
@@ -1579,17 +1635,17 @@ model SocialConnection {
 }
 
 model OperationalIncident {
-  id                 String @id @default(cuid())
-  providerEventId    String @unique
-  monitorName        String?
-  monitorExternalId  String?
-  state              OperationalIncidentState
-  startedAt          DateTime
-  recoveredAt        DateTime?
-  responseTimeMs     Int?
-  sanitizedSummary   String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                String                   @id @default(cuid())
+  providerEventId   String                   @unique
+  monitorName       String?
+  monitorExternalId String?
+  state             OperationalIncidentState
+  startedAt         DateTime
+  recoveredAt       DateTime?
+  responseTimeMs    Int?
+  sanitizedSummary  String?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
 
   @@index([state, startedAt])
 }
@@ -1713,50 +1769,50 @@ model SocialMetricSnapshot {
 }
 
 model SocialAnalyticsJob {
-  id                 String                   @id @default(cuid())
-  connectionId       String
-  connection         SocialConnection         @relation(fields: [connectionId], references: [id], onDelete: Restrict)
-  status             SocialAnalyticsJobStatus @default(PENDING)
-  rangeStart         DateTime
-  rangeEnd           DateTime
-  idempotencyKey     String                   @unique
-  attempts           Int                      @default(0)
-  nextAttemptAt      DateTime
-  claimedAt          DateTime?
-  claimToken         String?
-  lastErrorCategory  String?
-  lastErrorMessage   String?
-  importedSnapshots  Int                      @default(0)
-  durationMs         Int?
-  completedAt        DateTime?
-  createdAt          DateTime                 @default(now())
-  updatedAt          DateTime                 @updatedAt
+  id                String                   @id @default(cuid())
+  connectionId      String
+  connection        SocialConnection         @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  status            SocialAnalyticsJobStatus @default(PENDING)
+  rangeStart        DateTime
+  rangeEnd          DateTime
+  idempotencyKey    String                   @unique
+  attempts          Int                      @default(0)
+  nextAttemptAt     DateTime
+  claimedAt         DateTime?
+  claimToken        String?
+  lastErrorCategory String?
+  lastErrorMessage  String?
+  importedSnapshots Int                      @default(0)
+  durationMs        Int?
+  completedAt       DateTime?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
 
   @@index([status, nextAttemptAt])
   @@index([connectionId, createdAt])
 }
 
 model SocialAnalyticsRecommendation {
-  id               String          @id @default(cuid())
-  campaignId       String?
-  campaign         SocialCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  variantId        String?
-  variant          SocialVariant?  @relation(fields: [variantId], references: [id], onDelete: SetNull)
-  title            String
-  recommendation   String
-  evidence         Json
-  platforms        Json
-  sampleSize       Int
-  metricName       String
-  confidence       String
-  rangeStart       DateTime
-  rangeEnd         DateTime
-  status           String          @default("ACTIVE")
-  actedById        String?
-  actedBy          AdminUser?      @relation("SocialRecommendationActor", fields: [actedById], references: [id], onDelete: SetNull)
-  actedAt          DateTime?
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  id             String          @id @default(cuid())
+  campaignId     String?
+  campaign       SocialCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  variantId      String?
+  variant        SocialVariant?  @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  title          String
+  recommendation String
+  evidence       Json
+  platforms      Json
+  sampleSize     Int
+  metricName     String
+  confidence     String
+  rangeStart     DateTime
+  rangeEnd       DateTime
+  status         String          @default("ACTIVE")
+  actedById      String?
+  actedBy        AdminUser?      @relation("SocialRecommendationActor", fields: [actedById], references: [id], onDelete: SetNull)
+  actedAt        DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
   @@index([status, createdAt])
   @@index([campaignId, createdAt])
@@ -2646,23 +2702,24 @@ model ReferralTestToken {
 }
 
 model AdminInvitation {
-  id          String    @id @default(cuid())
+  id          String           @id @default(cuid())
   email       String
   displayName String
-  role        AdminRole @default(EDITOR)
+  title       String?
+  role        AdminRole        @default(EDITOR)
   firstName   String?
   lastName    String?
   phone       String?
   disciplines TeamDiscipline[]
   workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  tokenHash   String    @unique
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tokenHash   String           @unique
   createdById String
-  createdBy   AdminUser @relation("InvitationCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdBy   AdminUser        @relation("InvitationCreator", fields: [createdById], references: [id], onDelete: Cascade)
   expiresAt   DateTime
   acceptedAt  DateTime?
   revokedAt   DateTime?
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime         @default(now())
 
   @@index([email, createdAt])
   @@index([workspaceId, expiresAt])

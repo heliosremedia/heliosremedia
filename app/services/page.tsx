@@ -11,6 +11,7 @@ import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { getServiceMediaCategories } from "@/lib/portfolio-services";
 import { buildPageMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/site-settings";
+import { CompactFilterAnchor } from "@/app/components/CompactFilter";
 
 function projectCollectionHref(
   projectSlug: string,
@@ -151,13 +152,12 @@ export default async function ServicesPage() {
           className="flex flex-wrap justify-center gap-2"
         >
           {services.map((service, index) => (
-            <a
+            <CompactFilterAnchor
               key={service.id}
               href={`#${service.slug}`}
-              className="min-h-11 rounded-full border border-white/10 px-4 py-2.5 text-[0.54rem] font-semibold uppercase tracking-[0.14em] text-white/38 transition hover:border-white/25 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--helios-orange)]"
             >
               {String(index + 1).padStart(2, "0")} {service.name}
-            </a>
+            </CompactFilterAnchor>
           ))}
         </nav>
       </section>
