@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { recordAuditEvent } from "@/lib/audit";
 import { resolveAudience } from "./audience";
 import { assertReferralTransition, campaignDraftUpdateIssue, mayArchiveReferralCampaign, mayPermanentlyDeleteReferralCampaign, mayReturnReferralCampaignToDraft } from "./state-machine";
+import { referralOperationalLabel, referralOperationalState } from "./operations";
 
 export type CampaignInput = {
   internalName: string;
@@ -48,16 +49,17 @@ export class ReferralCampaignConflictError extends Error {
   }
 }
 
-export async function referralDashboardData(from: Date, to: Date) {
-  const [campaigns, submissions, invitationCounts, rewards, clients, groups, linkVisits] = await Promise.all([
+export async function referralDashboardData(from: Date, to: Date, workspaceId: string) {
+  const campaignScope = { createdBy: { workspaceId } };
+  const [campaigns, submissions, invitationCounts, campaignInvitationCounts, rewards, clients, groups, linkVisits] = await Promise.all([
     prisma.referralCampaign.findMany({
-      where: { createdAt: { lte: to }, updatedAt: { gte: from } },
+      where: { ...campaignScope, createdAt: { lte: to }, updatedAt: { gte: from } },
       orderBy: { updatedAt: "desc" },
       include: { _count: { select: { advocates: true, invitations: true, submissions: true } } },
       take: 100,
     }),
     prisma.referralSubmission.findMany({
-      where: { createdAt: { gte: from, lte: to } },
+      where: { campaign: campaignScope, createdAt: { gte: from, lte: to } },
       orderBy: { createdAt: "desc" },
       include: {
         campaign: { select: { publicTitle: true } },
@@ -67,28 +69,49 @@ export async function referralDashboardData(from: Date, to: Date) {
     }),
     prisma.referralInvitation.groupBy({
       by: ["status"],
-      where: { createdAt: { gte: from, lte: to } },
+      where: { campaign: campaignScope, createdAt: { gte: from, lte: to } },
+      _count: true,
+    }),
+    prisma.referralInvitation.groupBy({
+      by: ["campaignId", "status"],
+      where: { campaign: campaignScope },
       _count: true,
     }),
     prisma.referralReward.groupBy({
       by: ["status"],
-      where: { createdAt: { gte: from, lte: to } },
+      where: { submission: { campaign: campaignScope }, createdAt: { gte: from, lte: to } },
       _count: true,
     }),
     prisma.communicationClient.count(),
     prisma.communicationGroup.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.referralLink.aggregate({ where: { lastVisitedAt: { gte: from, lte: to } }, _sum: { visitCount: true } }),
+    prisma.referralLink.aggregate({ where: { campaign: campaignScope, lastVisitedAt: { gte: from, lte: to } }, _sum: { visitCount: true } }),
   ]);
   const statusCount = (status: ReferralStatus) => submissions.filter(item => item.status === status).length;
   const sent = invitationCounts.find(item => item.status === "SENT")?._count ?? 0;
   const completed = statusCount("COMPLETED") + statusCount("REWARD_ELIGIBLE") + statusCount("REWARD_ISSUED");
+  const campaignRows = campaigns.map(campaign => {
+    const invitationSentCount = campaignInvitationCounts
+      .filter(item => item.campaignId === campaign.id && ["SENT", "DELIVERED", "OPENED", "CLICKED"].includes(item.status))
+      .reduce((total, item) => total + item._count, 0);
+    const state = referralOperationalState({
+      status: campaign.status,
+      scheduleConfirmedAt: campaign.scheduleConfirmedAt,
+      deliveryScheduledAt: campaign.deliveryScheduledAt,
+      sentCount: invitationSentCount,
+      stalled: campaign.status === "LAUNCHING" && Boolean(campaign.launchFailedAt),
+    });
+    return { ...campaign, invitationSentCount, operationalState: state, operationalLabel: referralOperationalLabel(state) };
+  });
   return {
-    campaigns,
+    campaigns: campaignRows,
     submissions,
     groups,
     clientCount: clients,
     metrics: {
-      active: campaigns.filter(item => item.status === "ACTIVE").length,
+      active: campaignRows.filter(item => item.operationalState === "ACTIVE").length,
+      awaitingScheduling: campaignRows.filter(item => item.operationalState === "APPROVED_NOT_SCHEDULED").length,
+      scheduled: campaignRows.filter(item => item.operationalState === "SCHEDULED").length,
+      stalled: campaignRows.filter(item => item.operationalState === "STALLED").length,
       draft: campaigns.filter(item => item.status === "DRAFT").length,
       paused: campaigns.filter(item => item.status === "PAUSED").length,
       invitationsSent: sent,

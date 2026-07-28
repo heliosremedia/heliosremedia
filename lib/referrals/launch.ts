@@ -127,15 +127,14 @@ export async function claimReferralCampaignLaunch(campaignId: string, actor: Lau
 
 function launchPlan(snapshot: ApprovedSnapshot, campaign: {
   invitationSubject: string; invitationPreviewText: string | null; invitationBody: string;
-  publicTitle: string; referralExpirationDays: number; startsAt: Date | null;
+  publicTitle: string; referralExpirationDays: number;
 }) {
-  const scheduledAt = campaign.startsAt && campaign.startsAt > new Date() ? campaign.startsAt : new Date();
   const followUp = snapshot.campaign?.followUpConfiguration;
   const followUpBody = snapshot.campaign?.communicationTemplates?.followUp?.trim();
   const followUpCount = followUp?.enabled && followUpBody ? Math.max(0, Math.min(3, Number(followUp.count) || 0)) : 0;
   const followUpDelayDays = Math.max(2, Math.min(60, Number(followUp?.delayDays) || 7));
   return {
-    scheduledAt, followUpBody, followUpCount, followUpDelayDays,
+    followUpBody, followUpCount, followUpDelayDays,
     subject: snapshot.campaign?.invitationSubject ?? campaign.invitationSubject,
     previewText: snapshot.campaign?.invitationPreviewText ?? campaign.invitationPreviewText,
     body: snapshot.campaign?.invitationBody ?? campaign.invitationBody,
@@ -163,15 +162,15 @@ plan: ReturnType<typeof launchPlan>) {
           const invitation = await tx.referralInvitation.create({
             data: {
               campaignId: campaign.id, advocateId: advocate.id, approvedRevisionId: campaign.approvedRevisionId,
-              status: "SCHEDULED", subject: plan.subject, previewText: plan.previewText, body: plan.body,
-              approvedSnapshot: snapshot as Prisma.InputJsonValue, scheduledAt: plan.scheduledAt,
+              status: "APPROVED", subject: plan.subject, previewText: plan.previewText, body: plan.body,
+              approvedSnapshot: snapshot as Prisma.InputJsonValue, scheduledAt: null,
             },
           });
           await tx.referralLink.create({
             data: {
               invitationId: invitation.id, campaignId: campaign.id, advocateId: advocate.id,
               tokenHash: item.credentials.tokenHash, code: item.credentials.code,
-              expiresAt: new Date(plan.scheduledAt.getTime() + campaign.referralExpirationDays * 86_400_000),
+              expiresAt: new Date(Date.now() + campaign.referralExpirationDays * 86_400_000),
             },
           });
           const preference = await tx.marketingEmailPreference.upsert({
@@ -193,14 +192,14 @@ plan: ReturnType<typeof launchPlan>) {
           const body = personalizeReferralCopy(invitation.body, variables);
           await tx.referralCommunication.create({
             data: {
-              campaignId: campaign.id, invitationId: invitation.id, kind: "INVITATION", status: "SCHEDULED",
+              campaignId: campaign.id, invitationId: invitation.id, kind: "INVITATION", status: "APPROVED",
               recipientEmail: item.recipient.email, recipientName: item.recipient.displayName,
               subject: personalizeReferralCopy(invitation.subject, variables),
               htmlSnapshot: renderReferralInvitationEmail({
                 body, previewText: invitation.previewText, unsubscribeToken: item.unsubscribeToken,
                 referralUrl, referralCode: item.credentials.code, campaignTitle: campaign.publicTitle,
               }),
-              contentHash: createHash("sha256").update(body).digest("hex"), scheduledAt: plan.scheduledAt,
+              contentHash: createHash("sha256").update(body).digest("hex"), scheduledAt: null,
               idempotencyKey: referralCommunicationIdempotencyKey(invitation.id),
             },
           });
@@ -208,7 +207,7 @@ plan: ReturnType<typeof launchPlan>) {
             const followUpBody = personalizeReferralCopy(plan.followUpBody!, variables);
             await tx.referralCommunication.create({
               data: {
-                campaignId: campaign.id, invitationId: invitation.id, kind: "FOLLOW_UP", status: "SCHEDULED",
+                campaignId: campaign.id, invitationId: invitation.id, kind: "FOLLOW_UP", status: "APPROVED",
                 recipientEmail: item.recipient.email, recipientName: item.recipient.displayName,
                 subject: `A gentle reminder: ${invitation.subject}`,
                 htmlSnapshot: renderReferralInvitationEmail({
@@ -216,7 +215,7 @@ plan: ReturnType<typeof launchPlan>) {
                   referralUrl, referralCode: item.credentials.code, campaignTitle: campaign.publicTitle,
                 }),
                 contentHash: createHash("sha256").update(followUpBody).digest("hex"),
-                scheduledAt: new Date(plan.scheduledAt.getTime() + plan.followUpDelayDays * followUpNumber * 86_400_000),
+                scheduledAt: null,
                 idempotencyKey: referralCommunicationIdempotencyKey(invitation.id, followUpNumber),
               },
             });
@@ -359,7 +358,8 @@ export async function processReferralLaunch(campaignId: string, attemptId: strin
       const completed = await tx.referralCampaign.updateMany({
         where: { id: campaignId, status: "LAUNCHING", launchAttemptId: attemptId, approvedRevisionId: campaign.approvedRevisionId },
         data: {
-          status: "ACTIVE", activatedAt: completedAt, launchCompletedAt: completedAt,
+          status: "APPROVED", activatedAt: null, launchCompletedAt: completedAt,
+          deliveryScheduledAt: null, scheduleConfirmedAt: null, scheduledById: null,
           launchLeaseExpiresAt: null, launchFailedAt: null, lastLaunchError: null,
           preparedAdvocateCount: audience.length, preparedInvitationCount: invitations,
           preparedCommunicationCount: communications,
@@ -369,8 +369,8 @@ export async function processReferralLaunch(campaignId: string, attemptId: strin
       await tx.referralAuditEvent.create({
         data: {
           campaignId, actorId: campaign.launchingAdminId, action: "CAMPAIGN_LAUNCH_COMPLETED",
-          summary: `Launched campaign for ${audience.length} advocates.`,
-          metadata: { launchAttemptId: attemptId, advocateCount: audience.length, communicationCount: communications, previousStatus: "LAUNCHING", newStatus: "ACTIVE" },
+          summary: `Prepared campaign for ${audience.length} advocates; scheduling approval is required.`,
+          metadata: { launchAttemptId: attemptId, advocateCount: audience.length, communicationCount: communications, previousStatus: "LAUNCHING", newStatus: "APPROVED" },
         },
       });
     });

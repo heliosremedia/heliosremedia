@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 
 type DashboardData = {
   metrics: Record<string, number>;
-  campaigns: Array<{ id: string; internalName: string; publicTitle: string; status: string; updatedAt: string; _count: { advocates: number; invitations: number; submissions: number } }>;
+  campaigns: Array<{ id: string; internalName: string; publicTitle: string; status: string; operationalState: string; operationalLabel: string; invitationSentCount: number; deliveryScheduledAt: string | null; scheduleConfirmedAt: string | null; updatedAt: string; _count: { advocates: number; invitations: number; submissions: number } }>;
   submissions: Array<{ id: string; firstName: string; lastName: string; status: string; attributionStatus: string; createdAt: string; campaign: { publicTitle: string }; advocate: { client: { displayName: string } } | null }>;
   clientCount: number;
 };
@@ -16,7 +16,8 @@ type Recommendation = {
 };
 
 const labels: Array<[string, string]> = [
-  ["active", "Active campaigns"], ["draft", "Draft campaigns"], ["paused", "Paused campaigns"],
+  ["active", "Active campaigns"], ["awaitingScheduling", "Awaiting scheduling"], ["scheduled", "Scheduled campaigns"],
+  ["paused", "Paused campaigns"], ["stalled", "Stalled campaigns"], ["draft", "Draft campaigns"],
   ["invitationsSent", "Invitations sent"], ["visits", "Landing visits"], ["submissions", "Submissions"],
   ["qualified", "Qualified"], ["booked", "Booked"], ["completed", "Completed"],
   ["pendingRewards", "Pending rewards"], ["issuedRewards", "Rewards issued"], ["conversionRate", "Conversion"],
@@ -78,8 +79,8 @@ export default function ReferralDashboard() {
         <article className="rounded-2xl border border-white/[0.08] bg-white/[0.02]">
           <div className="flex flex-col gap-3 border-b border-white/[0.07] p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6"><div><h2 className="text-2xl font-light text-white">Campaigns</h2><p className="mt-1 text-sm text-white/35">Draft, active, paused, and completed programs.</p></div><label className="flex cursor-pointer items-center gap-2 text-xs text-white/40"><input type="checkbox" checked={showArchived} onChange={event => setShowArchived(event.target.checked)} className="accent-[var(--helios-orange)]" />Show archived</label></div>
           <div className="divide-y divide-white/[0.06]">{data.campaigns.filter(campaign => showArchived || campaign.status !== "ARCHIVED").map(campaign => <div key={campaign.id} className="flex flex-col gap-3 p-5 transition hover:bg-white/[0.025] sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <Link href={`/admin/referral-studio/campaigns/${campaign.id}`} className="min-w-0 flex-1"><p className="truncate text-white/75">{campaign.internalName}</p><p className="mt-1 text-xs text-white/30">{campaign._count.advocates} advocates · {campaign._count.submissions} referrals</p></Link>
-            <div className="flex flex-wrap items-center gap-2"><span className={`w-fit rounded-full border px-2.5 py-1 text-[0.54rem] uppercase tracking-[.14em] ${statusTone(campaign.status)}`}>{campaign.status}</span>{campaign.status === "DRAFT" && <Link href={`/admin/referral-studio/campaigns/${campaign.id}/edit`} className="admin-btn-link">Edit Campaign</Link>}</div>
+            <Link href={`/admin/referral-studio/campaigns/${campaign.id}`} className="min-w-0 flex-1"><p className="truncate text-white/75">{campaign.internalName}</p><p className="mt-1 text-xs text-white/30">{campaign._count.advocates} advocates · {campaign.invitationSentCount} invitations sent · {campaign.deliveryScheduledAt && campaign.scheduleConfirmedAt ? `Next ${new Date(campaign.deliveryScheduledAt).toLocaleString()}` : "Not scheduled"}</p></Link>
+            <div className="flex flex-wrap items-center gap-2">{["APPROVED_NOT_SCHEDULED", "STALLED"].includes(campaign.operationalState) && <span aria-label="Administrator intervention required" title="Administrator intervention required" className="text-amber-200">⚠</span>}<span className={`w-fit rounded-full border px-2.5 py-1 text-[0.54rem] uppercase tracking-[.14em] ${statusTone(campaign.operationalState)}`}>{campaign.operationalLabel}</span>{campaign.status === "DRAFT" && <Link href={`/admin/referral-studio/campaigns/${campaign.id}/edit`} className="admin-btn-link">Edit Campaign</Link>}</div>
           </div>)}{!data.campaigns.length && <Empty title="No referral campaigns yet" body="Create a deliberate campaign, choose its audience, and review the complete experience before launch." />}</div>
         </article>
         <article className="rounded-2xl border border-white/[0.08] bg-white/[0.02]">

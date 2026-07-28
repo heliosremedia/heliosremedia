@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   if (!session) return NextResponse.json({ success: false, error: "Administrator access is required." }, { status: 403 });
   try {
     const { from, to } = range(request);
-    return NextResponse.json({ success: true, data: await referralDashboardData(from, to) });
+    return NextResponse.json({ success: true, data: await referralDashboardData(from, to, session.workspaceId) });
   } catch (error) {
     console.error("Unable to load Referral Studio:", error);
     return NextResponse.json({ success: false, error: "Referral Studio could not be loaded." }, { status: 500 });
