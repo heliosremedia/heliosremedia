@@ -19,6 +19,35 @@ export type StudioRelease = {
 // repository records.
 export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
+    version: "V1.8.9.5",
+    slug: "v1-8-9-5",
+    releaseDate: null,
+    title: "Referral Scheduling Completion",
+    summary: "Completes deliberate, versioned referral schedule review, editing, cancellation, and truthful legacy-state containment.",
+    newFeatures: [
+      "Review & Schedule action for every prepared campaign whose truthful state is Approved — Not Scheduled",
+      "Versioned schedule editing and cancellation that preserve sent history",
+      "Full four-message review with explicit advocate-to-message calculation and follow-up timing",
+    ],
+    improvements: [
+      "Next send is authoritative only when the complete scheduling approval contract is valid",
+      "Scheduling review can be saved or closed without creating delivery work",
+    ],
+    bugFixes: [
+      "Legacy raw Active status can no longer hide Review & Schedule",
+      "Provisional follow-up timestamps no longer appear as an authorized next send",
+    ],
+    securityInfrastructure: [
+      "Worker execution requires matching approval revision, audience snapshot, time zone, confirmation, and due time",
+      "Schedule creation, editing, and cancellation are transactional, idempotent, audited, and workspace-authorized",
+    ],
+    administratorActions: [
+      "Open Review & Schedule and inspect all four approved messages before choosing a future time.",
+      "Do not confirm the production schedule until the internal test is separately authorized and completed.",
+    ],
+    status: "PLANNED",
+  },
+  {
     version: "V1.8.9.4",
     slug: "v1-8-9-4",
     releaseDate: "2026-07-28",

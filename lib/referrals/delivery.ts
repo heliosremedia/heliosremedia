@@ -41,6 +41,10 @@ export async function processReferralCommunications(now = new Date(), limit = 50
       campaignStatus: communication.campaign.status,
       scheduleConfirmedAt: communication.campaign.scheduleConfirmedAt,
       deliveryScheduledAt: communication.campaign.deliveryScheduledAt,
+      timezone: communication.campaign.deliveryTimezone,
+      approvedRevisionId: communication.campaign.approvedRevisionId,
+      scheduledRevisionId: communication.campaign.scheduledRevisionId,
+      scheduledAudienceCount: communication.campaign.scheduledAudienceCount,
       now,
     }) && campaignCanExecute(
       communication.campaign.status === "APPROVED" ? "ACTIVE" : communication.campaign.status,

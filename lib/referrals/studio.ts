@@ -97,6 +97,10 @@ export async function referralDashboardData(from: Date, to: Date, workspaceId: s
       status: campaign.status,
       scheduleConfirmedAt: campaign.scheduleConfirmedAt,
       deliveryScheduledAt: campaign.deliveryScheduledAt,
+      timezone: campaign.deliveryTimezone,
+      approvedRevisionId: campaign.approvedRevisionId,
+      scheduledRevisionId: campaign.scheduledRevisionId,
+      scheduledAudienceCount: campaign.scheduledAudienceCount,
       sentCount: invitationSentCount,
       stalled: campaign.status === "LAUNCHING" && Boolean(campaign.launchFailedAt),
     });

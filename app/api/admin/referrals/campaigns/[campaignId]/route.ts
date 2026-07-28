@@ -11,8 +11,9 @@ import { referralLaunchIsStalled, referralRecoveryMode } from "@/lib/referrals/l
 import { email, integer, optionalDate, ReferralValidationError, stringArray, text } from "@/lib/referrals/validation";
 import { createReferralTestPreview } from "@/lib/referrals/test-preview";
 import { referralOperationalLabel, referralOperationalState, referralSequenceSummary } from "@/lib/referrals/operations";
-import { scheduleReferralCampaign } from "@/lib/referrals/scheduling";
+import { cancelReferralCampaignSchedule, scheduleReferralCampaign } from "@/lib/referrals/scheduling";
 import { getSiteUrl } from "@/lib/site";
+import { zonedLocalToUtc } from "@/lib/client-communications/scheduling";
 
 const audienceModes = new Set<ReferralAudienceMode>(["INDIVIDUALS", "GROUPS", "FILTERED", "ALL_ELIGIBLE"]);
 
@@ -57,11 +58,12 @@ export async function GET(_request: Request, context: { params: Promise<{ campai
       orderBy: { createdAt: "desc" },
       select: { createdAt: true },
     }),
-    prisma.referralCommunication.findFirst({
-      where: { campaignId, status: "SCHEDULED", scheduledAt: { not: null } },
+    campaign.scheduleConfirmedAt && campaign.deliveryScheduledAt && campaign.deliveryScheduledAt > new Date()
+      ? prisma.referralCommunication.findFirst({
+      where: { campaignId, status: "SCHEDULED", scheduledAt: { gte: campaign.deliveryScheduledAt } },
       orderBy: { scheduledAt: "asc" },
       select: { scheduledAt: true, kind: true },
-    }),
+    }) : Promise.resolve(null),
   ]);
   const communicationCounts = Object.fromEntries(
     communicationStates.map(item => [item.status, item._count._all]),
@@ -90,6 +92,10 @@ export async function GET(_request: Request, context: { params: Promise<{ campai
     sentCount: invitationSentCount,
     sendingCount: communicationCounts.SENDING ?? 0,
     stalled,
+    timezone: campaign.deliveryTimezone,
+    approvedRevisionId: campaign.approvedRevisionId,
+    scheduledRevisionId: campaign.scheduledRevisionId,
+    scheduledAudienceCount: campaign.scheduledAudienceCount,
   });
   return NextResponse.json({
     success: true,
@@ -109,7 +115,7 @@ export async function GET(_request: Request, context: { params: Promise<{ campai
       operationalState,
       operationalLabel: referralOperationalLabel(operationalState),
       invitationSentCount,
-      nextScheduledAt: nextCommunication?.scheduledAt ?? null,
+      nextScheduledAt: operationalState === "SCHEDULED" ? (nextCommunication?.scheduledAt ?? null) : null,
       nextScheduledKind: nextCommunication?.kind ?? null,
       sequence,
       nextAction: operationalState === "APPROVED_NOT_SCHEDULED"
@@ -215,13 +221,31 @@ export async function POST(request: Request, context: { params: Promise<{ campai
     });
     if (!authorizedCampaign) return NextResponse.json({ success: false, error: "Campaign not found." }, { status: 404 });
     const body = await request.json() as { action?: string; testEmail?: unknown; rowVersion?: unknown; firstSendAt?: unknown; timezone?: unknown; confirmation?: unknown };
+    if (body.action === "scheduling-review-opened" || body.action === "save-schedule-draft") {
+      await prisma.referralAuditEvent.create({
+        data: {
+          campaignId, actorId: session.userId,
+          action: body.action === "scheduling-review-opened" ? "SCHEDULING_REVIEW_OPENED" : "SCHEDULE_REVIEW_SAVED_WITHOUT_SCHEDULING",
+          summary: body.action === "scheduling-review-opened"
+            ? "Opened the production scheduling review. No schedule was created."
+            : "Saved the scheduling review without creating a production schedule.",
+          metadata: { timezone: text(body.timezone, 100) || null },
+        },
+      });
+      return NextResponse.json({ success: true, message: body.action === "save-schedule-draft" ? "Review saved without scheduling." : "Scheduling review opened." });
+    }
     if (body.action === "schedule") {
       if (body.confirmation !== "SCHEDULE") throw new ReferralValidationError("CONFIRMATION_REQUIRED", "Confirm the reviewed schedule before creating delivery jobs.");
-      const firstSendAt = optionalDate(body.firstSendAt);
-      if (!firstSendAt) throw new ReferralValidationError("INVALID_SCHEDULE", "Choose a future first-send date and time.");
       const timezone = text(body.timezone, 100, { required: true });
+      const scheduledLocal = text(body.firstSendAt, 40, { required: true });
+      const firstSendAt = zonedLocalToUtc(scheduledLocal, timezone);
       const result = await scheduleReferralCampaign(campaignId, firstSendAt, timezone, { userId: session.userId, email: session.email });
       return NextResponse.json({ success: true, result, message: result.unchanged ? "This schedule is already confirmed." : "Campaign schedule confirmed. No message is sent until the scheduled time." });
+    }
+    if (body.action === "cancel-schedule") {
+      if (body.confirmation !== "CANCEL SCHEDULE") throw new ReferralValidationError("CONFIRMATION_REQUIRED", "Confirm cancellation of the future schedule.");
+      const result = await cancelReferralCampaignSchedule(campaignId, { userId: session.userId, email: session.email });
+      return NextResponse.json({ success: true, result, message: result.unchanged ? "This campaign is already not scheduled." : "Future schedule cancelled. No messages were sent." });
     }
     if (body.action === "test") {
       const campaign = await prisma.referralCampaign.findUnique({ where: { id: campaignId } });
