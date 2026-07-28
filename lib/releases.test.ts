@@ -7,7 +7,8 @@ test("visible version links to the matching code-controlled release", () => {
   assert.equal(STUDIO_VERSION, "V1.8.8");
   assert.equal(STUDIO_VERSION_HREF, "/admin/release-notes/v1-8-8");
   assert.equal(getStudioRelease("v1-8-8")?.version, STUDIO_VERSION);
-  assert.notEqual(getStudioRelease("v1-8-8")?.status, "PLANNED");
+  assert.equal(getStudioRelease("v1-8-8")?.status, "LIVE");
+  assert.equal(getStudioRelease("v1-8-8")?.releaseDate, "2026-07-28");
   for (const version of ["V1.8.7", "V1.8.7.1"]) {
     const release = STUDIO_RELEASES.find(item => item.version === version);
     assert.equal(release?.status, "LIVE");

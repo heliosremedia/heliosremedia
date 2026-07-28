@@ -21,7 +21,7 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
     version: "V1.8.8",
     slug: "v1-8-8",
-    releaseDate: null,
+    releaseDate: "2026-07-28",
     title: "Stabilization & Experience Refinements",
     summary: "Repairs Portfolio Intelligence ingestion confirmation and Referral Studio launch recovery while refining core Studio and public experiences.",
     newFeatures: [
@@ -46,7 +46,7 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
       "Review stalled campaign counts before choosing any recovery action.",
       "Complete controlled signed-out analytics QA before production approval.",
     ],
-    status: "DEPLOYING",
+    status: "LIVE",
   },
   {
     version: "V1.8.7.1",
