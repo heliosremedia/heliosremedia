@@ -11,12 +11,13 @@ export function resolveSiteAction(type: CtaActionType, value: string | null, set
   return value || "#";
 }
 
-export default function SiteActionLink({ type, value = null, className, children, ariaLabel }: { type: CtaActionType; value?: string | null; className?: string; children: React.ReactNode; ariaLabel?: string }) {
+export default function SiteActionLink({ type, value = null, className, children, ariaLabel, analytics }: { type: CtaActionType; value?: string | null; className?: string; children: React.ReactNode; ariaLabel?: string; analytics?: { event: "CTA_CLICK"; target: string } }) {
   const settings = useSiteSettings();
   const href = resolveSiteAction(type, value, settings);
   const external = type === "EXTERNAL";
-  if (external) return <a href={href} target="_blank" rel="noreferrer" className={className} aria-label={ariaLabel}>{children}</a>;
-  return <Link href={href} className={className} aria-label={ariaLabel}>{children}</Link>;
+  const data = analytics ? { "data-analytics-event": analytics.event, "data-analytics-channel": "cta", "data-analytics-target": analytics.target } : {};
+  if (external) return <a href={href} target="_blank" rel="noreferrer" className={className} aria-label={ariaLabel} {...data}>{children}</a>;
+  return <Link href={href} className={className} aria-label={ariaLabel} {...data}>{children}</Link>;
 }
 
 export function BookingLink({ className, children }: { className?: string; children: React.ReactNode }) {

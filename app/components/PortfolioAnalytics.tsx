@@ -22,21 +22,33 @@ function sessionId() {
   return value;
 }
 
+function safeEventId(eventName: PortfolioEventName) {
+  return `${eventName.toLowerCase()}_${crypto.randomUUID().replaceAll("-", "")}`;
+}
+
 export function sendPortfolioEvent(detail: Detail) {
   try {
     const onceKey = detail.onceKey ? `helios-analytics:${detail.onceKey}` : null;
     if (onceKey && window.sessionStorage.getItem(onceKey)) return;
-    if (onceKey) window.sessionStorage.setItem(onceKey, "1");
     const body = JSON.stringify({
       ...detail,
-      eventId: `${detail.eventName.toLowerCase()}_${detail.onceKey || crypto.randomUUID().replaceAll("-", "")}`,
+      onceKey: undefined,
+      eventId: safeEventId(detail.eventName),
       sessionId: sessionId(),
     });
-    if (!navigator.sendBeacon?.("/api/portfolio-analytics", new Blob([body], { type: "application/json" }))) {
-      void fetch("/api/portfolio-analytics", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true,
-      }).catch(() => undefined);
+    const accepted = navigator.sendBeacon?.(
+      "/api/portfolio-analytics",
+      new Blob([body], { type: "application/json" }),
+    ) ?? false;
+    if (accepted) {
+      if (onceKey) window.sessionStorage.setItem(onceKey, "1");
+      return;
     }
+    void fetch("/api/portfolio-analytics", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true,
+      }).then(response => {
+        if (response.ok && onceKey) window.sessionStorage.setItem(onceKey, "1");
+      }).catch(() => undefined);
   } catch {
     // Measurement must never block the public experience.
   }

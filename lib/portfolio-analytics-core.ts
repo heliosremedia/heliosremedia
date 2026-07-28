@@ -105,3 +105,29 @@ export function classifyDevice(userAgent: string | null) {
 export function analyticsEventKey(workspaceId: string, sessionId: string, eventId: string) {
   return createHash("sha256").update(`${workspaceId}:${sessionId}:${eventId}`).digest("hex");
 }
+
+export function normalizedHostname(value: string | null | undefined) {
+  if (!value) return null;
+  try {
+    const parsed = value.includes("://") ? new URL(value) : new URL(`https://${value}`);
+    return parsed.hostname.toLowerCase().replace(/^www\./, "") || null;
+  } catch {
+    return null;
+  }
+}
+
+export function selectWorkspaceForHost(
+  requestHost: string | null,
+  settings: Array<{ workspaceId: string | null; websiteUrl: string | null }>,
+) {
+  const configured = settings.filter(
+    (item): item is { workspaceId: string; websiteUrl: string | null } => Boolean(item.workspaceId),
+  );
+  const host = normalizedHostname(requestHost?.split(":")[0]);
+  if (host) {
+    const matches = configured.filter(item => normalizedHostname(item.websiteUrl) === host);
+    if (matches.length === 1) return matches[0].workspaceId;
+    if (matches.length > 1) return null;
+  }
+  return configured.length === 1 ? configured[0].workspaceId : null;
+}

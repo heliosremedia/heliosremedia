@@ -210,12 +210,10 @@ export default async function ProjectEditorPage({
 
           <div className="flex flex-col items-start gap-2 sm:items-end">
             {project.status === "PUBLISHED" && (
-              <Link
-                href={`/portfolio/${project.slug}`}
-                className="text-[0.58rem] font-semibold uppercase tracking-[0.15em] text-[var(--helios-orange)] transition hover:text-[var(--helios-orange-hover)]"
-              >
-                View live project
-              </Link>
+              <div className="flex flex-wrap items-center gap-3">
+                <Link href={`/admin/portfolio-intelligence/${project.id}`} aria-label={`View Insights for ${project.title}`} className="admin-btn-secondary">Insights</Link>
+                <Link href={`/portfolio/${project.slug}`} className="admin-btn-link">View live project</Link>
+              </div>
             )}
 
             <p className="text-xs text-white/25">

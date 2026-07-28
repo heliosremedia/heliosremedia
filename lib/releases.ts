@@ -19,6 +19,33 @@ export type StudioRelease = {
 // repository records.
 export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
+    version: "V1.8.6.2",
+    slug: "v1-8-6-2",
+    releaseDate: null,
+    title: "Portfolio Intelligence Completion Hotfix",
+    summary: "Completes reliable first-party portfolio measurement, tenant-safe ingestion, reporting discovery, and analytics health visibility.",
+    newFeatures: [
+      "Published-project reporting and zero-data Insights access",
+      "Administrator analytics health state and detailed privacy-conscious breakdowns",
+      "Project Management Insights actions",
+    ],
+    improvements: [
+      "Reliable page-view delivery with sanitized operational outcomes",
+      "Trusted host and project-based workspace resolution for multi-company operation",
+      "Managed portfolio CTA measurement using stable identifiers",
+    ],
+    bugFixes: [
+      "Corrected invalid page-view event identifiers that caused production requests to be rejected",
+      "Prevents an arbitrary Site Settings record from receiving portfolio-level events",
+    ],
+    securityInfrastructure: [
+      "No browser-supplied workspace identifiers, raw IPs, session identifiers, or sensitive URLs in diagnostics",
+      "Tenant-isolated reporting and ambiguous-host rejection",
+    ],
+    administratorActions: [],
+    status: "DEPLOYING",
+  },
+  {
     version: "V1.8.6.1",
     slug: "v1-8-6-1",
     releaseDate: "2026-07-27",

@@ -44,7 +44,7 @@ function ProjectRow({ project, sortable, returnTo }: { project: AdminProjectList
       <td className="px-5 py-4 text-sm text-white/45">{project.mediaCount}</td>
       <td className="px-5 py-4"><span className={`rounded-full border px-3 py-1.5 text-[0.52rem] font-semibold uppercase tracking-[0.12em] ${statusClasses(project.status)}`}>{project.status.charAt(0) + project.status.slice(1).toLowerCase()}</span></td>
       <td className="px-5 py-4 text-sm text-white/35">{project.updatedAt}</td>
-      <td className="px-5 py-4 text-right"><Link href={`/admin/projects/${project.id}?returnTo=${encodeURIComponent(returnTo)}`} className="admin-btn-link">Edit →</Link></td>
+      <td className="px-5 py-4 text-right"><div className="flex items-center justify-end gap-3">{project.status === "PUBLISHED" && <Link href={`/admin/portfolio-intelligence/${project.id}`} aria-label={`View Insights for ${project.title}`} className="admin-btn-link">Insights</Link>}<Link href={`/admin/projects/${project.id}?returnTo=${encodeURIComponent(returnTo)}`} className="admin-btn-link">Edit →</Link></div></td>
     </tr>
   );
 }

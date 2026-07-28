@@ -25,12 +25,20 @@ export async function getPortfolioAnalytics(workspaceId: string, range: Analytic
     } }),
   ]);
   const counts = Object.fromEntries(events.map(item => [item.eventName, item._count._all])) as Record<string, number>;
-  const sourceRows = await prisma.portfolioAnalyticsEvent.groupBy({
-    by: ["trafficSource"], where, _count: { _all: true }, orderBy: { _count: { trafficSource: "desc" } },
-  });
-  const deviceRows = await prisma.portfolioAnalyticsEvent.groupBy({
-    by: ["deviceCategory"], where, _count: { _all: true }, orderBy: { _count: { deviceCategory: "desc" } },
-  });
+  const [sourceRows, deviceRows, channelRows, targetRows] = await Promise.all([
+    prisma.portfolioAnalyticsEvent.groupBy({
+      by: ["trafficSource"], where, _count: { _all: true }, orderBy: { _count: { trafficSource: "desc" } },
+    }),
+    prisma.portfolioAnalyticsEvent.groupBy({
+      by: ["deviceCategory"], where, _count: { _all: true }, orderBy: { _count: { deviceCategory: "desc" } },
+    }),
+    prisma.portfolioAnalyticsEvent.groupBy({
+      by: ["eventName", "channel"], where: { ...where, channel: { not: null } }, _count: { _all: true },
+    }),
+    prisma.portfolioAnalyticsEvent.groupBy({
+      by: ["eventName", "target"], where: { ...where, target: { not: null } }, _count: { _all: true },
+    }),
+  ]);
   const recent = await prisma.portfolioAnalyticsEvent.findMany({
     where, orderBy: { occurredAt: "asc" }, select: { occurredAt: true, eventName: true },
   });
@@ -49,6 +57,31 @@ export async function getPortfolioAnalytics(workspaceId: string, range: Analytic
       : null,
     sources: sourceRows.map(row => ({ label: row.trafficSource, value: row._count._all })),
     devices: deviceRows.map(row => ({ label: row.deviceCategory, value: row._count._all })),
+    channels: channelRows.map(row => ({ eventName: row.eventName, label: row.channel || "unknown", value: row._count._all })),
+    targets: targetRows.map(row => ({ eventName: row.eventName, label: row.target || "unknown", value: row._count._all })),
     trend: [...trend].map(([date, value]) => ({ date, value })),
   };
+}
+
+export async function getPortfolioAnalyticsHealth(workspaceId: string) {
+  try {
+    const [settings, latestEvent] = await Promise.all([
+      prisma.siteSettings.findFirst({
+        where: { workspaceId },
+        select: { websiteUrl: true },
+      }),
+      prisma.portfolioAnalyticsEvent.findFirst({
+        where: { workspaceId },
+        orderBy: { occurredAt: "desc" },
+        select: { occurredAt: true },
+      }),
+    ]);
+    if (!settings) return { state: "workspace" as const, label: "Workspace configuration needed", detail: "Managed Site Settings are not connected to this workspace." };
+    if (latestEvent) return { state: "recent" as const, label: "Tracking active", detail: `Most recent verified event: ${latestEvent.occurredAt.toLocaleString("en-US")}.` };
+    return { state: "awaiting" as const, label: "Awaiting first verified event", detail: settings.websiteUrl ? "The managed public host is configured and ready to receive events." : "Single-site tracking is ready; add the public website address before enabling multiple companies." };
+  } catch (error) {
+    const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+    if (code === "P2021" || code === "P2022") return { state: "schema" as const, label: "Analytics schema unavailable", detail: "The analytics database migration requires administrator attention." };
+    return { state: "configuration" as const, label: "Analytics health unavailable", detail: "Studio could not verify ingestion readiness. Review server operational logs." };
+  }
 }
