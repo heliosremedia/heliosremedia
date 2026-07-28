@@ -1,0 +1,38 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { resolveProjectSocialImage, type ProjectSocialMedia } from "./project-social-image.ts";
+
+const image = (id: string, overrides: Partial<ProjectSocialMedia> = {}): ProjectSocialMedia => ({
+  id, sourceType: "UPLOADED_IMAGE", storageKey: `projects/p/${id}.jpg`, mimeType: "image/jpeg",
+  altText: `${id} alt`, width: 1800, height: 1000, aspectRatio: 1.8,
+  visibility: "VISIBLE", displayOrder: 0, ...overrides,
+});
+
+test("explicit social image takes priority", () => {
+  const result = resolveProjectSocialImage({ title: "Home", socialImageMedia: image("social"), heroMedia: image("hero"), media: [image("gallery")] });
+  assert.equal(result.source, "SOCIAL"); assert.match(result.url, /social\.jpg$/); assert.equal(result.alt, "social alt");
+});
+test("hero falls back before gallery", () => {
+  assert.equal(resolveProjectSocialImage({ title: "Home", heroMedia: image("hero"), media: [image("gallery")] }).source, "HERO");
+});
+test("gallery rejects hidden, video, and unsupported media and prefers landscape", () => {
+  const result = resolveProjectSocialImage({ title: "Home", media: [
+    image("hidden", { visibility: "HIDDEN" }), image("video", { sourceType: "UPLOADED_VIDEO", mimeType: "video/mp4" }),
+    image("gif", { mimeType: "image/gif" }), image("portrait", { width: 1200, height: 1800, aspectRatio: 0.67 }),
+    image("landscape", { width: 1800, height: 950, aspectRatio: 1.89 }),
+  ] });
+  assert.equal(result.source, "GALLERY"); assert.match(result.url, /landscape\.jpg$/);
+});
+test("video thumbnail and global fallback prevent an empty social image", () => {
+  const video = resolveProjectSocialImage({ title: "Film", media: [{
+    ...image("video"), sourceType: "VIDEO_EMBED", storageKey: null, mimeType: null,
+    externalUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  }] });
+  assert.equal(video.source, "VIDEO_THUMBNAIL"); assert.match(video.url, /^https:\/\//);
+  const fallback = resolveProjectSocialImage({ title: "Empty", media: [] });
+  assert.equal(fallback.source, "GLOBAL_FALLBACK"); assert.match(fallback.url, /^https?:\/\//);
+});
+test("missing dimensions are omitted safely and WebP is supported", () => {
+  const result = resolveProjectSocialImage({ title: "Home", media: [image("webp", { mimeType: "image/webp", width: null, height: null })] });
+  assert.equal(result.type, "image/webp"); assert.equal("width" in result, false); assert.equal("height" in result, false);
+});

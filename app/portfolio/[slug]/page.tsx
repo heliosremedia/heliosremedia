@@ -8,6 +8,7 @@ import RichText from "@/app/components/RichText";
 import { tryResolveExternalMedia } from "@/lib/external-media";
 import { MEDIA_COLLECTIONS } from "@/lib/media-collections";
 import { getServiceMediaCategories } from "@/lib/portfolio-services";
+import { resolveProjectSocialImage } from "@/lib/project-social-image";
 import { validateProjectPreview } from "@/lib/project-preview";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
@@ -51,12 +52,27 @@ async function getProject(slug: string, previewToken?: string) {
       heroMedia: {
         select: {
           id: true,
+          sourceType: true,
           storageKey: true,
           originalFilename: true,
+          mimeType: true,
           altText: true,
           caption: true,
+          width: true,
+          height: true,
+          aspectRatio: true,
+          visibility: true,
+          displayOrder: true,
+          externalUrl: true,
           focalX: true,
           focalY: true,
+        },
+      },
+      socialImageMedia: {
+        select: {
+          id: true, sourceType: true, storageKey: true, originalFilename: true,
+          mimeType: true, altText: true, width: true, height: true, aspectRatio: true,
+          visibility: true, displayOrder: true, externalUrl: true,
         },
       },
       details: {
@@ -124,6 +140,7 @@ async function getProject(slug: string, previewToken?: string) {
           focalX: true,
           focalY: true,
           displayOrder: true,
+          visibility: true,
         },
       },
     },
@@ -145,30 +162,34 @@ export async function generateMetadata({
     },
     select: {
       title: true,
+      status: true,
       shortDescription: true,
       seoTitle: true,
       seoDescription: true,
+      socialImageMedia: {
+        select: {
+          id: true, sourceType: true, storageKey: true, mimeType: true, altText: true,
+          originalFilename: true, width: true, height: true, aspectRatio: true,
+          visibility: true, displayOrder: true, externalUrl: true,
+        },
+      },
       heroMedia: {
         select: {
-          storageKey: true,
-          altText: true,
+          id: true, sourceType: true, storageKey: true, mimeType: true, altText: true,
+          originalFilename: true, width: true, height: true, aspectRatio: true,
+          visibility: true, displayOrder: true, externalUrl: true,
         },
       },
       media: {
-        where: {
-          visibility: "VISIBLE",
-          sourceType: { in: ["VIDEO_EMBED", "UPLOADED_VIDEO"] },
-          externalUrl: {
-            not: null,
-          },
-        },
+        where: { visibility: "VISIBLE" },
         orderBy: [
           { displayOrder: "asc" },
           { createdAt: "asc" },
         ],
-        take: 1,
         select: {
-          externalUrl: true,
+          id: true, sourceType: true, storageKey: true, mimeType: true, altText: true,
+          originalFilename: true, width: true, height: true, aspectRatio: true,
+          visibility: true, displayOrder: true, externalUrl: true,
         },
       },
     },
@@ -180,40 +201,33 @@ export async function generateMetadata({
     };
   }
 
-  const metadataVideo = tryResolveExternalMedia(
-    project.media[0]?.externalUrl,
-  );
-  const image = project.heroMedia?.storageKey
-    ? getPublicAssetUrl(project.heroMedia.storageKey)
-    : metadataVideo?.thumbnailUrl;
   const title =
     project.seoTitle || `${project.title} | Helios Real Estate Media`;
   const description =
     project.seoDescription ||
     project.shortDescription ||
     `View ${project.title}, a project by Helios Real Estate Media.`;
+  if (preview || project.status !== "PUBLISHED") {
+    return { title, description, robots: { index: false, follow: false } };
+  }
 
+  const canonical = getAbsoluteUrl(`/portfolio/${slug}`);
+  const image = resolveProjectSocialImage(project);
   return {
     title,
     description,
-    alternates: {
-      canonical: `/portfolio/${slug}`,
-    },
+    alternates: { canonical },
     openGraph: {
-      title,
-      description,
-      type: "article",
-      url: `/portfolio/${slug}`,
-      images: image
-        ? [
-            {
-              url: image,
-              alt: project.heroMedia?.altText || project.title,
-            },
-          ]
-        : undefined,
+      title, description, type: "article", url: canonical,
+      images: [{
+        url: image.url, secureUrl: image.url, alt: image.alt, type: image.type,
+        ...(image.width ? { width: image.width } : {}),
+        ...(image.height ? { height: image.height } : {}),
+      }],
     },
-    ...(preview ? { robots: { index: false, follow: false } } : {}),
+    twitter: {
+      card: "summary_large_image", title, description, images: [image.url],
+    },
   };
 }
 
@@ -256,7 +270,9 @@ export default async function PortfolioProjectPage({
     ({ service }) => service.active,
   );
   const projectUrl = getAbsoluteUrl(`/portfolio/${project.slug}`);
+  const resolvedSocialImage = preview ? null : resolveProjectSocialImage(project);
   const structuredImages = [
+    resolvedSocialImage?.url || null,
     project.heroMedia?.storageKey
       ? getPublicAssetUrl(project.heroMedia.storageKey)
       : null,

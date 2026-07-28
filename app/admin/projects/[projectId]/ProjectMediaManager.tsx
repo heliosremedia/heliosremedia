@@ -67,6 +67,7 @@ type MediaListResponse = {
   success: boolean;
   error?: string;
   media?: ProjectMediaItem[];
+  socialImageMediaId?: string | null;
 };
 
 type SetHeroResponse = {
@@ -619,6 +620,8 @@ export default function ProjectMediaManager({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [heroError, setHeroError] = useState<string | null>(null);
+  const [socialImageMediaId, setSocialImageMediaId] = useState<string | null>(null);
+  const [isUpdatingSocialImage, setIsUpdatingSocialImage] = useState(false);
   const [updatingHeroId, setUpdatingHeroId] = useState<string | null>(null);
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -722,6 +725,7 @@ export default function ProjectMediaManager({
       }
 
       setMedia(data.media);
+      setSocialImageMediaId(data.socialImageMediaId ?? null);
     } catch (loadError) {
       console.error("Unable to load project media:", loadError);
 
@@ -932,6 +936,25 @@ export default function ProjectMediaManager({
     },
     [projectId, router],
   );
+
+  const handleSetSocialImage = useCallback(async (mediaId: string) => {
+    try {
+      setIsUpdatingSocialImage(true);
+      setHeroError(null);
+      const response = await fetch(`/api/admin/projects/${projectId}/media`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "set-social-image", mediaId }),
+      });
+      const data = await response.json() as { success: boolean; error?: string; socialImageMediaId?: string | null };
+      if (!response.ok || !data.success) throw new Error(data.error || "The social sharing image could not be updated.");
+      setSocialImageMediaId(data.socialImageMediaId ?? null);
+      router.refresh();
+    } catch (updateError) {
+      setHeroError(updateError instanceof Error ? updateError.message : "The social sharing image could not be updated.");
+    } finally {
+      setIsUpdatingSocialImage(false);
+    }
+  }, [projectId, router]);
 
   useEffect(() => {
     if (!openMenuId) {
@@ -1483,6 +1506,33 @@ export default function ProjectMediaManager({
           projectId={projectId}
           onMediaAdded={handleMediaUploaded}
         />
+
+        <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5 sm:p-6">
+          <p className="text-[0.62rem] font-semibold uppercase tracking-[0.19em] text-[var(--helios-orange)]">
+            Social Sharing Image
+          </p>
+          <h3 className="mt-3 text-xl font-normal text-white">Choose the project share preview</h3>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-white/35">
+            Used when this project is shared to Facebook, LinkedIn, X, messaging apps, and other platforms.
+            Leave this on automatic to use the hero, best gallery image, video thumbnail, or Helios fallback.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <button type="button" disabled={isUpdatingSocialImage} onClick={() => void handleSetSocialImage("")}
+              className={socialImageMediaId ? "admin-btn-secondary" : "admin-btn-primary"}>
+              Automatic fallback
+            </button>
+            {media.filter((item) => item.visibility === "VISIBLE" && item.sourceType === "UPLOADED_IMAGE" &&
+              Boolean(item.publicUrl) && ["image/jpeg", "image/png", "image/webp"].includes(item.mimeType || ""))
+              .map((item) => (
+                <button key={item.id} type="button" disabled={isUpdatingSocialImage}
+                  onClick={() => void handleSetSocialImage(item.id)}
+                  className={socialImageMediaId === item.id ? "admin-btn-primary" : "admin-btn-secondary"}>
+                  {item.isHero ? "Use hero image" : item.originalFilename || "Use gallery image"}
+                </button>
+              ))}
+          </div>
+          {heroError ? <p className="mt-3 text-sm text-red-200/75">{heroError}</p> : null}
+        </section>
 
         <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]">
           <div className="flex flex-col gap-3 border-b border-white/[0.08] px-5 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-6">
