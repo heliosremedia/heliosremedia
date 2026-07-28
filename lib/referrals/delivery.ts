@@ -5,6 +5,7 @@ import { sendCampaignBatch } from "@/lib/client-communications/email";
 import { campaignCanExecute, followUpShouldStop } from "./state-machine";
 import { addressIsMarketingEligible } from "@/lib/client-communications/preferences";
 import { getSiteUrl } from "@/lib/site";
+import { referralScheduleIsRunnable } from "./operations";
 
 function unsubscribeUrl(html: string) {
   const match = html.match(/href="([^"]*\/unsubscribe\?token=[^"]+)"/);
@@ -36,7 +37,17 @@ export async function processReferralCommunications(now = new Date(), limit = 50
   for (const communication of due) {
     const invitation = communication.invitation;
     const client = invitation?.advocate.client;
-    const campaignActive = campaignCanExecute(communication.campaign.status, now, communication.campaign.startsAt, communication.campaign.endsAt);
+    const campaignActive = referralScheduleIsRunnable({
+      campaignStatus: communication.campaign.status,
+      scheduleConfirmedAt: communication.campaign.scheduleConfirmedAt,
+      deliveryScheduledAt: communication.campaign.deliveryScheduledAt,
+      now,
+    }) && campaignCanExecute(
+      communication.campaign.status === "APPROVED" ? "ACTIVE" : communication.campaign.status,
+      now,
+      communication.campaign.startsAt,
+      communication.campaign.endsAt,
+    );
     if (communication.campaign.status === "PAUSED") {
       result.skipped += 1;
       continue;
@@ -94,6 +105,15 @@ export async function processReferralCommunications(now = new Date(), limit = 50
         prisma.referralAuditEvent.create({
           data: { campaignId: communication.campaignId, submissionId: communication.submissionId, action: "COMMUNICATION_SENT", summary: `${communication.kind.replaceAll("_", " ")} sent.`, metadata: { communicationId: communication.id } },
         }),
+        prisma.referralCampaign.update({
+          where: { id: communication.campaignId },
+          data: {
+            status: communication.kind === "INVITATION" ? "ACTIVE" : undefined,
+            activatedAt: communication.kind === "INVITATION" ? (communication.campaign.activatedAt ?? now) : undefined,
+            lastWorkerActivityAt: now,
+            lastProviderActivityAt: now,
+          },
+        }),
       ]);
       result.sent += 1;
     } catch (error) {
@@ -109,6 +129,18 @@ export async function processReferralCommunications(now = new Date(), limit = 50
               data: { status: "FAILED", failureCode: "PROVIDER_REJECTED", failureMessage: message },
             })]
           : []),
+        prisma.referralCampaign.update({
+          where: { id: communication.campaignId },
+          data: { lastWorkerActivityAt: now, lastProviderActivityAt: now },
+        }),
+        prisma.referralAuditEvent.create({
+          data: {
+            campaignId: communication.campaignId,
+            action: "COMMUNICATION_FAILED",
+            summary: `${communication.kind.replaceAll("_", " ")} delivery failed.`,
+            metadata: { communicationId: communication.id, failureCode: "PROVIDER_REJECTED" },
+          },
+        }),
       ]);
       result.failed += 1;
     }

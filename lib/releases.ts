@@ -19,6 +19,34 @@ export type StudioRelease = {
 // repository records.
 export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
+    version: "V1.8.9.4",
+    slug: "v1-8-9-4",
+    releaseDate: null,
+    title: "Referral Campaign Scheduling & Visibility",
+    summary: "Separates safe campaign preparation from explicitly approved delivery scheduling and makes every next action visible.",
+    newFeatures: [
+      "Review & Schedule confirmation with future first-send time and workspace time zone",
+      "Operational campaign summary with truthful next-send, sequence, worker, and provider activity",
+    ],
+    improvements: [
+      "Dashboard metrics distinguish active, awaiting-scheduling, scheduled, paused, and stalled campaigns",
+      "Sequence totals clearly separate unique advocates from estimated messages",
+    ],
+    bugFixes: [
+      "Prepared campaigns with no confirmed schedule no longer appear Active",
+      "Campaign preparation no longer creates runnable communications",
+    ],
+    securityInfrastructure: [
+      "Delivery requires an explicit schedule-confirmation timestamp before a worker can claim work",
+      "Scheduling is idempotent and campaign operational queries remain workspace-scoped",
+    ],
+    administratorActions: [
+      "Review the prepared audience, sender, content, sequence, and proposed time before confirming a schedule.",
+      "Do not schedule the production audience until an authorized internal test has been completed.",
+    ],
+    status: "PLANNED",
+  },
+  {
     version: "V1.8.9.3",
     slug: "v1-8-9-3",
     releaseDate: "2026-07-28",

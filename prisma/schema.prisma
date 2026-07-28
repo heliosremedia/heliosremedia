@@ -2551,6 +2551,12 @@ model ReferralCampaign {
   preparedCommunicationCount Int       @default(0)
   launchBatch                Int       @default(0)
   lastLaunchError            String?
+  deliveryScheduledAt        DateTime?
+  deliveryTimezone           String    @default("America/Denver")
+  scheduleConfirmedAt        DateTime?
+  scheduledById              String?
+  lastWorkerActivityAt       DateTime?
+  lastProviderActivityAt     DateTime?
 
   createdById String
   createdBy   AdminUser @relation("ReferralCampaignCreator", fields: [createdById], references: [id], onDelete: Restrict)
