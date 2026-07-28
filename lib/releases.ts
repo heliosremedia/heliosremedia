@@ -21,7 +21,7 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
     version: "V1.8.9",
     slug: "v1-8-9",
-    releaseDate: null,
+    releaseDate: "2026-07-28",
     title: "Homepage Curation & Portfolio Intelligence Recovery",
     summary: "Refines Homepage Curation and restores accurate, privacy-conscious Portfolio Intelligence ingestion and health reporting.",
     newFeatures: [
@@ -47,7 +47,7 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
       "Complete a controlled signed-out production event after deployment and confirm it in Portfolio Intelligence.",
       "Review the stalled referral campaign only through sanitized read-only diagnostics.",
     ],
-    status: "PLANNED",
+    status: "LIVE",
   },
   {
     version: "V1.8.8",
