@@ -10,6 +10,10 @@ export function referralOperationalState(input: {
   sentCount: number;
   sendingCount?: number;
   stalled?: boolean;
+  timezone?: string | null;
+  approvedRevisionId?: string | null;
+  scheduledRevisionId?: string | null;
+  scheduledAudienceCount?: number | null;
 }): ReferralOperationalState {
   if (input.status === "DRAFT") return "DRAFT";
   if (input.status === "CANCELLED") return "CANCELLED";
@@ -20,7 +24,15 @@ export function referralOperationalState(input: {
   if (input.status === "LAUNCHING") return "PREPARING";
   if ((input.sendingCount ?? 0) > 0) return "SENDING";
   if (input.sentCount > 0) return "ACTIVE";
-  if (input.scheduleConfirmedAt && input.deliveryScheduledAt) return "SCHEDULED";
+  if (
+    input.scheduleConfirmedAt
+    && input.deliveryScheduledAt
+    && input.timezone
+    && input.approvedRevisionId
+    && input.scheduledRevisionId === input.approvedRevisionId
+    && (input.scheduledAudienceCount ?? 0) > 0
+    && new Date(input.deliveryScheduledAt) > new Date()
+  ) return "SCHEDULED";
   return "APPROVED_NOT_SCHEDULED";
 }
 
@@ -59,8 +71,16 @@ export function referralScheduleIsRunnable(input: {
   scheduleConfirmedAt?: Date | string | null;
   deliveryScheduledAt?: Date | string | null;
   now: Date;
+  timezone?: string | null;
+  approvedRevisionId?: string | null;
+  scheduledRevisionId?: string | null;
+  scheduledAudienceCount?: number | null;
 }) {
-  if (!input.scheduleConfirmedAt || !input.deliveryScheduledAt) return false;
+  if (
+    !input.scheduleConfirmedAt || !input.deliveryScheduledAt || !input.timezone
+    || !input.approvedRevisionId || input.scheduledRevisionId !== input.approvedRevisionId
+    || (input.scheduledAudienceCount ?? 0) < 1
+  ) return false;
   return ["APPROVED", "ACTIVE"].includes(input.campaignStatus)
     && new Date(input.deliveryScheduledAt) <= input.now;
 }

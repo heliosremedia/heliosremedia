@@ -22,6 +22,7 @@ export async function scheduleReferralCampaign(
       id: true, internalName: true, status: true, approvedRevisionId: true,
       preparedAdvocateCount: true, expectedAdvocateCount: true,
       deliveryScheduledAt: true, deliveryTimezone: true, scheduleConfirmedAt: true,
+      scheduleVersion: true, scheduledRevisionId: true, scheduledAudienceCount: true,
       followUpConfiguration: true,
     },
   });
@@ -32,8 +33,10 @@ export async function scheduleReferralCampaign(
   }
   if (campaign.scheduleConfirmedAt
     && campaign.deliveryScheduledAt?.getTime() === firstSendAt.getTime()
-    && campaign.deliveryTimezone === timezone) {
-    return { scheduledAt: firstSendAt, timezone, unchanged: true };
+    && campaign.deliveryTimezone === timezone
+    && campaign.scheduledRevisionId === campaign.approvedRevisionId
+    && campaign.scheduledAudienceCount === campaign.preparedAdvocateCount) {
+    return { scheduledAt: firstSendAt, timezone, unchanged: true, version: campaign.scheduleVersion };
   }
 
   const followUp = campaign.followUpConfiguration as { enabled?: boolean; count?: number; delayDays?: number };
@@ -41,6 +44,21 @@ export async function scheduleReferralCampaign(
   const delayDays = Math.max(2, Math.min(60, Number(followUp.delayDays) || 7));
   const confirmedAt = new Date();
   await prisma.$transaction(async tx => {
+    const current = await tx.referralCampaign.findUnique({
+      where: { id: campaignId },
+      select: {
+        scheduleVersion: true, approvedRevisionId: true, preparedAdvocateCount: true,
+        scheduleConfirmedAt: true, deliveryScheduledAt: true, deliveryTimezone: true,
+      },
+    });
+    if (!current || current.approvedRevisionId !== campaign.approvedRevisionId || current.preparedAdvocateCount !== campaign.preparedAdvocateCount) {
+      throw new Error("Campaign audience or approval changed. Reload and review the schedule again.");
+    }
+    if (current.scheduleConfirmedAt
+      && current.deliveryScheduledAt?.getTime() === firstSendAt.getTime()
+      && current.deliveryTimezone === timezone) return;
+    const previousSchedule = current.deliveryScheduledAt?.toISOString() ?? null;
+    const nextVersion = current.scheduleVersion + 1;
     await tx.referralCampaign.update({
       where: { id: campaignId },
       data: {
@@ -49,6 +67,10 @@ export async function scheduleReferralCampaign(
         deliveryTimezone: timezone,
         scheduleConfirmedAt: confirmedAt,
         scheduledById: actor.userId,
+        scheduleVersion: nextVersion,
+        scheduledRevisionId: campaign.approvedRevisionId,
+        scheduledAudienceCount: campaign.preparedAdvocateCount,
+        scheduleCancelledAt: null,
       },
     });
     await tx.referralInvitation.updateMany({
@@ -73,13 +95,18 @@ export async function scheduleReferralCampaign(
     }
     await tx.referralAuditEvent.create({
       data: {
-        campaignId, actorId: actor.userId, action: "CAMPAIGN_SCHEDULE_CREATED",
+        campaignId, actorId: actor.userId,
+        action: current.scheduleConfirmedAt ? "CAMPAIGN_SCHEDULE_EDITED" : "CAMPAIGN_SCHEDULE_CREATED",
         summary: `Scheduled the initial invitation for ${firstSendAt.toISOString()} (${timezone}).`,
         metadata: {
           firstSendAt: firstSendAt.toISOString(), timezone,
           advocateCount: campaign.preparedAdvocateCount,
           sequenceSteps: 1 + followUpCount,
           estimatedMessages: campaign.preparedAdvocateCount * (1 + followUpCount),
+          previousSchedule, newSchedule: firstSendAt.toISOString(),
+          scheduleVersion: nextVersion,
+          audienceSnapshotVersion: campaign.approvedRevisionId,
+          sequenceVersion: campaign.approvedRevisionId,
         },
       },
     });
@@ -89,5 +116,56 @@ export async function scheduleReferralCampaign(
     entityType: "ReferralCampaign", entityId: campaignId,
     summary: `Scheduled referral campaign "${campaign.internalName}" for ${firstSendAt.toISOString()}.`,
   });
-  return { scheduledAt: firstSendAt, timezone, unchanged: false };
+  const updated = await prisma.referralCampaign.findUnique({ where: { id: campaignId }, select: { scheduleVersion: true } });
+  return { scheduledAt: firstSendAt, timezone, unchanged: false, version: updated?.scheduleVersion ?? campaign.scheduleVersion + 1 };
+}
+
+export async function cancelReferralCampaignSchedule(campaignId: string, actor: ScheduleActor) {
+  const campaign = await prisma.referralCampaign.findUnique({
+    where: { id: campaignId },
+    select: {
+      internalName: true, scheduleConfirmedAt: true, deliveryScheduledAt: true,
+      deliveryTimezone: true, scheduleVersion: true, preparedAdvocateCount: true,
+      approvedRevisionId: true,
+    },
+  });
+  if (!campaign?.scheduleConfirmedAt) return { unchanged: true };
+  const cancelledAt = new Date();
+  await prisma.$transaction(async tx => {
+    await tx.referralCommunication.updateMany({
+      where: { campaignId, status: { in: ["APPROVED", "SCHEDULED"] }, sentAt: null },
+      data: { status: "APPROVED", scheduledAt: null },
+    });
+    await tx.referralInvitation.updateMany({
+      where: { campaignId, status: { in: ["APPROVED", "SCHEDULED"] }, sentAt: null },
+      data: { status: "APPROVED", scheduledAt: null },
+    });
+    await tx.referralCampaign.update({
+      where: { id: campaignId },
+      data: {
+        status: "APPROVED", deliveryScheduledAt: null, scheduleConfirmedAt: null,
+        scheduledById: null, scheduledRevisionId: null, scheduledAudienceCount: null,
+        scheduleCancelledAt: cancelledAt, scheduleVersion: { increment: 1 },
+      },
+    });
+    await tx.referralAuditEvent.create({
+      data: {
+        campaignId, actorId: actor.userId, action: "CAMPAIGN_SCHEDULE_CANCELLED",
+        summary: "Cancelled all future unsent referral communications.",
+        metadata: {
+          previousSchedule: campaign.deliveryScheduledAt?.toISOString() ?? null,
+          newSchedule: null, timezone: campaign.deliveryTimezone,
+          scheduleVersion: campaign.scheduleVersion + 1,
+          audienceSnapshotVersion: campaign.approvedRevisionId,
+          totalPlannedMessages: campaign.preparedAdvocateCount,
+        },
+      },
+    });
+  }, { timeout: 15_000, maxWait: 5_000 });
+  await recordAuditEvent({
+    actorId: actor.userId, actorEmail: actor.email, action: "REFERRAL_CAMPAIGN_SCHEDULE_CANCELLED",
+    entityType: "ReferralCampaign", entityId: campaignId,
+    summary: `Cancelled the future schedule for referral campaign "${campaign.internalName}".`,
+  });
+  return { unchanged: false };
 }
