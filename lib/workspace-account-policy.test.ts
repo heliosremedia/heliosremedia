@@ -47,14 +47,37 @@ test("workspace account UI preserves identity hierarchy and responsive controls"
     new URL("../app/admin/users/UserManager.tsx", import.meta.url),
     "utf8",
   );
+  const styles = readFileSync(
+    new URL("../app/admin/users/UserManager.module.css", import.meta.url),
+    "utf8",
+  );
   assert.match(manager, /identity\.displayName/);
   assert.match(manager, /mailto:\$\{user\.email\}/);
   assert.match(manager, /Professional title/);
   assert.match(manager, /Permission role/);
-  assert.match(manager, /xl:grid-cols/);
+  assert.match(manager, /Owner permission role, read-only/);
+  assert.match(manager, /Ownership protected/);
+  assert.doesNotMatch(manager, /disabled=\{busy \|\| isOwner\}/);
   assert.match(manager, /min-h-11/);
-  assert.match(manager, /aria-describedby=\{isOwner \? ownerReasonId/);
   assert.doesNotMatch(manager, /className="truncate/);
+  assert.match(styles, /container-type:\s*inline-size/);
+  assert.match(styles, /@container workspace-accounts \(min-width: 38rem\)/);
+  assert.match(styles, /@container workspace-accounts \(min-width: 58rem\)/);
+  assert.match(styles, /overflow-wrap:\s*anywhere/);
+  assert.match(styles, /grid-template-areas/);
+});
+
+test("owner actions are read-only while non-owner controls remain actionable", () => {
+  const manager = readFileSync(
+    new URL("../app/admin/users/UserManager.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(manager, /isOwner \? \(/);
+  assert.match(manager, /\{!isOwner && <button/);
+  assert.match(manager, /onChange=\{event => update\(user, \{ role:/);
+  assert.match(manager, /onClick=\{\(\) => update\(user, \{ active: !user\.active \}\)\}/);
+  assert.match(manager, /\{user\.active \? "Deactivate" : "Reactivate"\}/);
+  assert.match(manager, /Reset password/);
 });
 
 test("account mutations remain tenant-scoped and owner protection is server enforced", () => {
