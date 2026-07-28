@@ -25,6 +25,19 @@ function rateLimited(key: string) {
   return current.count > 60;
 }
 
+function prismaDiagnostic(error: unknown) {
+  if (typeof error !== "object" || !error) return { type: typeof error };
+
+  const value = error as Record<string, unknown>;
+  return {
+    name: typeof value.name === "string" ? value.name : undefined,
+    code: typeof value.code === "string" ? value.code : undefined,
+    clientVersion: typeof value.clientVersion === "string" ? value.clientVersion : undefined,
+    message: typeof value.message === "string" ? value.message.slice(0, 2_000) : undefined,
+    meta: typeof value.meta === "object" && value.meta ? value.meta : undefined,
+  };
+}
+
 export async function POST(request: Request) {
   try {
     const key = clientKey(request);
@@ -119,7 +132,7 @@ export async function POST(request: Request) {
     const category = code === "P2021" || code === "P2022"
       ? "migration_or_schema_failure"
       : code.startsWith("P") ? "database_write_failure" : "unexpected_server_failure";
-    console.error(`[portfolio-analytics] ${category}`);
+    console.error(`[portfolio-analytics] ${category}`, prismaDiagnostic(error));
     return NextResponse.json(
       { state: "failed", stored: false, category: "storage_unavailable" },
       { status: category === "migration_or_schema_failure" ? 503 : 500 },
