@@ -84,6 +84,7 @@ export default function ProjectWorkflowManager({
   const [featured, setFeatured] = useState(initialFeatured);
   const [featuredStartedAt, setFeaturedStartedAt] = useState(initialFeaturedStartedAt);
   const [featuredExpiresAt, setFeaturedExpiresAt] = useState(initialFeaturedExpiresAt);
+  const [featuredTimeReference] = useState(() => Date.now());
   const [publishedAt, setPublishedAt] = useState(initialPublishedAt);
   const [isSavingServices, setIsSavingServices] = useState(false);
   const [workflowAction, setWorkflowAction] = useState<string | null>(null);
@@ -519,7 +520,7 @@ export default function ProjectWorkflowManager({
                 Started {featuredStartedAt ? new Date(featuredStartedAt).toLocaleString("en-US", { timeZone: "America/Denver", timeZoneName: "short" }) : "before timing records"}
                 {" · "}
                 {featuredExpiresAt
-                  ? `Expires ${new Date(featuredExpiresAt).toLocaleString("en-US", { timeZone: "America/Denver", timeZoneName: "short" })} · ${Math.max(0, Math.ceil((new Date(featuredExpiresAt).getTime() - Date.now()) / 86_400_000))} days remaining`
+                  ? `Expires ${new Date(featuredExpiresAt).toLocaleString("en-US", { timeZone: "America/Denver", timeZoneName: "short" })} · ${Math.max(0, Math.ceil((new Date(featuredExpiresAt).getTime() - featuredTimeReference) / 86_400_000))} days remaining`
                   : "Always featured"}
               </p> : null}
             </div>
