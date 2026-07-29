@@ -1356,6 +1356,7 @@ model AdminUser {
   passwordHash            String?
   sessionVersion          Int                @default(0)
   navigationFavorites     Json?
+  homepageCurationPreferences Json?
   workspaceId             String
   workspace               Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
 
