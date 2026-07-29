@@ -64,6 +64,25 @@ type Campaign = {
     providerSubmissionsAccepted: number;
     providerSubmissionsFailed: number;
   } | null;
+  deliveryDiagnostic: {
+    generatedAt: string;
+    readOnly: true;
+    authorizationChecks: Record<string, boolean>;
+    campaignStatus: string;
+    scheduleVersion: number;
+    scheduledAudienceCount: number | null;
+    invitationStatusCounts: Record<string, number>;
+    communicationStatusCounts: Record<string, number>;
+    communicationKindStatusCounts: Array<{
+      kind: string;
+      status: string;
+      count: number;
+    }>;
+    dueScheduledCommunications: number;
+    communicationDeliveryEvidence: number;
+    invitationDeliveryEvidence: number;
+    recentAuditActions: Array<{ action: string; createdAt: string }>;
+  };
   sequence: { steps: number; followUps: number; estimatedMessages: number };
   followUpConfiguration: {
     enabled?: boolean;
@@ -740,6 +759,75 @@ export default function CampaignWorkspace({
             <p className="mt-2 text-amber-100/70">Worker did not run, or no durable cron evidence has been recorded yet.</p>
           )}
         </div>
+        <details className="mt-4 rounded-xl border border-amber-200/15 bg-amber-200/[0.025] p-4 text-xs leading-5 text-white/45">
+          <summary className="cursor-pointer select-none font-semibold uppercase tracking-[.14em] text-amber-100/75">
+            Read-only delivery diagnostic
+          </summary>
+          <p className="mt-2 max-w-3xl text-white/35">
+            Sanitized production state only. This panel cannot retry, schedule, send, or modify campaign records.
+          </p>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <div>
+              <p className="font-semibold text-white/60">Execution authorization</p>
+              <dl className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-1">
+                {Object.entries(campaign.deliveryDiagnostic.authorizationChecks).map(([check, passed]) => (
+                  <div key={check} className="contents">
+                    <dt>{check.replaceAll(/([A-Z])/g, " $1").toLowerCase()}</dt>
+                    <dd className={passed ? "text-emerald-200/70" : "text-red-200/75"}>
+                      {passed ? "PASS" : "BLOCKED"}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="mt-3">
+                Campaign status / schedule version / scheduled audience:{" "}
+                {campaign.deliveryDiagnostic.campaignStatus} / {campaign.deliveryDiagnostic.scheduleVersion} /{" "}
+                {campaign.deliveryDiagnostic.scheduledAudienceCount ?? "none"}
+              </p>
+            </div>
+            <div>
+              <p className="font-semibold text-white/60">Persisted record states</p>
+              <p className="mt-2">
+                Invitations:{" "}
+                {Object.entries(campaign.deliveryDiagnostic.invitationStatusCounts)
+                  .map(([status, count]) => `${status} ${count}`)
+                  .join(" · ") || "none"}
+              </p>
+              <p className="mt-1">
+                Communications:{" "}
+                {Object.entries(campaign.deliveryDiagnostic.communicationStatusCounts)
+                  .map(([status, count]) => `${status} ${count}`)
+                  .join(" · ") || "none"}
+              </p>
+              <p className="mt-1">
+                Kind/status:{" "}
+                {campaign.deliveryDiagnostic.communicationKindStatusCounts
+                  .map(item => `${item.kind}/${item.status} ${item.count}`)
+                  .join(" · ") || "none"}
+              </p>
+              <p className="mt-3">
+                Due scheduled communications: {campaign.deliveryDiagnostic.dueScheduledCommunications}
+              </p>
+              <p>
+                Delivery evidence (communications / invitations):{" "}
+                {campaign.deliveryDiagnostic.communicationDeliveryEvidence} /{" "}
+                {campaign.deliveryDiagnostic.invitationDeliveryEvidence}
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 border-t border-white/[0.07] pt-3">
+            <p className="font-semibold text-white/60">Recent audit actions</p>
+            <p className="mt-1 break-words">
+              {campaign.deliveryDiagnostic.recentAuditActions
+                .map(item => `${item.action} (${new Date(item.createdAt).toLocaleString()})`)
+                .join(" · ") || "No campaign audit actions recorded."}
+            </p>
+            <p className="mt-2 text-white/25">
+              Snapshot generated {new Date(campaign.deliveryDiagnostic.generatedAt).toLocaleString()}.
+              Recipient and provider identifiers are intentionally excluded.
+            </p>
+          </div>
+        </details>
       </section>
       {campaign.status === "LAUNCHING" && (
         <section
