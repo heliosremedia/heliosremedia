@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   closestCenter,
@@ -622,6 +622,8 @@ export default function ProjectMediaManager({
   const [heroError, setHeroError] = useState<string | null>(null);
   const [socialImageMediaId, setSocialImageMediaId] = useState<string | null>(null);
   const [isUpdatingSocialImage, setIsUpdatingSocialImage] = useState(false);
+  const [isSocialImageSelectorOpen, setIsSocialImageSelectorOpen] = useState(false);
+  const socialImageSelectorButtonRef = useRef<HTMLButtonElement>(null);
   const [updatingHeroId, setUpdatingHeroId] = useState<string | null>(null);
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -683,6 +685,19 @@ export default function ProjectMediaManager({
       ?? media.find((item) => item.visibility === "VISIBLE" && item.sourceType === "UPLOADED_IMAGE")
       ?? null,
     [media, socialImageMediaId],
+  );
+  const socialImageChoices = useMemo(
+    () =>
+      media.filter(
+        (item) =>
+          item.visibility === "VISIBLE" &&
+          item.sourceType === "UPLOADED_IMAGE" &&
+          Boolean(item.publicUrl) &&
+          ["image/jpeg", "image/png", "image/webp"].includes(
+            item.mimeType || "",
+          ),
+      ),
+    [media],
   );
 
   const activeExternalMedia = useMemo(
@@ -955,6 +970,10 @@ export default function ProjectMediaManager({
       const data = await response.json() as { success: boolean; error?: string; socialImageMediaId?: string | null };
       if (!response.ok || !data.success) throw new Error(data.error || "The social sharing image could not be updated.");
       setSocialImageMediaId(data.socialImageMediaId ?? null);
+      if (mediaId) {
+        setIsSocialImageSelectorOpen(false);
+        requestAnimationFrame(() => socialImageSelectorButtonRef.current?.focus());
+      }
       router.refresh();
     } catch (updateError) {
       setHeroError(updateError instanceof Error ? updateError.message : "The social sharing image could not be updated.");
@@ -1543,25 +1562,64 @@ export default function ProjectMediaManager({
               Restore Automatic Preview
             </button>
           </div>
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {media.filter((item) => item.visibility === "VISIBLE" && item.sourceType === "UPLOADED_IMAGE" &&
-              Boolean(item.publicUrl) && ["image/jpeg", "image/png", "image/webp"].includes(item.mimeType || ""))
-              .map((item) => (
+          <div className="mt-5 overflow-hidden rounded-xl border border-white/[0.08] bg-black/20">
+            <button
+              ref={socialImageSelectorButtonRef}
+              type="button"
+              aria-expanded={isSocialImageSelectorOpen}
+              aria-controls="project-social-image-choices"
+              onClick={() => setIsSocialImageSelectorOpen((current) => !current)}
+              className="flex w-full items-center gap-3 p-4 text-left transition hover:bg-white/[0.025] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--helios-orange)] sm:gap-4"
+            >
+              <span className="relative block h-12 w-[5.75rem] shrink-0 overflow-hidden rounded-lg border border-white/10 bg-black sm:h-14 sm:w-[6.7rem]">
+                {socialPreviewMedia?.publicUrl ? (
+                  <Image
+                    src={socialPreviewMedia.publicUrl}
+                    alt=""
+                    fill
+                    sizes="108px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <span className="flex h-full items-center justify-center text-[0.55rem] text-white/25">Automatic</span>
+                )}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm text-white/75">Choose a Different Share Image</span>
+                <span className="mt-1 block truncate text-xs text-white/35" title={socialPreviewMedia?.originalFilename || undefined}>
+                  {socialPreviewMedia?.originalFilename || (socialImageMediaId ? "Selected project image" : "Automatic project preview")}
+                </span>
+                <span className="mt-1 block text-[0.6rem] text-white/25">
+                  {socialImageMediaId ? "Custom selection" : "Automatic fallback"} · {socialImageChoices.length} available
+                </span>
+              </span>
+              <span className="shrink-0 text-xs font-medium text-[var(--helios-orange)]">
+                {isSocialImageSelectorOpen ? "Collapse" : "Change Image"}
+              </span>
+            </button>
+            {isSocialImageSelectorOpen ? (
+              <div id="project-social-image-choices" className="border-t border-white/[0.08] p-3 sm:p-4">
+                <p className="mb-3 text-xs text-white/35">Select another project image for social and messaging previews.</p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-8">
+                  {socialImageChoices.map((item) => (
                 <button key={item.id} type="button" disabled={isUpdatingSocialImage}
                   onClick={() => void handleSetSocialImage(item.id)}
                   aria-pressed={socialImageMediaId === item.id}
-                  aria-label={`Use ${item.originalFilename || item.altText || "gallery image"} as the project share image`}
+                  aria-label={`Use ${item.originalFilename || item.altText || "gallery image"} as the project share image${socialImageMediaId === item.id ? ", currently selected" : ""}`}
                   className={`overflow-hidden rounded-xl border text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--helios-orange)] ${socialImageMediaId === item.id ? "border-[var(--helios-orange)] bg-[var(--helios-orange)]/[0.08]" : "border-white/[0.08] bg-black/20 hover:border-white/20"}`}>
                   <span className="relative block aspect-[1.91/1] overflow-hidden bg-black">
-                    <Image src={item.publicUrl!} alt={item.altText || item.originalFilename || "Project image"} fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 18rem" className="object-cover" />
+                    <Image src={item.publicUrl!} alt={item.altText || item.originalFilename || "Project image"} fill loading="lazy" sizes="(max-width: 640px) 46vw, 160px" className="object-cover" />
                     {socialImageMediaId === item.id ? <span className="absolute right-2 top-2 rounded-full bg-[var(--helios-orange)] px-2 py-1 text-[0.5rem] font-semibold uppercase tracking-[0.12em] text-black">Selected</span> : null}
                   </span>
-                  <span className="block min-w-0 p-3">
-                    <span className="block truncate text-xs text-white/65">{item.originalFilename || "Project gallery image"}</span>
+                  <span className="block min-w-0 p-2">
+                    <span className="block truncate text-[0.65rem] text-white/65" title={item.originalFilename || undefined}>{item.originalFilename || "Project gallery image"}</span>
                     <span className="mt-1 block text-[0.6rem] text-white/30">{item.isHero ? "Project cover" : "Gallery image"}</span>
                   </span>
                 </button>
-              ))}
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
           <p className="mt-3 text-xs leading-5 text-white/30">To upload a custom share image, add it with the image uploader above, then select it here. Removing a custom selection never changes the project cover or public gallery.</p>
           {heroError ? <p className="mt-3 text-sm text-red-200/75">{heroError}</p> : null}
