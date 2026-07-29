@@ -19,6 +19,30 @@ export type StudioRelease = {
 // repository records.
 export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
+    version: "V1.8.9.12",
+    slug: "v1-8-9-12",
+    releaseDate: null,
+    title: "Referral Verified-Sender Recovery",
+    summary: "Recovers the exact zero-send referral campaign without assuming a provider-dependent failed/approved status split.",
+    newFeatures: [],
+    improvements: [
+      "Uses immutable incident audit history and delivery evidence to authorize the one-time recovery",
+    ],
+    bugFixes: [
+      "Removes the invalid one-failed/148-approved assumption that blocked the verified sender repair",
+      "Pins the saved campaign sender to referrals@mail.heliosrealestatemedia.com before queueing",
+    ],
+    securityInfrastructure: [
+      "Recovery requires the exact named 149-person campaign, prior containment and recovery audits, and zero sent/provider-message evidence",
+      "The existing provider fail-stop remains active for every delivery batch",
+    ],
+    administratorActions: [
+      "Deployment creates one fresh execution authorization for normal bounded cron processing.",
+      "Do not manually retry, reschedule, or cancel while the recovered queue is processing.",
+    ],
+    status: "DEPLOYING",
+  },
+  {
     version: "V1.8.9.11",
     slug: "v1-8-9-11",
     releaseDate: null,
@@ -40,7 +64,7 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
       "Deployment creates a fresh execution authorization for normal bounded cron processing.",
       "Do not reschedule, cancel, or use Retry Safely while the recovered queue is processing.",
     ],
-    status: "DEPLOYING",
+    status: "LIVE",
   },
   {
     version: "V1.8.9.10",
