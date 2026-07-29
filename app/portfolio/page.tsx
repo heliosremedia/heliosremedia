@@ -8,6 +8,7 @@ import ManagedCtaSection from "@/app/components/ManagedCtaSection";
 import Navbar from "@/app/components/Navbar";
 import { tryResolveExternalMedia } from "@/lib/external-media";
 import { getServiceMediaCategories } from "@/lib/portfolio-services";
+import { isActivelyFeatured } from "@/lib/featured-project";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { defaultPageCtas } from "@/lib/ctas";
@@ -119,6 +120,7 @@ export default async function PortfolioPage({
         locationLabel: true,
         propertyType: true,
         featured: true,
+        featuredExpiresAt: true,
         thumbnailMedia: {
           select: {
             storageKey: true,
@@ -252,11 +254,14 @@ export default async function PortfolioPage({
         ]
       : [],
   );
-  const featuredProjects = projects.filter((project) => project.featured);
+  const sortedProjects = [...projects].sort((a, b) =>
+    Number(isActivelyFeatured(b)) - Number(isActivelyFeatured(a)) ||
+    a.displayOrder - b.displayOrder);
+  const featuredProjects = sortedProjects.filter((project) => isActivelyFeatured(project));
   const pageSize = 18;
-  const totalPages = Math.max(1, Math.ceil(projects.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(sortedProjects.length / pageSize));
   const currentPage = Math.min(pageNumber, totalPages);
-  const displayedProjects = projects.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const displayedProjects = sortedProjects.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const pageProjects = displayedProjects;
   const carouselProjects: FeaturedProjectCard[] = featuredProjects.map((project) => {
     const badges = project.services
