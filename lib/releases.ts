@@ -19,6 +19,31 @@ export type StudioRelease = {
 // repository records.
 export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
+    version: "V1.8.9.8",
+    slug: "v1-8-9-8",
+    releaseDate: null,
+    title: "Referral Cron Credential Recovery",
+    summary: "Contains the second zero-send referral authorization before the protected production cron credential is rotated.",
+    newFeatures: [],
+    improvements: [
+      "Adds a second exact-schedule containment checkpoint for the July 28 7:54 PM authorization",
+    ],
+    bugFixes: [
+      "Prevents the newly overdue schedule from becoming executable when production cron authentication is restored",
+    ],
+    securityInfrastructure: [
+      "Containment targets only the named 149-advocate campaign and exact one-minute schedule window",
+      "The migration refuses to alter any campaign with sent or provider-submitted communication evidence",
+      "Cron authentication remains fail-closed until the protected Vercel production credential is rotated",
+    ],
+    administratorActions: [
+      "Do not retry, edit, cancel, or reschedule the campaign.",
+      "Rotate CRON_SECRET in Vercel Production only after this containment migration is deployed.",
+      "Require an authenticated zero-send normal cron poll before creating a new schedule.",
+    ],
+    status: "PLANNED",
+  },
+  {
     version: "V1.8.9.7",
     slug: "v1-8-9-7",
     releaseDate: null,
