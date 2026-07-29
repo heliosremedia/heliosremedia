@@ -2,6 +2,8 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { tryResolveExternalMedia } from "@/lib/external-media";
+import { getAdminSession } from "@/lib/auth/session";
+import { featuredWindow, type FeaturedDuration } from "@/lib/featured-project";
 import { prisma } from "@/lib/prisma";
 
 type ProjectWorkflowRouteProps = {
@@ -14,6 +16,7 @@ type ProjectWorkflowBody = {
   action?: unknown;
   serviceIds?: unknown;
   featured?: unknown;
+  featuredDuration?: unknown;
 };
 
 function revalidateProjectPaths(projectId: string, slug: string) {
@@ -30,6 +33,10 @@ export async function PATCH(
   { params }: ProjectWorkflowRouteProps,
 ) {
   try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN"].includes(session.role)) {
+      return NextResponse.json({ success: false, error: "Owner or administrator access is required." }, { status: 403 });
+    }
     const { projectId } = await params;
     const body = (await request.json()) as ProjectWorkflowBody;
     const action = typeof body.action === "string" ? body.action.trim() : "";
@@ -46,9 +53,10 @@ export async function PATCH(
       );
     }
 
-    const project = await prisma.project.findUnique({
+    const project = await prisma.project.findFirst({
       where: {
         id: projectId,
+        workspaceId: session.workspaceId,
       },
       select: {
         id: true,
@@ -56,6 +64,8 @@ export async function PATCH(
         slug: true,
         status: true,
         featured: true,
+        featuredStartedAt: true,
+        featuredExpiresAt: true,
         heroMediaId: true,
         shortDescription: true,
         heroMedia: {
@@ -200,7 +210,11 @@ export async function PATCH(
     }
 
     if (action === "set-featured") {
-      if (typeof body.featured !== "boolean") {
+      const durations = new Set<FeaturedDuration>(["NONE", "7_DAYS", "14_DAYS", "30_DAYS", "ALWAYS"]);
+      const duration = typeof body.featuredDuration === "string" && durations.has(body.featuredDuration as FeaturedDuration)
+        ? body.featuredDuration as FeaturedDuration
+        : typeof body.featured === "boolean" ? (body.featured ? "ALWAYS" : "NONE") : null;
+      if (!duration) {
         return NextResponse.json(
           {
             success: false,
@@ -212,7 +226,7 @@ export async function PATCH(
         );
       }
 
-      if (body.featured && project.status !== "PUBLISHED") {
+      if (duration !== "NONE" && project.status !== "PUBLISHED") {
         return NextResponse.json(
           {
             success: false,
@@ -229,10 +243,12 @@ export async function PATCH(
           id: project.id,
         },
         data: {
-          featured: body.featured,
+          ...featuredWindow(duration),
         },
         select: {
           featured: true,
+          featuredStartedAt: true,
+          featuredExpiresAt: true,
           status: true,
           publishedAt: true,
         },
