@@ -19,6 +19,31 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
+    version: "V1.8.9.15",
+    slug: "v1-8-9-15",
+    releaseDate: null,
+    title: "Compact Social Share Image Selection",
+    summary: "Refines the Project Editor’s social-share image selector with a compact, collapsible thumbnail gallery that makes large project libraries faster and easier to navigate.",
+    newFeatures: [],
+    improvements: [
+      "Collapsed-by-default image selector with a clear current-selection summary",
+      "Smaller responsive thumbnails with accessible names, selected states, and lazy loading",
+      "Automatic collapse and focus return after a successful image selection",
+    ],
+    bugFixes: [
+      "Prevents large project galleries from consuming excessive Project Editor space",
+      "Keeps Restore Automatic Preview separate from selectable project images",
+    ],
+    securityInfrastructure: [
+      "Existing authenticated project and workspace image-selection validation remains authoritative",
+      "No project media, public gallery, metadata fallback, or share-image persistence behavior changed",
+    ],
+    administratorActions: [
+      "Expand Choose a Different Share Image only when selecting an alternative project image.",
+    ],
+    status: "DEPLOYING",
+  },
+  {
     version: "V1.8.9.14",
     slug: "v1-8-9-14",
     releaseDate: "2026-07-29",
