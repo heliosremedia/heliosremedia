@@ -49,6 +49,16 @@ export class EmailDeliveryError extends Error {
   }
 }
 
+function providerFailureCode(status: number, details: string) {
+  const normalized = details.toLowerCase();
+  if (status === 401 || status === 403) return "EMAIL_PROVIDER_AUTHENTICATION";
+  if (status === 429) return "EMAIL_PROVIDER_RATE_LIMIT";
+  if (normalized.includes("domain") || normalized.includes("from") || normalized.includes("sender")) {
+    return "EMAIL_PROVIDER_SENDER";
+  }
+  return "EMAIL_PROVIDER_REJECTED";
+}
+
 export async function sendTestCampaign(input: { to: string; subject: string; html: string }) {
   const { apiKey, from, replyTo } = deliveryConfig();
   const response = await fetch("https://api.resend.com/emails", {
@@ -96,7 +106,10 @@ export async function sendCampaignBatch(input: {
   });
   if (!response.ok) {
     const details = await response.text();
-    throw new Error(`Email provider rejected the batch (${response.status}): ${details.slice(0, 300)}`);
+    throw new EmailDeliveryError(
+      "EMAIL_PROVIDER_REJECTED",
+      `${providerFailureCode(response.status, details)}:${response.status}`,
+    );
   }
   const payload = await response.json() as { data?: Array<{ id?: string }> };
   return payload.data ?? [];

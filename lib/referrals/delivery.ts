@@ -1,7 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import { sendCampaignBatch } from "@/lib/client-communications/email";
+import { EmailDeliveryError, sendCampaignBatch } from "@/lib/client-communications/email";
 import { campaignCanExecute, followUpShouldStop } from "./state-machine";
 import { addressIsMarketingEligible } from "@/lib/client-communications/preferences";
 import { getSiteUrl } from "@/lib/site";
@@ -123,32 +123,65 @@ export async function processReferralCommunications(now = new Date(), limit = 50
       ]);
       result.sent += 1;
     } catch (error) {
-      const message = error instanceof Error ? error.message.slice(0, 500) : "Unknown provider failure";
+      const failureCode = error instanceof EmailDeliveryError
+        ? error.message.split(":")[0]
+        : "EMAIL_PROVIDER_FAILURE";
       await prisma.$transaction([
         prisma.referralCommunication.update({
           where: { id: communication.id },
-          data: { status: "FAILED", failureCode: "PROVIDER_REJECTED", failureMessage: message },
+          data: { status: "FAILED", failureCode, failureMessage: "Email delivery was not accepted." },
         }),
         ...(invitation && communication.kind === "INVITATION"
           ? [prisma.referralInvitation.update({
               where: { id: invitation.id },
-              data: { status: "FAILED", failureCode: "PROVIDER_REJECTED", failureMessage: message },
+              data: { status: "FAILED", failureCode, failureMessage: "Email delivery was not accepted." },
             })]
           : []),
+        prisma.referralCommunication.updateMany({
+          where: {
+            campaignId: communication.campaignId,
+            status: "SCHEDULED",
+            sentAt: null,
+            providerMessageId: null,
+          },
+          data: { status: "APPROVED", scheduledAt: null },
+        }),
+        prisma.referralInvitation.updateMany({
+          where: {
+            campaignId: communication.campaignId,
+            status: "SCHEDULED",
+            sentAt: null,
+            providerMessageId: null,
+          },
+          data: { status: "APPROVED", scheduledAt: null },
+        }),
         prisma.referralCampaign.update({
           where: { id: communication.campaignId },
-          data: { lastWorkerActivityAt: now, lastProviderActivityAt: now },
+          data: {
+            status: "APPROVED",
+            deliveryScheduledAt: null,
+            scheduleConfirmedAt: null,
+            executionAuthorizedAt: null,
+            scheduledById: null,
+            scheduledRevisionId: null,
+            scheduledAudienceCount: null,
+            scheduleCancelledAt: now,
+            scheduleVersion: { increment: 1 },
+            lastWorkerActivityAt: now,
+            lastProviderActivityAt: now,
+          },
         }),
         prisma.referralAuditEvent.create({
           data: {
             campaignId: communication.campaignId,
             action: "COMMUNICATION_FAILED",
             summary: `${communication.kind.replaceAll("_", " ")} delivery failed.`,
-            metadata: { communicationId: communication.id, failureCode: "PROVIDER_REJECTED" },
+            metadata: { communicationId: communication.id, failureCode, scheduleAuthorizationRevoked: true },
           },
         }),
       ]);
       result.failed += 1;
+      break;
     }
   }
   return result;
