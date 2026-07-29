@@ -143,7 +143,7 @@ export default function HomepageStructureManager({
   }
 
   return (
-    <section className="mt-7 rounded-2xl border border-white/[0.08] bg-[#111] p-6 lg:p-8">
+    <section id="homepage-structure" className="flex scroll-mt-28 flex-col rounded-2xl border border-white/[0.08] bg-[#111] p-6 lg:p-8">
       <p className="eyebrow text-[var(--helios-orange)]">Reusable structure</p>
       <h2 className="mt-3 text-2xl font-light text-white">
         Principles, approach, and navigation
@@ -229,15 +229,21 @@ export default function HomepageStructureManager({
         ))}
       </div>
 
-      <div className="mt-9">
-        <div className="flex items-center justify-between gap-3">
+      <details className="order-first mb-9 rounded-2xl border border-white/[0.08] bg-black/20 p-5 sm:p-6">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--helios-orange)]">
           <div>
-            <h3 className="text-lg text-white">Navigation links</h3>
+            <p className="eyebrow text-[var(--helios-orange)]">Homepage organization</p>
+            <h3 className="mt-2 text-2xl font-light text-white">Navigation Links</h3>
             <p className="mt-1 text-xs leading-5 text-white/35">
-              Choose whether each link appears in the main navigation, footer,
-              or both.
+              Manage labels, destinations, placement, new-tab behavior, and order.
             </p>
           </div>
+          <span className="shrink-0 rounded-full border border-white/10 px-3 py-2 text-xs text-white/45">
+            {navigation.length} configured
+          </span>
+        </summary>
+        <div className="mt-6 border-t border-white/[0.08] pt-5">
+          <div className="flex justify-end">
           <button
             type="button"
             onClick={addNavigation}
@@ -245,6 +251,7 @@ export default function HomepageStructureManager({
           >
             Add link
           </button>
+          </div>
         </div>
 
         <div className="mt-4 space-y-3">
@@ -343,7 +350,7 @@ export default function HomepageStructureManager({
             </div>
           ))}
         </div>
-      </div>
+      </details>
 
       <datalist id="site-destinations">
         <option value="/" />
