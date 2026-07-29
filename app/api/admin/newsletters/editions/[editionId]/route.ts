@@ -542,6 +542,13 @@ export async function POST(request: Request, context: Context) {
       });
       return NextResponse.json({ success: true, message, edition: serialized });
     } else if (action === "send-now") {
+      if (body.confirmation !== "REPLACE_SCHEDULE_AND_SEND_NOW") {
+        throw new Error("Final send confirmation is required.");
+      }
+      await prisma.newsletterJob.updateMany({
+        where: { editionId, type: "SEND", status: "PENDING" },
+        data: { status: "CANCELLED", completedAt: new Date() },
+      });
       await deliverApprovedNewsletter(editionId);
       message = "Newsletter delivery completed.";
     } else {
