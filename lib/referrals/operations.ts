@@ -1,6 +1,6 @@
 export type ReferralOperationalState =
   | "DRAFT" | "APPROVED_NOT_SCHEDULED" | "PREPARING" | "SCHEDULED"
-  | "SENDING" | "ACTIVE" | "PAUSED" | "STALLED" | "COMPLETED"
+  | "DUE_QUEUED" | "SENDING" | "ACTIVE" | "PAUSED" | "STALLED" | "COMPLETED"
   | "CANCELLED" | "ARCHIVED";
 
 export function referralOperationalState(input: {
@@ -14,6 +14,9 @@ export function referralOperationalState(input: {
   approvedRevisionId?: string | null;
   scheduledRevisionId?: string | null;
   scheduledAudienceCount?: number | null;
+  executionAuthorizedAt?: Date | string | null;
+  now?: Date;
+  gracePeriodMs?: number;
 }): ReferralOperationalState {
   if (input.status === "DRAFT") return "DRAFT";
   if (input.status === "CANCELLED") return "CANCELLED";
@@ -24,15 +27,23 @@ export function referralOperationalState(input: {
   if (input.status === "LAUNCHING") return "PREPARING";
   if ((input.sendingCount ?? 0) > 0) return "SENDING";
   if (input.sentCount > 0) return "ACTIVE";
-  if (
+  const scheduleValid = Boolean(
     input.scheduleConfirmedAt
     && input.deliveryScheduledAt
     && input.timezone
     && input.approvedRevisionId
     && input.scheduledRevisionId === input.approvedRevisionId
     && (input.scheduledAudienceCount ?? 0) > 0
-    && new Date(input.deliveryScheduledAt) > new Date()
-  ) return "SCHEDULED";
+    && input.executionAuthorizedAt
+  );
+  if (scheduleValid) {
+    const now = input.now ?? new Date();
+    const dueAt = new Date(input.deliveryScheduledAt!);
+    if (dueAt > now) return "SCHEDULED";
+    const grace = input.gracePeriodMs ?? 10 * 60_000;
+    if (now.getTime() - dueAt.getTime() <= grace) return "DUE_QUEUED";
+    return "STALLED";
+  }
   return "APPROVED_NOT_SCHEDULED";
 }
 
@@ -42,6 +53,7 @@ export function referralOperationalLabel(state: ReferralOperationalState) {
     APPROVED_NOT_SCHEDULED: "Approved — Not Scheduled",
     PREPARING: "Preparing",
     SCHEDULED: "Scheduled",
+    DUE_QUEUED: "Due / Queued",
     SENDING: "Sending",
     ACTIVE: "Active",
     PAUSED: "Paused",
@@ -75,11 +87,12 @@ export function referralScheduleIsRunnable(input: {
   approvedRevisionId?: string | null;
   scheduledRevisionId?: string | null;
   scheduledAudienceCount?: number | null;
+  executionAuthorizedAt?: Date | string | null;
 }) {
   if (
     !input.scheduleConfirmedAt || !input.deliveryScheduledAt || !input.timezone
     || !input.approvedRevisionId || input.scheduledRevisionId !== input.approvedRevisionId
-    || (input.scheduledAudienceCount ?? 0) < 1
+    || (input.scheduledAudienceCount ?? 0) < 1 || !input.executionAuthorizedAt
   ) return false;
   return ["APPROVED", "ACTIVE"].includes(input.campaignStatus)
     && new Date(input.deliveryScheduledAt) <= input.now;

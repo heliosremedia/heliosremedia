@@ -2559,6 +2559,7 @@ model ReferralCampaign {
   scheduledRevisionId        String?
   scheduledAudienceCount     Int?
   scheduleCancelledAt        DateTime?
+  executionAuthorizedAt      DateTime?
   lastWorkerActivityAt       DateTime?
   lastProviderActivityAt     DateTime?
 
@@ -2860,6 +2861,29 @@ model ReferralAuditEvent {
   @@index([campaignId, createdAt])
   @@index([submissionId, createdAt])
   @@index([actorId, createdAt])
+}
+
+model ReferralCronInvocation {
+  id                         String   @id @default(cuid())
+  source                     String
+  environment                String
+  startedAt                  DateTime @default(now())
+  completedAt                DateTime?
+  authenticated              Boolean  @default(false)
+  campaignsInspected         Int      @default(0)
+  campaignsEligible          Int      @default(0)
+  campaignsRejected          Int      @default(0)
+  communicationsDue          Int      @default(0)
+  communicationsClaimed      Int      @default(0)
+  communicationsSkipped      Int      @default(0)
+  providerSubmissionsAttempted Int    @default(0)
+  providerSubmissionsAccepted  Int    @default(0)
+  providerSubmissionsFailed    Int    @default(0)
+  terminalResult             String?
+  sanitizedError             String?
+
+  @@index([startedAt])
+  @@index([terminalResult, startedAt])
 }
 
 model ReferralTestToken {

@@ -19,6 +19,34 @@ export type StudioRelease = {
 // repository records.
 export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
+    version: "V1.8.9.6",
+    slug: "v1-8-9-6",
+    releaseDate: null,
+    title: "Referral Delivery Execution & Observability",
+    summary: "Contains the expired referral authorization, preserves truthful overdue states, and adds durable cron and worker evidence.",
+    newFeatures: [
+      "Due / Queued and Stalled operational states with a bounded worker grace period",
+      "Persistent cron invocation outcomes and delivery-count evidence in Referral Studio",
+    ],
+    improvements: [
+      "A new explicit schedule authorizes execution; legacy expired schedules remain inert",
+      "Zero-send cron runs are distinguishable from missing worker activity and provider failures",
+    ],
+    bugFixes: [
+      "Overdue confirmed schedules no longer revert visually to Approved — Not Scheduled",
+      "Cron runs now leave durable evidence even when no communication is sent",
+    ],
+    securityInfrastructure: [
+      "Additive execution-authorization gate prevents the expired July 28 schedule from being claimed after deployment",
+      "Cron authentication failures and sanitized terminal errors are recorded without secrets or email content",
+    ],
+    administratorActions: [
+      "Verify the expired campaign is Approved — Not Scheduled before creating a new schedule.",
+      "Choose a new future time only after reviewing cron evidence and the complete 149-advocate audience.",
+    ],
+    status: "PLANNED",
+  },
+  {
     version: "V1.8.9.5",
     slug: "v1-8-9-5",
     releaseDate: "2026-07-28",
