@@ -19,6 +19,35 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
+    version: "V1.8.9.16",
+    slug: "v1-8-9-16",
+    releaseDate: null,
+    title: "Customizable Homepage Curation",
+    summary: "Adds a private, per-administrator Homepage Curation workspace with persistent section ordering, collapsible editors, and accessible reordering controls without changing the public homepage.",
+    newFeatures: [
+      "Drag-and-drop Homepage Curation section cards with persistent per-user ordering",
+      "Accessible Move Up and Move Down controls with live save announcements",
+      "Reset to Default Layout confirmation that affects layout preferences only",
+    ],
+    improvements: [
+      "Navigation Links starts collapsed with total, navigation, and footer counts",
+      "The section navigator follows the saved custom order and opens collapsed targets",
+      "Section collapse state persists across sessions and devices",
+    ],
+    bugFixes: [
+      "Separates navigation and reusable-structure saves so they cannot overwrite unrelated unsaved homepage content",
+      "Safely ignores retired section identifiers and appends newly introduced sections to saved layouts",
+    ],
+    securityInfrastructure: [
+      "Layout preferences remain authenticated, user-specific, and workspace-scoped",
+      "No public homepage order, content, navigation rendering, SEO, media, or analytics behavior changed",
+    ],
+    administratorActions: [
+      "Arrange Homepage Curation sections to match your workflow or use Reset to Default Layout.",
+    ],
+    status: "DEPLOYING",
+  },
+  {
     version: "V1.8.9.15",
     slug: "v1-8-9-15",
     releaseDate: "2026-07-29",
