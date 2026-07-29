@@ -1,3 +1,5 @@
+"use client";
+
 type AdminSection = {
   href: `#${string}`;
   label: string;
@@ -38,4 +40,3 @@ export default function AdminSectionNavigator({
     </nav>
   );
 }
-"use client";
