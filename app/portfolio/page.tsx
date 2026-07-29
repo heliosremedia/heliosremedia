@@ -254,9 +254,9 @@ export default async function PortfolioPage({
         ]
       : [],
   );
-  const sortedProjects = [...projects].sort((a, b) =>
-    Number(isActivelyFeatured(b)) - Number(isActivelyFeatured(a)) ||
-    a.displayOrder - b.displayOrder);
+  const sortedProjects = [...projects].sort(
+    (a, b) => Number(isActivelyFeatured(b)) - Number(isActivelyFeatured(a)),
+  );
   const featuredProjects = sortedProjects.filter((project) => isActivelyFeatured(project));
   const pageSize = 18;
   const totalPages = Math.max(1, Math.ceil(sortedProjects.length / pageSize));
