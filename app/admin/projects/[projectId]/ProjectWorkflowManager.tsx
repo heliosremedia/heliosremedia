@@ -19,6 +19,8 @@ type ProjectWorkflowManagerProps = {
   projectSlug: string;
   initialStatus: ProjectStatus;
   initialFeatured: boolean;
+  initialFeaturedStartedAt: string | null;
+  initialFeaturedExpiresAt: string | null;
   initialPublishedAt: string | null;
   heroMediaId: string | null;
   visibleMediaCount: number;
@@ -36,6 +38,8 @@ type WorkflowResponse = {
   project?: {
     status: ProjectStatus;
     featured: boolean;
+    featuredStartedAt: string | null;
+    featuredExpiresAt: string | null;
     publishedAt: string | null;
   };
 };
@@ -60,6 +64,8 @@ export default function ProjectWorkflowManager({
   projectSlug,
   initialStatus,
   initialFeatured,
+  initialFeaturedStartedAt,
+  initialFeaturedExpiresAt,
   initialPublishedAt,
   heroMediaId,
   visibleMediaCount,
@@ -76,6 +82,9 @@ export default function ProjectWorkflowManager({
   );
   const [status, setStatus] = useState(initialStatus);
   const [featured, setFeatured] = useState(initialFeatured);
+  const [featuredStartedAt, setFeaturedStartedAt] = useState(initialFeaturedStartedAt);
+  const [featuredExpiresAt, setFeaturedExpiresAt] = useState(initialFeaturedExpiresAt);
+  const [featuredTimeReference] = useState(() => Date.now());
   const [publishedAt, setPublishedAt] = useState(initialPublishedAt);
   const [isSavingServices, setIsSavingServices] = useState(false);
   const [workflowAction, setWorkflowAction] = useState<string | null>(null);
@@ -161,6 +170,8 @@ export default function ProjectWorkflowManager({
 
     setStatus(data.project.status);
     setFeatured(data.project.featured);
+    setFeaturedStartedAt(data.project.featuredStartedAt);
+    setFeaturedExpiresAt(data.project.featuredExpiresAt);
     setPublishedAt(data.project.publishedAt);
   }, []);
 
@@ -207,7 +218,7 @@ export default function ProjectWorkflowManager({
   }, [projectId, selectedServiceIds]);
 
   const runWorkflowAction = useCallback(
-    async (action: "publish" | "unpublish" | "archive" | "set-featured") => {
+    async (action: "publish" | "unpublish" | "archive" | "set-featured", featuredDuration?: string) => {
       try {
         setWorkflowAction(action);
         setError(null);
@@ -224,7 +235,7 @@ export default function ProjectWorkflowManager({
               action,
               ...(action === "set-featured"
                 ? {
-                    featured: !featured,
+                    featuredDuration: featuredDuration || (featured ? "NONE" : "ALWAYS"),
                   }
                 : {}),
             }),
@@ -285,7 +296,7 @@ export default function ProjectWorkflowManager({
 
       <section
         id="project-services"
-        className="scroll-mt-8 overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]"
+        className="scroll-mt-28 overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]"
       >
         <div className="flex flex-col gap-4 border-b border-white/[0.08] px-5 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-6">
           <div>
@@ -405,7 +416,7 @@ export default function ProjectWorkflowManager({
 
       <section
         id="project-publishing"
-        className="scroll-mt-8 overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]"
+        className="scroll-mt-28 overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]"
       >
         <div className="flex flex-col gap-4 border-b border-white/[0.08] px-5 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-6">
           <div>
@@ -490,27 +501,28 @@ export default function ProjectWorkflowManager({
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => void runWorkflowAction("set-featured")}
+                <select
+                  aria-label="Featured project duration"
+                  value={!featured ? "NONE" : featuredExpiresAt ? "TIMED" : "ALWAYS"}
+                  onChange={(event) => event.target.value !== "TIMED" && void runWorkflowAction("set-featured", event.target.value)}
                   disabled={workflowAction !== null || status !== "PUBLISHED"}
-                  aria-pressed={featured}
-                  className={`relative h-7 w-13 rounded-full border transition ${
-                    featured
-                      ? "border-[var(--helios-orange)] bg-[var(--helios-orange)]"
-                      : "border-white/15 bg-white/[0.05]"
-                  } disabled:cursor-not-allowed disabled:opacity-35`}
+                  className="min-h-11 rounded-xl border border-white/10 bg-[#111] px-4 text-sm text-white disabled:opacity-35"
                 >
-                  <span
-                    className={`absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white shadow transition ${
-                      featured ? "left-7" : "left-1"
-                    }`}
-                  />
-                  <span className="sr-only">
-                    {featured ? "Remove featured status" : "Feature project"}
-                  </span>
-                </button>
+                  <option value="NONE">Not Featured</option>
+                  <option value="7_DAYS">7 days</option>
+                  <option value="14_DAYS">14 days</option>
+                  <option value="30_DAYS">30 days</option>
+                  {featuredExpiresAt ? <option value="TIMED" disabled>Current timed placement</option> : null}
+                  <option value="ALWAYS">Always</option>
+                </select>
               </div>
+              {featured ? <p className="mt-4 text-xs text-white/40">
+                Started {featuredStartedAt ? new Date(featuredStartedAt).toLocaleString("en-US", { timeZone: "America/Denver", timeZoneName: "short" }) : "before timing records"}
+                {" · "}
+                {featuredExpiresAt
+                  ? `Expires ${new Date(featuredExpiresAt).toLocaleString("en-US", { timeZone: "America/Denver", timeZoneName: "short" })} · ${Math.max(0, Math.ceil((new Date(featuredExpiresAt).getTime() - featuredTimeReference) / 86_400_000))} days remaining`
+                  : "Always featured"}
+              </p> : null}
             </div>
           </div>
 

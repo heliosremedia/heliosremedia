@@ -72,6 +72,8 @@ export default async function ProjectEditorPage({
         seoDescription: true,
         status: true,
         featured: true,
+        featuredStartedAt: true,
+        featuredExpiresAt: true,
         heroMediaId: true,
         heroMedia: {
           select: {
@@ -233,7 +235,7 @@ export default async function ProjectEditorPage({
         { href: "#project-credits", label: "Project Credits" },
         { href: "#project-media", label: "Media" },
         { href: "#project-services", label: "Services & SEO" },
-        { href: "#review-publish", label: "Review & Publish" },
+        { href: "#project-publishing", label: "Review & Publish" },
       ]} />
 
       <section className="grid gap-4 md:grid-cols-4">
@@ -395,11 +397,13 @@ export default async function ProjectEditorPage({
         </div>
       </section>
 
-      <div id="project-services" className="scroll-mt-28"><ProjectWorkflowManager
+      <div><ProjectWorkflowManager
         projectId={project.id}
         projectSlug={project.slug}
         initialStatus={project.status}
         initialFeatured={project.featured}
+        initialFeaturedStartedAt={project.featuredStartedAt?.toISOString() ?? null}
+        initialFeaturedExpiresAt={project.featuredExpiresAt?.toISOString() ?? null}
         initialPublishedAt={project.publishedAt?.toISOString() ?? null}
         heroMediaId={
           project.heroMedia?.visibility === "VISIBLE"
@@ -414,7 +418,7 @@ export default async function ProjectEditorPage({
           (projectService) => projectService.serviceId,
         )}
       /></div>
-      <div id="review-publish" className="scroll-mt-28"><ProjectPreviewManager projectId={project.id} initialPreviews={project.previewLinks.map((item) => ({ ...item, expiresAt: item.expiresAt.toISOString(), createdAt: item.createdAt.toISOString(), lastUsedAt: item.lastUsedAt?.toISOString() ?? null, revokedAt: item.revokedAt?.toISOString() ?? null }))} /></div>
+      <div id="project-previews" className="scroll-mt-28"><ProjectPreviewManager projectId={project.id} initialPreviews={project.previewLinks.map((item) => ({ ...item, expiresAt: item.expiresAt.toISOString(), createdAt: item.createdAt.toISOString(), lastUsedAt: item.lastUsedAt?.toISOString() ?? null, revokedAt: item.revokedAt?.toISOString() ?? null }))} /></div>
     </div>
   );
 }

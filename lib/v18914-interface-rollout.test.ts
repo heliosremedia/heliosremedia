@@ -17,7 +17,7 @@ test("long admin pages expose scoped section navigation", () => {
   assert.match(organizer, /aria-label="Homepage Curation sections"/);
   assert.match(about, /#about-founder/);
   assert.match(project, /#project-media/);
-  assert.match(project, /#review-publish/);
+  assert.match(project, /#project-publishing/);
 });
 
 test("Homepage Navigation Links are summarized and collapsed by default", () => {

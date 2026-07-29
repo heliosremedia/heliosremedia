@@ -33,6 +33,7 @@ export type NewsletterGalleryImage = {
 
 export type NewsletterEdition = {
   id: string; seriesId: string; seriesName: string; subject: string; previewText: string;
+  senderName?: string; replyTo?: string;
   status: NewsletterStatus; generationAt?: string | null; intendedSendAt?: string | null;
   groupNames: string[]; eligibleCount: number; excludedCount: number; warnings: string[];
   publishableNotes: string; internalNotes: string; blocks: NewsletterBlock[];

@@ -329,7 +329,7 @@ export async function GET(_request: Request, context: Context) {
   const session = await requireNewsletterAdministrator();
   if (!session) return forbiddenNewsletterResponse();
   const { editionId } = await context.params;
-  const edition = await getEditionForStudio(editionId);
+  const edition = await getEditionForStudio(editionId, session.workspaceId);
   if (!edition) return NextResponse.json({ success: false, error: "Edition not found." }, { status: 404 });
   return NextResponse.json({
     success: true,
@@ -344,10 +344,14 @@ export async function PATCH(request: Request, context: Context) {
   if (!session) return forbiddenNewsletterResponse();
   try {
     const { editionId } = await context.params;
+    const authorizedEdition = await getEditionForStudio(editionId, session.workspaceId);
+    if (!authorizedEdition) {
+      return NextResponse.json({ success: false, error: "Edition not found." }, { status: 404 });
+    }
     const body = await request.json() as Record<string, unknown>;
     if (body.action !== "save") throw new Error("Unsupported edition update.");
     await saveEdition(editionId, body.edition, session.userId);
-    const edition = await getEditionForStudio(editionId);
+    const edition = await getEditionForStudio(editionId, session.workspaceId);
     await recordAuditEvent({
       actorId: session.userId, actorEmail: session.email,
       action: "NEWSLETTER_EDITION_SAVED", entityType: "NewsletterEdition", entityId: editionId,
@@ -364,6 +368,10 @@ export async function POST(request: Request, context: Context) {
   if (!session) return forbiddenNewsletterResponse();
   const { editionId } = await context.params;
   try {
+    const authorizedEdition = await getEditionForStudio(editionId, session.workspaceId);
+    if (!authorizedEdition) {
+      return NextResponse.json({ success: false, error: "Edition not found." }, { status: 404 });
+    }
     const body = await request.json() as Record<string, unknown>;
     const action = clean(body.action, 80);
     let message = "Edition updated.";
@@ -485,7 +493,7 @@ export async function POST(request: Request, context: Context) {
           error: "Newsletter could not be saved. Your test was not sent.",
         }, { status: 400 });
       }
-      const edition = await getEditionForStudio(editionId);
+      const edition = await getEditionForStudio(editionId, session.workspaceId);
       if (!edition) {
         return NextResponse.json({
           success: false,
@@ -542,6 +550,13 @@ export async function POST(request: Request, context: Context) {
       });
       return NextResponse.json({ success: true, message, edition: serialized });
     } else if (action === "send-now") {
+      if (body.confirmation !== "REPLACE_SCHEDULE_AND_SEND_NOW") {
+        throw new Error("Final send confirmation is required.");
+      }
+      await prisma.newsletterJob.updateMany({
+        where: { editionId, type: "SEND", status: "PENDING" },
+        data: { status: "CANCELLED", completedAt: new Date() },
+      });
       await deliverApprovedNewsletter(editionId);
       message = "Newsletter delivery completed.";
     } else {
@@ -553,7 +568,7 @@ export async function POST(request: Request, context: Context) {
       entityType: "NewsletterEdition", entityId: editionId,
       summary: message,
     });
-    const edition = await getEditionForStudio(editionId);
+    const edition = await getEditionForStudio(editionId, session.workspaceId);
     return NextResponse.json({ success: true, message, edition: edition && await serializeEdition(edition) });
   } catch (error) {
     return NextResponse.json({

@@ -21,16 +21,17 @@ const variables = [
   ["Full Name", "{{FULL_NAME}}"], ["Email", "{{EMAIL}}"], ["Phone", "{{PHONE}}"],
 ] as const;
 
-export default function BulkEmailStudio({ clients, groups, campaigns, canSend, defaultTestEmail }: {
+export default function BulkEmailStudio({ clients, groups, campaigns, canSend, defaultTestEmail, initialDraft }: {
   clients: Client[]; groups: Group[]; campaigns: Campaign[]; canSend: boolean; defaultTestEmail: string;
+  initialDraft?: { id: string; subject: string; previewText: string | null; body: string; recipientMode: string; selection: { groupIds?: string[]; clientIds?: string[] } } | null;
 }) {
   const [mode, setMode] = useState<Mode>("ALL");
   const [groupIds, setGroupIds] = useState<string[]>([]);
   const [clientIds, setClientIds] = useState<string[]>([]);
   const [search, setSearch] = useState("");
-  const [subject, setSubject] = useState("");
-  const [previewText, setPreviewText] = useState("");
-  const [body, setBody] = useState("");
+  const [subject, setSubject] = useState(initialDraft?.subject || "");
+  const [previewText, setPreviewText] = useState(initialDraft?.previewText || "");
+  const [body, setBody] = useState(initialDraft?.body || "");
   const [testEmail, setTestEmail] = useState(defaultTestEmail);
   const [previewClientId, setPreviewClientId] = useState("");
   const [personalizedPreview, setPersonalizedPreview] = useState(false);

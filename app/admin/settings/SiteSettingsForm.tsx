@@ -619,7 +619,7 @@ export default function SiteSettingsForm({
         <a href="#legal-privacy" className="admin-btn-secondary">Legal &amp; Privacy</a>
       </nav>
 
-      <section id="brand-identity" className="mt-6 scroll-mt-28 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111]">
+      <section id="brand-identity" className="mt-10 scroll-mt-28 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111] sm:mt-12">
         <div className="grid gap-8 p-6 lg:grid-cols-[0.8fr_1.2fr] lg:p-8">
           <div>
             <p className="text-[0.54rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">Brand identity</p>
@@ -731,7 +731,7 @@ export default function SiteSettingsForm({
         </>
       ) : null}
 
-      <div className="sticky bottom-5 mt-6 flex items-center justify-between gap-5 rounded-2xl border border-white/10 bg-[#161616]/95 p-4 shadow-2xl backdrop-blur-xl">
+      <div className="sticky bottom-[max(1.25rem,env(safe-area-inset-bottom))] mt-10 flex items-center justify-between gap-5 rounded-2xl border border-white/10 bg-[#161616]/95 p-4 shadow-2xl backdrop-blur-xl">
         <p role="status" className="text-sm text-white/40">
           {message ||
             (dirty ? "Unsaved changes." : "All settings are saved.")}
