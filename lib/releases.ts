@@ -19,6 +19,32 @@ export type StudioRelease = {
 // repository records.
 export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
+    version: "V1.8.9.7",
+    slug: "v1-8-9-7",
+    releaseDate: null,
+    title: "Referral Cron Authentication Recovery",
+    summary: "Contains the overdue zero-send referral schedule before correcting the exact Vercel cron authorization contract.",
+    newFeatures: [
+      "Sanitized cron-authentication diagnostics distinguish missing configuration, missing authorization, and credential mismatch",
+    ],
+    improvements: [
+      "Referral cron authentication now compares Vercel's Bearer credential exactly and consistently",
+      "The known overdue schedule is contained through a narrowly scoped, idempotent deployment migration",
+    ],
+    bugFixes: [
+      "Removes asymmetric secret trimming that could reject Vercel's otherwise valid cron authorization",
+    ],
+    securityInfrastructure: [
+      "Containment refuses to alter the campaign if any sent or provider evidence exists",
+      "No cron credential, authorization header, recipient content, or provider data is recorded",
+    ],
+    administratorActions: [
+      "Do not reschedule until a normal Vercel invocation reports authenticated zero-send execution.",
+      "Create a completely new schedule only after V1.8.9.7 is finalized LIVE.",
+    ],
+    status: "PLANNED",
+  },
+  {
     version: "V1.8.9.6",
     slug: "v1-8-9-6",
     releaseDate: "2026-07-28",
