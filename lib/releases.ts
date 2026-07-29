@@ -21,7 +21,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
     version: "V1.8.9.14",
     slug: "v1-8-9-14",
-    releaseDate: null,
+    releaseDate: "2026-07-29",
     title: "Admin Interface Workflow Refinement",
     summary: "Refines core admin workflows with clearer campaign controls, improved Portfolio Intelligence reporting, faster page navigation, streamlined Homepage and Newsletter organization, and more visual project-management tools.",
     newFeatures: [
@@ -47,7 +47,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
       "Verify the interface refinements at desktop, tablet, and mobile widths.",
       "Do not interpret this interface release as confirmation that Referral Studio delivery is operational.",
     ],
-    status: "DEPLOYING",
+    status: "LIVE",
   },
   {
     version: "V1.8.9.13",
