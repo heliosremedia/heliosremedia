@@ -21,7 +21,7 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
     version: "V1.8.9.6",
     slug: "v1-8-9-6",
-    releaseDate: null,
+    releaseDate: "2026-07-28",
     title: "Referral Delivery Execution & Observability",
     summary: "Contains the expired referral authorization, preserves truthful overdue states, and adds durable cron and worker evidence.",
     newFeatures: [
@@ -44,7 +44,7 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
       "Verify the expired campaign is Approved — Not Scheduled before creating a new schedule.",
       "Choose a new future time only after reviewing cron evidence and the complete 149-advocate audience.",
     ],
-    status: "PLANNED",
+    status: "LIVE",
   },
   {
     version: "V1.8.9.5",
