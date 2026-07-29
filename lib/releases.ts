@@ -19,6 +19,30 @@ export type StudioRelease = {
 // repository records.
 export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
+    version: "V1.8.9.11",
+    slug: "v1-8-9-11",
+    releaseDate: null,
+    title: "Referral Sender Recovery",
+    summary: "Repairs the referral campaign's stored sender domain and safely recovers its zero-send audience.",
+    newFeatures: [],
+    improvements: [
+      "Pins the campaign sender to the verified Resend subdomain used by successful test delivery",
+    ],
+    bugFixes: [
+      "Stops a saved campaign sender from overriding the corrected production sender configuration",
+      "Recovers the one failed and 148 suppressed invitations into one executable queue",
+    ],
+    securityInfrastructure: [
+      "Recovery requires exactly 149 invitation communications, one failed record, 148 approved records, and zero sent/provider-message evidence",
+      "The provider fail-stop remains active and revokes execution immediately if Resend rejects delivery",
+    ],
+    administratorActions: [
+      "Deployment creates a fresh execution authorization for normal bounded cron processing.",
+      "Do not reschedule, cancel, or use Retry Safely while the recovered queue is processing.",
+    ],
+    status: "DEPLOYING",
+  },
+  {
     version: "V1.8.9.10",
     slug: "v1-8-9-10",
     releaseDate: null,
