@@ -20,6 +20,15 @@ export default function AdminSectionNavigator({
           <a
             key={section.href}
             href={section.href}
+            onClick={(event) => {
+              const target = document.getElementById(section.href.slice(1));
+              if (!target) return;
+              event.preventDefault();
+              target.setAttribute("tabindex", "-1");
+              target.scrollIntoView({ behavior: "smooth", block: "start" });
+              window.history.replaceState(null, "", section.href);
+              window.setTimeout(() => target.focus({ preventScroll: true }), 250);
+            }}
             className="admin-btn-secondary whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--helios-orange)]"
           >
             {section.label}
@@ -29,3 +38,4 @@ export default function AdminSectionNavigator({
     </nav>
   );
 }
+"use client";
