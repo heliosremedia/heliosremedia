@@ -5,6 +5,7 @@ import SiteSettingsForm from "../settings/SiteSettingsForm";
 import HomepageProjectManager, { type Placement, type ProjectOption } from "./HomepageProjectManager";
 import HomepageWorkCardManager, { type FilmOption, type ServiceOption, type WorkCard } from "./HomepageWorkCardManager";
 import HomepageStructureManager from "./HomepageStructureManager";
+import AdminSectionNavigator from "../components/AdminSectionNavigator";
 
 export const dynamic = "force-dynamic";
 
@@ -19,5 +20,17 @@ export default async function HomepageCurationPage() {
   ]);
   const serialized: Placement[] = placements.map((item) => ({ ...item, imageUrl: item.project.heroMedia?.storageKey ? getPublicAssetUrl(item.project.heroMedia.storageKey) : null }));
   const filmOptions: FilmOption[] = films.map((film) => ({ id: film.id, label: film.caption || film.originalFilename || film.project.title, provider: film.provider || "Hosted" }));
-  return <div className="space-y-7"><section className="border-b border-white/[0.08] pb-7"><p className="eyebrow text-[var(--helios-orange)]">Public presentation</p><h1 className="mt-3 text-3xl font-light tracking-[-0.03em] text-white sm:text-4xl">Homepage curation</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-white/40">Control the homepage hero, supporting imagery, optional Featured Project, and the five service cards in Our Work.</p></section><SiteSettingsForm initialSettings={settings} mode="homepage" /><section><div className="mb-5"><p className="eyebrow text-[var(--helios-orange)]">Optional lead feature</p><h2 className="mt-2 text-2xl font-light text-white">Featured Project hero</h2><p className="mt-3 text-sm text-white/38">Select one published project to lead the section. The five service cards remain visible beneath it.</p></div><HomepageProjectManager initialPlacements={serialized} projects={projects as ProjectOption[]} /></section><HomepageWorkCardManager initialCards={workCards as WorkCard[]} services={services as ServiceOption[]} films={filmOptions} /><HomepageStructureManager initialSettings={settings} /></div>;
+  return <div className="space-y-7"><section className="border-b border-white/[0.08] pb-7"><p className="eyebrow text-[var(--helios-orange)]">Public presentation</p><h1 className="mt-3 text-3xl font-light tracking-[-0.03em] text-white sm:text-4xl">Homepage curation</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-white/40">Control the homepage hero, supporting imagery, optional Featured Project, and the five service cards in Our Work.</p></section>
+    <AdminSectionNavigator label="Homepage Curation sections" sections={[
+      { href: "#homepage-navigation", label: "Navigation Links" },
+      { href: "#homepage-media", label: "Homepage Media" },
+      { href: "#featured-project", label: "Featured Project" },
+      { href: "#our-work", label: "Our Work" },
+      { href: "#homepage-structure", label: "Structure" },
+    ]} />
+    <div id="homepage-navigation" className="scroll-mt-28"><HomepageStructureManager initialSettings={settings} /></div>
+    <div id="homepage-media" className="scroll-mt-28"><SiteSettingsForm initialSettings={settings} mode="homepage" /></div>
+    <section id="featured-project" className="scroll-mt-28"><div className="mb-5"><p className="eyebrow text-[var(--helios-orange)]">Optional lead feature</p><h2 className="mt-2 text-2xl font-light text-white">Featured Project hero</h2><p className="mt-3 text-sm text-white/38">Select one published project to lead the section. The five service cards remain visible beneath it.</p></div><HomepageProjectManager initialPlacements={serialized} projects={projects as ProjectOption[]} /></section>
+    <div id="our-work" className="scroll-mt-28"><HomepageWorkCardManager initialCards={workCards as WorkCard[]} services={services as ServiceOption[]} films={filmOptions} /></div>
+  </div>;
 }
