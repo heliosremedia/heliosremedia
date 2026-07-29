@@ -67,6 +67,33 @@ export async function PATCH(request: Request) {
   if (!session || (session.role !== "OWNER" && session.role !== "ADMIN")) return NextResponse.json({ success: false, error: "Owner or administrator access is required." }, { status: 403 });
   try {
     const body = (await request.json()) as Record<string, unknown>;
+    if (body.updateScope === "homepage-navigation") {
+      const items = navigation(body.navigation);
+      const settings = await prisma.siteSettings.update({
+        where: { id: "default" },
+        data: {
+          headerNavigation: items,
+          footerNavigation: items,
+          workspaceId: session.workspaceId,
+        },
+      });
+      revalidatePath("/", "layout");
+      revalidatePath("/admin/homepage");
+      return NextResponse.json({ success: true, settings });
+    }
+    if (body.updateScope === "homepage-structure") {
+      const settings = await prisma.siteSettings.update({
+        where: { id: "default" },
+        data: {
+          standardPrinciples: cards(body.standardPrinciples, 6),
+          approachCards: cards(body.approachCards, 6),
+          workspaceId: session.workspaceId,
+        },
+      });
+      revalidatePath("/", "layout");
+      revalidatePath("/admin/homepage");
+      return NextResponse.json({ success: true, settings });
+    }
     const phoneE164 = text(body.phoneE164, 30, true)!;
     if (!/^\+[1-9]\d{7,14}$/.test(phoneE164)) throw new Error("INVALID_PHONE");
     const email = text(body.email, 320);
