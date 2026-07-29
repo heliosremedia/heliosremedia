@@ -20,7 +20,7 @@ async function section<T>(fallback: T, load: () => Promise<T>): Promise<Section<
   }
 }
 
-export async function getDashboardData(days = 30) {
+export async function getDashboardData(workspaceId: string, days = 30) {
   const now = new Date();
   const rangeStart = new Date(now.getTime() - days * 86_400_000);
   const rangeEnd = now;
@@ -50,6 +50,7 @@ export async function getDashboardData(days = 30) {
           ] = await Promise.all([
             prisma.newsletterEdition.findMany({
               where: {
+                series: { createdBy: { workspaceId } },
                 status: {
                   in: ["NEEDS_REVIEW", "MISSED_APPROVAL", "GENERATION_FAILED", "SEND_FAILED", "PARTIALLY_SENT"],
                 },
@@ -58,20 +59,16 @@ export async function getDashboardData(days = 30) {
               take: 12,
               orderBy: { intendedSendAt: "asc" },
             }),
-            prisma.blogPost.findMany({
-              where: { status: "NEEDS_REVIEW" },
-              select: { id: true, title: true, updatedAt: true, intendedPublishAt: true },
-              take: 8,
-              orderBy: { updatedAt: "asc" },
-            }),
+            Promise.resolve([] as Array<{ id: string; title: string; updatedAt: Date; intendedPublishAt: Date | null }>),
             prisma.inquiry.findMany({
-              where: { status: "NEW" },
+              where: { status: "NEW", assignedTo: { workspaceId } },
               select: { id: true, name: true, createdAt: true },
               take: 10,
               orderBy: { createdAt: "asc" },
             }),
             prisma.emailCampaign.findMany({
               where: {
+                createdBy: { workspaceId },
                 OR: [
                   { status: { in: ["FAILED", "PARTIAL"] } },
                   { scheduleError: { not: null } },
@@ -82,13 +79,14 @@ export async function getDashboardData(days = 30) {
               orderBy: { updatedAt: "desc" },
             }),
             prisma.newsletterJob.findMany({
-              where: { status: "FAILED" },
+              where: { status: "FAILED", edition: { series: { createdBy: { workspaceId } } } },
               select: { id: true, editionId: true, type: true, updatedAt: true },
               take: 8,
               orderBy: { updatedAt: "desc" },
             }),
             prisma.newsletterEdition.findMany({
               where: {
+                series: { createdBy: { workspaceId } },
                 intendedSendAt: { gte: now, lte: upcomingEnd },
                 status: { notIn: ["CANCELLED", "SENT", "PAUSED"] },
               },
@@ -96,22 +94,15 @@ export async function getDashboardData(days = 30) {
               orderBy: { intendedSendAt: "asc" },
             }),
             prisma.emailCampaign.findMany({
-              where: { status: "SCHEDULED", scheduledAt: { gte: now, lte: upcomingEnd } },
+              where: { createdBy: { workspaceId }, status: "SCHEDULED", scheduledAt: { gte: now, lte: upcomingEnd } },
               select: { id: true, subject: true, scheduledAt: true, status: true },
               orderBy: { scheduledAt: "asc" },
             }),
-            prisma.blogPost.findMany({
-              where: { status: "SCHEDULED", scheduledAt: { gte: now, lte: upcomingEnd } },
-              select: { id: true, title: true, scheduledAt: true, status: true },
-              orderBy: { scheduledAt: "asc" },
-            }),
-            prisma.blogSeries.findMany({
-              where: { status: "ACTIVE", nextGenerationAt: { gte: now, lte: upcomingEnd } },
-              select: { id: true, name: true, nextGenerationAt: true },
-              orderBy: { nextGenerationAt: "asc" },
-            }),
+            Promise.resolve([] as Array<{ id: string; title: string; scheduledAt: Date | null; status: string }>),
+            Promise.resolve([] as Array<{ id: string; name: string; nextGenerationAt: Date | null }>),
             prisma.referralCampaign.findMany({
               where: {
+                createdBy: { workspaceId },
                 status: { in: ["APPROVED", "ACTIVE"] },
                 OR: [
                   { startsAt: { gte: now, lte: upcomingEnd } },
@@ -122,6 +113,7 @@ export async function getDashboardData(days = 30) {
             }),
             prisma.socialVariant.findMany({
               where: {
+                campaign: { workspaceId },
                 OR: [
                   { status: { in: ["NEEDS_REVIEW", "READY_TO_PUBLISH", "FAILED"] } },
                   { status: "SCHEDULED", scheduledAt: { lt: now } },
@@ -133,12 +125,13 @@ export async function getDashboardData(days = 30) {
               orderBy: { updatedAt: "asc" },
             }),
             prisma.socialVariant.findMany({
-              where: { status: "SCHEDULED", scheduledAt: { gte: now, lte: upcomingEnd } },
+              where: { campaign: { workspaceId }, status: "SCHEDULED", scheduledAt: { gte: now, lte: upcomingEnd } },
               select: { id: true, platform: true, postType: true, status: true, scheduledAt: true, campaignId: true, campaign: { select: { internalName: true } } },
               orderBy: { scheduledAt: "asc" },
             }),
             prisma.socialConnection.findMany({
               where: {
+                workspaceId,
                 OR: [
                   { analyticsPermissionState: { in: ["PERMISSION_REQUIRED", "REFRESH_FAILED"] } },
                   { state: "REAUTHORIZATION_REQUIRED" },
@@ -150,8 +143,8 @@ export async function getDashboardData(days = 30) {
               take: 8,
               orderBy: { updatedAt: "asc" },
             }),
-            prisma.siteSettings.findUnique({
-              where: { id: "default" },
+            prisma.siteSettings.findFirst({
+              where: { workspaceId },
               select: { bookingMode: true, bookingEstimatedRestoreAt: true },
             }),
           ]);
@@ -349,7 +342,7 @@ export async function getDashboardData(days = 30) {
         async () => {
           const [campaigns, priorCampaigns] = await Promise.all([
             prisma.emailCampaign.findMany({
-              where: { sentAt: { gte: rangeStart, lte: rangeEnd } },
+              where: { createdBy: { workspaceId }, sentAt: { gte: rangeStart, lte: rangeEnd } },
               select: {
                 id: true,
                 subject: true,
@@ -358,18 +351,20 @@ export async function getDashboardData(days = 30) {
                   select: {
                     id: true,
                     status: true,
+                    providerMessageId: true,
                     events: { select: { eventType: true, linkUrl: true } },
                   },
                 },
               },
             }),
             prisma.emailCampaign.findMany({
-              where: { sentAt: { gte: prior.start, lt: prior.end } },
+              where: { createdBy: { workspaceId }, sentAt: { gte: prior.start, lt: prior.end } },
               select: {
                 recipients: {
                   select: {
                     id: true,
                     status: true,
+                    providerMessageId: true,
                     events: { select: { eventType: true, linkUrl: true } },
                   },
                 },
@@ -421,16 +416,16 @@ export async function getDashboardData(days = 30) {
             socialPlanned,
             socialPublishedThisMonth,
           ] = await Promise.all([
-            prisma.blogPost.count({ where: { status: "PUBLISHED", publishedAt: { gte: rangeStart } } }),
-            prisma.blogPost.count({ where: { status: { in: ["DRAFT", "NEEDS_REVIEW"] } } }),
-            prisma.blogSeries.count({ where: { status: "ACTIVE" } }),
-            prisma.newsletterSeries.count({ where: { status: "ACTIVE" } }),
-            prisma.newsletterEdition.count({ where: { status: "NEEDS_REVIEW" } }),
-            prisma.blogSeries.findFirst({ where: { status: "ACTIVE", nextGenerationAt: { not: null } }, orderBy: { nextGenerationAt: "asc" }, select: { nextGenerationAt: true } }),
-            prisma.newsletterSeries.findFirst({ where: { status: "ACTIVE", nextGenerationAt: { not: null } }, orderBy: { nextGenerationAt: "asc" }, select: { nextGenerationAt: true } }),
-            prisma.socialCampaign.count({ where: { archivedAt: null, variants: { some: { status: { in: ["DRAFT", "NEEDS_REVIEW"] } } } } }),
-            prisma.socialVariant.count({ where: { status: { in: ["APPROVED", "SCHEDULED", "READY_TO_PUBLISH"] } } }),
-            prisma.socialVariant.count({ where: { status: "PUBLISHED", publishedAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } } }),
+            Promise.resolve(0),
+            Promise.resolve(0),
+            Promise.resolve(0),
+            prisma.newsletterSeries.count({ where: { status: "ACTIVE", createdBy: { workspaceId } } }),
+            prisma.newsletterEdition.count({ where: { status: "NEEDS_REVIEW", series: { createdBy: { workspaceId } } } }),
+            Promise.resolve(null as { nextGenerationAt: Date } | null),
+            prisma.newsletterSeries.findFirst({ where: { status: "ACTIVE", createdBy: { workspaceId }, nextGenerationAt: { not: null } }, orderBy: { nextGenerationAt: "asc" }, select: { nextGenerationAt: true } }),
+            prisma.socialCampaign.count({ where: { workspaceId, archivedAt: null, variants: { some: { status: { in: ["DRAFT", "NEEDS_REVIEW"] } } } } }),
+            prisma.socialVariant.count({ where: { campaign: { workspaceId }, status: { in: ["APPROVED", "SCHEDULED", "READY_TO_PUBLISH"] } } }),
+            prisma.socialVariant.count({ where: { campaign: { workspaceId }, status: "PUBLISHED", publishedAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } } }),
           ]);
           return {
             publishedBlogs,
@@ -446,7 +441,24 @@ export async function getDashboardData(days = 30) {
           };
         },
       ),
-      section(
+      Promise.resolve({
+        available: false as const,
+        data: {
+          clients: 0,
+          eligibleClients: 0,
+          groups: 0,
+          lastSync: null as Date | null,
+          activeReferrals: 0,
+          advocates: 0,
+          qualifiedReferrals: 0,
+          issuedRewards: 0,
+        },
+      }),
+      /*
+       * Legacy communication-client and group records do not yet carry a workspace key.
+       * Keep this dashboard section explicitly unavailable instead of leaking global totals.
+       */
+      /* section(
         {
           clients: 0,
           eligibleClients: 0,
@@ -471,7 +483,7 @@ export async function getDashboardData(days = 30) {
             ]);
           return { clients, eligibleClients, groups, lastSync: lastSync._max.lastSyncedAt, activeReferrals, advocates, qualifiedReferrals, issuedRewards };
         },
-      ),
+      ), */
       section(
         {
           totalProjects: 0,
@@ -485,13 +497,14 @@ export async function getDashboardData(days = 30) {
         async () => {
           const [totalProjects, publishedProjects, draftProjects, assets, newInquiries, unansweredInquiries, recentProjects] =
             await Promise.all([
-              prisma.project.count(),
-              prisma.project.count({ where: { status: "PUBLISHED" } }),
-              prisma.project.count({ where: { status: "DRAFT" } }),
-              prisma.media.count(),
-              prisma.inquiry.count({ where: { status: "NEW", createdAt: { gte: rangeStart } } }),
-              prisma.inquiry.count({ where: { status: "NEW" } }),
+              prisma.project.count({ where: { workspaceId } }),
+              prisma.project.count({ where: { workspaceId, status: "PUBLISHED" } }),
+              prisma.project.count({ where: { workspaceId, status: "DRAFT" } }),
+              prisma.media.count({ where: { project: { workspaceId } } }),
+              prisma.inquiry.count({ where: { status: "NEW", assignedTo: { workspaceId }, createdAt: { gte: rangeStart } } }),
+              prisma.inquiry.count({ where: { status: "NEW", assignedTo: { workspaceId } } }),
               prisma.project.findMany({
+                where: { workspaceId },
                 take: 5,
                 orderBy: { updatedAt: "desc" },
                 select: { id: true, title: true, city: true, state: true, status: true, updatedAt: true },
@@ -505,16 +518,19 @@ export async function getDashboardData(days = 30) {
         async () => {
           const [audit, inquiries, referrals] = await Promise.all([
             prisma.auditEvent.findMany({
+              where: { actor: { workspaceId } },
               take: 10,
               orderBy: { createdAt: "desc" },
               select: { id: true, action: true, summary: true, entityType: true, entityId: true, createdAt: true },
             }),
             prisma.inquiryActivity.findMany({
+              where: { actor: { workspaceId } },
               take: 6,
               orderBy: { createdAt: "desc" },
               select: { id: true, action: true, summary: true, inquiryId: true, createdAt: true },
             }),
             prisma.referralAuditEvent.findMany({
+              where: { campaign: { createdBy: { workspaceId } } },
               take: 6,
               orderBy: { createdAt: "desc" },
               select: { id: true, action: true, summary: true, campaignId: true, submissionId: true, createdAt: true },
