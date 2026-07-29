@@ -1,32 +1,32 @@
-import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { processReferralCommunications } from "@/lib/referrals/delivery";
 import { referralStudioEnabled } from "@/lib/referrals/config";
 import { processPendingReferralLaunches } from "@/lib/referrals/launch";
 import { prisma } from "@/lib/prisma";
+import { authenticateReferralCron } from "@/lib/referrals/cron-auth";
 
 export const maxDuration = 300;
 
-function authorized(request: Request) {
-  const expected = process.env.CRON_SECRET?.trim();
-  const provided = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || "";
-  if (!expected || expected.length !== provided.length) return false;
-  return timingSafeEqual(Buffer.from(expected), Buffer.from(provided));
-}
-
 export async function GET(request: Request) {
-  const authenticated = authorized(request);
+  const authentication = authenticateReferralCron(
+    request.headers.get("authorization"),
+    process.env.CRON_SECRET,
+  );
   const invocation = await prisma.referralCronInvocation.create({
     data: {
       source: request.headers.get("x-vercel-cron") ? "VERCEL_CRON" : "HTTP",
       environment: process.env.VERCEL_ENV || process.env.NODE_ENV || "unknown",
-      authenticated,
+      authenticated: authentication.authenticated,
     },
   });
-  if (!authenticated) {
+  if (!authentication.authenticated) {
     await prisma.referralCronInvocation.update({
       where: { id: invocation.id },
-      data: { completedAt: new Date(), terminalResult: "AUTHENTICATION_REJECTED" },
+      data: {
+        completedAt: new Date(),
+        terminalResult: "AUTHENTICATION_REJECTED",
+        sanitizedError: authentication.reason,
+      },
     });
     return NextResponse.json({ success: false, invocationId: invocation.id }, { status: 401 });
   }
