@@ -39,6 +39,7 @@ export function communicationMetrics(
   recipients: Array<{
     id: string;
     status: string;
+    providerMessageId?: string | null;
     events: Array<{ eventType: string; linkUrl: string | null }>;
   }>,
 ) {
@@ -64,8 +65,16 @@ export function communicationMetrics(
   );
   return {
     intended: recipients.length,
+    queued: recipients.filter((item) => item.status === "PENDING").length,
     sent,
+    providerAccepted: recipients.filter((item) => Boolean(item.providerMessageId)).length,
     delivered,
+    awaitingProviderConfirmation: recipients.filter((item) =>
+      item.status === "SENT" && !item.events.some(event =>
+        ["DELIVERED", "BOUNCED", "COMPLAINED"].includes(event.eventType))).length,
+    unknown: recipients.filter((item) =>
+      !["PENDING", "SENT", "FAILED", "SKIPPED"].includes(item.status)).length,
+    suppressed: recipients.filter((item) => item.status === "SKIPPED").length,
     deliveryRate: percent(delivered, sent),
     uniqueClicks: clicks,
     clickThroughRate: percent(clicks, delivered || sent),
