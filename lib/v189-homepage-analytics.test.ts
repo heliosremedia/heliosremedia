@@ -40,5 +40,5 @@ test("current release preserves the deployed V1.8.9 analytics release record", (
   assert.match(releases, /version: "V1\.8\.9"/);
   assert.match(releases, /status: "LIVE"/);
   assert.match(releases, /version: "V1\.8\.9\.6"/);
-  assert.match(version, /V1\.8\.9\.15/);
+  assert.match(version, /V1\.8\.9\.16/);
 });
