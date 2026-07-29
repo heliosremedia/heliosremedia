@@ -47,7 +47,7 @@ export async function GET(_request: Request, context: { params: Promise<{ campai
     filters: rules.filters,
   });
   const removalEligibility = await referralCampaignRemovalEligibility(campaignId);
-  const [communicationStates, lastProgress, nextCommunication] = await Promise.all([
+  const [communicationStates, lastProgress, nextCommunication, lastCronInvocation] = await Promise.all([
     prisma.referralCommunication.groupBy({
       by: ["status"],
       where: { campaignId },
@@ -64,6 +64,15 @@ export async function GET(_request: Request, context: { params: Promise<{ campai
       orderBy: { scheduledAt: "asc" },
       select: { scheduledAt: true, kind: true },
     }) : Promise.resolve(null),
+    prisma.referralCronInvocation.findFirst({
+      orderBy: { startedAt: "desc" },
+      select: {
+        id: true, startedAt: true, completedAt: true, authenticated: true,
+        terminalResult: true, communicationsDue: true, communicationsClaimed: true,
+        communicationsSkipped: true, providerSubmissionsAccepted: true,
+        providerSubmissionsFailed: true,
+      },
+    }),
   ]);
   const communicationCounts = Object.fromEntries(
     communicationStates.map(item => [item.status, item._count._all]),
@@ -96,6 +105,7 @@ export async function GET(_request: Request, context: { params: Promise<{ campai
     approvedRevisionId: campaign.approvedRevisionId,
     scheduledRevisionId: campaign.scheduledRevisionId,
     scheduledAudienceCount: campaign.scheduledAudienceCount,
+    executionAuthorizedAt: campaign.executionAuthorizedAt,
   });
   return NextResponse.json({
     success: true,
@@ -115,13 +125,17 @@ export async function GET(_request: Request, context: { params: Promise<{ campai
       operationalState,
       operationalLabel: referralOperationalLabel(operationalState),
       invitationSentCount,
-      nextScheduledAt: operationalState === "SCHEDULED" ? (nextCommunication?.scheduledAt ?? null) : null,
+      nextScheduledAt: ["SCHEDULED", "DUE_QUEUED", "STALLED"].includes(operationalState)
+        ? (campaign.deliveryScheduledAt ?? nextCommunication?.scheduledAt ?? null) : null,
       nextScheduledKind: nextCommunication?.kind ?? null,
       sequence,
+      lastCronInvocation,
       nextAction: operationalState === "APPROVED_NOT_SCHEDULED"
         ? "Review and schedule initial invitation"
         : operationalState === "SCHEDULED"
           ? "No action required"
+          : operationalState === "DUE_QUEUED"
+            ? "Waiting for the next scheduled worker poll"
           : operationalState === "STALLED"
             ? "Review safe recovery options"
             : "Monitor campaign activity",

@@ -66,6 +66,7 @@ export async function scheduleReferralCampaign(
         deliveryScheduledAt: firstSendAt,
         deliveryTimezone: timezone,
         scheduleConfirmedAt: confirmedAt,
+        executionAuthorizedAt: confirmedAt,
         scheduledById: actor.userId,
         scheduleVersion: nextVersion,
         scheduledRevisionId: campaign.approvedRevisionId,
@@ -144,6 +145,7 @@ export async function cancelReferralCampaignSchedule(campaignId: string, actor: 
       where: { id: campaignId },
       data: {
         status: "APPROVED", deliveryScheduledAt: null, scheduleConfirmedAt: null,
+        executionAuthorizedAt: null,
         scheduledById: null, scheduledRevisionId: null, scheduledAudienceCount: null,
         scheduleCancelledAt: cancelledAt, scheduleVersion: { increment: 1 },
       },

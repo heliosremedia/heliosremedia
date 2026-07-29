@@ -52,6 +52,18 @@ type Campaign = {
   nextAction: string;
   lastWorkerActivityAt: string | null;
   lastProviderActivityAt: string | null;
+  lastCronInvocation: {
+    id: string;
+    startedAt: string;
+    completedAt: string | null;
+    authenticated: boolean;
+    terminalResult: string | null;
+    communicationsDue: number;
+    communicationsClaimed: number;
+    communicationsSkipped: number;
+    providerSubmissionsAccepted: number;
+    providerSubmissionsFailed: number;
+  } | null;
   sequence: { steps: number; followUps: number; estimatedMessages: number };
   followUpConfiguration: {
     enabled?: boolean;
@@ -526,7 +538,7 @@ export default function CampaignWorkspace({
                 Review &amp; Schedule
               </button>
             )}
-          {campaign.operationalState === "SCHEDULED" && (
+          {["SCHEDULED", "DUE_QUEUED", "STALLED"].includes(campaign.operationalState) && (
             <button
               disabled={!!busy}
               onClick={() => void openScheduleReview()}
@@ -535,7 +547,7 @@ export default function CampaignWorkspace({
               Edit Schedule
             </button>
           )}
-          {campaign.operationalState === "SCHEDULED" && (
+          {["SCHEDULED", "DUE_QUEUED", "STALLED"].includes(campaign.operationalState) && (
             <button
               disabled={!!busy}
               onClick={() => void cancelSchedule()}
@@ -704,6 +716,19 @@ export default function CampaignWorkspace({
               ? new Date(campaign.lastProviderActivityAt).toLocaleString()
               : "No activity recorded"}
           </p>
+        </div>
+        <div className="mt-4 rounded-xl border border-white/[0.07] bg-black/10 p-4 text-xs leading-5 text-white/45">
+          <p className="font-semibold uppercase tracking-[.14em] text-white/65">Execution evidence</p>
+          {campaign.lastCronInvocation ? (
+            <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              <p>Last cron: {new Date(campaign.lastCronInvocation.startedAt).toLocaleString()}</p>
+              <p>Result: {campaign.lastCronInvocation.terminalResult?.replaceAll("_", " ") || "In progress"}</p>
+              <p>Due / claimed / skipped: {campaign.lastCronInvocation.communicationsDue} / {campaign.lastCronInvocation.communicationsClaimed} / {campaign.lastCronInvocation.communicationsSkipped}</p>
+              <p>Provider accepted / failed: {campaign.lastCronInvocation.providerSubmissionsAccepted} / {campaign.lastCronInvocation.providerSubmissionsFailed}</p>
+            </div>
+          ) : (
+            <p className="mt-2 text-amber-100/70">Worker did not run, or no durable cron evidence has been recorded yet.</p>
+          )}
         </div>
       </section>
       {campaign.status === "LAUNCHING" && (

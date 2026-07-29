@@ -19,6 +19,7 @@ test("schedule state requires both confirmation and a delivery timestamp", () =>
     approvedRevisionId: "revision-1",
     scheduledRevisionId: "revision-1",
     scheduledAudienceCount: 149,
+    executionAuthorizedAt: "2026-07-28T17:50:00Z",
   }), "SCHEDULED");
   assert.equal(referralOperationalState({
     status: "ACTIVE", sentCount: 0,
@@ -46,12 +47,48 @@ test("worker containment rejects incomplete scheduling authority", () => {
     approvedRevisionId: "revision-1",
     scheduledRevisionId: "revision-1",
     scheduledAudienceCount: 149,
+    executionAuthorizedAt: "2026-07-28T17:50:00Z",
     now: new Date("2026-07-30T18:00:00Z"),
   };
   assert.equal(referralScheduleIsRunnable(base), true);
   assert.equal(referralScheduleIsRunnable({ ...base, timezone: null }), false);
   assert.equal(referralScheduleIsRunnable({ ...base, scheduledRevisionId: "stale" }), false);
   assert.equal(referralScheduleIsRunnable({ ...base, scheduledAudienceCount: 0 }), false);
+});
+
+test("confirmed schedules become due then stalled without reverting to unscheduled", () => {
+  const schedule = {
+    status: "APPROVED",
+    sentCount: 0,
+    scheduleConfirmedAt: "2026-07-28T17:50:00Z",
+    deliveryScheduledAt: "2026-07-28T18:00:00Z",
+    timezone: "America/Denver",
+    approvedRevisionId: "revision-1",
+    scheduledRevisionId: "revision-1",
+    scheduledAudienceCount: 149,
+    executionAuthorizedAt: "2026-07-28T17:50:00Z",
+  };
+  assert.equal(referralOperationalState({
+    ...schedule, now: new Date("2026-07-28T18:05:00Z"),
+  }), "DUE_QUEUED");
+  assert.equal(referralOperationalState({
+    ...schedule, now: new Date("2026-07-28T18:11:00Z"),
+  }), "STALLED");
+});
+
+test("legacy expired schedules are contained until explicitly rescheduled", () => {
+  assert.equal(referralOperationalState({
+    status: "APPROVED",
+    sentCount: 0,
+    scheduleConfirmedAt: "2026-07-28T17:50:00Z",
+    deliveryScheduledAt: "2026-07-28T18:00:00Z",
+    timezone: "America/Denver",
+    approvedRevisionId: "revision-1",
+    scheduledRevisionId: "revision-1",
+    scheduledAudienceCount: 149,
+    executionAuthorizedAt: null,
+    now: new Date("2026-07-28T18:11:00Z"),
+  }), "APPROVED_NOT_SCHEDULED");
 });
 
 test("sequence totals distinguish advocates from messages", () => {

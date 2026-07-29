@@ -33,7 +33,7 @@ export async function processReferralCommunications(now = new Date(), limit = 50
     orderBy: { scheduledAt: "asc" },
     take: limit,
   });
-  const result = { sent: 0, failed: 0, skipped: 0 };
+  const result = { due: due.length, claimed: 0, sent: 0, failed: 0, skipped: 0 };
   for (const communication of due) {
     const invitation = communication.invitation;
     const client = invitation?.advocate.client;
@@ -45,6 +45,7 @@ export async function processReferralCommunications(now = new Date(), limit = 50
       approvedRevisionId: communication.campaign.approvedRevisionId,
       scheduledRevisionId: communication.campaign.scheduledRevisionId,
       scheduledAudienceCount: communication.campaign.scheduledAudienceCount,
+      executionAuthorizedAt: communication.campaign.executionAuthorizedAt,
       now,
     }) && campaignCanExecute(
       communication.campaign.status === "APPROVED" ? "ACTIVE" : communication.campaign.status,
@@ -81,6 +82,7 @@ export async function processReferralCommunications(now = new Date(), limit = 50
       data: { status: "SENDING" },
     });
     if (!claimed.count) continue;
+    result.claimed += 1;
     try {
       const response = await sendCampaignBatch({
         campaignId: communication.idempotencyKey || communication.id,
