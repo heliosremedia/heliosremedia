@@ -19,6 +19,33 @@ export type StudioRelease = {
 // repository records.
 export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
+    version: "V1.8.9.13",
+    slug: "v1-8-9-13",
+    releaseDate: null,
+    title: "Admin Reporting Refinement",
+    summary: "Refines Referral Studio campaign actions and improves Portfolio Intelligence reporting controls with cleaner analytics-health presentation and safe real-time data refresh.",
+    newFeatures: [
+      "Read-only Portfolio Intelligence refresh control with preserved date range, progress feedback, and a Mountain Time update timestamp",
+    ],
+    improvements: [
+      "Full-width Referral Studio campaign information with a dedicated responsive action toolbar",
+      "More balanced Analytics Health typography and mobile wrapping",
+    ],
+    bugFixes: [
+      "Prevents campaign actions from compressing the campaign summary or overflowing narrow screens",
+      "Preserves existing Portfolio Intelligence data when a manual refresh request fails",
+    ],
+    securityInfrastructure: [
+      "Manual reporting refresh remains admin-authenticated, workspace-scoped, non-ingesting, and read-only",
+      "No referral action handlers, permissions, state transitions, scheduling, or delivery behavior changed",
+    ],
+    administratorActions: [
+      "Verify the campaign action toolbar at desktop, tablet, and mobile widths.",
+      "Confirm Refresh Data preserves the selected reporting range and creates no analytics event.",
+    ],
+    status: "DEPLOYING",
+  },
+  {
     version: "V1.8.9.12",
     slug: "v1-8-9-12",
     releaseDate: null,

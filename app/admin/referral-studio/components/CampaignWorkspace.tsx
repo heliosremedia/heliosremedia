@@ -471,8 +471,8 @@ export default function CampaignWorkspace({
     );
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-5 border-b border-white/[0.08] pb-7 xl:flex-row xl:items-end xl:justify-between">
-        <div>
+      <header className="border-b border-white/[0.08] pb-7">
+        <div className="min-w-0">
           <Link
             href="/admin/referral-studio"
             className="text-xs text-white/35 transition hover:text-white"
@@ -489,142 +489,152 @@ export default function CampaignWorkspace({
               {campaign.operationalLabel}
             </span>
           </div>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-white/40">
+          <p className="mt-3 max-w-5xl text-sm leading-6 text-white/40">
             {campaign.purpose}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            disabled={!!busy}
-            onClick={() => setTestOpen(true)}
-            className="admin-btn-secondary"
-          >
-            Send test
-          </button>
-          {campaign.status === "DRAFT" && (
-            <Link
-              href={`/admin/referral-studio/campaigns/${campaign.id}/edit`}
-              className="admin-btn-primary"
-            >
-              Edit Campaign
-            </Link>
-          )}
-          {campaign.status === "DRAFT" && (
+        <div
+          className="mt-6 flex flex-col gap-2 border-t border-white/[0.06] pt-5 sm:flex-row sm:flex-wrap sm:items-center"
+          aria-label="Campaign actions"
+        >
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
             <button
               disabled={!!busy}
-              onClick={() => setTab("Approval")}
-              className="admin-btn-secondary"
+              onClick={() => setTestOpen(true)}
+              className="admin-btn-secondary w-full justify-center sm:w-auto"
             >
-              Review &amp; approve
+              Send test
             </button>
-          )}
-          {campaign.status === "APPROVED" &&
-            campaign.preparedAdvocateCount === 0 && (
+            {campaign.status === "DRAFT" && (
+              <Link
+                href={`/admin/referral-studio/campaigns/${campaign.id}/edit`}
+                className="admin-btn-primary w-full justify-center sm:w-auto"
+              >
+                Edit Campaign
+              </Link>
+            )}
+            {campaign.status === "DRAFT" && (
               <button
                 disabled={!!busy}
-                onClick={() => action("launch")}
-                className="admin-btn-primary"
+                onClick={() => setTab("Approval")}
+                className="admin-btn-secondary w-full justify-center sm:w-auto"
               >
-                {busy === "launch" ? "Preparing Campaign…" : "Prepare campaign"}
+                Review &amp; approve
               </button>
             )}
-          {campaign.operationalState === "APPROVED_NOT_SCHEDULED" &&
-            campaign.preparedAdvocateCount > 0 && (
+            {campaign.status === "APPROVED" &&
+              campaign.preparedAdvocateCount === 0 && (
+                <button
+                  disabled={!!busy}
+                  onClick={() => action("launch")}
+                  className="admin-btn-primary w-full justify-center sm:w-auto"
+                >
+                  {busy === "launch" ? "Preparing Campaign…" : "Prepare campaign"}
+                </button>
+              )}
+            {campaign.operationalState === "APPROVED_NOT_SCHEDULED" &&
+              campaign.preparedAdvocateCount > 0 && (
+                <button
+                  disabled={!!busy}
+                  onClick={() => void openScheduleReview()}
+                  className="admin-btn-primary w-full justify-center sm:w-auto"
+                >
+                  Review &amp; Schedule
+                </button>
+              )}
+            {["SCHEDULED", "DUE_QUEUED", "STALLED"].includes(campaign.operationalState) && (
               <button
                 disabled={!!busy}
                 onClick={() => void openScheduleReview()}
-                className="admin-btn-primary"
+                className="admin-btn-primary w-full justify-center sm:w-auto"
               >
-                Review &amp; Schedule
+                Edit Schedule
               </button>
             )}
-          {["SCHEDULED", "DUE_QUEUED", "STALLED"].includes(campaign.operationalState) && (
-            <button
-              disabled={!!busy}
-              onClick={() => void openScheduleReview()}
-              className="admin-btn-primary"
-            >
-              Edit Schedule
-            </button>
-          )}
-          {["SCHEDULED", "DUE_QUEUED", "STALLED"].includes(campaign.operationalState) && (
-            <button
-              disabled={!!busy}
-              onClick={() => void cancelSchedule()}
-              className="admin-btn-secondary"
-            >
-              Cancel Schedule
-            </button>
-          )}
-          {campaign.status === "LAUNCHING" && campaign.launchFailedAt && (
-            <button
-              disabled={!!busy}
-              onClick={() => void recoveryAction("retry-safe")}
-              className="admin-btn-primary"
-            >
-              {busy === "retry-safe" ? "Retrying…" : "Retry Safely"}
-            </button>
-          )}
-          {campaign.status === "LAUNCHING" && !campaign.launchFailedAt && (
-            <button disabled className="admin-btn-primary">
-              Preparing Campaign…
-            </button>
-          )}
-          {campaign.status === "APPROVED" && (
-            <button
-              disabled={!!busy}
-              onClick={() => void returnToDraft(false)}
-              className="admin-btn-secondary"
-            >
-              {busy === "return-to-draft" ? "Returning…" : "Return to Draft"}
-            </button>
-          )}
-          {campaign.status === "APPROVED" && (
-            <button
-              disabled={!!busy}
-              onClick={() => void returnToDraft(true)}
-              className="admin-btn-secondary"
-            >
-              {busy === "edit" ? "Opening…" : "Edit Campaign"}
-            </button>
-          )}
-          {campaign.status === "ACTIVE" && (
-            <button
-              disabled={!!busy}
-              onClick={() => action("pause")}
-              className="admin-btn-secondary"
-            >
-              {busy === "pause" ? "Pausing…" : "Pause"}
-            </button>
-          )}
-          {campaign.status === "PAUSED" && (
-            <button
-              disabled={!!busy}
-              onClick={() => action("resume")}
-              className="admin-btn-primary"
-            >
-              {busy === "resume" ? "Resuming…" : "Resume"}
-            </button>
-          )}
-          {campaign.removalEligibility.canDelete && (
-            <button
-              disabled={!!busy}
-              onClick={() => void removeCampaign()}
-              className="admin-btn-destructive"
-            >
-              {busy === "delete" ? "Deleting…" : "Delete Campaign"}
-            </button>
-          )}
-          {!campaign.removalEligibility.canDelete &&
-            campaign.removalEligibility.canArchive && (
+            {["SCHEDULED", "DUE_QUEUED", "STALLED"].includes(campaign.operationalState) && (
               <button
                 disabled={!!busy}
-                onClick={() => void archiveCampaign()}
-                className="admin-btn-destructive"
+                onClick={() => void cancelSchedule()}
+                className="admin-btn-secondary w-full justify-center sm:w-auto"
               >
-                {busy === "archive" ? "Archiving…" : "Archive Campaign"}
+                Cancel Schedule
               </button>
             )}
+            {campaign.status === "LAUNCHING" && campaign.launchFailedAt && (
+              <button
+                disabled={!!busy}
+                onClick={() => void recoveryAction("retry-safe")}
+                className="admin-btn-primary w-full justify-center sm:w-auto"
+              >
+                {busy === "retry-safe" ? "Retrying…" : "Retry Safely"}
+              </button>
+            )}
+            {campaign.status === "LAUNCHING" && !campaign.launchFailedAt && (
+              <button disabled className="admin-btn-primary w-full justify-center sm:w-auto">
+                Preparing Campaign…
+              </button>
+            )}
+            {campaign.status === "APPROVED" && (
+              <button
+                disabled={!!busy}
+                onClick={() => void returnToDraft(false)}
+                className="admin-btn-secondary w-full justify-center sm:w-auto"
+              >
+                {busy === "return-to-draft" ? "Returning…" : "Return to Draft"}
+              </button>
+            )}
+            {campaign.status === "APPROVED" && (
+              <button
+                disabled={!!busy}
+                onClick={() => void returnToDraft(true)}
+                className="admin-btn-secondary w-full justify-center sm:w-auto"
+              >
+                {busy === "edit" ? "Opening…" : "Edit Campaign"}
+              </button>
+            )}
+            {campaign.status === "ACTIVE" && (
+              <button
+                disabled={!!busy}
+                onClick={() => action("pause")}
+                className="admin-btn-secondary w-full justify-center sm:w-auto"
+              >
+                {busy === "pause" ? "Pausing…" : "Pause"}
+              </button>
+            )}
+            {campaign.status === "PAUSED" && (
+              <button
+                disabled={!!busy}
+                onClick={() => action("resume")}
+                className="admin-btn-primary w-full justify-center sm:w-auto"
+              >
+                {busy === "resume" ? "Resuming…" : "Resume"}
+              </button>
+            )}
+          </div>
+          {(campaign.removalEligibility.canDelete ||
+            campaign.removalEligibility.canArchive) && (
+            <div className="flex flex-col gap-2 sm:ml-auto sm:flex-row">
+              {campaign.removalEligibility.canDelete && (
+                <button
+                  disabled={!!busy}
+                  onClick={() => void removeCampaign()}
+                  className="admin-btn-destructive w-full justify-center sm:w-auto"
+                >
+                  {busy === "delete" ? "Deleting…" : "Delete Campaign"}
+                </button>
+              )}
+              {!campaign.removalEligibility.canDelete &&
+                campaign.removalEligibility.canArchive && (
+                  <button
+                    disabled={!!busy}
+                    onClick={() => void archiveCampaign()}
+                    className="admin-btn-destructive w-full justify-center sm:w-auto"
+                  >
+                    {busy === "archive" ? "Archiving…" : "Archive Campaign"}
+                  </button>
+                )}
+            </div>
+          )}
         </div>
       </header>
       {message && (

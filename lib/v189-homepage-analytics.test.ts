@@ -34,10 +34,11 @@ test("analytics persistence states and health output are accurate and sanitized"
   assert.doesNotMatch(health, /DATABASE_URL|stack|sessionId|connectionString|rawError/);
 });
 
-test("V1.8.9.6 preserves the deployed V1.8.9 analytics release record", () => {
+test("current release preserves the deployed V1.8.9 analytics release record", () => {
   const releases = read("lib/releases.ts");
   const version = read("lib/version.ts");
   assert.match(releases, /version: "V1\.8\.9"/);
   assert.match(releases, /status: "LIVE"/);
-  assert.match(version, /V1\.8\.9\.6/);
+  assert.match(releases, /version: "V1\.8\.9\.6"/);
+  assert.match(version, /V1\.8\.9\.13/);
 });

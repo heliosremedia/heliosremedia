@@ -1,6 +1,7 @@
 import Link from "next/link";
 import AdminPageLayout, { AdminPageHeader } from "@/app/admin/components/AdminPageLayout";
 import AdminSummaryCards from "@/app/admin/components/AdminSummaryCards";
+import PortfolioIntelligenceControls from "./PortfolioIntelligenceControls";
 import { requireAdminSession } from "@/lib/auth/session";
 import { getPortfolioAnalytics, getPortfolioAnalyticsHealth, type AnalyticsRange } from "@/lib/portfolio-analytics";
 import { prisma } from "@/lib/prisma";
@@ -11,6 +12,7 @@ function validRange(value?: string): AnalyticsRange {
 
 export default async function PortfolioIntelligencePage({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
   const session = await requireAdminSession();
+  const generatedAt = new Date().toISOString();
   const ownsSite = await prisma.siteSettings.findFirst({ where: { workspaceId: session.workspaceId }, select: { id: true } });
   const range = validRange((await searchParams).range);
   const [report, health] = ownsSite ? await Promise.all([
@@ -49,7 +51,7 @@ export default async function PortfolioIntelligencePage({ searchParams }: { sear
       title="Public engagement"
       description="Privacy-conscious signals showing which projects, media, filters, shares, and traffic sources generate meaningful attention."
       note="Measurement began with V1.8.6. Unique visitors are anonymous session estimates, not identified people."
-      actions={<div className="flex gap-2">{(["7d","30d","90d"] as const).map(item=><Link key={item} href={`/admin/portfolio-intelligence?range=${item}`} aria-current={range===item?"page":undefined} className={range===item?"admin-btn-primary":"admin-btn-secondary"}>{item}</Link>)}</div>}
+      actions={<PortfolioIntelligenceControls range={range} generatedAt={generatedAt}/>}
     />}
     summary={report ? <AdminSummaryCards label="Portfolio performance" items={[
       { label: "Portfolio views", value: report.counts.PORTFOLIO_VIEW || 0 },
@@ -59,7 +61,7 @@ export default async function PortfolioIntelligencePage({ searchParams }: { sear
     ]}/> : undefined}
   >
     <section className={`rounded-2xl border p-5 ${health.state === "recent" ? "border-emerald-300/20 bg-emerald-300/[0.04]" : health.state === "awaiting" ? "border-white/[0.08] bg-white/[0.02]" : "border-amber-300/20 bg-amber-300/[0.04]"}`} aria-label="Analytics health">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-[0.56rem] font-semibold uppercase tracking-[0.16em] text-white/30">Analytics health</p><h2 className="mt-2 text-lg font-light text-white">{health.label}</h2></div><p className="max-w-xl text-sm leading-6 text-white/40">{health.detail}</p></div>
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,0.8fr)_minmax(18rem,1.2fr)] sm:items-center sm:gap-8"><div><p className="text-[0.56rem] font-semibold uppercase tracking-[0.16em] text-white/30">Analytics health</p><h2 className="mt-2 text-lg font-light text-white">{health.label}</h2></div><p className="max-w-2xl text-xs leading-5 text-white/40 sm:justify-self-end">{health.detail}</p></div>
     </section>
     {!ownsSite ? <section className="rounded-2xl border border-amber-300/20 bg-amber-300/[0.04] p-6"><h2 className="text-xl text-amber-100">Portfolio ownership is not configured</h2><p className="mt-3 text-sm leading-6 text-white/40">Connect this workspace to managed Site Settings before analytics can be collected or viewed.</p></section> :
     report && <div className="grid gap-5 xl:grid-cols-2">
