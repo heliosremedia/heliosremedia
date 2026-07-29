@@ -10,6 +10,7 @@ import ProjectWorkflowManager from "./ProjectWorkflowManager";
 import ProjectPreviewManager from "./ProjectPreviewManager";
 import ProjectContributors from "./ProjectContributors";
 import { requireAdminSession } from "@/lib/auth/session";
+import AdminSectionNavigator from "@/app/admin/components/AdminSectionNavigator";
 
 export const dynamic = "force-dynamic";
 
@@ -227,6 +228,14 @@ export default async function ProjectEditorPage({
         </div>
       </section>
 
+      <AdminSectionNavigator label="Project Editor sections" sections={[
+        { href: "#project-identity", label: "Project Identity" },
+        { href: "#project-credits", label: "Project Credits" },
+        { href: "#project-media", label: "Media" },
+        { href: "#project-services", label: "Services & SEO" },
+        { href: "#review-publish", label: "Review & Publish" },
+      ]} />
+
       <section className="grid gap-4 md:grid-cols-4">
         {[
           [
@@ -287,7 +296,7 @@ export default async function ProjectEditorPage({
         ))}
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <section id="project-identity" className="scroll-mt-28 grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <ProjectDetailsEditor
           projectId={project.id}
           statusLabel={formatStatus(project.status)}
@@ -351,7 +360,7 @@ export default async function ProjectEditorPage({
         </aside>
       </section>
 
-      <ProjectContributors projectId={project.id} users={contributorUsers} initial={project.contributors}/>
+      <div id="project-credits" className="scroll-mt-28"><ProjectContributors projectId={project.id} users={contributorUsers} initial={project.contributors}/></div>
 
       <section
         id="project-media"
@@ -386,7 +395,7 @@ export default async function ProjectEditorPage({
         </div>
       </section>
 
-      <ProjectWorkflowManager
+      <div id="project-services" className="scroll-mt-28"><ProjectWorkflowManager
         projectId={project.id}
         projectSlug={project.slug}
         initialStatus={project.status}
@@ -404,8 +413,8 @@ export default async function ProjectEditorPage({
         initialServiceIds={project.services.map(
           (projectService) => projectService.serviceId,
         )}
-      />
-      <ProjectPreviewManager projectId={project.id} initialPreviews={project.previewLinks.map((item) => ({ ...item, expiresAt: item.expiresAt.toISOString(), createdAt: item.createdAt.toISOString(), lastUsedAt: item.lastUsedAt?.toISOString() ?? null, revokedAt: item.revokedAt?.toISOString() ?? null }))} />
+      /></div>
+      <div id="review-publish" className="scroll-mt-28"><ProjectPreviewManager projectId={project.id} initialPreviews={project.previewLinks.map((item) => ({ ...item, expiresAt: item.expiresAt.toISOString(), createdAt: item.createdAt.toISOString(), lastUsedAt: item.lastUsedAt?.toISOString() ?? null, revokedAt: item.revokedAt?.toISOString() ?? null }))} /></div>
     </div>
   );
 }
