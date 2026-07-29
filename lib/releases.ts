@@ -21,7 +21,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
     version: "V1.8.9.15",
     slug: "v1-8-9-15",
-    releaseDate: null,
+    releaseDate: "2026-07-29",
     title: "Compact Social Share Image Selection",
     summary: "Refines the Project Editor’s social-share image selector with a compact, collapsible thumbnail gallery that makes large project libraries faster and easier to navigate.",
     newFeatures: [],
@@ -41,7 +41,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
     administratorActions: [
       "Expand Choose a Different Share Image only when selecting an alternative project image.",
     ],
-    status: "DEPLOYING",
+    status: "LIVE",
   },
   {
     version: "V1.8.9.14",
