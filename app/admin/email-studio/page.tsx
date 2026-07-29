@@ -6,9 +6,10 @@ import AdminPageLayout, { AdminPageHeader } from "@/app/admin/components/AdminPa
 
 export const dynamic = "force-dynamic";
 
-export default async function EmailStudioPage() {
+export default async function EmailStudioPage({ searchParams }: { searchParams: Promise<{ campaign?: string }> }) {
   const session = await requireAdminSession();
-  const [clients, groups, campaigns] = await Promise.all([
+  const campaignId = (await searchParams).campaign;
+  const [clients, groups, campaigns, initialDraft] = await Promise.all([
     prisma.communicationClient.findMany({
       where: { emailSubscribed: true, normalizedEmail: { not: "" } },
       orderBy: [{ displayName: "asc" }, { email: "asc" }],
@@ -23,6 +24,10 @@ export default async function EmailStudioPage() {
       orderBy: { createdAt: "desc" },
       select: { id: true, subject: true, previewText: true, body: true, status: true, recipientMode: true, selection: true, recipientCount: true, sentCount: true, failedCount: true, createdAt: true, sentAt: true, scheduledAt: true, scheduledTimeZone: true, rowVersion: true, createdBy: { select: { displayName: true } } },
     }),
+    campaignId ? prisma.emailCampaign.findFirst({
+      where: { id: campaignId, status: "DRAFT", createdById: session.userId },
+      select: { id: true, subject: true, previewText: true, body: true, recipientMode: true, selection: true },
+    }) : null,
   ]);
   return <AdminPageLayout
     header={<AdminPageHeader eyebrow="Client communications" title="Bulk Email Studio" description="Create polished updates for all clients, selected groups, or individual recipients—with a test step and unsubscribe protection built in." />}
@@ -39,6 +44,7 @@ export default async function EmailStudioPage() {
       campaigns={campaigns.map((campaign) => ({ ...campaign, selection: campaign.selection as { groupIds?: string[]; clientIds?: string[] }, createdAt: campaign.createdAt.toISOString(), sentAt: campaign.sentAt?.toISOString() ?? null, scheduledAt: campaign.scheduledAt?.toISOString() ?? null }))}
       canSend={session.role === "OWNER" || session.role === "ADMIN"}
       defaultTestEmail={session.email}
+      initialDraft={initialDraft ? { ...initialDraft, selection: initialDraft.selection as { groupIds?: string[]; clientIds?: string[] } } : null}
     />
   </AdminPageLayout>;
 }
