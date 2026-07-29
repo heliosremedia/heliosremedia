@@ -19,6 +19,39 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
+    version: "V1.9.0",
+    slug: "v1-9-0",
+    releaseDate: null,
+    title: "Admin Command Center",
+    summary: "Transforms the signed-in dashboard into an operational command center and adds safer communication reporting, deliberate newsletter delivery, blog-to-email drafts, timed featured projects, and focused workflow corrections.",
+    newFeatures: [
+      "Per-user dashboard organization with dedicated organize mode, drag insertion indicator, accessible reorder controls, collapse controls, and reset",
+      "Explicit approved-newsletter Send Now confirmation with audience and sender details",
+      "Blog Studio Share with Clients workflow that creates an Email Studio draft",
+      "Timed Featured Project choices for 7, 14, or 30 days, plus Always and immediate removal",
+    ],
+    improvements: [
+      "Action Required, Today’s Operations, compact performance, recent activity, platform health, and role-aware quick actions",
+      "Communication Health distinguishes sent records awaiting provider confirmation from verified delivery failures",
+      "Project Editor section navigation now focuses and lands at the start of Review and Publish",
+      "Improved responsive spacing above Brand Identity and clearance around the sticky settings save bar",
+    ],
+    bugFixes: [
+      "Expired featured projects no longer receive premium portfolio placement",
+      "Unknown provider delivery data is no longer displayed as a definitive zero-percent delivery rate",
+    ],
+    securityInfrastructure: [
+      "Dashboard preferences are authenticated, user-specific, and workspace-scoped",
+      "Timed project-feature mutations enforce administrator role and workspace ownership on the server",
+      "Newsletter delivery still requires an approved immutable revision and explicit administrator confirmation",
+    ],
+    administratorActions: [
+      "Arrange dashboard cards in Organize Dashboard mode.",
+      "Use Send Now only after reviewing the final audience and sender confirmation.",
+    ],
+    status: "DEPLOYING",
+  },
+  {
     version: "V1.8.9.16",
     slug: "v1-8-9-16",
     releaseDate: "2026-07-29",
