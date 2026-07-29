@@ -577,6 +577,8 @@ model Project {
 
   status       ProjectStatus @default(DRAFT)
   featured     Boolean       @default(false)
+  featuredStartedAt DateTime?
+  featuredExpiresAt DateTime?
   displayOrder Int           @default(0)
 
   heroMediaId        String? @unique
@@ -610,6 +612,7 @@ model Project {
   @@index([status])
   @@index([workspaceId, status])
   @@index([featured])
+  @@index([workspaceId, featured, featuredExpiresAt])
   @@index([displayOrder])
   @@index([publishedAt])
   @@index([status, displayOrder])
@@ -1357,6 +1360,7 @@ model AdminUser {
   sessionVersion          Int                @default(0)
   navigationFavorites     Json?
   homepageCurationPreferences Json?
+  dashboardPreferences    Json?
   workspaceId             String
   workspace               Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
 
