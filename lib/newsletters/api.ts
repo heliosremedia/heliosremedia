@@ -87,7 +87,7 @@ export async function serializeEdition(edition: {
   id: string; seriesId: string; status: string; subject: string | null;
   previewText: string | null; intendedSendAt: Date; generationDueAt: Date | null;
   contentNotes: unknown; internalNotes: string | null; warnings: unknown;
-  series: { name: string; groups: Array<{ groupId: string; group: { name: string } }>;
+  series: { name: string; senderName?: string | null; replyTo?: string | null; groups: Array<{ groupId: string; group: { name: string } }>;
     recipients: Array<{ clientId: string }> };
   blocks: Array<{ id: string; type: string; internalLabel: string | null; content: unknown;
     aiGenerated: boolean; manuallyEdited: boolean;
@@ -101,6 +101,8 @@ export async function serializeEdition(edition: {
     id: edition.id,
     seriesId: edition.seriesId,
     seriesName: edition.series.name,
+    senderName: edition.series.senderName ?? "Helios Real Estate Media",
+    replyTo: edition.series.replyTo ?? "Not configured",
     subject: edition.subject ?? "",
     previewText: edition.previewText ?? "",
     status: edition.status,
@@ -151,8 +153,11 @@ export const editionInclude = {
   blocks: { orderBy: { position: "asc" as const }, include: { sources: true } },
 };
 
-export async function getEditionForStudio(id: string) {
-  return prisma.newsletterEdition.findUnique({ where: { id }, include: editionInclude });
+export async function getEditionForStudio(id: string, workspaceId: string) {
+  return prisma.newsletterEdition.findFirst({
+    where: { id, series: { createdBy: { workspaceId } } },
+    include: editionInclude,
+  });
 }
 
 export async function getSeriesAudienceEstimate(seriesId: string) {
