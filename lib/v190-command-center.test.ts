@@ -56,6 +56,20 @@ test("newsletter and blog delivery remain explicit administrator workflows", () 
   assert.doesNotMatch(blog, /processEmailCampaign|sendCampaignBatch|sendTestCampaign/);
 });
 
+test("dashboard and newsletter mutations are explicitly workspace scoped", () => {
+  const dashboard = read("lib/dashboard.ts");
+  const dashboardPage = read("app/admin/page.tsx");
+  const newsletterApi = read("lib/newsletters/api.ts");
+  const newsletterRoute = read("app/api/admin/newsletters/editions/[editionId]/route.ts");
+  assert.match(dashboard, /getDashboardData\(workspaceId: string/);
+  assert.match(dashboardPage, /getDashboardData\(session\.workspaceId, days\)/);
+  assert.match(dashboard, /createdBy: \{ workspaceId \}/);
+  assert.match(dashboard, /campaign: \{ workspaceId \}/);
+  assert.match(dashboard, /project\.count\(\{ where: \{ workspaceId \} \}\)/);
+  assert.match(newsletterApi, /series: \{ createdBy: \{ workspaceId \} \}/);
+  assert.match(newsletterRoute, /getEditionForStudio\(editionId, session\.workspaceId\)/);
+});
+
 test("project navigation targets the true review and publish section", () => {
   const page = read("app/admin/projects/[projectId]/page.tsx");
   const workflow = read("app/admin/projects/[projectId]/ProjectWorkflowManager.tsx");
