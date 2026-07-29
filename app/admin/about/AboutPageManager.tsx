@@ -7,6 +7,7 @@ import type { AboutListItem, PublicAboutPageContent } from "@/lib/about-page";
 import ImageLibraryDialog from "@/app/admin/newsletter-studio/components/ImageLibraryDialog";
 import type { NewsletterGalleryImage } from "@/app/admin/newsletter-studio/types";
 import { selectBalancedAboutImages } from "@/lib/about-gallery";
+import AdminSectionNavigator from "@/app/admin/components/AdminSectionNavigator";
 
 type TeamMemberCategory = "LEADERSHIP" | "PRODUCTION" | "POST_PRODUCTION" | "CLIENT_CARE" | "MARKETING" | "OPERATIONS";
 const teamMemberCategories: TeamMemberCategory[] = ["LEADERSHIP", "PRODUCTION", "POST_PRODUCTION", "CLIENT_CARE", "MARKETING", "OPERATIONS"];
@@ -90,19 +91,28 @@ export default function AboutPageManager({ initialContent, initialTeamMembers }:
 
   return <div className="space-y-7">
     {message && <p role="status" className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-white/55">{message}</p>}
+    <AdminSectionNavigator label="About Page sections" sections={[
+      { href: "#about-hero", label: "Hero" },
+      { href: "#about-story", label: "Story" },
+      { href: "#about-founder", label: "Founder" },
+      { href: "#about-team", label: "Team" },
+      { href: "#about-principles", label: "Principles" },
+      { href: "#about-imagery", label: "Imagery" },
+      { href: "#about-experience", label: "Experience" },
+    ]} />
 
-    <Panel eyebrow="Opening frame" title="Hero" description="Control the first image and message visitors see on the About page.">
+    <Panel id="about-hero" eyebrow="Opening frame" title="Hero" description="Control the first image and message visitors see on the About page.">
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="space-y-4"><Input label="Eyebrow" value={content.heroEyebrow} onChange={(value) => field("heroEyebrow", value)} /><Textarea label="Headline" value={content.heroHeadline} onChange={(value) => field("heroHeadline", value)} rows={3} /><Textarea label="Introduction" value={content.heroBody} onChange={(value) => field("heroBody", value)} rows={5} /></div>
         <ImageField label="Hero image" value={content.heroImageUrl} alt={content.heroImageAlt} onAlt={(value) => field("heroImageAlt", value)} onFile={(file) => upload("hero", "heroImage", file)} busy={busy} />
       </div>
     </Panel>
 
-    <Panel eyebrow="Narrative" title="Why we exist" description="Curate the positioning statement and the two supporting paragraphs.">
+    <Panel id="about-story" eyebrow="Narrative" title="Why we exist" description="Curate the positioning statement and the two supporting paragraphs.">
       <div className="grid gap-4 lg:grid-cols-2"><Input label="Eyebrow" value={content.storyEyebrow} onChange={(value) => field("storyEyebrow", value)} /><Textarea label="Intro" value={content.storyIntro} onChange={(value) => field("storyIntro", value)} rows={5} /><Textarea label="Large statement" value={content.storyHeadline} onChange={(value) => field("storyHeadline", value)} rows={5} /><div /><Textarea label="Supporting copy — left" value={content.storyBodyLeft} onChange={(value) => field("storyBodyLeft", value)} rows={7} /><Textarea label="Supporting copy — right" value={content.storyBodyRight} onChange={(value) => field("storyBodyRight", value)} rows={7} /></div>
     </Panel>
 
-    <Panel eyebrow="Personal connection" title="Founder profile" description="Introduce the person behind the company. Upload a portrait, edit every line, then publish the section when it is ready.">
+    <Panel id="about-founder" eyebrow="Personal connection" title="Founder profile" description="Introduce the person behind the company. Upload a portrait, edit every line, then publish the section when it is ready.">
       <label className="mb-6 flex items-start gap-3 rounded-xl border border-white/[0.08] bg-black/20 p-4">
         <input type="checkbox" checked={content.founderEnabled} onChange={(event) => field("founderEnabled", event.target.checked)} className="mt-0.5 h-4 w-4 accent-[var(--helios-orange)]" />
         <span><span className="block text-sm font-medium text-white/80">Show founder profile on the About page</span><span className="mt-1 block text-xs leading-5 text-white/35">The section only appears publicly when this is enabled and a portrait has been uploaded.</span></span>
@@ -121,14 +131,14 @@ export default function AboutPageManager({ initialContent, initialTeamMembers }:
       </div>
     </Panel>
 
-    <TeamMemberManager initialTeamMembers={initialTeamMembers} />
+    <div id="about-team" className="scroll-mt-28"><TeamMemberManager initialTeamMembers={initialTeamMembers} /></div>
 
-    <Panel eyebrow="Point of view" title="Principles" description="Edit the section heading and each principle card.">
+    <Panel id="about-principles" eyebrow="Point of view" title="Principles" description="Edit the section heading and each principle card.">
       <div className="grid gap-4 lg:grid-cols-3"><Input label="Eyebrow" value={content.principlesEyebrow} onChange={(value) => field("principlesEyebrow", value)} /><Input label="Headline" value={content.principlesHeadline} onChange={(value) => field("principlesHeadline", value)} /><Textarea label="Introduction" value={content.principlesIntro} onChange={(value) => field("principlesIntro", value)} rows={3} /></div>
       <ListEditor items={content.principles} onChange={(items) => field("principles", items)} />
     </Panel>
 
-    <Panel eyebrow="Miniature gallery" title="About imagery" description="These three images preserve the editorial layout while making every frame replaceable.">
+    <Panel id="about-imagery" eyebrow="Miniature gallery" title="About imagery" description="These three images preserve the editorial layout while making every frame replaceable.">
       <div className="mb-5 flex justify-end gap-2">{galleryUndo && <button type="button" disabled={busy} onClick={() => { setContent(current => ({ ...current, ...galleryUndo })); setGalleryUndo(null); setMessage("Randomized selections were undone."); }} className="admin-btn-link">Undo randomize</button>}<button type="button" disabled={busy} onClick={randomizeGallery} className="admin-btn-secondary">Randomize Three Images</button></div>
       <div className="grid gap-5 lg:grid-cols-3">
         <ImageField label="Large image" value={content.galleryOneUrl} alt={content.galleryOneAlt} onAlt={(value) => field("galleryOneAlt", value)} onFile={(file) => upload("gallery-one", "galleryOne", file)} onGallery={() => setGalleryTarget("galleryOne")} busy={busy} />
@@ -137,7 +147,7 @@ export default function AboutPageManager({ initialContent, initialTeamMembers }:
       </div>
     </Panel>
 
-    <Panel eyebrow="Workflow" title="Client experience" description="Edit the final narrative section and each process step.">
+    <Panel id="about-experience" eyebrow="Workflow" title="Client experience" description="Edit the final narrative section and each process step.">
       <div className="grid gap-4 lg:grid-cols-2"><Input label="Eyebrow" value={content.processEyebrow} onChange={(value) => field("processEyebrow", value)} /><Textarea label="Headline" value={content.processHeadline} onChange={(value) => field("processHeadline", value)} rows={3} /></div>
       <ListEditor items={content.process} onChange={(items) => field("process", items)} />
     </Panel>
@@ -147,8 +157,8 @@ export default function AboutPageManager({ initialContent, initialTeamMembers }:
   </div>;
 }
 
-function Panel({ eyebrow, title, description, children }: { eyebrow: string; title: string; description: string; children: React.ReactNode }) {
-  return <section className="rounded-2xl border border-white/[0.08] bg-[#111] p-5 sm:p-7"><p className="eyebrow text-[var(--helios-orange)]">{eyebrow}</p><h2 className="mt-2 font-display text-3xl font-light text-white">{title}</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-white/35">{description}</p><div className="mt-7">{children}</div></section>;
+function Panel({ id, eyebrow, title, description, children }: { id?: string; eyebrow: string; title: string; description: string; children: React.ReactNode }) {
+  return <section id={id} className="scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-5 sm:p-7"><p className="eyebrow text-[var(--helios-orange)]">{eyebrow}</p><h2 className="mt-2 font-display text-3xl font-light text-white">{title}</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-white/35">{description}</p><div className="mt-7">{children}</div></section>;
 }
 
 function Input({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {

@@ -17,7 +17,38 @@ export type StudioRelease = {
 // Release history is deliberately code-controlled. Earlier releases are not
 // backfilled here unless their details can be confirmed from authoritative
 // repository records.
-export const STUDIO_RELEASES: readonly StudioRelease[] = [
+const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
+  {
+    version: "V1.8.9.14",
+    slug: "v1-8-9-14",
+    releaseDate: null,
+    title: "Admin Interface Workflow Refinement",
+    summary: "Refines core admin workflows with clearer campaign controls, improved Portfolio Intelligence reporting, faster page navigation, streamlined Homepage and Newsletter organization, and more visual project-management tools.",
+    newFeatures: [
+      "Section navigators for Homepage Curation, About Page, and the Project Editor",
+      "Compact thumbnail selection for project social-share images",
+    ],
+    improvements: [
+      "Full-width Referral Studio campaign information with a dedicated responsive action toolbar",
+      "Cleaner Analytics Health typography and read-only Portfolio Intelligence refresh controls",
+      "Collapsed Navigation Links card near the top of Homepage Curation",
+      "Active Newsletter Series appears before secondary edition lists",
+      "Sticky Projects actions keep Insights and Edit readily available",
+    ],
+    bugFixes: [
+      "Prevents essential project actions from disappearing during horizontal table scrolling",
+      "Separates social-share utility controls from selectable project images",
+    ],
+    securityInfrastructure: [
+      "Portfolio reporting refresh remains admin-authenticated, workspace-scoped, read-only, and non-ingesting",
+      "Referral Studio functional delivery remains frozen; no scheduling, worker, provider, or recipient behavior changed",
+    ],
+    administratorActions: [
+      "Verify the interface refinements at desktop, tablet, and mobile widths.",
+      "Do not interpret this interface release as confirmation that Referral Studio delivery is operational.",
+    ],
+    status: "DEPLOYING",
+  },
   {
     version: "V1.8.9.13",
     slug: "v1-8-9-13",
@@ -566,6 +597,22 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
     status: "LIVE",
   },
 ] as const;
+
+const HIDDEN_TROUBLESHOOTING_RELEASES = new Set([
+  "V1.8.9.6",
+  "V1.8.9.7",
+  "V1.8.9.8",
+  "V1.8.9.9",
+  "V1.8.9.10",
+  "V1.8.9.11",
+  "V1.8.9.12",
+  "V1.8.9.13",
+]);
+
+export const STUDIO_RELEASES: readonly StudioRelease[] =
+  STUDIO_RELEASE_AUDIT.filter(
+    (release) => !HIDDEN_TROUBLESHOOTING_RELEASES.has(release.version),
+  );
 
 export function getStudioRelease(slug: string) {
   return STUDIO_RELEASES.find(release => release.slug === slug) ?? null;
