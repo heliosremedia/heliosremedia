@@ -8,11 +8,13 @@ const read = (path: string) =>
 test("long admin pages expose scoped section navigation", () => {
   const navigator = read("app/admin/components/AdminSectionNavigator.tsx");
   const homepage = read("app/admin/homepage/page.tsx");
+  const organizer = read("app/admin/homepage/HomepageCurationOrganizer.tsx");
   const about = read("app/admin/about/AboutPageManager.tsx");
   const project = read("app/admin/projects/[projectId]/page.tsx");
   assert.match(navigator, /aria-label=\{label\}/);
   assert.match(navigator, /overflow-x-auto/);
-  assert.match(homepage, /#homepage-navigation/);
+  assert.match(homepage, /homepage-navigation/);
+  assert.match(organizer, /aria-label="Homepage Curation sections"/);
   assert.match(about, /#about-founder/);
   assert.match(project, /#project-media/);
   assert.match(project, /#review-publish/);
@@ -20,14 +22,13 @@ test("long admin pages expose scoped section navigation", () => {
 
 test("Homepage Navigation Links are summarized and collapsed by default", () => {
   const page = read("app/admin/homepage/page.tsx");
-  const structure = read("app/admin/homepage/HomepageStructureManager.tsx");
+  const layout = read("lib/homepage-curation-layout.ts");
   assert.ok(
     page.indexOf("homepage-navigation") < page.indexOf("homepage-media"),
   );
-  assert.match(structure, /<details className=/);
-  assert.doesNotMatch(structure, /<details[^>]*\sopen/);
-  assert.match(structure, /\{navigation\.length\} configured/);
-  assert.match(structure, />Navigation Links</);
+  assert.match(layout, /collapsed: \["homepage-navigation"\]/);
+  assert.match(page, /\$\{uniqueLinks\.size\} total/);
+  assert.match(page, /title: "Navigation Links"/);
 });
 
 test("Newsletter series precede secondary edition queues", () => {
