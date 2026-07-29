@@ -19,6 +19,32 @@ export type StudioRelease = {
 // repository records.
 export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
+    version: "V1.8.9.9",
+    slug: "v1-8-9-9",
+    releaseDate: null,
+    title: "Referral Provider Failure Containment",
+    summary: "Contains the zero-send provider failure and prevents a rejected batch from releasing later invitations.",
+    newFeatures: [
+      "Sanitized referral provider failure categories without credentials, provider bodies, or recipient data",
+    ],
+    improvements: [
+      "A provider rejection now revokes the campaign schedule authorization immediately",
+      "Unclaimed invitations return to an approved non-executable state while failed records remain preserved",
+    ],
+    bugFixes: [
+      "Prevents later cron polls from claiming the remaining audience after a provider batch failure",
+    ],
+    securityInfrastructure: [
+      "Exact 8:45 PM containment requires 149 prepared advocates, exactly 50 failed communications, and zero sent/provider-message evidence",
+      "A new explicit schedule is required after provider configuration is verified",
+    ],
+    administratorActions: [
+      "Do not retry or reschedule until the Resend credential and sender domain are verified.",
+      "Keep all provider validation non-sending and preserve the 50 failed records.",
+    ],
+    status: "PLANNED",
+  },
+  {
     version: "V1.8.9.8",
     slug: "v1-8-9-8",
     releaseDate: null,
