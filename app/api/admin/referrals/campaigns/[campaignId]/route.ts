@@ -47,9 +47,31 @@ export async function GET(_request: Request, context: { params: Promise<{ campai
     filters: rules.filters,
   });
   const removalEligibility = await referralCampaignRemovalEligibility(campaignId);
-  const [communicationStates, lastProgress, nextCommunication, lastCronInvocation] = await Promise.all([
+  const now = new Date();
+  const [
+    communicationStates,
+    invitationStates,
+    communicationKindStates,
+    lastProgress,
+    nextCommunication,
+    lastCronInvocation,
+    dueScheduledCommunications,
+    communicationDeliveryEvidence,
+    invitationDeliveryEvidence,
+    recentDiagnosticAudits,
+  ] = await Promise.all([
     prisma.referralCommunication.groupBy({
       by: ["status"],
+      where: { campaignId },
+      _count: { _all: true },
+    }),
+    prisma.referralInvitation.groupBy({
+      by: ["status"],
+      where: { campaignId },
+      _count: { _all: true },
+    }),
+    prisma.referralCommunication.groupBy({
+      by: ["kind", "status"],
       where: { campaignId },
       _count: { _all: true },
     }),
@@ -73,6 +95,27 @@ export async function GET(_request: Request, context: { params: Promise<{ campai
         providerSubmissionsFailed: true,
       },
     }),
+    prisma.referralCommunication.count({
+      where: { campaignId, status: "SCHEDULED", scheduledAt: { lte: now } },
+    }),
+    prisma.referralCommunication.count({
+      where: {
+        campaignId,
+        OR: [{ sentAt: { not: null } }, { providerMessageId: { not: null } }],
+      },
+    }),
+    prisma.referralInvitation.count({
+      where: {
+        campaignId,
+        OR: [{ sentAt: { not: null } }, { providerMessageId: { not: null } }],
+      },
+    }),
+    prisma.referralAuditEvent.findMany({
+      where: { campaignId },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      select: { action: true, createdAt: true },
+    }),
   ]);
   const communicationCounts = Object.fromEntries(
     communicationStates.map(item => [item.status, item._count._all]),
@@ -81,6 +124,28 @@ export async function GET(_request: Request, context: { params: Promise<{ campai
   const invitationSentCount = await prisma.referralCommunication.count({
     where: { campaignId, kind: "INVITATION", status: { in: ["SENT", "DELIVERED", "OPENED", "CLICKED"] } },
   });
+  const invitationStatusCounts = Object.fromEntries(
+    invitationStates.map(item => [item.status, item._count._all]),
+  ) as Record<string, number>;
+  const communicationKindStatusCounts = communicationKindStates.map(item => ({
+    kind: item.kind,
+    status: item.status,
+    count: item._count._all,
+  }));
+  const authorizationChecks = {
+    campaignApprovedOrActive: ["APPROVED", "ACTIVE"].includes(campaign.status),
+    scheduleConfirmed: Boolean(campaign.scheduleConfirmedAt),
+    deliveryScheduled: Boolean(campaign.deliveryScheduledAt),
+    deliveryDue: Boolean(campaign.deliveryScheduledAt && campaign.deliveryScheduledAt <= now),
+    timezonePresent: Boolean(campaign.deliveryTimezone),
+    approvedRevisionPresent: Boolean(campaign.approvedRevisionId),
+    scheduledRevisionMatches: Boolean(
+      campaign.approvedRevisionId
+      && campaign.scheduledRevisionId === campaign.approvedRevisionId,
+    ),
+    scheduledAudiencePresent: (campaign.scheduledAudienceCount ?? 0) > 0,
+    executionAuthorized: Boolean(campaign.executionAuthorizedAt),
+  };
   const stalled = referralLaunchIsStalled({
     status: campaign.status,
     launchStartedAt: campaign.launchStartedAt,
@@ -130,6 +195,21 @@ export async function GET(_request: Request, context: { params: Promise<{ campai
       nextScheduledKind: nextCommunication?.kind ?? null,
       sequence,
       lastCronInvocation,
+      deliveryDiagnostic: {
+        generatedAt: now,
+        readOnly: true,
+        authorizationChecks,
+        campaignStatus: campaign.status,
+        scheduleVersion: campaign.scheduleVersion,
+        scheduledAudienceCount: campaign.scheduledAudienceCount,
+        invitationStatusCounts,
+        communicationStatusCounts: communicationCounts,
+        communicationKindStatusCounts,
+        dueScheduledCommunications,
+        communicationDeliveryEvidence,
+        invitationDeliveryEvidence,
+        recentAuditActions: recentDiagnosticAudits,
+      },
       nextAction: operationalState === "APPROVED_NOT_SCHEDULED"
         ? "Review and schedule initial invitation"
         : operationalState === "SCHEDULED"
