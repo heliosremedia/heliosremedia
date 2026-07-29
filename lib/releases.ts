@@ -19,6 +19,29 @@ export type StudioRelease = {
 // repository records.
 export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
+    version: "V1.8.9.10",
+    slug: "v1-8-9-10",
+    releaseDate: null,
+    title: "Referral Zero-Send Recovery",
+    summary: "Restores the verified 149-person referral campaign to an executable queue after the sender-domain repair.",
+    newFeatures: [],
+    improvements: [
+      "Exact-state recovery aligns all prepared invitation records with the campaign's authorized schedule",
+    ],
+    bugFixes: [
+      "Repairs the mismatch where a campaign could show 149 queued while no invitation communications were due",
+    ],
+    securityInfrastructure: [
+      "Recovery requires the exact 9:36 PM schedule, 149 invitation communications, 50 historical failures, and zero sent/provider-message evidence",
+      "The V1.8.9.9 provider fail-stop remains active for every recovered delivery attempt",
+    ],
+    administratorActions: [
+      "Deployment intentionally releases the overdue invitations to the normal bounded cron worker.",
+      "Do not reschedule, cancel, or use Retry Safely while the recovered queue is processing.",
+    ],
+    status: "PLANNED",
+  },
+  {
     version: "V1.8.9.9",
     slug: "v1-8-9-9",
     releaseDate: null,
