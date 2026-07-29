@@ -21,7 +21,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
     version: "V1.8.9.16",
     slug: "v1-8-9-16",
-    releaseDate: null,
+    releaseDate: "2026-07-29",
     title: "Customizable Homepage Curation",
     summary: "Adds a private, per-administrator Homepage Curation workspace with persistent section ordering, collapsible editors, and accessible reordering controls without changing the public homepage.",
     newFeatures: [
@@ -45,7 +45,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
     administratorActions: [
       "Arrange Homepage Curation sections to match your workflow or use Reset to Default Layout.",
     ],
-    status: "DEPLOYING",
+    status: "LIVE",
   },
   {
     version: "V1.8.9.15",
