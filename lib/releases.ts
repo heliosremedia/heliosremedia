@@ -21,7 +21,7 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
   {
     version: "V1.8.9.13",
     slug: "v1-8-9-13",
-    releaseDate: null,
+    releaseDate: "2026-07-29",
     title: "Admin Reporting Refinement",
     summary: "Refines Referral Studio campaign actions and improves Portfolio Intelligence reporting controls with cleaner analytics-health presentation and safe real-time data refresh.",
     newFeatures: [
@@ -43,7 +43,7 @@ export const STUDIO_RELEASES: readonly StudioRelease[] = [
       "Verify the campaign action toolbar at desktop, tablet, and mobile widths.",
       "Confirm Refresh Data preserves the selected reporting range and creates no analytics event.",
     ],
-    status: "DEPLOYING",
+    status: "LIVE",
   },
   {
     version: "V1.8.9.12",
