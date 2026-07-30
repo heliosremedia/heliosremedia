@@ -21,7 +21,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
     version: "V1.9.0.1",
     slug: "v1-9-0-1",
-    releaseDate: null,
+    releaseDate: "2026-07-29",
     title: "Shared Email Delivery Hotfix",
     summary: "Moves Newsletter Studio, Email Studio, and Referral Studio delivery to a shared official Resend adapter with accurate provider errors, safe retries, and deterministic duplicate-send protection.",
     newFeatures: [],
@@ -44,7 +44,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
       "Complete an internal test send in each Studio before sending a full client campaign.",
       "Correct provider credentials or sender-domain configuration before retrying a non-retryable rejection.",
     ],
-    status: "DEPLOYING",
+    status: "LIVE",
   },
   {
     version: "V1.9.0",
