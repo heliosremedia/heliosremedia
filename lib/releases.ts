@@ -21,7 +21,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
     version: "V1.9.1",
     slug: "v1-9-1",
-    releaseDate: null,
+    releaseDate: "2026-07-29",
     title: "Dashboard Refinement",
     summary: "Refines the signed-in Dashboard with clearer studio metrics, explicit platform health, compact operational priorities, and richer verified workspace activity.",
     newFeatures: [],
@@ -45,7 +45,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
       "Use the timeframe controls and metric cards to open the corresponding source records.",
       "Follow the corrective action on any yellow, red, or gray platform-health card.",
     ],
-    status: "DEPLOYING",
+    status: "LIVE",
   },
   {
     version: "V1.9.0.2",
