@@ -9,10 +9,10 @@ export default async function NewsletterStudioPage() {
   const session = await requireAdminSession();
   if (session.role !== "OWNER" && session.role !== "ADMIN") redirect("/admin");
   const [activeSeries, needsReview, scheduled, sent] = await Promise.all([
-    prisma.newsletterSeries.count({ where: { status: "ACTIVE" } }),
-    prisma.newsletterEdition.count({ where: { status: { in: ["NEEDS_REVIEW","MISSED_APPROVAL"] } } }),
-    prisma.newsletterEdition.count({ where: { status: "SCHEDULED" } }),
-    prisma.newsletterEdition.count({ where: { status: "SENT" } }),
+    prisma.newsletterSeries.count({ where: { status: "ACTIVE", createdBy: { workspaceId: session.workspaceId } } }),
+    prisma.newsletterEdition.count({ where: { status: { in: ["NEEDS_REVIEW","MISSED_APPROVAL"] }, createdBy: { workspaceId: session.workspaceId } } }),
+    prisma.newsletterEdition.count({ where: { status: "SCHEDULED", createdBy: { workspaceId: session.workspaceId } } }),
+    prisma.newsletterEdition.count({ where: { status: "SENT", createdBy: { workspaceId: session.workspaceId } } }),
   ]);
   return <NewsletterDashboard summary={<AdminSummaryCards items={[
     { label: "Active series", value: activeSeries, detail: "Currently running", tone: "good" },

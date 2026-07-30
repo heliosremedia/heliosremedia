@@ -20,9 +20,10 @@ export default async function EmailStudioPage({ searchParams }: { searchParams: 
       select: { id: true, name: true, _count: { select: { memberships: true } } },
     }),
     prisma.emailCampaign.findMany({
+      where: { createdBy: { workspaceId: session.workspaceId } },
       take: 25,
       orderBy: { createdAt: "desc" },
-      select: { id: true, subject: true, previewText: true, body: true, status: true, recipientMode: true, selection: true, recipientCount: true, sentCount: true, failedCount: true, createdAt: true, sentAt: true, scheduledAt: true, scheduledTimeZone: true, rowVersion: true, createdBy: { select: { displayName: true } } },
+      select: { id: true, subject: true, previewText: true, body: true, status: true, recipientMode: true, selection: true, recipientCount: true, sentCount: true, failedCount: true, createdAt: true, sentAt: true, scheduledAt: true, scheduledTimeZone: true, rowVersion: true, createdBy: { select: { displayName: true } }, recipients: { select: { status: true, providerMessageId: true, events: { select: { eventType: true } } } } },
     }),
     campaignId ? prisma.emailCampaign.findFirst({
       where: { id: campaignId, status: "DRAFT", createdById: session.userId },
@@ -41,7 +42,15 @@ export default async function EmailStudioPage({ searchParams }: { searchParams: 
     <BulkEmailStudio
       clients={clients.filter((client) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(client.email)).map((client) => ({ id: client.id, firstName: client.firstName, lastName: client.lastName, displayName: client.displayName, email: client.email, phone: client.phone, groupIds: client.groupMemberships.map((membership) => membership.groupId) }))}
       groups={groups.map((group) => ({ id: group.id, name: group.name, count: group._count.memberships }))}
-      campaigns={campaigns.map((campaign) => ({ ...campaign, selection: campaign.selection as { groupIds?: string[]; clientIds?: string[] }, createdAt: campaign.createdAt.toISOString(), sentAt: campaign.sentAt?.toISOString() ?? null, scheduledAt: campaign.scheduledAt?.toISOString() ?? null }))}
+      campaigns={campaigns.map((campaign) => {
+        const delivered = campaign.recipients.filter(recipient => recipient.events.some(event => event.eventType.toLowerCase() === "delivered")).length;
+        const accepted = campaign.recipients.filter(recipient => recipient.providerMessageId && !recipient.events.some(event => event.eventType.toLowerCase() === "delivered")).length;
+        const failed = campaign.recipients.filter(recipient => recipient.status === "FAILED").length;
+        const awaitingConfirmation = campaign.recipients.filter(recipient => recipient.status === "SENT" && recipient.providerMessageId && !recipient.events.some(event => event.eventType.toLowerCase() === "delivered")).length;
+        const { recipients: _recipients, ...record } = campaign;
+        void _recipients;
+        return { ...record, delivery: { delivered, accepted, failed, awaitingConfirmation }, selection: campaign.selection as { groupIds?: string[]; clientIds?: string[] }, createdAt: campaign.createdAt.toISOString(), sentAt: campaign.sentAt?.toISOString() ?? null, scheduledAt: campaign.scheduledAt?.toISOString() ?? null };
+      })}
       canSend={session.role === "OWNER" || session.role === "ADMIN"}
       defaultTestEmail={session.email}
       initialDraft={initialDraft ? { ...initialDraft, selection: initialDraft.selection as { groupIds?: string[]; clientIds?: string[] } } : null}

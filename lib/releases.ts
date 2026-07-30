@@ -19,6 +19,40 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
+    version: "V1.9.2",
+    slug: "v1-9-2",
+    releaseDate: null,
+    title: "Admin Usability and Data Clarity",
+    summary: "Improves authenticated Studio organization, long-form editing, operational verification, and historical communication clarity while preserving public-site output.",
+    newFeatures: [
+      "Dashboard cards can be arranged in full-width or compatible two-column rows with saved per-account preferences",
+      "Workspace-scoped Client Sync history records provider, verification time, outcome, and imported, updated, skipped, or failed counts",
+      "Sent newsletter history renders the immutable message blocks in their recorded order with raw payloads secondary",
+    ],
+    improvements: [
+      "Newsletter Studio uses stronger editorial hierarchy, actionable empty states, and anchored series-editor navigation",
+      "Personal profiles, portal creation, Homepage Curation, and About Page sections use more compact expand-and-collapse workflows",
+      "Brand logo and monogram cards balance across the Site Settings grid, with corrected section spacing and a full-width social card",
+      "Project readiness states use restrained verified-complete styling, and testimonial synchronization clearly identifies pending Google authorization",
+    ],
+    bugFixes: [
+      "Newsletter summary counts and Email Studio history are restricted to the signed-in workspace",
+      "Provider-accepted messages are no longer presented as confirmed delivery in sent campaign history",
+      "Legacy or malformed newsletter snapshots fall back to safe, readable historical content instead of exposing serialized JSON by default",
+    ],
+    securityInfrastructure: [
+      "The Client Sync migration is additive and cascades only with its owning workspace",
+      "Dashboard layout normalization rejects unknown, duplicate, and oversized row contents",
+      "No public homepage, Homepage Curation output, referral delivery, social publishing, or external message was changed or triggered",
+    ],
+    administratorActions: [
+      "After deployment, organize Dashboard cards into full-width or two-column rows and confirm the layout persists after refresh.",
+      "Run Client Sync once to establish the first workspace-owned provider-health record.",
+      "Review a historical sent newsletter and confirm its immutable block snapshot matches the delivered edition.",
+    ],
+    status: "DEPLOYING",
+  },
+  {
     version: "V1.9.1",
     slug: "v1-9-1",
     releaseDate: "2026-07-29",

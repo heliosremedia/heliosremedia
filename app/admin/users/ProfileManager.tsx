@@ -22,6 +22,7 @@ export default function ProfileManager({ initialProfile }: { initialProfile: Pro
     publishing: preferences.publishing !== false, operations: preferences.operations !== false,
   });
   const [busy, setBusy] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const patch = (key: keyof typeof form, value: string | boolean) => setForm(current => ({ ...current, [key]: value }));
 
@@ -37,14 +38,19 @@ export default function ProfileManager({ initialProfile }: { initialProfile: Pro
       if (data.signedOut) { window.location.assign("/login?profileUpdated=1"); return; }
       setForm(current => ({ ...current, currentPassword: "", newPassword: "" }));
       setMessage({ ok: true, text: "Your profile and notification preferences were saved." });
-    } catch (error) { setMessage({ ok: false, text: error instanceof Error ? error.message : "Your profile could not be saved." }); }
+      setExpanded(false);
+    } catch (error) { setMessage({ ok: false, text: error instanceof Error ? error.message : "Your profile could not be saved." }); setExpanded(true); }
     finally { setBusy(false); }
   }
 
   return <section className="rounded-2xl border border-white/[0.08] bg-[#111] p-6">
-    <p className="text-[0.54rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">Your profile</p>
-    <h2 className="mt-2 text-2xl font-light text-white">Personal account</h2>
-    <p className="mt-2 text-sm leading-6 text-white/35">Changing your email or password requires your current password and signs out existing sessions.</p>
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div>
+      <p className="text-[0.54rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">Your profile</p>
+      <h2 className="mt-2 text-2xl font-light text-white">Personal account</h2>
+      <p className="mt-2 text-sm text-white/50"><span className="text-white/25">First name</span> {form.firstName || "Not set"} <span className="mx-2 text-white/15">·</span> <span className="text-white/25">Last name</span> {form.lastName || "Not set"}</p>
+    </div><button type="button" aria-expanded={expanded} onClick={() => { setExpanded(value => !value); if (!expanded && message?.ok) setMessage(null); }} className="admin-btn-secondary">{expanded ? "Collapse profile" : "Edit profile"}</button></div>
+    {message&&<p role={message.ok ? "status" : "alert"} className={`mt-5 rounded-xl border px-4 py-3 text-sm ${message.ok?"border-emerald-300/15 bg-emerald-300/[0.04] text-emerald-200/75":"border-red-300/15 bg-red-300/[0.04] text-red-200/75"}`}>{message.text}</p>}
+    {expanded && <><p className="mt-5 text-sm leading-6 text-white/35">Changing your email or password requires your current password and signs out existing sessions.</p>
     <form onSubmit={save} className="mt-6 space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="text-xs text-white/35">First name<input value={form.firstName} onChange={e=>patch("firstName",e.target.value)} className={field}/></label>
@@ -61,8 +67,7 @@ export default function ProfileManager({ initialProfile }: { initialProfile: Pro
         <label className="text-xs text-white/35">Current password<input type="password" autoComplete="current-password" value={form.currentPassword} onChange={e=>patch("currentPassword",e.target.value)} className={field}/></label>
         <label className="text-xs text-white/35">New password <span className="text-white/20">(optional)</span><input type="password" minLength={12} autoComplete="new-password" value={form.newPassword} onChange={e=>patch("newPassword",e.target.value)} className={field}/></label>
       </div>
-      {message&&<p role="status" className={`text-sm ${message.ok?"text-emerald-300":"text-red-300"}`}>{message.text}</p>}
       <button disabled={busy} className="admin-btn-primary">{busy?"Saving…":"Save my profile"}</button>
-    </form>
+    </form></>}
   </section>;
 }

@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ClientsPage() {
   const session = await requireAdminSession();
-  const [clients, groups] = await Promise.all([
+  const [clients, groups, lastSync] = await Promise.all([
     prisma.communicationClient.findMany({
       orderBy: [{ displayName: "asc" }, { email: "asc" }],
       select: {
@@ -29,6 +29,20 @@ export default async function ClientsPage() {
         _count: { select: { memberships: true } },
       },
     }),
+    prisma.clientSyncRun.findFirst({
+      where: { workspaceId: session.workspaceId },
+      orderBy: { startedAt: "desc" },
+      select: {
+        providerLabel: true,
+        status: true,
+        importedCount: true,
+        updatedCount: true,
+        skippedCount: true,
+        errorCount: true,
+        startedAt: true,
+        completedAt: true,
+      },
+    }),
   ]);
   const preferences = await prisma.marketingEmailPreference.findMany({
     where: { normalizedEmail: { in: clients.map(client => client.normalizedEmail) } },
@@ -44,7 +58,7 @@ export default async function ClientsPage() {
           Clients
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-white/40">
-          A streamlined contact directory synchronized manually from HDPhotoHub.
+          A streamlined contact directory synchronized manually from your connected client provider.
         </p>
       </section>
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Client summary">
@@ -73,6 +87,11 @@ export default async function ClientsPage() {
           clientCount: group._count.memberships,
         }))}
         canManage={session.role === "OWNER" || session.role === "ADMIN"}
+        syncSummary={lastSync ? {
+          ...lastSync,
+          startedAt: lastSync.startedAt.toISOString(),
+          completedAt: lastSync.completedAt?.toISOString() ?? null,
+        } : null}
       />
     </div>
   );

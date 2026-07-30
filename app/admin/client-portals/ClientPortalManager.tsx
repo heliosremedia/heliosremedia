@@ -31,6 +31,7 @@ export default function ClientPortalManager({ initialPortals }: { initialPortals
   const [message, setMessage] = useState("");
   const [initialDraft, setInitialDraft] = useState<Draft | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [creationOpen, setCreationOpen] = useState(false);
   const editTriggerRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLElement | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
@@ -64,6 +65,7 @@ export default function ClientPortalManager({ initialPortals }: { initialPortals
         window.setTimeout(() => setHighlightedId(null), 2400);
       }
       setDraft(emptyDraft); setInitialDraft(null); setMessage(editing ? "Portal updated." : "Portal created.");
+      setCreationOpen(false);
       if (editing) window.setTimeout(() => editTriggerRef.current?.focus(), 0);
     } catch (error) { setMessage(error instanceof Error ? error.message : "The portal could not be saved."); }
     finally { setBusy(false); }
@@ -86,19 +88,19 @@ export default function ClientPortalManager({ initialPortals }: { initialPortals
     const next = { ...portal };
     setDraft(next);
     setInitialDraft(next);
+    setCreationOpen(false);
   }
 
   const closeEditor = useCallback(() => {
     if (dirty && !window.confirm("Discard unsaved portal changes?")) return;
     setDraft(emptyDraft);
     setInitialDraft(null);
+    setCreationOpen(false);
     window.setTimeout(() => editTriggerRef.current?.focus(), 0);
   }, [dirty]);
 
   useEffect(() => {
     if (!editing) return;
-    const priorOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const first = dialogRef.current?.querySelector<HTMLElement>("input, select, textarea, button");
     first?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
@@ -107,16 +109,9 @@ export default function ClientPortalManager({ initialPortals }: { initialPortals
         closeEditor();
         return;
       }
-      if (event.key !== "Tab" || !dialogRef.current) return;
-      const controls = [...dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href]')];
-      if (!controls.length) return;
-      const firstControl = controls[0];
-      const lastControl = controls[controls.length - 1];
-      if (event.shiftKey && document.activeElement === firstControl) { event.preventDefault(); lastControl.focus(); }
-      else if (!event.shiftKey && document.activeElement === lastControl) { event.preventDefault(); firstControl.focus(); }
     };
     document.addEventListener("keydown", onKeyDown);
-    return () => { document.body.style.overflow = priorOverflow; document.removeEventListener("keydown", onKeyDown); };
+    return () => { document.removeEventListener("keydown", onKeyDown); };
   }, [closeEditor, editing]);
 
   async function reorder(event: DragEndEvent) {
@@ -142,9 +137,11 @@ export default function ClientPortalManager({ initialPortals }: { initialPortals
       </div>
     </section>
 
-    <section ref={dialogRef} role={editing ? "dialog" : undefined} aria-modal={editing ? true : undefined} aria-label={editing ? `Edit ${draft.name}` : undefined} className={`${editing ? "fixed inset-0 z-[100] overflow-y-auto bg-black/80 p-0 backdrop-blur sm:p-5" : "rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6"}`}>
-      <div className={editing ? "mx-auto flex min-h-full w-full max-w-[1000px] items-center sm:min-h-0 sm:py-5" : ""}>
-      <div className={editing ? "flex max-h-[100dvh] w-full flex-col overflow-hidden bg-[#111] p-5 shadow-2xl sm:max-h-[calc(100dvh-2.5rem)] sm:rounded-2xl sm:border sm:border-white/10 sm:p-7" : ""}>
+    <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="eyebrow text-[var(--helios-orange)]">Portal management</p><p className="mt-2 text-sm text-white/35">Create an entry point only when you need one; edit an existing portal in place.</p></div><button type="button" disabled={busy || creationOpen || editing} onClick={() => { setDraft(emptyDraft); setInitialDraft(null); setCreationOpen(true); }} className="admin-btn-primary">Create Portal</button></div>
+
+    {(creationOpen || editing) && <section ref={dialogRef} aria-label={editing ? `Edit ${draft.name}` : "Create portal"} className="rounded-2xl border border-[var(--helios-orange)]/20 bg-white/[0.02] p-5 sm:p-6">
+      <div>
+      <div>
       <div className="flex items-end justify-between gap-5"><div><p className="eyebrow text-[var(--helios-orange)]">{editing ? "Edit portal" : "New portal"}</p><h2 className="mt-3 text-2xl text-white">Map a branded entry point</h2></div></div>
       <div className={editing ? "overflow-y-auto pr-1" : ""}>
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
@@ -158,9 +155,9 @@ export default function ClientPortalManager({ initialPortals }: { initialPortals
       </div>
       <div className="mt-5 flex flex-wrap gap-5 text-sm text-white/55">{[["active", "Visible"], ["registrationEnabled", "Allow account creation"], ["isDefault", "Default portal"]].map(([key, label]) => <label key={key} className="flex items-center gap-2"><input type="checkbox" checked={Boolean(draft[key as keyof Draft])} onChange={(event) => field(key as keyof Draft, event.target.checked)} className="accent-[var(--helios-orange)]" />{label}</label>)}</div>
       </div>
-      <div className="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-white/[0.08] pt-5"><button type="button" disabled={busy} onClick={editing ? closeEditor : () => setDraft(emptyDraft)} className="admin-btn-secondary">Cancel</button><button type="button" disabled={busy || !draft.name.trim()} onClick={save} className="admin-btn-primary">{editing ? "Save portal" : "Create portal"}</button>{message && <p role="status" className="basis-full text-right text-sm text-white/45">{message}</p>}</div>
+      <div className="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-white/[0.08] pt-5"><button type="button" disabled={busy} onClick={closeEditor} className="admin-btn-secondary">Cancel</button><button type="button" disabled={busy || !draft.name.trim()} onClick={save} className="admin-btn-primary">{editing ? "Save portal" : "Create portal"}</button>{message && <p role="status" className="basis-full text-right text-sm text-white/45">{message}</p>}</div>
       </div></div>
-    </section>
+    </section>}
 
     <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]"><div className="flex flex-col gap-2 border-b border-white/[0.08] px-6 py-5 sm:flex-row sm:items-end sm:justify-between"><div><h2 className="text-2xl text-white">Client entry points</h2><p className="mt-1 text-sm text-white/35">{portals.length} configured portals · drag rows to set the public display order</p></div>{message && <p role="status" className="text-xs text-white/40">{message}</p>}</div>{portals.length ? <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={reorder}><SortableContext items={portals.map(({ id }) => id)} strategy={verticalListSortingStrategy}><div className="divide-y divide-white/[0.07]">{portals.map((portal) => <div key={portal.id} className={highlightedId === portal.id ? "bg-emerald-300/[0.07] ring-1 ring-inset ring-emerald-300/30" : ""}><SortablePortalRow portal={portal} disabled={busy} onEdit={(item) => edit(item, document.activeElement instanceof HTMLButtonElement ? document.activeElement : undefined)} onRemove={remove} /></div>)}</div></SortableContext></DndContext> : <p className="px-6 py-10 text-sm text-white/35">No portals yet. Discover the HDPhotoHub groups, then create the first entry point.</p>}</section>
   </div>;
