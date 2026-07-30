@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import BulkEmailStudio from "./BulkEmailStudio";
 import AdminSummaryCards from "@/app/admin/components/AdminSummaryCards";
 import AdminPageLayout, { AdminPageHeader } from "@/app/admin/components/AdminPageLayout";
+import { bouncedBackSystemKey } from "@/lib/client-communications/bounce-core";
 
 export const dynamic = "force-dynamic";
 
@@ -11,11 +12,18 @@ export default async function EmailStudioPage({ searchParams }: { searchParams: 
   const campaignId = (await searchParams).campaign;
   const [clients, groups, campaigns, initialDraft] = await Promise.all([
     prisma.communicationClient.findMany({
-      where: { emailSubscribed: true, normalizedEmail: { not: "" } },
+      where: {
+        emailSubscribed: true,
+        emailStatus: "VALID",
+        archivedAt: null,
+        normalizedEmail: { not: "" },
+        groupMemberships: { none: { group: { systemKey: bouncedBackSystemKey(session.workspaceId) } } },
+      },
       orderBy: [{ displayName: "asc" }, { email: "asc" }],
       select: { id: true, firstName: true, lastName: true, displayName: true, email: true, phone: true, groupMemberships: { select: { groupId: true } } },
     }),
     prisma.communicationGroup.findMany({
+      where: { OR: [{ systemKey: null }, { systemKey: { not: { startsWith: "BOUNCED_BACK:" } } }] },
       orderBy: { name: "asc" },
       select: { id: true, name: true, _count: { select: { memberships: true } } },
     }),

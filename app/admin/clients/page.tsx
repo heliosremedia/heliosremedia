@@ -1,6 +1,7 @@
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import ClientDirectory from "./ClientDirectory";
+import { bouncedBackSystemKey } from "@/lib/client-communications/bounce-core";
 
 export const dynamic = "force-dynamic";
 
@@ -22,10 +23,19 @@ export default async function ClientsPage() {
       },
     }),
     prisma.communicationGroup.findMany({
+      where: {
+        OR: [
+          { systemKey: null },
+          { systemKey: bouncedBackSystemKey(session.workspaceId) },
+          { systemKey: { not: { startsWith: "BOUNCED_BACK:" } }, systemManaged: true },
+        ],
+      },
       orderBy: [{ name: "asc" }],
       select: {
         id: true,
         name: true,
+        systemManaged: true,
+        systemKey: true,
         _count: { select: { memberships: true } },
       },
     }),
@@ -49,6 +59,9 @@ export default async function ClientsPage() {
     select: { normalizedEmail: true, status: true, effectiveAt: true, source: true },
   });
   const preferenceByEmail = new Map(preferences.map(preference => [preference.normalizedEmail, preference]));
+  const bouncedGroup = groups.find(group => group.systemKey === bouncedBackSystemKey(session.workspaceId));
+  const bouncedClientIds = new Set(clients.filter(client =>
+    bouncedGroup && client.groupMemberships.some(membership => membership.groupId === bouncedGroup.id)).map(client => client.id));
 
   return (
     <div className="space-y-7">
@@ -65,7 +78,7 @@ export default async function ClientsPage() {
         {[
           ["Total clients", clients.length],
           ["Active clients", clients.filter(client => !client.archivedAt).length],
-          ["Email eligible", clients.filter(client => client.emailSubscribed && !client.archivedAt).length],
+          ["Email eligible", clients.filter(client => client.emailSubscribed && !client.archivedAt && !bouncedClientIds.has(client.id)).length],
           ["Client groups", groups.length],
         ].map(([label, value]) => <div key={label} className="rounded-xl border border-white/[0.08] bg-white/[0.025] p-4"><p className="text-[0.56rem] uppercase tracking-[0.15em] text-white/30">{label}</p><p className="mt-3 text-3xl font-light text-white">{value}</p></div>)}
       </section>
@@ -85,6 +98,8 @@ export default async function ClientsPage() {
           id: group.id,
           name: group.name,
           clientCount: group._count.memberships,
+          systemManaged: group.systemManaged,
+          systemKey: group.systemKey,
         }))}
         canManage={session.role === "OWNER" || session.role === "ADMIN"}
         syncSummary={lastSync ? {

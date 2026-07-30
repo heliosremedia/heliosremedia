@@ -575,11 +575,11 @@ model Project {
   projectType   String?
   propertyType  String?
 
-  status       ProjectStatus @default(DRAFT)
-  featured     Boolean       @default(false)
+  status            ProjectStatus @default(DRAFT)
+  featured          Boolean       @default(false)
   featuredStartedAt DateTime?
   featuredExpiresAt DateTime?
-  displayOrder Int           @default(0)
+  displayOrder      Int           @default(0)
 
   heroMediaId        String? @unique
   thumbnailMediaId   String? @unique
@@ -1342,27 +1342,27 @@ model CtaPlacement {
 model AdminUser {
   id String @id @default(cuid())
 
-  email                   String             @unique
-  displayName             String
-  title                   String?
-  legacyDisplayName       String?
-  firstName               String?
-  lastName                String?
-  phone                   String?
-  profilePhotoStorageKey  String?
-  profilePhotoUrl         String?
-  notificationPreferences Json?
-  disciplines             TeamDiscipline[]
-  state                   WorkspaceUserState @default(ACTIVE)
-  role                    AdminRole          @default(EDITOR)
-  active                  Boolean            @default(true)
-  passwordHash            String?
-  sessionVersion          Int                @default(0)
-  navigationFavorites     Json?
+  email                       String             @unique
+  displayName                 String
+  title                       String?
+  legacyDisplayName           String?
+  firstName                   String?
+  lastName                    String?
+  phone                       String?
+  profilePhotoStorageKey      String?
+  profilePhotoUrl             String?
+  notificationPreferences     Json?
+  disciplines                 TeamDiscipline[]
+  state                       WorkspaceUserState @default(ACTIVE)
+  role                        AdminRole          @default(EDITOR)
+  active                      Boolean            @default(true)
+  passwordHash                String?
+  sessionVersion              Int                @default(0)
+  navigationFavorites         Json?
   homepageCurationPreferences Json?
-  dashboardPreferences    Json?
-  workspaceId             String
-  workspace               Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  dashboardPreferences        Json?
+  workspaceId                 String
+  workspace                   Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
 
   failedLoginCount Int       @default(0)
   lockedUntil      DateTime?
@@ -1428,6 +1428,7 @@ model Workspace {
   projects                 Project[]
   invitations              AdminInvitation[]
   clientSyncRuns           ClientSyncRun[]
+  resendWebhookEvents      ResendWebhookEvent[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2022,6 +2023,7 @@ model CommunicationClient {
   referralAdvocates          ReferralAdvocate[]
   referralSubmissions        ReferralSubmission[]           @relation("ReferralMatchedClient")
   referralAudiences          ReferralCampaignAudience[]
+  resendWebhookEvents        ResendWebhookEvent[]
 
   @@index([displayName])
   @@index([normalizedEmail])
@@ -2038,14 +2040,14 @@ model ClientSyncRun {
   providerKey   String
   providerLabel String
   status        String
-  importedCount Int      @default(0)
-  updatedCount  Int      @default(0)
-  skippedCount  Int      @default(0)
-  errorCount    Int      @default(0)
+  importedCount Int       @default(0)
+  updatedCount  Int       @default(0)
+  skippedCount  Int       @default(0)
+  errorCount    Int       @default(0)
   errorCategory String?
-  startedAt     DateTime @default(now())
+  startedAt     DateTime  @default(now())
   completedAt   DateTime?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
 
   @@index([workspaceId, startedAt])
   @@index([workspaceId, providerKey, startedAt])
@@ -2106,10 +2108,39 @@ model CampaignRecipient {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  events CampaignDeliveryEvent[]
+  events              CampaignDeliveryEvent[]
+  resendWebhookEvents ResendWebhookEvent[]
 
   @@unique([campaignId, clientId])
   @@index([campaignId, status])
+  @@index([clientId])
+}
+
+model ResendWebhookEvent {
+  id String @id @default(cuid())
+
+  providerEventId     String               @unique
+  providerMessageId   String?
+  eventType           String
+  processingStatus    String
+  workspaceId         String?
+  workspace           Workspace?           @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  clientId            String?
+  client              CommunicationClient? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  campaignRecipientId String?
+  campaignRecipient   CampaignRecipient?   @relation(fields: [campaignRecipientId], references: [id], onDelete: SetNull)
+  normalizedEmail     String?
+  bounceType          String?
+  bounceSubtype       String?
+  reason              String?
+  occurredAt          DateTime
+  processedAt         DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([processingStatus])
+  @@index([workspaceId])
+  @@index([providerMessageId])
   @@index([clientId])
 }
 
@@ -2892,23 +2923,23 @@ model ReferralAuditEvent {
 }
 
 model ReferralCronInvocation {
-  id                         String   @id @default(cuid())
-  source                     String
-  environment                String
-  startedAt                  DateTime @default(now())
-  completedAt                DateTime?
-  authenticated              Boolean  @default(false)
-  campaignsInspected         Int      @default(0)
-  campaignsEligible          Int      @default(0)
-  campaignsRejected          Int      @default(0)
-  communicationsDue          Int      @default(0)
-  communicationsClaimed      Int      @default(0)
-  communicationsSkipped      Int      @default(0)
-  providerSubmissionsAttempted Int    @default(0)
-  providerSubmissionsAccepted  Int    @default(0)
-  providerSubmissionsFailed    Int    @default(0)
-  terminalResult             String?
-  sanitizedError             String?
+  id                           String    @id @default(cuid())
+  source                       String
+  environment                  String
+  startedAt                    DateTime  @default(now())
+  completedAt                  DateTime?
+  authenticated                Boolean   @default(false)
+  campaignsInspected           Int       @default(0)
+  campaignsEligible            Int       @default(0)
+  campaignsRejected            Int       @default(0)
+  communicationsDue            Int       @default(0)
+  communicationsClaimed        Int       @default(0)
+  communicationsSkipped        Int       @default(0)
+  providerSubmissionsAttempted Int       @default(0)
+  providerSubmissionsAccepted  Int       @default(0)
+  providerSubmissionsFailed    Int       @default(0)
+  terminalResult               String?
+  sanitizedError               String?
 
   @@index([startedAt])
   @@index([terminalResult, startedAt])

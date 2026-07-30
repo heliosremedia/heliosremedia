@@ -27,7 +27,7 @@ test("post-release interfaces preserve explicit safety and confirmation language
   assert.match(referral, /Return to Approved/);
   assert.match(blog, /Improve Structure/);
   assert.match(blog, /Apply Structure/);
-  assert.match(settings, /Business Identity/);
+  assert.match(settings, /Brand Identity/);
   assert.match(settings, /Booking Experience/);
-  assert.match(settings, /Legal &amp; Privacy/);
+  assert.match(settings, /Legal & Privacy/);
 });

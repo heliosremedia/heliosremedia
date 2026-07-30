@@ -6,11 +6,15 @@ import { renderCampaignEmail, sendCampaignBatch } from "./email";
 import { renderPersonalizedEmail } from "./personalization";
 import { addressIsMarketingEligible, createPreferenceToken } from "./preferences";
 import { getSiteUrl } from "@/lib/site";
+import { bouncedBackSystemKey } from "./bounce-core";
 
 export async function processEmailCampaign(campaignId: string) {
   const campaign = await prisma.emailCampaign.findUnique({
     where: { id: campaignId },
-    include: { recipients: { include: { client: true }, orderBy: { createdAt: "asc" } } },
+    include: {
+      createdBy: { select: { workspaceId: true } },
+      recipients: { include: { client: { include: { groupMemberships: { include: { group: true } } } } }, orderBy: { createdAt: "asc" } },
+    },
   });
   if (!campaign || !["PROCESSING", "SENDING"].includes(campaign.status)) {
     throw new Error("Campaign is not available for delivery.");
@@ -26,6 +30,8 @@ export async function processEmailCampaign(campaignId: string) {
         !recipient.client.archivedAt &&
         recipient.client.emailSubscribed &&
         recipient.client.emailStatus === "VALID" &&
+        !recipient.client.groupMemberships.some(({ group }) =>
+          group.systemKey === bouncedBackSystemKey(campaign.createdBy.workspaceId)) &&
         await addressIsMarketingEligible(recipient.email.trim().toLowerCase()),
     })));
     const skipped = eligibility.filter((item) => !item.eligible).map((item) => item.recipient);
