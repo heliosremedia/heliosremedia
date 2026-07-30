@@ -21,7 +21,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
     version: "V1.9.0.2",
     slug: "v1-9-0-2",
-    releaseDate: null,
+    releaseDate: "2026-07-29",
     title: "Newsletter Integrity Compatibility Hotfix",
     summary: "Corrects false approved-content integrity failures caused by PostgreSQL jsonb object-key reordering while preserving strict detection of genuine content changes.",
     newFeatures: [],
@@ -41,7 +41,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
     administratorActions: [
       "Retry the existing scheduled newsletter; reapproval is not required when its content is unchanged.",
     ],
-    status: "DEPLOYING",
+    status: "LIVE",
   },
   {
     version: "V1.9.0.1",
