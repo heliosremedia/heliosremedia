@@ -448,7 +448,7 @@ export default function ProjectWorkflowManager({
             {publishingRequirements.map((requirement) => (
               <div
                 key={requirement.label}
-                className="flex items-start gap-4 rounded-2xl border border-white/[0.08] bg-black/20 p-4"
+                className={`flex items-start gap-4 rounded-2xl border p-4 ${requirement.complete ? "border-emerald-300/15 bg-emerald-300/[0.035]" : "border-white/[0.08] bg-black/20"}`}
               >
                 <span
                   className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${
