@@ -236,7 +236,7 @@ export default async function ProjectEditorPage({
         { href: "#project-media", label: "Media" },
         { href: "#project-services", label: "Services & SEO" },
         { href: "#project-publishing", label: "Review & Publish" },
-      ]} />
+      ]} bulkSectionIds={["project-identity", "project-credits", "project-media", "project-services", "project-publishing"]} />
 
       <section className="grid gap-4 md:grid-cols-4">
         {[
@@ -279,13 +279,13 @@ export default async function ProjectEditorPage({
             key={number as string}
             className={`rounded-2xl border p-5 ${
               active
-                ? "border-[var(--helios-orange)]/30 bg-[var(--helios-orange)]/[0.06]"
+                ? "border-emerald-300/20 bg-emerald-300/[0.045]"
                 : "border-white/[0.08] bg-white/[0.02]"
             }`}
           >
             <p
               className={`text-[0.6rem] font-semibold uppercase tracking-[0.18em] ${
-                active ? "text-[var(--helios-orange-hover)]" : "text-white/25"
+                active ? "text-emerald-200/70" : "text-white/25"
               }`}
             >
               Step {number}
@@ -366,7 +366,7 @@ export default async function ProjectEditorPage({
 
       <section
         id="project-media"
-        className="scroll-mt-8 rounded-2xl border border-white/[0.08] bg-white/[0.02]"
+        className="scroll-mt-28 rounded-2xl border border-white/[0.08] bg-white/[0.02]"
       >
         <div className="border-b border-white/[0.08] px-5 py-5 sm:px-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
