@@ -37,7 +37,7 @@ test("Newsletter series precede secondary edition queues", () => {
   );
   assert.ok(
     source.indexOf("Active Newsletter Series") <
-      source.indexOf("Needs your review"),
+      source.indexOf("Needs Your Review"),
   );
   assert.equal(source.match(/Active Newsletter Series/g)?.length, 1);
 });
