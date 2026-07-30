@@ -3,6 +3,7 @@ import { recordAuditEvent } from "@/lib/audit";
 import { getAdminSession } from "@/lib/auth/session";
 import { processEmailCampaign } from "@/lib/client-communications/campaign-delivery";
 import { renderCampaignEmail, sendTestCampaign } from "@/lib/client-communications/email";
+import { EmailDeliveryError } from "@/lib/client-communications/email";
 import { findUnsupportedVariables, renderPersonalizedEmail } from "@/lib/client-communications/personalization";
 import { DEFAULT_CAMPAIGN_TIME_ZONE, zonedLocalToUtc } from "@/lib/client-communications/scheduling";
 import { prisma } from "@/lib/prisma";
@@ -60,6 +61,7 @@ export async function POST(request: Request) {
         to: testEmail,
         subject: personalized.subject,
         html: renderCampaignEmail({ body: personalized.body, previewText: personalized.previewText, unsubscribeToken: "test-preview-disabled" }),
+        source: "campaign",
       });
       await recordAuditEvent({
         actorId: session.userId, actorEmail: session.email, action: "EMAIL_CAMPAIGN_TEST_SENT",
@@ -133,6 +135,12 @@ export async function POST(request: Request) {
     }, { status: completed.sentCount ? 200 : 502 });
   } catch (error) {
     console.error("Unable to process email campaign:", error);
+    if (error instanceof EmailDeliveryError) {
+      return NextResponse.json(
+        { success: false, code: error.code, error: error.message },
+        { status: error.code === "EMAIL_PROVIDER_NOT_CONFIGURED" ? 503 : 502 },
+      );
+    }
     return NextResponse.json({ success: false, error: error instanceof Error ? error.message : "The campaign could not be processed." }, { status: 500 });
   }
 }
