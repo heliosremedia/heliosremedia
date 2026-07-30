@@ -29,6 +29,9 @@ export default function AboutPageManager({ initialContent, initialTeamMembers }:
   const [message, setMessage] = useState("");
   const [galleryTarget, setGalleryTarget] = useState<"galleryOne" | "galleryTwo" | "galleryThree" | null>(null);
   const [galleryUndo, setGalleryUndo] = useState<Pick<PublicAboutPageContent, "galleryOneStorageKey" | "galleryOneUrl" | "galleryOneAlt" | "galleryTwoStorageKey" | "galleryTwoUrl" | "galleryTwoAlt" | "galleryThreeStorageKey" | "galleryThreeUrl" | "galleryThreeAlt"> | null>(null);
+  const sectionIds = ["about-hero", "about-story", "about-founder", "about-team", "about-principles", "about-imagery", "about-experience"] as const;
+  const [collapsed, setCollapsed] = useState<string[]>([]);
+  const panel = (id: string) => ({ collapsed: collapsed.includes(id), onToggle: () => setCollapsed(current => current.includes(id) ? current.filter(item => item !== id) : [...current, id]) });
 
   function field<K extends keyof PublicAboutPageContent>(key: K, value: PublicAboutPageContent[K]) {
     setContent((current) => ({ ...current, [key]: value }));
@@ -99,20 +102,20 @@ export default function AboutPageManager({ initialContent, initialTeamMembers }:
       { href: "#about-principles", label: "Principles" },
       { href: "#about-imagery", label: "Imagery" },
       { href: "#about-experience", label: "Experience" },
-    ]} />
+    ]} actions={<><button type="button" disabled={!collapsed.length} onClick={() => setCollapsed([])} className="admin-btn-secondary whitespace-nowrap">Expand All</button><button type="button" disabled={collapsed.length === sectionIds.length} onClick={() => setCollapsed([...sectionIds])} className="admin-btn-secondary whitespace-nowrap">Collapse All</button></>} />
 
-    <Panel id="about-hero" eyebrow="Opening frame" title="Hero" description="Control the first image and message visitors see on the About page.">
+    <Panel id="about-hero" {...panel("about-hero")} eyebrow="Opening frame" title="Hero" description="Control the first image and message visitors see on the About page.">
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="space-y-4"><Input label="Eyebrow" value={content.heroEyebrow} onChange={(value) => field("heroEyebrow", value)} /><Textarea label="Headline" value={content.heroHeadline} onChange={(value) => field("heroHeadline", value)} rows={3} /><Textarea label="Introduction" value={content.heroBody} onChange={(value) => field("heroBody", value)} rows={5} /></div>
         <ImageField label="Hero image" value={content.heroImageUrl} alt={content.heroImageAlt} onAlt={(value) => field("heroImageAlt", value)} onFile={(file) => upload("hero", "heroImage", file)} busy={busy} />
       </div>
     </Panel>
 
-    <Panel id="about-story" eyebrow="Narrative" title="Why we exist" description="Curate the positioning statement and the two supporting paragraphs.">
+    <Panel id="about-story" {...panel("about-story")} eyebrow="Narrative" title="Why we exist" description="Curate the positioning statement and the two supporting paragraphs.">
       <div className="grid gap-4 lg:grid-cols-2"><Input label="Eyebrow" value={content.storyEyebrow} onChange={(value) => field("storyEyebrow", value)} /><Textarea label="Intro" value={content.storyIntro} onChange={(value) => field("storyIntro", value)} rows={5} /><Textarea label="Large statement" value={content.storyHeadline} onChange={(value) => field("storyHeadline", value)} rows={5} /><div /><Textarea label="Supporting copy — left" value={content.storyBodyLeft} onChange={(value) => field("storyBodyLeft", value)} rows={7} /><Textarea label="Supporting copy — right" value={content.storyBodyRight} onChange={(value) => field("storyBodyRight", value)} rows={7} /></div>
     </Panel>
 
-    <Panel id="about-founder" eyebrow="Personal connection" title="Founder profile" description="Introduce the person behind the company. Upload a portrait, edit every line, then publish the section when it is ready.">
+    <Panel id="about-founder" {...panel("about-founder")} eyebrow="Personal connection" title="Founder profile" description="Introduce the person behind the company. Upload a portrait, edit every line, then publish the section when it is ready.">
       <label className="mb-6 flex items-start gap-3 rounded-xl border border-white/[0.08] bg-black/20 p-4">
         <input type="checkbox" checked={content.founderEnabled} onChange={(event) => field("founderEnabled", event.target.checked)} className="mt-0.5 h-4 w-4 accent-[var(--helios-orange)]" />
         <span><span className="block text-sm font-medium text-white/80">Show founder profile on the About page</span><span className="mt-1 block text-xs leading-5 text-white/35">The section only appears publicly when this is enabled and a portrait has been uploaded.</span></span>
@@ -131,14 +134,14 @@ export default function AboutPageManager({ initialContent, initialTeamMembers }:
       </div>
     </Panel>
 
-    <div id="about-team" className="scroll-mt-28"><TeamMemberManager initialTeamMembers={initialTeamMembers} /></div>
+    <div id="about-team" tabIndex={-1} className="scroll-mt-28 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)]"><div className="mb-3 flex justify-end"><button type="button" aria-expanded={!collapsed.includes("about-team")} onClick={panel("about-team").onToggle} className="admin-btn-secondary">{collapsed.includes("about-team") ? "Expand Team" : "Collapse Team"}</button></div>{!collapsed.includes("about-team") && <TeamMemberManager initialTeamMembers={initialTeamMembers} />}</div>
 
-    <Panel id="about-principles" eyebrow="Point of view" title="Principles" description="Edit the section heading and each principle card.">
+    <Panel id="about-principles" {...panel("about-principles")} eyebrow="Point of view" title="Principles" description="Edit the section heading and each principle card.">
       <div className="grid gap-4 lg:grid-cols-3"><Input label="Eyebrow" value={content.principlesEyebrow} onChange={(value) => field("principlesEyebrow", value)} /><Input label="Headline" value={content.principlesHeadline} onChange={(value) => field("principlesHeadline", value)} /><Textarea label="Introduction" value={content.principlesIntro} onChange={(value) => field("principlesIntro", value)} rows={3} /></div>
       <ListEditor items={content.principles} onChange={(items) => field("principles", items)} />
     </Panel>
 
-    <Panel id="about-imagery" eyebrow="Miniature gallery" title="About imagery" description="These three images preserve the editorial layout while making every frame replaceable.">
+    <Panel id="about-imagery" {...panel("about-imagery")} eyebrow="Miniature gallery" title="About imagery" description="These three images preserve the editorial layout while making every frame replaceable.">
       <div className="mb-5 flex justify-end gap-2">{galleryUndo && <button type="button" disabled={busy} onClick={() => { setContent(current => ({ ...current, ...galleryUndo })); setGalleryUndo(null); setMessage("Randomized selections were undone."); }} className="admin-btn-link">Undo randomize</button>}<button type="button" disabled={busy} onClick={randomizeGallery} className="admin-btn-secondary">Randomize Three Images</button></div>
       <div className="grid gap-5 lg:grid-cols-3">
         <ImageField label="Large image" value={content.galleryOneUrl} alt={content.galleryOneAlt} onAlt={(value) => field("galleryOneAlt", value)} onFile={(file) => upload("gallery-one", "galleryOne", file)} onGallery={() => setGalleryTarget("galleryOne")} busy={busy} />
@@ -147,7 +150,7 @@ export default function AboutPageManager({ initialContent, initialTeamMembers }:
       </div>
     </Panel>
 
-    <Panel id="about-experience" eyebrow="Workflow" title="Client experience" description="Edit the final narrative section and each process step.">
+    <Panel id="about-experience" {...panel("about-experience")} eyebrow="Workflow" title="Client experience" description="Edit the final narrative section and each process step.">
       <div className="grid gap-4 lg:grid-cols-2"><Input label="Eyebrow" value={content.processEyebrow} onChange={(value) => field("processEyebrow", value)} /><Textarea label="Headline" value={content.processHeadline} onChange={(value) => field("processHeadline", value)} rows={3} /></div>
       <ListEditor items={content.process} onChange={(items) => field("process", items)} />
     </Panel>
@@ -157,8 +160,8 @@ export default function AboutPageManager({ initialContent, initialTeamMembers }:
   </div>;
 }
 
-function Panel({ id, eyebrow, title, description, children }: { id?: string; eyebrow: string; title: string; description: string; children: React.ReactNode }) {
-  return <section id={id} className="scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-5 sm:p-7"><p className="eyebrow text-[var(--helios-orange)]">{eyebrow}</p><h2 className="mt-2 font-display text-3xl font-light text-white">{title}</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-white/35">{description}</p><div className="mt-7">{children}</div></section>;
+function Panel({ id, eyebrow, title, description, collapsed, onToggle, children }: { id?: string; eyebrow: string; title: string; description: string; collapsed: boolean; onToggle?: () => void; children: React.ReactNode }) {
+  return <section id={id} tabIndex={-1} className="scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] sm:p-7"><div className="flex items-start justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">{eyebrow}</p><h2 className="mt-2 font-display text-3xl font-light text-white">{title}</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-white/35">{description}</p></div>{onToggle && <button type="button" aria-expanded={!collapsed} onClick={onToggle} className="admin-btn-secondary">{collapsed ? "Expand" : "Collapse"}</button>}</div>{!collapsed && <div className="mt-7">{children}</div>}</section>;
 }
 
 function Input({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
@@ -237,7 +240,7 @@ function TeamMemberManager({ initialTeamMembers }: { initialTeamMembers: AdminTe
     finally { setTeamBusy(null); }
   }
 
-  return <Panel eyebrow="People" title="Team members" description="Create ordered, visible public team profiles with titles, biographies, categories, and uploaded portraits.">
+  return <Panel eyebrow="People" title="Team members" description="Create ordered, visible public team profiles with titles, biographies, categories, and uploaded portraits." collapsed={false}>
     {teamMessage && <p role="status" className="mb-5 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/50">{teamMessage}</p>}
     <div className="mb-5 flex justify-end"><button type="button" onClick={() => openTeam()} className="admin-btn-primary">Add team member</button></div>
     <div className="grid gap-4 lg:grid-cols-2">{teamMembers.map((item, index) => <article key={item.id} className={`grid gap-4 rounded-2xl border border-white/[0.08] bg-black/20 p-4 sm:grid-cols-[8rem_minmax(0,1fr)] ${item.visible ? "" : "opacity-60"}`}><div className="relative aspect-[4/5] overflow-hidden rounded-xl bg-white/[0.03]">{item.portraitUrl ? <Image src={item.portraitUrl} alt={item.portraitAlt || item.name} fill unoptimized sizes="8rem" className="object-cover grayscale" style={{ objectPosition: `${item.focalX * 100}% ${item.focalY * 100}%` }} /> : <div className="flex h-full items-center justify-center text-4xl text-white/15">{item.name.charAt(0)}</div>}</div><div><div className="flex items-start justify-between gap-3"><div><h3 className="text-white/85">{item.name}</h3><p className="mt-1 text-xs text-white/35">{item.title} · {teamMemberCategoryLabels[item.category]}</p></div><span className="rounded-full border border-white/10 px-2 py-1 text-[0.48rem] uppercase tracking-[0.12em] text-white/35">{item.visible ? "Visible" : "Hidden"}</span></div><p className="mt-3 line-clamp-3 text-sm leading-6 text-white/38">{item.biography}</p><div className="mt-4 flex flex-wrap gap-2 border-t border-white/[0.06] pt-3"><button disabled={index === 0 || teamBusy !== null} onClick={() => moveTeam(index, -1)} className="admin-btn-link">↑</button><button disabled={index === teamMembers.length - 1 || teamBusy !== null} onClick={() => moveTeam(index, 1)} className="admin-btn-link">↓</button><button onClick={() => openTeam(item)} className="ml-auto admin-btn-link">Edit</button><button disabled={teamBusy !== null} onClick={() => removeTeam(item)} className="admin-btn-link-destructive">Delete</button></div></div></article>)}</div>
