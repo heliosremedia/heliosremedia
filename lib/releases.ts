@@ -19,6 +19,35 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
+    version: "V1.9.1",
+    slug: "v1-9-1",
+    releaseDate: null,
+    title: "Dashboard Refinement",
+    summary: "Refines the signed-in Dashboard with clearer studio metrics, explicit platform health, compact operational priorities, and richer verified workspace activity.",
+    newFeatures: [],
+    improvements: [
+      "Studio Overview replaces vague performance totals with clickable, timeframe-aware portfolio, inquiry, project, newsletter, and Email Studio metrics",
+      "Booking, Email Analytics, Client Sync, and Public Website health use explicit green, yellow, red, or gray verification states",
+      "Today & Upcoming combines near-term studio work and featured-project expirations in a compact schedule",
+      "Recent Activity includes richer portfolio, publishing, newsletter, inquiry, and audited workspace events",
+    ],
+    bugFixes: [
+      "Intended and provider-accepted recipients are no longer represented as confirmed sends or deliveries",
+      "Incomplete provider reporting produces one clear warning instead of an unverified delivery-rate metric",
+      "An empty Action Required queue now renders as a narrow all-clear strip",
+    ],
+    securityInfrastructure: [
+      "Dashboard metrics continue using workspace-owned records and authenticated per-user layout preferences",
+      "Unscoped client synchronization remains explicitly unverified rather than exposing global totals",
+      "No Homepage Curation, public homepage, Referral Studio, or Social Studio functionality changed",
+    ],
+    administratorActions: [
+      "Use the timeframe controls and metric cards to open the corresponding source records.",
+      "Follow the corrective action on any yellow, red, or gray platform-health card.",
+    ],
+    status: "DEPLOYING",
+  },
+  {
     version: "V1.9.0.2",
     slug: "v1-9-0-2",
     releaseDate: "2026-07-29",
