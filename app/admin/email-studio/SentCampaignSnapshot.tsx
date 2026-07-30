@@ -46,7 +46,10 @@ export default function SentCampaignSnapshot({ body }: { body: string }) {
     </div>;
   }
   if (!snapshot.blocks.length) {
-    return <div className="mt-5 rounded-xl border border-amber-300/15 bg-amber-300/[0.04] p-5 text-sm leading-6 text-amber-100/60">The immutable snapshot is present, but its content blocks are unavailable. Technical details remain below for diagnosis.</div>;
+    return <>
+      <div className="mt-5 rounded-xl border border-amber-300/15 bg-amber-300/[0.04] p-5 text-sm leading-6 text-amber-100/60">The immutable snapshot is present, but its content blocks are unavailable. Technical details remain below for diagnosis.</div>
+      <TechnicalDetails payload={snapshot.technicalPayload} />
+    </>;
   }
   return <>
     <div className="mt-5 overflow-hidden rounded-xl border border-white/[0.09] bg-[#f3eee4] text-[#25211d]">
@@ -73,9 +76,13 @@ export default function SentCampaignSnapshot({ body }: { body: string }) {
         </section>;
       })}
     </div>
-    <details className="mt-5 rounded-xl border border-white/[0.08] bg-black/20 p-4">
-      <summary className="cursor-pointer text-xs text-white/45">Technical details</summary>
-      <pre className="mt-4 max-h-72 overflow-auto whitespace-pre-wrap break-all text-[0.68rem] leading-5 text-white/30">{snapshot.technicalPayload}</pre>
-    </details>
+    <TechnicalDetails payload={snapshot.technicalPayload} />
   </>;
+}
+
+function TechnicalDetails({ payload }: { payload: string }) {
+  return <details className="mt-5 rounded-xl border border-white/[0.08] bg-black/20 p-4">
+    <summary className="cursor-pointer text-xs text-white/45">Technical details</summary>
+    <pre className="mt-4 max-h-72 overflow-auto whitespace-pre-wrap break-all text-[0.68rem] leading-5 text-white/30">{payload}</pre>
+  </details>;
 }
