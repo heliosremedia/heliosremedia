@@ -397,7 +397,7 @@ export default function SiteSettingsForm({
       <section
         id={group.title === "Business and contact" ? "business-contact-card" : group.title.startsWith("Location") ? "location-messaging" : "social-website"}
         key={group.title}
-        className="scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-6"
+        className={`scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-6 ${group.title === "Social and website" ? "xl:col-span-2" : ""}`}
       >
         <p className="eyebrow text-[var(--helios-orange)]">Business identity</p>
         <h2 className="mt-2 text-xl font-light text-white">{group.title}</h2>
@@ -620,14 +620,14 @@ export default function SiteSettingsForm({
       </nav>
 
       <section id="brand-identity" className="mt-10 scroll-mt-28 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111] sm:mt-12">
-        <div className="grid gap-8 p-6 lg:grid-cols-[0.8fr_1.2fr] lg:p-8">
-          <div>
+        <div className="p-6 lg:p-8">
+          <div className="max-w-3xl">
             <p className="text-[0.54rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">Brand identity</p>
             <h2 className="mt-3 text-2xl font-light text-white">Website logo and monogram</h2>
             <p className="mt-3 max-w-lg text-sm leading-6 text-white/40">The primary logo powers public brand lockups. The separate square monogram creates a discreet admin-access shortcut today and is ready for future app icons and tenant branding.</p>
           </div>
 
-          <div className="space-y-4">
+          <div className="mt-8 grid gap-5 lg:grid-cols-2">
           <div className="rounded-2xl border border-white/[0.08] bg-black/25 p-5">
             <p className="mb-4 text-[0.55rem] font-semibold uppercase tracking-[0.16em] text-white/45">Primary website logo</p>
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -678,7 +678,7 @@ export default function SiteSettingsForm({
           </div>
         </div>
       </section>
-      {brandIdentityAddon}
+      <div className="mt-10 sm:mt-12">{brandIdentityAddon}</div>
       {globalIdentityCards}
 
       <section id="booking-experience" className="mt-6 scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-6">
