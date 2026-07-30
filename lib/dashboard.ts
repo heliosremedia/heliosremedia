@@ -453,49 +453,46 @@ export async function getDashboardData(workspaceId: string, days = 30) {
           };
         },
       ),
-      Promise.resolve({
-        available: false as const,
-        data: {
-          clients: 0,
-          eligibleClients: 0,
-          groups: 0,
-          lastSync: null as Date | null,
-          activeReferrals: 0,
-          advocates: 0,
-          qualifiedReferrals: 0,
-          issuedRewards: 0,
-        },
-      }),
-      /*
-       * Legacy communication-client and group records do not yet carry a workspace key.
-       * Keep this dashboard section explicitly unavailable instead of leaking global totals.
-       */
-      /* section(
+      section(
         {
           clients: 0,
           eligibleClients: 0,
           groups: 0,
           lastSync: null as Date | null,
+          provider: null as string | null,
+          syncStatus: null as string | null,
+          importedCount: 0,
+          updatedCount: 0,
+          skippedCount: 0,
+          errorCount: 0,
           activeReferrals: 0,
           advocates: 0,
           qualifiedReferrals: 0,
           issuedRewards: 0,
         },
         async () => {
-          const [clients, eligibleClients, groups, lastSync, activeReferrals, advocates, qualifiedReferrals, issuedRewards] =
-            await Promise.all([
-              prisma.communicationClient.count({ where: { archivedAt: null } }),
-              prisma.communicationClient.count({ where: { archivedAt: null, emailSubscribed: true, emailStatus: "VALID" } }),
-              prisma.communicationGroup.count(),
-              prisma.communicationClient.aggregate({ _max: { lastSyncedAt: true } }),
-              prisma.referralCampaign.count({ where: { status: "ACTIVE" } }),
-              prisma.referralAdvocate.count({ where: { campaign: { status: "ACTIVE" }, includedAt: { not: null } } }),
-              prisma.referralSubmission.count({ where: { status: { in: ["QUALIFIED", "BOOKED", "COMPLETED", "REWARD_ELIGIBLE", "REWARD_ISSUED"] } } }),
-              prisma.referralReward.count({ where: { status: "ISSUED" } }),
-            ]);
-          return { clients, eligibleClients, groups, lastSync: lastSync._max.lastSyncedAt, activeReferrals, advocates, qualifiedReferrals, issuedRewards };
+          const run = await prisma.clientSyncRun.findFirst({
+            where: { workspaceId },
+            orderBy: { startedAt: "desc" },
+          });
+          return {
+            clients: 0,
+            eligibleClients: 0,
+            groups: 0,
+            lastSync: run?.completedAt || null,
+            provider: run?.providerLabel || null,
+            syncStatus: run?.status || null,
+            importedCount: run?.importedCount || 0,
+            updatedCount: run?.updatedCount || 0,
+            skippedCount: run?.skippedCount || 0,
+            errorCount: run?.errorCount || 0,
+            activeReferrals: 0,
+            advocates: 0,
+            qualifiedReferrals: 0,
+            issuedRewards: 0,
+          };
         },
-      ), */
+      ),
       section(
         {
           totalProjects: 0,
