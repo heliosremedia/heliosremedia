@@ -56,13 +56,13 @@ test("Site Settings has unified identity and complete destinations", () => {
   assert.match(form, /revealInvalidParent/);
 });
 
-test("V1.9.3 begins in deploying state with matching navigation", () => {
+test("V1.9.3 is live with matching navigation", () => {
   assert.match(read("lib/version.ts"), /STUDIO_VERSION = "V1\.9\.3"/);
   const releases = read("lib/releases.ts");
   assert.ok(releases.indexOf('version: "V1.9.3"') < releases.indexOf('version: "V1.9.2"'));
   assert.match(releases, /title: "Bulk Email and Site Settings Refinement"/);
-  assert.match(releases, /releaseDate: null/);
-  assert.match(releases, /status: "DEPLOYING"/);
+  assert.match(releases, /releaseDate: "2026-07-30"/);
+  assert.match(releases, /status: "LIVE"/);
 });
 
 test("bounce migration is additive and indexed", () => {

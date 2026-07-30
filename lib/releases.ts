@@ -21,7 +21,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
     version: "V1.9.3",
     slug: "v1-9-3",
-    releaseDate: null,
+    releaseDate: "2026-07-30",
     title: "Bulk Email and Site Settings Refinement",
     summary: "Adds tenant-safe permanent-bounce recovery and refines Bulk Email Studio and Site Settings organization.",
     newFeatures: [
@@ -44,7 +44,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
       "Confirm the authenticated Resend webhook endpoint remains registered with the production signing secret.",
       "Review Bounced Back after future permanent failures and remove a membership only after the address is deliberately cleared.",
     ],
-    status: "DEPLOYING",
+    status: "LIVE",
   },
   {
     version: "V1.9.2",
