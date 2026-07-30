@@ -351,6 +351,8 @@ export async function POST(request: Request, context: { params: Promise<{ campai
         await sendTestCampaign({
           to: recipient,
           subject: campaign.invitationSubject,
+          source: "referral",
+          operationId: campaignId,
           html: renderReferralInvitationEmail({
             body: campaign.invitationBody.replaceAll("{{first_name}}", "Jake").replaceAll("{{campaign_title}}", campaign.publicTitle).replaceAll("{{referral_link}}", referralUrl).replaceAll("{{referral_code}}", "HEL-TESTONLY"),
             previewText: campaign.invitationPreviewText,
@@ -440,11 +442,7 @@ export async function POST(request: Request, context: { params: Promise<{ campai
       return NextResponse.json({ success: false, error: error.message }, { status: 409 });
     }
     if (error instanceof EmailDeliveryError) {
-      const messages = {
-        EMAIL_PROVIDER_NOT_CONFIGURED: "Email delivery is not configured. Add the required Resend sender configuration.",
-        EMAIL_PROVIDER_REJECTED: "The email provider rejected the test request. Verify the authorized sender and recipient.",
-      };
-      return NextResponse.json({ success: false, error: messages[error.code] }, { status: error.code === "EMAIL_PROVIDER_NOT_CONFIGURED" ? 503 : 502 });
+      return NextResponse.json({ success: false, code: error.code, error: error.message }, { status: error.code === "EMAIL_PROVIDER_NOT_CONFIGURED" ? 503 : 502 });
     }
     return NextResponse.json({ success: false, error: error instanceof Error ? error.message : "The action could not be completed." }, { status: 400 });
   }
