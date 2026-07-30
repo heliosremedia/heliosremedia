@@ -86,6 +86,8 @@ export async function processReferralCommunications(now = new Date(), limit = 50
     try {
       const response = await sendCampaignBatch({
         campaignId: communication.idempotencyKey || communication.id,
+        source: "referral",
+        revisionKey: communication.idempotencyKey || communication.id,
         from: communication.campaign.senderEmail
           ? `${communication.campaign.senderName || "Helios Real Estate Media"} <${communication.campaign.senderEmail}>`
           : undefined,
@@ -124,7 +126,7 @@ export async function processReferralCommunications(now = new Date(), limit = 50
       result.sent += 1;
     } catch (error) {
       const failureCode = error instanceof EmailDeliveryError
-        ? error.message.split(":")[0]
+        ? error.code
         : "EMAIL_PROVIDER_FAILURE";
       await prisma.$transaction([
         prisma.referralCommunication.update({
