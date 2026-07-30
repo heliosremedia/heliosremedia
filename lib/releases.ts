@@ -19,6 +19,34 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
+    version: "V1.9.3",
+    slug: "v1-9-3",
+    releaseDate: null,
+    title: "Bulk Email and Site Settings Refinement",
+    summary: "Adds tenant-safe permanent-bounce recovery and refines Bulk Email Studio and Site Settings organization.",
+    newFeatures: [
+      "Permanent Resend bounces are recorded idempotently and placed in a workspace-owned Bounced Back group",
+      "Administrators can deliberately restore campaign eligibility by removing a client from their workspace Bounced Back group",
+    ],
+    improvements: [
+      "Bulk Email Studio has a dominant composer, compact preview rail, collapsed AI assistant, insertion feedback, and explicit campaign View actions",
+      "Site Settings unifies Brand Identity and adds complete navigation with a separate Brand Assets destination",
+    ],
+    bugFixes: [
+      "Permanently bounced clients are excluded from audience counts, recipient snapshots, and delivery-time eligibility checks",
+      "Bounce ownership is resolved only from the provider message through its campaign creator and workspace",
+    ],
+    securityInfrastructure: [
+      "The additive Resend webhook event migration stores idempotent processing state without changing existing records",
+      "Workspace-specific system keys prevent cross-tenant bounce group exposure or assignment",
+    ],
+    administratorActions: [
+      "Confirm the authenticated Resend webhook endpoint remains registered with the production signing secret.",
+      "Review Bounced Back after future permanent failures and remove a membership only after the address is deliberately cleared.",
+    ],
+    status: "DEPLOYING",
+  },
+  {
     version: "V1.9.2",
     slug: "v1-9-2",
     releaseDate: "2026-07-29",

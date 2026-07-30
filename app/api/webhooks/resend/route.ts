@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { setMarketingPreference } from "@/lib/client-communications/preferences";
+import { processPermanentBounce } from "@/lib/client-communications/bounces";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
     const event = JSON.parse(rawBody) as {
       type?: string;
       created_at?: string;
-      data?: { email_id?: string; to?: unknown; click?: { link?: string } };
+      data?: { email_id?: string; to?: unknown; click?: { link?: string }; bounce?: { type?: string; subtype?: string; message?: string } };
     };
     const communicationStatus = {
       "email.delivered": "DELIVERED",
@@ -55,6 +56,9 @@ export async function POST(request: Request) {
     const mappedCommunicationStatus = communicationStatus[event.type as keyof typeof communicationStatus];
     if (!mappedCommunicationStatus) {
       return NextResponse.json({ success: true, ignored: true });
+    }
+    if (event.type === "email.bounced") {
+      await processPermanentBounce(request.headers.get("svix-id")!, event);
     }
     if (event.data?.email_id) {
       const recipient = await prisma.campaignRecipient.findFirst({ where: { providerMessageId: event.data.email_id }, select: { id: true } });
@@ -99,12 +103,12 @@ export async function POST(request: Request) {
         ]);
       }
     }
-    if (!["email.bounced", "email.complained"].includes(event.type ?? "")) {
+    if (event.type !== "email.complained") {
       return NextResponse.json({ success: true });
     }
     const emails = normalizedEmails(event.data?.to);
-    const reason = event.type === "email.complained" ? "COMPLAINT" : "BOUNCE";
-    const status = event.type === "email.complained" ? "COMPLAINED" : "BOUNCED";
+    const reason = "COMPLAINT";
+    const status = "COMPLAINED";
     for (const email of emails) {
       const clients = await prisma.communicationClient.findMany({
         where: { normalizedEmail: email },
@@ -133,7 +137,7 @@ export async function POST(request: Request) {
       ]);
       await setMarketingPreference({
         email,
-        status: event.type === "email.complained" ? "UNSUBSCRIBED" : "SUPPRESSED",
+        status: "UNSUBSCRIBED",
         source: "RESEND_WEBHOOK",
         reason,
         messageId: event.data?.email_id,

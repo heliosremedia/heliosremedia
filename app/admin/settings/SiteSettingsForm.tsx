@@ -72,6 +72,13 @@ export default function SiteSettingsForm({
   const [message, setMessage] = useState<string | null>(null);
   const [voiceExpanded, setVoiceExpanded] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<"video" | "poster" | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    "brand-identity": true,
+    "brand-assets": true,
+    "booking-experience": true,
+    "content-discovery": true,
+    "legal-privacy": true,
+  });
   const voiceCloseRef = useRef<HTMLButtonElement>(null);
   const previewTriggerRef = useRef<HTMLButtonElement | null>(null);
   const dirty = JSON.stringify(settings) !== JSON.stringify(savedSettings);
@@ -107,6 +114,17 @@ export default function SiteSettingsForm({
       (current) =>
         ({ ...current, [key]: value || null }) as PublicSiteSettings,
     );
+  }
+
+  function revealAndScroll(sectionId: string) {
+    setExpandedSections((current) => ({ ...current, [sectionId]: true }));
+    window.requestAnimationFrame(() =>
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
+
+  function revealInvalidParent(event: React.InvalidEvent<HTMLDivElement>) {
+    const section = (event.target as HTMLElement).closest<HTMLElement>("[data-settings-section]");
+    if (section?.id) setExpandedSections((current) => ({ ...current, [section.id]: true }));
   }
 
   async function persist(
@@ -418,7 +436,7 @@ export default function SiteSettingsForm({
   </div>;
 
   return (
-    <div>
+    <div onInvalid={revealInvalidParent}>
       {mode === "homepage" ? (
         <>
       <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111] p-6 lg:p-8">
@@ -613,21 +631,20 @@ export default function SiteSettingsForm({
       {mode === "global" ? (
         <>
       <nav aria-label="Site Settings sections" className="sticky top-3 z-30 mt-6 flex flex-wrap gap-2 rounded-2xl border border-white/10 bg-[#151515]/95 p-3 shadow-xl backdrop-blur">
-        <a href="#brand-identity" className="admin-btn-secondary">Business Identity</a>
-        <a href="#booking-experience" className="admin-btn-secondary">Booking Experience</a>
-        <a href="#content-discovery" className="admin-btn-secondary">Content &amp; Discovery</a>
-        <a href="#legal-privacy" className="admin-btn-secondary">Legal &amp; Privacy</a>
+        {([["brand-identity","Brand Identity"],["brand-assets","Brand Assets"],["booking-experience","Booking Experience"],["content-discovery","Content & Discovery"],["legal-privacy","Legal & Privacy"]] as const).map(([id,label]) =>
+          <button key={id} type="button" onClick={() => revealAndScroll(id)} className="admin-btn-secondary">{label}</button>)}
       </nav>
 
-      <section id="brand-identity" className="mt-10 scroll-mt-28 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111] sm:mt-12">
+      <div id="brand-identity" data-settings-section className="scroll-mt-28">
+      <section className="mt-10 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111] sm:mt-12">
         <div className="p-6 lg:p-8">
           <div className="max-w-3xl">
-            <p className="text-[0.54rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">Brand identity</p>
-            <h2 className="mt-3 text-2xl font-light text-white">Website logo and monogram</h2>
+            <div className="flex items-start justify-between gap-4"><div><p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">Brand Identity</p>
+            <h2 className="mt-3 text-2xl font-light text-white">Logo, business, contact, location, messaging, social and website</h2></div><button type="button" aria-expanded={expandedSections["brand-identity"]} aria-controls="brand-identity-content" onClick={() => setExpandedSections(current => ({...current, "brand-identity": !current["brand-identity"]}))} className="admin-btn-secondary">{expandedSections["brand-identity"] ? "Collapse" : "Expand"}</button></div>
             <p className="mt-3 max-w-lg text-sm leading-6 text-white/40">The primary logo powers public brand lockups. The separate square monogram creates a discreet admin-access shortcut today and is ready for future app icons and tenant branding.</p>
           </div>
 
-          <div className="mt-8 grid gap-5 lg:grid-cols-2">
+          <div id="brand-identity-content" hidden={!expandedSections["brand-identity"]} className="mt-8 grid gap-5 lg:grid-cols-2">
           <div className="rounded-2xl border border-white/[0.08] bg-black/25 p-5">
             <p className="mb-4 text-[0.55rem] font-semibold uppercase tracking-[0.16em] text-white/45">Primary website logo</p>
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -678,10 +695,14 @@ export default function SiteSettingsForm({
           </div>
         </div>
       </section>
-      <div className="mt-10 sm:mt-12">{brandIdentityAddon}</div>
-      {globalIdentityCards}
+      {expandedSections["brand-identity"] ? globalIdentityCards : null}
+      </div>
+      <section id="brand-assets" data-settings-section className="mt-6 scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-6">
+        <div className="flex items-start justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Brand Assets</p><h2 className="mt-2 text-2xl font-light text-white">Favicon, social share and managed assets</h2></div><button type="button" aria-expanded={expandedSections["brand-assets"]} aria-controls="brand-assets-content" onClick={() => setExpandedSections(current => ({...current, "brand-assets": !current["brand-assets"]}))} className="admin-btn-secondary">{expandedSections["brand-assets"] ? "Collapse" : "Expand"}</button></div>
+        <div id="brand-assets-content" hidden={!expandedSections["brand-assets"]} className="mt-6">{brandIdentityAddon}</div>
+      </section>
 
-      <section id="booking-experience" className="mt-6 scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-6">
+      <section id="booking-experience" data-settings-section className="mt-6 scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-6">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div><p className="eyebrow text-[var(--helios-orange)]">Booking Experience</p><h2 className="mt-2 text-2xl font-light text-white">Secure booking handoff</h2><p className="mt-2 max-w-2xl text-sm text-white/38">Business identity and contact details inherit from Business &amp; Contact unless an explicit override is entered. Provider name identifies the external service shown during the handoff.</p></div>
           <label className="flex min-h-11 items-center gap-3 rounded-xl border border-white/10 bg-black/20 px-4 text-sm text-white/55"><input type="checkbox" checked={settings.bookingHandoffEnabled} onChange={e=>setSettings(current=>({...current,bookingHandoffEnabled:e.target.checked}))}/>Enable handoff page</label>
@@ -705,7 +726,7 @@ export default function SiteSettingsForm({
         <div className="mt-6 rounded-xl border border-white/10 bg-black/25 p-5"><p className="text-[.52rem] uppercase tracking-[.14em] text-white/30">Unavailable-state preview</p><p className="mt-3 text-xl font-light text-white">{settings.bookingHeadline}</p><p className="mt-2 text-sm leading-6 text-white/40">{settings.bookingExplanation}</p></div>
       </section>
 
-      <div id="content-discovery" className="scroll-mt-28" />
+      <div id="content-discovery" data-settings-section className="scroll-mt-28" />
       <section className="mt-6 rounded-2xl border border-white/[0.08] bg-[#111] p-6"><div className="flex items-start justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Content &amp; Discovery</p><h2 className="mt-2 text-xl font-light text-white">Blog Studio Voice</h2><p className="mt-2 text-sm text-white/35">Long-form guidance used by the existing Blog Studio AI workflow.</p></div><button type="button" onClick={() => setVoiceExpanded(true)} className="admin-btn-secondary">Expand Editor</button></div><div className="mt-6 grid gap-5 lg:grid-cols-3">{([["brandVoice","Brand voice"],["brandAudience","Primary audience"],["brandWritingGuidance","Writing guardrails"]] as const).map(([key,label]) => <label key={key} className="text-xs uppercase tracking-[.14em] text-white/35">{label}<textarea rows={7} value={settings[key] ?? ""} onChange={(e) => update(key,e.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 p-4 text-sm font-normal normal-case leading-6 tracking-normal text-white" /></label>)}</div><label className="mt-5 block text-xs uppercase tracking-[.14em] text-white/35">Default article author<input value={settings.defaultBlogAuthor ?? ""} onChange={(e) => update("defaultBlogAuthor",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm font-normal normal-case tracking-normal text-white" /></label></section>
       {voiceExpanded && <div role="dialog" aria-modal="true" aria-labelledby="voice-editor-title" aria-describedby="voice-editor-description" className="fixed inset-0 z-[100] overflow-y-auto bg-black/85 p-4 backdrop-blur"><div className="mx-auto my-4 min-h-[calc(100vh-2rem)] max-w-6xl rounded-2xl border border-white/10 bg-[#111] p-6 sm:p-8"><div className="flex justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Blog Studio</p><h2 id="voice-editor-title" className="mt-2 text-3xl font-light text-white">Voice Editor</h2><p id="voice-editor-description" className="mt-2 text-sm text-white/35">Changes remain available in the standard editor until you save settings.</p></div><button ref={voiceCloseRef} onClick={() => setVoiceExpanded(false)} className="admin-btn-secondary">Close</button></div><div className="mt-8 grid gap-6">{([["brandVoice","Brand voice"],["brandAudience","Primary audience"],["brandWritingGuidance","Writing guardrails"]] as const).map(([key,label]) => <label key={key} className="text-xs uppercase tracking-[.14em] text-white/35">{label}<textarea rows={8} value={settings[key] ?? ""} onChange={(e) => update(key,e.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 p-5 text-base font-normal normal-case leading-7 tracking-normal text-white" /></label>)}</div><div className="mt-8 flex justify-end gap-3"><button onClick={() => setVoiceExpanded(false)} className="admin-btn-secondary">Keep editing later</button><button disabled={saving} onClick={async () => { await persist(settings, "Blog Studio Voice saved."); setVoiceExpanded(false); }} className="admin-btn-primary">{saving ? "Saving…" : "Save Settings"}</button></div></div></div>}
 

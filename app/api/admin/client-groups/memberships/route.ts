@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { recordAuditEvent } from "@/lib/audit";
 import { getAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
+import { bouncedBackSystemKey, isBouncedBackSystemKey } from "@/lib/client-communications/bounce-core";
 
 export async function PATCH(request: Request) {
   const session = await getAdminSession();
@@ -28,7 +29,7 @@ export async function PATCH(request: Request) {
   }
 
   const [group, validClients] = await Promise.all([
-    prisma.communicationGroup.findUnique({ where: { id: groupId }, select: { id: true, name: true, systemManaged: true } }),
+    prisma.communicationGroup.findUnique({ where: { id: groupId }, select: { id: true, name: true, systemManaged: true, systemKey: true } }),
     prisma.communicationClient.findMany({
       where: { id: { in: clientIds } },
       select: { id: true },
@@ -37,7 +38,11 @@ export async function PATCH(request: Request) {
   if (!group) {
     return NextResponse.json({ success: false, error: "Group not found." }, { status: 404 });
   }
-  if (group.systemManaged) {
+  const removableWorkspaceBounceGroup =
+    operation === "remove" &&
+    isBouncedBackSystemKey(group.systemKey) &&
+    group.systemKey === bouncedBackSystemKey(session.workspaceId);
+  if (group.systemManaged && !removableWorkspaceBounceGroup) {
     return NextResponse.json({ success: false, error: "System-managed group membership is reconciled from email preferences." }, { status: 409 });
   }
   const validIds = validClients.map((client) => client.id);

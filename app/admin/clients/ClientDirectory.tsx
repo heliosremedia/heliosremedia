@@ -19,6 +19,8 @@ type Group = {
   id: string;
   name: string;
   clientCount: number;
+  systemManaged: boolean;
+  systemKey: string | null;
 };
 
 type SyncSummary = {
@@ -335,7 +337,7 @@ export default function ClientDirectory({
                   <span className="truncate">{group.name}</span>
                   <span className="ml-2 text-xs text-white/25">{group.clientCount}</span>
                 </button>
-                {canManage ? (
+                {canManage && !group.systemManaged ? (
                   <button
                     type="button"
                     onClick={() => {
@@ -416,13 +418,13 @@ export default function ClientDirectory({
                 className="min-w-48 rounded-xl border border-white/10 bg-[#111] px-3 py-2.5 text-sm text-white sm:ml-auto"
               >
                 <option value="">Choose a group</option>
-                {initialGroups.map((group) => (
+                {initialGroups.filter((group) => !group.systemManaged || group.systemKey?.startsWith("BOUNCED_BACK:")).map((group) => (
                   <option key={group.id} value={group.id}>{group.name}</option>
                 ))}
               </select>
               <button
                 type="button"
-                disabled={busy || !selectedGroupId}
+                disabled={busy || !selectedGroupId || initialGroups.find(group => group.id === selectedGroupId)?.systemManaged}
                 onClick={() => updateMembership("add")}
                 className="admin-btn-primary"
               >

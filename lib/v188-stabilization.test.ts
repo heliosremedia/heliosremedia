@@ -51,7 +51,7 @@ test("experience refinements preserve explicit user context", () => {
   assert.match(portals, /\(creationOpen \|\| editing\)/);
   assert.doesNotMatch(portals, /fixed inset-0 z-\[100\]/);
   assert.doesNotMatch(portals, /window\.scrollTo/);
-  assert.match(email, /View Email/);
+  assert.match(email, /View campaign:/);
   assert.match(email, /Immutable sent snapshot/);
   assert.match(email, /Historical content is not regenerated/);
 });

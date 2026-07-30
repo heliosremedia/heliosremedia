@@ -7,6 +7,7 @@ import { EmailDeliveryError } from "@/lib/client-communications/email";
 import { findUnsupportedVariables, renderPersonalizedEmail } from "@/lib/client-communications/personalization";
 import { DEFAULT_CAMPAIGN_TIME_ZONE, zonedLocalToUtc } from "@/lib/client-communications/scheduling";
 import { prisma } from "@/lib/prisma";
+import { bouncedBackSystemKey } from "@/lib/client-communications/bounce-core";
 
 type Payload = {
   action?: "test" | "send" | "schedule";
@@ -53,8 +54,8 @@ export async function POST(request: Request) {
         firstName: selected.firstName, lastName: selected.lastName, fullName: selected.displayName,
         email: selected.email, phone: selected.phone,
       } : {
-        firstName: "Jake", lastName: "Guerin", fullName: "Jake Guerin",
-        email: "jake@heliosrealestatemedia.com", phone: "970.682.5533",
+        firstName: "Preview", lastName: "Recipient", fullName: "Preview Recipient",
+        email: "preview@example.com", phone: "(555) 010-0193",
       };
       const personalized = renderPersonalizedEmail({ subject, previewText, body, recipient: profile });
       await sendTestCampaign({
@@ -80,7 +81,10 @@ export async function POST(request: Request) {
     const clients = await prisma.communicationClient.findMany({
       where: {
         emailSubscribed: true, emailStatus: "VALID", archivedAt: null, normalizedEmail: { not: "" },
-        ...(mode === "GROUPS" ? { groupMemberships: { some: { groupId: { in: groupIds } } } } : {}),
+        groupMemberships: {
+          none: { group: { systemKey: bouncedBackSystemKey(session.workspaceId) } },
+          ...(mode === "GROUPS" ? { some: { groupId: { in: groupIds } } } : {}),
+        },
         ...(mode === "INDIVIDUALS" ? { id: { in: clientIds } } : {}),
       },
       orderBy: { displayName: "asc" },
