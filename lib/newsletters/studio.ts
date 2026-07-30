@@ -1,10 +1,10 @@
 import "server-only";
 
-import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { generationDateForSend, nextOccurrence } from "./recurrence";
 import { resolveEligibleNewsletterRecipients } from "./recipients";
 import type { GenerationRule, RecipientSelection, RecurrenceRule } from "./types";
+export { contentHash } from "./content-hash";
 
 const TIME_ZONE = "America/Denver";
 
@@ -254,8 +254,4 @@ export async function estimateSeriesRecipients(seriesId: string) {
   });
   if (!series) throw new Error("Newsletter series was not found.");
   return resolveEligibleNewsletterRecipients(recipientSelectionFromSeries(series));
-}
-
-export function contentHash(value: unknown) {
-  return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }

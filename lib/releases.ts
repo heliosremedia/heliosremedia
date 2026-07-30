@@ -19,6 +19,31 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
+    version: "V1.9.0.2",
+    slug: "v1-9-0-2",
+    releaseDate: null,
+    title: "Newsletter Integrity Compatibility Hotfix",
+    summary: "Corrects false approved-content integrity failures caused by PostgreSQL jsonb object-key reordering while preserving strict detection of genuine content changes.",
+    newFeatures: [],
+    improvements: [
+      "Order-stable newsletter content hashes for all newly created revisions",
+      "Narrow compatibility verification for known legacy newsletter snapshot formats",
+    ],
+    bugFixes: [
+      "Scheduled legacy editions no longer fail integrity validation solely because jsonb reordered unchanged object keys",
+      "Empty legacy preview text remains compatible whether it was stored as an empty string or null",
+    ],
+    securityInfrastructure: [
+      "Timing-safe hash comparison remains required for every approved revision",
+      "Changed subject, preview, block content, links, images, or recipient-independent snapshot data still fails validation",
+      "Legacy compatibility logs only edition, revision, and serializer format identifiers",
+    ],
+    administratorActions: [
+      "Retry the existing scheduled newsletter; reapproval is not required when its content is unchanged.",
+    ],
+    status: "DEPLOYING",
+  },
+  {
     version: "V1.9.0.1",
     slug: "v1-9-0-1",
     releaseDate: "2026-07-29",
