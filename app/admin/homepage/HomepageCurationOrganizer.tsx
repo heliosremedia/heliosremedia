@@ -120,7 +120,7 @@ export default function HomepageCurationOrganizer({
 
   useEffect(() => {
     const id = window.location.hash.slice(1) as HomepageCurationSectionId;
-    if (sectionById.has(id)) openAndFocus(id);
+    if (sectionById.has(id)) window.setTimeout(() => openAndFocus(id), 0);
     // The initial hash is handled once; later navigator actions call openAndFocus.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -131,8 +131,8 @@ export default function HomepageCurationOrganizer({
         aria-label="Homepage Curation sections"
         className="sticky top-3 z-30 overflow-x-auto rounded-2xl border border-white/10 bg-[#151515]/95 p-3 shadow-xl backdrop-blur"
       >
-        <div className="flex min-w-max gap-2">
-          {preferences.order.map((id) => {
+        <div className="flex min-w-max items-center gap-2">
+          <div className="flex gap-2">{preferences.order.map((id) => {
             const section = sectionById.get(id);
             return section ? (
               <button
@@ -144,7 +144,10 @@ export default function HomepageCurationOrganizer({
                 {section.title}
               </button>
             ) : null;
-          })}
+          })}</div>
+          <span aria-hidden="true" className="mx-1 h-7 w-px bg-white/10" />
+          <button type="button" disabled={saving || preferences.collapsed.length === 0} onClick={() => void persist({ ...preferences, collapsed: [] }, "All homepage sections expanded.")} className="admin-btn-secondary whitespace-nowrap">Expand All</button>
+          <button type="button" disabled={saving || preferences.collapsed.length === preferences.order.length} onClick={() => void persist({ ...preferences, collapsed: [...preferences.order] }, "All homepage sections collapsed.")} className="admin-btn-secondary whitespace-nowrap">Collapse All</button>
         </div>
       </nav>
 
