@@ -46,6 +46,7 @@ export async function getDashboardData(workspaceId: string, days = 30) {
             socialAttention,
             socialSchedule,
             socialAnalyticsHealth,
+            featuredExpirations,
             settings,
           ] = await Promise.all([
             prisma.newsletterEdition.findMany({
@@ -143,6 +144,15 @@ export async function getDashboardData(workspaceId: string, days = 30) {
               take: 8,
               orderBy: { updatedAt: "asc" },
             }),
+            prisma.project.findMany({
+              where: {
+                workspaceId,
+                featured: true,
+                featuredExpiresAt: { gte: now, lte: upcomingEnd },
+              },
+              select: { id: true, title: true, featuredExpiresAt: true },
+              orderBy: { featuredExpiresAt: "asc" },
+            }),
             prisma.siteSettings.findFirst({
               where: { workspaceId },
               select: { bookingMode: true, bookingEstimatedRestoreAt: true },
@@ -215,6 +225,19 @@ export async function getDashboardData(workspaceId: string, days = 30) {
               href: "/admin/social-studio/analytics",
               action: "Review data health",
             })),
+            ...featuredExpirations
+              .filter((item) =>
+                item.featuredExpiresAt &&
+                item.featuredExpiresAt <= new Date(now.getTime() + 3 * 86_400_000))
+              .map((item) => ({
+                id: `featured:${item.id}`,
+                severity: "info" as const,
+                type: "Portfolio",
+                message: `${item.title} leaves featured placement soon`,
+                date: item.featuredExpiresAt!,
+                href: `/admin/projects/${item.id}#project-publishing`,
+                action: "Review featured duration",
+              })),
             ...(settings?.bookingMode && settings.bookingMode !== "ONLINE"
               ? [{
                   id: "booking:mode",
@@ -315,6 +338,14 @@ export async function getDashboardData(workspaceId: string, days = 30) {
               href: `/admin/social-studio/campaigns/${item.campaignId}?variant=${item.id}`,
               state: item.status.replaceAll("_", " "),
             }] : []),
+            ...featuredExpirations.flatMap((item) => item.featuredExpiresAt ? [{
+              id: `featured:${item.id}`,
+              type: "Portfolio",
+              title: `${item.title} featured placement expires`,
+              date: item.featuredExpiresAt,
+              href: `/admin/projects/${item.id}#project-publishing`,
+              state: "Expires",
+            }] : []),
             ...(settings?.bookingEstimatedRestoreAt &&
             settings.bookingEstimatedRestoreAt >= now &&
             settings.bookingEstimatedRestoreAt <= upcomingEnd
@@ -335,12 +366,11 @@ export async function getDashboardData(workspaceId: string, days = 30) {
         {
           campaigns: 0,
           metrics: communicationMetrics([]),
-          priorDeliveryRate: null as number | null,
+          lastProviderEventAt: null as Date | null,
           newsletterCampaigns: 0,
-          bestCampaign: null as null | { id: string; subject: string; clicks: number; newsletterEditionId: string | null },
         },
         async () => {
-          const [campaigns, priorCampaigns] = await Promise.all([
+          const [campaigns, lastProviderEvent] = await Promise.all([
             prisma.emailCampaign.findMany({
               where: { createdBy: { workspaceId }, sentAt: { gte: rangeStart, lte: rangeEnd } },
               select: {
@@ -357,36 +387,18 @@ export async function getDashboardData(workspaceId: string, days = 30) {
                 },
               },
             }),
-            prisma.emailCampaign.findMany({
-              where: { createdBy: { workspaceId }, sentAt: { gte: prior.start, lt: prior.end } },
-              select: {
-                recipients: {
-                  select: {
-                    id: true,
-                    status: true,
-                    providerMessageId: true,
-                    events: { select: { eventType: true, linkUrl: true } },
-                  },
-                },
-              },
+            prisma.campaignDeliveryEvent.findFirst({
+              where: { campaignRecipient: { campaign: { createdBy: { workspaceId } } } },
+              orderBy: { occurredAt: "desc" },
+              select: { occurredAt: true },
             }),
           ]);
           const metrics = communicationMetrics(campaigns.flatMap((item) => item.recipients));
-          const priorMetrics = communicationMetrics(priorCampaigns.flatMap((item) => item.recipients));
-          const ranked = campaigns
-            .map((campaign) => ({
-              id: campaign.id,
-              subject: campaign.subject,
-              clicks: communicationMetrics(campaign.recipients).uniqueClicks,
-              newsletterEditionId: campaign.newsletterDelivery?.editionId || null,
-            }))
-            .sort((a, b) => b.clicks - a.clicks);
           return {
             campaigns: campaigns.length,
             metrics,
-            priorDeliveryRate: priorCampaigns.length ? priorMetrics.deliveryRate : null,
+            lastProviderEventAt: lastProviderEvent?.occurredAt || null,
             newsletterCampaigns: campaigns.filter((item) => item.newsletterDelivery).length,
-            bestCampaign: ranked[0] || null,
           };
         },
       ),
@@ -492,17 +504,25 @@ export async function getDashboardData(workspaceId: string, days = 30) {
           assets: 0,
           newInquiries: 0,
           unansweredInquiries: 0,
+          portfolioViews: 0,
+          priorPortfolioViews: 0,
           recentProjects: [] as Array<{ id: string; title: string; city: string | null; state: string | null; status: string; updatedAt: Date }>,
         },
         async () => {
-          const [totalProjects, publishedProjects, draftProjects, assets, newInquiries, unansweredInquiries, recentProjects] =
+          const [totalProjects, publishedProjects, draftProjects, assets, newInquiries, unansweredInquiries, portfolioViews, priorPortfolioViews, recentProjects] =
             await Promise.all([
               prisma.project.count({ where: { workspaceId } }),
-              prisma.project.count({ where: { workspaceId, status: "PUBLISHED" } }),
+              prisma.project.count({ where: { workspaceId, status: "PUBLISHED", publishedAt: { gte: rangeStart, lte: rangeEnd } } }),
               prisma.project.count({ where: { workspaceId, status: "DRAFT" } }),
               prisma.media.count({ where: { project: { workspaceId } } }),
               prisma.inquiry.count({ where: { status: "NEW", assignedTo: { workspaceId }, createdAt: { gte: rangeStart } } }),
               prisma.inquiry.count({ where: { status: "NEW", assignedTo: { workspaceId } } }),
+              prisma.portfolioAnalyticsEvent.count({
+                where: { workspaceId, eventName: { in: ["PORTFOLIO_VIEW", "PROJECT_VIEW"] }, occurredAt: { gte: rangeStart, lte: rangeEnd } },
+              }),
+              prisma.portfolioAnalyticsEvent.count({
+                where: { workspaceId, eventName: { in: ["PORTFOLIO_VIEW", "PROJECT_VIEW"] }, occurredAt: { gte: prior.start, lt: prior.end } },
+              }),
               prisma.project.findMany({
                 where: { workspaceId },
                 take: 5,
@@ -510,13 +530,13 @@ export async function getDashboardData(workspaceId: string, days = 30) {
                 select: { id: true, title: true, city: true, state: true, status: true, updatedAt: true },
               }),
             ]);
-          return { totalProjects, publishedProjects, draftProjects, assets, newInquiries, unansweredInquiries, recentProjects };
+          return { totalProjects, publishedProjects, draftProjects, assets, newInquiries, unansweredInquiries, portfolioViews, priorPortfolioViews, recentProjects };
         },
       ),
       section(
         [] as Array<{ id: string; action: string; summary: string; createdAt: Date; href: string }>,
         async () => {
-          const [audit, inquiries, referrals] = await Promise.all([
+          const [audit, inquiries, referrals, projects, newsletters] = await Promise.all([
             prisma.auditEvent.findMany({
               where: { actor: { workspaceId } },
               take: 10,
@@ -534,6 +554,21 @@ export async function getDashboardData(workspaceId: string, days = 30) {
               take: 6,
               orderBy: { createdAt: "desc" },
               select: { id: true, action: true, summary: true, campaignId: true, submissionId: true, createdAt: true },
+            }),
+            prisma.project.findMany({
+              where: { workspaceId },
+              take: 6,
+              orderBy: { updatedAt: "desc" },
+              select: {
+                id: true, title: true, status: true, updatedAt: true,
+                featured: true, featuredExpiresAt: true,
+              },
+            }),
+            prisma.newsletterEdition.findMany({
+              where: { series: { createdBy: { workspaceId } } },
+              take: 6,
+              orderBy: { updatedAt: "desc" },
+              select: { id: true, subject: true, status: true, updatedAt: true },
             }),
           ]);
           return [
@@ -561,6 +596,22 @@ export async function getDashboardData(workspaceId: string, days = 30) {
                 : item.campaignId
                   ? `/admin/referral-studio/campaigns/${item.campaignId}`
                   : "/admin/referral-studio",
+            })),
+            ...projects.map((item) => ({
+              id: `project:${item.id}`,
+              action: item.featured && item.featuredExpiresAt
+                ? `FEATURED UNTIL ${item.featuredExpiresAt.toISOString()}`
+                : item.status,
+              summary: `${item.title} · portfolio project updated`,
+              createdAt: item.updatedAt,
+              href: `/admin/projects/${item.id}`,
+            })),
+            ...newsletters.map((item) => ({
+              id: `newsletter:${item.id}`,
+              action: item.status,
+              summary: `${item.subject || "Untitled newsletter"} · newsletter updated`,
+              createdAt: item.updatedAt,
+              href: `/admin/newsletter-studio/editions/${item.id}`,
             })),
           ]
             .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
