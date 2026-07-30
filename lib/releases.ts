@@ -21,7 +21,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
     version: "V1.9.2",
     slug: "v1-9-2",
-    releaseDate: null,
+    releaseDate: "2026-07-29",
     title: "Admin Usability and Data Clarity",
     summary: "Improves authenticated Studio organization, long-form editing, operational verification, and historical communication clarity while preserving public-site output.",
     newFeatures: [
@@ -50,7 +50,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
       "Run Client Sync once to establish the first workspace-owned provider-health record.",
       "Review a historical sent newsletter and confirm its immutable block snapshot matches the delivered edition.",
     ],
-    status: "DEPLOYING",
+    status: "LIVE",
   },
   {
     version: "V1.9.1",
