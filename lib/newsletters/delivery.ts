@@ -8,7 +8,7 @@ import { resolveEligibleNewsletterRecipients } from "@/lib/newsletters/recipient
 import type { RecipientSelection } from "@/lib/newsletters/types";
 import { createPreferenceToken } from "@/lib/client-communications/preferences";
 import { getSiteUrl } from "@/lib/site";
-import { contentHash as newsletterContentHash } from "@/lib/newsletters/studio";
+import { verifyNewsletterRevisionIntegrity } from "@/lib/newsletters/integrity";
 
 function parseSelection(value: unknown): RecipientSelection {
   const candidate = value && typeof value === "object" && !Array.isArray(value)
@@ -69,21 +69,21 @@ export async function deliverApprovedNewsletter(editionId: string) {
   const eligible = resolvedRecipients.eligible;
   if (!eligible.length && !edition.delivery) throw new Error("No eligible newsletter recipients remain.");
   const approvedBlocks = parseBlocks(edition.approvedRevision.blocksSnapshot);
-  const contentHash = newsletterContentHash({
+  const integrity = verifyNewsletterRevisionIntegrity({
     subject: edition.approvedRevision.subject,
     previewText: edition.approvedRevision.previewText,
     blocks: approvedBlocks,
-  });
-  // Older saved revisions hashed an empty preview as "" before storing it as null.
-  const legacyEmptyPreviewHash = edition.approvedRevision.previewText === null
-    ? newsletterContentHash({
-        subject: edition.approvedRevision.subject,
-        previewText: "",
-        blocks: approvedBlocks,
-      })
-    : null;
-  if (![contentHash, legacyEmptyPreviewHash].includes(edition.approvedRevision.contentHash)) {
+  }, edition.approvedRevision.contentHash);
+  if (!integrity.valid) {
     throw new Error("Approved newsletter content failed its integrity check.");
+  }
+  const contentHash = integrity.canonicalHash;
+  if (integrity.format !== "CANONICAL") {
+    console.info("[newsletter-delivery] legacy_integrity_verified", {
+      editionId: edition.id,
+      revisionId: edition.approvedRevision.id,
+      format: integrity.format,
+    });
   }
   const blocks = approvedBlocks.map((block) => ({
     ...block,
