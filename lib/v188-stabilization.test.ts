@@ -47,10 +47,13 @@ test("experience refinements preserve explicit user context", () => {
   assert.match(blog, /Series updated\./);
   assert.match(blog, /next draft generation/);
   assert.doesNotMatch(blog, /next publication/);
-  assert.match(portals, /role=\{editing \? "dialog"/);
+  assert.match(portals, /Create Portal/);
+  assert.match(portals, /\(creationOpen \|\| editing\)/);
+  assert.doesNotMatch(portals, /fixed inset-0 z-\[100\]/);
   assert.doesNotMatch(portals, /window\.scrollTo/);
   assert.match(email, /View Email/);
-  assert.match(email, /Tracking pixels, remote images, and embedded content are not loaded/);
+  assert.match(email, /Immutable sent snapshot/);
+  assert.match(email, /Historical content is not regenerated/);
 });
 
 test("public navigation uses controlled SVG controls", () => {
