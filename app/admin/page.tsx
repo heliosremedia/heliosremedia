@@ -112,6 +112,13 @@ export default async function AdminPage({
       : communications.data.lastProviderEventAt
         ? "green"
         : "gray";
+  const clientSyncTone: HealthTone = !relationships.available || !relationships.data.syncStatus
+    ? "gray"
+    : relationships.data.syncStatus === "SUCCEEDED"
+      ? "green"
+      : relationships.data.syncStatus === "FAILED"
+        ? "red"
+        : "yellow";
   const monitorTone: HealthTone = monitor.tone === "ONLINE"
     ? monitor.stale ? "yellow" : "green"
     : monitor.tone === "OFFLINE"
@@ -140,12 +147,16 @@ export default async function AdminPage({
     },
     {
       label: "Client Sync",
-      tone: relationships.available ? "green" : "gray",
-      status: relationships.available && relationships.data.lastSync
-        ? `Client records synchronized ${fmt(relationships.data.lastSync, true)}.`
-        : "Workspace-scoped client synchronization is not verifiable.",
+      tone: clientSyncTone,
+      status: relationships.data.syncStatus === "SUCCEEDED" && relationships.data.lastSync
+        ? `${relationships.data.provider || "Client provider"} · ${relationships.data.importedCount} imported, ${relationships.data.updatedCount} updated, ${relationships.data.skippedCount} skipped.`
+        : relationships.data.syncStatus === "FAILED"
+          ? `${relationships.data.provider || "Client provider"} synchronization failed with ${relationships.data.errorCount} recorded error.`
+          : relationships.data.syncStatus === "RUNNING"
+            ? `${relationships.data.provider || "Client provider"} synchronization is in progress.`
+            : "No workspace-scoped client synchronization has been verified yet.",
       verified: relationships.data.lastSync ? fmt(relationships.data.lastSync, true) : fmt(dashboard.generatedAt, true),
-      action: "Review client synchronization",
+      action: clientSyncTone === "red" ? "Retry client synchronization" : "Review client synchronization",
       href: "/admin/clients",
     },
     {
@@ -168,6 +179,7 @@ export default async function AdminPage({
     {
       id: "action-required" as const,
       title: "Action Required",
+      summary: operations.data.attention.length ? `${operations.data.attention.length} items need review` : "All clear",
       content: operations.data.attention.length
         ? <div className="grid gap-3 lg:grid-cols-2">{operations.data.attention.map(item =>
           <Link key={item.id} href={item.href} className="rounded-xl border border-white/[.08] bg-white/[.025] p-4">
@@ -183,6 +195,7 @@ export default async function AdminPage({
     {
       id: "todays-operations" as const,
       title: "Today & Upcoming",
+      summary: `${operations.data.upcoming.length} verified items in the next 14 days`,
       content: operations.available && operations.data.upcoming.length
         ? <div className="divide-y divide-white/[.07]">{operations.data.upcoming.slice(0, 10).map(item =>
           <Link key={item.id} href={item.href} className="grid grid-cols-[5.5rem_1fr_auto] gap-3 py-3 text-sm">
@@ -195,6 +208,7 @@ export default async function AdminPage({
     {
       id: "performance-snapshot" as const,
       title: "Studio Overview",
+      summary: `${days}-day verified studio performance`,
       content: <>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-white/35">Verified activity for the last {days} days. Select a metric to open its source.</p>
@@ -233,6 +247,7 @@ export default async function AdminPage({
     {
       id: "recent-activity" as const,
       title: "Recent Activity",
+      summary: `${activity.data.length} recent workspace events`,
       content: activity.available && activity.data.length
         ? <div className="divide-y divide-white/[.07]">{activity.data.map(item =>
           <Link key={item.id} href={item.href} className="grid gap-2 py-3 sm:grid-cols-[1fr_auto] sm:gap-4">
@@ -247,6 +262,7 @@ export default async function AdminPage({
     {
       id: "platform-health" as const,
       title: "Platform Health",
+      summary: `${health.filter(item => item.tone === "green").length} of ${health.length} systems verified healthy`,
       content: <>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{health.map(item => <HealthCard key={item.label} item={item} />)}</div>
         <p className="mt-4 text-xs text-white/25">Gray means the system could not be verified from workspace-owned data. It is not treated as healthy or failed.</p>
@@ -255,6 +271,7 @@ export default async function AdminPage({
     {
       id: "quick-actions" as const,
       title: "Quick Actions",
+      summary: canOperate ? "Create, review, and publish studio work" : "Open available studio work",
       content: <div className="flex flex-wrap gap-3">
         {canOperate ? <>
           <Link href="/admin/projects/new" className="admin-btn-primary">Create Project</Link>
