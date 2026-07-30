@@ -21,16 +21,29 @@ type Group = {
   clientCount: number;
 };
 
+type SyncSummary = {
+  providerLabel: string;
+  status: string;
+  importedCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  errorCount: number;
+  startedAt: string;
+  completedAt: string | null;
+};
+
 const PAGE_SIZE = 50;
 
 export default function ClientDirectory({
   initialClients,
   initialGroups,
   canManage,
+  syncSummary,
 }: {
   initialClients: Client[];
   initialGroups: Group[];
   canManage: boolean;
+  syncSummary: SyncSummary | null;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -110,13 +123,15 @@ export default function ClientDirectory({
         total?: number;
         created?: number;
         updated?: number;
+        skipped?: number;
+        provider?: string;
         error?: string;
       };
       if (!response.ok || !result.success) {
         throw new Error(result.error || "Clients could not be synchronized.");
       }
       setMessage(
-        `${result.total} clients synced · ${result.created} new · ${result.updated} updated`,
+        `${result.provider || "Client provider"} · ${result.total} clients synced · ${result.created} imported · ${result.updated} updated · ${result.skipped || 0} skipped`,
       );
       router.refresh();
     } catch (error) {
@@ -250,8 +265,11 @@ export default function ClientDirectory({
         <div>
           <p className="text-sm text-white/65">{initialClients.length} clients</p>
           <p className="mt-1 text-xs text-white/30">
-            Manual sync imports name, email, and phone. Helios groups stay intact.
+            {syncSummary
+              ? `${syncSummary.providerLabel} · ${syncSummary.status.replaceAll("_", " ").toLowerCase()}${syncSummary.completedAt ? ` · ${new Date(syncSummary.completedAt).toLocaleString()}` : ""}`
+              : "No workspace synchronization has been verified yet."}
           </p>
+          {syncSummary ? <p className="mt-2 text-xs text-white/25">{syncSummary.importedCount} imported · {syncSummary.updatedCount} updated · {syncSummary.skippedCount} skipped · {syncSummary.errorCount} errors</p> : null}
         </div>
         <div className="flex flex-col gap-3 sm:items-end">
           {canManage ? (
