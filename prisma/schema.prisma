@@ -1427,6 +1427,7 @@ model Workspace {
   portfolioAnalyticsEvents PortfolioAnalyticsEvent[]
   projects                 Project[]
   invitations              AdminInvitation[]
+  clientSyncRuns           ClientSyncRun[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2026,6 +2027,28 @@ model CommunicationClient {
   @@index([normalizedEmail])
   @@index([lastSyncedAt])
   @@index([emailSubscribed, emailStatus, archivedAt])
+}
+
+model ClientSyncRun {
+  id String @id @default(cuid())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  providerKey   String
+  providerLabel String
+  status        String
+  importedCount Int      @default(0)
+  updatedCount  Int      @default(0)
+  skippedCount  Int      @default(0)
+  errorCount    Int      @default(0)
+  errorCategory String?
+  startedAt     DateTime @default(now())
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([workspaceId, startedAt])
+  @@index([workspaceId, providerKey, startedAt])
 }
 
 model EmailCampaign {
