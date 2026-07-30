@@ -19,9 +19,37 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
+    version: "V1.9.0.1",
+    slug: "v1-9-0-1",
+    releaseDate: null,
+    title: "Shared Email Delivery Hotfix",
+    summary: "Moves Newsletter Studio, Email Studio, and Referral Studio delivery to a shared official Resend adapter with accurate provider errors, safe retries, and deterministic duplicate-send protection.",
+    newFeatures: [],
+    improvements: [
+      "Official Resend SDK adapter for individual, test, and chunked batch delivery",
+      "Shared provider diagnostics with bounded transient retries and safe structured logging",
+      "Deterministic campaign idempotency across provider, worker, and administrator retries",
+    ],
+    bugFixes: [
+      "Provider failures no longer appear as approved-newsletter integrity failures",
+      "Failed and partially accepted newsletters retain their approved content and can be retried safely",
+      "Provider responses without accepted message IDs are no longer treated as successful delivery",
+    ],
+    securityInfrastructure: [
+      "Sender and provider configuration is validated without exposing secrets or environment names to administrators",
+      "One-click unsubscribe headers and workspace-scoped delivery workflows remain intact",
+      "Provider error details are normalized so HTML edge responses and private message content are not exposed",
+    ],
+    administratorActions: [
+      "Complete an internal test send in each Studio before sending a full client campaign.",
+      "Correct provider credentials or sender-domain configuration before retrying a non-retryable rejection.",
+    ],
+    status: "DEPLOYING",
+  },
+  {
     version: "V1.9.0",
     slug: "v1-9-0",
-    releaseDate: null,
+    releaseDate: "2026-07-29",
     title: "Admin Command Center",
     summary: "Transforms the signed-in dashboard into an operational command center and adds safer communication reporting, deliberate newsletter delivery, blog-to-email drafts, timed featured projects, and focused workflow corrections.",
     newFeatures: [
@@ -49,7 +77,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
       "Arrange dashboard cards in Organize Dashboard mode.",
       "Use Send Now only after reviewing the final audience and sender confirmation.",
     ],
-    status: "DEPLOYING",
+    status: "LIVE",
   },
   {
     version: "V1.8.9.16",

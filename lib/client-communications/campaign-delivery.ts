@@ -65,7 +65,9 @@ export async function processEmailCampaign(campaignId: string) {
         };
       });
       const result = await sendCampaignBatch({
-        campaignId: `${campaign.id}-${batch.map(({ id }) => id).join("-")}`,
+        campaignId: campaign.id,
+        source: "campaign",
+        revisionKey: `${campaign.rowVersion}`,
         messages,
       });
       const now = new Date();

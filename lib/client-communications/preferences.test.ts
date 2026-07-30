@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { hashPreferenceToken, marketingStatusAllowsSend, MARKETING_TOKEN_TTL_DAYS, oneClickUnsubscribeHeaders, validPreferenceTokenFormat } from "./preference-rules.ts";
+import { campaignPreferenceToken, hashPreferenceToken, marketingStatusAllowsSend, MARKETING_TOKEN_TTL_DAYS, oneClickUnsubscribeHeaders, validPreferenceTokenFormat } from "./preference-rules.ts";
 
 test("marketing status blocks unsubscribe and suppression only", () => {
   assert.equal(marketingStatusAllowsSend("UNSUBSCRIBED"), false);
@@ -15,6 +15,13 @@ test("preference token hashes do not expose the token", () => {
   assert.notEqual(hash, token);
   assert.equal(hash.length, 64);
   assert.equal(hashPreferenceToken(token), hash);
+});
+
+test("campaign unsubscribe tokens are stable per campaign and recipient", () => {
+  const input = { campaignId: "campaign-1", clientId: "client-1", secret: "test-secret" };
+  assert.equal(campaignPreferenceToken(input), campaignPreferenceToken(input));
+  assert.notEqual(campaignPreferenceToken(input), campaignPreferenceToken({ ...input, campaignId: "campaign-2" }));
+  assert.equal(validPreferenceTokenFormat(campaignPreferenceToken(input)), true);
 });
 
 test("preference token expiry is deliberately bounded", () => {

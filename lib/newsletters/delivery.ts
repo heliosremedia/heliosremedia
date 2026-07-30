@@ -8,6 +8,7 @@ import { resolveEligibleNewsletterRecipients } from "@/lib/newsletters/recipient
 import type { RecipientSelection } from "@/lib/newsletters/types";
 import { createPreferenceToken } from "@/lib/client-communications/preferences";
 import { getSiteUrl } from "@/lib/site";
+import { contentHash as newsletterContentHash } from "@/lib/newsletters/studio";
 
 function parseSelection(value: unknown): RecipientSelection {
   const candidate = value && typeof value === "object" && !Array.isArray(value)
@@ -56,7 +57,9 @@ export async function deliverApprovedNewsletter(editionId: string) {
   });
   if (!edition || !edition.approvedRevision || !edition.approvals[0]) throw new Error("Newsletter approval is missing.");
   if (edition.series.status !== "ACTIVE") throw new Error("This newsletter series is paused.");
-  if (!["SCHEDULED", "SENDING"].includes(edition.status)) throw new Error("Only a scheduled newsletter can be sent.");
+  if (!["SCHEDULED", "SENDING", "SEND_FAILED", "PARTIALLY_SENT"].includes(edition.status)) {
+    throw new Error("Only a scheduled or safely retryable newsletter can be sent.");
+  }
   if (edition.approvedRevision.id !== edition.approvedRevisionId) throw new Error("The approved newsletter revision no longer matches.");
 
   const approval = edition.approvals[0];
@@ -66,12 +69,22 @@ export async function deliverApprovedNewsletter(editionId: string) {
   const eligible = resolvedRecipients.eligible;
   if (!eligible.length && !edition.delivery) throw new Error("No eligible newsletter recipients remain.");
   const approvedBlocks = parseBlocks(edition.approvedRevision.blocksSnapshot);
-  const contentHash = createHash("sha256").update(JSON.stringify({
+  const contentHash = newsletterContentHash({
     subject: edition.approvedRevision.subject,
     previewText: edition.approvedRevision.previewText,
     blocks: approvedBlocks,
-  })).digest("hex");
-  if (contentHash !== edition.approvedRevision.contentHash) throw new Error("Approved newsletter content failed its integrity check.");
+  });
+  // Older saved revisions hashed an empty preview as "" before storing it as null.
+  const legacyEmptyPreviewHash = edition.approvedRevision.previewText === null
+    ? newsletterContentHash({
+        subject: edition.approvedRevision.subject,
+        previewText: "",
+        blocks: approvedBlocks,
+      })
+    : null;
+  if (![contentHash, legacyEmptyPreviewHash].includes(edition.approvedRevision.contentHash)) {
+    throw new Error("Approved newsletter content failed its integrity check.");
+  }
   const blocks = approvedBlocks.map((block) => ({
     ...block,
     imageAlt: block.imageAlt ?? block.altText,
@@ -154,6 +167,8 @@ export async function deliverApprovedNewsletter(editionId: string) {
         .slice(0, 24);
       const result = await sendCampaignBatch({
         campaignId: `${campaign.id}:newsletter:${batchKey}`,
+        source: "newsletter",
+        revisionKey: edition.approvedRevision.id,
         messages: batch.map((recipient, offset) => ({
           to: recipient.email,
           subject: campaign!.subject,

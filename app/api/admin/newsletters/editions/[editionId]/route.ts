@@ -520,16 +520,20 @@ export async function POST(request: Request, context: Context) {
         }, { status: 400 });
       }
       try {
-        await sendTestCampaign({ to: recipient, subject: serialized.subject, html });
+        await sendTestCampaign({
+          to: recipient,
+          subject: serialized.subject,
+          html,
+          source: "newsletter",
+          operationId: editionId,
+        });
       } catch (error) {
         if (error instanceof EmailDeliveryError) {
           const notConfigured = error.code === "EMAIL_PROVIDER_NOT_CONFIGURED";
           return NextResponse.json({
             success: false,
             code: error.code,
-            error: notConfigured
-              ? "Email provider not configured. Add the required Resend delivery settings before sending a test."
-              : "The email provider rejected the test request. Check the sender configuration and try again.",
+            error: error.message,
           }, { status: notConfigured ? 503 : 502 });
         }
         return NextResponse.json({
@@ -557,8 +561,18 @@ export async function POST(request: Request, context: Context) {
         where: { editionId, type: "SEND", status: "PENDING" },
         data: { status: "CANCELLED", completedAt: new Date() },
       });
-      await deliverApprovedNewsletter(editionId);
-      message = "Newsletter delivery completed.";
+      const delivery = await deliverApprovedNewsletter(editionId);
+      if (delivery.status === "SEND_FAILED") {
+        return NextResponse.json({
+          success: false,
+          code: "EMAIL_PROVIDER_REJECTED",
+          error: "The email provider did not accept this newsletter. Approved content remains intact and delivery can be retried safely.",
+          edition: await serializeEdition(authorizedEdition),
+        }, { status: 502 });
+      }
+      message = delivery.status === "PARTIALLY_SENT"
+        ? `Newsletter partially delivered: ${delivery.sent} accepted, ${delivery.failed} failed.`
+        : `Newsletter delivery accepted for ${delivery.sent} recipients.`;
     } else {
       throw new Error("Unsupported edition action.");
     }

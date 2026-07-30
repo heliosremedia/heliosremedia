@@ -7,7 +7,7 @@ import { normalizeEmail } from "./normalization";
 export const UNSUBSCRIBED_GROUP_KEY = "MARKETING_UNSUBSCRIBED";
 export const UNSUBSCRIBED_GROUP_NAME = "Unsubscribed";
 export { hashPreferenceToken, marketingStatusAllowsSend, MARKETING_TOKEN_TTL_DAYS } from "./preference-rules";
-import { hashPreferenceToken, marketingStatusAllowsSend, MARKETING_TOKEN_TTL_DAYS, validPreferenceTokenFormat } from "./preference-rules";
+import { campaignPreferenceToken, hashPreferenceToken, marketingStatusAllowsSend, MARKETING_TOKEN_TTL_DAYS, validPreferenceTokenFormat } from "./preference-rules";
 
 export function generatePreferenceToken() {
   return randomBytes(32).toString("base64url");
@@ -137,14 +137,23 @@ export async function createPreferenceToken(input: {
     create: { normalizedEmail: client.normalizedEmail, status: "UNKNOWN", source: "LEGACY_CLIENT" },
     update: {},
   });
-  const token = generatePreferenceToken();
-  await prisma.marketingEmailPreferenceToken.create({
-    data: {
+  const tokenSecret = process.env.CAMPAIGN_UNSUBSCRIBE_SECRET?.trim() || process.env.AUTH_SECRET?.trim();
+  const token = input.campaignId && tokenSecret
+    ? campaignPreferenceToken({ campaignId: input.campaignId, clientId: input.clientId, secret: tokenSecret })
+    : generatePreferenceToken();
+  const expiresAt = new Date(Date.now() + MARKETING_TOKEN_TTL_DAYS * 86_400_000);
+  await prisma.marketingEmailPreferenceToken.upsert({
+    where: { tokenHash: hashPreferenceToken(token) },
+    create: {
       preferenceId: preference.id,
       tokenHash: hashPreferenceToken(token),
-      expiresAt: new Date(Date.now() + MARKETING_TOKEN_TTL_DAYS * 86_400_000),
+      expiresAt,
       campaignId: input.campaignId,
       messageId: input.messageId,
+    },
+    update: {
+      expiresAt,
+      messageId: input.messageId || undefined,
     },
   });
   return token;
