@@ -30,7 +30,7 @@
 }
 
 @utility admin-btn-icon {
-  @apply inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/20 p-0 text-white/45 transition duration-200 ease-out hover:border-white/25 hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f0f10] active:translate-y-px disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-40;
+  @apply inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/20 p-0 text-white/45 transition-[color,background-color,border-color,box-shadow] duration-200 ease-out hover:border-[var(--helios-orange)]/70 hover:bg-[var(--helios-orange)]/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f0f10] active:border-[var(--helios-orange)]/80 active:bg-[var(--helios-orange)]/[0.14] disabled:pointer-events-none disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-black/20 disabled:text-white/25 disabled:opacity-50;
 }
 
 @utility admin-btn-icon-sm {
@@ -51,6 +51,21 @@
 
 @utility admin-btn-loading-dot {
   @apply h-3 w-3 animate-spin rounded-full border border-current/25 border-t-current;
+}
+
+@keyframes portal-scroll-cue {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(0.22rem); }
+}
+
+.portal-scroll-arrow {
+  animation: portal-scroll-cue 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-scroll-arrow {
+    animation: none;
+  }
 }
 
 /*

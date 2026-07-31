@@ -19,6 +19,33 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
+    version: "V1.9.4",
+    slug: "v1-9-4",
+    releaseDate: null,
+    title: "Responsive Navigation and Sharing Refinement",
+    summary: "Improves Studio section navigation, card reliability, public share metadata, and Client Portal guidance.",
+    newFeatures: [
+      "Adaptive Studio section navigation uses a balanced desktop grid and a mobile Jump to Section control",
+      "The Client Portal hero includes an accessible Choose Your Portal navigation cue",
+    ],
+    improvements: [
+      "Shared round card controls use refined orange hover, pressed, focus, and disabled states",
+      "Expand All and Collapse All occupy a dedicated utility row and reflect the current section state",
+      "Social metadata follows page-specific, cover-image, workspace-default, and built-in fallback precedence",
+    ],
+    bugFixes: [
+      "Collapsed Studio sections retain their complete summary card instead of leaving blank space or floating controls",
+      "Homepage canonical, Open Graph, and Twitter metadata use the configured public website and saved social-share asset",
+      "Portfolio and blog sharing preserve page-specific image precedence with consistent canonical URLs",
+    ],
+    securityInfrastructure: [
+      "No database migration, persisted section order, permissions, multi-company scope, or delivery workflow changes",
+      "Share-image revisions remain stable until the configured asset changes",
+    ],
+    administratorActions: [],
+    status: "DEPLOYING",
+  },
+  {
     version: "V1.9.3.1",
     slug: "v1-9-3-1",
     releaseDate: "2026-07-30",

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { PublicSiteSettings } from "@/lib/site-settings";
 import { AdminCardToggle } from "@/app/admin/components/AdminCardControls";
+import AdminSectionNavigator from "@/app/admin/components/AdminSectionNavigator";
 
 type UploadKind = "video" | "poster" | "logo" | "monogram" | "standard" | "conversion";
 
@@ -119,12 +120,6 @@ export default function SiteSettingsForm({
       (current) =>
         ({ ...current, [key]: value || null }) as PublicSiteSettings,
     );
-  }
-
-  function revealAndScroll(sectionId: string) {
-    setExpandedSections((current) => ({ ...current, [sectionId]: true }));
-    window.requestAnimationFrame(() => window.requestAnimationFrame(() =>
-      document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" })));
   }
 
   function revealInvalidParent(event: React.InvalidEvent<HTMLDivElement>) {
@@ -658,15 +653,17 @@ export default function SiteSettingsForm({
 
       {mode === "global" ? (
         <>
-      <nav aria-label="Site Settings sections" className="sticky top-3 z-30 mt-6 overflow-x-auto rounded-2xl border border-white/10 bg-[#151515]/95 p-3 shadow-xl backdrop-blur">
-        <div className="flex min-w-max items-center gap-2">
-        {settingsSections.map(([id,label]) =>
-          <button key={id} type="button" onClick={() => revealAndScroll(id)} className="admin-btn-secondary whitespace-nowrap">{label}</button>)}
-        <span aria-hidden="true" className="mx-1 h-7 w-px bg-white/10" />
-        <button type="button" disabled={allSettingsExpanded} onClick={() => setExpandedSections(Object.fromEntries(settingsSections.map(([id]) => [id, true])))} className="admin-btn-secondary whitespace-nowrap">Expand All</button>
-        <button type="button" disabled={allSettingsCollapsed} onClick={() => setExpandedSections(Object.fromEntries(settingsSections.map(([id]) => [id, false])))} className="admin-btn-secondary whitespace-nowrap">Collapse All</button>
-        </div>
-      </nav>
+      <div className="mt-6">
+        <AdminSectionNavigator
+          label="Site Settings sections"
+          sections={settingsSections.map(([id, label]) => ({ href: `#${id}` as `#${string}`, label }))}
+          onNavigate={(id) => setExpandedSections((current) => ({ ...current, [id]: true }))}
+          actions={<>
+            <button type="button" disabled={allSettingsExpanded} onClick={() => setExpandedSections(Object.fromEntries(settingsSections.map(([id]) => [id, true])))} className="admin-btn-secondary whitespace-nowrap">Expand All</button>
+            <button type="button" disabled={allSettingsCollapsed} onClick={() => setExpandedSections(Object.fromEntries(settingsSections.map(([id]) => [id, false])))} className="admin-btn-secondary whitespace-nowrap">Collapse All</button>
+          </>}
+        />
+      </div>
 
       <div id="brand-identity" data-settings-section className="scroll-mt-28">
       <section className="mt-10 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111] sm:mt-12">
