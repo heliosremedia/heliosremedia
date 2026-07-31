@@ -21,7 +21,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
     version: "V1.9.4.2",
     slug: "v1-9-4-2",
-    releaseDate: null,
+    releaseDate: "2026-07-31",
     title: "Portfolio Collections and Image Performance Hotfix",
     summary: "Corrects service-driven public collections and replaces full-resolution portfolio display requests with responsive optimized derivatives.",
     newFeatures: [],
@@ -40,7 +40,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
       "No database migration, media reassignment, or original asset deletion is required",
     ],
     administratorActions: [],
-    status: "DEPLOYING",
+    status: "LIVE",
   },
   {
     version: "V1.9.4.1",

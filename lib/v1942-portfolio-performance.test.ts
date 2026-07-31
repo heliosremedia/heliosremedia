@@ -68,12 +68,12 @@ test("admin media collections omit empty cards while destinations remain service
   assert.match(uploader, /activeServices\.map/);
 });
 
-test("V1.9.4.2 starts DEPLOYING with accurate release metadata", () => {
+test("V1.9.4.2 is LIVE with accurate release metadata", () => {
   const version = read("lib/version.ts");
   const releases = read("lib/releases.ts");
   assert.match(version, /STUDIO_VERSION = "V1\.9\.4\.2"/);
   assert.match(version, /v1-9-4-2/);
   assert.ok(releases.indexOf('version: "V1.9.4.2"') < releases.indexOf('version: "V1.9.4.1"'));
   assert.match(releases, /title: "Portfolio Collections and Image Performance Hotfix"/);
-  assert.match(releases, /version: "V1\.9\.4\.2"[\s\S]*releaseDate: null[\s\S]*status: "DEPLOYING"/);
+  assert.match(releases, /version: "V1\.9\.4\.2"[\s\S]*releaseDate: "2026-07-31"[\s\S]*status: "LIVE"/);
 });
