@@ -56,13 +56,13 @@ test("Site Settings uses complete collapsed destinations and corrected hierarchy
   assert.match(source, /focus\(\{ preventScroll: true \}\)/);
 });
 
-test("V1.9.3.1 release metadata is deploying before production verification", () => {
+test("V1.9.3.1 release metadata is live after production verification", () => {
   const version = read("lib/version.ts");
   const releases = read("lib/releases.ts");
   assert.match(version, /STUDIO_VERSION = "V1\.9\.3\.1"/);
   assert.match(version, /v1-9-3-1/);
   assert.ok(releases.indexOf('version: "V1.9.3.1"') < releases.indexOf('version: "V1.9.3"'));
   assert.match(releases, /title: "Studio Card Consistency Hotfix"/);
-  assert.match(releases, /releaseDate: null/);
-  assert.match(releases, /status: "DEPLOYING"/);
+  assert.match(releases, /releaseDate: "2026-07-30"/);
+  assert.match(releases, /status: "LIVE"/);
 });

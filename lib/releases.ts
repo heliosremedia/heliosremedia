@@ -21,7 +21,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
     version: "V1.9.3.1",
     slug: "v1-9-3-1",
-    releaseDate: null,
+    releaseDate: "2026-07-30",
     title: "Studio Card Consistency Hotfix",
     summary: "Standardizes collapsible and reorderable card controls while correcting the Site Settings hierarchy.",
     newFeatures: [],
@@ -40,7 +40,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
       "No database migration, public content, stored setting, or delivery workflow is changed by this interface hotfix",
     ],
     administratorActions: [],
-    status: "DEPLOYING",
+    status: "LIVE",
   },
   {
     version: "V1.9.3",
