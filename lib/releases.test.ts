@@ -7,8 +7,8 @@ test("visible version links to the matching code-controlled release", () => {
   assert.equal(STUDIO_VERSION, "V1.9.4.1");
   assert.equal(STUDIO_VERSION_HREF, "/admin/release-notes/v1-9-4-1");
   assert.equal(getStudioRelease("v1-9-4-1")?.version, STUDIO_VERSION);
-  assert.equal(getStudioRelease("v1-9-4-1")?.status, "DEPLOYING");
-  assert.equal(getStudioRelease("v1-9-4-1")?.releaseDate, null);
+  assert.equal(getStudioRelease("v1-9-4-1")?.status, "LIVE");
+  assert.equal(getStudioRelease("v1-9-4-1")?.releaseDate, "2026-07-31");
   assert.equal(getStudioRelease("v1-9-4")?.status, "LIVE");
   assert.equal(getStudioRelease("v1-9-4")?.releaseDate, "2026-07-31");
   assert.equal(getStudioRelease("v1-9-3-1")?.status, "LIVE");

@@ -21,7 +21,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
     version: "V1.9.4.1",
     slug: "v1-9-4-1",
-    releaseDate: null,
+    releaseDate: "2026-07-31",
     title: "Twilight Photography Upload Correction",
     summary: "Keeps dynamic service identity intact throughout project uploads and raises the project image limit to 50 MB.",
     newFeatures: [],
@@ -38,7 +38,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
       "No database migration or existing media reassignment is required",
     ],
     administratorActions: [],
-    status: "DEPLOYING",
+    status: "LIVE",
   },
   {
     version: "V1.9.4",
