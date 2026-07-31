@@ -19,6 +19,30 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
+    version: "V1.9.4.2",
+    slug: "v1-9-4-2",
+    releaseDate: null,
+    title: "Portfolio Collections and Image Performance Hotfix",
+    summary: "Corrects service-driven public collections and replaces full-resolution portfolio display requests with responsive optimized derivatives.",
+    newFeatures: [],
+    improvements: [
+      "Portfolio Hero, grid, showcase, thumbnail, and fullscreen views request responsive CDN-cached AVIF or WebP derivatives",
+      "Larger fullscreen derivatives load only when requested while an explicit Original action preserves access to the archived source",
+      "Below-the-fold images remain lazy loaded and collection rendering uses browser content visibility",
+    ],
+    bugFixes: [
+      "Public collection headings and Hero service destinations now share the stable service ID instead of the legacy media category",
+      "Twilight Photography renders with its current service name and navigates to its own collection rather than Other",
+      "Empty admin and public collection cards are omitted without removing active services from assignment controls",
+    ],
+    securityInfrastructure: [
+      "Immutable project asset URLs use durable CDN caching and retain project-scoped cache identity",
+      "No database migration, media reassignment, or original asset deletion is required",
+    ],
+    administratorActions: [],
+    status: "DEPLOYING",
+  },
+  {
     version: "V1.9.4.1",
     slug: "v1-9-4-1",
     releaseDate: "2026-07-31",
