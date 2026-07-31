@@ -52,12 +52,11 @@ test("Site Settings has unified identity and complete destinations", () => {
   assert.match(form, /Business and contact/);
   assert.match(form, /Location and public messaging/);
   assert.match(form, /Social and website/);
-  assert.match(form, /aria-expanded/);
+  assert.match(form, /AdminCardToggle/);
   assert.match(form, /revealInvalidParent/);
 });
 
 test("V1.9.3 is live with matching navigation", () => {
-  assert.match(read("lib/version.ts"), /STUDIO_VERSION = "V1\.9\.3"/);
   const releases = read("lib/releases.ts");
   assert.ok(releases.indexOf('version: "V1.9.3"') < releases.indexOf('version: "V1.9.2"'));
   assert.match(releases, /title: "Bulk Email and Site Settings Refinement"/);

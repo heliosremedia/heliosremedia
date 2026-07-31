@@ -8,6 +8,7 @@ import ImageLibraryDialog from "@/app/admin/newsletter-studio/components/ImageLi
 import type { NewsletterGalleryImage } from "@/app/admin/newsletter-studio/types";
 import { selectBalancedAboutImages } from "@/lib/about-gallery";
 import AdminSectionNavigator from "@/app/admin/components/AdminSectionNavigator";
+import { AdminCardToggle } from "@/app/admin/components/AdminCardControls";
 
 type TeamMemberCategory = "LEADERSHIP" | "PRODUCTION" | "POST_PRODUCTION" | "CLIENT_CARE" | "MARKETING" | "OPERATIONS";
 const teamMemberCategories: TeamMemberCategory[] = ["LEADERSHIP", "PRODUCTION", "POST_PRODUCTION", "CLIENT_CARE", "MARKETING", "OPERATIONS"];
@@ -134,7 +135,7 @@ export default function AboutPageManager({ initialContent, initialTeamMembers }:
       </div>
     </Panel>
 
-    <div id="about-team" tabIndex={-1} className="scroll-mt-28 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)]"><div className="mb-3 flex justify-end"><button type="button" aria-expanded={!collapsed.includes("about-team")} onClick={panel("about-team").onToggle} className="admin-btn-secondary">{collapsed.includes("about-team") ? "Expand Team" : "Collapse Team"}</button></div>{!collapsed.includes("about-team") && <TeamMemberManager initialTeamMembers={initialTeamMembers} />}</div>
+    <div id="about-team" tabIndex={-1} className="scroll-mt-28 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)]"><div className="mb-3 flex justify-end"><AdminCardToggle expanded={!collapsed.includes("about-team")} label="Team members" controls="about-team-content" onClick={panel("about-team").onToggle} /></div><div id="about-team-content" hidden={collapsed.includes("about-team")}><TeamMemberManager initialTeamMembers={initialTeamMembers} /></div></div>
 
     <Panel id="about-principles" {...panel("about-principles")} eyebrow="Point of view" title="Principles" description="Edit the section heading and each principle card.">
       <div className="grid gap-4 lg:grid-cols-3"><Input label="Eyebrow" value={content.principlesEyebrow} onChange={(value) => field("principlesEyebrow", value)} /><Input label="Headline" value={content.principlesHeadline} onChange={(value) => field("principlesHeadline", value)} /><Textarea label="Introduction" value={content.principlesIntro} onChange={(value) => field("principlesIntro", value)} rows={3} /></div>
@@ -161,7 +162,8 @@ export default function AboutPageManager({ initialContent, initialTeamMembers }:
 }
 
 function Panel({ id, eyebrow, title, description, collapsed, onToggle, children }: { id?: string; eyebrow: string; title: string; description: string; collapsed: boolean; onToggle?: () => void; children: React.ReactNode }) {
-  return <section id={id} tabIndex={-1} className="scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] sm:p-7"><div className="flex items-start justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">{eyebrow}</p><h2 className="mt-2 font-display text-3xl font-light text-white">{title}</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-white/35">{description}</p></div>{onToggle && <button type="button" aria-expanded={!collapsed} onClick={onToggle} className="admin-btn-secondary">{collapsed ? "Expand" : "Collapse"}</button>}</div>{!collapsed && <div className="mt-7">{children}</div>}</section>;
+  const contentId = id ? `${id}-content` : undefined;
+  return <section id={id} tabIndex={-1} className="scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] sm:p-7"><div className="flex items-start justify-between gap-4"><div className="min-w-0 pr-2"><p className="eyebrow text-[var(--helios-orange)]">{eyebrow}</p><h2 className="mt-2 font-display text-3xl font-light text-white">{title}</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-white/35">{description}</p></div>{onToggle && <AdminCardToggle expanded={!collapsed} label={title} controls={contentId} onClick={onToggle} />}</div><div id={contentId} hidden={collapsed} className="mt-7">{children}</div></section>;
 }
 
 function Input({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {

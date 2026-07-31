@@ -23,7 +23,7 @@ test("dashboard organization is deliberate, accessible, and visually precise", (
   assert.match(source, /Expand All/);
   assert.match(source, /Collapse All/);
   assert.match(source, /bg-\[var\(--helios-orange\)\]/);
-  assert.match(source, /Move Up/);
+  assert.match(source, /symbol="↑"/);
   assert.match(source, /aria-live="polite"/);
 });
 

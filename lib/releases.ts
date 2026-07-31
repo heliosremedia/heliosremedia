@@ -19,6 +19,30 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
+    version: "V1.9.3.1",
+    slug: "v1-9-3-1",
+    releaseDate: null,
+    title: "Studio Card Consistency Hotfix",
+    summary: "Standardizes collapsible and reorderable card controls while correcting the Site Settings hierarchy.",
+    newFeatures: [],
+    improvements: [
+      "Collapsible cards use consistent round plus and minus controls with accessible names, state, focus, and tooltips",
+      "Reorderable cards use a consistent drag, up, down, and expansion control order while preserving keyboard movement",
+      "Site Settings sections can be expanded independently or together from the floating section navigation",
+      "Brand Identity uses a single parent label with specific Business Information, Location Information, and Website & Social Links subsections",
+    ],
+    bugFixes: [
+      "Site Settings navigation now reveals collapsed destinations before scrolling",
+      "Validation errors reveal their parent section before the invalid field receives focus",
+      "First and last reordering controls now expose their disabled state consistently",
+    ],
+    securityInfrastructure: [
+      "No database migration, public content, stored setting, or delivery workflow is changed by this interface hotfix",
+    ],
+    administratorActions: [],
+    status: "DEPLOYING",
+  },
+  {
     version: "V1.9.3",
     slug: "v1-9-3",
     releaseDate: "2026-07-30",
