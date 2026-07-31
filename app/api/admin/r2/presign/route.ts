@@ -7,10 +7,10 @@ import {
   createPresignedUploadUrl,
   getPublicAssetUrl,
   isUploadMediaCategory,
-  validateImageUpload,
 } from "@/lib/r2-upload";
 import { requireAdminSession } from "@/lib/auth/session";
 import { mediaFolderForService } from "@/lib/service-media";
+import { getProjectMediaImageValidationError } from "@/lib/project-media-upload";
 
 type PresignRequestBody = {
   projectId?: unknown;
@@ -114,11 +114,10 @@ export async function POST(request: Request) {
       );
     }
 
-    validateImageUpload({
-      name: fileName,
-      type: fileType,
-      size: fileSize,
-    });
+    const validationError = getProjectMediaImageValidationError({ type: fileType, size: fileSize });
+    if (validationError) {
+      return NextResponse.json({ success: false, error: validationError }, { status: 400 });
+    }
 
     const service = serviceId ? await prisma.service.findFirst({
       where: { id: serviceId, workspaceId: session.workspaceId, active: true, archivedAt: null },
@@ -157,10 +156,7 @@ export async function POST(request: Request) {
         ? error.message
         : "Unable to prepare this upload.";
 
-    const isValidationError =
-      message === "Unsupported image type." ||
-      message ===
-        "Images must be smaller than 25 MB.";
+    const isValidationError = message.startsWith("Image exceeds the 50 MB upload limit") || message.startsWith("Only JPG");
 
     return NextResponse.json(
       {

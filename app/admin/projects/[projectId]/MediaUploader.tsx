@@ -16,6 +16,12 @@ import {
   getMediaCollection,
   type MediaCategory,
 } from "@/lib/media-collections";
+import {
+  formatProjectMediaFileSize,
+  getProjectMediaImageValidationError,
+  PROJECT_MEDIA_MAX_IMAGE_UPLOAD_BYTES,
+  PROJECT_MEDIA_MAX_IMAGE_UPLOAD_MIB,
+} from "@/lib/project-media-upload";
 import { mediaCategoryForServiceSlug, type MediaService } from "@/lib/service-media";
 
 type ProjectMediaItem = {
@@ -63,6 +69,7 @@ type UploadItem = {
   error: string | null;
   mediaCategory: MediaCategory;
   serviceId: string;
+  serviceName: string;
 };
 
 type PresignResponse = {
@@ -74,6 +81,7 @@ type PresignResponse = {
     publicUrl: string;
     contentType: string;
     mediaCategory: MediaCategory;
+    serviceId: string | null;
   };
 };
 
@@ -83,31 +91,8 @@ type MediaResponse = {
   media?: ProjectMediaItem;
 };
 
-const ACCEPTED_IMAGE_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/avif",
-]);
-
-const MAX_FILE_SIZE = 25 * 1024 * 1024;
-
 function createUploadId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-function formatFileSize(bytes: number) {
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-
-  const kilobytes = bytes / 1024;
-
-  if (kilobytes < 1024) {
-    return `${kilobytes.toFixed(1)} KB`;
-  }
-
-  return `${(kilobytes / 1024).toFixed(1)} MB`;
 }
 
 function getStatusLabel(
@@ -455,6 +440,10 @@ export default function MediaUploader({
           );
         }
 
+        if (presignData.upload.serviceId !== upload.serviceId) {
+          throw new Error("The upload destination could not be verified. Choose the collection again.");
+        }
+
         updateUpload(upload.id, {
           status: "uploading",
         });
@@ -542,19 +531,21 @@ export default function MediaUploader({
 
   const addFiles = useCallback(
     (files: File[]) => {
-      const nextUploads: UploadItem[] =
-        files.map((file) => ({
-          id: createUploadId(),
-          file,
-          previewUrl:
-            URL.createObjectURL(file),
-          progress: 0,
-          status: "queued",
-          error: null,
-          mediaCategory:
-            selectedCollection,
-          serviceId: selectedServiceId,
-        }));
+      const selectedService = activeServices.find(
+        (service) => service.id === selectedServiceId,
+      );
+      if (!selectedService) return;
+      const nextUploads: UploadItem[] = files.map((file) => ({
+        id: createUploadId(),
+        file,
+        previewUrl: URL.createObjectURL(file),
+        progress: 0,
+        status: "queued",
+        error: null,
+        mediaCategory: selectedCollection,
+        serviceId: selectedServiceId,
+        serviceName: selectedService.name,
+      }));
 
       setUploads((currentUploads) => [
         ...nextUploads,
@@ -562,30 +553,15 @@ export default function MediaUploader({
       ]);
 
       for (const upload of nextUploads) {
-        if (
-          !ACCEPTED_IMAGE_TYPES.has(
-            upload.file.type,
-          )
-        ) {
+        const validationError =
+          getProjectMediaImageValidationError(
+            upload.file,
+          );
+        if (validationError) {
           updateUpload(upload.id, {
             status: "error",
-            error:
-              "Only JPG, PNG, WebP, and AVIF images are supported.",
+            error: validationError,
           });
-
-          continue;
-        }
-
-        if (
-          upload.file.size >
-          MAX_FILE_SIZE
-        ) {
-          updateUpload(upload.id, {
-            status: "error",
-            error:
-              "Images must be smaller than 25 MB.",
-          });
-
           continue;
         }
 
@@ -595,6 +571,7 @@ export default function MediaUploader({
     [
       selectedCollection,
       selectedServiceId,
+      activeServices,
       updateUpload,
       uploadFile,
     ],
@@ -958,7 +935,7 @@ export default function MediaUploader({
           <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-white/40">
             Upload JPG, PNG, WebP, or AVIF
             images. Each file can be up to
-            25 MB.
+            {PROJECT_MEDIA_MAX_IMAGE_UPLOAD_MIB} MB (50 MiB).
           </p>
 
           <button
@@ -1083,7 +1060,7 @@ export default function MediaUploader({
                     </div>
 
                     <p className="mt-1 text-xs text-white/25">
-                      {formatFileSize(
+                      {formatProjectMediaFileSize(
                         upload.file.size,
                       )}
                       <span className="mx-2 text-white/10">
@@ -1091,9 +1068,7 @@ export default function MediaUploader({
                       </span>
                       <span className="text-white/35">
                         {
-                          getMediaCollection(
-                            upload.mediaCategory,
-                          ).label
+                          upload.serviceName
                         }
                       </span>
                     </p>
@@ -1129,7 +1104,12 @@ export default function MediaUploader({
 
                   <div className="flex items-center gap-2 sm:justify-end">
                     {upload.status ===
-                      "error" && (
+                      "error" &&
+                      upload.file.size <=
+                        PROJECT_MEDIA_MAX_IMAGE_UPLOAD_BYTES &&
+                      !getProjectMediaImageValidationError(
+                        upload.file,
+                      ) && (
                       <button
                         type="button"
                         onClick={() =>
