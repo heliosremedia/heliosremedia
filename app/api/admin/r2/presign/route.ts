@@ -3,11 +3,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
   createImageKey,
+  createServiceImageKey,
   createPresignedUploadUrl,
   getPublicAssetUrl,
   isUploadMediaCategory,
   validateImageUpload,
 } from "@/lib/r2-upload";
+import { requireAdminSession } from "@/lib/auth/session";
+import { mediaFolderForService } from "@/lib/service-media";
 
 type PresignRequestBody = {
   projectId?: unknown;
@@ -15,10 +18,12 @@ type PresignRequestBody = {
   fileType?: unknown;
   fileSize?: unknown;
   mediaCategory?: unknown;
+  serviceId?: unknown;
 };
 
 export async function POST(request: Request) {
   try {
+    const session = await requireAdminSession();
     const body =
       (await request.json()) as PresignRequestBody;
 
@@ -46,6 +51,7 @@ export async function POST(request: Request) {
       body.mediaCategory === undefined
         ? "PHOTOGRAPHY"
         : body.mediaCategory;
+    const serviceId = typeof body.serviceId === "string" ? body.serviceId.trim() : "";
 
     if (!projectId) {
       return NextResponse.json(
@@ -89,10 +95,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const project = await prisma.project.findUnique({
-      where: {
-        id: projectId,
-      },
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, workspaceId: session.workspaceId },
       select: {
         id: true,
       },
@@ -116,11 +120,14 @@ export async function POST(request: Request) {
       size: fileSize,
     });
 
-    const key = createImageKey(
-      project.id,
-      fileType,
-      mediaCategory,
-    );
+    const service = serviceId ? await prisma.service.findFirst({
+      where: { id: serviceId, workspaceId: session.workspaceId, active: true, archivedAt: null },
+      select: { id: true, slug: true },
+    }) : null;
+    if (serviceId && !service) return NextResponse.json({ success: false, error: "The selected service is not available." }, { status: 409 });
+    const key = service
+      ? createServiceImageKey(project.id, mediaFolderForService(service), fileType)
+      : createImageKey(project.id, fileType, mediaCategory);
 
     const uploadUrl =
       await createPresignedUploadUrl(
@@ -136,6 +143,7 @@ export async function POST(request: Request) {
         publicUrl: getPublicAssetUrl(key),
         contentType: fileType,
         mediaCategory,
+        serviceId: service?.id ?? null,
       },
     });
   } catch (error) {

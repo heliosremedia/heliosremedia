@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { getAbsoluteUrl } from "@/lib/site";
+import { getConfiguredAbsoluteUrl } from "@/lib/site";
 import type { PublicSiteSettings } from "@/lib/site-settings";
 
 type PageMetadataInput = {
@@ -24,11 +24,30 @@ export function buildPageMetadata({
   type = "website",
   noIndex = false,
 }: PageMetadataInput): Metadata {
-  const socialImage = image || settings.heroPosterUrl || settings.brandLogoUrl;
-  const canonical = getAbsoluteUrl(path);
-  const images = socialImage
-    ? [{ url: socialImage, alt: imageAlt || settings.heroPosterAlt || settings.businessName }]
-    : undefined;
+  const configuredDefault = settings.defaultSocialImageUrl
+    ? `${settings.defaultSocialImageUrl}${settings.defaultSocialImageUrl.includes("?") ? "&" : "?"}v=${settings.defaultSocialImageVersion}`
+    : null;
+  const socialImage = image || configuredDefault || "/work/modern-retreat.jpg";
+  const canonical = getConfiguredAbsoluteUrl(path, settings.websiteUrl);
+  const absoluteImage = getConfiguredAbsoluteUrl(socialImage, settings.websiteUrl);
+  const cleanImagePath = absoluteImage.split("?")[0].toLowerCase();
+  const imageType = cleanImagePath.endsWith(".png") ? "image/png"
+    : cleanImagePath.endsWith(".webp") ? "image/webp"
+      : cleanImagePath.endsWith(".avif") ? "image/avif"
+        : cleanImagePath.endsWith(".jpg") || cleanImagePath.endsWith(".jpeg") ? "image/jpeg"
+          : undefined;
+  const alt = imageAlt || (configuredDefault && socialImage === configuredDefault
+    ? settings.defaultSocialImageAlt
+    : null) || settings.businessName;
+  const images = [{
+    url: absoluteImage,
+    secureUrl: absoluteImage,
+    alt,
+    ...(imageType ? { type: imageType } : {}),
+    ...(configuredDefault && socialImage === configuredDefault
+      ? { width: 1200, height: 630 }
+      : socialImage === "/work/modern-retreat.jpg" ? { width: 7008, height: 4672 } : {}),
+  }];
 
   return {
     title,
@@ -44,10 +63,10 @@ export function buildPageMetadata({
       images,
     },
     twitter: {
-      card: images ? "summary_large_image" : "summary",
+      card: "summary_large_image",
       title,
       description,
-      images: socialImage ? [socialImage] : undefined,
+      images: [{ url: absoluteImage, alt }],
     },
     ...(noIndex ? { robots: { index: false, follow: false } } : {}),
   };

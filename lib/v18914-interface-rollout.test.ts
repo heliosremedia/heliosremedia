@@ -12,9 +12,11 @@ test("long admin pages expose scoped section navigation", () => {
   const about = read("app/admin/about/AboutPageManager.tsx");
   const project = read("app/admin/projects/[projectId]/page.tsx");
   assert.match(navigator, /aria-label=\{label\}/);
-  assert.match(navigator, /overflow-x-auto/);
+  assert.match(navigator, /Jump to Section/);
+  assert.match(navigator, /auto-fit/);
+  assert.doesNotMatch(navigator, /overflow-x-auto/);
   assert.match(homepage, /homepage-navigation/);
-  assert.match(organizer, /aria-label="Homepage Curation sections"/);
+  assert.match(organizer, /label="Homepage Curation sections"/);
   assert.match(about, /#about-founder/);
   assert.match(project, /#project-media/);
   assert.match(project, /#project-publishing/);

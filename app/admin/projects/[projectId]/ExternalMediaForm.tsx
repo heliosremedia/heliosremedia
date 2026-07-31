@@ -2,16 +2,14 @@
 
 import { FormEvent, useMemo, useState } from "react";
 
-import {
-  MEDIA_COLLECTIONS,
-  type MediaCategory,
-} from "@/lib/media-collections";
 import { resolveExternalMedia } from "@/lib/external-media";
+import { mediaCategoryForServiceSlug, type MediaService } from "@/lib/service-media";
 
 import type { ProjectMediaItem } from "./ProjectMediaManager";
 
 type ExternalMediaFormProps = {
   projectId: string;
+  services: MediaService[];
   onMediaAdded: (media: ProjectMediaItem) => void;
 };
 
@@ -23,6 +21,7 @@ type CreateMediaResponse = {
 
 export default function ExternalMediaForm({
   projectId,
+  services,
   onMediaAdded,
 }: ExternalMediaFormProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -31,8 +30,8 @@ export default function ExternalMediaForm({
   const [title, setTitle] = useState("");
   const [altText, setAltText] = useState("");
   const [caption, setCaption] = useState("");
-  const [mediaCategory, setMediaCategory] =
-    useState<MediaCategory>("CINEMATIC_FILM");
+  const activeServices = services.filter((service) => service.active && !service.archivedAt);
+  const [serviceId, setServiceId] = useState(activeServices[0]?.id ?? "");
   const [visibility, setVisibility] = useState<"VISIBLE" | "HIDDEN">(
     "VISIBLE",
   );
@@ -84,7 +83,8 @@ export default function ExternalMediaForm({
           originalFilename: title,
           altText,
           caption,
-          mediaCategory,
+          serviceId,
+          mediaCategory: mediaCategoryForServiceSlug(activeServices.find((service) => service.id === serviceId)?.slug ?? ""),
           visibility,
         }),
       });
@@ -218,15 +218,13 @@ export default function ExternalMediaForm({
                     Media collection
                   </span>
                   <select
-                    value={mediaCategory}
-                    onChange={(event) =>
-                      setMediaCategory(event.target.value as MediaCategory)
-                    }
+                    value={serviceId}
+                    onChange={(event) => setServiceId(event.target.value)}
                     className="mt-2.5 min-h-12 w-full rounded-xl border border-white/10 bg-[#111] px-4 text-sm text-white/80 outline-none transition focus:border-[var(--helios-orange)]/55 focus:ring-2 focus:ring-[var(--helios-orange)]/10"
                   >
-                    {MEDIA_COLLECTIONS.map((collection) => (
-                      <option key={collection.value} value={collection.value}>
-                        {collection.label}
+                    {activeServices.map((service) => (
+                      <option key={service.id} value={service.id}>
+                        {service.name}
                       </option>
                     ))}
                   </select>

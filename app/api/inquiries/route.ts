@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
 import { sendInquiryConfirmation, sendInquiryNotification } from "@/lib/inquiry-notifications";
 
 function text(value: unknown, max: number, required = false) { const result = typeof value === "string" ? value.trim() : ""; if ((required && !result) || result.length > max) throw new Error("INVALID_TEXT"); return result || null; }
@@ -17,7 +18,8 @@ export async function POST(request: Request) {
     if (recent >= 5) return NextResponse.json({ success: false, error: "Too many inquiries were submitted. Please try again later." }, { status: 429 });
     const serviceIds = Array.isArray(body.serviceIds) ? body.serviceIds.filter((id): id is string => typeof id === "string").slice(0, 20) : [];
     if (new Set(serviceIds).size !== serviceIds.length) throw new Error("INVALID_SERVICES");
-    const validServices = await prisma.service.findMany({ where: { id: { in: serviceIds }, active: true }, select: { id: true } });
+    const workspaceId = await getPublicWorkspaceId();
+    const validServices = await prisma.service.findMany({ where: { id: { in: serviceIds }, workspaceId, active: true, archivedAt: null }, select: { id: true } });
     if (validServices.length !== serviceIds.length) throw new Error("INVALID_SERVICES");
     const desired = text(body.desiredDate, 30); const desiredDate = desired ? new Date(`${desired}T12:00:00.000Z`) : null; if (desiredDate && Number.isNaN(desiredDate.getTime())) throw new Error("INVALID_DATE");
     const name = text(body.name, 120, true)!; const inquiryEmail = email(body.email); const phone = text(body.phone, 40); const message = text(body.message, 3000); const sourcePage = text(body.sourcePage, 1000); const ctaName = text(body.ctaName, 120);

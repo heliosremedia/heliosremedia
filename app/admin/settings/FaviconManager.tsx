@@ -26,10 +26,13 @@ export default function FaviconManager({ initialSettings }: { initialSettings: P
   async function upload(kind: "favicon" | "social", file: File) {
     setBusy(kind); setMessage(null);
     try {
+      const bitmap = await createImageBitmap(file);
       if (kind === "favicon") {
-        const bitmap = await createImageBitmap(file);
         if (bitmap.width !== bitmap.height || bitmap.width < 256) throw new Error("Choose a square PNG at least 256 × 256 pixels.");
+      } else if (bitmap.width !== 1200 || bitmap.height !== 630) {
+        throw new Error("Choose a social share image that is exactly 1200 × 630 pixels.");
       }
+      bitmap.close();
       const endpoint = kind === "favicon" ? "/api/admin/site-settings/favicon/presign" : "/api/admin/site-settings/social-image/presign";
       const prepared = await fetch(endpoint, {
         method: "POST", headers: { "Content-Type": "application/json" },

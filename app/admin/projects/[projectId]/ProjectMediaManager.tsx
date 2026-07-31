@@ -26,9 +26,9 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 import { tryResolveExternalMedia } from "@/lib/external-media";
+import { mediaCategoryForServiceSlug, type MediaService } from "@/lib/service-media";
 import {
   getMediaCollection,
-  MEDIA_COLLECTIONS,
   type MediaCategory,
 } from "@/lib/media-collections";
 
@@ -38,6 +38,8 @@ import StreamVideoUploader from "./StreamVideoUploader";
 
 type ProjectMediaManagerProps = {
   projectId: string;
+  services: MediaService[];
+  initialServiceIds: string[];
 };
 
 export type ProjectMediaItem = {
@@ -56,6 +58,7 @@ export type ProjectMediaItem = {
   height: number | null;
   aspectRatio: number | null;
   mediaCategory: MediaCategory;
+  serviceId: string;
   displayOrder: number;
   visibility: string;
   createdAt: string;
@@ -75,6 +78,8 @@ type SetHeroResponse = {
   error?: string;
   heroMediaId?: string;
   mediaCategory?: MediaCategory;
+  serviceId?: string;
+  message?: string;
 };
 
 type ReorderMediaResponse = {
@@ -96,6 +101,8 @@ type BulkMoveResponse = {
   mediaIds?: string[];
   mediaCategory?: MediaCategory;
   startingDisplayOrder?: number;
+  serviceId?: string;
+  message?: string;
 };
 
 type DeleteAssetResponse = {
@@ -111,6 +118,7 @@ type AssetDraft = {
   altText: string;
   caption: string;
   mediaCategory: MediaCategory;
+  serviceId: string;
   visibility: "VISIBLE" | "HIDDEN";
 };
 
@@ -614,12 +622,15 @@ function SortableMediaCard({
 
 export default function ProjectMediaManager({
   projectId,
+  services,
+  initialServiceIds,
 }: ProjectMediaManagerProps) {
   const router = useRouter();
   const [media, setMedia] = useState<ProjectMediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [heroError, setHeroError] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState("");
   const [socialImageMediaId, setSocialImageMediaId] = useState<string | null>(null);
   const [isUpdatingSocialImage, setIsUpdatingSocialImage] = useState(false);
   const [isSocialImageSelectorOpen, setIsSocialImageSelectorOpen] = useState(false);
@@ -633,7 +644,7 @@ export default function ProjectMediaManager({
   const [assetError, setAssetError] = useState<string | null>(null);
   const [assetDraft, setAssetDraft] = useState<AssetDraft | null>(null);
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
-  const [bulkTargetCategory, setBulkTargetCategory] = useState<MediaCategory | null>(null);
+  const [bulkTargetServiceId, setBulkTargetServiceId] = useState<string | null>(null);
   const [isBulkMoving, setIsBulkMoving] = useState(false);
   const [savingCollections, setSavingCollections] = useState<MediaCategory[]>(
     [],
@@ -666,13 +677,19 @@ export default function ProjectMediaManager({
 
   const groupedCollections = useMemo(
     () =>
-      MEDIA_COLLECTIONS.map((collection) => ({
-        collection,
+      services.filter((service) => service.active || initialServiceIds.includes(service.id) || media.some((item) => item.serviceId === service.id)).map((service) => ({
+        collection: {
+          value: mediaCategoryForServiceSlug(service.slug),
+          serviceId: service.id,
+          label: service.name,
+          active: service.active,
+          description: service.description,
+        },
         items: media
-          .filter((item) => item.mediaCategory === collection.value)
+          .filter((item) => item.serviceId === service.id)
           .sort(sortMediaItems),
-      })).filter((group) => group.items.length > 0),
-    [media],
+      })),
+    [initialServiceIds, media, services],
   );
 
   const activeMedia = useMemo(
@@ -853,13 +870,15 @@ export default function ProjectMediaManager({
   const beginBulkEdit = useCallback(() => {
     const firstSelected = media.find((item) => selectedMediaIds.includes(item.id));
     setOpenMenuId(null);
-    setBulkTargetCategory(firstSelected?.mediaCategory ?? null);
+    setBulkTargetServiceId(firstSelected?.serviceId ?? null);
     setAssetError(null);
     setBulkEditOpen(true);
   }, [media, selectedMediaIds]);
 
   const saveBulkCategory = useCallback(async () => {
-    if (!bulkTargetCategory || selectedMediaIds.length === 0) return;
+    if (!bulkTargetServiceId || selectedMediaIds.length === 0) return;
+    const destination = services.find((service) => service.id === bulkTargetServiceId && service.active && !service.archivedAt);
+    if (!destination) return;
     const selected = [...selectedMediaIds];
     try {
       setIsBulkMoving(true);
@@ -867,7 +886,7 @@ export default function ProjectMediaManager({
       const response = await fetch(`/api/admin/projects/${projectId}/media`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "bulk-update-category", mediaIds: selected, mediaCategory: bulkTargetCategory }),
+        body: JSON.stringify({ action: "bulk-update-category", mediaIds: selected, mediaCategory: mediaCategoryForServiceSlug(destination.slug), serviceId: destination.id }),
       });
       const data = (await response.json()) as BulkMoveResponse;
       if (!response.ok || !data.success || !data.mediaCategory || data.startingDisplayOrder === undefined) {
@@ -875,10 +894,11 @@ export default function ProjectMediaManager({
       }
       setMedia((current) => current.map((item) => {
         const index = selected.indexOf(item.id);
-        return index < 0 ? item : { ...item, mediaCategory: data.mediaCategory!, displayOrder: data.startingDisplayOrder! + index };
+        return index < 0 ? item : { ...item, mediaCategory: data.mediaCategory!, serviceId: data.serviceId!, displayOrder: data.startingDisplayOrder! + index };
       }));
       setBulkEditOpen(false);
-      setBulkTargetCategory(null);
+      setBulkTargetServiceId(null);
+      setAnnouncement(data.message || `${selected.length} assets moved to ${destination.name}`);
       clearSelection();
       router.refresh();
     } catch (bulkError) {
@@ -886,7 +906,7 @@ export default function ProjectMediaManager({
     } finally {
       setIsBulkMoving(false);
     }
-  }, [bulkTargetCategory, clearSelection, projectId, router, selectedMediaIds]);
+  }, [bulkTargetServiceId, clearSelection, projectId, router, selectedMediaIds, services]);
 
   const handleMediaUploaded = useCallback(
     (uploadedMedia: ProjectMediaItem) => {
@@ -936,13 +956,17 @@ export default function ProjectMediaManager({
           throw new Error(data.error || "The hero image could not be updated.");
         }
 
-        setMedia((currentMedia) =>
-          currentMedia.map((item) =>
-            item.mediaCategory === data.mediaCategory
-              ? { ...item, isHero: item.id === data.heroMediaId }
-              : item,
-          ),
-        );
+        setMedia((currentMedia) => {
+          const target = currentMedia.find((item) => item.id === data.heroMediaId);
+          if (!target) return currentMedia;
+          const collection = currentMedia.filter((item) => item.serviceId === target.serviceId).sort(sortMediaItems);
+          const reordered = [target, ...collection.filter((item) => item.id !== target.id)];
+          const order = new Map(reordered.map((item, index) => [item.id, index]));
+          return currentMedia.map((item) => item.serviceId === target.serviceId
+            ? { ...item, displayOrder: order.get(item.id) ?? item.displayOrder, isHero: item.id === target.id }
+            : item);
+        });
+        setAnnouncement(data.message || "Hero image set and moved to top");
         router.refresh();
       } catch (updateError) {
         console.error("Unable to update project hero image:", updateError);
@@ -1076,6 +1100,7 @@ export default function ProjectMediaManager({
         altText: item.altText || "",
         caption: item.caption || "",
         mediaCategory: item.mediaCategory,
+        serviceId: item.serviceId,
         visibility: item.visibility === "HIDDEN" ? "HIDDEN" : "VISIBLE",
       });
       setEditingMediaId(item.id);
@@ -1114,6 +1139,7 @@ export default function ProjectMediaManager({
         altText: item.altText || "",
         caption: item.caption || "",
         mediaCategory: item.mediaCategory,
+        serviceId: item.serviceId,
         visibility: item.visibility === "VISIBLE" ? "HIDDEN" : "VISIBLE",
       });
     },
@@ -1517,19 +1543,23 @@ export default function ProjectMediaManager({
 
   return (
     <>
+      <p className="sr-only" aria-live="polite" role="status">{announcement}</p>
       <div className="space-y-8">
         <MediaUploader
           projectId={projectId}
+          services={services}
           onMediaUploaded={handleMediaUploaded}
         />
 
         <StreamVideoUploader
           projectId={projectId}
+          services={services}
           onMediaAdded={handleMediaUploaded}
         />
 
         <ExternalMediaForm
           projectId={projectId}
+          services={services}
           onMediaAdded={handleMediaUploaded}
         />
 
@@ -2242,16 +2272,16 @@ export default function ProjectMediaManager({
             </div>
             <div className="px-6 py-7 sm:px-8">
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {MEDIA_COLLECTIONS.map((collection) => {
-                  const active = bulkTargetCategory === collection.value;
-                  return <button key={collection.value} type="button" onClick={() => setBulkTargetCategory(collection.value)} aria-pressed={active} className={`min-h-14 rounded-xl border px-4 py-3 text-left text-xs transition ${active ? "border-[var(--helios-orange)]/50 bg-[var(--helios-orange)]/[0.08] text-white" : "border-white/[0.08] bg-white/[0.02] text-white/40 hover:border-white/20 hover:text-white/70"}`}>{collection.label}</button>;
+                {services.filter((service) => service.active && !service.archivedAt).map((service) => {
+                  const active = bulkTargetServiceId === service.id;
+                  return <button key={service.id} type="button" onClick={() => setBulkTargetServiceId(service.id)} aria-pressed={active} className={`min-h-14 rounded-xl border px-4 py-3 text-left text-xs transition ${active ? "border-[var(--helios-orange)]/50 bg-[var(--helios-orange)]/[0.08] text-white" : "border-white/[0.08] bg-white/[0.02] text-white/40 hover:border-white/20 hover:text-white/70"}`}>{service.name}</button>;
                 })}
               </div>
               {assetError && <p className="mt-5 rounded-xl border border-red-300/15 bg-red-300/[0.05] px-4 py-3 text-sm text-red-200/80">{assetError}</p>}
             </div>
             <div className="flex flex-col-reverse gap-3 border-t border-white/[0.08] px-6 py-5 sm:flex-row sm:justify-end sm:px-8">
               <button type="button" onClick={() => setBulkEditOpen(false)} disabled={isBulkMoving} className="admin-btn-secondary">Cancel</button>
-              <button type="button" onClick={() => void saveBulkCategory()} disabled={isBulkMoving || !bulkTargetCategory || media.filter((item) => selectedMediaIds.includes(item.id)).every((item) => item.mediaCategory === bulkTargetCategory)} className="admin-btn-primary">
+              <button type="button" onClick={() => void saveBulkCategory()} disabled={isBulkMoving || !bulkTargetServiceId || media.filter((item) => selectedMediaIds.includes(item.id)).every((item) => item.serviceId === bulkTargetServiceId)} className="admin-btn-primary">
                 {isBulkMoving && <span className="h-3 w-3 animate-spin rounded-full border border-black/25 border-t-black" />}
                 {isBulkMoving ? "Moving assets" : "Move selected assets"}
               </button>
@@ -2486,20 +2516,20 @@ export default function ProjectMediaManager({
                 </legend>
 
                 <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {MEDIA_COLLECTIONS.map((collection) => {
-                    const isSelected =
-                      assetDraft.mediaCategory === collection.value;
+                  {services.filter((service) => service.active && !service.archivedAt).map((service) => {
+                    const isSelected = assetDraft.serviceId === service.id;
 
                     return (
                       <button
-                        key={collection.value}
+                        key={service.id}
                         type="button"
                         onClick={() =>
                           setAssetDraft((current) =>
                             current
                               ? {
                                   ...current,
-                                  mediaCategory: collection.value,
+                                  mediaCategory: mediaCategoryForServiceSlug(service.slug),
+                                  serviceId: service.id,
                                 }
                               : current,
                           )
@@ -2511,7 +2541,7 @@ export default function ProjectMediaManager({
                             : "border-white/[0.08] bg-white/[0.02] text-white/40 hover:border-white/20 hover:text-white/70"
                         }`}
                       >
-                        {collection.label}
+                        {service.name}
                       </button>
                     );
                   })}

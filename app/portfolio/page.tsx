@@ -10,6 +10,7 @@ import { tryResolveExternalMedia } from "@/lib/external-media";
 import { getServiceMediaCategories } from "@/lib/portfolio-services";
 import { isActivelyFeatured } from "@/lib/featured-project";
 import { prisma } from "@/lib/prisma";
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { defaultPageCtas } from "@/lib/ctas";
 import { buildPageMetadata } from "@/lib/seo";
@@ -40,9 +41,12 @@ export default async function PortfolioPage({
   const serviceSlug = getServiceParam(requestedService);
   const pageNumber = Math.max(1, Number.parseInt(getServiceParam(requestedPage), 10) || 1);
 
+  const workspaceId = await getPublicWorkspaceId();
   const services = await prisma.service.findMany({
     where: {
+      workspaceId,
       active: true,
+      archivedAt: null,
     },
     orderBy: [
       {

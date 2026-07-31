@@ -12,7 +12,7 @@ import { resolveProjectSocialImage } from "@/lib/project-social-image";
 import { validateProjectPreview } from "@/lib/project-preview";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
-import { getAbsoluteUrl } from "@/lib/site";
+import { getAbsoluteUrl, getConfiguredAbsoluteUrl } from "@/lib/site";
 import { getSiteSettings } from "@/lib/site-settings";
 
 import PortfolioGallery from "./PortfolioGallery";
@@ -212,14 +212,14 @@ export async function generateMetadata({
     return { title, description, robots: { index: false, follow: false } };
   }
 
-  const canonical = getAbsoluteUrl(`/portfolio/${slug}`);
+  const canonical = getConfiguredAbsoluteUrl(`/portfolio/${slug}`, settings.websiteUrl);
   const image = resolveProjectSocialImage({ ...project, workspace: settings });
   return {
     title,
     description,
     alternates: { canonical },
     openGraph: {
-      title, description, type: "article", url: canonical,
+      title, description, type: "article", url: canonical, siteName: settings.businessName,
       images: [{
         url: image.url, secureUrl: image.url, alt: image.alt, type: image.type,
         ...(image.width ? { width: image.width } : {}),
@@ -227,7 +227,7 @@ export async function generateMetadata({
       }],
     },
     twitter: {
-      card: "summary_large_image", title, description, images: [image.url],
+      card: "summary_large_image", title, description, images: [{ url: image.url, alt: image.alt }],
     },
   };
 }

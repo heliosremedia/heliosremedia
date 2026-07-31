@@ -680,6 +680,8 @@ model Media {
 
   sourceType    MediaSourceType
   mediaCategory MediaCategory
+  serviceId     String
+  service       Service       @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   provider      ExternalProvider?
 
   storageKey       String?
@@ -719,28 +721,34 @@ model Media {
   @@index([projectId, displayOrder])
   @@index([projectId, visibility])
   @@index([mediaCategory])
+  @@index([serviceId])
   @@index([sourceType])
 }
 
 model ProjectMediaCollectionHero {
   projectId     String
   mediaCategory MediaCategory
+  serviceId     String
   mediaId       String        @unique
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   media   Media   @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@id([projectId, mediaCategory])
+  @@id([projectId, serviceId])
   @@index([mediaCategory])
+  @@index([serviceId])
 }
 
 model Service {
   id                  String  @id @default(cuid())
   name                String
-  slug                String  @unique
+  slug                String
+  workspaceId         String
+  workspace           Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
   description         String?
   // Retained for backward compatibility; public service imagery now comes
   // from each project's matching media-collection hero.
@@ -748,15 +756,19 @@ model Service {
   heroImageAlt        String?
   displayOrder        Int     @default(0)
   active              Boolean @default(true)
+  archivedAt          DateTime?
 
   projects         ProjectService[]
   inquiries        InquiryService[]
   homepageWorkCard HomepageWorkCard?
+  media            Media[]
+  collectionHeroes ProjectMediaCollectionHero[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([active, displayOrder])
+  @@unique([workspaceId, slug])
+  @@index([workspaceId, active, archivedAt, displayOrder])
 }
 
 model ProjectService {
@@ -1429,6 +1441,7 @@ model Workspace {
   invitations              AdminInvitation[]
   clientSyncRuns           ClientSyncRun[]
   resendWebhookEvents      ResendWebhookEvent[]
+  services                 Service[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

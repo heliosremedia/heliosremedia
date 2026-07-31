@@ -162,6 +162,8 @@ export async function PATCH(
 
       const services = await prisma.service.findMany({
         where: {
+          workspaceId: session.workspaceId,
+          archivedAt: null,
           id: {
             in: serviceIds,
           },
@@ -182,6 +184,14 @@ export async function PATCH(
           },
         );
       }
+
+      const existingAssignments = await prisma.projectService.findMany({ where: { projectId }, select: { serviceId: true } });
+      const existingIds = new Set(existingAssignments.map((item) => item.serviceId));
+      const inactiveNewSelection = await prisma.service.findFirst({
+        where: { id: { in: serviceIds.filter((id) => !existingIds.has(id)) }, workspaceId: session.workspaceId, active: false },
+        select: { id: true },
+      });
+      if (inactiveNewSelection) return NextResponse.json({ success: false, error: "Inactive services cannot be newly assigned." }, { status: 409 });
 
       await prisma.$transaction(async (transaction) => {
         await transaction.projectService.deleteMany({

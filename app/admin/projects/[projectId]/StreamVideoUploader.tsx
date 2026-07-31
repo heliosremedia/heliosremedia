@@ -3,10 +3,7 @@
 import { FormEvent, useMemo, useRef, useState } from "react";
 import * as tus from "tus-js-client";
 
-import {
-  MEDIA_COLLECTIONS,
-  type MediaCategory,
-} from "@/lib/media-collections";
+import { mediaCategoryForServiceSlug, type MediaService } from "@/lib/service-media";
 
 import type { ProjectMediaItem } from "./ProjectMediaManager";
 
@@ -21,6 +18,7 @@ const ACCEPTED_VIDEO_TYPES = new Set([
 
 type StreamVideoUploaderProps = {
   projectId: string;
+  services: MediaService[];
   onMediaAdded: (media: ProjectMediaItem) => void;
 };
 
@@ -66,6 +64,7 @@ function getVideoDimensions(file: File) {
 
 export default function StreamVideoUploader({
   projectId,
+  services,
   onMediaAdded,
 }: StreamVideoUploaderProps) {
   const uploadRef = useRef<tus.Upload | null>(null);
@@ -74,8 +73,8 @@ export default function StreamVideoUploader({
   const [title, setTitle] = useState("");
   const [altText, setAltText] = useState("");
   const [caption, setCaption] = useState("");
-  const [mediaCategory, setMediaCategory] =
-    useState<MediaCategory>("AGENT_BRANDING");
+  const activeServices = services.filter((service) => service.active && !service.archivedAt);
+  const [serviceId, setServiceId] = useState(activeServices[0]?.id ?? "");
   const [visibility, setVisibility] = useState<"VISIBLE" | "HIDDEN">("VISIBLE");
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState<
@@ -125,7 +124,8 @@ export default function StreamVideoUploader({
         altText,
         caption,
         visibility,
-        mediaCategory,
+        serviceId,
+        mediaCategory: mediaCategoryForServiceSlug(activeServices.find((service) => service.id === serviceId)?.slug ?? ""),
         mimeType: selectedFile.type || "video/mp4",
         fileSize: selectedFile.size,
         width: dimensions.width,
@@ -333,23 +333,16 @@ export default function StreamVideoUploader({
                 Media collection
               </span>
               <select
-                value={mediaCategory}
+                value={serviceId}
                 disabled={isBusy}
                 onChange={(event) =>
-                  setMediaCategory(event.target.value as MediaCategory)
+                  setServiceId(event.target.value)
                 }
                 className="mt-2.5 min-h-12 w-full rounded-xl border border-white/10 bg-[#111] px-4 text-sm text-white/80 outline-none transition focus:border-[var(--helios-orange)]/55"
               >
-                {MEDIA_COLLECTIONS.filter((collection) =>
-                  [
-                    "CINEMATIC_FILM",
-                    "VERTICAL_REEL",
-                    "AGENT_BRANDING",
-                    "SOCIAL_CONTENT",
-                  ].includes(collection.value),
-                ).map((collection) => (
-                  <option key={collection.value} value={collection.value}>
-                    {collection.label}
+                {activeServices.map((service) => (
+                  <option key={service.id} value={service.id}>
+                    {service.name}
                   </option>
                 ))}
               </select>

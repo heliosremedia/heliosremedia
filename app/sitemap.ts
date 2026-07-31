@@ -4,13 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { getPublishedLocationPages } from "@/lib/location-pages";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { getAbsoluteUrl } from "@/lib/site";
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
 
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const workspaceId = await getPublicWorkspaceId();
   const [projects, services, legalDocuments, locations, blogPosts] = await Promise.all([
     prisma.project.findMany({
-      where: { status: "PUBLISHED" },
+      where: { workspaceId, status: "PUBLISHED" },
       orderBy: [{ displayOrder: "asc" }, { publishedAt: "desc" }],
       select: {
         slug: true,
@@ -20,7 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         },
       },
     }),
-    prisma.service.findMany({ where: { active: true }, select: { slug: true, updatedAt: true } }),
+    prisma.service.findMany({ where: { workspaceId, active: true, archivedAt: null }, select: { slug: true, updatedAt: true } }),
     prisma.legalDocument.findMany({ where: { published: true }, select: { type: true, updatedAt: true } }),
     getPublishedLocationPages(),
     prisma.blogPost.findMany({ where: { OR: [{ status: "PUBLISHED", publishedAt: { lte: new Date() } }, { status: "SCHEDULED", scheduledAt: { lte: new Date() } }] }, select: { slug: true, updatedAt: true } }),

@@ -20,6 +20,7 @@ import {
   AdminCardToggle,
   AdminDragHandle,
 } from "@/app/admin/components/AdminCardControls";
+import AdminSectionNavigator from "@/app/admin/components/AdminSectionNavigator";
 
 type Section = {
   id: HomepageCurationSectionId;
@@ -132,29 +133,21 @@ export default function HomepageCurationOrganizer({
 
   return (
     <div className="space-y-5">
-      <nav
-        aria-label="Homepage Curation sections"
-        className="sticky top-3 z-30 overflow-x-auto rounded-2xl border border-white/10 bg-[#151515]/95 p-3 shadow-xl backdrop-blur"
-      >
-        <div className="flex min-w-max items-center gap-2">
-          <div className="flex gap-2">{preferences.order.map((id) => {
-            const section = sectionById.get(id);
-            return section ? (
-              <button
-                key={id}
-                type="button"
-                onClick={() => openAndFocus(id)}
-                className="admin-btn-secondary whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--helios-orange)]"
-              >
-                {section.title}
-              </button>
-            ) : null;
-          })}</div>
-          <span aria-hidden="true" className="mx-1 h-7 w-px bg-white/10" />
+      <AdminSectionNavigator
+        label="Homepage Curation sections"
+        sections={preferences.order.flatMap((id) => {
+          const section = sectionById.get(id);
+          return section ? [{ href: `#${id}` as `#${string}`, label: section.title }] : [];
+        })}
+        onNavigate={(id) => {
+          const sectionId = id as HomepageCurationSectionId;
+          if (preferences.collapsed.includes(sectionId)) toggle(sectionId, true);
+        }}
+        actions={<>
           <button type="button" disabled={saving || preferences.collapsed.length === 0} onClick={() => void persist({ ...preferences, collapsed: [] }, "All homepage sections expanded.")} className="admin-btn-secondary whitespace-nowrap">Expand All</button>
           <button type="button" disabled={saving || preferences.collapsed.length === preferences.order.length} onClick={() => void persist({ ...preferences, collapsed: [...preferences.order] }, "All homepage sections collapsed.")} className="admin-btn-secondary whitespace-nowrap">Collapse All</button>
-        </div>
-      </nav>
+        </>}
+      />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p

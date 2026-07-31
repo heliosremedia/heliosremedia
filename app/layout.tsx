@@ -2,8 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 import Script from "next/script";
 
-import { getAbsoluteUrl, getSiteUrl } from "@/lib/site";
+import { getAbsoluteUrl, getConfiguredSiteUrl, getSiteUrl } from "@/lib/site";
 import { getSiteSettings } from "@/lib/site-settings";
+import { buildPageMetadata } from "@/lib/seo";
 import { SiteSettingsProvider } from "@/app/components/SiteSettingsProvider";
 import { getPublishedLocationPages } from "@/lib/location-pages";
 
@@ -30,8 +31,14 @@ export async function generateMetadata(): Promise<Metadata> {
   const favicon = settings.faviconUrl
     ? `${settings.faviconUrl}${settings.faviconUrl.includes("?") ? "&" : "?"}v=${settings.faviconVersion}`
     : undefined;
-  const socialImage = settings.heroPosterUrl || settings.brandLogoUrl;
-  return { metadataBase: new URL(getSiteUrl()), title: settings.defaultSeoTitle, description: settings.defaultSeoDescription, icons: favicon ? { icon: [{ url: favicon, type: "image/png" }], shortcut: favicon, apple: favicon } : undefined, openGraph: { type: "website", locale: "en_US", siteName: settings.businessName, title: settings.defaultSeoTitle, description: settings.defaultSeoDescription, url: getAbsoluteUrl("/"), images: socialImage ? [{ url: socialImage, alt: settings.heroPosterAlt || settings.businessName }] : undefined }, twitter: { card: socialImage ? "summary_large_image" : "summary", title: settings.defaultSeoTitle, description: settings.defaultSeoDescription, images: socialImage ? [socialImage] : undefined } };
+  const siteUrl = getConfiguredSiteUrl(settings.websiteUrl);
+  const base = buildPageMetadata({
+    title: settings.defaultSeoTitle,
+    description: settings.defaultSeoDescription,
+    path: "/",
+    settings,
+  });
+  return { ...base, metadataBase: new URL(siteUrl), icons: favicon ? { icon: [{ url: favicon, type: "image/png" }], shortcut: favicon, apple: favicon } : undefined };
 }
 
 export default async function RootLayout({
