@@ -21,7 +21,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
     version: "V1.9.4",
     slug: "v1-9-4",
-    releaseDate: null,
+    releaseDate: "2026-07-31",
     title: "Responsive Navigation and Sharing Refinement",
     summary: "Improves Studio navigation, dynamic project media services, Hero ordering, public share metadata, and Client Portal guidance.",
     newFeatures: [
@@ -46,7 +46,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
       "Share-image revisions remain stable until the configured asset changes",
     ],
     administratorActions: [],
-    status: "DEPLOYING",
+    status: "LIVE",
   },
   {
     version: "V1.9.3.1",
