@@ -386,6 +386,28 @@ export default function ServiceManager({
     }
   }, []);
 
+  const archiveService = useCallback(async () => {
+    if (!editingServiceId || !window.confirm("Archive this service? Existing projects and media will be preserved.")) return;
+    try {
+      setIsSaving(true);
+      setError(null);
+      const response = await fetch("/api/admin/services", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "archive", serviceId: editingServiceId }),
+      });
+      const data = (await response.json()) as ServiceMutationResponse;
+      if (!response.ok || !data.success) throw new Error(data.error || "The service could not be archived.");
+      setServices((current) => current.filter((service) => service.id !== editingServiceId));
+      setEditingServiceId(null);
+      setDraft(null);
+    } catch (archiveError) {
+      setError(archiveError instanceof Error ? archiveError.message : "The service could not be archived.");
+    } finally {
+      setIsSaving(false);
+    }
+  }, [editingServiceId]);
+
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
       const { active, over } = event;
@@ -753,6 +775,7 @@ export default function ServiceManager({
             </div>
 
             <div className="flex flex-col-reverse gap-3 border-t border-white/[0.08] px-6 py-5 sm:flex-row sm:justify-end sm:px-8">
+              {editingServiceId ? <button type="button" onClick={() => void archiveService()} disabled={isSaving} className="admin-btn-link-destructive sm:mr-auto">Archive service</button> : null}
               <button
                 type="button"
                 onClick={closeModal}

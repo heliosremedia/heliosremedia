@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { mediaCategoryForServiceSlug, mediaFolderForService } from "./service-media.ts";
 
 const read = (path: string) => readFileSync(path, "utf8");
 
@@ -67,4 +68,50 @@ test("V1.9.4 release metadata is deploying before production authorization", () 
   assert.match(releases, /title: "Responsive Navigation and Sharing Refinement"/);
   assert.match(releases, /releaseDate: null/);
   assert.match(releases, /status: "DEPLOYING"/);
+});
+
+test("dynamic project media uses stable workspace service IDs", () => {
+  const schema = read("prisma/schema.prisma");
+  const mediaRoute = read("app/api/admin/projects/[projectId]/media/route.ts");
+  const manager = read("app/admin/projects/[projectId]/ProjectMediaManager.tsx");
+  const uploader = read("app/admin/projects/[projectId]/MediaUploader.tsx");
+  assert.match(schema, /model Service[\s\S]*workspaceId[\s\S]*archivedAt/);
+  assert.match(schema, /model Media[\s\S]*serviceId/);
+  assert.match(schema, /@@id\(\[projectId, serviceId\]\)/);
+  assert.match(mediaRoute, /workspaceId: session\.workspaceId/);
+  assert.match(mediaRoute, /active: true, archivedAt: null/);
+  assert.match(mediaRoute, /projectService\.createMany/);
+  assert.match(manager, /services\.filter\(\(service\) => service\.active/);
+  assert.match(uploader, /activeServices\.map/);
+  assert.doesNotMatch(manager, /MEDIA_COLLECTIONS\.map/);
+});
+
+test("legacy categories remain compatible while new services use OTHER", () => {
+  assert.equal(mediaCategoryForServiceSlug("photography"), "PHOTOGRAPHY");
+  assert.equal(mediaCategoryForServiceSlug("cinematic-films"), "CINEMATIC_FILM");
+  assert.equal(mediaCategoryForServiceSlug("twilight-photography"), "OTHER");
+  assert.equal(mediaCategoryForServiceSlug("ai-cinematic-films"), "OTHER");
+  assert.notEqual(
+    mediaFolderForService({ id: "svc-a", slug: "twilight-photography" }),
+    mediaFolderForService({ id: "svc-b", slug: "twilight-photography" }),
+  );
+});
+
+test("setting Hero moves the image to position 01 and announces the result", () => {
+  const route = read("app/api/admin/projects/[projectId]/media/route.ts");
+  const manager = read("app/admin/projects/[projectId]/ProjectMediaManager.tsx");
+  assert.match(route, /const reorderedIds = \[/);
+  assert.match(route, /displayOrder: index/);
+  assert.match(route, /Hero image set and moved to top/);
+  assert.match(manager, /aria-live="polite"/);
+  assert.match(manager, /setAnnouncement\(data\.message/);
+});
+
+test("service archival preserves related media and removes new destinations", () => {
+  const migration = read("prisma/migrations/20260731123000_v194_dynamic_service_media/migration.sql");
+  const serviceRoute = read("app/api/admin/services/route.ts");
+  assert.match(migration, /never deletes media/i);
+  assert.match(migration, /Media_serviceId_fkey/);
+  assert.match(serviceRoute, /action === "archive"/);
+  assert.match(serviceRoute, /active: false, archivedAt: new Date\(\)/);
 });

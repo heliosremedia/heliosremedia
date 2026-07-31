@@ -111,6 +111,12 @@ export function createImageKey(
   return `projects/${projectId}/${folder}/${timestamp}-${id}.${extension}`;
 }
 
+export function createServiceImageKey(projectId: string, serviceFolder: string, mimeType: string) {
+  const timestamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "-");
+  const id = randomUUID().slice(0, 8);
+  return `projects/${projectId}/${serviceFolder}/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
+}
+
 export function createTestimonialImageKey(mimeType: string) {
   const timestamp = new Date()
     .toISOString()

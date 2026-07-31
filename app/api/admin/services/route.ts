@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { requireAdminSession } from "@/lib/auth/session";
 
 type CreateServiceBody = {
   name?: unknown;
@@ -57,7 +58,7 @@ function serviceSelect() {
   } as const;
 }
 
-async function getUniqueSlug(value: string, serviceId?: string) {
+async function getUniqueSlug(value: string, workspaceId: string, serviceId?: string) {
   const baseSlug = slugify(value) || "service";
   let candidate = baseSlug;
   let suffix = 2;
@@ -65,6 +66,7 @@ async function getUniqueSlug(value: string, serviceId?: string) {
   while (
     await prisma.service.findFirst({
       where: {
+        workspaceId,
         slug: candidate,
         ...(serviceId
           ? {
@@ -96,6 +98,7 @@ function revalidateServicePaths() {
 
 export async function POST(request: Request) {
   try {
+    const session = await requireAdminSession();
     const body = (await request.json()) as CreateServiceBody;
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const requestedSlug = typeof body.slug === "string" ? body.slug.trim() : "";
@@ -125,8 +128,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const slug = await getUniqueSlug(requestedSlug || name);
+    const slug = await getUniqueSlug(requestedSlug || name, session.workspaceId);
     const orderResult = await prisma.service.aggregate({
+      where: { workspaceId: session.workspaceId, archivedAt: null },
       _max: {
         displayOrder: true,
       },
@@ -139,6 +143,7 @@ export async function POST(request: Request) {
         description,
         displayOrder: (orderResult._max.displayOrder ?? -1) + 1,
         active: true,
+        workspaceId: session.workspaceId,
       },
       select: serviceSelect(),
     });
@@ -171,6 +176,7 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
+    const session = await requireAdminSession();
     const body = (await request.json()) as UpdateServiceBody;
     const action = typeof body.action === "string" ? body.action.trim() : "";
 
@@ -219,6 +225,7 @@ export async function PATCH(request: Request) {
 
       await prisma.$transaction(async (transaction) => {
         const currentServices = await transaction.service.findMany({
+          where: { workspaceId: session.workspaceId, archivedAt: null },
           select: {
             id: true,
           },
@@ -278,10 +285,8 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const existingService = await prisma.service.findUnique({
-      where: {
-        id: serviceId,
-      },
+    const existingService = await prisma.service.findFirst({
+      where: { id: serviceId, workspaceId: session.workspaceId, archivedAt: null },
       select: {
         id: true,
       },
@@ -330,6 +335,16 @@ export async function PATCH(request: Request) {
       });
     }
 
+    if (action === "archive") {
+      const service = await prisma.service.update({
+        where: { id: existingService.id },
+        data: { active: false, archivedAt: new Date() },
+        select: serviceSelect(),
+      });
+      revalidateServicePaths();
+      return NextResponse.json({ success: true, service });
+    }
+
     if (action === "update") {
       const name = typeof body.name === "string" ? body.name.trim() : "";
       const requestedSlug =
@@ -362,6 +377,7 @@ export async function PATCH(request: Request) {
 
       const slug = await getUniqueSlug(
         requestedSlug || name,
+        session.workspaceId,
         existingService.id,
       );
 

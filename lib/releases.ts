@@ -23,23 +23,26 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
     slug: "v1-9-4",
     releaseDate: null,
     title: "Responsive Navigation and Sharing Refinement",
-    summary: "Improves Studio section navigation, card reliability, public share metadata, and Client Portal guidance.",
+    summary: "Improves Studio navigation, dynamic project media services, Hero ordering, public share metadata, and Client Portal guidance.",
     newFeatures: [
       "Adaptive Studio section navigation uses a balanced desktop grid and a mobile Jump to Section control",
       "The Client Portal hero includes an accessible Choose Your Portal navigation cue",
+      "Project media destinations and collections are generated from the workspace Services catalog",
     ],
     improvements: [
       "Shared round card controls use refined orange hover, pressed, focus, and disabled states",
       "Expand All and Collapse All occupy a dedicated utility row and reflect the current section state",
       "Social metadata follows page-specific, cover-image, workspace-default, and built-in fallback precedence",
+      "Setting a project Hero image moves it to position 01 while preserving the order of every other asset",
     ],
     bugFixes: [
       "Collapsed Studio sections retain their complete summary card instead of leaving blank space or floating controls",
       "Homepage canonical, Open Graph, and Twitter metadata use the configured public website and saved social-share asset",
       "Portfolio and blog sharing preserve page-specific image precedence with consistent canonical URLs",
+      "Inactive and archived services can no longer receive new media while existing assets remain preserved and movable",
     ],
     securityInfrastructure: [
-      "No database migration, persisted section order, permissions, multi-company scope, or delivery workflow changes",
+      "An additive data migration gives services and media stable workspace-scoped service identities without deleting assets",
       "Share-image revisions remain stable until the configured asset changes",
     ],
     administratorActions: [],

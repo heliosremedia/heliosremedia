@@ -7,6 +7,7 @@ import Navbar from "@/app/components/Navbar";
 import { defaultPageCtas } from "@/lib/ctas";
 import { tryResolveExternalMedia } from "@/lib/external-media";
 import { prisma } from "@/lib/prisma";
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { getServiceMediaCategories } from "@/lib/portfolio-services";
 import { buildPageMetadata } from "@/lib/seo";
@@ -31,8 +32,9 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> { const settings = await getSiteSettings(); return buildPageMetadata({ title: "Real Estate Media Services | Helios", description: "Explore photography, cinematic film, aerial media, agent branding, social content, floor plans, Matterport, and property websites from Helios Real Estate Media.", path: "/services", settings }); }
 
 export default async function ServicesPage() {
+  const workspaceId = await getPublicWorkspaceId();
   const services = await prisma.service.findMany({
-    where: { active: true },
+    where: { workspaceId, active: true, archivedAt: null },
     orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
     select: {
       id: true,

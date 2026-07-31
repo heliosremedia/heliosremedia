@@ -6,6 +6,7 @@ import {
   KeyboardEvent as ReactKeyboardEvent,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -13,9 +14,9 @@ import {
 import {
   DEFAULT_MEDIA_CATEGORY,
   getMediaCollection,
-  MEDIA_COLLECTIONS,
   type MediaCategory,
 } from "@/lib/media-collections";
+import { mediaCategoryForServiceSlug, type MediaService } from "@/lib/service-media";
 
 type ProjectMediaItem = {
   id: string;
@@ -32,6 +33,7 @@ type ProjectMediaItem = {
   aspectRatio: number | null;
   displayOrder: number;
   mediaCategory: MediaCategory;
+  serviceId: string;
   visibility: string;
   createdAt: string;
   publicUrl: string;
@@ -40,6 +42,7 @@ type ProjectMediaItem = {
 
 type MediaUploaderProps = {
   projectId: string;
+  services: MediaService[];
   onMediaUploaded?: (media: ProjectMediaItem) => void;
 };
 
@@ -59,6 +62,7 @@ type UploadItem = {
   status: UploadStatus;
   error: string | null;
   mediaCategory: MediaCategory;
+  serviceId: string;
 };
 
 type PresignResponse = {
@@ -218,6 +222,7 @@ function uploadFileToR2({
 
 export default function MediaUploader({
   projectId,
+  services,
   onMediaUploaded,
 }: MediaUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -233,13 +238,17 @@ export default function MediaUploader({
   ] = useState(false);
   const [selectedCollection, setSelectedCollection] =
     useState<MediaCategory>(DEFAULT_MEDIA_CATEGORY);
+  const activeServices = useMemo(() => services.filter((service) => service.active && !service.archivedAt), [services]);
+  const [selectedServiceId, setSelectedServiceId] = useState(activeServices[0]?.id ?? "");
   const [
     highlightedCollectionIndex,
     setHighlightedCollectionIndex,
   ] = useState(0);
 
-  const activeCollection =
-    getMediaCollection(selectedCollection);
+  const activeService = activeServices.find((service) => service.id === selectedServiceId) ?? activeServices[0];
+  const activeCollection = activeService
+    ? { label: activeService.name, uploadLabel: `${activeService.name} upload`, dropLabel: activeService.name.toLowerCase() }
+    : getMediaCollection(selectedCollection);
 
   useEffect(() => {
     if (!isCollectionMenuOpen) {
@@ -271,24 +280,24 @@ export default function MediaUploader({
   }, [isCollectionMenuOpen]);
 
   const openCollectionMenu = useCallback(() => {
-    const selectedIndex = MEDIA_COLLECTIONS.findIndex(
-      (collection) =>
-        collection.value === selectedCollection,
-    );
+    const selectedIndex = activeServices.findIndex((service) => service.id === selectedServiceId);
 
     setHighlightedCollectionIndex(
       Math.max(selectedIndex, 0),
     );
     setIsCollectionMenuOpen(true);
-  }, [selectedCollection]);
+  }, [activeServices, selectedServiceId]);
 
   const selectCollection = useCallback(
-    (mediaCategory: MediaCategory) => {
-      setSelectedCollection(mediaCategory);
+    (serviceId: string) => {
+      const service = activeServices.find((item) => item.id === serviceId);
+      if (!service) return;
+      setSelectedServiceId(service.id);
+      setSelectedCollection(mediaCategoryForServiceSlug(service.slug));
       setIsCollectionMenuOpen(false);
       collectionButtonRef.current?.focus();
     },
-    [],
+    [activeServices],
   );
 
   const handleCollectionMenuKeyDown = (
@@ -312,7 +321,7 @@ export default function MediaUploader({
       setHighlightedCollectionIndex(
         (currentIndex) =>
           (currentIndex + 1) %
-          MEDIA_COLLECTIONS.length,
+          activeServices.length,
       );
       return;
     }
@@ -329,8 +338,8 @@ export default function MediaUploader({
         (currentIndex) =>
           (currentIndex -
             1 +
-            MEDIA_COLLECTIONS.length) %
-          MEDIA_COLLECTIONS.length,
+            activeServices.length) %
+          activeServices.length,
       );
       return;
     }
@@ -350,7 +359,7 @@ export default function MediaUploader({
     ) {
       event.preventDefault();
       setHighlightedCollectionIndex(
-        MEDIA_COLLECTIONS.length - 1,
+        activeServices.length - 1,
       );
       return;
     }
@@ -367,9 +376,9 @@ export default function MediaUploader({
       }
 
       selectCollection(
-        MEDIA_COLLECTIONS[
+        activeServices[
           highlightedCollectionIndex
-        ].value,
+        ].id,
       );
     }
   };
@@ -427,6 +436,7 @@ export default function MediaUploader({
               fileSize: upload.file.size,
               mediaCategory:
                 upload.mediaCategory,
+              serviceId: upload.serviceId,
             }),
           },
         );
@@ -486,6 +496,7 @@ export default function MediaUploader({
               height: dimensions.height,
               mediaCategory:
                 upload.mediaCategory,
+              serviceId: upload.serviceId,
             }),
           },
         );
@@ -542,6 +553,7 @@ export default function MediaUploader({
           error: null,
           mediaCategory:
             selectedCollection,
+          serviceId: selectedServiceId,
         }));
 
       setUploads((currentUploads) => [
@@ -582,6 +594,7 @@ export default function MediaUploader({
     },
     [
       selectedCollection,
+      selectedServiceId,
       updateUpload,
       uploadFile,
     ],
@@ -777,14 +790,12 @@ export default function MediaUploader({
                 className="absolute inset-x-0 top-[calc(100%+0.65rem)] z-40 overflow-hidden rounded-2xl border border-white/[0.12] bg-[#111111]/[0.98] p-2 shadow-[0_28px_80px_rgba(0,0,0,0.65)] backdrop-blur-2xl"
               >
                 <div className="max-h-80 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-color:rgba(255,255,255,0.14)_transparent] [scrollbar-width:thin]">
-                  {MEDIA_COLLECTIONS.map(
+                  {activeServices.map(
                     (
                       collection,
                       index,
                     ) => {
-                      const isSelected =
-                        collection.value ===
-                        selectedCollection;
+                      const isSelected = collection.id === selectedServiceId;
                       const isHighlighted =
                         index ===
                         highlightedCollectionIndex;
@@ -792,7 +803,7 @@ export default function MediaUploader({
                       return (
                         <button
                           key={
-                            collection.value
+                            collection.id
                           }
                           type="button"
                           role="option"
@@ -807,7 +818,7 @@ export default function MediaUploader({
                           }
                           onClick={() =>
                             selectCollection(
-                              collection.value,
+                              collection.id,
                             )
                           }
                           className={`flex min-h-12 w-full items-center justify-between gap-4 rounded-xl border px-3.5 text-left transition duration-150 ${
@@ -840,7 +851,7 @@ export default function MediaUploader({
                               }`}
                             >
                               {
-                                collection.label
+                                collection.name
                               }
                             </span>
                           </span>

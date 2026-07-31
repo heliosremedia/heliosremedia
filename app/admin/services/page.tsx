@@ -1,11 +1,14 @@
 import { prisma } from "@/lib/prisma";
+import { requireAdminSession } from "@/lib/auth/session";
 
 import ServiceManager, { type AdminService } from "./ServiceManager";
 
 export const dynamic = "force-dynamic";
 
 export default async function ServicesPage() {
+  const session = await requireAdminSession();
   const services = await prisma.service.findMany({
+    where: { workspaceId: session.workspaceId, archivedAt: null },
     orderBy: [
       {
         displayOrder: "asc",

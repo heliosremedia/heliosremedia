@@ -8,6 +8,7 @@ import Navbar from "@/app/components/Navbar";
 import RichText from "@/app/components/RichText";
 import { defaultPageCtas } from "@/lib/ctas";
 import { prisma } from "@/lib/prisma";
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { buildPageMetadata } from "@/lib/seo";
 import { getAbsoluteUrl } from "@/lib/site";
@@ -19,8 +20,9 @@ export const dynamic = "force-dynamic";
 type ServicePageProps = { params: Promise<{ slug: string }> };
 
 async function getService(slug: string) {
+  const workspaceId = await getPublicWorkspaceId();
   return prisma.service.findFirst({
-    where: { slug, active: true },
+    where: { slug, workspaceId, active: true, archivedAt: null },
     select: {
       id: true,
       name: true,

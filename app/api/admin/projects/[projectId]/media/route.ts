@@ -2,11 +2,7 @@ import { DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
-import {
-  DEFAULT_MEDIA_CATEGORY,
-  getMediaCollection,
-  isMediaCategory,
-} from "@/lib/media-collections";
+import { isMediaCategory } from "@/lib/media-collections";
 import {
   deleteCloudflareStreamVideo,
   getCloudflareStreamEmbedUrl,
@@ -17,6 +13,7 @@ import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { r2Client, r2Config } from "@/lib/r2";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
+import { mediaCategoryForServiceSlug, mediaFolderForService } from "@/lib/service-media";
 
 type MediaRouteProps = {
   params: Promise<{
@@ -37,6 +34,7 @@ type CreateMediaRequestBody = {
   width?: unknown;
   height?: unknown;
   mediaCategory?: unknown;
+  serviceId?: unknown;
 };
 
 type UpdateMediaRequestBody = {
@@ -44,6 +42,7 @@ type UpdateMediaRequestBody = {
   mediaId?: unknown;
   externalUrl?: unknown;
   mediaCategory?: unknown;
+  serviceId?: unknown;
   mediaIds?: unknown;
   originalFilename?: unknown;
   altText?: unknown;
@@ -77,6 +76,7 @@ function getOptionalText(value: unknown) {
 export async function GET(_request: Request, { params }: MediaRouteProps) {
   try {
     const { projectId } = await params;
+    const session = await requireAdminSession();
 
     if (!projectId) {
       return NextResponse.json(
@@ -90,16 +90,14 @@ export async function GET(_request: Request, { params }: MediaRouteProps) {
       );
     }
 
-    const project = await prisma.project.findUnique({
-      where: {
-        id: projectId,
-      },
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, workspaceId: session.workspaceId },
       select: {
         id: true,
         heroMediaId: true,
         socialImageMediaId: true,
         collectionHeroes: {
-          select: { mediaId: true, mediaCategory: true },
+          select: { mediaId: true, mediaCategory: true, serviceId: true },
         },
       },
     });
@@ -147,6 +145,7 @@ export async function GET(_request: Request, { params }: MediaRouteProps) {
         height: true,
         aspectRatio: true,
         mediaCategory: true,
+        serviceId: true,
         displayOrder: true,
         visibility: true,
         createdAt: true,
@@ -160,9 +159,15 @@ export async function GET(_request: Request, { params }: MediaRouteProps) {
         ...item,
         publicUrl: item.storageKey ? getPublicAssetUrl(item.storageKey) : "",
         isHero: project.collectionHeroes.some(
-          (hero) => hero.mediaId === item.id && hero.mediaCategory === item.mediaCategory,
+          (hero) => hero.mediaId === item.id && hero.serviceId === item.serviceId,
         ),
       })),
+      services: await prisma.service.findMany({
+        where: { workspaceId: session.workspaceId, archivedAt: null },
+        orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+        select: { id: true, name: true, slug: true, description: true, active: true, displayOrder: true, archivedAt: true },
+      }),
+      projectServiceIds: await prisma.projectService.findMany({ where: { projectId }, select: { serviceId: true } }).then((items) => items.map((item) => item.serviceId)),
     });
   } catch (error) {
     console.error("Unable to load project media:", error);
@@ -182,7 +187,14 @@ export async function GET(_request: Request, { params }: MediaRouteProps) {
 export async function POST(request: Request, { params }: MediaRouteProps) {
   try {
     const { projectId } = await params;
+    const session = await requireAdminSession();
     const body = (await request.json()) as CreateMediaRequestBody;
+    const requestedServiceId = typeof body.serviceId === "string" ? body.serviceId.trim() : "";
+    const ownedProject = await prisma.project.findFirst({
+      where: { id: projectId, workspaceId: session.workspaceId },
+      select: { id: true, heroMediaId: true },
+    });
+    if (!ownedProject) return NextResponse.json({ success: false, error: "Project not found." }, { status: 404 });
 
     const externalUrlInput =
       typeof body.externalUrl === "string" ? body.externalUrl.trim() : "";
@@ -211,6 +223,16 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
 
     const requestedMediaCategory =
       typeof body.mediaCategory === "string" ? body.mediaCategory.trim() : "";
+    const resolveRequestedService = async () => {
+      if (requestedServiceId) {
+        return prisma.service.findFirst({ where: { id: requestedServiceId, workspaceId: session.workspaceId, active: true, archivedAt: null }, select: { id: true, slug: true } });
+      }
+      return prisma.service.findFirst({
+        where: { workspaceId: session.workspaceId, active: true, archivedAt: null },
+        orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+        select: { id: true, slug: true },
+      });
+    };
 
     if (!projectId) {
       return NextResponse.json(
@@ -225,6 +247,9 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
     }
 
     if (streamUid) {
+      const selectedService = await resolveRequestedService();
+      if (!selectedService) return NextResponse.json({ success: false, error: "Choose an active media service." }, { status: 409 });
+      const selectedCategory = mediaCategoryForServiceSlug(selectedService.slug);
       const altText = getOptionalText(body.altText);
       const caption = getOptionalText(body.caption);
       const visibility =
@@ -271,10 +296,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
         );
       }
 
-      const project = await prisma.project.findUnique({
-        where: { id: projectId },
-        select: { id: true },
-      });
+      const project = ownedProject;
 
       if (!project) {
         return NextResponse.json(
@@ -305,6 +327,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
           height: true,
           aspectRatio: true,
           mediaCategory: true,
+          serviceId: true,
           displayOrder: true,
           visibility: true,
           createdAt: true,
@@ -319,7 +342,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
       }
 
       const displayOrderResult = await prisma.media.aggregate({
-        where: { projectId, mediaCategory: requestedMediaCategory },
+        where: { projectId, serviceId: selectedService.id },
         _max: { displayOrder: true },
       });
       const media = await prisma.media.create({
@@ -327,7 +350,8 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
           projectId,
           sourceType: "UPLOADED_VIDEO",
           provider: "CLOUDFLARE_STREAM",
-          mediaCategory: requestedMediaCategory,
+          mediaCategory: selectedCategory,
+          serviceId: selectedService.id,
           externalUrl: getCloudflareStreamEmbedUrl(streamUid),
           externalId: streamUid,
           originalFilename,
@@ -357,6 +381,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
           height: true,
           aspectRatio: true,
           mediaCategory: true,
+          serviceId: true,
           displayOrder: true,
           visibility: true,
           createdAt: true,
@@ -376,6 +401,9 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
     }
 
     if (externalUrlInput) {
+      const selectedService = await resolveRequestedService();
+      if (!selectedService) return NextResponse.json({ success: false, error: "Choose an active media service." }, { status: 409 });
+      const selectedCategory = mediaCategoryForServiceSlug(selectedService.slug);
       const originalFilename =
         typeof body.originalFilename === "string"
           ? body.originalFilename.trim()
@@ -444,10 +472,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
         );
       }
 
-      const project = await prisma.project.findUnique({
-        where: { id: projectId },
-        select: { id: true, heroMediaId: true },
-      });
+      const project = ownedProject;
 
       if (!project) {
         return NextResponse.json(
@@ -477,6 +502,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
           externalUrl: true,
           externalId: true,
           mediaCategory: true,
+          serviceId: true,
           displayOrder: true,
           visibility: true,
           createdAt: true,
@@ -499,7 +525,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
       const displayOrderResult = await prisma.media.aggregate({
         where: {
           projectId,
-          mediaCategory: requestedMediaCategory,
+          serviceId: selectedService.id,
         },
         _max: { displayOrder: true },
       });
@@ -509,7 +535,8 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
           projectId,
           sourceType: resolvedMedia.sourceType,
           provider: resolvedMedia.databaseProvider,
-          mediaCategory: requestedMediaCategory,
+          mediaCategory: selectedCategory,
+          serviceId: selectedService.id,
           externalUrl: resolvedMedia.externalUrl,
           externalId: resolvedMedia.externalId,
           originalFilename,
@@ -534,6 +561,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
           externalUrl: true,
           externalId: true,
           mediaCategory: true,
+          serviceId: true,
           displayOrder: true,
           visibility: true,
           createdAt: true,
@@ -577,9 +605,12 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
       );
     }
 
-    const mediaCategory = requestedMediaCategory
-      ? requestedMediaCategory
-      : DEFAULT_MEDIA_CATEGORY;
+    const selectedService = requestedServiceId
+      ? await prisma.service.findFirst({ where: { id: requestedServiceId, workspaceId: session.workspaceId, active: true, archivedAt: null }, select: { id: true, slug: true } })
+      : await prisma.service.findFirst({ where: { workspaceId: session.workspaceId, slug: "photography", active: true, archivedAt: null }, select: { id: true, slug: true } });
+    if (!selectedService) return NextResponse.json({ success: false, error: "Select an active service collection." }, { status: 409 });
+
+    const mediaCategory = mediaCategoryForServiceSlug(selectedService.slug);
 
     if (!isMediaCategory(mediaCategory)) {
       return NextResponse.json(
@@ -605,8 +636,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
       );
     }
 
-    const collection = getMediaCollection(mediaCategory);
-    const expectedPrefix = `projects/${projectId}/${collection.folder}/`;
+    const expectedPrefix = `projects/${projectId}/${mediaFolderForService(selectedService)}/`;
 
     if (!key.startsWith(expectedPrefix)) {
       return NextResponse.json(
@@ -621,15 +651,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
       );
     }
 
-    const project = await prisma.project.findUnique({
-      where: {
-        id: projectId,
-      },
-      select: {
-        id: true,
-        heroMediaId: true,
-      },
-    });
+    const project = ownedProject;
 
     if (!project) {
       return NextResponse.json(
@@ -685,6 +707,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
         height: true,
         aspectRatio: true,
         mediaCategory: true,
+        serviceId: true,
         displayOrder: true,
         visibility: true,
         createdAt: true,
@@ -705,7 +728,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
     const displayOrderResult = await prisma.media.aggregate({
       where: {
         projectId,
-        mediaCategory,
+        serviceId: selectedService.id,
       },
       _max: {
         displayOrder: true,
@@ -721,6 +744,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
         projectId,
         sourceType: "UPLOADED_IMAGE",
         mediaCategory,
+        serviceId: selectedService.id,
         storageKey: key,
         originalFilename,
         mimeType,
@@ -747,11 +771,14 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
         height: true,
         aspectRatio: true,
         mediaCategory: true,
+        serviceId: true,
         displayOrder: true,
         visibility: true,
         createdAt: true,
       },
     });
+
+    await prisma.projectService.createMany({ data: [{ projectId, serviceId: selectedService.id }], skipDuplicates: true });
 
     return NextResponse.json(
       {
@@ -784,7 +811,10 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
 export async function PATCH(request: Request, { params }: MediaRouteProps) {
   try {
     const { projectId } = await params;
+    const session = await requireAdminSession();
     const body = (await request.json()) as UpdateMediaRequestBody;
+    const ownedProject = await prisma.project.findFirst({ where: { id: projectId, workspaceId: session.workspaceId }, select: { id: true } });
+    if (!ownedProject) return NextResponse.json({ success: false, error: "Project not found." }, { status: 404 });
 
     const action = typeof body.action === "string" ? body.action.trim() : "";
 
@@ -811,6 +841,10 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
       const caption = getOptionalText(body.caption);
       const requestedMediaCategory =
         typeof body.mediaCategory === "string" ? body.mediaCategory.trim() : "";
+      const requestedServiceId = typeof body.serviceId === "string" ? body.serviceId.trim() : "";
+      const destinationService = await prisma.service.findFirst({ where: { id: requestedServiceId, workspaceId: session.workspaceId, active: true, archivedAt: null }, select: { id: true, slug: true } });
+      if (!destinationService) return NextResponse.json({ success: false, error: "Select an active service destination." }, { status: 409 });
+      const destinationCategory = mediaCategoryForServiceSlug(destinationService.slug);
       const visibility =
         typeof body.visibility === "string" ? body.visibility.trim() : "";
       const externalUrlInput =
@@ -897,6 +931,7 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
         select: {
           id: true,
           mediaCategory: true,
+          serviceId: true,
           sourceType: true,
           externalUrl: true,
         },
@@ -946,11 +981,11 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
         }
       }
 
-      if (existingMedia.mediaCategory !== requestedMediaCategory) {
+      if (existingMedia.serviceId !== destinationService.id) {
         const displayOrderResult = await prisma.media.aggregate({
           where: {
             projectId,
-            mediaCategory: requestedMediaCategory,
+            serviceId: destinationService.id,
           },
           _max: {
             displayOrder: true,
@@ -972,7 +1007,8 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
           originalFilename,
           altText,
           caption,
-          mediaCategory: requestedMediaCategory,
+          mediaCategory: destinationCategory,
+          serviceId: destinationService.id,
           visibility,
           ...(resolvedExternalMedia
             ? {
@@ -1003,8 +1039,9 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
           width: true,
           height: true,
           aspectRatio: true,
-          mediaCategory: true,
-          displayOrder: true,
+        mediaCategory: true,
+        serviceId: true,
+        displayOrder: true,
           visibility: true,
           createdAt: true,
         },
@@ -1012,9 +1049,9 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
 
       const collectionHero = await prisma.projectMediaCollectionHero.findUnique({
         where: {
-          projectId_mediaCategory: {
+          projectId_serviceId: {
             projectId,
-            mediaCategory: updatedMedia.mediaCategory,
+            serviceId: updatedMedia.serviceId,
           },
         },
         select: { mediaId: true },
@@ -1178,6 +1215,10 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
       const mediaIds = Array.isArray(body.mediaIds)
         ? body.mediaIds.filter((value): value is string => typeof value === "string" && value.trim().length > 0).map((value) => value.trim())
         : [];
+      const requestedServiceId = typeof body.serviceId === "string" ? body.serviceId.trim() : "";
+      const destinationService = await prisma.service.findFirst({ where: { id: requestedServiceId, workspaceId: session.workspaceId, active: true, archivedAt: null }, select: { id: true, name: true, slug: true } });
+      if (!destinationService) return NextResponse.json({ success: false, error: "Select an active destination service." }, { status: 409 });
+      const destinationCategory = mediaCategoryForServiceSlug(destinationService.slug);
 
       if (!isMediaCategory(requestedMediaCategory)) {
         return NextResponse.json({ success: false, error: "Select a valid destination collection." }, { status: 400 });
@@ -1189,14 +1230,14 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
       const result = await prisma.$transaction(async (transaction) => {
         const selectedMedia = await transaction.media.findMany({
           where: { projectId, id: { in: mediaIds } },
-          select: { id: true, mediaCategory: true },
+          select: { id: true, mediaCategory: true, serviceId: true },
         });
         if (selectedMedia.length !== mediaIds.length) {
           throw new Error("BULK_MEDIA_NOT_FOUND");
         }
 
         const maximum = await transaction.media.aggregate({
-          where: { projectId, mediaCategory: requestedMediaCategory, id: { notIn: mediaIds } },
+          where: { projectId, serviceId: destinationService.id, id: { notIn: mediaIds } },
           _max: { displayOrder: true },
         });
         const startingDisplayOrder = (maximum._max.displayOrder ?? -1) + 1;
@@ -1205,15 +1246,18 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
         });
         await Promise.all(mediaIds.map((id, index) => transaction.media.update({
           where: { id },
-          data: { mediaCategory: requestedMediaCategory, displayOrder: startingDisplayOrder + index },
+          data: { mediaCategory: destinationCategory, serviceId: destinationService.id, displayOrder: startingDisplayOrder + index },
         })));
+        await transaction.projectService.createMany({ data: [{ projectId, serviceId: destinationService.id }], skipDuplicates: true });
         return { startingDisplayOrder };
       });
 
       return NextResponse.json({
         success: true,
         mediaIds,
-        mediaCategory: requestedMediaCategory,
+        mediaCategory: destinationCategory,
+        serviceId: destinationService.id,
+        message: `${mediaIds.length} ${mediaIds.length === 1 ? "asset" : "assets"} moved to ${destinationService.name}`,
         startingDisplayOrder: result.startingDisplayOrder,
       });
     }
@@ -1244,6 +1288,8 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
           sourceType: true,
           storageKey: true,
           mediaCategory: true,
+          serviceId: true,
+          displayOrder: true,
         },
       });
 
@@ -1260,16 +1306,32 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
       }
 
       await prisma.$transaction(async (transaction) => {
+        const collectionMedia = await transaction.media.findMany({
+          where: { projectId, serviceId: media.serviceId },
+          orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+          select: { id: true },
+        });
+
+        const reorderedIds = [
+          media.id,
+          ...collectionMedia.filter((item) => item.id !== media.id).map((item) => item.id),
+        ];
+
+        for (const [index, id] of reorderedIds.entries()) {
+          await transaction.media.update({ where: { id }, data: { displayOrder: index } });
+        }
+
         await transaction.projectMediaCollectionHero.upsert({
           where: {
-            projectId_mediaCategory: {
+            projectId_serviceId: {
               projectId,
-              mediaCategory: media.mediaCategory,
+              serviceId: media.serviceId,
             },
           },
           create: {
             projectId,
             mediaCategory: media.mediaCategory,
+            serviceId: media.serviceId,
             mediaId: media.id,
           },
           update: { mediaId: media.id },
@@ -1290,6 +1352,8 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
         success: true,
         heroMediaId: media.id,
         mediaCategory: media.mediaCategory,
+        serviceId: media.serviceId,
+        message: "Hero image set and moved to top",
       });
     }
 
