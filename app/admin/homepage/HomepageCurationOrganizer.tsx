@@ -15,6 +15,11 @@ import {
   type HomepageCurationPreferences,
   type HomepageCurationSectionId,
 } from "@/lib/homepage-curation-layout";
+import {
+  AdminCardIconButton,
+  AdminCardToggle,
+  AdminDragHandle,
+} from "@/app/admin/components/AdminCardControls";
 
 type Section = {
   id: HomepageCurationSectionId;
@@ -252,9 +257,8 @@ export default function HomepageCurationOrganizer({
                   ) : null}
                 </button>
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
-                  <span
-                    aria-hidden="true"
-                    title="Drag to reorder"
+                  <AdminDragHandle
+                    label={section.title}
                     draggable
                     onDragStart={(event: DragEvent<HTMLSpanElement>) => {
                       setDraggedId(id);
@@ -262,35 +266,25 @@ export default function HomepageCurationOrganizer({
                       event.dataTransfer.setData("text/plain", id);
                     }}
                     onDragEnd={() => setDraggedId(null)}
-                    className="cursor-grab select-none rounded-lg border border-white/10 px-3 py-2 text-white/35 active:cursor-grabbing"
-                  >
-                    ⠿
-                  </span>
-                  <button
-                    type="button"
+                  />
+                  <AdminCardIconButton
                     disabled={saving || index === 0}
                     onClick={() => move(id, -1)}
-                    className="admin-btn-secondary"
-                    aria-label={`Move ${section.title} up`}
-                  >
-                    Move Up
-                  </button>
-                  <button
-                    type="button"
+                    label={`Move ${section.title} up`}
+                    symbol="↑"
+                  />
+                  <AdminCardIconButton
                     disabled={saving || index === preferences.order.length - 1}
                     onClick={() => move(id, 1)}
-                    className="admin-btn-secondary"
-                    aria-label={`Move ${section.title} down`}
-                  >
-                    Move Down
-                  </button>
-                  <button
-                    type="button"
+                    label={`Move ${section.title} down`}
+                    symbol="↓"
+                  />
+                  <AdminCardToggle
+                    expanded={!collapsed}
+                    label={section.title}
+                    controls={`${id}-content`}
                     onClick={() => toggle(id)}
-                    className="admin-btn-secondary"
-                  >
-                    {collapsed ? "Expand" : "Collapse"}
-                  </button>
+                  />
                 </div>
               </header>
               <div

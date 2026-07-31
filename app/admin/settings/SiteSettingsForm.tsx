@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { PublicSiteSettings } from "@/lib/site-settings";
+import { AdminCardToggle } from "@/app/admin/components/AdminCardControls";
 
 type UploadKind = "video" | "poster" | "logo" | "monogram" | "standard" | "conversion";
 
@@ -60,10 +61,12 @@ export default function SiteSettingsForm({
   initialSettings,
   mode = "global",
   brandIdentityAddon,
+  legalAddon,
 }: {
   initialSettings: PublicSiteSettings;
   mode?: "global" | "homepage";
   brandIdentityAddon?: ReactNode;
+  legalAddon?: ReactNode;
 }) {
   const [settings, setSettings] = useState(initialSettings);
   const [savedSettings, setSavedSettings] = useState(initialSettings);
@@ -74,10 +77,12 @@ export default function SiteSettingsForm({
   const [mediaPreview, setMediaPreview] = useState<"video" | "poster" | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     "brand-identity": true,
-    "brand-assets": true,
-    "booking-experience": true,
-    "content-discovery": true,
-    "legal-privacy": true,
+    "brand-assets": false,
+    "booking-experience": false,
+    "global-controls": false,
+    "content-discovery": false,
+    "search-appearance": false,
+    "legal-privacy": false,
   });
   const voiceCloseRef = useRef<HTMLButtonElement>(null);
   const previewTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -118,13 +123,19 @@ export default function SiteSettingsForm({
 
   function revealAndScroll(sectionId: string) {
     setExpandedSections((current) => ({ ...current, [sectionId]: true }));
-    window.requestAnimationFrame(() =>
-      document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() =>
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" })));
   }
 
   function revealInvalidParent(event: React.InvalidEvent<HTMLDivElement>) {
     const section = (event.target as HTMLElement).closest<HTMLElement>("[data-settings-section]");
-    if (section?.id) setExpandedSections((current) => ({ ...current, [section.id]: true }));
+    if (section?.id) {
+      setExpandedSections((current) => ({ ...current, [section.id]: true }));
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+        (event.target as HTMLElement).scrollIntoView({ block: "center" });
+        (event.target as HTMLElement).focus({ preventScroll: true });
+      }));
+    }
   }
 
   async function persist(
@@ -371,6 +382,7 @@ export default function SiteSettingsForm({
 
   const groups = [
     {
+      eyebrow: "Business Information",
       title: "Business and contact",
       fields: [
         ["businessName", "Business name"],
@@ -381,6 +393,7 @@ export default function SiteSettingsForm({
       ],
     },
     {
+      eyebrow: "Location Information",
       title: "Location and public messaging",
       fields: [
         ["locationLabel", "Location label"],
@@ -390,6 +403,7 @@ export default function SiteSettingsForm({
       ],
     },
     {
+      eyebrow: "Website & Social Links",
       title: "Social and website",
       fields: [
         ["websiteUrl", "Public website address"],
@@ -410,6 +424,20 @@ export default function SiteSettingsForm({
       ? "border-red-400/30 bg-red-400/[0.08] text-red-200"
       : "border-amber-300/30 bg-amber-300/[0.08] text-amber-100";
   const bookingLabel = settings.bookingMode === "ONLINE" ? "Online" : settings.bookingMode === "UNAVAILABLE" ? "Temporarily Unavailable" : "Booking Paused";
+  const settingsSections = [
+    ["brand-identity", "Brand Identity"],
+    ["brand-assets", "Brand Assets"],
+    ["booking-experience", "Booking Experience"],
+    ["global-controls", "Global Controls"],
+    ["content-discovery", "Content & Discovery"],
+    ["search-appearance", "Search Appearance"],
+    ["legal-privacy", "Legal & Privacy"],
+  ] as const;
+  const allSettingsExpanded = settingsSections.every(([id]) => expandedSections[id]);
+  const allSettingsCollapsed = settingsSections.every(([id]) => !expandedSections[id]);
+  function toggleSettingsSection(id: string) {
+    setExpandedSections((current) => ({ ...current, [id]: !current[id] }));
+  }
   const globalIdentityCards = <div id="business-contact" className="mt-6 grid scroll-mt-28 gap-6 xl:grid-cols-2">
     {groups.map((group) => (
       <section
@@ -417,7 +445,7 @@ export default function SiteSettingsForm({
         key={group.title}
         className={`scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-6 ${group.title === "Social and website" ? "xl:col-span-2" : ""}`}
       >
-        <p className="eyebrow text-[var(--helios-orange)]">Business identity</p>
+        <p className="eyebrow text-[var(--helios-orange)]">{group.eyebrow}</p>
         <h2 className="mt-2 text-xl font-light text-white">{group.title}</h2>
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
           {group.fields.map(([key, label]) => (
@@ -630,17 +658,22 @@ export default function SiteSettingsForm({
 
       {mode === "global" ? (
         <>
-      <nav aria-label="Site Settings sections" className="sticky top-3 z-30 mt-6 flex flex-wrap gap-2 rounded-2xl border border-white/10 bg-[#151515]/95 p-3 shadow-xl backdrop-blur">
-        {([["brand-identity","Brand Identity"],["brand-assets","Brand Assets"],["booking-experience","Booking Experience"],["content-discovery","Content & Discovery"],["legal-privacy","Legal & Privacy"]] as const).map(([id,label]) =>
-          <button key={id} type="button" onClick={() => revealAndScroll(id)} className="admin-btn-secondary">{label}</button>)}
+      <nav aria-label="Site Settings sections" className="sticky top-3 z-30 mt-6 overflow-x-auto rounded-2xl border border-white/10 bg-[#151515]/95 p-3 shadow-xl backdrop-blur">
+        <div className="flex min-w-max items-center gap-2">
+        {settingsSections.map(([id,label]) =>
+          <button key={id} type="button" onClick={() => revealAndScroll(id)} className="admin-btn-secondary whitespace-nowrap">{label}</button>)}
+        <span aria-hidden="true" className="mx-1 h-7 w-px bg-white/10" />
+        <button type="button" disabled={allSettingsExpanded} onClick={() => setExpandedSections(Object.fromEntries(settingsSections.map(([id]) => [id, true])))} className="admin-btn-secondary whitespace-nowrap">Expand All</button>
+        <button type="button" disabled={allSettingsCollapsed} onClick={() => setExpandedSections(Object.fromEntries(settingsSections.map(([id]) => [id, false])))} className="admin-btn-secondary whitespace-nowrap">Collapse All</button>
+        </div>
       </nav>
 
       <div id="brand-identity" data-settings-section className="scroll-mt-28">
       <section className="mt-10 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111] sm:mt-12">
         <div className="p-6 lg:p-8">
           <div className="max-w-3xl">
-            <div className="flex items-start justify-between gap-4"><div><p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">Brand Identity</p>
-            <h2 className="mt-3 text-2xl font-light text-white">Logo, business, contact, location, messaging, social and website</h2></div><button type="button" aria-expanded={expandedSections["brand-identity"]} aria-controls="brand-identity-content" onClick={() => setExpandedSections(current => ({...current, "brand-identity": !current["brand-identity"]}))} className="admin-btn-secondary">{expandedSections["brand-identity"] ? "Collapse" : "Expand"}</button></div>
+            <div className="flex items-start justify-between gap-4"><div className="min-w-0 pr-2"><p className="eyebrow text-[var(--helios-orange)]">Brand Identity</p>
+            <h2 className="mt-3 text-2xl font-light text-white">Logo, business, contact, location, messaging, social and website</h2></div><AdminCardToggle expanded={expandedSections["brand-identity"]} label="Brand Identity" controls="brand-identity-content" onClick={() => toggleSettingsSection("brand-identity")} /></div>
             <p className="mt-3 max-w-lg text-sm leading-6 text-white/40">The primary logo powers public brand lockups. The separate square monogram creates a discreet admin-access shortcut today and is ready for future app icons and tenant branding.</p>
           </div>
 
@@ -698,15 +731,17 @@ export default function SiteSettingsForm({
       {expandedSections["brand-identity"] ? globalIdentityCards : null}
       </div>
       <section id="brand-assets" data-settings-section className="mt-6 scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-6">
-        <div className="flex items-start justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Brand Assets</p><h2 className="mt-2 text-2xl font-light text-white">Favicon, social share and managed assets</h2></div><button type="button" aria-expanded={expandedSections["brand-assets"]} aria-controls="brand-assets-content" onClick={() => setExpandedSections(current => ({...current, "brand-assets": !current["brand-assets"]}))} className="admin-btn-secondary">{expandedSections["brand-assets"] ? "Collapse" : "Expand"}</button></div>
+        <div className="flex items-start justify-between gap-4"><div className="min-w-0 pr-2"><p className="eyebrow text-[var(--helios-orange)]">Brand Assets</p><h2 className="mt-2 text-2xl font-light text-white">Favicon, social share and managed assets</h2></div><AdminCardToggle expanded={expandedSections["brand-assets"]} label="Brand Assets" controls="brand-assets-content" onClick={() => toggleSettingsSection("brand-assets")} /></div>
         <div id="brand-assets-content" hidden={!expandedSections["brand-assets"]} className="mt-6">{brandIdentityAddon}</div>
       </section>
 
       <section id="booking-experience" data-settings-section className="mt-6 scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-6">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div><p className="eyebrow text-[var(--helios-orange)]">Booking Experience</p><h2 className="mt-2 text-2xl font-light text-white">Secure booking handoff</h2><p className="mt-2 max-w-2xl text-sm text-white/38">Business identity and contact details inherit from Business &amp; Contact unless an explicit override is entered. Provider name identifies the external service shown during the handoff.</p></div>
-          <label className="flex min-h-11 items-center gap-3 rounded-xl border border-white/10 bg-black/20 px-4 text-sm text-white/55"><input type="checkbox" checked={settings.bookingHandoffEnabled} onChange={e=>setSettings(current=>({...current,bookingHandoffEnabled:e.target.checked}))}/>Enable handoff page</label>
+          <AdminCardToggle expanded={expandedSections["booking-experience"]} label="Booking Experience" controls="booking-experience-content" onClick={() => toggleSettingsSection("booking-experience")} />
         </div>
+        <div id="booking-experience-content" hidden={!expandedSections["booking-experience"]}>
+        <label className="mt-6 flex min-h-11 w-fit items-center gap-3 rounded-xl border border-white/10 bg-black/20 px-4 text-sm text-white/55"><input type="checkbox" checked={settings.bookingHandoffEnabled} onChange={e=>setSettings(current=>({...current,bookingHandoffEnabled:e.target.checked}))}/>Enable handoff page</label>
         {!settings.bookingHandoffEnabled ? <p className="mt-6 rounded-xl border border-amber-300/15 bg-amber-300/[0.04] p-4 text-sm leading-6 text-amber-100/65">The public handoff page is inactive. All configuration remains saved and available below.</p> : null}
         <div className={`mt-6 grid gap-5 sm:grid-cols-2 ${settings.bookingHandoffEnabled ? "" : "opacity-60"}`}>
           <label className="text-xs uppercase tracking-[.14em] text-white/35">Eyebrow<input value={settings.bookingEyebrow||""} onChange={e=>update("bookingEyebrow",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label>
@@ -717,24 +752,25 @@ export default function SiteSettingsForm({
           <fieldset className="rounded-xl border border-white/[0.08] bg-black/20 p-4"><legend className="px-2 text-xs uppercase tracking-[.14em] text-white/35">Phone action</legend><label className="block text-xs uppercase tracking-[.14em] text-white/35">Call button label<input value={settings.bookingCallLabel||""} onChange={e=>update("bookingCallLabel",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label><label className="mt-4 flex items-center gap-3 text-sm text-white/50"><input type="checkbox" checked={settings.bookingPhoneVisible} onChange={e=>setSettings(current=>({...current,bookingPhoneVisible:e.target.checked}))}/>Show phone action</label></fieldset>
           <fieldset className="rounded-xl border border-white/[0.08] bg-black/20 p-4"><legend className="px-2 text-xs uppercase tracking-[.14em] text-white/35">Email action</legend><label className="block text-xs uppercase tracking-[.14em] text-white/35">Email button label<input value={settings.bookingEmailLabel||""} onChange={e=>update("bookingEmailLabel",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label><label className="mt-4 flex items-center gap-3 text-sm text-white/50"><input type="checkbox" checked={settings.bookingEmailVisible} onChange={e=>setSettings(current=>({...current,bookingEmailVisible:e.target.checked}))}/>Show email action</label></fieldset>
         </div>
+        </div>
       </section>
 
-      <section className={`mt-6 rounded-2xl border p-6 ${settings.bookingMode === "ONLINE" ? "border-white/[0.08] bg-[#111]" : "border-[var(--helios-orange)]/45 bg-[var(--helios-orange)]/[0.045]"}`}>
-        <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Global control</p><h2 className="mt-2 text-2xl font-light text-white">Booking availability</h2><p className="mt-2 text-sm text-white/38">Every public booking action follows the saved workspace configuration.</p></div><div className="flex flex-col items-end gap-2"><span className={`rounded-full border px-3 py-1.5 text-xs uppercase tracking-[.12em] ${bookingPill}`}>{bookingLabel}</span>{bookingDirty&&<span className="text-xs text-amber-200">Unsaved changes</span>}</div></div>
+      <section id="global-controls" data-settings-section className={`mt-6 scroll-mt-28 rounded-2xl border p-6 ${settings.bookingMode === "ONLINE" ? "border-white/[0.08] bg-[#111]" : "border-[var(--helios-orange)]/45 bg-[var(--helios-orange)]/[0.045]"}`}>
+        <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Global Controls</p><h2 className="mt-2 text-2xl font-light text-white">Booking availability</h2><p className="mt-2 text-sm text-white/38">Every public booking action follows the saved workspace configuration.</p></div><div className="flex items-start gap-3"><div className="flex flex-col items-end gap-2"><span className={`rounded-full border px-3 py-1.5 text-xs uppercase tracking-[.12em] ${bookingPill}`}>{bookingLabel}</span>{bookingDirty&&<span className="text-xs text-amber-200">Unsaved changes</span>}</div><AdminCardToggle expanded={expandedSections["global-controls"]} label="Global Controls" controls="global-controls-content" onClick={() => toggleSettingsSection("global-controls")} /></div></div>
+        <div id="global-controls-content" hidden={!expandedSections["global-controls"]}>
         {bookingOnline&&<p className="mt-5 rounded-xl border border-white/[0.07] bg-black/20 p-4 text-sm text-white/35">Outage messaging remains saved but only becomes publicly active when booking is Temporarily Unavailable or Paused.</p>}
         <div className="mt-6 grid gap-5 sm:grid-cols-2"><label className="text-xs uppercase tracking-[.14em] text-white/35">Booking mode<select value={settings.bookingMode} onChange={(event) => setSettings(current => ({ ...current, bookingMode: event.target.value as PublicSiteSettings["bookingMode"] }))} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-[#111] px-4 text-sm normal-case tracking-normal text-white"><option value="ONLINE">Online</option><option value="UNAVAILABLE">Temporarily Unavailable</option><option value="PAUSED">Booking Paused</option></select></label><label className="text-xs uppercase tracking-[.14em] text-white/35">External booking destination<input value={settings.bookingUrl ?? ""} onChange={(e) => update("bookingUrl", e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white" /></label><label className="text-xs uppercase tracking-[.14em] text-white/35">Public headline<input value={settings.bookingHeadline ?? ""} onChange={(e) => update("bookingHeadline", e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white" /></label><label className="text-xs uppercase tracking-[.14em] text-white/35">Estimated restoration<input type="datetime-local" value={settings.bookingEstimatedRestoreAt ? new Date(settings.bookingEstimatedRestoreAt).toISOString().slice(0,16) : ""} onChange={(e) => setSettings(current => ({ ...current, bookingEstimatedRestoreAt: e.target.value ? new Date(e.target.value).toISOString() : null }))} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white" /></label><label className="text-xs uppercase tracking-[.14em] text-white/35 sm:col-span-2">Public explanation<textarea rows={4} value={settings.bookingExplanation ?? ""} onChange={(e) => update("bookingExplanation", e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 p-4 text-sm normal-case leading-6 tracking-normal text-white" /></label><label className="text-xs uppercase tracking-[.14em] text-white/35">Contact phone<input value={settings.bookingContactPhone ?? ""} onChange={(e) => update("bookingContactPhone", e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white" /></label><label className="text-xs uppercase tracking-[.14em] text-white/35">Contact email<input value={settings.bookingContactEmail ?? ""} onChange={(e) => update("bookingContactEmail", e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white" /></label><label className="text-xs uppercase tracking-[.14em] text-white/35 sm:col-span-2">Banner message<input value={settings.bookingBannerMessage ?? ""} onChange={(e) => update("bookingBannerMessage", e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white" /></label><label className="flex items-center gap-3 text-sm text-white/50"><input type="checkbox" checked={settings.bookingBannerEnabled} onChange={(e) => setSettings(current => ({ ...current, bookingBannerEnabled: e.target.checked }))} className="accent-[var(--helios-orange)]" />Show public status banner</label><label className="flex items-center gap-3 text-sm text-white/50"><input type="checkbox" checked={settings.bookingRequestEnabled} onChange={(e) => setSettings(current => ({ ...current, bookingRequestEnabled: e.target.checked }))} className="accent-[var(--helios-orange)]" />Enable booking-request form</label></div>
         <div className="mt-6 rounded-xl border border-white/10 bg-black/25 p-5"><p className="text-[.52rem] uppercase tracking-[.14em] text-white/30">Unavailable-state preview</p><p className="mt-3 text-xl font-light text-white">{settings.bookingHeadline}</p><p className="mt-2 text-sm leading-6 text-white/40">{settings.bookingExplanation}</p></div>
+        </div>
       </section>
 
-      <div id="content-discovery" data-settings-section className="scroll-mt-28" />
-      <section className="mt-6 rounded-2xl border border-white/[0.08] bg-[#111] p-6"><div className="flex items-start justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Content &amp; Discovery</p><h2 className="mt-2 text-xl font-light text-white">Blog Studio Voice</h2><p className="mt-2 text-sm text-white/35">Long-form guidance used by the existing Blog Studio AI workflow.</p></div><button type="button" onClick={() => setVoiceExpanded(true)} className="admin-btn-secondary">Expand Editor</button></div><div className="mt-6 grid gap-5 lg:grid-cols-3">{([["brandVoice","Brand voice"],["brandAudience","Primary audience"],["brandWritingGuidance","Writing guardrails"]] as const).map(([key,label]) => <label key={key} className="text-xs uppercase tracking-[.14em] text-white/35">{label}<textarea rows={7} value={settings[key] ?? ""} onChange={(e) => update(key,e.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 p-4 text-sm font-normal normal-case leading-6 tracking-normal text-white" /></label>)}</div><label className="mt-5 block text-xs uppercase tracking-[.14em] text-white/35">Default article author<input value={settings.defaultBlogAuthor ?? ""} onChange={(e) => update("defaultBlogAuthor",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm font-normal normal-case tracking-normal text-white" /></label></section>
+      <section id="content-discovery" data-settings-section className="mt-6 scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-6"><div className="flex items-start justify-between gap-4"><div className="min-w-0 pr-2"><p className="eyebrow text-[var(--helios-orange)]">Content &amp; Discovery</p><h2 className="mt-2 text-xl font-light text-white">Blog Studio Voice</h2><p className="mt-2 text-sm text-white/35">Long-form guidance used by the existing Blog Studio AI workflow.</p></div><AdminCardToggle expanded={expandedSections["content-discovery"]} label="Content & Discovery" controls="content-discovery-content" onClick={() => toggleSettingsSection("content-discovery")} /></div><div id="content-discovery-content" hidden={!expandedSections["content-discovery"]}><div className="mt-6 flex justify-end"><button type="button" onClick={() => setVoiceExpanded(true)} className="admin-btn-secondary">Expand Editor</button></div><div className="mt-6 grid gap-5 lg:grid-cols-3">{([["brandVoice","Brand voice"],["brandAudience","Primary audience"],["brandWritingGuidance","Writing guardrails"]] as const).map(([key,label]) => <label key={key} className="text-xs uppercase tracking-[.14em] text-white/35">{label}<textarea rows={7} value={settings[key] ?? ""} onChange={(e) => update(key,e.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 p-4 text-sm font-normal normal-case leading-6 tracking-normal text-white" /></label>)}</div><label className="mt-5 block text-xs uppercase tracking-[.14em] text-white/35">Default article author<input value={settings.defaultBlogAuthor ?? ""} onChange={(e) => update("defaultBlogAuthor",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm font-normal normal-case tracking-normal text-white" /></label></div></section>
       {voiceExpanded && <div role="dialog" aria-modal="true" aria-labelledby="voice-editor-title" aria-describedby="voice-editor-description" className="fixed inset-0 z-[100] overflow-y-auto bg-black/85 p-4 backdrop-blur"><div className="mx-auto my-4 min-h-[calc(100vh-2rem)] max-w-6xl rounded-2xl border border-white/10 bg-[#111] p-6 sm:p-8"><div className="flex justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Blog Studio</p><h2 id="voice-editor-title" className="mt-2 text-3xl font-light text-white">Voice Editor</h2><p id="voice-editor-description" className="mt-2 text-sm text-white/35">Changes remain available in the standard editor until you save settings.</p></div><button ref={voiceCloseRef} onClick={() => setVoiceExpanded(false)} className="admin-btn-secondary">Close</button></div><div className="mt-8 grid gap-6">{([["brandVoice","Brand voice"],["brandAudience","Primary audience"],["brandWritingGuidance","Writing guardrails"]] as const).map(([key,label]) => <label key={key} className="text-xs uppercase tracking-[.14em] text-white/35">{label}<textarea rows={8} value={settings[key] ?? ""} onChange={(e) => update(key,e.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 p-5 text-base font-normal normal-case leading-7 tracking-normal text-white" /></label>)}</div><div className="mt-8 flex justify-end gap-3"><button onClick={() => setVoiceExpanded(false)} className="admin-btn-secondary">Keep editing later</button><button disabled={saving} onClick={async () => { await persist(settings, "Blog Studio Voice saved."); setVoiceExpanded(false); }} className="admin-btn-primary">{saving ? "Saving…" : "Save Settings"}</button></div></div></div>}
 
-      <section className="mt-6 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111] p-6 lg:p-8">
-        <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr]">
+      <section id="search-appearance" data-settings-section className="mt-6 scroll-mt-28 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111] p-6 lg:p-8">
+        <div className="flex items-start justify-between gap-4"><div className="min-w-0 pr-2"><p className="eyebrow text-[var(--helios-orange)]">Search Appearance</p><h2 className="mt-2 text-2xl font-light text-white">Homepage SEO preview</h2></div><AdminCardToggle expanded={expandedSections["search-appearance"]} label="Search Appearance" controls="search-appearance-content" onClick={() => toggleSettingsSection("search-appearance")} /></div>
+        <div id="search-appearance-content" hidden={!expandedSections["search-appearance"]} className="mt-6 grid gap-8 lg:grid-cols-[0.72fr_1.28fr]">
           <div>
-            <p className="text-[0.54rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">Search appearance</p>
-            <h2 className="mt-3 text-2xl font-light text-white">Homepage SEO preview</h2>
             <p className="mt-3 max-w-lg text-sm leading-6 text-white/40">These defaults control the homepage search result and provide fallback metadata wherever a page does not have its own title or description.</p>
             <div className="mt-6 rounded-xl border border-white/[0.08] bg-black/25 p-5">
               <p className="truncate text-xs text-white/45">{settings.websiteUrl || "https://www.heliosrealestatemedia.com"}</p>
@@ -748,6 +784,11 @@ export default function SiteSettingsForm({
             <p className="text-xs leading-5 text-white/28">Aim for roughly 50–60 characters in the title and 140–160 in the description. Write naturally for people; search engines may rewrite either field.</p>
           </div>
         </div>
+      </section>
+
+      <section id="legal-privacy" data-settings-section className="mt-6 scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-6">
+        <div className="flex items-start justify-between gap-4"><div className="min-w-0 pr-2"><p className="eyebrow text-[var(--helios-orange)]">Legal &amp; Privacy</p><h2 className="mt-2 text-2xl font-light text-white">Legal documents</h2><p className="mt-2 text-sm text-white/35">Manage the legal documents linked from the public experience.</p></div><AdminCardToggle expanded={expandedSections["legal-privacy"]} label="Legal & Privacy" controls="legal-privacy-content" onClick={() => toggleSettingsSection("legal-privacy")} /></div>
+        <div id="legal-privacy-content" hidden={!expandedSections["legal-privacy"]} className="mt-6">{legalAddon}</div>
       </section>
         </>
       ) : null}

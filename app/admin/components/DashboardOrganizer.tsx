@@ -7,6 +7,11 @@ import {
   type DashboardCardId,
   type DashboardPreferences,
 } from "@/lib/dashboard-layout";
+import {
+  AdminCardIconButton,
+  AdminCardToggle,
+  AdminDragHandle,
+} from "./AdminCardControls";
 
 type Card = { id: DashboardCardId; title: string; summary?: string; content: ReactNode };
 type DropTarget = { row: number; side: "before" | "after" | "beside" };
@@ -83,8 +88,8 @@ export default function DashboardOrganizer({ initialPreferences, cards }: {
       <p role="status" aria-live="polite" className="px-2 text-xs text-white/40">{message || (organizing ? "Drag by a handle or use the row and column controls." : "Dashboard layout saved per account.")}</p>
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={() => setOrganizing(value => !value)} className={organizing ? "admin-btn-primary" : "admin-btn-secondary"}>{organizing ? "Done Organizing" : "Organize Dashboard"}</button>
-        <button type="button" disabled={saving} onClick={() => void persist({ ...preferences, collapsed: [] }, "All dashboard cards expanded.")} className="admin-btn-secondary">Expand All</button>
-        <button type="button" disabled={saving} onClick={() => void persist({ ...preferences, collapsed: [...preferences.order] }, "All dashboard cards collapsed.")} className="admin-btn-secondary">Collapse All</button>
+        <button type="button" disabled={saving || preferences.collapsed.length === 0} onClick={() => void persist({ ...preferences, collapsed: [] }, "All dashboard cards expanded.")} className="admin-btn-secondary">Expand All</button>
+        <button type="button" disabled={saving || preferences.collapsed.length === preferences.order.length} onClick={() => void persist({ ...preferences, collapsed: [...preferences.order] }, "All dashboard cards collapsed.")} className="admin-btn-secondary">Collapse All</button>
         <button type="button" disabled={saving} onClick={() => confirm("Reset dashboard rows and collapsed cards?") && void persist(DEFAULT_DASHBOARD_PREFERENCES, "Default dashboard layout restored.")} className="admin-btn-secondary">Reset Layout</button>
       </div>
     </div>
@@ -107,13 +112,13 @@ export default function DashboardOrganizer({ initialPreferences, cards }: {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {organizing ? <>
-                    <span draggable onDragStart={(event: DragEvent<HTMLSpanElement>) => { setDragged(id); event.dataTransfer.setData("text/plain", id); }} onDragEnd={() => { setDragged(null); setDropTarget(null); }} className="cursor-grab rounded-xl border border-white/10 px-4 py-2 text-white/40" role="button" tabIndex={0} aria-label={`Drag ${card.title}`}>⠿</span>
-                    <button type="button" disabled={rowIndex === 0 || saving} onClick={() => moveRow(id, -1)} className="admin-btn-secondary">Move Up</button>
-                    <button type="button" disabled={rowIndex === preferences.rows.length - 1 || saving} onClick={() => moveRow(id, 1)} className="admin-btn-secondary">Move Down</button>
+                    <AdminDragHandle label={card.title} draggable onDragStart={(event: DragEvent<HTMLSpanElement>) => { setDragged(id); event.dataTransfer.setData("text/plain", id); }} onDragEnd={() => { setDragged(null); setDropTarget(null); }} />
+                    <AdminCardIconButton label={`Move ${card.title} up`} symbol="↑" disabled={rowIndex === 0 || saving} onClick={() => moveRow(id, -1)} />
+                    <AdminCardIconButton label={`Move ${card.title} down`} symbol="↓" disabled={rowIndex === preferences.rows.length - 1 || saving} onClick={() => moveRow(id, 1)} />
                     {row.length === 2 ? <button type="button" onClick={() => moveToRow(id, rowIndex, "after")} className="admin-btn-secondary">Full Width</button>
                       : <button type="button" disabled={rowIndex === 0 || preferences.rows[rowIndex - 1]?.length !== 1} onClick={() => pairWithPrevious(id)} className="admin-btn-secondary">Place Beside Above</button>}
                   </> : null}
-                  <button type="button" onClick={() => toggle(id)} className="admin-btn-secondary">{collapsed ? "Expand" : "Collapse"}</button>
+                  <AdminCardToggle expanded={!collapsed} label={card.title} onClick={() => toggle(id)} />
                 </div>
               </header>
               <div hidden={collapsed} className="border-t border-white/[.07] p-5 sm:p-6">{card.content}</div>
