@@ -59,15 +59,11 @@ test("Client Portal provides an accessible reduced-motion scroll cue", () => {
   assert.match(page, /PortalScrollIndicator/);
 });
 
-test("V1.9.4 release metadata is deploying before production authorization", () => {
-  const version = read("lib/version.ts");
+test("V1.9.4 release metadata remains finalized", () => {
   const releases = read("lib/releases.ts");
-  assert.match(version, /STUDIO_VERSION = "V1\.9\.4"/);
-  assert.match(version, /v1-9-4/);
   assert.ok(releases.indexOf('version: "V1.9.4"') < releases.indexOf('version: "V1.9.3.1"'));
   assert.match(releases, /title: "Responsive Navigation and Sharing Refinement"/);
-  assert.match(releases, /releaseDate: null/);
-  assert.match(releases, /status: "DEPLOYING"/);
+  assert.match(releases, /version: "V1\.9\.4"[\s\S]*releaseDate: "2026-07-31"[\s\S]*status: "LIVE"/);
 });
 
 test("dynamic project media uses stable workspace service IDs", () => {

@@ -19,6 +19,28 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
+    version: "V1.9.4.1",
+    slug: "v1-9-4-1",
+    releaseDate: null,
+    title: "Twilight Photography Upload Correction",
+    summary: "Keeps dynamic service identity intact throughout project uploads and raises the project image limit to 50 MB.",
+    newFeatures: [],
+    improvements: [
+      "Project image uploads accept full-resolution source files up to 50 binary megabytes while public galleries continue using optimized delivery",
+      "Mixed upload batches validate each file independently so valid images continue when another file is rejected",
+    ],
+    bugFixes: [
+      "Twilight Photography remains labeled and assigned to its selected service throughout queueing, upload, retry, storage, and collection rendering",
+      "Oversized project images are rejected before upload with their actual size and cannot be retried while invalid",
+    ],
+    securityInfrastructure: [
+      "Client, presign, and stored-object validation share one bounded project-image upload policy",
+      "No database migration or existing media reassignment is required",
+    ],
+    administratorActions: [],
+    status: "DEPLOYING",
+  },
+  {
     version: "V1.9.4",
     slug: "v1-9-4",
     releaseDate: "2026-07-31",

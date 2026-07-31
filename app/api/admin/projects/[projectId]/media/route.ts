@@ -14,6 +14,7 @@ import { prisma } from "@/lib/prisma";
 import { r2Client, r2Config } from "@/lib/r2";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { mediaCategoryForServiceSlug, mediaFolderForService } from "@/lib/service-media";
+import { getProjectMediaImageValidationError } from "@/lib/project-media-upload";
 
 type MediaRouteProps = {
   params: Promise<{
@@ -636,6 +637,11 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
       );
     }
 
+    const requestValidationError = getProjectMediaImageValidationError({ type: mimeType, size: fileSize });
+    if (requestValidationError) {
+      return NextResponse.json({ success: false, error: requestValidationError }, { status: 400 });
+    }
+
     const expectedPrefix = `projects/${projectId}/${mediaFolderForService(selectedService)}/`;
 
     if (!key.startsWith(expectedPrefix)) {
@@ -665,13 +671,22 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
       );
     }
 
+    let verifiedFileSize = fileSize;
     try {
-      await r2Client.send(
+      const uploadedObject = await r2Client.send(
         new HeadObjectCommand({
           Bucket: r2Config.bucketName,
           Key: key,
         }),
       );
+      verifiedFileSize = uploadedObject.ContentLength ?? fileSize;
+      const storedObjectValidationError = getProjectMediaImageValidationError({
+        type: uploadedObject.ContentType ?? mimeType,
+        size: verifiedFileSize,
+      });
+      if (storedObjectValidationError) {
+        return NextResponse.json({ success: false, error: storedObjectValidationError }, { status: 400 });
+      }
     } catch (error) {
       console.error("Unable to verify uploaded R2 object:", error);
 
@@ -748,7 +763,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
         storageKey: key,
         originalFilename,
         mimeType,
-        fileSize,
+        fileSize: verifiedFileSize,
         width,
         height,
         aspectRatio,
