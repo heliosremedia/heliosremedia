@@ -43,7 +43,7 @@ test("portfolio images use responsive optimized display sources and on-demand or
   assert.match(gallery, /import Image from "next\/image"/);
   assert.match(gallery, /sizes="144px"/);
   assert.match(gallery, /50vw[\s\S]*33vw[\s\S]*25vw/);
-  assert.match(gallery, /activeViewingUrl/);
+  assert.match(gallery, /quality=\{95\}/);
   assert.match(gallery, /download=\{activeMedia\.originalFilename/);
   assert.match(page, /<Image[\s\S]*preload[\s\S]*quality=\{85\}[\s\S]*sizes="100vw"/);
   assert.match(config, /formats: \["image\/avif", "image\/webp"\]/);
@@ -69,7 +69,10 @@ test("admin media collections omit empty cards while destinations remain service
 });
 
 test("V1.9.4.2 is LIVE with accurate release metadata", () => {
+  const version = read("lib/version.ts");
   const releases = read("lib/releases.ts");
+  assert.match(version, /STUDIO_VERSION = "V1\.9\.4\.2"/);
+  assert.match(version, /v1-9-4-2/);
   assert.ok(releases.indexOf('version: "V1.9.4.2"') < releases.indexOf('version: "V1.9.4.1"'));
   assert.match(releases, /title: "Portfolio Collections and Image Performance Hotfix"/);
   assert.match(releases, /version: "V1\.9\.4\.2"[\s\S]*releaseDate: "2026-07-31"[\s\S]*status: "LIVE"/);

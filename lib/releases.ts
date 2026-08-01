@@ -19,30 +19,6 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
-    version: "V1.9.4.3",
-    slug: "v1-9-4-3",
-    releaseDate: "2026-07-31",
-    title: "Public Portfolio Stability and Page Transitions Hotfix",
-    summary: "Makes large portfolio galleries responsive under load and restores restrained feedback between public routes.",
-    newFeatures: [],
-    improvements: [
-      "The public lightbox opens immediately with a lightweight placeholder, bounded viewing derivative, loading status, and recoverable Retry action",
-      "Only the active image and its two adjacent optimized derivatives are prepared for fullscreen browsing",
-      "Internal public navigation uses a short reduced-motion-aware opacity transition and restores focus on arrival",
-    ],
-    bugFixes: [
-      "Large fullscreen images no longer leave the viewer apparently frozen while an image request or decode is pending",
-      "Rapid image changes cannot allow an obsolete image element to replace the current selection",
-      "Route navigation closes portfolio overlays and cleans up scroll locks, listeners, and transition timers",
-    ],
-    securityInfrastructure: [
-      "Standard lightbox viewing uses the existing tenant-and-project-scoped optimized image cache path while archival originals remain explicit downloads",
-      "No database migration, production record repair, or original media mutation is required",
-    ],
-    administratorActions: [],
-    status: "LIVE",
-  },
-  {
     version: "V1.9.4.2",
     slug: "v1-9-4-2",
     releaseDate: "2026-07-31",

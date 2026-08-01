@@ -4,11 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 
 import { tryResolveExternalMedia } from "@/lib/external-media";
-import {
-  adjacentPortfolioIndexes,
-  portfolioImageDerivativeUrl,
-  selectPortfolioLightboxWidth,
-} from "@/lib/portfolio-image-delivery";
 import ViewportVideoFrame from "./ViewportVideoFrame";
 
 export type PortfolioGalleryItem = {
@@ -44,9 +39,6 @@ export default function PortfolioGallery({
   items,
 }: PortfolioGalleryProps) {
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
-  const [lightboxImageState, setLightboxImageState] = useState<"loading" | "ready" | "error">("loading");
-  const [lightboxAttempt, setLightboxAttempt] = useState(0);
-  const [lightboxWidth, setLightboxWidth] = useState(1920);
   const storageKey = `helios-portfolio-view:${cinematic ? "film" : "image"}`;
   const [galleryView, setGalleryView] = useState<GalleryView>(cinematic ? "list" : "gallery");
   const touchStartX = useRef<number | null>(null);
@@ -85,26 +77,6 @@ export default function PortfolioGallery({
     [activeMediaId, previewItems],
   );
   const activeMedia = activeIndex >= 0 ? previewItems[activeIndex] : null;
-  const activeViewingUrl = activeMedia?.imageUrl
-    ? portfolioImageDerivativeUrl(activeMedia.imageUrl, lightboxWidth, 85)
-    : null;
-  const activePlaceholderUrl = activeMedia?.imageUrl
-    ? portfolioImageDerivativeUrl(activeMedia.imageUrl, 480, 75)
-    : null;
-
-  const openPreview = useCallback((mediaId: string, trigger: HTMLButtonElement) => {
-    triggerRef.current = trigger;
-    setLightboxWidth(
-      selectPortfolioLightboxWidth(
-        window.innerWidth,
-        window.innerHeight,
-        window.devicePixelRatio,
-      ),
-    );
-    setLightboxImageState("loading");
-    setLightboxAttempt(0);
-    setActiveMediaId(mediaId);
-  }, []);
   function track(eventName: string, mediaId: string, milestone?: number) {
     window.dispatchEvent(new CustomEvent("helios:portfolio-analytics", { detail: {
       eventName, projectId, channel: cinematic ? "video" : "gallery",
@@ -143,8 +115,6 @@ export default function PortfolioGallery({
       return;
     }
 
-    setLightboxImageState("loading");
-    setLightboxAttempt(0);
     setActiveMediaId(
       previewItems[
         (activeIndex - 1 + previewItems.length) % previewItems.length
@@ -156,31 +126,8 @@ export default function PortfolioGallery({
       return;
     }
 
-    setLightboxImageState("loading");
-    setLightboxAttempt(0);
     setActiveMediaId(previewItems[(activeIndex + 1) % previewItems.length].id);
   }, [activeIndex, previewItems]);
-
-  useEffect(() => {
-    if (!activeMedia || lightboxImageState !== "ready") return;
-    const preloads = adjacentPortfolioIndexes(activeIndex, previewItems.length).map((index) => {
-      const source = previewItems[index]?.imageUrl;
-      if (!source) return null;
-      const preload = new window.Image();
-      preload.decoding = "async";
-      preload.src = portfolioImageDerivativeUrl(source, lightboxWidth, 85);
-      return preload;
-    });
-    return () => preloads.forEach((preload) => {
-      if (preload) preload.src = "";
-    });
-  }, [activeIndex, activeMedia, lightboxImageState, lightboxWidth, previewItems]);
-
-  useEffect(() => {
-    const closeForNavigation = () => setActiveMediaId(null);
-    window.addEventListener("helios:public-navigation-start", closeForNavigation);
-    return () => window.removeEventListener("helios:public-navigation-start", closeForNavigation);
-  }, []);
 
   useEffect(() => {
     if (!activeMedia) {
@@ -317,7 +264,8 @@ export default function PortfolioGallery({
               <button
                 type="button"
                 onClick={(event) => {
-                  openPreview(showcaseMedia.id, event.currentTarget);
+                  triggerRef.current = event.currentTarget;
+                  setActiveMediaId(showcaseMedia.id);
                   track("GALLERY_IMAGE_OPEN", showcaseMedia.id);
                 }}
                 aria-label={`Open ${showcaseMedia.alt} in fullscreen`}
@@ -498,7 +446,8 @@ export default function PortfolioGallery({
                   <button
                     type="button"
                     onClick={(event) => {
-                      openPreview(item.id, event.currentTarget);
+                      triggerRef.current = event.currentTarget;
+                      setActiveMediaId(item.id);
                       track("GALLERY_IMAGE_OPEN", item.id);
                     }}
                     aria-label={`Open ${item.alt} in fullscreen`}
@@ -625,7 +574,7 @@ export default function PortfolioGallery({
                 download={activeMedia.originalFilename || undefined}
                 className="hidden text-[0.55rem] font-semibold uppercase tracking-[0.15em] text-white/40 transition hover:text-[var(--helios-orange)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)]/40 sm:inline"
               >
-                Download Original
+                Original
               </a>
               <p
                 aria-live="polite"
@@ -682,62 +631,17 @@ export default function PortfolioGallery({
               touchStartX.current = null;
             }}
           >
-            <div
-              className="relative flex h-full w-full items-center justify-center"
-              aria-busy={lightboxImageState === "loading"}
-            >
-              {activePlaceholderUrl && lightboxImageState !== "ready" && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={activePlaceholderUrl}
-                  alt=""
-                  aria-hidden="true"
-                  className="absolute max-h-full max-w-full select-none object-contain opacity-45 blur-lg"
-                  draggable={false}
-                />
-              )}
-
-              {lightboxImageState !== "error" && activeViewingUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={`${activeMedia.id}:${lightboxAttempt}:${lightboxWidth}`}
-                  src={activeViewingUrl}
-                  alt={activeMedia.alt}
-                  width={activeMedia.width || 2560}
-                  height={activeMedia.height || 1707}
-                  decoding="async"
-                  onLoad={() => setLightboxImageState("ready")}
-                  onError={() => setLightboxImageState("error")}
-                  className={`h-auto max-h-full w-auto max-w-full select-none object-contain shadow-[0_35px_120px_rgba(0,0,0,0.7)] transition-opacity duration-200 motion-reduce:transition-none ${
-                    lightboxImageState === "ready" ? "opacity-100" : "opacity-0"
-                  }`}
-                  draggable={false}
-                />
-              )}
-
-              {lightboxImageState === "loading" && (
-                <div role="status" className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-3 rounded-full border border-white/10 bg-black/55 px-4 py-2 text-[0.55rem] font-semibold uppercase tracking-[0.14em] text-white/55 backdrop-blur-md">
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-[var(--helios-orange)] motion-reduce:animate-none" />
-                  Loading image
-                </div>
-              )}
-
-              {lightboxImageState === "error" && (
-                <div role="alert" className="max-w-sm rounded-2xl border border-white/10 bg-black/70 p-6 text-center backdrop-blur-md">
-                  <p className="text-sm leading-6 text-white/65">This image could not be loaded.</p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLightboxImageState("loading");
-                      setLightboxAttempt((attempt) => attempt + 1);
-                    }}
-                    className="mt-5 min-h-11 rounded-full border border-[var(--helios-orange)]/45 px-5 text-[0.56rem] font-semibold uppercase tracking-[0.15em] text-[var(--helios-orange)] transition hover:bg-[var(--helios-orange)] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)]"
-                  >
-                    Retry
-                  </button>
-                </div>
-              )}
-            </div>
+            <Image
+              key={activeMedia.id}
+              src={activeMedia.imageUrl}
+              alt={activeMedia.alt}
+              width={activeMedia.width || 2560}
+              height={activeMedia.height || 1707}
+              sizes="100vw"
+              quality={95}
+              className="h-auto max-h-full w-auto max-w-full select-none object-contain shadow-[0_35px_120px_rgba(0,0,0,0.7)]"
+              draggable={false}
+            />
 
             {previewItems.length > 1 && (
               <>
