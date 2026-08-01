@@ -23,7 +23,9 @@ test("portfolio thumbnails are optimized without full-resolution lightbox reques
 
 test("the production-breaking global route interceptor stays absent", () => {
   const layout = read("app/layout.tsx");
+  const projectPage = read("app/portfolio/[slug]/page.tsx");
   assert.doesNotMatch(layout, /PublicRouteTransition/);
+  assert.doesNotMatch(projectPage, /contentVisibility|containIntrinsicSize/);
   assert.equal(
     (() => {
       try {

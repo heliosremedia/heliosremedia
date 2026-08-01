@@ -544,7 +544,6 @@ export default async function PortfolioProjectPage({
           tabIndex={-1}
           aria-labelledby={`${collection.anchor}-title`}
           className="container-shell scroll-mt-24 border-b border-white/[0.08] py-20 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--helios-orange)]/35 sm:py-28"
-          style={{ contentVisibility: "auto", containIntrinsicSize: "900px" }}
         >
           <div className="flex items-end justify-between gap-8">
             <div>
