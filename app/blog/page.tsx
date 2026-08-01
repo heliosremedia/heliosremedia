@@ -6,9 +6,10 @@ import Navbar from "@/app/components/Navbar";
 import { blogImageUrl, readingMinutes } from "@/lib/blog";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings } from "@/lib/site-settings";
+import { buildPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
-export async function generateMetadata():Promise<Metadata>{const settings=await getSiteSettings();return {title:`Insights | ${settings.businessName}`,description:`Ideas, guidance, and perspective from ${settings.businessName}.`};}
+export async function generateMetadata():Promise<Metadata>{const settings=await getSiteSettings();return buildPageMetadata({title:`Insights | ${settings.businessName}`,description:`Ideas, guidance, and perspective from ${settings.businessName}.`,path:"/blog",settings});}
 async function getPublishedPosts(){try{return await prisma.blogPost.findMany({where:{OR:[{status:"PUBLISHED",publishedAt:{lte:new Date()}},{status:"SCHEDULED",scheduledAt:{lte:new Date()}}]},orderBy:[{publishedAt:"desc"},{scheduledAt:"desc"},{createdAt:"desc"}],include:{featuredMedia:{select:{storageKey:true}}}});}catch(error){if(process.env.NODE_ENV!=="production")console.warn("Blog posts unavailable; showing the empty journal state.",error);return[];}}
 
 export default async function BlogPage(){

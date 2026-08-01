@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Footer from "@/app/components/Footer";
 import Navbar from "@/app/components/Navbar";
 import { getSiteSettings } from "@/lib/site-settings";
@@ -5,7 +6,9 @@ import BookingRequestForm from "./BookingRequestForm";
 import { resolveBookingDestination } from "@/lib/booking-controls";
 import PublicPageHeading from "@/app/components/PublicPageHeading";
 import { redirect } from "next/navigation";
+import { buildPageMetadata } from "@/lib/seo";
 export const dynamic = "force-dynamic";
+export async function generateMetadata(): Promise<Metadata> { const settings = await getSiteSettings(); return buildPageMetadata({ title: `Book Real Estate Media | ${settings.businessName}`, description: `Request professional real estate media services from ${settings.businessName}.`, path: "/book", settings }); }
 export default async function BookingPage() {
   const settings = await getSiteSettings(); const destination = resolveBookingDestination(settings.bookingMode, settings.bookingUrl, settings.bookingHandoffEnabled);
   if (destination.kind === "external") redirect(destination.href);

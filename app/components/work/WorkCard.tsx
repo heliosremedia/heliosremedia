@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useRef } from "react";
 import { motion, useInView, useReducedMotion } from "motion/react";
 
@@ -95,13 +96,13 @@ export default function WorkCard({
         ref={mediaRef}
         className="absolute inset-0 will-change-transform"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={image}
           alt={imageAlt || `${title} portfolio by Helios Real Estate Media`}
-          loading={priority ? "eager" : "lazy"}
+          fill
+          priority={priority}
           sizes={imageSizes}
-          className="absolute inset-0 h-full w-full object-cover"
+          className="object-cover"
         />
         {videoSrc && !shouldReduceMotion ? <video ref={videoRef} muted loop playsInline preload="metadata" poster={image} aria-label={`${title} featured film`} className="absolute inset-0 h-full w-full object-cover"><source src={videoSrc} /></video> : null}
         {embedSrc && mediaInView && !shouldReduceMotion ? (
