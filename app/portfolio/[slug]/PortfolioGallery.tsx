@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 
 import { tryResolveExternalMedia } from "@/lib/external-media";
 import ViewportVideoFrame from "./ViewportVideoFrame";
@@ -8,6 +9,9 @@ import ViewportVideoFrame from "./ViewportVideoFrame";
 export type PortfolioGalleryItem = {
   id: string;
   imageUrl: string | null;
+  originalFilename: string | null;
+  width: number | null;
+  height: number | null;
   externalUrl: string | null;
   alt: string;
   caption: string | null;
@@ -35,6 +39,7 @@ export default function PortfolioGallery({
   items,
 }: PortfolioGalleryProps) {
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
+  const [lightboxImageState, setLightboxImageState] = useState<"loading" | "ready" | "error">("loading");
   const storageKey = `helios-portfolio-view:${cinematic ? "film" : "image"}`;
   const [galleryView, setGalleryView] = useState<GalleryView>(cinematic ? "list" : "gallery");
   const touchStartX = useRef<number | null>(null);
@@ -73,6 +78,15 @@ export default function PortfolioGallery({
     [activeMediaId, previewItems],
   );
   const activeMedia = activeIndex >= 0 ? previewItems[activeIndex] : null;
+  const activeViewingUrl = activeMedia?.imageUrl
+    ? `/_next/image?url=${encodeURIComponent(activeMedia.imageUrl)}&w=1600&q=75`
+    : null;
+
+  const openPreview = useCallback((mediaId: string, trigger: HTMLButtonElement) => {
+    triggerRef.current = trigger;
+    setLightboxImageState("loading");
+    setActiveMediaId(mediaId);
+  }, []);
   function track(eventName: string, mediaId: string, milestone?: number) {
     window.dispatchEvent(new CustomEvent("helios:portfolio-analytics", { detail: {
       eventName, projectId, channel: cinematic ? "video" : "gallery",
@@ -111,6 +125,7 @@ export default function PortfolioGallery({
       return;
     }
 
+    setLightboxImageState("loading");
     setActiveMediaId(
       previewItems[
         (activeIndex - 1 + previewItems.length) % previewItems.length
@@ -122,6 +137,7 @@ export default function PortfolioGallery({
       return;
     }
 
+    setLightboxImageState("loading");
     setActiveMediaId(previewItems[(activeIndex + 1) % previewItems.length].id);
   }, [activeIndex, previewItems]);
 
@@ -260,18 +276,20 @@ export default function PortfolioGallery({
               <button
                 type="button"
                 onClick={(event) => {
-                  triggerRef.current = event.currentTarget;
-                  setActiveMediaId(showcaseMedia.id);
+                  openPreview(showcaseMedia.id, event.currentTarget);
                   track("GALLERY_IMAGE_OPEN", showcaseMedia.id);
                 }}
                 aria-label={`Open ${showcaseMedia.alt} in fullscreen`}
                 className="relative flex w-full cursor-zoom-in items-center justify-center sm:h-full"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={showcaseMedia.imageUrl}
                   alt={showcaseMedia.alt}
-                  className="h-auto max-h-[72svh] max-w-full object-contain sm:h-full sm:max-h-none sm:w-full"
+                  width={showcaseMedia.width || 1600}
+                  height={showcaseMedia.height || 1067}
+                  sizes="(max-width: 640px) 100vw, 96vw"
+                  quality={85}
+                  className="h-auto max-h-[72svh] w-auto max-w-full object-contain sm:h-full sm:max-h-none sm:w-full"
                   style={{
                     objectPosition: `${showcaseMedia.focalX * 100}% ${showcaseMedia.focalY * 100}%`,
                   }}
@@ -381,16 +399,27 @@ export default function PortfolioGallery({
                   }`}
                 >
                   {item.imageUrl || externalMedia?.thumbnailUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={item.imageUrl || externalMedia!.thumbnailUrl!}
-                      alt=""
-                      loading="lazy"
-                      className="h-full w-full object-cover"
-                      style={{
-                        objectPosition: `${item.focalX * 100}% ${item.focalY * 100}%`,
-                      }}
-                    />
+                    item.imageUrl ? (
+                      <Image
+                        src={item.imageUrl}
+                        alt=""
+                        fill
+                        sizes="144px"
+                        quality={75}
+                        className="object-cover"
+                        style={{
+                          objectPosition: `${item.focalX * 100}% ${item.focalY * 100}%`,
+                        }}
+                      />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={externalMedia!.thumbnailUrl!}
+                        alt=""
+                        loading="lazy"
+                        className="h-full w-full object-cover"
+                      />
+                    )
                   ) : (
                     <span className="flex h-full w-full flex-col items-center justify-center bg-[radial-gradient(circle_at_70%_20%,rgba(217,107,43,0.2),transparent_42%),#0b0b0b] text-white/55">
                       <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
@@ -428,19 +457,23 @@ export default function PortfolioGallery({
                   <button
                     type="button"
                     onClick={(event) => {
-                      triggerRef.current = event.currentTarget;
-                      setActiveMediaId(item.id);
+                      openPreview(item.id, event.currentTarget);
                       track("GALLERY_IMAGE_OPEN", item.id);
                     }}
                     aria-label={`Open ${item.alt} in fullscreen`}
                     className="relative block h-full w-full cursor-zoom-in overflow-hidden text-left"
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <Image
                       src={item.imageUrl}
                       alt={item.alt}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition duration-1000 ease-[var(--ease-luxury)] group-hover:scale-[1.025]"
+                      fill
+                      sizes={
+                        galleryView === "gallery"
+                          ? "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                          : "(max-width: 1440px) 100vw, 1280px"
+                      }
+                      quality={75}
+                      className="object-cover transition duration-1000 ease-[var(--ease-luxury)] group-hover:scale-[1.025]"
                       style={{
                         objectPosition: `${item.focalX * 100}% ${item.focalY * 100}%`,
                       }}
@@ -544,6 +577,15 @@ export default function PortfolioGallery({
             </div>
 
             <div className="flex items-center gap-4">
+              <a
+                href={activeMedia.imageUrl}
+                target="_blank"
+                rel="noreferrer"
+                download={activeMedia.originalFilename || undefined}
+                className="hidden text-[0.55rem] font-semibold uppercase tracking-[0.15em] text-white/40 transition hover:text-[var(--helios-orange)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)]/40 sm:inline"
+              >
+                Original
+              </a>
               <p
                 aria-live="polite"
                 className="text-xs tabular-nums text-white/30"
@@ -599,14 +641,43 @@ export default function PortfolioGallery({
               touchStartX.current = null;
             }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              key={activeMedia.id}
-              src={activeMedia.imageUrl}
-              alt={activeMedia.alt}
-              className="max-h-full max-w-full select-none object-contain shadow-[0_35px_120px_rgba(0,0,0,0.7)]"
-              draggable={false}
-            />
+            <div className="relative flex h-full w-full items-center justify-center" aria-busy={lightboxImageState === "loading"}>
+              {activeViewingUrl && lightboxImageState !== "error" && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={activeMedia.id}
+                  src={activeViewingUrl}
+                  alt={activeMedia.alt}
+                  width={activeMedia.width || 2560}
+                  height={activeMedia.height || 1707}
+                  decoding="async"
+                  onLoad={() => setLightboxImageState("ready")}
+                  onError={() => setLightboxImageState("error")}
+                  className={`h-auto max-h-full w-auto max-w-full select-none object-contain shadow-[0_35px_120px_rgba(0,0,0,0.7)] transition-opacity duration-200 ${lightboxImageState === "ready" ? "opacity-100" : "opacity-0"}`}
+                  draggable={false}
+                />
+              )}
+
+              {lightboxImageState === "loading" && (
+                <div role="status" className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-3 rounded-full border border-white/10 bg-black/55 px-4 py-2 text-[0.55rem] font-semibold uppercase tracking-[0.14em] text-white/55 backdrop-blur-md">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-[var(--helios-orange)] motion-reduce:animate-none" />
+                  Loading image
+                </div>
+              )}
+
+              {lightboxImageState === "error" && (
+                <div role="alert" className="max-w-sm rounded-2xl border border-white/10 bg-black/70 p-6 text-center backdrop-blur-md">
+                  <p className="text-sm leading-6 text-white/65">This image could not be loaded.</p>
+                  <button
+                    type="button"
+                    onClick={() => setLightboxImageState("loading")}
+                    className="mt-5 min-h-11 rounded-full border border-[var(--helios-orange)]/45 px-5 text-[0.56rem] font-semibold uppercase tracking-[0.15em] text-[var(--helios-orange)] transition hover:bg-[var(--helios-orange)] hover:text-black"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+            </div>
 
             {previewItems.length > 1 && (
               <>
