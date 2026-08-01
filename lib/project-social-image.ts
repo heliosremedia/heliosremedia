@@ -1,5 +1,5 @@
 import { tryResolveExternalMedia } from "./external-media.ts";
-import { getAbsoluteUrl } from "./site.ts";
+import { getAbsoluteUrl, getConfiguredAbsoluteUrl } from "./site.ts";
 
 const SUPPORTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const GLOBAL_FALLBACK_PATH = "/work/modern-retreat.jpg";
@@ -31,8 +31,27 @@ export type ProjectSocialImageInput = {
   } | null;
 };
 export type ResolvedProjectSocialImage = {
-  url: string; alt: string; width?: number; height?: number; type: string; source: SocialImageSource;
+  url: string; alt: string; width?: number; height?: number; type?: string; source: SocialImageSource;
 };
+
+export function optimizeProjectSocialImage(
+  image: ResolvedProjectSocialImage,
+  websiteUrl?: string | null,
+): ResolvedProjectSocialImage {
+  if (!["SOCIAL", "HERO", "GALLERY"].includes(image.source)) return image;
+  const width = 1200;
+  const height = image.width && image.height
+    ? Math.round((image.height / image.width) * width)
+    : undefined;
+  const path = `/_next/image?url=${encodeURIComponent(image.url)}&w=${width}&q=75`;
+  return {
+    ...image,
+    url: getConfiguredAbsoluteUrl(path, websiteUrl),
+    width,
+    ...(height ? { height } : {}),
+    type: undefined,
+  };
+}
 
 function isUsableUploadedImage(media: ProjectSocialMedia | null | undefined): media is ProjectSocialMedia {
   return Boolean(media && media.visibility === "VISIBLE" && media.sourceType === "UPLOADED_IMAGE" &&

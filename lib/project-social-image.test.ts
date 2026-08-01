@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { resolveProjectSocialImage, type ProjectSocialMedia } from "./project-social-image.ts";
+import { optimizeProjectSocialImage, resolveProjectSocialImage, type ProjectSocialMedia } from "./project-social-image.ts";
 
 const image = (id: string, overrides: Partial<ProjectSocialMedia> = {}): ProjectSocialMedia => ({
   id, sourceType: "UPLOADED_IMAGE", storageKey: `projects/p/${id}.jpg`, mimeType: "image/jpeg",
@@ -44,4 +44,19 @@ test("workspace default precedes the monogram and changes only with its stable v
   assert.equal(result.alt, "Studio share");
   const monogram = resolveProjectSocialImage({ title: "Empty", media: [], workspace: { ...workspace, defaultSocialImageUrl: null } });
   assert.equal(monogram.source, "MONOGRAM");
+});
+test("uploaded share images use the stable existing optimizer instead of full-resolution originals", () => {
+  const selected = resolveProjectSocialImage({ title: "Home", socialImageMedia: image("social", { width: 4800, height: 3584 }), media: [] });
+  const optimized = optimizeProjectSocialImage(selected, "https://www.example.com");
+  assert.equal(optimized.source, "SOCIAL");
+  assert.equal(optimized.width, 1200);
+  assert.equal(optimized.height, 896);
+  assert.equal(optimized.type, undefined);
+  assert.match(optimized.url, /^https:\/\/www\.example\.com\/_next\/image\?/);
+  assert.match(optimized.url, /w=1200&q=75$/);
+});
+test("workspace and brand fallbacks retain their stable managed URLs", () => {
+  const workspace = optimizeProjectSocialImage({ url: "https://cdn.example.com/share.jpg?v=8", alt: "Share", width: 1200, height: 630, type: "image/jpeg", source: "WORKSPACE_DEFAULT" }, "https://www.example.com");
+  assert.equal(workspace.url, "https://cdn.example.com/share.jpg?v=8");
+  assert.equal(workspace.type, "image/jpeg");
 });

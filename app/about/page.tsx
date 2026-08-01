@@ -10,6 +10,7 @@ import { defaultPageCtas } from "@/lib/ctas";
 import { getVisibleTeamMembers, teamMemberCategoryLabels } from "@/lib/team-members";
 import { buildPageMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/site-settings";
+import TeamBiography from "./TeamBiography";
 
 export const dynamic = "force-dynamic";
 
@@ -138,7 +139,7 @@ export default async function AboutPage() {
                   <div className="p-6 sm:p-7">
                     <h3 className="font-display text-4xl font-light tracking-[-0.045em] text-white/90">{member.name}</h3>
                     <p className="mt-3 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-white/45">{member.title}</p>
-                    <RichText content={member.biography} className="mt-5 text-sm leading-7 text-white/42" />
+                    <TeamBiography biography={member.biography} />
                   </div>
                 </article>
               ))}
