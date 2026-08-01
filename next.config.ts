@@ -94,7 +94,10 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
-    qualities: [75, 95],
+    deviceSizes: [320, 375, 480, 640, 768, 1024, 1200, 1440, 1600, 1920],
+    formats: ["image/webp"],
+    minimumCacheTTL: 2678400,
+    qualities: [75, 85, 95],
     remotePatterns: r2ImagePattern ? [r2ImagePattern] : [],
   },
 };
