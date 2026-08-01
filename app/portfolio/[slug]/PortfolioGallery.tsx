@@ -79,7 +79,7 @@ export default function PortfolioGallery({
   );
   const activeMedia = activeIndex >= 0 ? previewItems[activeIndex] : null;
   const activeViewingUrl = activeMedia?.imageUrl
-    ? `/_next/image?url=${encodeURIComponent(activeMedia.imageUrl)}&w=1920&q=85`
+    ? `/_next/image?url=${encodeURIComponent(activeMedia.imageUrl)}&w=1600&q=75`
     : null;
 
   const openPreview = useCallback((mediaId: string, trigger: HTMLButtonElement) => {

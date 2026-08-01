@@ -15,7 +15,7 @@ test("portfolio thumbnails are optimized without full-resolution lightbox reques
   const gallery = read("app/portfolio/[slug]/PortfolioGallery.tsx");
   assert.match(gallery, /sizes="144px"/);
   assert.match(gallery, /50vw[\s\S]*33vw[\s\S]*25vw/);
-  assert.match(gallery, /w=1920&q=85/);
+  assert.match(gallery, /w=1600&q=75/);
   assert.match(gallery, /Loading image/);
   assert.match(gallery, /This image could not be loaded/);
   assert.doesNotMatch(gallery, /adjacentPortfolioIndexes|helios:public-navigation-start/);
