@@ -50,6 +50,10 @@ export function sanitizeLegalHtml(content: string) {
     },
     allowProtocolRelative: false,
     transformTags: {
+      h1: (_tagName, attributes) => ({
+        tagName: "h2",
+        attribs: attributes,
+      }),
       a: (_tagName, attributes) => ({
         tagName: "a",
         attribs: {

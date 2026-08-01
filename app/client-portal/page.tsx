@@ -4,9 +4,11 @@ import Footer from "@/app/components/Footer";
 import Navbar from "@/app/components/Navbar";
 import { prisma } from "@/lib/prisma";
 import PortalScrollIndicator from "./PortalScrollIndicator";
+import { getSiteSettings } from "@/lib/site-settings";
+import { buildPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Client Portal", description: "Secure client access and custom booking portals.", robots: { index: false, follow: false } };
+export async function generateMetadata(): Promise<Metadata> { const settings = await getSiteSettings(); return buildPageMetadata({ title: `Client Portal | ${settings.businessName}`, description: "Secure client access and custom booking portals.", path: "/client-portal", settings, noIndex: true }); }
 export default async function ClientPortalPage({ searchParams }: { searchParams: Promise<{ error?: string | string[] }> }) {
   const portals = await prisma.clientPortal.findMany({ where: { active: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] });
   const errorValue = (await searchParams).error; const error = typeof errorValue === "string" ? errorValue : "";

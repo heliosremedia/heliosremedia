@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 
 import Footer from "@/app/components/Footer";
@@ -29,7 +30,7 @@ function projectCollectionHref(
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata(): Promise<Metadata> { const settings = await getSiteSettings(); return buildPageMetadata({ title: "Real Estate Media Services | Helios", description: "Explore photography, cinematic film, aerial media, agent branding, social content, floor plans, Matterport, and property websites from Helios Real Estate Media.", path: "/services", settings }); }
+export async function generateMetadata(): Promise<Metadata> { const settings = await getSiteSettings(); return buildPageMetadata({ title: "Real Estate Media Services | Helios", description: "Explore photography, cinematic film, aerial media, agent branding, social content, floor plans, and property websites from Helios Real Estate Media.", path: "/services", settings }); }
 
 export default async function ServicesPage() {
   const workspaceId = await getPublicWorkspaceId();
@@ -198,9 +199,7 @@ export default async function ServicesPage() {
                   [project.city, project.state].filter(Boolean).join(", "),
               } : null;
             }).filter((project): project is NonNullable<typeof project> => Boolean(project));
-            const projectPreviews = serviceIndex < 3
-              ? eligibleProjects.map((project) => ({ project, score: Math.random() })).sort((a, b) => a.score - b.score).slice(0, 3).map(({ project }) => project)
-              : eligibleProjects.slice(0, 3);
+            const projectPreviews = eligibleProjects.slice(0, 3);
 
             return (
               <section
@@ -263,8 +262,7 @@ export default async function ServicesPage() {
                             className="absolute inset-0 z-10"
                           />
                           {project.imageUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
+                            <Image
                               src={project.imageUrl}
                               alt={
                                 project.collectionHero?.altText ||
@@ -273,8 +271,9 @@ export default async function ServicesPage() {
                                 project.heroMedia?.originalFilename ||
                                 project.title
                               }
-                              loading="lazy"
-                              className="absolute inset-0 h-full w-full object-cover transition duration-1000 ease-[var(--ease-luxury)] group-hover:scale-[1.04]"
+                              fill
+                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 40vw"
+                              className="object-cover transition duration-1000 ease-[var(--ease-luxury)] group-hover:scale-[1.04]"
                             />
                           ) : (
                             <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_22%,rgba(217,107,43,0.18),transparent_34%),#111]" />

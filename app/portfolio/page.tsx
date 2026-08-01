@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import PortfolioAnalytics from "@/app/components/PortfolioAnalytics";
 import { CompactFilterLink } from "@/app/components/CompactFilter";
@@ -47,6 +48,12 @@ export default async function PortfolioPage({
       workspaceId,
       active: true,
       archivedAt: null,
+      media: {
+        some: {
+          visibility: "VISIBLE",
+          project: { status: "PUBLISHED" },
+        },
+      },
     },
     orderBy: [
       {
@@ -74,32 +81,18 @@ export default async function PortfolioPage({
         status: "PUBLISHED",
         ...(selectedService
           ? {
-              OR: [
-                {
-                  services: {
-                    some: {
-                      serviceId: selectedService.id,
-                      service: {
-                        active: true,
-                      },
-                    },
-                  },
+              services: {
+                some: {
+                  serviceId: selectedService.id,
+                  service: { active: true, archivedAt: null },
                 },
-                ...(selectedMediaCategories.length > 0
-                  ? [
-                      {
-                        media: {
-                          some: {
-                            visibility: "VISIBLE" as const,
-                            mediaCategory: {
-                              in: selectedMediaCategories,
-                            },
-                          },
-                        },
-                      },
-                    ]
-                  : []),
-              ],
+              },
+              media: {
+                some: {
+                  serviceId: selectedService.id,
+                  visibility: "VISIBLE" as const,
+                },
+              },
             }
           : {}),
       },
@@ -285,12 +278,11 @@ export default async function PortfolioPage({
       );
     const videoMedia = tryResolveExternalMedia(firstVideo?.externalUrl);
     const collectionHero = project.collectionHeroes.find((hero) => selectedMediaCategories.includes(hero.mediaCategory))?.media;
-    const image =
-      project.thumbnailMedia?.storageKey
+    const image = selectedService && collectionHero?.storageKey
+      ? collectionHero
+      : project.thumbnailMedia?.storageKey
         ? project.thumbnailMedia
-        : collectionHero?.storageKey
-          ? collectionHero
-          : project.heroMedia;
+        : project.heroMedia;
     const imageStorageKey = image?.storageKey;
     return {
       id: project.id,
@@ -410,12 +402,11 @@ export default async function PortfolioPage({
               const collectionHero = project.collectionHeroes.find((hero) =>
                 selectedMediaCategories.includes(hero.mediaCategory),
               )?.media;
-              const image =
-                project.thumbnailMedia?.storageKey
+              const image = selectedService && collectionHero?.storageKey
+                ? collectionHero
+                : project.thumbnailMedia?.storageKey
                   ? project.thumbnailMedia
-                  : collectionHero?.storageKey
-                    ? collectionHero
-                    : project.heroMedia;
+                  : project.heroMedia;
               const imageStorageKey = image?.storageKey;
               const imageUrl = imageStorageKey
                 ? getPublicAssetUrl(imageStorageKey)
@@ -468,11 +459,12 @@ export default async function PortfolioPage({
                     }`}
                   >
                     {imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={imageUrl}
                         alt={imageAlt}
-                        className="h-full w-full object-cover transition duration-1000 ease-[var(--ease-luxury)] group-hover:scale-[1.045]"
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                        className="object-cover transition duration-1000 ease-[var(--ease-luxury)] group-hover:scale-[1.045]"
                       />
                     ) : (
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_25%,rgba(217,107,43,0.18),transparent_34%),#111]" />

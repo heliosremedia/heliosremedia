@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -110,8 +111,7 @@ export default async function ServiceDetailPage({ params }: ServicePageProps) {
               <article key={project.id} className="group relative min-h-[28rem] overflow-hidden bg-[#111]">
                 <Link href={`/portfolio/${project.slug}`} aria-label={`View ${project.title}`} className="absolute inset-0 z-10" />
                 {project.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={project.image} alt={project.heroMedia?.altText || project.heroMedia?.originalFilename || project.title} loading="lazy" className="absolute inset-0 h-full w-full object-cover transition duration-1000 group-hover:scale-[1.035]" />
+                  <Image src={project.image} alt={project.heroMedia?.altText || project.heroMedia?.originalFilename || project.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover transition duration-1000 group-hover:scale-[1.035]" />
                 ) : <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(217,107,43,0.18),transparent_36%),#111]" />}
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/5 to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 p-6"><p className="text-[0.52rem] font-semibold uppercase tracking-[0.15em] text-white/42">{project.location || "Northern Colorado"}</p><h3 className="mt-2 font-display text-3xl font-light tracking-[-0.035em]">{project.title}</h3>{project.shortDescription ? <p className="mt-3 line-clamp-2 text-sm leading-6 text-white/45">{project.shortDescription}</p> : null}</div>

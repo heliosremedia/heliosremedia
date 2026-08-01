@@ -577,15 +577,6 @@ export default function PortfolioGallery({
             </div>
 
             <div className="flex items-center gap-4">
-              <a
-                href={activeMedia.imageUrl}
-                target="_blank"
-                rel="noreferrer"
-                download={activeMedia.originalFilename || undefined}
-                className="hidden text-[0.55rem] font-semibold uppercase tracking-[0.15em] text-white/40 transition hover:text-[var(--helios-orange)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)]/40 sm:inline"
-              >
-                Original
-              </a>
               <p
                 aria-live="polite"
                 className="text-xs tabular-nums text-white/30"
