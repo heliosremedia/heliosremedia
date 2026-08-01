@@ -21,7 +21,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
     version: "V1.9.4.3",
     slug: "v1-9-4-3",
-    releaseDate: null,
+    releaseDate: "2026-07-31",
     title: "Public Portfolio Stability and Page Transitions Hotfix",
     summary: "Makes large portfolio galleries responsive under load and restores restrained feedback between public routes.",
     newFeatures: [],
@@ -40,7 +40,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
       "No database migration, production record repair, or original media mutation is required",
     ],
     administratorActions: [],
-    status: "DEPLOYING",
+    status: "LIVE",
   },
   {
     version: "V1.9.4.2",

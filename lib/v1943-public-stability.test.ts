@@ -54,7 +54,7 @@ test("public route transitions preserve native exceptions and clean up determini
   assert.match(layout, /<PublicRouteTransition>\{children\}<\/PublicRouteTransition>/);
 });
 
-test("dynamic collections remain intact and V1.9.4.3 starts DEPLOYING", () => {
+test("dynamic collections remain intact and V1.9.4.3 is LIVE", () => {
   const page = read("app/portfolio/[slug]/page.tsx");
   const version = read("lib/version.ts");
   const releases = read("lib/releases.ts");
@@ -62,5 +62,5 @@ test("dynamic collections remain intact and V1.9.4.3 starts DEPLOYING", () => {
   assert.match(page, /portfolioCollectionAnchor\(collection\.service\.id\)/);
   assert.doesNotMatch(page, /MEDIA_COLLECTIONS/);
   assert.match(version, /STUDIO_VERSION = "V1\.9\.4\.3"/);
-  assert.match(releases, /version: "V1\.9\.4\.3"[\s\S]*releaseDate: null[\s\S]*status: "DEPLOYING"/);
+  assert.match(releases, /version: "V1\.9\.4\.3"[\s\S]*releaseDate: "2026-07-31"[\s\S]*status: "LIVE"/);
 });
