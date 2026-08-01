@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -7,10 +6,8 @@ import Footer from "@/app/components/Footer";
 import Navbar from "@/app/components/Navbar";
 import RichText from "@/app/components/RichText";
 import { tryResolveExternalMedia } from "@/lib/external-media";
-import {
-  buildPublicPortfolioCollections,
-  portfolioCollectionAnchor,
-} from "@/lib/portfolio-collections";
+import { MEDIA_COLLECTIONS } from "@/lib/media-collections";
+import { getServiceMediaCategories } from "@/lib/portfolio-services";
 import { resolveProjectSocialImage } from "@/lib/project-social-image";
 import { validateProjectPreview } from "@/lib/project-preview";
 import { prisma } from "@/lib/prisma";
@@ -19,7 +16,6 @@ import { getAbsoluteUrl, getConfiguredAbsoluteUrl } from "@/lib/site";
 import { getSiteSettings } from "@/lib/site-settings";
 
 import PortfolioGallery from "./PortfolioGallery";
-import ProjectServiceLinks from "./ProjectServiceLinks";
 import ShareProject from "./ShareProject";
 import PortfolioAnalytics from "@/app/components/PortfolioAnalytics";
 import TrackedProjectVideo from "./TrackedProjectVideo";
@@ -108,7 +104,6 @@ async function getProject(slug: string, previewToken?: string) {
               name: true,
               slug: true,
               active: true,
-              archivedAt: true,
             },
           },
         },
@@ -134,7 +129,6 @@ async function getProject(slug: string, previewToken?: string) {
           id: true,
           sourceType: true,
           mediaCategory: true,
-          serviceId: true,
           storageKey: true,
           originalFilename: true,
           mimeType: true,
@@ -274,7 +268,7 @@ export default async function PortfolioProjectPage({
     project.locationLabel ||
     [project.city, project.state].filter(Boolean).join(", ");
   const activeServices = project.services.filter(
-    ({ service }) => service.active && !service.archivedAt,
+    ({ service }) => service.active,
   );
   const projectUrl = getAbsoluteUrl(`/portfolio/${project.slug}`);
   const resolvedSocialImage = preview ? null : resolveProjectSocialImage(project);
@@ -317,29 +311,30 @@ export default async function PortfolioProjectPage({
     (media) =>
       media.id !== project.heroMediaId && media.id !== leadVideoMedia?.id,
   );
-  const collections = buildPublicPortfolioCollections(
-    activeServices.map(({ service }) => service),
-    visibleMedia,
-  );
+  const collections = MEDIA_COLLECTIONS.map((collection) => ({
+    ...collection,
+    media: visibleMedia.filter(
+      (media) => media.mediaCategory === collection.value,
+    ),
+  })).filter((collection) => collection.media.length > 0);
+  const collectionId = (mediaCategory: string) =>
+    `collection-${mediaCategory.toLowerCase().replace(/_/g, "-")}`;
   const projectCollectionTitle = `The ${project.title.replace(/^the\s+/i, "")}`;
   const serviceDestinations = new Map(
-    activeServices.flatMap(({ service }) => {
-      const collection = collections.find(
-        (item) => item.service.id === service.id,
+    activeServices.map(({ service }) => {
+      const destination = getServiceMediaCategories(service).find((category) =>
+        collections.some((collection) => collection.value === category),
       );
-      if (collection) return [[service.id, `#${collection.anchor}`] as const];
-      if (leadVideoMedia?.serviceId === service.id) {
-        return [[service.id, "#project-film"] as const];
-      }
-      return [];
+      const categories = getServiceMediaCategories(service);
+      const fallback =
+        categories.includes("CINEMATIC_FILM") && leadVideoMedia
+          ? "#project-film"
+          : categories.includes("PROPERTY_WEBSITE") && project.details?.propertyWebsiteUrl
+            ? "#project-website"
+            : "#project-overview";
+      return [service.id, destination ? `#${collectionId(destination)}` : fallback];
     }),
   );
-  const serviceLinks = activeServices.flatMap(({ service }) => {
-    const destination = serviceDestinations.get(service.id);
-    return destination
-      ? [{ id: service.id, name: service.name, destination }]
-      : [];
-  });
   const facts = [
     project.details?.squareFeet
       ? {
@@ -419,25 +414,34 @@ export default async function PortfolioProjectPage({
                 {project.title}
               </h1>
 
-              <ProjectServiceLinks links={serviceLinks} />
+              {activeServices.length > 0 && (
+                <div className="mt-7 flex flex-wrap gap-2">
+                  {activeServices.map(({ service }) => (
+                    <a
+                      key={service.id}
+                      href={serviceDestinations.get(service.id) ?? "#project-overview"}
+                      className="rounded-full border border-white/15 px-3.5 py-2 text-[0.52rem] font-semibold uppercase tracking-[0.15em] text-white/55 transition duration-300 hover:-translate-y-0.5 hover:border-[var(--helios-orange)]/65 hover:bg-[var(--helios-orange)]/10 hover:text-[var(--helios-orange)]"
+                    >
+                      {service.name}
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </section>
       ) : (
         <section className="relative min-h-[78vh] overflow-hidden bg-[#111]">
           {heroUrl ? (
-            <Image
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
               src={heroUrl}
               alt={
                 project.heroMedia?.altText ||
                 project.heroMedia?.originalFilename ||
                 project.title
               }
-              fill
-              preload
-              quality={85}
-              sizes="100vw"
-              className="object-cover"
+              className="absolute inset-0 h-full w-full object-cover"
               style={{
                 objectPosition: `${(project.heroMedia?.focalX ?? 0.5) * 100}% ${(project.heroMedia?.focalY ?? 0.5) * 100}%`,
               }}
@@ -459,7 +463,19 @@ export default async function PortfolioProjectPage({
                 {project.title}
               </h1>
 
-              <ProjectServiceLinks links={serviceLinks} overlay />
+              {activeServices.length > 0 && (
+                <div className="mt-8 flex flex-wrap gap-2">
+                  {activeServices.map(({ service }) => (
+                    <a
+                      key={service.id}
+                      href={serviceDestinations.get(service.id) ?? "#project-overview"}
+                      className="rounded-full border border-white/20 bg-black/20 px-3.5 py-2 text-[0.52rem] font-semibold uppercase tracking-[0.15em] text-white/70 backdrop-blur-md transition duration-300 hover:-translate-y-0.5 hover:border-[var(--helios-orange)]/65 hover:bg-[var(--helios-orange)]/10 hover:text-[var(--helios-orange)]"
+                    >
+                      {service.name}
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -539,12 +555,9 @@ export default async function PortfolioProjectPage({
 
       {collections.map((collection, collectionIndex) => (
         <section
-          key={collection.service.id}
-          id={portfolioCollectionAnchor(collection.service.id)}
-          tabIndex={-1}
-          aria-labelledby={`${collection.anchor}-title`}
-          className="container-shell scroll-mt-24 border-b border-white/[0.08] py-20 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--helios-orange)]/35 sm:py-28"
-          style={{ contentVisibility: "auto", containIntrinsicSize: "900px" }}
+          key={collection.value}
+          id={collectionId(collection.value)}
+          className="container-shell scroll-mt-24 border-b border-white/[0.08] py-20 sm:py-28"
         >
           <div className="flex items-end justify-between gap-8">
             <div>
@@ -553,8 +566,8 @@ export default async function PortfolioProjectPage({
                 <span aria-hidden="true"> · </span>
                 {projectCollectionTitle}
               </p>
-              <h2 id={`${collection.anchor}-title`} className="mt-4 font-display text-4xl font-light leading-[1.15] tracking-[-0.035em] text-white sm:text-5xl">
-                {collection.service.name}
+              <h2 className="mt-4 font-display text-4xl font-light leading-[1.15] tracking-[-0.035em] text-white sm:text-5xl">
+                {collection.label}
               </h2>
             </div>
 
@@ -567,21 +580,18 @@ export default async function PortfolioProjectPage({
           <PortfolioGallery
             projectId={project.id}
             projectTitle={project.title}
-            collectionLabel={collection.service.name}
-            cinematic={collection.media.some((media) => ["VIDEO_EMBED", "UPLOADED_VIDEO"].includes(media.sourceType))}
+            collectionLabel={collection.label}
+            cinematic={collection.value === "CINEMATIC_FILM"}
             items={collection.media.map((media) => ({
               id: media.id,
               imageUrl: media.storageKey
                 ? getPublicAssetUrl(media.storageKey)
                 : null,
-              originalFilename: media.originalFilename,
-              width: media.width,
-              height: media.height,
               externalUrl: media.externalUrl,
               alt:
                 media.altText ||
                 media.originalFilename ||
-                `${project.title} ${collection.service.name}`,
+                `${project.title} ${collection.label}`,
               caption: media.caption,
               focalX: media.focalX,
               focalY: media.focalY,
@@ -594,7 +604,7 @@ export default async function PortfolioProjectPage({
                   ),
               isVertical: media.aspectRatio
                 ? media.aspectRatio < 1
-                : false,
+                : collection.value === "VERTICAL_REEL",
             }))}
           />
         </section>

@@ -688,7 +688,7 @@ export default function ProjectMediaManager({
         items: media
           .filter((item) => item.serviceId === service.id)
           .sort(sortMediaItems),
-      })).filter(({ items }) => items.length > 0),
+      })),
     [initialServiceIds, media, services],
   );
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 
 import { tryResolveExternalMedia } from "@/lib/external-media";
 import ViewportVideoFrame from "./ViewportVideoFrame";
@@ -9,9 +8,6 @@ import ViewportVideoFrame from "./ViewportVideoFrame";
 export type PortfolioGalleryItem = {
   id: string;
   imageUrl: string | null;
-  originalFilename: string | null;
-  width: number | null;
-  height: number | null;
   externalUrl: string | null;
   alt: string;
   caption: string | null;
@@ -271,14 +267,11 @@ export default function PortfolioGallery({
                 aria-label={`Open ${showcaseMedia.alt} in fullscreen`}
                 className="relative flex w-full cursor-zoom-in items-center justify-center sm:h-full"
               >
-                <Image
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={showcaseMedia.imageUrl}
                   alt={showcaseMedia.alt}
-                  width={showcaseMedia.width || 1600}
-                  height={showcaseMedia.height || 1067}
-                  sizes="(max-width: 640px) 100vw, 96vw"
-                  quality={85}
-                  className="h-auto max-h-[72svh] w-auto max-w-full object-contain sm:h-full sm:max-h-none sm:w-full"
+                  className="h-auto max-h-[72svh] max-w-full object-contain sm:h-full sm:max-h-none sm:w-full"
                   style={{
                     objectPosition: `${showcaseMedia.focalX * 100}% ${showcaseMedia.focalY * 100}%`,
                   }}
@@ -388,27 +381,16 @@ export default function PortfolioGallery({
                   }`}
                 >
                   {item.imageUrl || externalMedia?.thumbnailUrl ? (
-                    item.imageUrl ? (
-                      <Image
-                        src={item.imageUrl}
-                        alt=""
-                        fill
-                        sizes="144px"
-                        quality={75}
-                        className="object-cover"
-                        style={{
-                          objectPosition: `${item.focalX * 100}% ${item.focalY * 100}%`,
-                        }}
-                      />
-                    ) : (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={externalMedia!.thumbnailUrl!}
-                        alt=""
-                        loading="lazy"
-                        className="h-full w-full object-cover"
-                      />
-                    )
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.imageUrl || externalMedia!.thumbnailUrl!}
+                      alt=""
+                      loading="lazy"
+                      className="h-full w-full object-cover"
+                      style={{
+                        objectPosition: `${item.focalX * 100}% ${item.focalY * 100}%`,
+                      }}
+                    />
                   ) : (
                     <span className="flex h-full w-full flex-col items-center justify-center bg-[radial-gradient(circle_at_70%_20%,rgba(217,107,43,0.2),transparent_42%),#0b0b0b] text-white/55">
                       <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
@@ -453,17 +435,12 @@ export default function PortfolioGallery({
                     aria-label={`Open ${item.alt} in fullscreen`}
                     className="relative block h-full w-full cursor-zoom-in overflow-hidden text-left"
                   >
-                    <Image
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
                       src={item.imageUrl}
                       alt={item.alt}
-                      fill
-                      sizes={
-                        galleryView === "gallery"
-                          ? "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                          : "(max-width: 1440px) 100vw, 1280px"
-                      }
-                      quality={75}
-                      className="object-cover transition duration-1000 ease-[var(--ease-luxury)] group-hover:scale-[1.025]"
+                      loading="lazy"
+                      className="h-full w-full object-cover transition duration-1000 ease-[var(--ease-luxury)] group-hover:scale-[1.025]"
                       style={{
                         objectPosition: `${item.focalX * 100}% ${item.focalY * 100}%`,
                       }}
@@ -567,15 +544,6 @@ export default function PortfolioGallery({
             </div>
 
             <div className="flex items-center gap-4">
-              <a
-                href={activeMedia.imageUrl}
-                target="_blank"
-                rel="noreferrer"
-                download={activeMedia.originalFilename || undefined}
-                className="hidden text-[0.55rem] font-semibold uppercase tracking-[0.15em] text-white/40 transition hover:text-[var(--helios-orange)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)]/40 sm:inline"
-              >
-                Original
-              </a>
               <p
                 aria-live="polite"
                 className="text-xs tabular-nums text-white/30"
@@ -631,15 +599,12 @@ export default function PortfolioGallery({
               touchStartX.current = null;
             }}
           >
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               key={activeMedia.id}
               src={activeMedia.imageUrl}
               alt={activeMedia.alt}
-              width={activeMedia.width || 2560}
-              height={activeMedia.height || 1707}
-              sizes="100vw"
-              quality={95}
-              className="h-auto max-h-full w-auto max-w-full select-none object-contain shadow-[0_35px_120px_rgba(0,0,0,0.7)]"
+              className="max-h-full max-w-full select-none object-contain shadow-[0_35px_120px_rgba(0,0,0,0.7)]"
               draggable={false}
             />
 
