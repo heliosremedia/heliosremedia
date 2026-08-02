@@ -41,3 +41,11 @@ test("the image optimizer permits only the shared video-poster paths", () => {
   assert.match(config, /hostname: "i\.ytimg\.com"/);
   assert.match(config, /pathname: "\/vi\/\*\*"/);
 });
+
+test("the cinematic film library routes thumbnails through the shared optimizer", () => {
+  const library = read("app/portfolio/PortfolioFilmLibrary.tsx");
+
+  assert.match(library, /import Image from "next\/image"/);
+  assert.match(library, /<Image[\s\S]*src=\{media\.thumbnailUrl\}/);
+  assert.doesNotMatch(library, /<img[\s\S]*src=\{media\.thumbnailUrl\}/);
+});
