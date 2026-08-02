@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { tryResolveExternalMedia } from "@/lib/external-media";
@@ -114,11 +115,12 @@ export default function PortfolioFilmLibrary({
                 aria-label={`Play ${film.title}`}
               >
                 {media?.thumbnailUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
                     src={media.thumbnailUrl}
                     alt=""
+                    fill
                     loading="lazy"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
                     className="h-full w-full object-cover opacity-75 transition duration-1000 ease-[var(--ease-luxury)] group-hover:scale-[1.04] group-hover:opacity-90"
                   />
                 ) : (
