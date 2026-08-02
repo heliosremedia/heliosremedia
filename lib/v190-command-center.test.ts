@@ -78,3 +78,11 @@ test("project navigation targets the true review and publish section", () => {
   assert.match(workflow, /id="project-publishing"/);
   assert.match(navigator, /focus\(\{ preventScroll: true \}\)/);
 });
+
+test("project publishing controls use a compact full-width action stack", () => {
+  const workflow = read("app/admin/projects/[projectId]/ProjectWorkflowManager.tsx");
+  assert.match(workflow, /className="!w-full admin-btn-primary"/);
+  assert.match(workflow, /className="!w-full admin-btn-secondary"/);
+  assert.match(workflow, /className="mt-5 border-t border-white\/\[0\.08\] pt-5"/);
+  assert.match(workflow, /className="!w-full admin-btn-destructive"/);
+});
