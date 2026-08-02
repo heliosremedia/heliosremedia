@@ -1,0 +1,43 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+
+import {
+  BRANDED_VIDEO_POSTER_URL,
+  resolveExternalMedia,
+} from "./external-media.ts";
+
+const read = (path: string) =>
+  readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+
+test("Cloudflare Stream posters derive from the stable video identifier", () => {
+  const uid = "a163d0f679d3e1349d4817b9ebf2223f";
+  const media = resolveExternalMedia(`https://iframe.videodelivery.net/${uid}`);
+
+  assert.equal(media.externalId, uid);
+  assert.equal(media.embedUrl, `https://iframe.videodelivery.net/${uid}`);
+  assert.equal(
+    media.thumbnailUrl,
+    `https://videodelivery.net/${uid}/thumbnails/thumbnail.jpg?time=2.5s&fit=crop`,
+  );
+});
+
+test("providers without a stable poster use the branded video fallback", () => {
+  assert.equal(
+    resolveExternalMedia("https://vimeo.com/123456789").thumbnailUrl,
+    BRANDED_VIDEO_POSTER_URL,
+  );
+  assert.equal(
+    resolveExternalMedia("https://cdn.example.com/film.mp4").thumbnailUrl,
+    BRANDED_VIDEO_POSTER_URL,
+  );
+});
+
+test("the image optimizer permits only the shared video-poster paths", () => {
+  const config = read("next.config.ts");
+
+  assert.match(config, /hostname: "videodelivery\.net"/);
+  assert.match(config, /pathname: "\/\*\*\/thumbnails\/\*\*"/);
+  assert.match(config, /hostname: "i\.ytimg\.com"/);
+  assert.match(config, /pathname: "\/vi\/\*\*"/);
+});

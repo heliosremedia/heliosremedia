@@ -21,6 +21,7 @@ export type ExternalMediaDetails = {
 const VIDEO_EXTENSIONS = /\.(mp4|m4v|webm|mov)(?:$|[?#])/i;
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
 const CLOUDFLARE_STREAM_ID = /^[a-f0-9]{32}$/i;
+export const BRANDED_VIDEO_POSTER_URL = "/work/cards/cinematicfilms-workcard.jpg";
 
 function normalizeHttpUrl(value: string) {
   const candidate = value.trim();
@@ -175,7 +176,7 @@ export function resolveExternalMedia(value: string): ExternalMediaDetails {
       externalId: vimeoId,
       embedUrl: `https://player.vimeo.com/video/${vimeoId}?dnt=1`,
       playbackUrl: null,
-      thumbnailUrl: null,
+      thumbnailUrl: BRANDED_VIDEO_POSTER_URL,
       label: "Vimeo",
     };
   }
@@ -197,7 +198,7 @@ export function resolveExternalMedia(value: string): ExternalMediaDetails {
       externalId: null,
       embedUrl: null,
       playbackUrl: getDropboxPlaybackUrl(new URL(url)),
-      thumbnailUrl: null,
+      thumbnailUrl: BRANDED_VIDEO_POSTER_URL,
       label: "Dropbox",
     };
   }
@@ -211,7 +212,7 @@ export function resolveExternalMedia(value: string): ExternalMediaDetails {
       externalId: null,
       embedUrl: null,
       playbackUrl: url.toString(),
-      thumbnailUrl: null,
+      thumbnailUrl: BRANDED_VIDEO_POSTER_URL,
       label: "Hosted video",
     };
   }

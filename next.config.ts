@@ -83,6 +83,21 @@ function getR2ImagePattern() {
 
 const r2ImagePattern = getR2ImagePattern();
 
+const videoPosterPatterns = [
+  {
+    protocol: "https" as const,
+    hostname: "videodelivery.net",
+    port: "",
+    pathname: "/**/thumbnails/**",
+  },
+  {
+    protocol: "https" as const,
+    hostname: "i.ytimg.com",
+    port: "",
+    pathname: "/vi/**",
+  },
+];
+
 const nextConfig: NextConfig = {
   async redirects() {
     return [
@@ -98,7 +113,10 @@ const nextConfig: NextConfig = {
     formats: ["image/webp"],
     minimumCacheTTL: 2678400,
     qualities: [75, 85, 95],
-    remotePatterns: r2ImagePattern ? [r2ImagePattern] : [],
+    remotePatterns: [
+      ...(r2ImagePattern ? [r2ImagePattern] : []),
+      ...videoPosterPatterns,
+    ],
   },
 };
 
