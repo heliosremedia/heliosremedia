@@ -39,7 +39,6 @@ import StreamVideoUploader from "./StreamVideoUploader";
 type ProjectMediaManagerProps = {
   projectId: string;
   services: MediaService[];
-  initialServiceIds: string[];
 };
 
 export type ProjectMediaItem = {
@@ -623,7 +622,6 @@ function SortableMediaCard({
 export default function ProjectMediaManager({
   projectId,
   services,
-  initialServiceIds,
 }: ProjectMediaManagerProps) {
   const router = useRouter();
   const [media, setMedia] = useState<ProjectMediaItem[]>([]);
@@ -677,7 +675,7 @@ export default function ProjectMediaManager({
 
   const groupedCollections = useMemo(
     () =>
-      services.filter((service) => service.active || initialServiceIds.includes(service.id) || media.some((item) => item.serviceId === service.id)).map((service) => ({
+      services.filter((service) => media.some((item) => item.serviceId === service.id)).map((service) => ({
         collection: {
           value: mediaCategoryForServiceSlug(service.slug),
           serviceId: service.id,
@@ -689,7 +687,7 @@ export default function ProjectMediaManager({
           .filter((item) => item.serviceId === service.id)
           .sort(sortMediaItems),
       })),
-    [initialServiceIds, media, services],
+    [media, services],
   );
 
   const activeMedia = useMemo(

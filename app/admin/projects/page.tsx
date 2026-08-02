@@ -108,9 +108,10 @@ export default async function ProjectsPage({
         }
       : {}),
   };
-  const [totalProjects, statusCounts] = await Promise.all([
+  const [totalProjects, statusCounts, allOrderedProjects] = await Promise.all([
     prisma.project.count({ where }),
     prisma.project.groupBy({ by: ["status"], _count: { _all: true } }),
+    prisma.project.findMany({ where: { workspaceId: session.workspaceId }, orderBy: [{ displayOrder: "asc" }, { updatedAt: "desc" }, { title: "asc" }], select: { id: true } }),
   ]);
   const countFor = (status: "PUBLISHED"|"DRAFT"|"ARCHIVED") => statusCounts.find(item=>item.status===status)?._count._all || 0;
   const totalPages = Math.max(1, Math.ceil(totalProjects / pageSize));
@@ -286,6 +287,7 @@ export default async function ProjectsPage({
           initialProjects={items}
           hasFilters={hasFilters}
           pageStart={pageStart}
+          allProjectIds={allOrderedProjects.map(({ id }) => id)}
           returnTo={currentUrl}
           rangeLabel={`Showing ${firstShown}–${lastShown} of ${totalProjects} projects`}
         />

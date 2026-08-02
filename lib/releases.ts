@@ -19,6 +19,19 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
+    version: "V1.9.4.6",
+    slug: "v1-9-4-6",
+    releaseDate: "2026-08-02",
+    title: "Project Collection and Ordering Hotfix",
+    summary: "Hides unused project media collections and adds accessible multi-project ordering without changing assets or project relationships.",
+    newFeatures: ["Projects can be selected together and moved as one ordered group by drag, toolbar controls, or keyboard-accessible actions"],
+    improvements: ["Selected projects preserve their relative order", "Project ordering is saved atomically across the complete workspace list"],
+    bugFixes: ["Project Editor no longer renders collection cards that contain no media", "Failed ordering saves restore the previous project order"],
+    securityInfrastructure: ["Ordering validates the complete project set and scopes every database update to the active workspace", "No schema migration, asset mutation, or project reassignment is required"],
+    administratorActions: [],
+    status: "LIVE",
+  },
+  {
     version: "V1.9.4.5",
     slug: "v1-9-4-5",
     releaseDate: "2026-08-01",

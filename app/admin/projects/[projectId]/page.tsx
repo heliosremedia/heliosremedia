@@ -394,7 +394,7 @@ export default async function ProjectEditorPage({
         </div>
 
         <div className="p-5 sm:p-6">
-          <ProjectMediaManager projectId={project.id} services={services} initialServiceIds={project.services.map((item) => item.serviceId)} />
+          <ProjectMediaManager projectId={project.id} services={services} />
         </div>
       </section>
 
