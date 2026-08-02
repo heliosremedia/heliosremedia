@@ -656,6 +656,7 @@ export default function SiteSettingsForm({
       <div className="mt-6">
         <AdminSectionNavigator
           label="Site Settings sections"
+          siteSettings
           sections={settingsSections.map(([id, label]) => ({ href: `#${id}` as `#${string}`, label }))}
           onNavigate={(id) => setExpandedSections((current) => ({ ...current, [id]: true }))}
           actions={<>

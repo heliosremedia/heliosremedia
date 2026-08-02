@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type AdminSection = {
   href: `#${string}`;
@@ -13,13 +13,16 @@ export default function AdminSectionNavigator({
   actions,
   onNavigate,
   bulkSectionIds,
+  siteSettings = false,
 }: {
   label: string;
   sections: readonly AdminSection[];
   actions?: React.ReactNode;
   onNavigate?: (id: string) => void;
   bulkSectionIds?: readonly string[];
+  siteSettings?: boolean;
 }) {
+  const navigatorRef = useRef<HTMLElement>(null);
   const [activeId, setActiveId] = useState(sections[0]?.href.slice(1) ?? "");
   const [bulkStates, setBulkStates] = useState<Record<string, boolean>>({});
 
@@ -66,10 +69,14 @@ export default function AdminSectionNavigator({
     setActiveId(id);
     window.history.replaceState(null, "", `#${id}`);
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      target.scrollIntoView({
+      const stickyClearance = siteSettings
+        ? 80 + (navigatorRef.current?.getBoundingClientRect().height ?? 0) + 16
+        : 112;
+      window.scrollTo({
+        top: Math.max(0, window.scrollY + target.getBoundingClientRect().top - stickyClearance),
         behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-        block: "start",
       });
+      target.tabIndex = -1;
       target.focus({ preventScroll: true });
     }));
   }
@@ -85,8 +92,9 @@ export default function AdminSectionNavigator({
 
   return (
     <nav
+      ref={navigatorRef}
       aria-label={label}
-      className="sticky top-3 z-30 rounded-2xl border border-white/10 bg-[#151515]/95 p-3 shadow-xl backdrop-blur"
+      className={`${siteSettings ? "top-20 z-20 bg-[#151515]" : "top-3 z-30 bg-[#151515]/95 backdrop-blur"} sticky rounded-2xl border border-white/10 p-3 shadow-xl`}
     >
       <label className="block md:hidden">
         <span className="mb-2 block text-[0.55rem] font-semibold uppercase tracking-[0.15em] text-white/45">
@@ -103,7 +111,7 @@ export default function AdminSectionNavigator({
         </select>
       </label>
 
-      <div className="hidden grid-cols-[repeat(auto-fit,minmax(min(100%,9.5rem),1fr))] gap-2 md:grid">
+      <div className={`hidden gap-2 md:grid ${siteSettings ? "grid-cols-2 lg:grid-cols-4 xl:grid-cols-7" : "grid-cols-[repeat(auto-fit,minmax(min(100%,9.5rem),1fr))]"}`}>
         {sections.map((section) => {
           const id = section.href.slice(1);
           const active = id === activeId;
@@ -113,7 +121,7 @@ export default function AdminSectionNavigator({
               type="button"
               aria-current={active ? "location" : undefined}
               onClick={() => navigate(id)}
-              className={`admin-btn-secondary min-w-0 px-3 whitespace-normal text-balance ${
+              className={`admin-btn-secondary min-w-0 px-2.5 ${siteSettings ? "whitespace-nowrap text-[0.68rem]" : "whitespace-normal text-balance"} ${
                 active ? "border-[var(--helios-orange)]/55 bg-[var(--helios-orange)]/[0.08] text-white" : ""
               }`}
             >

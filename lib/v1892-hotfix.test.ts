@@ -32,3 +32,16 @@ test("homepage hero and poster cards publish matching metadata guidance", () => 
   assert.match(form, /JPG, PNG, WebP, or AVIF · 1920×1080 recommended/);
   assert.doesNotMatch(form, /break-all text-xs text-white\/30/);
 });
+
+test("site settings navigation stays below the Studio header and remains responsive", () => {
+  const form = read("../app/admin/settings/SiteSettingsForm.tsx");
+  const navigator = read("../app/admin/components/AdminSectionNavigator.tsx");
+  assert.match(form, /<AdminSectionNavigator[\s\S]*?siteSettings/);
+  assert.match(navigator, /top-20 z-20 bg-\[#151515\]/);
+  assert.match(navigator, /xl:grid-cols-7/);
+  assert.match(navigator, /Jump to Section/);
+  assert.match(navigator, /stickyClearance/);
+  assert.match(navigator, /navigatorRef\.current\?\.getBoundingClientRect\(\)\.height/);
+  assert.match(navigator, /target\.tabIndex = -1/);
+  assert.match(navigator, /focus-visible:ring-2/);
+});
