@@ -215,7 +215,7 @@ export default async function ServicesPage() {
                     <h2 className="mt-6 font-display text-[clamp(2.8rem,5.5vw,5.5rem)] font-light leading-[0.93] tracking-[-0.05em] text-white">
                       {service.name}
                     </h2>
-                    <p className="mt-7 max-w-xl text-sm leading-7 text-white/42 sm:text-base sm:leading-8">
+                    <p className="mt-5 max-w-xl text-sm leading-7 text-white/42 sm:text-base sm:leading-8">
                       {service.description ||
                         "A specialized Helios service designed for premium real estate presentation."}
                     </p>

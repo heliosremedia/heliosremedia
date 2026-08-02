@@ -11,7 +11,7 @@ import {
   buildPublicPortfolioCollections,
   portfolioCollectionAnchor,
 } from "@/lib/portfolio-collections";
-import { resolveProjectSocialImage } from "@/lib/project-social-image";
+import { optimizeProjectSocialImage, resolveProjectSocialImage } from "@/lib/project-social-image";
 import { validateProjectPreview } from "@/lib/project-preview";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
@@ -219,7 +219,10 @@ export async function generateMetadata({
   }
 
   const canonical = getConfiguredAbsoluteUrl(`/portfolio/${slug}`, settings.websiteUrl);
-  const image = resolveProjectSocialImage({ ...project, workspace: settings });
+  const image = optimizeProjectSocialImage(
+    resolveProjectSocialImage({ ...project, workspace: settings }),
+    settings.websiteUrl,
+  );
   return {
     title,
     description,
@@ -227,7 +230,8 @@ export async function generateMetadata({
     openGraph: {
       title, description, type: "article", url: canonical, siteName: settings.businessName,
       images: [{
-        url: image.url, secureUrl: image.url, alt: image.alt, type: image.type,
+        url: image.url, secureUrl: image.url, alt: image.alt,
+        ...(image.type ? { type: image.type } : {}),
         ...(image.width ? { width: image.width } : {}),
         ...(image.height ? { height: image.height } : {}),
       }],

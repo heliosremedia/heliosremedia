@@ -19,6 +19,29 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
+    version: "V1.9.4.5",
+    slug: "v1-9-4-5",
+    releaseDate: "2026-08-01",
+    title: "Client-Facing Polish and Project Sharing",
+    summary: "Refines public-facing controls and spacing while making the existing Project Share Preview reliably available to social crawlers.",
+    newFeatures: [],
+    improvements: [
+      "Project sharing uses a compact, accessible control with a full touch target across desktop and mobile",
+      "Service titles, blog summaries, and FAQ topic controls use tighter responsive spacing without changing their content or behavior",
+      "Team biographies use per-person, line-clamped Read More and Show Less controls only when the rendered biography overflows",
+    ],
+    bugFixes: [
+      "Custom Project Share Preview images retain first priority and are delivered through a public, bounded image URL in server-rendered Open Graph and Twitter metadata",
+      "Project share fallbacks resolve in the documented order: custom preview, project cover, workspace default, then brand monogram",
+    ],
+    securityInfrastructure: [
+      "Social metadata remains server-rendered and public share-image URLs do not depend on expiring signed parameters",
+      "No project records, media assignments, biography text, service data, or global page-transition behavior changed",
+    ],
+    administratorActions: [],
+    status: "LIVE",
+  },
+  {
     version: "V1.9.4.1",
     slug: "v1-9-4-1",
     releaseDate: "2026-07-31",
