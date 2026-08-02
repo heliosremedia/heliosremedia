@@ -29,6 +29,8 @@ test("FAQ, Services, and Blog polish remains data-driven", () => {
   const faq = read("app/faq/FaqExplorer.tsx");
   assert.match(faq, /categories\.map/);
   assert.match(faq, /min-h-11/);
+  assert.match(faq, /flex-wrap/);
+  assert.doesNotMatch(faq, /overflow-x-auto/);
   assert.match(read("app/services/page.tsx"), /className="mt-5 max-w-xl[\s\S]*service\.description/);
   assert.match(read("app/blog/page.tsx"), /post\.excerpt[\s\S]*mobile-summary mt-3/);
 });

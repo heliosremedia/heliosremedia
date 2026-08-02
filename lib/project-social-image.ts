@@ -1,4 +1,3 @@
-import { tryResolveExternalMedia } from "./external-media.ts";
 import { getAbsoluteUrl, getConfiguredAbsoluteUrl } from "./site.ts";
 
 const SUPPORTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -10,7 +9,7 @@ function getStablePublicAssetUrl(storageKey: string) {
   return `${publicBase}/${storageKey.replace(/^\/+/, "")}`;
 }
 
-export type SocialImageSource = "SOCIAL" | "HERO" | "GALLERY" | "VIDEO_THUMBNAIL" | "WORKSPACE_DEFAULT" | "MONOGRAM" | "GLOBAL_FALLBACK";
+export type SocialImageSource = "SOCIAL" | "HERO" | "WORKSPACE_DEFAULT" | "MONOGRAM" | "GLOBAL_FALLBACK";
 export type ProjectSocialMedia = {
   id: string; sourceType: string; storageKey: string | null; mimeType: string | null;
   altText: string | null; originalFilename?: string | null; width: number | null;
@@ -38,7 +37,7 @@ export function optimizeProjectSocialImage(
   image: ResolvedProjectSocialImage,
   websiteUrl?: string | null,
 ): ResolvedProjectSocialImage {
-  if (!["SOCIAL", "HERO", "GALLERY"].includes(image.source)) return image;
+  if (!["SOCIAL", "HERO", "GLOBAL_FALLBACK"].includes(image.source)) return image;
   const width = 1200;
   const height = image.width && image.height
     ? Math.round((image.height / image.width) * width)
@@ -66,27 +65,9 @@ function fromUploadedMedia(media: ProjectSocialMedia, title: string, source: Soc
   };
 }
 
-function landscapeScore(media: ProjectSocialMedia) {
-  const ratio = media.aspectRatio || (media.width && media.height ? media.width / media.height : 0);
-  const ratioDistance = ratio > 0 ? Math.abs(ratio - 1.91) : 10;
-  const largeEnough = (media.width || 0) >= 1200 && (media.height || 0) >= 630;
-  return (largeEnough ? 100 : 0) - ratioDistance * 10 - (media.displayOrder || 0) / 1000;
-}
-
 export function resolveProjectSocialImage(project: ProjectSocialImageInput): ResolvedProjectSocialImage {
   if (isUsableUploadedImage(project.socialImageMedia)) return fromUploadedMedia(project.socialImageMedia, project.title, "SOCIAL");
   if (isUsableUploadedImage(project.heroMedia)) return fromUploadedMedia(project.heroMedia, project.title, "HERO");
-  const gallery = project.media.filter(isUsableUploadedImage)
-    .sort((first, second) => landscapeScore(second) - landscapeScore(first))[0];
-  if (gallery) return fromUploadedMedia(gallery, project.title, "GALLERY");
-  for (const media of project.media) {
-    if (media.visibility !== "VISIBLE" || !["VIDEO_EMBED", "UPLOADED_VIDEO"].includes(media.sourceType)) continue;
-    const thumbnail = tryResolveExternalMedia(media.externalUrl)?.thumbnailUrl;
-    if (thumbnail?.startsWith("https://")) return {
-      url: thumbnail, alt: media.altText || `${project.title} video preview`,
-      type: "image/jpeg", source: "VIDEO_THUMBNAIL",
-    };
-  }
   if (project.workspace?.defaultSocialImageUrl) {
     const separator = project.workspace.defaultSocialImageUrl.includes("?") ? "&" : "?";
     const version = project.workspace.defaultSocialImageVersion || 0;
