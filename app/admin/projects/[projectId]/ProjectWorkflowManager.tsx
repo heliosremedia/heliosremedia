@@ -553,12 +553,12 @@ export default function ProjectWorkflowManager({
                 : "Publishing makes this project available to the public portfolio."}
             </p>
 
-            <div className="mt-6">
+            <div className="mt-5">
               {status === "PUBLISHED" ? (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <Link
                     href={`/portfolio/${projectSlug}`}
-                    className="w-full admin-btn-primary"
+                    className="!w-full admin-btn-primary"
                   >
                     View live project
                   </Link>
@@ -567,7 +567,7 @@ export default function ProjectWorkflowManager({
                     type="button"
                     onClick={() => void runWorkflowAction("unpublish")}
                     disabled={workflowAction !== null}
-                    className="w-full admin-btn-secondary"
+                    className="!w-full admin-btn-secondary"
                   >
                     {workflowAction === "unpublish"
                       ? "Moving to draft"
@@ -579,7 +579,7 @@ export default function ProjectWorkflowManager({
                   type="button"
                   onClick={() => void runWorkflowAction("publish")}
                   disabled={workflowAction !== null || !canPublish}
-                  className="w-full admin-btn-primary"
+                  className="!w-full admin-btn-primary"
                 >
                   {workflowAction === "publish" && (
                     <span className="h-3 w-3 animate-spin rounded-full border border-black/25 border-t-black" />
@@ -591,24 +591,26 @@ export default function ProjectWorkflowManager({
               )}
 
               {status !== "ARCHIVED" && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        "Archive this project? It will be removed from the public portfolio.",
-                      )
-                    ) {
-                      void runWorkflowAction("archive");
-                    }
-                  }}
-                  disabled={workflowAction !== null}
-                  className="mt-6 w-full admin-btn-destructive"
-                >
-                  {workflowAction === "archive"
-                    ? "Archiving"
-                    : "Archive project"}
-                </button>
+                <div className="mt-5 border-t border-white/[0.08] pt-5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          "Archive this project? It will be removed from the public portfolio.",
+                        )
+                      ) {
+                        void runWorkflowAction("archive");
+                      }
+                    }}
+                    disabled={workflowAction !== null}
+                    className="!w-full admin-btn-destructive"
+                  >
+                    {workflowAction === "archive"
+                      ? "Archiving"
+                      : "Archive project"}
+                  </button>
+                </div>
               )}
             </div>
           </aside>
