@@ -484,14 +484,23 @@ export async function POST(request: Request, context: Context) {
           error: "Enter one valid test email address.",
         }, { status: 400 });
       }
-      try {
-        await saveEdition(editionId, body.edition, session.userId);
-      } catch {
-        return NextResponse.json({
-          success: false,
-          code: "NEWSLETTER_SAVE_FAILED",
-          error: "Newsletter could not be saved. Your test was not sent.",
-        }, { status: 400 });
+      const isImmutableSnapshot = ["SENT", "PARTIALLY_SENT", "CANCELLED"].includes(
+        authorizedEdition.status,
+      );
+      if (!isImmutableSnapshot) {
+        try {
+          await saveEdition(editionId, body.edition, session.userId);
+        } catch (error) {
+          console.error("[newsletter:test] edition save failed", {
+            editionId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          return NextResponse.json({
+            success: false,
+            code: "NEWSLETTER_SAVE_FAILED",
+            error: "Newsletter could not be saved. Your test was not sent.",
+          }, { status: 400 });
+        }
       }
       const edition = await getEditionForStudio(editionId, session.workspaceId);
       if (!edition) {
