@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 type AdminSection = {
   href: `#${string}`;
@@ -199,11 +200,22 @@ export default function AdminSectionNavigator({
     </nav>
   );
 
+  if (siteSettings && pinnedFrame) {
+    return (
+      <div
+        ref={siteSettingsAnchorRef}
+        data-site-settings-navigation-anchor
+        style={{ height: pinnedFrame.height }}
+      >
+        {createPortal(navigator, document.body)}
+      </div>
+    );
+  }
+
   return siteSettings ? (
     <div
       ref={siteSettingsAnchorRef}
       data-site-settings-navigation-anchor
-      style={pinnedFrame ? { height: pinnedFrame.height } : undefined}
     >
       {navigator}
     </div>
