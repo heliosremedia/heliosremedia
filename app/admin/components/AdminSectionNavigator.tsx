@@ -7,6 +7,12 @@ type AdminSection = {
   label: string;
 };
 
+type PinnedFrame = {
+  height: number;
+  left: number;
+  width: number;
+};
+
 export default function AdminSectionNavigator({
   label,
   sections,
@@ -25,9 +31,53 @@ export default function AdminSectionNavigator({
   projectEditor?: boolean;
 }) {
   const navigatorRef = useRef<HTMLElement>(null);
+  const siteSettingsAnchorRef = useRef<HTMLDivElement>(null);
   const [activeId, setActiveId] = useState(sections[0]?.href.slice(1) ?? "");
   const [bulkStates, setBulkStates] = useState<Record<string, boolean>>({});
   const [announcement, setAnnouncement] = useState("");
+  const [pinnedFrame, setPinnedFrame] = useState<PinnedFrame | null>(null);
+
+  useEffect(() => {
+    if (!siteSettings) return;
+
+    const updatePinnedFrame = () => {
+      const anchor = siteSettingsAnchorRef.current;
+      const navigator = navigatorRef.current;
+      if (!anchor || !navigator) return;
+
+      const anchorRect = anchor.getBoundingClientRect();
+      if (anchorRect.top > 80) {
+        setPinnedFrame(null);
+        return;
+      }
+
+      const nextFrame = {
+        height: navigator.offsetHeight,
+        left: anchorRect.left,
+        width: anchorRect.width,
+      };
+      setPinnedFrame((current) =>
+        current &&
+        current.height === nextFrame.height &&
+        current.left === nextFrame.left &&
+        current.width === nextFrame.width
+          ? current
+          : nextFrame,
+      );
+    };
+
+    updatePinnedFrame();
+    window.addEventListener("scroll", updatePinnedFrame, { passive: true });
+    window.addEventListener("resize", updatePinnedFrame);
+    const resizeObserver = new ResizeObserver(updatePinnedFrame);
+    if (siteSettingsAnchorRef.current) resizeObserver.observe(siteSettingsAnchorRef.current);
+    if (navigatorRef.current) resizeObserver.observe(navigatorRef.current);
+    return () => {
+      window.removeEventListener("scroll", updatePinnedFrame);
+      window.removeEventListener("resize", updatePinnedFrame);
+      resizeObserver.disconnect();
+    };
+  }, [siteSettings]);
 
   useEffect(() => {
     const targets = sections
@@ -94,11 +144,12 @@ export default function AdminSectionNavigator({
 
   if (!sections.length) return null;
 
-  return (
+  const navigator = (
     <nav
       ref={navigatorRef}
       aria-label={label}
-      className={`${siteSettings || projectEditor ? "top-20 z-20 bg-[#151515]" : "top-3 z-30 bg-[#151515]/95 backdrop-blur"} sticky rounded-2xl border border-white/10 p-3 shadow-xl`}
+      className={`${siteSettings ? (pinnedFrame ? "fixed top-20 z-20 bg-[#151515]" : "relative z-20 bg-[#151515]") : projectEditor ? "sticky top-20 z-20 bg-[#151515]" : "sticky top-3 z-30 bg-[#151515]/95 backdrop-blur"} rounded-2xl border border-white/10 p-3 shadow-xl`}
+      style={pinnedFrame ? { left: pinnedFrame.left, width: pinnedFrame.width } : undefined}
     >
       <label className="block md:hidden">
         <span className="mb-2 block text-[0.55rem] font-semibold uppercase tracking-[0.15em] text-white/45">
@@ -147,4 +198,14 @@ export default function AdminSectionNavigator({
       <p className="sr-only" aria-live="polite">{announcement}</p>
     </nav>
   );
+
+  return siteSettings ? (
+    <div
+      ref={siteSettingsAnchorRef}
+      data-site-settings-navigation-anchor
+      style={pinnedFrame ? { height: pinnedFrame.height } : undefined}
+    >
+      {navigator}
+    </div>
+  ) : navigator;
 }
