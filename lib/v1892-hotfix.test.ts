@@ -42,6 +42,7 @@ test("site settings navigation stays below the Studio header and remains respons
   assert.match(navigator, /fixed top-20 z-20 bg-\[#151515\]/);
   assert.match(navigator, /height: pinnedFrame\.height/);
   assert.match(navigator, /left: pinnedFrame\.left, width: pinnedFrame\.width/);
+  assert.match(navigator, /createPortal\(navigator, document\.body\)/);
   assert.match(navigator, /xl:grid-cols-7/);
   assert.match(navigator, /Jump to Section/);
   assert.match(navigator, /stickyClearance/);
