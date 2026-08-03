@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { getAdminSession } from "@/lib/auth/session";
 
 type ProjectDetailsRouteProps = {
   params: Promise<{
@@ -133,6 +134,8 @@ export async function PATCH(
   { params }: ProjectDetailsRouteProps,
 ) {
   try {
+    const session = await getAdminSession();
+    if (!session) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
     const { projectId } = await params;
     const body = (await request.json()) as ProjectDetailsBody;
 
@@ -143,8 +146,8 @@ export async function PATCH(
       );
     }
 
-    const existingProject = await prisma.project.findUnique({
-      where: { id: projectId },
+    const existingProject = await prisma.project.findFirst({
+      where: { id: projectId, workspaceId: session.workspaceId },
       select: { id: true, slug: true },
     });
 
@@ -219,6 +222,23 @@ export async function PATCH(
     }
 
     const propertyWebsiteUrl = getOptionalText(body, "propertyWebsiteUrl");
+    const rawAgents = Array.isArray(body.agents) ? body.agents : null;
+    if (rawAgents && rawAgents.length > 20) return NextResponse.json({ success: false, error: "A project can include up to 20 agents." }, { status: 400 });
+    const agents = rawAgents?.map((value, displayOrder) => {
+      const agent = value && typeof value === "object" ? value as Record<string, unknown> : {};
+      return {
+        clientId: typeof agent.clientId === "string" && agent.clientId ? agent.clientId : null,
+        displayNameSnapshot: typeof agent.displayNameSnapshot === "string" ? agent.displayNameSnapshot.trim() : "",
+        brokerageSnapshot: typeof agent.brokerageSnapshot === "string" ? agent.brokerageSnapshot.trim() || null : null,
+        displayOrder,
+      };
+    }) ?? null;
+    if (agents?.some((agent) => !agent.displayNameSnapshot || agent.displayNameSnapshot.length > 160 || (agent.brokerageSnapshot?.length || 0) > 160)) return NextResponse.json({ success: false, error: "Each agent needs a valid display name and brokerage." }, { status: 400 });
+    const linkedClientIds = [...new Set(agents?.flatMap((agent) => agent.clientId ? [agent.clientId] : []) ?? [])];
+    if (linkedClientIds.length) {
+      const memberships = await prisma.communicationClientWorkspace.count({ where: { workspaceId: session.workspaceId, clientId: { in: linkedClientIds } } });
+      if (memberships !== linkedClientIds.length) return NextResponse.json({ success: false, error: "One or more selected clients are not available in this workspace." }, { status: 400 });
+    }
 
     if (!isValidWebsiteUrl(propertyWebsiteUrl)) {
       return NextResponse.json(
@@ -231,6 +251,10 @@ export async function PATCH(
     }
 
     const project = await prisma.$transaction(async (transaction) => {
+      if (agents) {
+        await transaction.projectAgent.deleteMany({ where: { projectId, workspaceId: session.workspaceId } });
+        if (agents.length) await transaction.projectAgent.createMany({ data: agents.map((agent) => ({ ...agent, projectId, workspaceId: session.workspaceId })) });
+      }
       await transaction.projectDetails.upsert({
         where: { projectId },
         create: {

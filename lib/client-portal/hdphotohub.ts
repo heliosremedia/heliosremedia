@@ -104,6 +104,7 @@ export async function getHdPhotoHubUsers() {
         `${user.firstname || ""} ${user.lastname || ""}`.trim() ||
         user.email.trim(),
       phone: user.phone?.trim() || null,
+      brokerage: user.group?.name?.trim() || null,
     }));
 
   return [...new Map(clients.map((client) => [client.uid, client])).values()];

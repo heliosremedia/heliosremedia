@@ -49,7 +49,7 @@ export async function POST() {
     },
   });
   try {
-    const result = await syncHdPhotoHubClients();
+    const result = await syncHdPhotoHubClients(session.workspaceId);
     const skipped = Math.max(0, result.total - result.created - result.updated);
     await prisma.clientSyncRun.update({
       where: { id: run.id },
