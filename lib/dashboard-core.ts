@@ -53,8 +53,13 @@ export function communicationMetrics(
     ).size;
   const sent = recipients.filter((item) => item.status === "SENT").length;
   const delivered = unique("DELIVERED");
+  const delayed = unique("DELAYED");
   const clicks = unique("CLICKED");
   const opens = unique("OPENED");
+  const providerFailures = new Set(
+    recipients.filter((item) => item.events.some((event) =>
+      ["FAILED", "BOUNCED", "SUPPRESSED"].includes(event.eventType))).map((item) => item.id),
+  );
   const links = new Map<string, number>();
   recipients.forEach((recipient) =>
     recipient.events.forEach((event) => {
@@ -69,12 +74,16 @@ export function communicationMetrics(
     sent,
     providerAccepted: recipients.filter((item) => Boolean(item.providerMessageId)).length,
     delivered,
+    delayed,
     awaitingProviderConfirmation: recipients.filter((item) =>
       item.status === "SENT" && !item.events.some(event =>
-        ["DELIVERED", "BOUNCED", "COMPLAINED"].includes(event.eventType))).length,
+        ["DELIVERED", "BOUNCED", "FAILED", "SUPPRESSED", "COMPLAINED"].includes(event.eventType))).length,
     unknown: recipients.filter((item) =>
       !["PENDING", "SENT", "FAILED", "SKIPPED"].includes(item.status)).length,
-    suppressed: recipients.filter((item) => item.status === "SKIPPED").length,
+    suppressed: new Set([
+      ...recipients.filter((item) => item.status === "SKIPPED").map((item) => item.id),
+      ...recipients.filter((item) => item.events.some((event) => event.eventType === "SUPPRESSED")).map((item) => item.id),
+    ]).size,
     deliveryRate: percent(delivered, sent),
     uniqueClicks: clicks,
     clickThroughRate: percent(clicks, delivered || sent),
@@ -83,7 +92,10 @@ export function communicationMetrics(
     unsubscribes: unique("UNSUBSCRIBED"),
     bounces: unique("BOUNCED"),
     complaints: unique("COMPLAINED"),
-    failed: recipients.filter((item) => item.status === "FAILED").length,
+    failed: new Set([
+      ...recipients.filter((item) => item.status === "FAILED").map((item) => item.id),
+      ...providerFailures,
+    ]).size,
     topLink: [...links.entries()].sort((a, b) => b[1] - a[1])[0] || null,
   };
 }

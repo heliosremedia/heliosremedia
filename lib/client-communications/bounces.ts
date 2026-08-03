@@ -42,14 +42,14 @@ export async function recordRetryableBounceFailure(providerEventId: string, erro
   });
 }
 
-export async function processPermanentBounce(providerEventId: string, event: ResendBouncePayload) {
+export async function processPermanentBounce(providerEventId: string, event: ResendBouncePayload, alreadyAccepted = false) {
   const providerMessageId = event.data?.email_id?.trim() || null;
   const eventOccurredAt = occurredAt(event.created_at);
   const bounceType = event.data?.bounce?.type?.trim() || null;
   const bounceSubtype = event.data?.bounce?.subtype?.trim() || null;
   const reason = sanitizeBounceReason(event.data?.bounce?.message ?? bounceSubtype ?? bounceType);
 
-  try {
+  if (!alreadyAccepted) try {
     await prisma.resendWebhookEvent.create({
       data: {
         providerEventId,
