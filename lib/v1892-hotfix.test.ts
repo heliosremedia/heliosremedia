@@ -37,7 +37,11 @@ test("site settings navigation stays below the Studio header and remains respons
   const form = read("../app/admin/settings/SiteSettingsForm.tsx");
   const navigator = read("../app/admin/components/AdminSectionNavigator.tsx");
   assert.match(form, /<AdminSectionNavigator[\s\S]*?siteSettings/);
-  assert.match(navigator, /top-20 z-20 bg-\[#151515\]/);
+  assert.match(navigator, /data-site-settings-navigation-anchor/);
+  assert.match(navigator, /window\.addEventListener\("scroll", updatePinnedFrame, \{ passive: true \}\)/);
+  assert.match(navigator, /fixed top-20 z-20 bg-\[#151515\]/);
+  assert.match(navigator, /height: pinnedFrame\.height/);
+  assert.match(navigator, /left: pinnedFrame\.left, width: pinnedFrame\.width/);
   assert.match(navigator, /xl:grid-cols-7/);
   assert.match(navigator, /Jump to Section/);
   assert.match(navigator, /stickyClearance/);
