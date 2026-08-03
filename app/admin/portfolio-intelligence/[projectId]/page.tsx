@@ -29,14 +29,15 @@ export default async function ProjectInsightsPage({ params, searchParams }: { pa
   >
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{metrics.slice(4).map(([label,value])=><article key={label} className="rounded-2xl border border-white/[0.08] bg-[#111] p-5"><p className="text-[0.54rem] font-semibold uppercase tracking-[0.16em] text-white/30">{label}</p><p className="mt-3 text-3xl font-light text-white">{value}</p></article>)}</section>
     <div className="grid gap-5 xl:grid-cols-2">
-      <Breakdown title="Shares by channel" rows={report.channels.filter(row=>row.eventName==="PROJECT_SHARE")}/>
-      <Breakdown title="CTA activity" rows={report.targets.filter(row=>row.eventName==="CTA_CLICK")}/>
-      <Breakdown title="Outbound destinations" rows={report.targets.filter(row=>row.eventName==="OUTBOUND_LINK_CLICK")}/>
+      <Breakdown title="Share launcher activity" description="Share-option activation, not provider-confirmed publication." rows={report.channels.filter(row=>row.eventName==="PROJECT_SHARE")}/>
+      <Breakdown title="CTA activity" description="Managed CTA targets only. No unrelated activity is substituted." rows={report.targets.filter(row=>row.eventName==="CTA_CLICK")}/>
+      <Breakdown title="Outbound destinations" description="Intentional external navigation with asset and internal URLs excluded." rows={report.targets.filter(row=>row.eventName==="OUTBOUND_LINK_CLICK")}/>
     </div>
+    <section className="rounded-2xl border border-white/[0.08] bg-[#111] p-6"><h2 className="text-xl font-light text-white">Metric definitions</h2><p className="mt-3 text-sm leading-6 text-white/35"><span className="text-white/60">CTA Clicks</span> count managed call-to-action activations. <span className="text-white/60">CTA Activity</span> identifies those CTA targets. <span className="text-white/60">Outbound Clicks</span> count intentional navigation outside Helios. <span className="text-white/60">Shares</span> record launcher or native share-sheet interaction, not a confirmed social post.</p></section>
     <section className="rounded-2xl border border-white/[0.08] bg-[#111] p-6"><h2 className="text-xl font-light text-white">Trend</h2>{report.trend.length?<div className="mt-6 flex h-40 items-end gap-1" aria-label="Daily engagement trend">{report.trend.map(day=><div key={day.date} title={`${day.date}: ${day.value}`} className="min-w-1 flex-1 bg-[var(--helios-orange)]/75" style={{height:`${Math.max(4,day.value/Math.max(...report.trend.map(item=>item.value))*100)}%`}}/>)}</div>:<p className="mt-4 text-sm text-white/30">No activity in this range.</p>}</section>
   </AdminPageLayout>;
 }
 
-function Breakdown({title,rows}:{title:string;rows:{label:string;value:number}[]}) {
-  return <section className="rounded-2xl border border-white/[0.08] bg-[#111] p-6"><h2 className="text-xl font-light text-white">{title}</h2><div className="mt-4 divide-y divide-white/[0.06]">{rows.length?rows.map(row=><div key={row.label} className="flex min-h-11 items-center justify-between gap-4 text-sm text-white/45"><span className="truncate">{row.label}</span><span>{row.value}</span></div>):<p className="text-sm text-white/30">No measured data in this range.</p>}</div></section>;
+function Breakdown({title,description,rows}:{title:string;description?:string;rows:{label:string;url?:string|null;value:number}[]}) {
+  return <section className="rounded-2xl border border-white/[0.08] bg-[#111] p-6"><h2 className="text-xl font-light text-white">{title}</h2>{description&&<p className="mt-2 text-xs leading-5 text-white/30">{description}</p>}<div className="mt-4 divide-y divide-white/[0.06]">{rows.length?rows.map(row=><div key={`${row.label}:${row.url||""}`} className="flex min-h-14 items-center justify-between gap-4 py-2 text-sm text-white/45"><span className="min-w-0"><span className="block truncate">{row.label}</span>{row.url&&<span className="mt-1 block truncate font-mono text-[0.65rem] text-white/25" title={row.url}>{row.url}</span>}</span><span>{row.value}</span></div>):<p className="text-sm text-white/30">No measured data in this range.</p>}</div></section>;
 }

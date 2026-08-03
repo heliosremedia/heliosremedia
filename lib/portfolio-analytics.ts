@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { normalizedOutboundKey, outboundDestinationLabel, parseReportableOutboundUrl } from "@/lib/portfolio-outbound";
 
 export type AnalyticsRange = "7d" | "30d" | "90d";
 
@@ -25,7 +26,7 @@ export async function getPortfolioAnalytics(workspaceId: string, range: Analytic
     } }),
   ]);
   const counts = Object.fromEntries(events.map(item => [item.eventName, item._count._all])) as Record<string, number>;
-  const [sourceRows, deviceRows, channelRows, targetRows] = await Promise.all([
+  const [sourceRows, deviceRows, channelRows, targetRows, settings] = await Promise.all([
     prisma.portfolioAnalyticsEvent.groupBy({
       by: ["trafficSource"], where, _count: { _all: true }, orderBy: { _count: { trafficSource: "desc" } },
     }),
@@ -38,7 +39,22 @@ export async function getPortfolioAnalytics(workspaceId: string, range: Analytic
     prisma.portfolioAnalyticsEvent.groupBy({
       by: ["eventName", "target"], where: { ...where, target: { not: null } }, _count: { _all: true },
     }),
+    prisma.siteSettings.findFirst({ where: { workspaceId }, select: { websiteUrl: true } }),
   ]);
+  const validOutboundCounts = new Map<string, { eventName: string; label: string; url: string; value: number }>();
+  const targets: Array<{ eventName: string; label: string; url: string | null; value: number }> = targetRows.flatMap(row => {
+    const target = row.target || "unknown";
+    if (row.eventName !== "OUTBOUND_LINK_CLICK") return [{ eventName: row.eventName, label: target, url: null, value: row._count._all }];
+    if (!parseReportableOutboundUrl(target, settings?.websiteUrl)) return [];
+    const key = normalizedOutboundKey(target);
+    if (!key) return [];
+    const current = validOutboundCounts.get(key);
+    if (current) current.value += row._count._all;
+    else validOutboundCounts.set(key, { eventName: row.eventName, label: outboundDestinationLabel(target), url: target, value: row._count._all });
+    return [];
+  });
+  targets.push(...validOutboundCounts.values());
+  counts.OUTBOUND_LINK_CLICK = [...validOutboundCounts.values()].reduce((sum, row) => sum + row.value, 0);
   const recent = await prisma.portfolioAnalyticsEvent.findMany({
     where, orderBy: { occurredAt: "asc" }, select: { occurredAt: true, eventName: true },
   });
@@ -58,7 +74,7 @@ export async function getPortfolioAnalytics(workspaceId: string, range: Analytic
     sources: sourceRows.map(row => ({ label: row.trafficSource, value: row._count._all })),
     devices: deviceRows.map(row => ({ label: row.deviceCategory, value: row._count._all })),
     channels: channelRows.map(row => ({ eventName: row.eventName, label: row.channel || "unknown", value: row._count._all })),
-    targets: targetRows.map(row => ({ eventName: row.eventName, label: row.target || "unknown", value: row._count._all })),
+    targets,
     trend: [...trend].map(([date, value]) => ({ date, value })),
   };
 }

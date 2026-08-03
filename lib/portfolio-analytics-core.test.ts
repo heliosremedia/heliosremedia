@@ -19,13 +19,13 @@ test("analytics payloads accept only the centralized event contract", () => {
     metadata: { position: 2, email: "private@example.com" },
   }), {
     eventName: "PROJECT_SHARE", eventId: "event_123456", channel: "linkedin",
-    target: "https://example.com/listing",
+    target: "https://example.com/listing?token=secret#private",
     metadata: { position: 2 },
   });
 });
 
-test("targets and referrers discard query strings and paths", () => {
-  assert.equal(cleanAnalyticsTarget("https://example.com/path?token=secret"), "https://example.com/path");
+test("targets preserve the exact clicked destination while referrers remain privacy-reduced", () => {
+  assert.equal(cleanAnalyticsTarget("https://Example.com/ClientPath?Source=Portfolio#Details"), "https://Example.com/ClientPath?Source=Portfolio#Details");
   assert.deepEqual(normalizeReferrer("https://www.google.com/search?q=private"), {
     referrerHost: "google.com", trafficSource: "organic-search",
   });
