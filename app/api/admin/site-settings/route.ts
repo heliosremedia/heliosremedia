@@ -11,8 +11,9 @@ function url(value: unknown, kind: UrlKind = "website") {
   const result = text(value, 1000);
   if (!result) return null;
 
+  const explicitlyQualified = /^https?:\/\//i.test(result);
   let candidate = result;
-  if (!/^https?:\/\//i.test(candidate)) {
+  if (!explicitlyQualified) {
     const handle = candidate.replace(/^@/, "");
     const looksLikeAddress = candidate.includes(".") || candidate.includes("/");
 
@@ -27,7 +28,9 @@ function url(value: unknown, kind: UrlKind = "website") {
   try {
     const parsed = new URL(candidate);
     if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("INVALID_URL");
-    return parsed.toString();
+    // Explicit URLs are user-owned content. Validate them without rewriting
+    // their casing, path, query, fragment, or trailing-slash presentation.
+    return explicitlyQualified ? result : parsed.toString();
   } catch {
     throw new Error("INVALID_URL");
   }
