@@ -121,6 +121,15 @@ export function chunkMessages<T>(messages: readonly T[], size = RESEND_BATCH_LIM
   return chunks;
 }
 
+export function resendTagValue(value: string) {
+  const sanitized = value
+    .trim()
+    .replace(/[^A-Za-z0-9_-]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 256);
+  return sanitized || createHash("sha256").update(value).digest("hex");
+}
+
 export function deliveryContentHash(messages: Array<{
   to: string;
   subject: string;
