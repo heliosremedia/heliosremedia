@@ -139,16 +139,31 @@ async function resumeSeries(seriesId: string) {
       });
     }
 
-    const nextSendAt = nextOccurrence(now, recurrenceFromSeries(series), series.timeZone);
+    let nextSendAt = nextOccurrence(now, recurrenceFromSeries(series), series.timeZone);
+    let key = cycleKey(nextSendAt, series.timeZone);
+    const collision = await tx.newsletterEdition.findUnique({
+      where: { seriesId_cycleKey: { seriesId, cycleKey: key } },
+      select: { status: true },
+    });
+    if (collision && ["SENT", "PARTIALLY_SENT", "CANCELLED"].includes(collision.status)) {
+      nextSendAt = nextOccurrence(
+        new Date(nextSendAt.getTime() + 1_000),
+        recurrenceFromSeries(series),
+        series.timeZone,
+      );
+      key = cycleKey(nextSendAt, series.timeZone);
+    }
     const nextGenerationAt = generationDateForSend(
       nextSendAt,
       generationFromSeries(series),
       series.timeZone,
     );
-    const edition = await tx.newsletterEdition.create({
-      data: {
+    const edition = await tx.newsletterEdition.upsert({
+      where: { seriesId_cycleKey: { seriesId, cycleKey: key } },
+      update: {},
+      create: {
         seriesId,
-        cycleKey: cycleKey(nextSendAt, series.timeZone),
+        cycleKey: key,
         status: "AWAITING_GENERATION",
         intendedSendAt: nextSendAt,
         generationDueAt: nextGenerationAt,
