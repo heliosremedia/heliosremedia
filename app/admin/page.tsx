@@ -143,7 +143,7 @@ export default async function AdminPage({
           : "No workspace provider event has been confirmed.",
       verified: communications.data.lastProviderEventAt ? fmt(communications.data.lastProviderEventAt, true) : fmt(dashboard.generatedAt, true),
       action: emailTone === "green" ? "Open delivery reporting" : "Review analytics health",
-      href: "/admin/email-studio",
+      href: "/admin/email-studio#analytics-health",
     },
     {
       label: "Client Sync",

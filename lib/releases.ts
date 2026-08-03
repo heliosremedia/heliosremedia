@@ -19,6 +19,19 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
+    version: "V1.9.4.7",
+    slug: "v1-9-4-7",
+    releaseDate: "2026-08-02",
+    title: "Email and Project Insights Reporting Correction",
+    summary: "Aligns Email Studio with provider-confirmed delivery evidence and removes internal asset noise from outbound Project Insights.",
+    newFeatures: [],
+    improvements: ["Email Studio Live Preview remains visible while composing on desktop", "Analytics health links directly to provider-confirmed reporting", "Outbound destinations use readable labels while preserving the exact recorded URL for inspection"],
+    bugFixes: ["Email Studio and Dashboard now use the same authoritative communication metric definitions", "Campaign history distinguishes eligible, provider-accepted, delivered, awaiting, and failed messages", "Outbound reports exclude safely identifiable Helios, R2, Stream, CDN, and media asset targets without deleting raw events"],
+    securityInfrastructure: ["Analytics capture requires a trusted intentional click on a reportable external link", "Historical filtering and aggregation remain scoped by workspace and optional stable project ID", "No analytics records, media assets, campaigns, or recipient records are deleted or rewritten"],
+    administratorActions: [],
+    status: "LIVE",
+  },
+  {
     version: "V1.9.4.6",
     slug: "v1-9-4-6",
     releaseDate: "2026-08-02",

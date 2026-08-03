@@ -69,12 +69,12 @@ export function parsePortfolioEvent(value: unknown): PortfolioEventInput | null 
 }
 
 export function cleanAnalyticsTarget(value: unknown) {
-  const text = cleanText(value, 240);
+  const text = cleanText(value, 500);
   if (!text) return undefined;
   try {
     const url = new URL(text, "https://helios.invalid");
     if (url.origin === "https://helios.invalid") return url.pathname.slice(0, 160);
-    return `${url.protocol}//${url.host}${url.pathname}`.slice(0, 240);
+    return text;
   } catch {
     return text.startsWith("#") ? text.slice(0, 120) : undefined;
   }

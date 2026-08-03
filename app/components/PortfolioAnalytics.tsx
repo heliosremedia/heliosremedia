@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import type { PortfolioEventName } from "@/lib/portfolio-analytics-core";
+import { parseReportableOutboundUrl } from "@/lib/portfolio-outbound";
 
 type Detail = {
   eventName: PortfolioEventName;
@@ -77,17 +78,21 @@ export default function PortfolioAnalytics({
     }
     window.addEventListener("helios:portfolio-analytics", eventHandler);
     function clickHandler(event: MouseEvent) {
-      const element = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-analytics-event],a[target='_blank']");
+      if (!event.isTrusted || event.button !== 0 || event.defaultPrevented) return;
+      const element = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-analytics-event],a[href]");
       if (!element) return;
       const declared = element.dataset.analyticsEvent as PortfolioEventName | undefined;
       const anchor = element instanceof HTMLAnchorElement ? element : element.closest("a");
-      const eventName = declared || (anchor ? "OUTBOUND_LINK_CLICK" : undefined);
+      const outbound = anchor ? parseReportableOutboundUrl(anchor.href, window.location.origin) : null;
+      const eventName = declared === "OUTBOUND_LINK_CLICK"
+        ? (outbound ? declared : undefined)
+        : declared || (outbound ? "OUTBOUND_LINK_CLICK" : undefined);
       if (!eventName) return;
       sendPortfolioEvent({
         eventName,
         projectId: element.dataset.analyticsProject || projectId,
         channel: element.dataset.analyticsChannel,
-        target: element.dataset.analyticsTarget || anchor?.href,
+        target: eventName === "OUTBOUND_LINK_CLICK" ? outbound?.href : element.dataset.analyticsTarget || anchor?.href,
         metadata: element.dataset.analyticsLabel ? { label: element.dataset.analyticsLabel } : undefined,
       });
     }
