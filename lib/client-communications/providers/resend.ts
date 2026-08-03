@@ -194,6 +194,7 @@ export async function sendEmailBatch(input: {
       replyTo: replyTo || undefined,
       subject: message.subject,
       html: message.html,
+      tags: [{ name: "campaign_id", value: input.campaignId }],
       headers: message.unsubscribeUrl ? oneClickUnsubscribeHeaders(message.unsubscribeUrl) : undefined,
     })), { idempotencyKey }), metadata);
     const accepted = response.data?.data;

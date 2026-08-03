@@ -2162,6 +2162,7 @@ model CampaignRecipient {
   @@unique([campaignId, clientId])
   @@index([campaignId, status])
   @@index([clientId])
+  @@index([providerMessageId])
 }
 
 model ResendWebhookEvent {
@@ -2181,7 +2182,9 @@ model ResendWebhookEvent {
   bounceType          String?
   bounceSubtype       String?
   reason              String?
+  normalizedStatus    String?
   occurredAt          DateTime
+  receivedAt          DateTime             @default(now())
   processedAt         DateTime?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
@@ -2200,8 +2203,12 @@ model CampaignDeliveryEvent {
   campaignRecipientId String
   campaignRecipient   CampaignRecipient @relation(fields: [campaignRecipientId], references: [id], onDelete: Cascade)
   eventType           String
+  providerEventType   String?
+  normalizedStatus    String?
   linkUrl             String?
   occurredAt          DateTime
+  receivedAt          DateTime          @default(now())
+  processedAt         DateTime?
   payload             Json?
 
   createdAt DateTime @default(now())
