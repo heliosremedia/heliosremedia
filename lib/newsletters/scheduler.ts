@@ -106,20 +106,37 @@ export async function ensureUpcomingNewsletterEditions(now = new Date()) {
       const persistedSendAt = series.nextSendAt && series.nextSendAt > now
         ? series.nextSendAt
         : null;
-      const nextSendAt = persistedSendAt
+      let nextSendAt = persistedSendAt
         ?? nextOccurrence(now, sendRuleFromSeries(series), series.timeZone);
-      const nextGenerationAt = persistedSendAt
+      let nextGenerationAt = persistedSendAt
         ? series.nextGenerationAt
         : generationDateForSend(
             nextSendAt,
             generationRuleFromSeries(series),
             series.timeZone,
           );
-      const key = cycleKey(nextSendAt, series.timeZone);
-      const existing = await tx.newsletterEdition.findUnique({
+      let key = cycleKey(nextSendAt, series.timeZone);
+      let existing = await tx.newsletterEdition.findUnique({
         where: { seriesId_cycleKey: { seriesId: series.id, cycleKey: key } },
-        select: { id: true },
+        select: { id: true, status: true },
       });
+      if (existing && ["SENT", "PARTIALLY_SENT", "CANCELLED"].includes(existing.status)) {
+        nextSendAt = nextOccurrence(
+          new Date(nextSendAt.getTime() + 1_000),
+          sendRuleFromSeries(series),
+          series.timeZone,
+        );
+        nextGenerationAt = generationDateForSend(
+          nextSendAt,
+          generationRuleFromSeries(series),
+          series.timeZone,
+        );
+        key = cycleKey(nextSendAt, series.timeZone);
+        existing = await tx.newsletterEdition.findUnique({
+          where: { seriesId_cycleKey: { seriesId: series.id, cycleKey: key } },
+          select: { id: true, status: true },
+        });
+      }
       const edition = await tx.newsletterEdition.upsert({
         where: { seriesId_cycleKey: { seriesId: series.id, cycleKey: key } },
         update: {},
