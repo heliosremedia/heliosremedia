@@ -7,6 +7,7 @@ import {
   deliveryContentHash,
   normalizeResendError,
   resolveDeliveryConfig,
+  resendTagValue,
   RESEND_BATCH_LIMIT,
 } from "./providers/resend-core.ts";
 
@@ -48,6 +49,15 @@ test("batching follows the current Resend limit and maps every message", () => {
   assert.equal(RESEND_BATCH_LIMIT, 100);
   const messages = Array.from({ length: 205 }, (_, index) => ({ to: `person${index}@example.com` }));
   assert.deepEqual(chunkMessages(messages).map((chunk) => chunk.length), [100, 100, 5]);
+});
+
+test("Resend tag values sanitize newsletter composite campaign IDs", () => {
+  assert.equal(
+    resendTagValue("campaign:newsletter:batch-1"),
+    "campaign_newsletter_batch-1",
+  );
+  assert.match(resendTagValue(":::") , /^[A-Fa-f0-9]{64}$/);
+  assert.ok(resendTagValue("a".repeat(300)).length <= 256);
 });
 
 test("idempotency changes only with revision, batch, or recipient set", () => {
