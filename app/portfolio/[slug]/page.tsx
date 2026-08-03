@@ -95,6 +95,7 @@ async function getProject(slug: string, previewToken?: string) {
           propertyWebsiteUrl: true,
         },
       },
+      agents: { orderBy: { displayOrder: "asc" }, select: { displayNameSnapshot: true, brokerageSnapshot: true } },
       services: {
         orderBy: {
           service: {
@@ -370,12 +371,13 @@ export default async function PortfolioProjectPage({
       value: contributor.displayNameSnapshot,
       internal: !contributor.externalDiscipline,
     })),
-    project.details?.listingAgent
-      ? { label: "Listing agent", value: project.details.listingAgent, internal: false }
-      : null,
-    project.details?.brokerage
-      ? { label: "Brokerage", value: project.details.brokerage, internal: false }
-      : null,
+    ...(project.agents.length ? project.agents.flatMap((agent) => [
+      { label: "Listing agent", value: agent.displayNameSnapshot, internal: false },
+      agent.brokerageSnapshot ? { label: "Brokerage", value: agent.brokerageSnapshot, internal: false } : null,
+    ]) : [
+      project.details?.listingAgent ? { label: "Listing agent", value: project.details.listingAgent, internal: false } : null,
+      project.details?.brokerage ? { label: "Brokerage", value: project.details.brokerage, internal: false } : null,
+    ]),
     project.details?.builder
       ? { label: "Builder", value: project.details.builder, internal: false }
       : null,

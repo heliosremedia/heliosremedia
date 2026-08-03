@@ -5,10 +5,14 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
   type ReactNode,
 } from "react";
+
+export type ProjectAgentDraft = { id?: string; clientId: string | null; displayNameSnapshot: string; brokerageSnapshot: string };
+export type AgentClientOption = { id: string; firstName: string; lastName: string; displayName: string; email: string; brokerage: string | null };
 
 import { PROJECT_TYPES } from "@/lib/project-types";
 
@@ -42,6 +46,8 @@ type ProjectDetailsEditorProps = {
   projectId: string;
   initialData: ProjectDetailsDraft;
   statusLabel: string;
+  initialAgents: ProjectAgentDraft[];
+  clientOptions: AgentClientOption[];
 };
 
 type ProjectDetailsResponse = {
@@ -114,20 +120,54 @@ function SectionHeading({
   );
 }
 
+function AgentSelector({ clients, agents, onChange, legacyName, legacyBrokerage }: { clients: AgentClientOption[]; agents: ProjectAgentDraft[]; onChange: (agents: ProjectAgentDraft[]) => void; legacyName: string; legacyBrokerage: string }) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [manual, setManual] = useState(false);
+  const [manualName, setManualName] = useState("");
+  const [manualBrokerage, setManualBrokerage] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const normalized = query.trim().toLowerCase();
+  const results = clients.filter((client) => !agents.some((agent) => agent.clientId === client.id) && `${client.firstName} ${client.lastName} ${client.displayName} ${client.email} ${client.brokerage || ""}`.toLowerCase().includes(normalized)).slice(0, 20);
+  const addClient = (client: AgentClientOption) => {
+    onChange([...agents, { clientId: client.id, displayNameSnapshot: client.displayName, brokerageSnapshot: client.brokerage || "" }]);
+    setQuery(""); setOpen(false); setActiveIndex(0); inputRef.current?.focus();
+  };
+  const update = (index: number, field: "displayNameSnapshot" | "brokerageSnapshot", value: string) => onChange(agents.map((agent, agentIndex) => agentIndex === index ? { ...agent, [field]: value } : agent));
+  const move = (index: number, direction: -1 | 1) => { const next = [...agents]; const target = index + direction; if (target < 0 || target >= next.length) return; [next[index], next[target]] = [next[target], next[index]]; onChange(next); };
+  return <div>
+    <p className={labelClasses}>Agents and brokerages</p>
+    {agents.length === 0 && legacyName && <div className="mt-3 rounded-xl border border-amber-200/15 bg-amber-200/[0.04] px-4 py-3"><p className="text-sm text-white/65">Current published credit: {legacyName}{legacyBrokerage ? ` · ${legacyBrokerage}` : ""}</p><p className="mt-1 text-xs text-white/30">Preserved as entered. Connect it manually only when you are ready.</p></div>}
+    <div className="relative mt-3">
+      <label className="sr-only" htmlFor="agent-client-search">Search existing clients</label>
+      <input ref={inputRef} id="agent-client-search" type="search" role="combobox" aria-autocomplete="list" aria-expanded={open} aria-controls="agent-client-results" aria-activedescendant={open && results[activeIndex] ? `agent-client-${results[activeIndex].id}` : undefined} value={query} onFocus={() => setOpen(true)} onChange={(event) => { setQuery(event.target.value); setOpen(true); setActiveIndex(0); }} onKeyDown={(event) => { if (event.key === "ArrowDown") { event.preventDefault(); setOpen(true); setActiveIndex((current) => Math.min(current + 1, Math.max(0, results.length - 1))); } else if (event.key === "ArrowUp") { event.preventDefault(); setActiveIndex((current) => Math.max(0, current - 1)); } else if (event.key === "Enter" && open && results[activeIndex]) { event.preventDefault(); addClient(results[activeIndex]); } else if (event.key === "Escape") setOpen(false); }} placeholder="Search name, email, or brokerage" className={inputClasses} />
+      {open && <div id="agent-client-results" role="listbox" className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-xl border border-white/10 bg-[#171718] p-1 shadow-2xl">{results.map((client, index) => <button id={`agent-client-${client.id}`} role="option" aria-selected={index === activeIndex} key={client.id} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => addClient(client)} className={`block w-full rounded-lg px-3 py-3 text-left focus-visible:outline-2 focus-visible:outline-[var(--helios-orange)] ${index === activeIndex ? "bg-white/[0.07]" : "hover:bg-white/[0.04]"}`}><span className="block text-sm text-white/75">{client.displayName}</span><span className="mt-1 block text-xs text-white/35">{[client.brokerage, client.email].filter(Boolean).join(" · ")}</span></button>)}{results.length === 0 && <p className="px-3 py-4 text-sm text-white/35">No matching clients.</p>}</div>}
+    </div>
+    <button type="button" onClick={() => setManual((value) => !value)} className="admin-btn-link mt-3">Enter agent manually</button>
+    {manual && <div className="mt-3 grid gap-3 rounded-xl border border-white/[0.08] p-4 sm:grid-cols-2"><Field label="Agent display name"><input value={manualName} onChange={(event) => setManualName(event.target.value)} maxLength={160} className={inputClasses} /></Field><Field label="Brokerage"><input value={manualBrokerage} onChange={(event) => setManualBrokerage(event.target.value)} maxLength={160} className={inputClasses} /></Field><div className="sm:col-span-2"><button type="button" disabled={!manualName.trim()} onClick={() => { onChange([...agents, { clientId: null, displayNameSnapshot: manualName.trim(), brokerageSnapshot: manualBrokerage.trim() }]); setManualName(""); setManualBrokerage(""); setManual(false); }} className="admin-btn-secondary">Add manual agent</button></div></div>}
+    <div className="mt-4 space-y-3">{agents.map((agent, index) => <div key={agent.id || `${agent.clientId || "manual"}-${index}`} className="rounded-xl border border-white/[0.08] bg-black/20 p-4"><div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"><Field label="Display name"><input value={agent.displayNameSnapshot} onChange={(event) => update(index, "displayNameSnapshot", event.target.value)} maxLength={160} className={inputClasses} /></Field><Field label="Brokerage override"><input value={agent.brokerageSnapshot} onChange={(event) => update(index, "brokerageSnapshot", event.target.value)} maxLength={160} className={inputClasses} /></Field><div className="flex items-end gap-1"><button type="button" aria-label={`Move ${agent.displayNameSnapshot} up`} disabled={index === 0} onClick={() => move(index, -1)} className="admin-btn-link min-h-11 min-w-11">↑</button><button type="button" aria-label={`Move ${agent.displayNameSnapshot} down`} disabled={index === agents.length - 1} onClick={() => move(index, 1)} className="admin-btn-link min-h-11 min-w-11">↓</button><button type="button" aria-label={`Remove ${agent.displayNameSnapshot}`} onClick={() => onChange(agents.filter((_, agentIndex) => agentIndex !== index))} className="admin-btn-link min-h-11">Remove</button></div></div>{agent.clientId && <div className="mt-3 flex flex-wrap items-center justify-between gap-2"><p className="text-xs text-white/25">Client linked. These are project snapshots and will not change automatically.</p><button type="button" onClick={() => { const client = clients.find((item) => item.id === agent.clientId); if (client) onChange(agents.map((item, agentIndex) => agentIndex === index ? { ...item, displayNameSnapshot: client.displayName, brokerageSnapshot: client.brokerage || "" } : item)); }} className="admin-btn-link">Refresh from client record</button></div>}</div>)}</div>
+  </div>;
+}
+
 export default function ProjectDetailsEditor({
   projectId,
   initialData,
   statusLabel,
+  initialAgents,
+  clientOptions,
 }: ProjectDetailsEditorProps) {
   const router = useRouter();
   const [savedData, setSavedData] = useState(initialData);
   const [draft, setDraft] = useState(initialData);
+  const [savedAgents, setSavedAgents] = useState(initialAgents);
+  const [draftAgents, setDraftAgents] = useState(initialAgents);
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isDirty = useMemo(
-    () => JSON.stringify(draft) !== JSON.stringify(savedData),
-    [draft, savedData],
+    () => JSON.stringify(draft) !== JSON.stringify(savedData) || JSON.stringify(draftAgents) !== JSON.stringify(savedAgents),
+    [draft, draftAgents, savedData, savedAgents],
   );
   const location =
     savedData.locationLabel ||
@@ -153,9 +193,10 @@ export default function ProjectDetailsEditor({
     }
 
     setDraft(savedData);
+    setDraftAgents(savedAgents);
     setError(null);
     setIsOpen(false);
-  }, [isDirty, savedData]);
+  }, [isDirty, savedAgents, savedData]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -192,7 +233,7 @@ export default function ProjectDetailsEditor({
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(draft),
+            body: JSON.stringify({ ...draft, agents: draftAgents }),
           },
         );
         const data = (await response.json()) as ProjectDetailsResponse;
@@ -211,6 +252,7 @@ export default function ProjectDetailsEditor({
 
         setDraft(nextData);
         setSavedData(nextData);
+        setSavedAgents(draftAgents);
         setIsOpen(false);
         router.refresh();
       } catch (saveError) {
@@ -224,7 +266,7 @@ export default function ProjectDetailsEditor({
         setIsSaving(false);
       }
     },
-    [draft, projectId, router],
+    [draft, draftAgents, projectId, router],
   );
 
   return (
@@ -247,6 +289,7 @@ export default function ProjectDetailsEditor({
             type="button"
             onClick={() => {
               setDraft(savedData);
+              setDraftAgents(savedAgents);
               setError(null);
               setIsOpen(true);
             }}
@@ -599,9 +642,10 @@ export default function ProjectDetailsEditor({
                     description="Recognize the people and teams behind the property and campaign."
                   />
                   <div className="grid gap-5 p-5 sm:grid-cols-2 lg:grid-cols-3 sm:p-6">
+                    <div className="sm:col-span-2 lg:col-span-3">
+                      <AgentSelector clients={clientOptions} agents={draftAgents} onChange={setDraftAgents} legacyName={draft.listingAgent} legacyBrokerage={draft.brokerage} />
+                    </div>
                     {[
-                      ["Listing agent", "listingAgent"],
-                      ["Brokerage", "brokerage"],
                       ["Builder", "builder"],
                       ["Architect", "architect"],
                       ["Interior designer", "interiorDesigner"],

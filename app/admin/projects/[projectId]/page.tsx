@@ -52,7 +52,7 @@ export default async function ProjectEditorPage({
       ? requestedReturnTo
       : "/admin/projects";
 
-  const [project, services, contributorUsers] = await Promise.all([
+  const [project, services, contributorUsers, clientMemberships] = await Promise.all([
     prisma.project.findFirst({
       where: {
         id: projectId,
@@ -123,6 +123,7 @@ export default async function ProjectEditorPage({
         },
         previewLinks: { orderBy: { createdAt: "desc" }, take: 25, select: { id: true, label: true, expiresAt: true, createdAt: true, lastUsedAt: true, revokedAt: true } },
         contributors: { where: { workspaceId: session.workspaceId }, orderBy: { displayOrder: "asc" }, select: { adminUserId: true, displayNameSnapshot: true, titleSnapshot: true, externalName: true, externalDiscipline: true, public: true } },
+        agents: { where: { workspaceId: session.workspaceId }, orderBy: { displayOrder: "asc" }, select: { id: true, clientId: true, displayNameSnapshot: true, brokerageSnapshot: true } },
       },
     }),
     prisma.service.findMany({
@@ -148,6 +149,11 @@ export default async function ProjectEditorPage({
       where: { workspaceId: session.workspaceId, active: true },
       orderBy: { displayName: "asc" },
       select: { id: true, displayName: true, title: true, firstName: true, lastName: true, email: true, disciplines: true },
+    }),
+    prisma.communicationClientWorkspace.findMany({
+      where: { workspaceId: session.workspaceId, client: { archivedAt: null } },
+      orderBy: { client: { displayName: "asc" } },
+      select: { brokerage: true, client: { select: { id: true, firstName: true, lastName: true, displayName: true, email: true } } },
     }),
   ]);
 
@@ -305,6 +311,8 @@ export default async function ProjectEditorPage({
         <ProjectDetailsEditor
           projectId={project.id}
           statusLabel={formatStatus(project.status)}
+          initialAgents={project.agents.map((agent) => ({ ...agent, brokerageSnapshot: agent.brokerageSnapshot || "" }))}
+          clientOptions={clientMemberships.map(({ client, brokerage }) => ({ ...client, brokerage }))}
           initialData={{
             title: project.title,
             slug: project.slug,

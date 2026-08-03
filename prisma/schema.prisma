@@ -607,6 +607,7 @@ model Project {
   socialCampaigns        SocialCampaign[]
   socialCampaignProjects SocialCampaignProject[]
   contributors           ProjectContributor[]
+  agents                 ProjectAgent[]
   analyticsEvents        PortfolioAnalyticsEvent[]
 
   @@index([status])
@@ -616,6 +617,23 @@ model Project {
   @@index([displayOrder])
   @@index([publishedAt])
   @@index([status, displayOrder])
+}
+
+model ProjectAgent {
+  id String @id @default(cuid())
+  projectId String
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  clientId String?
+  client CommunicationClient? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  displayNameSnapshot String
+  brokerageSnapshot String?
+  displayOrder Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([projectId, displayOrder])
+  @@index([workspaceId, clientId])
 }
 
 model ProjectContributor {
@@ -1438,6 +1456,8 @@ model Workspace {
   projectContributors      ProjectContributor[]
   portfolioAnalyticsEvents PortfolioAnalyticsEvent[]
   projects                 Project[]
+  projectAgents            ProjectAgent[]
+  communicationClients     CommunicationClientWorkspace[]
   invitations              AdminInvitation[]
   clientSyncRuns           ClientSyncRun[]
   resendWebhookEvents      ResendWebhookEvent[]
@@ -2037,11 +2057,26 @@ model CommunicationClient {
   referralSubmissions        ReferralSubmission[]           @relation("ReferralMatchedClient")
   referralAudiences          ReferralCampaignAudience[]
   resendWebhookEvents        ResendWebhookEvent[]
+  workspaceMemberships       CommunicationClientWorkspace[]
+  projectAgents              ProjectAgent[]
 
   @@index([displayName])
   @@index([normalizedEmail])
   @@index([lastSyncedAt])
   @@index([emailSubscribed, emailStatus, archivedAt])
+}
+
+model CommunicationClientWorkspace {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  clientId String
+  client CommunicationClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  brokerage String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([workspaceId, clientId])
+  @@index([workspaceId, brokerage])
 }
 
 model ClientSyncRun {

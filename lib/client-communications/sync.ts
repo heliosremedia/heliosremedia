@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { normalizeEmail, normalizePhone } from "./normalization";
 import { reconcileUnsubscribedGroup } from "./preferences";
 
-export async function syncHdPhotoHubClients() {
+export async function syncHdPhotoHubClients(workspaceId: string) {
   const clients = await getHdPhotoHubUsers();
   const syncedAt = new Date();
   const existing = await prisma.communicationClient.findMany({
@@ -44,6 +44,20 @@ export async function syncHdPhotoHubClients() {
   for (let index = 0; index < writes.length; index += 25) {
     await Promise.all(writes.slice(index, index + 25));
   }
+  const savedClients = await prisma.communicationClient.findMany({
+    where: { hdPhotoHubUserId: { in: clients.map((client) => client.uid) } },
+    select: { id: true, hdPhotoHubUserId: true },
+  });
+  const clientIds = new Map(savedClients.map((client) => [client.hdPhotoHubUserId, client.id]));
+  const memberships = clients.flatMap((client) => {
+    const clientId = clientIds.get(client.uid);
+    return clientId ? [prisma.communicationClientWorkspace.upsert({
+      where: { workspaceId_clientId: { workspaceId, clientId } },
+      create: { workspaceId, clientId, brokerage: client.brokerage },
+      update: { brokerage: client.brokerage },
+    })] : [];
+  });
+  for (let index = 0; index < memberships.length; index += 25) await Promise.all(memberships.slice(index, index + 25));
   const normalizedEmails = [...new Set(clients.map(client => normalizeEmail(client.email)).filter(Boolean))];
   const blocked = await prisma.marketingEmailPreference.findMany({
     where: { normalizedEmail: { in: normalizedEmails }, status: { in: ["UNSUBSCRIBED", "SUPPRESSED"] } },
