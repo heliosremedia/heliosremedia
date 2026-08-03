@@ -34,7 +34,9 @@ test("primary metrics are specific, clickable, timeframe-aware, and provider-hon
     "Content reviews",
   ]) assert.match(page, new RegExp(label));
   assert.match(page, /7, 30, 90/);
-  assert.match(page, /Intended or accepted recipients are not counted as delivered/);
+  assert.match(page, /Awaiting confirmation can include historical sends that have not been reconciled/);
+  assert.match(page, /does not determine current platform health/);
+  assert.doesNotMatch(page, /providerWarning/);
   assert.doesNotMatch(page, /label="Campaigns"/);
 });
 
