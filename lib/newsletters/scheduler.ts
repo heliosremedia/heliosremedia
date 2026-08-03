@@ -2,6 +2,8 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
+import { generationDateForSend, nextOccurrence } from "./recurrence";
+import type { GenerationRule, RecurrenceRule } from "./types";
 
 export type ClaimedNewsletterJob = {
   id: string;
@@ -11,7 +13,154 @@ export type ClaimedNewsletterJob = {
   attempts: number;
 };
 
+function sendRuleFromSeries(series: {
+  sendRecurrenceKind: string;
+  sendDayOfMonth: number | null;
+  sendWeekOrdinal: string | null;
+  sendWeekday: number | null;
+  sendLocalTime: string;
+}): RecurrenceRule {
+  if (series.sendRecurrenceKind === "DAY_OF_MONTH") {
+    return {
+      kind: "DAY_OF_MONTH",
+      dayOfMonth: series.sendDayOfMonth ?? 1,
+      localTime: series.sendLocalTime,
+    };
+  }
+  return {
+    kind: "NTH_WEEKDAY",
+    ordinal: (series.sendWeekOrdinal ?? "SECOND") as "FIRST" | "SECOND" | "THIRD" | "FOURTH" | "LAST",
+    weekday: series.sendWeekday ?? 4,
+    localTime: series.sendLocalTime,
+  };
+}
+
+function generationRuleFromSeries(series: {
+  generationMode: string;
+  generationRecurrenceKind: string | null;
+  generationDayOfMonth: number | null;
+  generationWeekOrdinal: string | null;
+  generationWeekday: number | null;
+  generationLocalTime: string | null;
+  generationDaysBeforeSend: number | null;
+}): GenerationRule {
+  if (series.generationMode === "MANUAL") return { mode: "MANUAL" };
+  if (series.generationMode === "DAYS_BEFORE_SEND") {
+    return {
+      mode: "DAYS_BEFORE_SEND",
+      daysBeforeSend: series.generationDaysBeforeSend ?? 7,
+      localTime: series.generationLocalTime ?? "08:00",
+    };
+  }
+  const recurrence: RecurrenceRule = series.generationRecurrenceKind === "DAY_OF_MONTH"
+    ? {
+        kind: "DAY_OF_MONTH",
+        dayOfMonth: series.generationDayOfMonth ?? 1,
+        localTime: series.generationLocalTime ?? "08:00",
+      }
+    : {
+        kind: "NTH_WEEKDAY",
+        ordinal: (series.generationWeekOrdinal ?? "FIRST") as "FIRST" | "SECOND" | "THIRD" | "FOURTH" | "LAST",
+        weekday: series.generationWeekday ?? 1,
+        localTime: series.generationLocalTime ?? "08:00",
+      };
+  return { mode: "RECURRENCE", recurrence };
+}
+
+function cycleKey(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(date);
+  return `${parts.find((part) => part.type === "year")?.value}-${parts.find((part) => part.type === "month")?.value}`;
+}
+
+export async function ensureUpcomingNewsletterEditions(now = new Date()) {
+  const activeSeries = await prisma.newsletterSeries.findMany({
+    where: { status: "ACTIVE" },
+    select: {
+      id: true,
+      createdById: true,
+      timeZone: true,
+      nextSendAt: true,
+      nextGenerationAt: true,
+      sendRecurrenceKind: true,
+      sendDayOfMonth: true,
+      sendWeekOrdinal: true,
+      sendWeekday: true,
+      sendLocalTime: true,
+      generationMode: true,
+      generationRecurrenceKind: true,
+      generationDayOfMonth: true,
+      generationWeekOrdinal: true,
+      generationWeekday: true,
+      generationLocalTime: true,
+      generationDaysBeforeSend: true,
+    },
+  });
+  let created = 0;
+
+  for (const series of activeSeries) {
+    await prisma.$transaction(async (tx) => {
+      const persistedSendAt = series.nextSendAt && series.nextSendAt > now
+        ? series.nextSendAt
+        : null;
+      const nextSendAt = persistedSendAt
+        ?? nextOccurrence(now, sendRuleFromSeries(series), series.timeZone);
+      const nextGenerationAt = persistedSendAt
+        ? series.nextGenerationAt
+        : generationDateForSend(
+            nextSendAt,
+            generationRuleFromSeries(series),
+            series.timeZone,
+          );
+      const key = cycleKey(nextSendAt, series.timeZone);
+      const existing = await tx.newsletterEdition.findUnique({
+        where: { seriesId_cycleKey: { seriesId: series.id, cycleKey: key } },
+        select: { id: true },
+      });
+      const edition = existing ?? await tx.newsletterEdition.create({
+        data: {
+          seriesId: series.id,
+          cycleKey: key,
+          status: "AWAITING_GENERATION",
+          intendedSendAt: nextSendAt,
+          generationDueAt: nextGenerationAt,
+          createdById: series.createdById,
+        },
+        select: { id: true },
+      });
+      if (!existing) created += 1;
+
+      await tx.newsletterJob.createMany({
+        skipDuplicates: true,
+        data: [
+          ...(nextGenerationAt ? [{
+            editionId: edition.id,
+            type: "GENERATE" as const,
+            dueAt: nextGenerationAt,
+            idempotencyKey: `newsletter:generate:${edition.id}`,
+          }] : []),
+          {
+            editionId: edition.id,
+            type: "MISSED_APPROVAL" as const,
+            dueAt: nextSendAt,
+            idempotencyKey: `newsletter:missed-approval:${edition.id}`,
+          },
+        ],
+      });
+      await tx.newsletterSeries.update({
+        where: { id: series.id },
+        data: { nextSendAt, nextGenerationAt },
+      });
+    });
+  }
+  return created;
+}
+
 export async function enqueueDueNewsletterJobs(now = new Date()) {
+  const editionsCreated = await ensureUpcomingNewsletterEditions(now);
   const [generationEditions, sendEditions, missedEditions] = await Promise.all([
     prisma.newsletterEdition.findMany({
       where: {
@@ -52,7 +201,7 @@ export async function enqueueDueNewsletterJobs(now = new Date()) {
     })),
   ];
   if (jobs.length) await prisma.newsletterJob.createMany({ data: jobs, skipDuplicates: true });
-  return { generation: generationEditions.length, send: sendEditions.length, missedApproval: missedEditions.length };
+  return { editionsCreated, generation: generationEditions.length, send: sendEditions.length, missedApproval: missedEditions.length };
 }
 
 export async function claimDueNewsletterJobs(input?: { now?: Date; limit?: number; leaseSeconds?: number }) {
