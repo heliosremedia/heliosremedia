@@ -14,6 +14,7 @@ export default function AdminSectionNavigator({
   onNavigate,
   bulkSectionIds,
   siteSettings = false,
+  projectEditor = false,
 }: {
   label: string;
   sections: readonly AdminSection[];
@@ -21,10 +22,12 @@ export default function AdminSectionNavigator({
   onNavigate?: (id: string) => void;
   bulkSectionIds?: readonly string[];
   siteSettings?: boolean;
+  projectEditor?: boolean;
 }) {
   const navigatorRef = useRef<HTMLElement>(null);
   const [activeId, setActiveId] = useState(sections[0]?.href.slice(1) ?? "");
   const [bulkStates, setBulkStates] = useState<Record<string, boolean>>({});
+  const [announcement, setAnnouncement] = useState("");
 
   useEffect(() => {
     const targets = sections
@@ -69,7 +72,7 @@ export default function AdminSectionNavigator({
     setActiveId(id);
     window.history.replaceState(null, "", `#${id}`);
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      const stickyClearance = siteSettings
+      const stickyClearance = siteSettings || projectEditor
         ? 80 + (navigatorRef.current?.getBoundingClientRect().height ?? 0) + 16
         : 112;
       window.scrollTo({
@@ -86,6 +89,7 @@ export default function AdminSectionNavigator({
       const toggle = document.getElementById(id)?.querySelector<HTMLButtonElement>("button[aria-expanded]");
       if (toggle && toggle.getAttribute("aria-expanded") !== String(expanded)) toggle.click();
     }
+    setAnnouncement(`All sections ${expanded ? "expanded" : "collapsed"}.`);
   }
 
   if (!sections.length) return null;
@@ -94,7 +98,7 @@ export default function AdminSectionNavigator({
     <nav
       ref={navigatorRef}
       aria-label={label}
-      className={`${siteSettings ? "top-20 z-20 bg-[#151515]" : "top-3 z-30 bg-[#151515]/95 backdrop-blur"} sticky rounded-2xl border border-white/10 p-3 shadow-xl`}
+      className={`${siteSettings || projectEditor ? "top-20 z-20 bg-[#151515]" : "top-3 z-30 bg-[#151515]/95 backdrop-blur"} sticky rounded-2xl border border-white/10 p-3 shadow-xl`}
     >
       <label className="block md:hidden">
         <span className="mb-2 block text-[0.55rem] font-semibold uppercase tracking-[0.15em] text-white/45">
@@ -140,6 +144,7 @@ export default function AdminSectionNavigator({
           </> : null}
         </div>
       ) : null}
+      <p className="sr-only" aria-live="polite">{announcement}</p>
     </nav>
   );
 }

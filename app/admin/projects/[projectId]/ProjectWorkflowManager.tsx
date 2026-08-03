@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
+import ProjectEditorSection from "./ProjectEditorSection";
 
 type ProjectStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 
@@ -57,6 +58,13 @@ function statusClasses(status: ProjectStatus) {
     default:
       return "border-amber-300/20 bg-amber-300/[0.07] text-amber-200";
   }
+}
+
+function revealSection(id: string) {
+  const section = document.getElementById(id);
+  const toggle = section?.querySelector<HTMLButtonElement>("button[aria-expanded]");
+  if (toggle?.getAttribute("aria-expanded") === "false") toggle.click();
+  requestAnimationFrame(() => section?.scrollIntoView({ behavior: "smooth", block: "start" }));
 }
 
 export default function ProjectWorkflowManager({
@@ -206,6 +214,7 @@ export default function ProjectWorkflowManager({
       setSelectedServiceIds(new Set(data.serviceIds));
       setSavedServiceIds(new Set(data.serviceIds));
     } catch (saveError) {
+      revealSection("project-services");
       console.error("Unable to save project services:", saveError);
       setError(
         saveError instanceof Error
@@ -252,6 +261,7 @@ export default function ProjectWorkflowManager({
 
         updateProjectFromResponse(data);
       } catch (workflowError) {
+        revealSection("project-publishing");
         console.error("Unable to update project workflow:", workflowError);
         setError(
           workflowError instanceof Error
@@ -268,7 +278,7 @@ export default function ProjectWorkflowManager({
   return (
     <div className="space-y-8">
       {error && (
-        <div className="flex flex-col gap-3 rounded-2xl border border-red-300/15 bg-red-300/[0.05] px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
+        <div role="alert" tabIndex={-1} className="flex flex-col gap-3 rounded-2xl border border-red-300/15 bg-red-300/[0.05] px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-sm text-red-200/80">{error}</p>
 
@@ -294,27 +304,8 @@ export default function ProjectWorkflowManager({
         </div>
       )}
 
-      <section
-        id="project-services"
-        className="scroll-mt-28 overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]"
-      >
-        <div className="flex flex-col gap-4 border-b border-white/[0.08] px-5 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-6">
-          <div>
-            <p className="text-[0.62rem] font-semibold uppercase tracking-[0.19em] text-[var(--helios-orange)]">
-              Step 03
-            </p>
-
-            <h2 className="mt-3 text-2xl font-normal text-white sm:text-3xl">
-              Project services
-            </h2>
-
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/35">
-              Select the services represented in this project. These become
-              public portfolio labels and filtering signals.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-4">
+      <ProjectEditorSection id="project-services" eyebrow="Step 03" title="Services and SEO" summary="Choose the services represented by this project and manage its public portfolio signals." status={
+          <div className="flex flex-wrap items-center gap-4">
             <span className="text-xs text-white/25">
               {selectedServiceIds.size} selected
             </span>
@@ -331,9 +322,9 @@ export default function ProjectWorkflowManager({
               {isSavingServices ? "Saving" : "Save services"}
             </button>
           </div>
-        </div>
+      }>
 
-        <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-3 sm:p-6">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {services.map((service) => {
             const selected = selectedServiceIds.has(service.id);
             const unavailable =
@@ -412,38 +403,17 @@ export default function ProjectWorkflowManager({
             );
           })}
         </div>
-      </section>
+      </ProjectEditorSection>
 
-      <section
-        id="project-publishing"
-        className="scroll-mt-28 overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]"
-      >
-        <div className="flex flex-col gap-4 border-b border-white/[0.08] px-5 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-6">
-          <div>
-            <p className="text-[0.62rem] font-semibold uppercase tracking-[0.19em] text-[var(--helios-orange)]">
-              Step 04
-            </p>
-
-            <h2 className="mt-3 text-2xl font-normal text-white sm:text-3xl">
-              Review and publish
-            </h2>
-
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/35">
-              Validate the public project, control its website status, and
-              decide whether it should receive featured placement.
-            </p>
-          </div>
-
-          <span
+      <ProjectEditorSection id="project-publishing" eyebrow="Step 04" title="Review and Publish" summary="Validate the public project, control its website status, and decide whether it receives featured placement." status={<span
             className={`self-start rounded-full border px-4 py-2 text-[0.58rem] font-semibold uppercase tracking-[0.15em] sm:self-auto ${statusClasses(
               status,
             )}`}
           >
             {formatStatus(status)}
-          </span>
-        </div>
+          </span>}>
 
-        <div className="grid gap-6 p-5 lg:grid-cols-[minmax(0,1fr)_22rem] sm:p-6">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
           <div className="space-y-3">
             {publishingRequirements.map((requirement) => (
               <div
@@ -615,7 +585,7 @@ export default function ProjectWorkflowManager({
             </div>
           </aside>
         </div>
-      </section>
+      </ProjectEditorSection>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { tryResolveExternalMedia } from "@/lib/external-media";
 import { prisma } from "@/lib/prisma";
 
 import ProjectDetailsEditor from "./ProjectDetailsEditor";
+import ProjectEditorSection from "./ProjectEditorSection";
 import ProjectMediaManager from "./ProjectMediaManager";
 import ProjectWorkflowManager from "./ProjectWorkflowManager";
 import ProjectPreviewManager from "./ProjectPreviewManager";
@@ -237,7 +238,7 @@ export default async function ProjectEditorPage({
         { href: "#project-media", label: "Media" },
         { href: "#project-services", label: "Services & SEO" },
         { href: "#project-publishing", label: "Review & Publish" },
-      ]} bulkSectionIds={["project-identity", "project-credits", "project-media", "project-services", "project-publishing"]} />
+      ]} bulkSectionIds={["project-identity", "project-credits", "project-media", "project-services", "project-publishing"]} projectEditor />
 
       <section className="grid gap-4 md:grid-cols-4">
         {[
@@ -299,7 +300,8 @@ export default async function ProjectEditorPage({
         ))}
       </section>
 
-      <section id="project-identity" className="scroll-mt-28 grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <ProjectEditorSection id="project-identity" eyebrow="Project identity" title="Project Identity" summary="Manage the project name, location, property details, public introduction, and search metadata.">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <ProjectDetailsEditor
           projectId={project.id}
           statusLabel={formatStatus(project.status)}
@@ -361,42 +363,16 @@ export default async function ProjectEditorPage({
             {project._count.media > 0 ? "Manage assets" : "Upload media"}
           </a>
         </aside>
-      </section>
+      </div>
+      </ProjectEditorSection>
 
-      <div id="project-credits" className="scroll-mt-28"><ProjectContributors projectId={project.id} users={contributorUsers} initial={project.contributors}/></div>
+      <ProjectEditorSection id="project-credits" eyebrow="Project credits" title="Project Credits" summary="Attribute the teammates and creative professionals who contributed to this project.">
+        <ProjectContributors projectId={project.id} users={contributorUsers} initial={project.contributors}/>
+      </ProjectEditorSection>
 
-      <section
-        id="project-media"
-        className="scroll-mt-28 rounded-2xl border border-white/[0.08] bg-white/[0.02]"
-      >
-        <div className="border-b border-white/[0.08] px-5 py-5 sm:px-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-[0.62rem] font-semibold uppercase tracking-[0.19em] text-[var(--helios-orange)]">
-                Step 02
-              </p>
-
-              <h2 className="mt-3 text-2xl font-normal text-white sm:text-3xl">
-                Project media
-              </h2>
-
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/35">
-                Upload, organize, and manage every asset that will appear
-                throughout this project&apos;s portfolio.
-              </p>
-            </div>
-
-            <p className="text-xs text-white/25">
-              {project._count.media}{" "}
-              {project._count.media === 1 ? "asset" : "assets"} saved
-            </p>
-          </div>
-        </div>
-
-        <div className="p-5 sm:p-6">
+      <ProjectEditorSection id="project-media" eyebrow="Step 02" title="Media" summary="Upload, organize, and manage every asset that appears throughout this project’s portfolio." status={<p className="text-xs text-white/25">{project._count.media} {project._count.media === 1 ? "asset" : "assets"} saved</p>}>
           <ProjectMediaManager projectId={project.id} services={services} />
-        </div>
-      </section>
+      </ProjectEditorSection>
 
       <div><ProjectWorkflowManager
         projectId={project.id}
