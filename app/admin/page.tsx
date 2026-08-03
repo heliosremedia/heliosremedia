@@ -95,7 +95,6 @@ export default async function AdminPage({
   const m = communications.data.metrics;
   const awaiting = m.awaitingProviderConfirmation;
   const confirmedOutcomes = m.delivered + m.bounces + m.complaints;
-  const providerWarning = m.sent > 0 && awaiting > 0;
   const emailStudioCampaigns = Math.max(0, communications.data.campaigns - communications.data.newsletterCampaigns);
   const bookingMode = operations.data.bookingMode;
   const bookingTone: HealthTone = !operations.available
@@ -107,11 +106,9 @@ export default async function AdminPage({
         : "red";
   const emailTone: HealthTone = !communications.available
     ? "gray"
-    : providerWarning
-      ? "yellow"
-      : communications.data.lastProviderEventAt
-        ? "green"
-        : "gray";
+    : communications.data.lastProviderEventAt
+      ? "green"
+      : "gray";
   const clientSyncTone: HealthTone = !relationships.available || !relationships.data.syncStatus
     ? "gray"
     : relationships.data.syncStatus === "SUCCEEDED"
@@ -136,11 +133,9 @@ export default async function AdminPage({
     {
       label: "Email Analytics",
       tone: emailTone,
-      status: providerWarning
-        ? `${awaiting} accepted messages await provider confirmation.`
-        : communications.data.lastProviderEventAt
-          ? "Provider event synchronization is current."
-          : "No workspace provider event has been confirmed.",
+      status: communications.data.lastProviderEventAt
+        ? "Provider event synchronization is active."
+        : "No workspace provider event has been confirmed.",
       verified: communications.data.lastProviderEventAt ? fmt(communications.data.lastProviderEventAt, true) : fmt(dashboard.generatedAt, true),
       action: emailTone === "green" ? "Open delivery reporting" : "Review analytics health",
       href: "/admin/email-studio#analytics-health",
@@ -215,9 +210,6 @@ export default async function AdminPage({
           <nav className="flex gap-1" aria-label="Studio Overview timeframe">{[7, 30, 90].map(range =>
             <Link key={range} href={`/admin?range=${range}`} className={days === range ? "admin-btn-primary" : "admin-btn-secondary"}>{range} days</Link>)}</nav>
         </div>
-        {providerWarning ? <div className="mt-4 rounded-xl border border-amber-300/20 bg-amber-300/[.04] px-4 py-3 text-sm text-amber-100/65">
-          Email provider reporting is incomplete: {awaiting} accepted {awaiting === 1 ? "message is" : "messages are"} awaiting confirmation. Intended or accepted recipients are not counted as delivered.
-        </div> : null}
         <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
           <Metric label="New inquiries" value={website.data.newInquiries} detail={`Assigned in the last ${days} days`} href="/admin/inquiries" />
           <Metric label="Published projects" value={website.data.publishedProjects} detail={`Published in the last ${days} days`} href="/admin/projects" />
@@ -240,7 +232,7 @@ export default async function AdminPage({
             <Metric label="Suppressed" value={m.suppressed} detail="Recipients excluded before delivery" href="/admin/clients" />
             <Metric label="Unique clicks" value={m.uniqueClicks} detail="Deduplicated recipient clicks" href="/admin/email-studio" />
           </div>
-          <p className="mt-4 text-xs leading-5 text-white/35">Provider events are deduplicated. Last dashboard verification {fmt(dashboard.generatedAt, true)}.</p>
+          <p className="mt-4 text-xs leading-5 text-white/35">Awaiting confirmation can include historical sends that have not been reconciled. It is reported honestly but does not determine current platform health. Provider events are deduplicated. Last dashboard verification {fmt(dashboard.generatedAt, true)}.</p>
         </details>
       </>,
     },
