@@ -24,6 +24,43 @@ type PresignResponse = {
   };
 };
 
+type ConnectedProfileKey =
+  | "websiteUrl"
+  | "instagramUrl"
+  | "facebookUrl"
+  | "youtubeUrl"
+  | "linkedinUrl";
+
+const connectedProfileDefinitions: ReadonlyArray<{
+  key: ConnectedProfileKey;
+  label: string;
+}> = [
+  { key: "websiteUrl", label: "website" },
+  { key: "instagramUrl", label: "Instagram profile" },
+  { key: "facebookUrl", label: "Facebook profile" },
+  { key: "youtubeUrl", label: "YouTube profile" },
+  { key: "linkedinUrl", label: "LinkedIn profile" },
+];
+
+function validExternalDestination(value: string | null) {
+  if (!value) return null;
+  try {
+    const destination = new URL(value);
+    return ["http:", "https:"].includes(destination.protocol) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function ConnectedProfileIcon({ profile }: { profile: ConnectedProfileKey }) {
+  const shared = "h-5 w-5";
+  if (profile === "instagramUrl") return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className={shared}><rect x="3.5" y="3.5" width="17" height="17" rx="5" stroke="currentColor" strokeWidth="1.5"/><circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.5"/><circle cx="17.6" cy="6.5" r="1" fill="currentColor"/></svg>;
+  if (profile === "facebookUrl") return <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" className={shared}><path d="M13.7 21v-8h2.8l.4-3h-3.2V8.1c0-.9.3-1.5 1.6-1.5H17V4a22 22 0 0 0-2.4-.1c-2.4 0-4.1 1.5-4.1 4.2V10H8v3h2.5v8h3.2Z"/></svg>;
+  if (profile === "youtubeUrl") return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className={shared}><path d="M21 8.2a3 3 0 0 0-2.1-2.1C17.1 5.6 12 5.6 12 5.6s-5.1 0-6.9.5A3 3 0 0 0 3 8.2 31 31 0 0 0 2.5 12 31 31 0 0 0 3 15.8a3 3 0 0 0 2.1 2.1c1.8.5 6.9.5 6.9.5s5.1 0 6.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-3.8 31 31 0 0 0-.5-3.8Z" stroke="currentColor" strokeWidth="1.5"/><path d="m10 15 5-3-5-3v6Z" fill="currentColor"/></svg>;
+  if (profile === "linkedinUrl") return <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" className={shared}><path d="M6.4 8.2H3.3V21h3.1V8.2ZM4.8 3a1.8 1.8 0 1 0 0 3.6A1.8 1.8 0 0 0 4.8 3ZM21 13.7c0-3.9-2.1-5.7-4.9-5.7-2.2 0-3.3 1.3-3.8 2.1V8.2H9.2V21h3.1v-6.3c0-1.7.3-3.3 2.4-3.3 2 0 2.1 1.9 2.1 3.4V21H20l1-7.3Z"/></svg>;
+  return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className={shared}><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5"/><path d="M3.5 12h17M12 3c2.2 2.5 3.4 5.5 3.4 9S14.2 18.5 12 21c-2.2-2.5-3.4-5.5-3.4-9S9.8 5.5 12 3Z" stroke="currentColor" strokeWidth="1.5"/></svg>;
+}
+
 function uploadToR2(
   file: File,
   uploadUrl: string,
@@ -430,6 +467,10 @@ export default function SiteSettingsForm({
   ] as const;
   const allSettingsExpanded = settingsSections.every(([id]) => expandedSections[id]);
   const allSettingsCollapsed = settingsSections.every(([id]) => !expandedSections[id]);
+  const connectedProfiles = connectedProfileDefinitions.flatMap((definition) => {
+    const href = validExternalDestination(savedSettings[definition.key]);
+    return href ? [{ ...definition, href }] : [];
+  });
   function toggleSettingsSection(id: string) {
     setExpandedSections((current) => ({ ...current, [id]: !current[id] }));
   }
@@ -454,6 +495,26 @@ export default function SiteSettingsForm({
             </label>
           ))}
         </div>
+        {group.title === "Social and website" && connectedProfiles.length > 0 ? (
+          <div className="mt-6 border-t border-white/[0.07] pt-5">
+            <p className="text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Connected profiles</p>
+            <div className="mt-3 flex flex-wrap gap-2.5">
+              {connectedProfiles.map((profile) => (
+                <a
+                  key={profile.key}
+                  href={profile.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Open ${savedSettings.businessName} ${profile.label}`}
+                  title={`Open ${savedSettings.businessName} ${profile.label}`}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/25 text-white/55 transition hover:border-[var(--helios-orange)]/45 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--helios-orange)]"
+                >
+                  <ConnectedProfileIcon profile={profile.key} />
+                </a>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </section>
     ))}
   </div>;
@@ -669,10 +730,13 @@ export default function SiteSettingsForm({
       <div id="brand-identity" data-settings-section className="scroll-mt-28">
       <section className="mt-10 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111] sm:mt-12">
         <div className="p-6 lg:p-8">
-          <div className="max-w-3xl">
-            <div className="flex items-start justify-between gap-4"><div className="min-w-0 pr-2"><p className="eyebrow text-[var(--helios-orange)]">Brand Identity</p>
-            <h2 className="mt-3 text-2xl font-light text-white">Logo, business, contact, location, messaging, social and website</h2></div><AdminCardToggle expanded={expandedSections["brand-identity"]} label="Brand Identity" controls="brand-identity-content" onClick={() => toggleSettingsSection("brand-identity")} /></div>
-            <p className="mt-3 max-w-lg text-sm leading-6 text-white/40">The primary logo powers public brand lockups. The separate square monogram creates a discreet admin-access shortcut today and is ready for future app icons and tenant branding.</p>
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 max-w-3xl pr-2">
+              <p className="eyebrow text-[var(--helios-orange)]">Brand Identity</p>
+              <h2 className="mt-3 text-2xl font-light text-white">Logo, business, contact, location, messaging, social and website</h2>
+              <p className="mt-3 max-w-lg text-sm leading-6 text-white/40">The primary logo powers public brand lockups. The separate square monogram creates a discreet admin-access shortcut today and is ready for future app icons and tenant branding.</p>
+            </div>
+            <AdminCardToggle className="shrink-0" expanded={expandedSections["brand-identity"]} label="Brand Identity" controls="brand-identity-content" onClick={() => toggleSettingsSection("brand-identity")} />
           </div>
 
           <div id="brand-identity-content" hidden={!expandedSections["brand-identity"]} className="mt-8 grid gap-5 lg:grid-cols-2">
