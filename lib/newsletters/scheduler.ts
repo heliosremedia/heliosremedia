@@ -120,8 +120,10 @@ export async function ensureUpcomingNewsletterEditions(now = new Date()) {
         where: { seriesId_cycleKey: { seriesId: series.id, cycleKey: key } },
         select: { id: true },
       });
-      const edition = existing ?? await tx.newsletterEdition.create({
-        data: {
+      const edition = await tx.newsletterEdition.upsert({
+        where: { seriesId_cycleKey: { seriesId: series.id, cycleKey: key } },
+        update: {},
+        create: {
           seriesId: series.id,
           cycleKey: key,
           status: "AWAITING_GENERATION",
