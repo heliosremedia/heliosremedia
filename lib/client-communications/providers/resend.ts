@@ -9,6 +9,7 @@ import {
   normalizeResendError,
   providerAdminMessage,
   resolveDeliveryConfig,
+  resendTagValue,
   RESEND_TIMEOUT_MS,
   type EmailProviderErrorCode,
   type NormalizedProviderError,
@@ -194,7 +195,7 @@ export async function sendEmailBatch(input: {
       replyTo: replyTo || undefined,
       subject: message.subject,
       html: message.html,
-      tags: [{ name: "campaign_id", value: input.campaignId }],
+      tags: [{ name: "campaign_id", value: resendTagValue(input.campaignId) }],
       headers: message.unsubscribeUrl ? oneClickUnsubscribeHeaders(message.unsubscribeUrl) : undefined,
     })), { idempotencyKey }), metadata);
     const accepted = response.data?.data;
