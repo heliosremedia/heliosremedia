@@ -1,15 +1,19 @@
 import type { MetadataRoute } from "next";
 
-import { getAbsoluteUrl, getSiteUrl } from "@/lib/site";
+import { getCanonicalAbsoluteUrl, isProductionIndexable } from "@/lib/site";
+import { getSiteSettings } from "@/lib/site-settings";
 
-export default function robots(): MetadataRoute.Robots {
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  const settings = await getSiteSettings();
+  if (!isProductionIndexable()) {
+    return { rules: { userAgent: "*", disallow: "/" } };
+  }
   return {
     rules: {
       userAgent: "*",
       allow: "/",
       disallow: ["/admin/", "/api/", "/login", "/accept-invite", "/client-portal/"],
     },
-    sitemap: getAbsoluteUrl("/sitemap.xml"),
-    host: getSiteUrl(),
+    sitemap: getCanonicalAbsoluteUrl("/sitemap.xml", settings.websiteUrl),
   };
 }

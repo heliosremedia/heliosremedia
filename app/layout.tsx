@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 import Script from "next/script";
 
-import { getAbsoluteUrl, getConfiguredSiteUrl, getSiteUrl } from "@/lib/site";
+import { getCanonicalAbsoluteUrl, getCanonicalSiteUrl, getVerifiedSocialProfiles } from "@/lib/site";
 import { getSiteSettings } from "@/lib/site-settings";
 import { buildPageMetadata } from "@/lib/seo";
 import { SiteSettingsProvider } from "@/app/components/SiteSettingsProvider";
@@ -31,7 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const favicon = settings.faviconUrl
     ? `${settings.faviconUrl}${settings.faviconUrl.includes("?") ? "&" : "?"}v=${settings.faviconVersion}`
     : undefined;
-  const siteUrl = getConfiguredSiteUrl(settings.websiteUrl);
+  const siteUrl = getCanonicalSiteUrl(settings.websiteUrl);
   const base = buildPageMetadata({
     title: settings.defaultSeoTitle,
     description: settings.defaultSeoDescription,
@@ -51,8 +51,9 @@ export default async function RootLayout({
     getPublishedLocationPages(),
   ]);
   const analyticsId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim();
-  const sameAs = [settings.instagramUrl, settings.facebookUrl, settings.youtubeUrl, settings.linkedinUrl].filter((url): url is string => Boolean(url));
-  const businessId = getAbsoluteUrl("/#business");
+  const sameAs = getVerifiedSocialProfiles([settings.instagramUrl, settings.facebookUrl, settings.youtubeUrl, settings.linkedinUrl]);
+  const absolute = (path: string) => getCanonicalAbsoluteUrl(path, settings.websiteUrl);
+  const businessId = absolute("/#business");
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
@@ -60,19 +61,19 @@ export default async function RootLayout({
         "@type": ["LocalBusiness", "ProfessionalService"],
         "@id": businessId,
         name: settings.businessName,
-        url: settings.websiteUrl || getSiteUrl(),
+        url: absolute("/"),
         telephone: settings.phoneE164,
         email: settings.email || undefined,
         description: settings.defaultSeoDescription,
-        image: settings.heroPosterUrl || undefined,
-        logo: settings.brandLogoUrl || undefined,
+        image: settings.heroPosterUrl ? absolute(settings.heroPosterUrl) : undefined,
+        logo: settings.brandLogoUrl ? absolute(settings.brandLogoUrl) : undefined,
         areaServed: { "@type": "AdministrativeArea", name: settings.serviceArea },
         sameAs: sameAs.length ? sameAs : undefined,
       },
       {
         "@type": "WebSite",
-        "@id": getAbsoluteUrl("/#website"),
-        url: getAbsoluteUrl("/"),
+        "@id": absolute("/#website"),
+        url: absolute("/"),
         name: settings.businessName,
         publisher: { "@id": businessId },
         inLanguage: "en-US",

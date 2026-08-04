@@ -5,7 +5,7 @@ import ManagedCtaSection from "@/app/components/ManagedCtaSection";
 import Navbar from "@/app/components/Navbar";
 import { PhoneLink } from "@/app/components/SiteActionLink";
 import { prisma } from "@/lib/prisma";
-import { getAbsoluteUrl } from "@/lib/site";
+import { getCanonicalAbsoluteUrl } from "@/lib/site";
 import { defaultPageCtas } from "@/lib/ctas";
 import { buildPageMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/site-settings";
@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> { const settings = await getSiteSettings(); return buildPageMetadata({ title: "Frequently Asked Questions | Helios Real Estate Media", description: "Answers about booking, preparing a property, real estate photography, video, aerial media, delivery, and working with Helios Real Estate Media.", path: "/faq", settings }); }
 
 export default async function FaqPage() {
-  const categories = await prisma.faqCategory.findMany({
+  const [categories, settings] = await Promise.all([prisma.faqCategory.findMany({
     where: { active: true, faqs: { some: { published: true } } },
     orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
     select: {
@@ -31,12 +31,12 @@ export default async function FaqPage() {
         select: { id: true, question: true, answer: true },
       },
     },
-  });
+  }), getSiteSettings()]);
 
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    "@id": getAbsoluteUrl("/faq"),
+    "@id": getCanonicalAbsoluteUrl("/faq", settings.websiteUrl),
     mainEntity: categories.flatMap((category) => category.faqs.map((faq) => ({
       "@type": "Question",
       name: faq.question,

@@ -266,10 +266,8 @@ export default async function ServicesPage() {
                               src={project.imageUrl}
                               alt={
                                 project.collectionHero?.altText ||
-                                project.collectionHero?.originalFilename ||
                                 project.heroMedia?.altText ||
-                                project.heroMedia?.originalFilename ||
-                                project.title
+                                `${project.title}${project.location ? ` in ${project.location}` : ""}`
                               }
                               fill
                               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 40vw"
