@@ -32,6 +32,39 @@ function providerError(status: number) {
   return "The writing assistant could not create a usable draft. Review the AI configuration and retry.";
 }
 
+const GENERIC_LOCATION_PHRASES = [
+  "unique character", "vibrant community", "something for everyone",
+  "desirable place to live", "perfect blend", "hidden gem",
+];
+
+function directionKeywords(direction: string) {
+  const ignored = new Set([
+    "about", "also", "and", "being", "city", "cover", "describe", "focus", "from",
+    "have", "history", "into", "local", "make", "more", "page", "that", "their",
+    "this", "town", "with", "write",
+  ]);
+  return [...new Set(direction.toLowerCase().match(/[a-z][a-z'-]{3,}/g) || [])]
+    .filter((word) => !ignored.has(word))
+    .slice(0, 10);
+}
+
+function draftQualityIssues(draft: Partial<Record<string, string>>, city: string, customDirection: string) {
+  const combined = `${draft.introduction || ""} ${draft.marketCopy || ""}`.toLowerCase();
+  const issues: string[] = [];
+  if ((draft.marketCopy || "").length < 900) issues.push("Market Story must be 900 to 1,400 characters.");
+  if (!combined.includes(city.toLowerCase())) issues.push(`Name ${city} naturally in the location-led copy.`);
+  if (GENERIC_LOCATION_PHRASES.filter((phrase) => combined.includes(phrase)).length > 1) {
+    issues.push("Replace generic destination language with concrete local character.");
+  }
+  const required = directionKeywords(customDirection);
+  const covered = required.filter((keyword) => combined.includes(keyword));
+  const minimum = Math.min(required.length, Math.max(1, Math.ceil(required.length * 0.6)));
+  if (required.length && covered.length < minimum) {
+    issues.push(`Meaningfully develop the supplied direction, including: ${required.join(", ")}.`);
+  }
+  return issues;
+}
+
 async function createLocationDraft(apiKey: string, model: string, instructions: string, facts: object) {
   return fetch("https://api.openai.com/v1/responses", {
     method: "POST",
@@ -48,6 +81,7 @@ async function createLocationDraft(apiKey: string, model: string, instructions: 
           schema: LOCATION_DRAFT_SCHEMA,
         },
       },
+      max_output_tokens: 6_000,
     }),
     signal: AbortSignal.timeout(60_000),
   });
@@ -107,16 +141,52 @@ export async function POST(request: Request) {
       hasFeatureImage: Boolean(location.featureImageStorageKey || location.featureImageUrl),
       customDirection: customDirection || null,
     };
-    const instructions = `You are the location-page writing assistant for ${settings.businessName}. Create a complete draft with heroLead, introduction, marketTitle, marketCopy, ctaHeadline, seoTitle, seoDescription, and featureImageAlt. If there is no feature image, return an empty string for featureImageAlt. Write premium, calm, locally specific, human copy in the company's voice. Treat customDirection as optional guidance: follow it when supplied, and otherwise generate the best complete draft from the supplied facts. Use only the supplied facts. Do not invent neighborhoods, landmarks, statistics, rankings, awards, reviews, offices, market claims, or service claims. Do not use em dashes, keyword stuffing, hype, or interchangeable city-name-swapped structure. Use natural paragraphs with blank lines where helpful. Observe the schema's hard character limits. The content is a reviewable draft, never a publication instruction.`;
+    const instructions = `You are the location-page writing assistant for ${settings.businessName}. Create a complete draft with heroLead, introduction, marketTitle, marketCopy, ctaHeadline, seoTitle, seoDescription, and featureImageAlt. If there is no feature image, return an empty string for featureImageAlt.
+
+CONTENT PRIORITY
+1. The location's identity, history, landscape, culture, neighborhoods, architecture, and everyday character lead the story.
+2. When customDirection is supplied, treat every requested subject as a firm creative requirement. Develop it with substance across the introduction and Market Story. Do not merely mention its keywords.
+3. Helios and its services are supporting context only. Do not turn the page into a list of deliverables.
+
+LOCAL DEPTH
+Use the supplied facts. You may also use stable, widely known geographic, cultural, historical, institutional, architectural, and lifestyle context about the named city. Do not guess obscure facts or use current statistics, rankings, superlatives, market conditions, awards, reviews, offices, or unsupported service claims. Include several concrete local references naturally. The copy must fail the city-swap test: replacing the city name with another city must make the writing visibly wrong.
+
+FIELD DIRECTION
+- heroLead: concise, evocative, and place-specific.
+- introduction: one or two polished paragraphs establishing the city's identity before mentioning Helios.
+- marketTitle: editorial and specific to the local angle.
+- marketCopy: 900 to 1,400 characters in two to four natural paragraphs. Develop the requested themes with genuine depth and keep Helios secondary.
+- ctaHeadline: refined and connected to the place, without generic sales hype.
+- SEO fields: accurate, natural, and locally relevant without keyword stuffing.
+
+Write premium, calm, human copy in the company's voice. Do not use em dashes, hype, generic destination filler, or interchangeable structure. Use blank lines between paragraphs. Observe every schema limit. The content is a reviewable draft, never a publication instruction.`;
     const configuredModel = process.env.OPENAI_LOCATION_MODEL?.trim() || process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-5-mini";
     const models = configuredModel === "gpt-5-mini" ? [configuredModel] : [configuredModel, "gpt-5-mini"];
+    const attemptModels = [...models, "gpt-5-mini"];
     let response: Response | null = null;
+    let qualityFeedback: string[] = [];
 
-    for (const [index, model] of models.entries()) {
-      response = await createLocationDraft(apiKey, model, instructions, facts);
-      if (response.ok) break;
+    for (const [index, model] of attemptModels.entries()) {
+      response = await createLocationDraft(apiKey, model, instructions, {
+        ...facts,
+        qualityFeedback: qualityFeedback.length ? qualityFeedback : null,
+      });
+      if (response.ok) {
+        try {
+          const result = await response.json() as { output_text?: string; output?: Array<{ content?: Array<{ text?: string }> }> };
+          const output = result.output_text || result.output?.flatMap((item) => item.content || []).map((item) => item.text || "").join("") || "{}";
+          const draft = normalizeAiDraft(JSON.parse(output), facts.hasFeatureImage);
+          qualityFeedback = draftQualityIssues(draft, location.city, customDirection);
+          if (!qualityFeedback.length) return NextResponse.json({ success: true, draft });
+          console.error("Location Page AI draft failed quality gate", { model, issues: qualityFeedback });
+        } catch {
+          qualityFeedback = ["Return a complete valid structured draft with all eight required fields."];
+        }
+        if (index < attemptModels.length - 1) continue;
+        return NextResponse.json({ success: false, error: "The assistant returned copy that was not local or detailed enough. Please retry." }, { status: 502 });
+      }
       await logProviderRejection(response, model);
-      const canRetryWithFallback = index === 0 && models.length > 1 && [400, 404, 422].includes(response.status);
+      const canRetryWithFallback = index < attemptModels.length - 1 && [400, 404, 422].includes(response.status);
       if (!canRetryWithFallback) break;
     }
 
@@ -124,10 +194,7 @@ export async function POST(request: Request) {
       const status = response?.status || 502;
       return NextResponse.json({ success: false, error: providerError(status) }, { status: status >= 500 ? 502 : status });
     }
-    const result = await response.json() as { output_text?: string; output?: Array<{ content?: Array<{ text?: string }> }> };
-    const output = result.output_text || result.output?.flatMap((item) => item.content || []).map((item) => item.text || "").join("") || "{}";
-    const draft = normalizeAiDraft(JSON.parse(output), facts.hasFeatureImage);
-    return NextResponse.json({ success: true, draft });
+    return NextResponse.json({ success: false, error: "The assistant returned copy that was not local or detailed enough. Please retry." }, { status: 502 });
   } catch (error) {
     if (error instanceof Error && error.message === "INVALID_INPUT") return NextResponse.json({ success: false, error: "Custom direction must be 1,200 characters or fewer." }, { status: 400 });
     console.error("Location Page AI request failed", error instanceof Error ? error.message : "unknown");
