@@ -1,16 +1,21 @@
 import { prisma } from "@/lib/prisma";
+import { requireAdminSession } from "@/lib/auth/session";
+import { getPublicAssetUrl } from "@/lib/r2-upload";
 
 import LocationPageManager, { type AdminLocationPage } from "./LocationPageManager";
 
 export const dynamic = "force-dynamic";
 
 export default async function LocalPagesAdminPage() {
+  const session = await requireAdminSession();
   const locations = await prisma.locationPage.findMany({
+    where: { workspaceId: session.workspaceId },
     orderBy: [{ displayOrder: "asc" }, { city: "asc" }],
   });
 
   const serialized: AdminLocationPage[] = locations.map((location) => ({
     ...location,
+    featureImageUrl: location.featureImageStorageKey ? getPublicAssetUrl(location.featureImageStorageKey) : location.featureImageUrl,
     localDetails: Array.isArray(location.localDetails)
       ? location.localDetails.filter(
           (detail): detail is string => typeof detail === "string",
