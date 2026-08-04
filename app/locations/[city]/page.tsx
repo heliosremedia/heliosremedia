@@ -155,9 +155,14 @@ export default async function LocationLandingPage({
               ))}
             </div>
           ) : null}
-          <div className={`${location.featureImageUrl ? "mt-8 border-t border-white/[0.08] pt-8" : ""} max-w-[42rem] space-y-6 text-base leading-8 text-white/58`}>
+          <div className={`${location.featureImageUrl ? "mt-8 border-t border-white/[0.08] pt-8" : ""} max-w-[42rem] text-base leading-8 text-white/58`}>
             {marketStoryParagraphs.map((paragraph, index) => (
-              <p key={`story-${index}`}>{paragraph}</p>
+              <p
+                key={`story-${index}`}
+                className={index === 0 ? undefined : "mt-7 sm:mt-8"}
+              >
+                {paragraph}
+              </p>
             ))}
           </div>
           <ul className="mt-9 grid gap-3 sm:grid-cols-2">
