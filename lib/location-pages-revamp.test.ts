@@ -19,6 +19,18 @@ test("AI drafts reject over-limit fields and em dashes", () => {
   assert.deepEqual(normalizeAiDraft({ marketCopy: "A specific, reviewable story." }, false), { marketCopy: "A specific, reviewable story." });
 });
 
+test("Location Page AI uses a complete strict schema and compatible fallback", () => {
+  const ai = read("app/api/admin/locations/ai/route.ts");
+  assert.match(ai, /type: "json_schema"/);
+  assert.match(ai, /strict: true/);
+  assert.match(ai, /additionalProperties: false/);
+  assert.match(ai, /required: \["heroLead", "introduction", "marketTitle", "marketCopy", "ctaHeadline", "seoTitle", "seoDescription", "featureImageAlt"\]/);
+  assert.match(ai, /\[configuredModel, "gpt-5-mini"\]/);
+  assert.match(ai, /customDirection: customDirection \|\| null/);
+  assert.match(ai, /Treat customDirection as optional guidance/);
+  assert.doesNotMatch(ai, /text: \{ format: \{ type: "json_object" \} \}/);
+});
+
 test("Location Page revamp preserves review, image, tenant, and SEO boundaries", () => {
   const manager = read("app/admin/locations/LocationPageManager.tsx");
   const ai = read("app/api/admin/locations/ai/route.ts");
