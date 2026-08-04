@@ -32,7 +32,14 @@ test("Location Page AI uses a complete strict schema and compatible fallback", (
   assert.match(ai, /required: \["heroLead", "introduction", "marketTitle", "marketCopy", "ctaHeadline", "seoTitle", "seoDescription", "featureImageAlt"\]/);
   assert.match(ai, /\[configuredModel, "gpt-5-mini"\]/);
   assert.match(ai, /customDirection: customDirection \|\| null/);
-  assert.match(ai, /Treat customDirection as optional guidance/);
+  assert.match(ai, /treat every requested subject as a firm creative requirement/i);
+  assert.match(ai, /stable, widely known geographic, cultural, historical/i);
+  assert.match(ai, /Market Story must be 900 to 1,400 characters/);
+  assert.match(ai, /draftQualityIssues\(draft, location\.city, customDirection\)/);
+  assert.match(ai, /qualityFeedback: qualityFeedback\.length \? qualityFeedback : null/);
+  assert.match(ai, /max_output_tokens: 6_000/);
+  assert.match(ai, /fail the city-swap test/i);
+  assert.doesNotMatch(ai, /Treat customDirection as optional guidance/);
   assert.doesNotMatch(ai, /text: \{ format: \{ type: "json_object" \} \}/);
 });
 
