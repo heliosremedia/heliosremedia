@@ -3,27 +3,26 @@ import { NextResponse } from "next/server";
 
 import { getAdminSession } from "@/lib/auth/session";
 import { recordAuditEvent } from "@/lib/audit";
+import { deleteContentImage, verifyContentImage } from "@/lib/content-image-storage";
+import { LOCATION_FIELD_LIMITS as LIMITS } from "@/lib/location-page-content";
 import { prisma } from "@/lib/prisma";
 
 type LocationBody = Record<string, unknown>;
 
-const LIMITS = {
-  city: 100,
-  state: 100,
-  county: 140,
-  slug: 120,
-  seoTitle: 160,
-  seoDescription: 320,
-  heroLead: 320,
-  introduction: 1400,
-  marketTitle: 240,
-  marketCopy: 1400,
-  serviceArea: 500,
-  detail: 240,
-};
+function text(value: unknown, limit: number, strict = false) {
+  const result = typeof value === "string" ? value.trim() : "";
+  if (strict && result.length > limit) throw new Error("FIELD_TOO_LONG");
+  return strict ? result : result.slice(0, limit);
+}
 
-function text(value: unknown, limit: number) {
-  return typeof value === "string" ? value.trim().slice(0, limit) : "";
+function optionalText(value: unknown, limit: number) {
+  const result = text(value, limit, true);
+  return result || null;
+}
+
+function focal(value: unknown) {
+  const numeric = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(numeric) ? Math.min(1, Math.max(0, numeric)) : 0.5;
 }
 
 function slugify(value: string) {
@@ -38,7 +37,7 @@ function slugify(value: string) {
 function details(value: unknown) {
   if (!Array.isArray(value)) return [];
   return value
-    .map((item) => text(item, LIMITS.detail))
+    .map((item) => text(item, LIMITS.detail, true))
     .filter(Boolean)
     .slice(0, 8);
 }
@@ -58,6 +57,12 @@ function selectLocation() {
     marketCopy: true,
     localDetails: true,
     serviceArea: true,
+    ctaHeadline: true,
+    featureImageStorageKey: true,
+    featureImageUrl: true,
+    featureImageAlt: true,
+    featureImageFocalX: true,
+    featureImageFocalY: true,
     published: true,
     displayOrder: true,
     createdAt: true,
@@ -65,13 +70,13 @@ function selectLocation() {
   } as const;
 }
 
-async function uniqueSlug(requested: string, locationId?: string) {
+async function uniqueSlug(workspaceId: string, requested: string, locationId?: string) {
   const base = slugify(requested) || "location";
   let candidate = base;
   let suffix = 2;
   while (
     await prisma.locationPage.findFirst({
-      where: { slug: candidate, ...(locationId ? { id: { not: locationId } } : {}) },
+      where: { workspaceId, slug: candidate, ...(locationId ? { id: { not: locationId } } : {}) },
       select: { id: true },
     })
   ) {
@@ -80,7 +85,7 @@ async function uniqueSlug(requested: string, locationId?: string) {
   return candidate;
 }
 
-function starterContent(body: LocationBody) {
+function starterContent(body: LocationBody, businessName: string) {
   const city = text(body.city, LIMITS.city);
   const state = text(body.state, LIMITS.state) || "Colorado";
   const county = text(body.county, LIMITS.county) || "Northern Colorado";
@@ -96,10 +101,10 @@ function starterContent(body: LocationBody) {
     city,
     state,
     county,
-    seoTitle: `${city} Real Estate Photography & Video | Helios`,
+    seoTitle: `${city} Real Estate Photography & Video | ${businessName}`,
     seoDescription: `Professional real estate photography, cinematic video, drone media, and social content for ${city}, ${state} listings and real estate professionals.`,
     heroLead: `Intentional real estate photography and cinematic media for listings across ${city}.`,
-    introduction: `${city} properties deserve marketing shaped around more than a checklist. Helios combines architectural photography, cinematic movement, aerial perspective, and social-first content to help agents present each listing with clarity, emotion, and a stronger sense of place.`,
+    introduction: `${city} properties deserve marketing shaped around more than a checklist. ${businessName} combines architectural photography, cinematic movement, aerial perspective, and social-first content to help agents present each listing with clarity, emotion, and a stronger sense of place.`,
     marketTitle: `${city} listings deserve a deliberate visual story.`,
     marketCopy: `From the first exterior frame through the final film edit, every deliverable is planned around the property, its audience, and the way buyers experience the surrounding ${county} market. The result is a polished collection built for the MLS, social media, listing presentations, and the agent’s wider brand.`,
     localDetails: [
@@ -117,17 +122,23 @@ function starterContent(body: LocationBody) {
 function payload(body: LocationBody) {
   const localDetails = details(body.localDetails);
   return {
-    city: text(body.city, LIMITS.city),
-    state: text(body.state, LIMITS.state) || "Colorado",
-    county: text(body.county, LIMITS.county),
-    seoTitle: text(body.seoTitle, LIMITS.seoTitle),
-    seoDescription: text(body.seoDescription, LIMITS.seoDescription),
-    heroLead: text(body.heroLead, LIMITS.heroLead),
-    introduction: text(body.introduction, LIMITS.introduction),
-    marketTitle: text(body.marketTitle, LIMITS.marketTitle),
-    marketCopy: text(body.marketCopy, LIMITS.marketCopy),
+    city: text(body.city, LIMITS.city, true),
+    state: text(body.state, LIMITS.state, true) || "Colorado",
+    county: text(body.county, LIMITS.county, true),
+    seoTitle: text(body.seoTitle, LIMITS.seoTitle, true),
+    seoDescription: text(body.seoDescription, LIMITS.seoDescription, true),
+    heroLead: text(body.heroLead, LIMITS.heroLead, true),
+    introduction: text(body.introduction, LIMITS.introduction, true),
+    marketTitle: text(body.marketTitle, LIMITS.marketTitle, true),
+    marketCopy: text(body.marketCopy, LIMITS.marketCopy, true),
     localDetails,
-    serviceArea: text(body.serviceArea, LIMITS.serviceArea),
+    serviceArea: text(body.serviceArea, LIMITS.serviceArea, true),
+    ctaHeadline: optionalText(body.ctaHeadline, LIMITS.ctaHeadline),
+    featureImageStorageKey: optionalText(body.featureImageStorageKey, 500),
+    featureImageUrl: optionalText(body.featureImageUrl, 2000),
+    featureImageAlt: typeof body.featureImageAlt === "string" ? text(body.featureImageAlt, LIMITS.featureImageAlt, true) : null,
+    featureImageFocalX: focal(body.featureImageFocalX),
+    featureImageFocalY: focal(body.featureImageFocalY),
   };
 }
 
@@ -159,16 +170,18 @@ export async function POST(request: Request) {
   if (!session) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
   try {
     const body = (await request.json()) as LocationBody;
-    const generated = body.action === "generate" ? starterContent(body) : payload(body);
+    const settings = await prisma.siteSettings.findFirst({ where: { workspaceId: session.workspaceId }, select: { businessName: true } });
+    const generated = body.action === "generate" ? starterContent(body, settings?.businessName || "Your company") : payload(body);
     const data = payload(generated);
     if (!valid(data)) {
       return NextResponse.json({ success: false, error: "City, county, page copy, local details, and service area are required." }, { status: 400 });
     }
-    const slug = await uniqueSlug(text(body.slug, LIMITS.slug) || data.city);
-    const order = await prisma.locationPage.aggregate({ _max: { displayOrder: true } });
+    const slug = await uniqueSlug(session.workspaceId, text(body.slug, LIMITS.slug, true) || data.city);
+    const order = await prisma.locationPage.aggregate({ where: { workspaceId: session.workspaceId }, _max: { displayOrder: true } });
     const location = await prisma.locationPage.create({
       data: {
         ...data,
+        workspaceId: session.workspaceId,
         slug,
         localDetails: data.localDetails,
         published: false,
@@ -187,6 +200,9 @@ export async function POST(request: Request) {
     revalidateLocations([slug]);
     return NextResponse.json({ success: true, location }, { status: 201 });
   } catch (error) {
+    if (error instanceof Error && error.message === "FIELD_TOO_LONG") {
+      return NextResponse.json({ success: false, error: "One or more fields exceed their character limit." }, { status: 400 });
+    }
     console.error("Unable to create location page:", error);
     return NextResponse.json({ success: false, error: "The local page could not be created." }, { status: 500 });
   }
@@ -200,13 +216,13 @@ export async function PATCH(request: Request) {
     const locationId = text(body.locationId, 100);
     const action = text(body.action, 40);
     if (!locationId) return NextResponse.json({ success: false, error: "Location page ID required." }, { status: 400 });
-    const existing = await prisma.locationPage.findUnique({ where: { id: locationId }, select: { slug: true, city: true } });
+    const existing = await prisma.locationPage.findFirst({ where: { id: locationId, workspaceId: session.workspaceId }, select: { slug: true, city: true, featureImageStorageKey: true } });
     if (!existing) return NextResponse.json({ success: false, error: "Local page not found." }, { status: 404 });
 
     if (action === "reorder") {
       const direction = body.direction === "up" ? -1 : body.direction === "down" ? 1 : 0;
       if (!direction) return NextResponse.json({ success: false, error: "Valid reorder direction required." }, { status: 400 });
-      const ordered = await prisma.locationPage.findMany({ orderBy: [{ displayOrder: "asc" }, { city: "asc" }], select: { id: true } });
+      const ordered = await prisma.locationPage.findMany({ where: { workspaceId: session.workspaceId }, orderBy: [{ displayOrder: "asc" }, { city: "asc" }], select: { id: true } });
       const index = ordered.findIndex((item) => item.id === locationId);
       const target = index + direction;
       if (index >= 0 && target >= 0 && target < ordered.length) {
@@ -239,12 +255,17 @@ export async function PATCH(request: Request) {
 
     const data = payload(body);
     if (!valid(data)) return NextResponse.json({ success: false, error: "Complete every required page field before saving." }, { status: 400 });
-    const slug = await uniqueSlug(text(body.slug, LIMITS.slug) || data.city, locationId);
+    if (data.featureImageStorageKey && !data.featureImageStorageKey.startsWith(`site/locations/${session.workspaceId}/${locationId}/`)) {
+      return NextResponse.json({ success: false, error: "The selected location image is invalid." }, { status: 400 });
+    }
+    if (data.featureImageStorageKey !== existing.featureImageStorageKey) await verifyContentImage(data.featureImageStorageKey);
+    const slug = await uniqueSlug(session.workspaceId, text(body.slug, LIMITS.slug, true) || data.city, locationId);
     const location = await prisma.locationPage.update({
       where: { id: locationId },
       data: { ...data, slug, localDetails: data.localDetails },
       select: selectLocation(),
     });
+    if (data.featureImageStorageKey !== existing.featureImageStorageKey) await deleteContentImage(existing.featureImageStorageKey);
     await recordAuditEvent({
       actorId: session.userId,
       actorEmail: session.email,
@@ -256,6 +277,9 @@ export async function PATCH(request: Request) {
     revalidateLocations([existing.slug, slug]);
     return NextResponse.json({ success: true, location });
   } catch (error) {
+    if (error instanceof Error && error.message === "FIELD_TOO_LONG") {
+      return NextResponse.json({ success: false, error: "One or more fields exceed their character limit." }, { status: 400 });
+    }
     console.error("Unable to update location page:", error);
     return NextResponse.json({ success: false, error: "The local page could not be updated." }, { status: 500 });
   }
@@ -267,7 +291,10 @@ export async function DELETE(request: Request) {
   try {
     const locationId = new URL(request.url).searchParams.get("locationId")?.trim();
     if (!locationId) return NextResponse.json({ success: false, error: "Location page ID required." }, { status: 400 });
+    const existing = await prisma.locationPage.findFirst({ where: { id: locationId, workspaceId: session.workspaceId }, select: { id: true, featureImageStorageKey: true } });
+    if (!existing) return NextResponse.json({ success: false, error: "Local page not found." }, { status: 404 });
     const location = await prisma.locationPage.delete({ where: { id: locationId }, select: { id: true, city: true, slug: true } });
+    await deleteContentImage(existing.featureImageStorageKey);
     await recordAuditEvent({
       actorId: session.userId,
       actorEmail: session.email,

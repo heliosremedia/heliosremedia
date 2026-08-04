@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 
 import Footer from "@/app/components/Footer";
@@ -11,37 +12,12 @@ import {
 import { buildPageMetadata } from "@/lib/seo";
 import { getCanonicalAbsoluteUrl } from "@/lib/site";
 import { getSiteSettings } from "@/lib/site-settings";
+import { splitParagraphs } from "@/lib/location-page-content";
+import { prisma } from "@/lib/prisma";
 
 type LocationPageProps = {
   params: Promise<{ city: string }>;
 };
-
-const featuredServices = [
-  {
-    name: "Photography",
-    slug: "photography",
-    detail:
-      "Interior, exterior, and architectural imagery shaped around the property’s strongest features.",
-  },
-  {
-    name: "Cinematic Films",
-    slug: "cinematic-films",
-    detail:
-      "Story-driven property films that build emotion, context, and a memorable first impression.",
-  },
-  {
-    name: "Drone Media",
-    slug: "drone-photography",
-    detail:
-      "Aerial perspectives that clarify location, lot, views, amenities, and the surrounding community.",
-  },
-  {
-    name: "Vertical Reels",
-    slug: "vertical-reels",
-    detail:
-      "Social-first video created to help listings and agents earn attention beyond the MLS.",
-  },
-];
 
 export async function generateMetadata({
   params,
@@ -73,9 +49,10 @@ export default async function LocationLandingPage({
     notFound();
   }
 
-  const [settings, locations] = await Promise.all([
+  const [settings, locations, featuredServices] = await Promise.all([
     getSiteSettings(),
     getPublishedLocationPages(),
+    prisma.service.findMany({ where: { ...(location.workspaceId ? { workspaceId: location.workspaceId } : {}), active: true, archivedAt: null }, orderBy: { displayOrder: "asc" }, take: 4, select: { name: true, slug: true, description: true } }),
   ]);
   const bookingHref = "/book";
   const structuredData = {
@@ -93,16 +70,10 @@ export default async function LocationLandingPage({
       name: location.city,
       containedInPlace: {
         "@type": "State",
-        name: "Colorado",
+        name: location.state,
       },
     },
-    serviceType: [
-      "Real estate photography",
-      "Cinematic real estate video",
-      "Drone photography",
-      "Vertical real estate video",
-      "Agent branding",
-    ],
+    serviceType: featuredServices.map((service) => service.name),
   };
 
   return (
@@ -131,7 +102,7 @@ export default async function LocationLandingPage({
         <div className="container-shell relative flex min-h-[78svh] items-end py-20 sm:py-28 lg:py-32">
           <div className="max-w-5xl">
             <p className="eyebrow text-[var(--helios-orange)]">
-              Northern Colorado · {location.county}
+              {settings.serviceArea} · {location.county}
             </p>
             <h1 className="mt-7 max-w-5xl font-display text-[clamp(3.6rem,8.5vw,8rem)] font-light leading-[0.84] tracking-[-0.06em]">
               Real Estate Media in{" "}
@@ -154,22 +125,22 @@ export default async function LocationLandingPage({
         </div>
       </section>
 
-      <section className="container-shell grid gap-12 border-b border-white/[0.08] py-20 sm:py-28 lg:grid-cols-[0.72fr_1.28fr] lg:gap-20">
-        <div>
+      <section id="market-story" className="container-shell scroll-mt-28 grid gap-12 border-b border-white/[0.08] py-20 sm:scroll-mt-32 sm:py-28 lg:grid-cols-[0.78fr_1.22fr] lg:gap-20">
+        <div className="min-w-0">
           <p className="eyebrow text-[var(--helios-orange)]">
             Built for {location.city}
           </p>
           <h2 className="mt-6 font-display text-[clamp(2.8rem,5vw,5.2rem)] font-light leading-[0.92] tracking-[-0.05em]">
             {location.marketTitle}
           </h2>
+          {location.featureImageUrl ? <figure className="relative mt-10 aspect-[4/5] max-w-xl overflow-hidden rounded-[2rem] bg-[#0d0d0d]">
+            <Image src={location.featureImageUrl} alt={location.featureImageAlt || ""} fill sizes="(max-width: 1024px) 100vw, 38vw" className="object-cover" style={{ objectPosition: `${(location.featureImageFocalX ?? 0.5) * 100}% ${(location.featureImageFocalY ?? 0.5) * 100}%` }} />
+            <span aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_50%,#090909_100%),linear-gradient(90deg,#090909_0%,transparent_18%,transparent_82%,#090909_100%)]" />
+          </figure> : null}
         </div>
-        <div className="lg:pt-10">
-          <p className="text-base leading-8 text-white/48">
-            {location.introduction}
-          </p>
-          <p className="mt-6 text-base leading-8 text-white/48">
-            {location.marketCopy}
-          </p>
+        <div className="min-w-0 lg:pt-10">
+          <div className="max-w-[42rem] space-y-5 text-base leading-7 text-white/48">{splitParagraphs(location.introduction).map((paragraph, index) => <p key={`intro-${index}`}>{paragraph}</p>)}</div>
+          <div className="mt-7 max-w-[42rem] space-y-5 text-base leading-7 text-white/48">{splitParagraphs(location.marketCopy).map((paragraph, index) => <p key={`story-${index}`}>{paragraph}</p>)}</div>
           <ul className="mt-9 grid gap-3 sm:grid-cols-2">
             {location.localDetails.map((detail) => (
               <li
@@ -219,7 +190,7 @@ export default async function LocationLandingPage({
                 {service.name}
               </h3>
               <p className="mt-5 text-sm leading-7 text-white/36">
-                {service.detail}
+                {service.description || `Explore ${service.name} for this location.`}
               </p>
               <span className="mt-8 inline-block text-[0.55rem] font-semibold uppercase tracking-[0.16em] text-white/32 transition group-hover:text-white">
                 Explore service →
@@ -232,7 +203,7 @@ export default async function LocationLandingPage({
       <section className="border-y border-white/[0.08] bg-white/[0.015]">
         <div className="container-shell py-16 sm:py-20">
           <p className="text-[0.56rem] font-semibold uppercase tracking-[0.2em] text-white/28">
-            Helios across Northern Colorado
+            {settings.businessName} across {settings.serviceArea}
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             {locations.map((item) => (
@@ -259,16 +230,15 @@ export default async function LocationLandingPage({
         <p className="eyebrow text-[var(--helios-orange)]">
           Ready when you are
         </p>
-        <h2 className="mx-auto mt-6 max-w-4xl font-display text-[clamp(3rem,6vw,6.5rem)] font-light leading-[0.9] tracking-[-0.055em]">
-          Let&apos;s give your next {location.city} listing the presentation it
-          deserves.
+        <h2 className="mx-auto mt-6 max-w-[18ch] text-balance font-display text-[clamp(2.6rem,5vw,5.4rem)] font-light leading-[0.94] tracking-[-0.05em]">
+          {location.ctaHeadline || `Let’s give your next ${location.city} listing the presentation it deserves.`}
         </h2>
         <div className="mt-9 flex flex-wrap justify-center gap-3">
           <Link href={bookingHref} className="admin-btn-primary">
             Book your shoot
           </Link>
           <Link href="/contact" className="admin-btn-secondary">
-            Talk with Helios
+            Talk with {settings.businessName.split(" ")[0]}
           </Link>
         </div>
       </section>

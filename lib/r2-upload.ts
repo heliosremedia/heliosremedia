@@ -134,6 +134,13 @@ export function createBlogImageKey(mimeType: string) {
   return `blog/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
 }
 
+export function createLocationFeatureImageKey(workspaceId: string, locationId: string, mimeType: string) {
+  const timestamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "-");
+  const safeWorkspace = workspaceId.replace(/[^a-zA-Z0-9_-]/g, "");
+  const safeLocation = locationId.replace(/[^a-zA-Z0-9_-]/g, "");
+  return `site/locations/${safeWorkspace}/${safeLocation}/${timestamp}-${randomUUID().slice(0, 8)}.${extensionFromMime(mimeType)}`;
+}
+
 export function createNewsletterAiImageKey() {
   const timestamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "-");
   return `newsletter/ai/${timestamp}-${randomUUID().slice(0, 8)}.webp`;

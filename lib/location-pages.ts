@@ -1,9 +1,11 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { getPublicAssetUrl } from "@/lib/r2-upload";
 
 export type LocationPage = {
   id?: string;
+  workspaceId?: string;
   slug: string;
   city: string;
   state?: string;
@@ -16,6 +18,12 @@ export type LocationPage = {
   marketCopy: string;
   localDetails: string[];
   serviceArea: string;
+  ctaHeadline?: string | null;
+  featureImageStorageKey?: string | null;
+  featureImageUrl?: string | null;
+  featureImageAlt?: string | null;
+  featureImageFocalX?: number;
+  featureImageFocalY?: number;
   published?: boolean;
   displayOrder?: number;
   createdAt?: Date;
@@ -26,6 +34,7 @@ export const LOCATION_PAGES: LocationPage[] = [
   {
     slug: "fort-collins",
     city: "Fort Collins",
+    state: "Colorado",
     county: "Larimer County",
     seoTitle:
       "Fort Collins Real Estate Photography & Video | Helios",
@@ -50,6 +59,7 @@ export const LOCATION_PAGES: LocationPage[] = [
   {
     slug: "loveland",
     city: "Loveland",
+    state: "Colorado",
     county: "Larimer County",
     seoTitle: "Loveland Real Estate Photography & Video | Helios",
     seoDescription:
@@ -73,6 +83,7 @@ export const LOCATION_PAGES: LocationPage[] = [
   {
     slug: "windsor",
     city: "Windsor",
+    state: "Colorado",
     county: "Weld and Larimer Counties",
     seoTitle: "Windsor Real Estate Photography & Video | Helios",
     seoDescription:
@@ -96,6 +107,7 @@ export const LOCATION_PAGES: LocationPage[] = [
   {
     slug: "greeley",
     city: "Greeley",
+    state: "Colorado",
     county: "Weld County",
     seoTitle: "Greeley Real Estate Photography & Video | Helios",
     seoDescription:
@@ -119,6 +131,7 @@ export const LOCATION_PAGES: LocationPage[] = [
   {
     slug: "timnath",
     city: "Timnath",
+    state: "Colorado",
     county: "Larimer County",
     seoTitle: "Timnath Real Estate Photography & Video | Helios",
     seoDescription:
@@ -142,6 +155,7 @@ export const LOCATION_PAGES: LocationPage[] = [
   {
     slug: "severance",
     city: "Severance",
+    state: "Colorado",
     county: "Weld County",
     seoTitle: "Severance Real Estate Photography & Video | Helios",
     seoDescription:
@@ -166,6 +180,7 @@ export const LOCATION_PAGES: LocationPage[] = [
 
 function normalizeLocationPage(location: {
   id: string;
+  workspaceId: string;
   slug: string;
   city: string;
   state: string;
@@ -178,6 +193,12 @@ function normalizeLocationPage(location: {
   marketCopy: string;
   localDetails: unknown;
   serviceArea: string;
+  ctaHeadline: string | null;
+  featureImageStorageKey: string | null;
+  featureImageUrl: string | null;
+  featureImageAlt: string | null;
+  featureImageFocalX: number;
+  featureImageFocalY: number;
   published: boolean;
   displayOrder: number;
   createdAt: Date;
@@ -185,6 +206,9 @@ function normalizeLocationPage(location: {
 }): LocationPage {
   return {
     ...location,
+    featureImageUrl: location.featureImageStorageKey
+      ? getPublicAssetUrl(location.featureImageStorageKey)
+      : location.featureImageUrl,
     localDetails: Array.isArray(location.localDetails)
       ? location.localDetails.filter(
           (detail): detail is string => typeof detail === "string",
@@ -195,8 +219,9 @@ function normalizeLocationPage(location: {
 
 export async function getPublishedLocationPages(): Promise<LocationPage[]> {
   try {
+    const settings = await prisma.siteSettings.findUnique({ where: { id: "default" }, select: { workspaceId: true } });
     const locations = await prisma.locationPage.findMany({
-      where: { published: true },
+      where: { published: true, ...(settings?.workspaceId ? { workspaceId: settings.workspaceId } : {}) },
       orderBy: [{ displayOrder: "asc" }, { city: "asc" }],
     });
     return locations.map(normalizeLocationPage);
@@ -210,8 +235,9 @@ export async function getPublishedLocationPages(): Promise<LocationPage[]> {
 
 export async function getLocationPage(slug: string): Promise<LocationPage | undefined> {
   try {
+    const settings = await prisma.siteSettings.findUnique({ where: { id: "default" }, select: { workspaceId: true } });
     const location = await prisma.locationPage.findFirst({
-      where: { slug, published: true },
+      where: { slug, published: true, ...(settings?.workspaceId ? { workspaceId: settings.workspaceId } : {}) },
     });
     return location ? normalizeLocationPage(location) : undefined;
   } catch (error) {

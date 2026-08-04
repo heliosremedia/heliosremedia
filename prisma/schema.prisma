@@ -1195,7 +1195,10 @@ model BlogPostRevision {
 model LocationPage {
   id String @id @default(cuid())
 
-  slug           String @unique
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  slug           String
   city           String
   state          String @default("Colorado")
   county         String
@@ -1207,6 +1210,13 @@ model LocationPage {
   marketCopy     String
   localDetails   Json
   serviceArea    String
+  ctaHeadline    String?
+
+  featureImageStorageKey String?
+  featureImageUrl        String?
+  featureImageAlt        String?
+  featureImageFocalX     Float   @default(0.5)
+  featureImageFocalY     Float   @default(0.5)
 
   published    Boolean @default(false)
   displayOrder Int     @default(0)
@@ -1214,7 +1224,8 @@ model LocationPage {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([published, displayOrder])
+  @@unique([workspaceId, slug])
+  @@index([workspaceId, published, displayOrder])
 }
 
 model ClientPortal {
@@ -1462,6 +1473,7 @@ model Workspace {
   clientSyncRuns           ClientSyncRun[]
   resendWebhookEvents      ResendWebhookEvent[]
   services                 Service[]
+  locationPages            LocationPage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -19,6 +19,33 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
+    version: "V1.9.4.8",
+    slug: "v1-9-4-8",
+    releaseDate: "2026-08-04",
+    title: "Location Pages Intelligence and Presentation",
+    summary: "Adds workspace-aware AI drafting, managed feature imagery, stronger validation, and refined public presentation to Location Pages while preserving existing content and SEO authority.",
+    newFeatures: [
+      "Location Page AI Assistant supports automatic generation or custom creative direction with review-before-apply drafts",
+      "Location Pages support managed feature imagery with accessible alt text and focal positioning",
+    ],
+    improvements: [
+      "Market Story paragraph breaks render semantically and preserve the administrator's intended formatting",
+      "Public section navigation accounts for the persistent header and the closing call to action scales responsively",
+      "Location Page services and AI context respect the active workspace and company voice",
+    ],
+    bugFixes: [
+      "Client and server validation now enforce matching field limits, including the 1,400-character Market Story maximum",
+      "Pages without feature imagery retain a balanced public layout without placeholder assets",
+    ],
+    securityInfrastructure: [
+      "Location Page records, AI generation, and managed uploads are isolated by workspace",
+      "The additive migration preserves existing slugs, copy, publication state, metadata, and media relationships",
+      "Canonical URLs, sitemap inclusion, structured data, and preview noindex behavior remain intact",
+    ],
+    administratorActions: ["Review AI-generated drafts before applying and save explicitly when the content is ready"],
+    status: "LIVE",
+  },
+  {
     version: "V1.9.4.7",
     slug: "v1-9-4-7",
     releaseDate: "2026-08-02",
