@@ -32,7 +32,7 @@ export const AI_LOCATION_FIELDS: EditableLocationField[] = [
 ];
 
 export function splitParagraphs(value: string) {
-  return value.split(/\r?\n\s*\r?\n/).map((paragraph) => paragraph.trim()).filter(Boolean);
+  return value.split(/\r?\n+/).map((paragraph) => paragraph.trim()).filter(Boolean);
 }
 
 export function locationFieldError(field: keyof typeof LOCATION_FIELD_LIMITS, value: string) {

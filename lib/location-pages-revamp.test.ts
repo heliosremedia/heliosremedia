@@ -8,6 +8,7 @@ const read = (path: string) => readFileSync(path, "utf8");
 
 test("Market Story paragraphs and exact 1,400-character boundary are preserved", () => {
   assert.deepEqual(splitParagraphs("First paragraph.\n\nSecond paragraph."), ["First paragraph.", "Second paragraph."]);
+  assert.deepEqual(splitParagraphs("First paragraph.\nSecond paragraph."), ["First paragraph.", "Second paragraph."]);
   assert.equal(locationFieldError("marketCopy", "x".repeat(1400)), null);
   assert.match(locationFieldError("marketCopy", "x".repeat(1401)) || "", /1,400/);
 });
@@ -34,7 +35,7 @@ test("Location Page revamp preserves review, image, tenant, and SEO boundaries",
   assert.match(ai, /active: true, archivedAt: null/);
   assert.match(route, /FIELD_TOO_LONG/);
   assert.match(page, /splitParagraphs\(location\.marketCopy\)/);
-  assert.match(page, /scroll-mt-28/);
+  assert.match(page, /scroll-mt-40/);
   assert.match(page, /buildPageMetadata/);
   assert.doesNotMatch(migration, /UPDATE "LocationPage"\s+SET "marketCopy"/);
 });
