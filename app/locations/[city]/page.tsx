@@ -127,7 +127,7 @@ export default async function LocationLandingPage({
         </div>
       </section>
 
-      <section id="market-story" className="container-shell scroll-mt-40 grid gap-12 border-b border-white/[0.08] py-20 sm:py-28 lg:grid-cols-[0.82fr_1.18fr] lg:gap-20">
+      <section id="market-story" className="container-shell scroll-mt-40 grid gap-12 border-b border-white/[0.08] py-20 sm:py-28 lg:grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)] lg:gap-16 xl:gap-20">
         <div className="min-w-0">
           <p className="eyebrow text-[var(--helios-orange)]">
             Built for {location.city}
@@ -135,10 +135,22 @@ export default async function LocationLandingPage({
           <h2 className="mt-6 font-display text-[clamp(2.8rem,5vw,5.2rem)] font-light leading-[0.92] tracking-[-0.05em]">
             {location.marketTitle}
           </h2>
-          {location.featureImageUrl ? <figure className="relative mt-10 aspect-[4/5] max-w-xl overflow-hidden rounded-[2rem] bg-[#0d0d0d]">
-            <Image src={location.featureImageUrl} alt={location.featureImageAlt || ""} fill sizes="(max-width: 1024px) 100vw, 38vw" className="object-cover" style={{ objectPosition: `${(location.featureImageFocalX ?? 0.5) * 100}% ${(location.featureImageFocalY ?? 0.5) * 100}%` }} />
-            <span aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_50%,#090909_100%),linear-gradient(90deg,#090909_0%,transparent_18%,transparent_82%,#090909_100%)]" />
-          </figure> : null}
+          {location.featureImageUrl ? (
+            <figure className="relative mt-10 aspect-[4/5] w-full overflow-hidden rounded-[0.35rem] bg-[#0d0d0d] shadow-[0_30px_80px_rgba(0,0,0,0.28)] lg:min-h-[48rem] lg:aspect-auto">
+              <Image
+                src={location.featureImageUrl}
+                alt={location.featureImageAlt || ""}
+                fill
+                sizes="(max-width: 1024px) 100vw, 42vw"
+                className="object-cover"
+                style={{ objectPosition: `${(location.featureImageFocalX ?? 0.5) * 100}% ${(location.featureImageFocalY ?? 0.5) * 100}%` }}
+              />
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_68%,rgba(9,9,9,0.72)_100%),linear-gradient(270deg,rgba(9,9,9,0.48)_0%,transparent_22%)]"
+              />
+            </figure>
+          ) : null}
           {!location.featureImageUrl ? (
             <div className="mt-9 max-w-[34rem] space-y-6 border-l border-[var(--helios-orange)]/45 pl-6 text-base leading-8 text-white/58 sm:pl-8">
               {introductionParagraphs.map((paragraph, index) => (
@@ -174,9 +186,14 @@ export default async function LocationLandingPage({
               </li>
             ))}
           </ul>
-          <p className="mt-9 text-xs uppercase tracking-[0.16em] text-white/28">
-            {location.serviceArea}
-          </p>
+          <div className="mt-10 border-t border-white/[0.1] pt-5">
+            <p className="text-[0.56rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">
+              Serving {location.city} and nearby communities
+            </p>
+            <p className="mt-3 max-w-[42rem] text-sm leading-7 text-white/38">
+              {location.serviceArea}
+            </p>
+          </div>
         </div>
       </section>
 
