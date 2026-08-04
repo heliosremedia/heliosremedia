@@ -4,11 +4,11 @@ import { getStudioRelease, STUDIO_RELEASES } from "./releases.ts";
 import { STUDIO_VERSION, STUDIO_VERSION_HREF } from "./version.ts";
 
 test("visible version links to the matching code-controlled release", () => {
-  assert.equal(STUDIO_VERSION, "V1.9.4.7");
-  assert.equal(STUDIO_VERSION_HREF, "/admin/release-notes/v1-9-4-7");
-  assert.equal(getStudioRelease("v1-9-4-7")?.version, STUDIO_VERSION);
-  assert.equal(getStudioRelease("v1-9-4-7")?.status, "LIVE");
-  assert.equal(getStudioRelease("v1-9-4-7")?.releaseDate, "2026-08-02");
+  assert.equal(STUDIO_VERSION, "V1.9.4.8");
+  assert.equal(STUDIO_VERSION_HREF, "/admin/release-notes/v1-9-4-8");
+  assert.equal(getStudioRelease("v1-9-4-8")?.version, STUDIO_VERSION);
+  assert.equal(getStudioRelease("v1-9-4-8")?.status, "LIVE");
+  assert.equal(getStudioRelease("v1-9-4-8")?.releaseDate, "2026-08-04");
   assert.equal(getStudioRelease("v1-9-4-1")?.status, "LIVE");
   assert.equal(getStudioRelease("v1-9-4-1")?.releaseDate, "2026-07-31");
   assert.equal(getStudioRelease("v1-9-4")?.status, "LIVE");
