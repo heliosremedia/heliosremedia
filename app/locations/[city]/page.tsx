@@ -55,6 +55,8 @@ export default async function LocationLandingPage({
     prisma.service.findMany({ where: { ...(location.workspaceId ? { workspaceId: location.workspaceId } : {}), active: true, archivedAt: null }, orderBy: { displayOrder: "asc" }, take: 4, select: { name: true, slug: true, description: true } }),
   ]);
   const bookingHref = "/book";
+  const introductionParagraphs = splitParagraphs(location.introduction);
+  const marketStoryParagraphs = splitParagraphs(location.marketCopy);
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "ProfessionalService",
@@ -125,7 +127,7 @@ export default async function LocationLandingPage({
         </div>
       </section>
 
-      <section id="market-story" className="container-shell scroll-mt-28 grid gap-12 border-b border-white/[0.08] py-20 sm:scroll-mt-32 sm:py-28 lg:grid-cols-[0.78fr_1.22fr] lg:gap-20">
+      <section id="market-story" className="container-shell scroll-mt-40 grid gap-12 border-b border-white/[0.08] py-20 sm:py-28 lg:grid-cols-[0.82fr_1.18fr] lg:gap-20">
         <div className="min-w-0">
           <p className="eyebrow text-[var(--helios-orange)]">
             Built for {location.city}
@@ -137,10 +139,27 @@ export default async function LocationLandingPage({
             <Image src={location.featureImageUrl} alt={location.featureImageAlt || ""} fill sizes="(max-width: 1024px) 100vw, 38vw" className="object-cover" style={{ objectPosition: `${(location.featureImageFocalX ?? 0.5) * 100}% ${(location.featureImageFocalY ?? 0.5) * 100}%` }} />
             <span aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_50%,#090909_100%),linear-gradient(90deg,#090909_0%,transparent_18%,transparent_82%,#090909_100%)]" />
           </figure> : null}
+          {!location.featureImageUrl ? (
+            <div className="mt-9 max-w-[34rem] space-y-6 border-l border-[var(--helios-orange)]/45 pl-6 text-base leading-8 text-white/58 sm:pl-8">
+              {introductionParagraphs.map((paragraph, index) => (
+                <p key={`intro-${index}`}>{paragraph}</p>
+              ))}
+            </div>
+          ) : null}
         </div>
         <div className="min-w-0 lg:pt-10">
-          <div className="max-w-[42rem] space-y-5 text-base leading-7 text-white/48">{splitParagraphs(location.introduction).map((paragraph, index) => <p key={`intro-${index}`}>{paragraph}</p>)}</div>
-          <div className="mt-7 max-w-[42rem] space-y-5 text-base leading-7 text-white/48">{splitParagraphs(location.marketCopy).map((paragraph, index) => <p key={`story-${index}`}>{paragraph}</p>)}</div>
+          {location.featureImageUrl ? (
+            <div className="max-w-[42rem] space-y-6 text-base leading-8 text-white/58">
+              {introductionParagraphs.map((paragraph, index) => (
+                <p key={`intro-${index}`}>{paragraph}</p>
+              ))}
+            </div>
+          ) : null}
+          <div className={`${location.featureImageUrl ? "mt-8 border-t border-white/[0.08] pt-8" : ""} max-w-[42rem] space-y-6 text-base leading-8 text-white/58`}>
+            {marketStoryParagraphs.map((paragraph, index) => (
+              <p key={`story-${index}`}>{paragraph}</p>
+            ))}
+          </div>
           <ul className="mt-9 grid gap-3 sm:grid-cols-2">
             {location.localDetails.map((detail) => (
               <li
@@ -226,20 +245,33 @@ export default async function LocationLandingPage({
         </div>
       </section>
 
-      <section className="container-shell py-24 text-center sm:py-32">
-        <p className="eyebrow text-[var(--helios-orange)]">
-          Ready when you are
-        </p>
-        <h2 className="mx-auto mt-6 max-w-[18ch] text-balance font-display text-[clamp(2.6rem,5vw,5.4rem)] font-light leading-[0.94] tracking-[-0.05em]">
-          {location.ctaHeadline || `Let’s give your next ${location.city} listing the presentation it deserves.`}
-        </h2>
-        <div className="mt-9 flex flex-wrap justify-center gap-3">
-          <Link href={bookingHref} className="admin-btn-primary">
-            Book your shoot
-          </Link>
-          <Link href="/contact" className="admin-btn-secondary">
-            Talk with {settings.businessName.split(" ")[0]}
-          </Link>
+      <section className="relative overflow-hidden border-b border-white/[0.08]">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_50%,rgba(217,107,43,0.1),transparent_32%)]" />
+        <div className="container-shell relative py-20 sm:py-24 lg:py-28">
+          <div className="border-t border-white/[0.12] pt-8 sm:pt-10 lg:grid lg:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)] lg:items-end lg:gap-16">
+            <div>
+              <p className="eyebrow text-[var(--helios-orange)]">
+                Ready when you are
+              </p>
+              <h2 className="mt-6 max-w-[17ch] text-balance font-display text-[clamp(2.75rem,4.5vw,4.9rem)] font-light leading-[0.94] tracking-[-0.05em]">
+                {location.ctaHeadline || `Let’s give your next ${location.city} listing the presentation it deserves.`}
+              </h2>
+            </div>
+
+            <div className="mt-10 border-l border-[var(--helios-orange)]/50 pl-6 sm:pl-8 lg:mt-0">
+              <p className="max-w-md text-sm leading-7 text-white/48 sm:text-base">
+                Thoughtful media, built around the property and the way you want it to be seen.
+              </p>
+              <div className="mt-7 flex flex-wrap gap-3">
+                <Link href={bookingHref} className="admin-btn-primary">
+                  Book your shoot
+                </Link>
+                <Link href="/contact" className="admin-btn-secondary">
+                  Talk with {settings.businessName.split(" ")[0]}
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
