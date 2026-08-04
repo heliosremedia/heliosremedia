@@ -59,6 +59,12 @@ const legacyPathRedirects = [
   },
 ] as const;
 
+const legacyDomainRedirects = (process.env.LEGACY_PUBLIC_HOSTS || "heliosremedia.com,www.heliosremedia.com")
+  .split(",")
+  .map((host) => host.trim().toLowerCase())
+  .filter(Boolean);
+const canonicalPublicUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.heliosrealestatemedia.com").replace(/\/+$/, "");
+
 function getR2ImagePattern() {
   const publicUrl = process.env.R2_PUBLIC_URL;
 
@@ -101,6 +107,12 @@ const videoPosterPatterns = [
 const nextConfig: NextConfig = {
   async redirects() {
     return [
+      ...legacyDomainRedirects.map((host) => ({
+        source: "/:path*",
+        has: [{ type: "host" as const, value: host }],
+        destination: `${canonicalPublicUrl}/:path*`,
+        permanent: true,
+      })),
       ...legacyPathRedirects.map(({ source, destination }) => ({
         source,
         destination,

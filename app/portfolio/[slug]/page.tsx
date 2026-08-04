@@ -15,7 +15,7 @@ import { optimizeProjectSocialImage, resolveProjectSocialImage } from "@/lib/pro
 import { validateProjectPreview } from "@/lib/project-preview";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
-import { getAbsoluteUrl, getConfiguredAbsoluteUrl } from "@/lib/site";
+import { getCanonicalAbsoluteUrl } from "@/lib/site";
 import { getSiteSettings } from "@/lib/site-settings";
 
 import PortfolioGallery from "./PortfolioGallery";
@@ -219,7 +219,7 @@ export async function generateMetadata({
     return { title, description, robots: { index: false, follow: false } };
   }
 
-  const canonical = getConfiguredAbsoluteUrl(`/portfolio/${slug}`, settings.websiteUrl);
+  const canonical = getCanonicalAbsoluteUrl(`/portfolio/${slug}`, settings.websiteUrl);
   const image = optimizeProjectSocialImage(
     resolveProjectSocialImage({ ...project, workspace: settings }),
     settings.websiteUrl,
@@ -255,7 +255,7 @@ export default async function PortfolioProjectPage({
   const previewValue = (await searchParams).preview;
   const previewToken = typeof previewValue === "string" ? previewValue : undefined;
   const preview = await validateProjectPreview(slug, previewToken);
-  const project = await getProject(slug, previewToken);
+  const [project, settings] = await Promise.all([getProject(slug, previewToken), getSiteSettings()]);
 
   if (!project) {
     notFound();
@@ -281,7 +281,7 @@ export default async function PortfolioProjectPage({
   const activeServices = project.services.filter(
     ({ service }) => service.active && !service.archivedAt,
   );
-  const projectUrl = getAbsoluteUrl(`/portfolio/${project.slug}`);
+  const projectUrl = getCanonicalAbsoluteUrl(`/portfolio/${project.slug}`, settings.websiteUrl);
   const resolvedSocialImage = preview ? null : resolveProjectSocialImage(project);
   const structuredImages = [
     resolvedSocialImage?.url || null,
@@ -313,8 +313,8 @@ export default async function PortfolioProjectPage({
       : undefined,
     creator: {
       "@type": "Organization",
-      name: "Helios Real Estate Media",
-      url: getAbsoluteUrl("/"),
+      name: settings.businessName,
+      url: getCanonicalAbsoluteUrl("/", settings.websiteUrl),
     },
     keywords: activeServices.map(({ service }) => service.name).join(", "),
   };

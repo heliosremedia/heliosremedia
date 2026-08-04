@@ -3,13 +3,15 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { getPublishedLocationPages } from "@/lib/location-pages";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
-import { getAbsoluteUrl } from "@/lib/site";
+import { getCanonicalAbsoluteUrl } from "@/lib/site";
+import { getSiteSettings } from "@/lib/site-settings";
 import { getPublicWorkspaceId } from "@/lib/public-workspace";
 
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const workspaceId = await getPublicWorkspaceId();
+  const [workspaceId, settings] = await Promise.all([getPublicWorkspaceId(), getSiteSettings()]);
+  const absolute = (path: string) => getCanonicalAbsoluteUrl(path, settings.websiteUrl);
   const [projects, services, legalDocuments, locations, blogPosts] = await Promise.all([
     prisma.project.findMany({
       where: { workspaceId, status: "PUBLISHED" },
@@ -30,44 +32,44 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const staticPages: MetadataRoute.Sitemap = [
     {
-      url: getAbsoluteUrl("/"),
+      url: absolute("/"),
       changeFrequency: "monthly",
       priority: 1,
     },
     {
-      url: getAbsoluteUrl("/portfolio"),
+      url: absolute("/portfolio"),
       changeFrequency: "weekly",
       priority: 0.9,
     },
     {
-      url: getAbsoluteUrl("/services"),
+      url: absolute("/services"),
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
-      url: getAbsoluteUrl("/about"),
+      url: absolute("/about"),
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
-      url: getAbsoluteUrl("/faq"),
+      url: absolute("/faq"),
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
-      url: getAbsoluteUrl("/contact"),
+      url: absolute("/contact"),
       changeFrequency: "yearly",
       priority: 0.6,
     },
     {
-      url: getAbsoluteUrl("/blog"),
+      url: absolute("/blog"),
       changeFrequency: "weekly",
       priority: 0.75,
     },
   ];
 
   const projectPages: MetadataRoute.Sitemap = projects.map((project) => ({
-    url: getAbsoluteUrl(`/portfolio/${project.slug}`),
+    url: absolute(`/portfolio/${project.slug}`),
     lastModified: project.updatedAt,
     changeFrequency: "monthly",
     priority: 0.8,
@@ -78,7 +80,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const locationPages: MetadataRoute.Sitemap = locations.map(
     (location) => ({
-      url: getAbsoluteUrl(`/locations/${location.slug}`),
+      url: absolute(`/locations/${location.slug}`),
       lastModified: location.updatedAt,
       changeFrequency: "monthly",
       priority: 0.85,
@@ -86,19 +88,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   );
 
   const servicePages: MetadataRoute.Sitemap = services.map((service) => ({
-    url: getAbsoluteUrl(`/services/${service.slug}`),
+    url: absolute(`/services/${service.slug}`),
     lastModified: service.updatedAt,
     changeFrequency: "monthly",
     priority: 0.85,
   }));
 
   const legalPages: MetadataRoute.Sitemap = legalDocuments.map((document) => ({
-    url: getAbsoluteUrl(document.type === "PRIVACY_POLICY" ? "/privacy" : "/terms"),
+    url: absolute(document.type === "PRIVACY_POLICY" ? "/privacy" : "/terms"),
     lastModified: document.updatedAt,
     changeFrequency: "yearly",
     priority: 0.2,
   }));
-  const blogPages: MetadataRoute.Sitemap = blogPosts.map((post) => ({ url: getAbsoluteUrl(`/blog/${post.slug}`), lastModified: post.updatedAt, changeFrequency: "monthly", priority: 0.7 }));
+  const blogPages: MetadataRoute.Sitemap = blogPosts.map((post) => ({ url: absolute(`/blog/${post.slug}`), lastModified: post.updatedAt, changeFrequency: "monthly", priority: 0.7 }));
 
   return [
     ...staticPages,

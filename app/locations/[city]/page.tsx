@@ -9,7 +9,7 @@ import {
   getPublishedLocationPages,
 } from "@/lib/location-pages";
 import { buildPageMetadata } from "@/lib/seo";
-import { getAbsoluteUrl } from "@/lib/site";
+import { getCanonicalAbsoluteUrl } from "@/lib/site";
 import { getSiteSettings } from "@/lib/site-settings";
 
 type LocationPageProps = {
@@ -82,11 +82,12 @@ export default async function LocationLandingPage({
     "@context": "https://schema.org",
     "@type": "ProfessionalService",
     name: settings.businessName,
-    url: getAbsoluteUrl(`/locations/${location.slug}`),
+    url: getCanonicalAbsoluteUrl(`/locations/${location.slug}`, settings.websiteUrl),
     telephone: settings.phoneE164,
     description: location.seoDescription,
-    image:
-      settings.heroPosterUrl || settings.brandLogoUrl || undefined,
+    image: settings.heroPosterUrl || settings.brandLogoUrl
+      ? getCanonicalAbsoluteUrl(settings.heroPosterUrl || settings.brandLogoUrl!, settings.websiteUrl)
+      : undefined,
     areaServed: {
       "@type": "City",
       name: location.city,

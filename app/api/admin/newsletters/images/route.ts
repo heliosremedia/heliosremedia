@@ -30,7 +30,7 @@ async function getNewsletterImages(request: Request) {
   if (!session) return forbiddenNewsletterResponse();
   const params = new URL(request.url).searchParams;
   const { search, source, projectId, page } = parseNewsletterGalleryQuery(params);
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.heliosremedia.com").replace(/\/+$/, "");
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.heliosrealestatemedia.com").replace(/\/+$/, "");
 
   if (params.get("mode") === "projects") {
     const projectSearch = (params.get("projectSearch") || "").trim().slice(0, 100);

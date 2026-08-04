@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { getConfiguredAbsoluteUrl } from "@/lib/site";
+import { getCanonicalAbsoluteUrl, isProductionIndexable } from "@/lib/site";
 import type { PublicSiteSettings } from "@/lib/site-settings";
 
 type PageMetadataInput = {
@@ -28,8 +28,8 @@ export function buildPageMetadata({
     ? `${settings.defaultSocialImageUrl}${settings.defaultSocialImageUrl.includes("?") ? "&" : "?"}v=${settings.defaultSocialImageVersion}`
     : null;
   const socialImage = image || configuredDefault || "/work/modern-retreat.jpg";
-  const canonical = getConfiguredAbsoluteUrl(path, settings.websiteUrl);
-  const absoluteImage = getConfiguredAbsoluteUrl(socialImage, settings.websiteUrl);
+  const canonical = getCanonicalAbsoluteUrl(path, settings.websiteUrl);
+  const absoluteImage = getCanonicalAbsoluteUrl(socialImage, settings.websiteUrl);
   const cleanImagePath = absoluteImage.split("?")[0].toLowerCase();
   const imageType = cleanImagePath.endsWith(".png") ? "image/png"
     : cleanImagePath.endsWith(".webp") ? "image/webp"
@@ -68,6 +68,6 @@ export function buildPageMetadata({
       description,
       images: [{ url: absoluteImage, alt }],
     },
-    ...(noIndex ? { robots: { index: false, follow: false } } : {}),
+    ...(noIndex || !isProductionIndexable() ? { robots: { index: false, follow: false } } : {}),
   };
 }
