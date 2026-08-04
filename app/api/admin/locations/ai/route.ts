@@ -4,6 +4,22 @@ import { getAdminSession } from "@/lib/auth/session";
 import { LOCATION_FIELD_LIMITS, normalizeAiDraft } from "@/lib/location-page-content";
 import { prisma } from "@/lib/prisma";
 
+const LOCATION_DRAFT_SCHEMA = {
+  type: "object",
+  properties: {
+    heroLead: { type: "string", maxLength: LOCATION_FIELD_LIMITS.heroLead },
+    introduction: { type: "string", maxLength: LOCATION_FIELD_LIMITS.introduction },
+    marketTitle: { type: "string", maxLength: LOCATION_FIELD_LIMITS.marketTitle },
+    marketCopy: { type: "string", maxLength: LOCATION_FIELD_LIMITS.marketCopy },
+    ctaHeadline: { type: "string", maxLength: LOCATION_FIELD_LIMITS.ctaHeadline },
+    seoTitle: { type: "string", maxLength: LOCATION_FIELD_LIMITS.seoTitle },
+    seoDescription: { type: "string", maxLength: LOCATION_FIELD_LIMITS.seoDescription },
+    featureImageAlt: { type: "string", maxLength: LOCATION_FIELD_LIMITS.featureImageAlt },
+  },
+  required: ["heroLead", "introduction", "marketTitle", "marketCopy", "ctaHeadline", "seoTitle", "seoDescription", "featureImageAlt"],
+  additionalProperties: false,
+} as const;
+
 function safeText(value: unknown, limit: number) {
   const text = typeof value === "string" ? value.trim() : "";
   if (text.length > limit) throw new Error("INVALID_INPUT");
@@ -14,6 +30,43 @@ function providerError(status: number) {
   if (status === 429) return "The writing assistant is busy. Wait a moment, then retry.";
   if (status >= 500) return "The writing assistant is temporarily unavailable. Try again shortly.";
   return "The writing assistant could not create a usable draft. Review the AI configuration and retry.";
+}
+
+async function createLocationDraft(apiKey: string, model: string, instructions: string, facts: object) {
+  return fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model,
+      instructions,
+      input: JSON.stringify(facts),
+      text: {
+        format: {
+          type: "json_schema",
+          name: "location_page_draft",
+          strict: true,
+          schema: LOCATION_DRAFT_SCHEMA,
+        },
+      },
+    }),
+    signal: AbortSignal.timeout(60_000),
+  });
+}
+
+async function logProviderRejection(response: Response, model: string) {
+  let details: { error?: { code?: unknown; type?: unknown; param?: unknown } } = {};
+  try {
+    details = await response.clone().json() as typeof details;
+  } catch {
+    // The provider may return a non-JSON error page. Do not log its body.
+  }
+  console.error("Location Page AI provider rejection", {
+    status: response.status,
+    model,
+    code: typeof details.error?.code === "string" ? details.error.code : undefined,
+    type: typeof details.error?.type === "string" ? details.error.type : undefined,
+    param: typeof details.error?.param === "string" ? details.error.param : undefined,
+  });
 }
 
 export async function POST(request: Request) {
@@ -54,21 +107,22 @@ export async function POST(request: Request) {
       hasFeatureImage: Boolean(location.featureImageStorageKey || location.featureImageUrl),
       customDirection: customDirection || null,
     };
-    const instructions = `You are the location-page writing assistant for ${settings.businessName}. Return only a JSON object with heroLead, introduction, marketTitle, marketCopy, ctaHeadline, seoTitle, seoDescription, and featureImageAlt when an image exists. Write premium, calm, locally specific, human copy in the company's voice. Use only the supplied facts. Do not invent neighborhoods, landmarks, statistics, rankings, awards, reviews, offices, market claims, or service claims. Do not use em dashes, keyword stuffing, hype, or interchangeable city-name-swapped structure. Use natural paragraphs with blank lines where helpful. Observe these hard character limits: heroLead 320, introduction 1400, marketTitle 240, marketCopy 1400, ctaHeadline 240, seoTitle 160, seoDescription 320, featureImageAlt 240. The content is a reviewable draft, never a publication instruction.`;
-    const response = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: process.env.OPENAI_LOCATION_MODEL?.trim() || process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-5-mini",
-        instructions,
-        input: JSON.stringify(facts),
-        text: { format: { type: "json_object" } },
-      }),
-      signal: AbortSignal.timeout(60_000),
-    });
-    if (!response.ok) {
-      console.error("Location Page AI provider rejection", { status: response.status });
-      return NextResponse.json({ success: false, error: providerError(response.status) }, { status: response.status >= 500 ? 502 : response.status });
+    const instructions = `You are the location-page writing assistant for ${settings.businessName}. Create a complete draft with heroLead, introduction, marketTitle, marketCopy, ctaHeadline, seoTitle, seoDescription, and featureImageAlt. If there is no feature image, return an empty string for featureImageAlt. Write premium, calm, locally specific, human copy in the company's voice. Treat customDirection as optional guidance: follow it when supplied, and otherwise generate the best complete draft from the supplied facts. Use only the supplied facts. Do not invent neighborhoods, landmarks, statistics, rankings, awards, reviews, offices, market claims, or service claims. Do not use em dashes, keyword stuffing, hype, or interchangeable city-name-swapped structure. Use natural paragraphs with blank lines where helpful. Observe the schema's hard character limits. The content is a reviewable draft, never a publication instruction.`;
+    const configuredModel = process.env.OPENAI_LOCATION_MODEL?.trim() || process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-5-mini";
+    const models = configuredModel === "gpt-5-mini" ? [configuredModel] : [configuredModel, "gpt-5-mini"];
+    let response: Response | null = null;
+
+    for (const [index, model] of models.entries()) {
+      response = await createLocationDraft(apiKey, model, instructions, facts);
+      if (response.ok) break;
+      await logProviderRejection(response, model);
+      const canRetryWithFallback = index === 0 && models.length > 1 && [400, 404, 422].includes(response.status);
+      if (!canRetryWithFallback) break;
+    }
+
+    if (!response || !response.ok) {
+      const status = response?.status || 502;
+      return NextResponse.json({ success: false, error: providerError(status) }, { status: status >= 500 ? 502 : status });
     }
     const result = await response.json() as { output_text?: string; output?: Array<{ content?: Array<{ text?: string }> }> };
     const output = result.output_text || result.output?.flatMap((item) => item.content || []).map((item) => item.text || "").join("") || "{}";
