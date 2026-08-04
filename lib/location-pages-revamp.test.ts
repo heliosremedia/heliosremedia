@@ -13,9 +13,14 @@ test("Market Story paragraphs and exact 1,400-character boundary are preserved",
   assert.match(locationFieldError("marketCopy", "x".repeat(1401)) || "", /1,400/);
 });
 
-test("AI drafts reject over-limit fields and em dashes", () => {
-  assert.throws(() => normalizeAiDraft({ marketCopy: "x".repeat(1401) }, false), /INVALID_AI_DRAFT/);
-  assert.throws(() => normalizeAiDraft({ marketCopy: "A generic — claim" }, false), /INVALID_AI_DRAFT/);
+test("AI drafts are safely fitted to field limits and Helios punctuation", () => {
+  const normalized = normalizeAiDraft({
+    marketCopy: `${"A locally specific sentence. ".repeat(80)}Final sentence.`,
+    heroLead: "Calm craft — grounded in place.",
+  }, false);
+  assert.ok((normalized.marketCopy?.length || 0) <= 1400);
+  assert.match(normalized.marketCopy || "", /[.!?]$/);
+  assert.equal(normalized.heroLead, "Calm craft, grounded in place.");
   assert.deepEqual(normalizeAiDraft({ marketCopy: "A specific, reviewable story." }, false), { marketCopy: "A specific, reviewable story." });
 });
 
