@@ -106,13 +106,13 @@ export default async function LocationLandingPage({
             <p className="eyebrow text-[var(--helios-orange)]">
               {settings.serviceArea} · {location.county}
             </p>
-            <h1 className="mt-7 max-w-5xl font-display text-[clamp(3.6rem,8.5vw,8rem)] font-light leading-[0.84] tracking-[-0.06em]">
+            <h1 className="mt-8 max-w-5xl font-display sm:mt-10 text-[clamp(3.6rem,8.5vw,8rem)] font-light leading-[0.84] tracking-[-0.06em]">
               Real Estate Media in{" "}
               <span className="text-[var(--helios-orange)]">
                 {location.city}.
               </span>
             </h1>
-            <p className="mt-8 max-w-2xl text-base leading-8 text-white/52 sm:text-lg">
+            <p className="mt-10 max-w-2xl text-base leading-8 text-white/52 sm:mt-12 sm:text-lg lg:mt-14">
               {location.heroLead}
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
