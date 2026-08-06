@@ -31,6 +31,66 @@ export async function scheduleReferralCampaign(
   if (!campaign.preparedAdvocateCount || campaign.preparedAdvocateCount !== campaign.expectedAdvocateCount) {
     throw new Error("Campaign preparation is incomplete.");
   }
+
+  const [initialInvitationCount, schedulableInvitationCount, initialCommunicationCount, schedulableCommunicationCount, deliveryEvidenceCount] =
+    await Promise.all([
+      prisma.referralInvitation.count({
+        where: {
+          campaignId,
+          approvedRevisionId: campaign.approvedRevisionId,
+          status: { not: "CANCELLED" },
+        },
+      }),
+      prisma.referralInvitation.count({
+        where: {
+          campaignId,
+          approvedRevisionId: campaign.approvedRevisionId,
+          status: { in: ["APPROVED", "SCHEDULED"] },
+          sentAt: null,
+          providerMessageId: null,
+        },
+      }),
+      prisma.referralCommunication.count({
+        where: {
+          campaignId,
+          kind: "INVITATION",
+          invitation: { approvedRevisionId: campaign.approvedRevisionId },
+        },
+      }),
+      prisma.referralCommunication.count({
+        where: {
+          campaignId,
+          kind: "INVITATION",
+          status: { in: ["APPROVED", "SCHEDULED"] },
+          sentAt: null,
+          providerMessageId: null,
+          invitation: { approvedRevisionId: campaign.approvedRevisionId },
+        },
+      }),
+      prisma.referralCommunication.count({
+        where: {
+          campaignId,
+          kind: "INVITATION",
+          OR: [{ sentAt: { not: null } }, { providerMessageId: { not: null } }],
+          invitation: { approvedRevisionId: campaign.approvedRevisionId },
+        },
+      }),
+    ]);
+
+  const expectedInvitations = campaign.preparedAdvocateCount;
+  if (
+    initialInvitationCount !== expectedInvitations
+    || initialCommunicationCount !== expectedInvitations
+    || schedulableInvitationCount !== expectedInvitations
+    || schedulableCommunicationCount !== expectedInvitations
+  ) {
+    throw new Error(
+      deliveryEvidenceCount > 0
+        ? "This campaign already has delivery activity and cannot be rescheduled as a new bulk launch."
+        : "Initial invitations are not ready to schedule. Use the safe zero-delivery recovery before scheduling.",
+    );
+  }
+
   if (campaign.scheduleConfirmedAt
     && campaign.deliveryScheduledAt?.getTime() === firstSendAt.getTime()
     && campaign.deliveryTimezone === timezone
