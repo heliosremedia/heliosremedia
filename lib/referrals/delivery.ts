@@ -88,9 +88,8 @@ export async function processReferralCommunications(now = new Date(), limit = 50
         campaignId: communication.idempotencyKey || communication.id,
         source: "referral",
         revisionKey: communication.idempotencyKey || communication.id,
-        from: communication.campaign.senderEmail
-          ? `${communication.campaign.senderName || "Helios Real Estate Media"} <${communication.campaign.senderEmail}>`
-          : undefined,
+        // Use the same verified provider sender as test delivery. Campaign-specific
+        // addresses remain reply-to metadata and cannot bypass sender verification.
         replyTo: communication.campaign.replyTo,
         messages: [{
           to: communication.recipientEmail,
