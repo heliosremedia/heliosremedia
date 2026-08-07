@@ -357,8 +357,8 @@ export default function CampaignWorkspace({
       setBusy(null);
     }
   }
-  async function scheduleCampaign(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function scheduleCampaign(event?: React.FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
     setBusy("schedule");
     setMessage(null);
     try {
@@ -1101,6 +1101,15 @@ export default function CampaignWorkspace({
               schedule for {campaign.expectedAdvocateCount ?? 0} advocates. This
               does not send immediately.
             </p>
+            {message && (
+              <p
+                role="alert"
+                aria-live="assertive"
+                className="mt-4 rounded-xl border border-red-300/15 bg-red-300/[0.04] px-4 py-3 text-sm text-red-100/75"
+              >
+                {message}
+              </p>
+            )}
             <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button
                 type="button"
@@ -1120,7 +1129,9 @@ export default function CampaignWorkspace({
                   : "Save without scheduling"}
               </button>
               <button
+                type="button"
                 disabled={busy === "schedule" || !firstSendAt}
+                onClick={() => void scheduleCampaign()}
                 className="admin-btn-primary"
               >
                 {busy === "schedule"
