@@ -70,9 +70,95 @@ export async function claimReferralCampaignLaunch(campaignId: string, actor: Lau
   const audience = (revision?.snapshot as ApprovedSnapshot | undefined)?.audience?.eligible ?? [];
   if (!revision || !audience.length) throw new Error("The approved campaign has no eligible advocates.");
 
+  const [currentRevisionInvitations, deliveryEvidence, staleSubmissions] = await Promise.all([
+    prisma.referralInvitation.count({
+      where: {
+        campaignId,
+        approvedRevisionId: campaign.approvedRevisionId,
+        status: { not: "CANCELLED" },
+      },
+    }),
+    prisma.referralCommunication.count({
+      where: {
+        campaignId,
+        OR: [{ sentAt: { not: null } }, { providerMessageId: { not: null } }],
+      },
+    }),
+    prisma.referralSubmission.count({
+      where: {
+        campaignId,
+        link: {
+          invitation: {
+            approvedRevisionId: { not: campaign.approvedRevisionId },
+          },
+        },
+      },
+    }),
+  ]);
+  const supersedesPreparedRevision =
+    campaign.preparedAdvocateCount > 0 &&
+    currentRevisionInvitations !== campaign.preparedAdvocateCount;
+  if (supersedesPreparedRevision && (deliveryEvidence > 0 || staleSubmissions > 0)) {
+    throw new Error(
+      "A prior campaign revision has delivery or referral activity and cannot be replaced automatically.",
+    );
+  }
+
   const attemptId = randomUUID();
   const now = new Date();
   const claimed = await prisma.$transaction(async tx => {
+    if (supersedesPreparedRevision) {
+      const staleInvitationWhere = {
+        campaignId,
+        approvedRevisionId: { not: campaign.approvedRevisionId },
+        sentAt: null,
+        providerMessageId: null,
+      };
+      await tx.referralLink.updateMany({
+        where: {
+          campaignId,
+          revokedAt: null,
+          invitation: staleInvitationWhere,
+        },
+        data: { revokedAt: now },
+      });
+      await tx.referralCommunication.updateMany({
+        where: {
+          campaignId,
+          sentAt: null,
+          providerMessageId: null,
+          invitation: staleInvitationWhere,
+        },
+        data: {
+          status: "CANCELLED",
+          scheduledAt: null,
+          failureCode: "SUPERSEDED_REVISION",
+          failureMessage: "Replaced by a newly approved campaign revision before delivery.",
+        },
+      });
+      await tx.referralInvitation.updateMany({
+        where: staleInvitationWhere,
+        data: {
+          status: "CANCELLED",
+          scheduledAt: null,
+          followUpStoppedAt: now,
+          failureCode: "SUPERSEDED_REVISION",
+          failureMessage: "Replaced by a newly approved campaign revision before delivery.",
+        },
+      });
+      await tx.referralAuditEvent.create({
+        data: {
+          campaignId,
+          actorId: actor.userId,
+          action: "STALE_PREPARATION_SUPERSEDED",
+          summary: "Cancelled unsent preparation from the previously approved revision before rebuilding.",
+          metadata: {
+            approvedRevisionId: campaign.approvedRevisionId,
+            previousPreparedAdvocateCount: campaign.preparedAdvocateCount,
+          },
+        },
+      });
+    }
     const result = await tx.referralCampaign.updateMany({
       where: retry
         ? { id: campaignId, status: "LAUNCHING", approvedRevisionId: campaign.approvedRevisionId, launchFailedAt: { not: null } }

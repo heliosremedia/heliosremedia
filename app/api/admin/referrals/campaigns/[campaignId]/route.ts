@@ -59,6 +59,7 @@ export async function GET(_request: Request, context: { params: Promise<{ campai
     communicationDeliveryEvidence,
     invitationDeliveryEvidence,
     recentDiagnosticAudits,
+    currentRevisionInvitationCount,
   ] = await Promise.all([
     prisma.referralCommunication.groupBy({
       by: ["status"],
@@ -116,6 +117,15 @@ export async function GET(_request: Request, context: { params: Promise<{ campai
       take: 20,
       select: { action: true, createdAt: true },
     }),
+    campaign.approvedRevisionId
+      ? prisma.referralInvitation.count({
+          where: {
+            campaignId,
+            approvedRevisionId: campaign.approvedRevisionId,
+            status: { not: "CANCELLED" },
+          },
+        })
+      : Promise.resolve(0),
   ]);
   const communicationCounts = Object.fromEntries(
     communicationStates.map(item => [item.status, item._count._all]),
@@ -176,6 +186,7 @@ export async function GET(_request: Request, context: { params: Promise<{ campai
     success: true,
     campaign: {
       ...campaign,
+      preparedAdvocateCount: currentRevisionInvitationCount,
       audienceEstimate,
       removalEligibility,
       communicationCounts,

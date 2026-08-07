@@ -139,7 +139,12 @@ export async function scheduleReferralCampaign(
       data: { status: "SCHEDULED", scheduledAt: firstSendAt },
     });
     await tx.referralCommunication.updateMany({
-      where: { campaignId, kind: "INVITATION", status: { in: ["APPROVED", "SCHEDULED"] } },
+      where: {
+        campaignId,
+        kind: "INVITATION",
+        status: { in: ["APPROVED", "SCHEDULED"] },
+        invitation: { approvedRevisionId: campaign.approvedRevisionId },
+      },
       data: { status: "SCHEDULED", scheduledAt: firstSendAt },
     });
     for (let step = 1; step <= followUpCount; step += 1) {
@@ -147,6 +152,7 @@ export async function scheduleReferralCampaign(
         where: {
           campaignId, kind: "FOLLOW_UP", status: { in: ["APPROVED", "SCHEDULED"] },
           idempotencyKey: { endsWith: `:follow-up:${step}` },
+          invitation: { approvedRevisionId: campaign.approvedRevisionId },
         },
         data: {
           status: "SCHEDULED",
