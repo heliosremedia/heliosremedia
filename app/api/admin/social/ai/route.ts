@@ -3,7 +3,7 @@ import type { Prisma } from "@/app/generated/prisma/client";
 import { getAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { normalizeAiCampaignBrief, platformPrompt, sanitizedVerifiedFacts, SOCIAL_PLATFORMS } from "@/lib/social/core";
-import { socialDraftText } from "@/lib/social/grounding";
+import { deterministicallyGroundSocialDrafts, socialDraftText } from "@/lib/social/grounding";
 import { ensureSocialSettings } from "@/lib/social/studio";
 import { requireWorkspaceId } from "@/lib/workspaces";
 
@@ -152,10 +152,11 @@ export async function POST(request: Request) {
       platforms?: Record<string, Record<string, unknown>>;
       unsupportedClaims?: string[];
     };
-    const groundedDrafts: Record<string, Record<string, unknown>> = {
+    const correctedDrafts: Record<string, Record<string, unknown>> = {
       campaignBrief: groundedResult.campaignBrief || {},
       ...(groundedResult.platforms || {}),
     };
+    const { value: groundedDrafts } = deterministicallyGroundSocialDrafts(correctedDrafts, facts);
     const brief = normalizeAiCampaignBrief(groundedDrafts.campaignBrief);
     if (!brief || platforms.some((platform) => !groundedDrafts[platform])) throw new Error("OpenAI returned an invalid grounding review.");
     await prisma.$transaction(async (tx) => {
