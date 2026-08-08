@@ -99,7 +99,22 @@ export async function POST(request: Request) {
           `GENERATED SOCIAL CONTENT:\n${socialDraftText(drafts)}`,
           "Return {\"grounded\": boolean, \"unsupportedClaims\": string[]}. Quote every unsupported claim briefly. An empty facts field never supports a claim.",
         ].join("\n\n"),
-        text: { format: { type: "json_object" } },
+        text: {
+          format: {
+            type: "json_schema",
+            name: "social_grounding_review",
+            strict: true,
+            schema: {
+              type: "object",
+              properties: {
+                grounded: { type: "boolean" },
+                unsupportedClaims: { type: "array", items: { type: "string" } },
+              },
+              required: ["grounded", "unsupportedClaims"],
+              additionalProperties: false,
+            },
+          },
+        },
       }),
       signal: AbortSignal.timeout(40_000),
     });
