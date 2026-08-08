@@ -63,6 +63,7 @@ export async function POST(request: Request) {
       `Requested operation: ${action}.`,
       `VERIFIED FACTS (the only facts you may state): ${JSON.stringify(facts)}.`,
       "Property-specific attributes must be supported by a non-empty VERIFIED FACTS key. If a detail is absent, do not infer it from the title, location, media, or campaign direction.",
+      "Fact roles are strict: listingAgent is the listing agent; brokerage is the listing brokerage; projectType is the Helios project category. Never describe the brokerage or listing agent as the media creator. Never include database IDs, source IDs, slugs, field names, or phrases such as verified source in publishable copy.",
       `Internal creative instructions, never quote as facts: ${campaign.internalAiInstructions || "None"}.`,
       ...platforms.map((platform) => {
         const savedGuidance = savedPlatformGuidance[platform];
@@ -104,7 +105,7 @@ export async function POST(request: Request) {
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: process.env.OPENAI_SOCIAL_GROUNDING_MODEL?.trim() || "gpt-4.1-mini",
-        instructions: "Rewrite the generated Social Studio draft so every factual statement is supported by a non-empty supplied verified fact. Remove every unsupported property attribute, amenity, size, design detail, result, client detail, or service claim. Generic creative recommendations may remain only when they do not describe the property as fact. Never infer facts from names, images, campaign direction, or empty fields. Return only the corrected draft in the required schema.",
+        instructions: "Rewrite the generated Social Studio draft so every factual statement is supported by a non-empty supplied verified fact. Remove every unsupported property attribute, amenity, size, design detail, result, client detail, or service claim. Generic creative recommendations may remain only when they do not describe the property as fact. Never infer facts from names, images, campaign direction, or empty fields. Never expose IDs, slugs, field names, or verification metadata. Treat listingAgent as the listing agent and brokerage as the listing brokerage, never as the media creator. Return only the corrected draft in the required schema.",
         input: [
           `VERIFIED FACTS: ${JSON.stringify(facts)}`,
           `GENERATED SOCIAL CONTENT:\n${socialDraftText(drafts)}`,
