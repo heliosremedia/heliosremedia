@@ -114,9 +114,10 @@ export function recurrenceDates(input: {
 
 export function sanitizedVerifiedFacts(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const operationalKeys = new Set(["id", "sourceId", "slug"]);
   return Object.fromEntries(
     Object.entries(value as Record<string, unknown>)
-      .filter(([, fact]) => ["string", "number", "boolean"].includes(typeof fact) && fact !== "")
+      .filter(([key, fact]) => !operationalKeys.has(key) && ["string", "number", "boolean"].includes(typeof fact) && fact !== "")
       .slice(0, 50),
   );
 }
