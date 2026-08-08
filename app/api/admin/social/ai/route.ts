@@ -7,7 +7,7 @@ import { normalizeSocialGroundingReview, socialDraftText } from "@/lib/social/gr
 import { ensureSocialSettings } from "@/lib/social/studio";
 import { requireWorkspaceId } from "@/lib/workspaces";
 
-export const maxDuration = 120;
+export const maxDuration = 240;\n\nfunction safeGenerationError(error: unknown) {\n  if (error instanceof DOMException && error.name === "TimeoutError") {\n    return "AI verification timed out before the draft could be safely approved. Existing content was preserved. Please try again.";\n  }\n  if (!(error instanceof Error)) return "AI generation failed safely. Existing content was preserved.";\n  if (error.message.includes("grounding review")) {\n    return "AI verification could not validate the draft. Existing content was preserved. Please try again.";\n  }\n  if (error.message.includes("campaign brief")) {\n    return "AI returned an incomplete campaign brief. Existing content was preserved. Please try again.";\n  }\n  if (error.message.includes("Social Studio generation")) {\n    return "AI could not prepare the Social Studio draft. Existing content was preserved. Please try again.";\n  }\n  return "AI generation failed safely. Existing content was preserved. Please try again.";\n}
 
 export async function POST(request: Request) {
   const session = await getAdminSession();
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
         instructions: `You are Social Studio for Helios Real Estate Media. Voice: ${settings.brandVoice}. Guardrails: ${settings.writingGuardrails}. Hashtag guidance: ${settings.hashtagGuidance || ""}. Prohibited: ${settings.prohibitedTopics || ""}`,
         input: prompt, text: { format: { type: "json_object" } },
       }),
-      signal: AbortSignal.timeout(90_000),
+      signal: AbortSignal.timeout(100_000),
     });
     if (!response.ok) throw new Error(`OpenAI rejected Social Studio generation (${response.status}).`);
     const result = await response.json() as { output_text?: string; output?: Array<{ content?: Array<{ text?: string }> }> };
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
         ].join("\n\n"),
         text: { format: { type: "json_object" } },
       }),
-      signal: AbortSignal.timeout(45_000),
+      signal: AbortSignal.timeout(100_000),
     });
     if (!groundingResponse.ok) throw new Error(`OpenAI rejected Social Studio grounding review (${groundingResponse.status}).`);
     const groundingResult = await groundingResponse.json() as { output_text?: string; output?: Array<{ content?: Array<{ text?: string }> }> };
@@ -138,6 +138,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     await prisma.socialCampaign.update({ where: { id: campaign.id }, data: { generationStatus: "FAILED", generationError: error instanceof Error ? error.message : "Generation failed." } });
-    return NextResponse.json({ success: false, error: "AI generation failed safely. Existing content was preserved." }, { status: 502 });
+    return NextResponse.json({ success: false, error: safeGenerationError(error) }, { status: 502 });
   }
 }
