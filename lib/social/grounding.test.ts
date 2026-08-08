@@ -3,8 +3,14 @@ import test from "node:test";
 import { normalizeSocialGroundingReview, socialDraftText } from "./grounding.ts";
 
 test("grounding reviews fail closed when their shape contradicts itself", () => {
-  assert.equal(normalizeSocialGroundingReview({ grounded: true, unsupportedClaims: ["one-acre homesite"] }), null);
-  assert.equal(normalizeSocialGroundingReview({ grounded: false, unsupportedClaims: [] }), null);
+  assert.deepEqual(normalizeSocialGroundingReview({ grounded: true, unsupportedClaims: ["one-acre homesite"] }), {
+    grounded: false,
+    unsupportedClaims: ["one-acre homesite"],
+  });
+  assert.deepEqual(normalizeSocialGroundingReview({ grounded: false, unsupportedClaims: [] }), {
+    grounded: false,
+    unsupportedClaims: ["The verifier flagged unsupported content without identifying a specific claim."],
+  });
   assert.equal(normalizeSocialGroundingReview({ grounded: "yes", unsupportedClaims: [] }), null);
 });
 
