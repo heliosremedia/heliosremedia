@@ -38,9 +38,7 @@ export default function SocialCampaignEditor({ initialCampaign, library, connect
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState(() => {
     if (typeof window === "undefined") return "";
-    const confirmation = window.sessionStorage.getItem("social-action-confirmation") || "";
-    window.sessionStorage.removeItem("social-action-confirmation");
-    return confirmation;
+    return window.sessionStorage.getItem("social-action-confirmation") || "";
   });
   const [mediaOpen, setMediaOpen] = useState(false);
   const [aspect, setAspect] = useState("4:5");
@@ -49,6 +47,7 @@ export default function SocialCampaignEditor({ initialCampaign, library, connect
   const published = variant.status === "PUBLISHED";
   const patchVariant = (key: keyof Variant, value: Variant[keyof Variant]) => setCampaign((current) => ({ ...current, variants: current.variants.map((item) => item.id === active ? { ...item, [key]: value } : item) }));
   async function action(actionName: string, extra: Record<string, unknown> = {}) {
+    window.sessionStorage.removeItem("social-action-confirmation");
     setBusy(actionName); setMessage("");
     try {
       const response = await fetch(`/api/admin/social/campaigns/${campaign.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: actionName, variantId: variant.id, ...variant, ...extra }) });
