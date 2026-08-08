@@ -58,11 +58,12 @@ export function deterministicallyGroundSocialDrafts<T>(value: T, facts: Record<s
     }
     return "";
   };
+  const containsInternalIdentifier = (text: string) => /\bcm[a-z0-9]{15,}\b/i.test(text);
   const visit = (item: unknown): unknown => {
     if (typeof item === "string") {
       const parts = item.split(/(?<=[.!?])\s+|\n+/).map((part) => part.trim()).filter(Boolean);
       const kept = parts.filter((part) => {
-        const unsupported = unsupportedTerm(part) || unsupportedNamedLocation(part);
+        const unsupported = unsupportedTerm(part) || unsupportedNamedLocation(part) || (containsInternalIdentifier(part) ? "internal identifier" : "");
         if (!unsupported) return true;
         removedClaims.push(part.slice(0, 500));
         return false;
