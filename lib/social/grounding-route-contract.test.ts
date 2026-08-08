@@ -17,6 +17,7 @@ test("Social Studio reviews all generated copy before saving it", () => {
   assert.match(route, /max_output_tokens: 2500/);
   assert.match(route, /const draft = groundedDrafts\[variant\.platform\]/);
   assert.doesNotMatch(route, /const draft = drafts\[variant\.platform\]/);
+  assert.match(route, /deterministicallyGroundSocialDrafts\(correctedDrafts, facts\)/);
 });
 
 test("Social Studio treats empty facts as no factual support", () => {
