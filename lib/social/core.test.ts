@@ -39,7 +39,7 @@ test("media checks are non-destructive recommendations", () => {
 });
 
 test("verified AI facts discard nested instructions", () => {
-  assert.deepEqual(sanitizedVerifiedFacts({ title: "Eaton Farm", bedrooms: 4, private: { prompt: "invent" } }), {
+  assert.deepEqual(sanitizedVerifiedFacts({ sourceId: "internal", slug: "eaton-farm", title: "Eaton Farm", bedrooms: 4, private: { prompt: "invent" } }), {
     title: "Eaton Farm", bedrooms: 4,
   });
 });
