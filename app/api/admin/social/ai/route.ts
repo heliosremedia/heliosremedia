@@ -92,7 +92,7 @@ export async function POST(request: Request) {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: process.env.OPENAI_SOCIAL_MODEL?.trim() || process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-5-mini",
+        model: process.env.OPENAI_SOCIAL_GROUNDING_MODEL?.trim() || "gpt-4.1-mini",
         instructions: "Audit social copy against the supplied verified facts. Treat generic creative recommendations as non-factual. Mark grounded false if any property attribute, amenity, size, design detail, result, client detail, or service claim is not explicitly supported by a non-empty verified fact. Return strict JSON only.",
         input: [
           `VERIFIED FACTS: ${JSON.stringify(facts)}`,
@@ -115,8 +115,9 @@ export async function POST(request: Request) {
             },
           },
         },
+        max_output_tokens: 500,
       }),
-      signal: AbortSignal.timeout(40_000),
+      signal: AbortSignal.timeout(30_000),
     });
     if (!groundingResponse.ok) throw new Error(`OpenAI rejected Social Studio grounding review (${groundingResponse.status}).`);
     const groundingResult = await groundingResponse.json() as { output_text?: string; output?: Array<{ content?: Array<{ text?: string }> }> };
