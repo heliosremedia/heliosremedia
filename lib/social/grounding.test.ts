@@ -58,3 +58,12 @@ test("deterministic grounding keeps high-risk terms when explicitly verified", (
   assert.match(JSON.stringify(result.value), /luxury home on a one-acre homesite/i);
   assert.deepEqual(result.removedClaims, []);
 });
+
+test("deterministic grounding always removes internal identifiers", () => {
+  const result = deterministicallyGroundSocialDrafts({
+    caption: "Listing agent Sarah Tyler (verified source: cms8gpuuh00004iedi6dv5qm). Explore the project.",
+  }, { listingAgent: "Sarah Tyler", sourceId: "cms8gpuuh00004iedi6dv5qm" });
+  const copy = JSON.stringify(result.value);
+  assert.doesNotMatch(copy, /cms8gpuuh00004iedi6dv5qm|verified source/i);
+  assert.match(copy, /Explore the project/);
+});
