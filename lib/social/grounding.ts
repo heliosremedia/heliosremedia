@@ -12,9 +12,14 @@ export function normalizeSocialGroundingReview(value: unknown): SocialGroundingR
     .map((claim) => claim.trim().slice(0, 500))
     .filter(Boolean)
     .slice(0, 20);
-  if (row.grounded && unsupportedClaims.length) return null;
-  if (!row.grounded && !unsupportedClaims.length) return null;
-  return { grounded: row.grounded, unsupportedClaims };
+  if (unsupportedClaims.length) return { grounded: false, unsupportedClaims };
+  if (!row.grounded) {
+    return {
+      grounded: false,
+      unsupportedClaims: ["The verifier flagged unsupported content without identifying a specific claim."],
+    };
+  }
+  return { grounded: true, unsupportedClaims: [] };
 }
 
 export function socialDraftText(value: unknown) {
