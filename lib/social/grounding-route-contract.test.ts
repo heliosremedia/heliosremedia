@@ -18,4 +18,9 @@ test("Social Studio treats empty facts as no factual support", () => {
   assert.match(route, /An empty facts field never supports a claim/);
   assert.match(route, /Property-specific attributes must be supported by a non-empty VERIFIED FACTS key/);
 });
-\n\ntest("Social Studio has enough execution time for generation and verification", () => {\n  assert.match(route, /export const maxDuration = 120/);\n  assert.match(route, /AbortSignal\\.timeout\\(70_000\\)/);\n  assert.match(route, /AbortSignal\\.timeout\\(40_000\\)/);\n  assert.match(route, /safeGenerationError\\(error\\)/);\n});\n
+\n\ntest("Social Studio never feeds a previously generated brief back as verified direction", () => {
+  assert.doesNotMatch(route, /campaign\.objective \|\| campaign\.purpose/);
+  assert.doesNotMatch(route, /campaign\.primaryMessage \|\| campaign\.purpose/);
+});
+
+test("Social Studio has enough execution time for generation and verification", () => {\n  assert.match(route, /export const maxDuration = 120/);\n  assert.match(route, /AbortSignal\\.timeout\\(70_000\\)/);\n  assert.match(route, /AbortSignal\\.timeout\\(40_000\\)/);\n  assert.match(route, /safeGenerationError\\(error\\)/);\n});\n
