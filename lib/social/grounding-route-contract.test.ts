@@ -12,6 +12,9 @@ test("Social Studio reviews all generated copy before saving it", () => {
   assert.match(route, /socialDraftText\(drafts\)/);
   assert.match(route, /unsupportedClaims: groundingReview\.unsupportedClaims/);
   assert.match(route, /status: 422/);
+  assert.match(route, /name: "social_grounding_review"/);
+  assert.match(route, /required: \["grounded", "unsupportedClaims"\]/);
+  assert.match(route, /additionalProperties: false/);
 });
 
 test("Social Studio treats empty facts as no factual support", () => {
