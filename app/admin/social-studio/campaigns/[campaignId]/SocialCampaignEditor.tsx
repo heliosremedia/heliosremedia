@@ -18,6 +18,16 @@ const postTypes: Record<string, string[]> = {
   OTHER: ["CAPTION_AND_MEDIA","TEXT_POST","VIDEO_CONCEPT"],
 };
 const aspectClasses: Record<string, string> = { "1:1": "aspect-square", "4:5": "aspect-[4/5]", "9:16": "aspect-[9/16]", "16:9": "aspect-video" };
+const actionMessages: Record<string, string> = {
+  "submit-review": "Variant submitted for review.",
+  approve: "Variant approved.",
+  schedule: "Variant scheduled.",
+  publish: "Variant marked as published.",
+  "request-changes": "Changes requested.",
+  "set-media": "Selected media updated.",
+  archive: "Variant archived.",
+  "archive-campaign": "Campaign archived.",
+};
 
 export default function SocialCampaignEditor({ initialCampaign, library, connections }: { initialCampaign: Campaign; library: Media[]; connections:Connection[] }) {
   const [campaign, setCampaign] = useState(initialCampaign);
@@ -26,7 +36,12 @@ export default function SocialCampaignEditor({ initialCampaign, library, connect
     return requested && initialCampaign.variants.some((item) => item.id === requested) ? requested : initialCampaign.variants[0]?.id || "";
   });
   const [busy, setBusy] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(() => {
+    if (typeof window === "undefined") return "";
+    const confirmation = window.sessionStorage.getItem("social-action-confirmation") || "";
+    window.sessionStorage.removeItem("social-action-confirmation");
+    return confirmation;
+  });
   const [mediaOpen, setMediaOpen] = useState(false);
   const [aspect, setAspect] = useState("4:5");
   const [connectionId,setConnectionId]=useState("");
@@ -43,8 +58,12 @@ export default function SocialCampaignEditor({ initialCampaign, library, connect
         window.location.href = `/admin/social-studio/campaigns/${data.campaignId}`;
         return;
       }
-      setMessage(`${actionName.replaceAll("-", " ")} completed.`);
-      if (["approve","schedule","publish","archive","archive-campaign","submit-review","request-changes","set-media"].includes(actionName)) window.location.reload();
+      const confirmation = actionMessages[actionName] || `${actionName.replaceAll("-", " ")} completed.`;
+      setMessage(confirmation);
+      if (["approve","schedule","publish","archive","archive-campaign","submit-review","request-changes","set-media"].includes(actionName)) {
+        window.sessionStorage.setItem("social-action-confirmation", confirmation);
+        window.location.reload();
+      }
     } catch (error) { setMessage(error instanceof Error ? error.message : "The action could not be completed."); } finally { setBusy(""); }
   }
   async function generate(actionName = "create-platform-variants") {
