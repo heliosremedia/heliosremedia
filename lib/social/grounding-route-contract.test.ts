@@ -15,6 +15,8 @@ test("Social Studio reviews all generated copy before saving it", () => {
   assert.match(route, /name: "social_grounding_review"/);
   assert.match(route, /required: \["grounded", "unsupportedClaims"\]/);
   assert.match(route, /additionalProperties: false/);
+  assert.match(route, /OPENAI_SOCIAL_GROUNDING_MODEL\?\.trim\(\) \|\| "gpt-4\.1-mini"/);
+  assert.match(route, /max_output_tokens: 500/);
 });
 
 test("Social Studio treats empty facts as no factual support", () => {
