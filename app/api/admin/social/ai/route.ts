@@ -55,9 +55,9 @@ export async function POST(request: Request) {
     const action = body.action || "create-platform-variants";
     const prompt = [
       `Create distinct social drafts for: ${platforms.join(", ")}.`,
-      `Campaign objective: ${campaign.objective || campaign.purpose || "brand awareness"}.`,
+      `Campaign objective: ${campaign.objective || "brand awareness"}.`,
       `Audience: ${campaign.targetAudience || settings.primaryAudience}.`,
-      `Primary message: ${campaign.primaryMessage || campaign.purpose || "Not supplied"}.`,
+      `Primary message: ${campaign.primaryMessage || "Show only the verified source and the value of professional real estate media"}.`,
       `Call to action: ${campaign.desiredCallToAction || settings.defaultCallToAction || "None supplied"}.`,
       `Tone adjustment: ${body.tone || "Use Social Studio Voice"}.`,
       `Requested operation: ${action}.`,
