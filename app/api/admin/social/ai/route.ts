@@ -7,7 +7,24 @@ import { normalizeSocialGroundingReview, socialDraftText } from "@/lib/social/gr
 import { ensureSocialSettings } from "@/lib/social/studio";
 import { requireWorkspaceId } from "@/lib/workspaces";
 
-export const maxDuration = 120;\n\nfunction safeGenerationError(error: unknown) {\n  if (error instanceof DOMException && error.name === "TimeoutError") {\n    return "AI verification timed out before the draft could be safely approved. Existing content was preserved. Please try again.";\n  }\n  if (!(error instanceof Error)) return "AI generation failed safely. Existing content was preserved.";\n  if (error.message.includes("grounding review")) {\n    return "AI verification could not validate the draft. Existing content was preserved. Please try again.";\n  }\n  if (error.message.includes("campaign brief")) {\n    return "AI returned an incomplete campaign brief. Existing content was preserved. Please try again.";\n  }\n  if (error.message.includes("Social Studio generation")) {\n    return "AI could not prepare the Social Studio draft. Existing content was preserved. Please try again.";\n  }\n  return "AI generation failed safely. Existing content was preserved. Please try again.";\n}
+export const maxDuration = 120;
+
+function safeGenerationError(error: unknown) {
+  if (error instanceof DOMException && error.name === "TimeoutError") {
+    return "AI verification timed out before the draft could be safely approved. Existing content was preserved. Please try again.";
+  }
+  if (!(error instanceof Error)) return "AI generation failed safely. Existing content was preserved.";
+  if (error.message.includes("grounding review")) {
+    return "AI verification could not validate the draft. Existing content was preserved. Please try again.";
+  }
+  if (error.message.includes("campaign brief")) {
+    return "AI returned an incomplete campaign brief. Existing content was preserved. Please try again.";
+  }
+  if (error.message.includes("Social Studio generation")) {
+    return "AI could not prepare the Social Studio draft. Existing content was preserved. Please try again.";
+  }
+  return "AI generation failed safely. Existing content was preserved. Please try again.";
+}
 
 export async function POST(request: Request) {
   const session = await getAdminSession();
