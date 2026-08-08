@@ -3,7 +3,7 @@ import type { Prisma } from "@/app/generated/prisma/client";
 import { getAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { normalizeAiCampaignBrief, platformPrompt, sanitizedVerifiedFacts, SOCIAL_PLATFORMS } from "@/lib/social/core";
-import { normalizeSocialGroundingReview, socialDraftText } from "@/lib/social/grounding";
+import { socialDraftText } from "@/lib/social/grounding";
 import { ensureSocialSettings } from "@/lib/social/studio";
 import { requireWorkspaceId } from "@/lib/workspaces";
 
@@ -86,59 +86,81 @@ export async function POST(request: Request) {
     const result = await response.json() as { output_text?: string; output?: Array<{ content?: Array<{ text?: string }> }> };
     const output = result.output_text || result.output?.flatMap((item) => item.content || []).map((item) => item.text || "").join("") || "{}";
     const drafts = JSON.parse(output) as Record<string, Record<string, unknown>>;
-    const brief = normalizeAiCampaignBrief(drafts.campaignBrief);
-    if (!brief) throw new Error("OpenAI returned an invalid campaign brief.");
+    const stringField = { type: "string" } as const;
+    const stringArray = { type: "array", items: stringField } as const;
+    const platformDraftSchema = {
+      type: "object",
+      properties: {
+        caption: stringField, openingHook: stringField, hashtags: stringArray,
+        callToAction: stringField, onScreenText: stringField,
+        videoConcept: stringField, altText: stringField,
+      },
+      required: ["caption", "openingHook", "hashtags", "callToAction", "onScreenText", "videoConcept", "altText"],
+      additionalProperties: false,
+    } as const;
+    const platformProperties = Object.fromEntries(platforms.map((platform) => [platform, platformDraftSchema]));
     const groundingResponse = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: process.env.OPENAI_SOCIAL_GROUNDING_MODEL?.trim() || "gpt-4.1-mini",
-        instructions: "Audit social copy against the supplied verified facts. Treat generic creative recommendations as non-factual. Mark grounded false if any property attribute, amenity, size, design detail, result, client detail, or service claim is not explicitly supported by a non-empty verified fact. Return strict JSON only.",
+        instructions: "Rewrite the generated Social Studio draft so every factual statement is supported by a non-empty supplied verified fact. Remove every unsupported property attribute, amenity, size, design detail, result, client detail, or service claim. Generic creative recommendations may remain only when they do not describe the property as fact. Never infer facts from names, images, campaign direction, or empty fields. Return only the corrected draft in the required schema.",
         input: [
           `VERIFIED FACTS: ${JSON.stringify(facts)}`,
           `GENERATED SOCIAL CONTENT:\n${socialDraftText(drafts)}`,
-          "Return {\"grounded\": boolean, \"unsupportedClaims\": string[]}. Quote every unsupported claim briefly. An empty facts field never supports a claim.",
+          "Return a fully corrected campaign brief and corrected platform drafts. Also list the unsupported claims you removed. An empty facts field never supports a claim.",
         ].join("\n\n"),
         text: {
           format: {
             type: "json_schema",
-            name: "social_grounding_review",
+            name: "social_grounded_drafts",
             strict: true,
             schema: {
               type: "object",
               properties: {
-                grounded: { type: "boolean" },
+                campaignBrief: {
+                  type: "object",
+                  properties: {
+                    positioning: stringField, themes: stringArray, cadence: stringField,
+                    formats: stringArray, platformConsiderations: stringField, callsToAction: stringField,
+                  },
+                  required: ["positioning", "themes", "cadence", "formats", "platformConsiderations", "callsToAction"],
+                  additionalProperties: false,
+                },
+                platforms: {
+                  type: "object",
+                  properties: platformProperties,
+                  required: platforms,
+                  additionalProperties: false,
+                },
                 unsupportedClaims: { type: "array", items: { type: "string" } },
               },
-              required: ["grounded", "unsupportedClaims"],
+              required: ["campaignBrief", "platforms", "unsupportedClaims"],
               additionalProperties: false,
             },
           },
         },
-        max_output_tokens: 500,
+        max_output_tokens: 2500,
       }),
-      signal: AbortSignal.timeout(30_000),
+      signal: AbortSignal.timeout(35_000),
     });
     if (!groundingResponse.ok) throw new Error(`OpenAI rejected Social Studio grounding review (${groundingResponse.status}).`);
     const groundingResult = await groundingResponse.json() as { output_text?: string; output?: Array<{ content?: Array<{ text?: string }> }> };
     const groundingOutput = groundingResult.output_text || groundingResult.output?.flatMap((item) => item.content || []).map((item) => item.text || "").join("") || "{}";
-    const groundingReview = normalizeSocialGroundingReview(JSON.parse(groundingOutput));
-    if (!groundingReview) throw new Error("OpenAI returned an invalid grounding review.");
-    if (!groundingReview.grounded) {
-      const detail = groundingReview.unsupportedClaims.join(" | ");
-      await prisma.socialCampaign.update({
-        where: { id: campaign.id },
-        data: { generationStatus: "FAILED", generationError: `Unsupported AI claims blocked: ${detail}`.slice(0, 3000) },
-      });
-      return NextResponse.json({
-        success: false,
-        error: "AI content was blocked because it included details that are not supported by the verified source facts. Add verified project details or revise the campaign direction before trying again.",
-        unsupportedClaims: groundingReview.unsupportedClaims,
-      }, { status: 422 });
-    }
+    const groundedResult = JSON.parse(groundingOutput) as {
+      campaignBrief?: Record<string, unknown>;
+      platforms?: Record<string, Record<string, unknown>>;
+      unsupportedClaims?: string[];
+    };
+    const groundedDrafts: Record<string, Record<string, unknown>> = {
+      campaignBrief: groundedResult.campaignBrief || {},
+      ...(groundedResult.platforms || {}),
+    };
+    const brief = normalizeAiCampaignBrief(groundedDrafts.campaignBrief);
+    if (!brief || platforms.some((platform) => !groundedDrafts[platform])) throw new Error("OpenAI returned an invalid grounding review.");
     await prisma.$transaction(async (tx) => {
       for (const variant of chosen) {
-        const draft = drafts[variant.platform] || {};
+        const draft = groundedDrafts[variant.platform] || {};
         await tx.socialVariant.update({
           where: { id: variant.id },
           data: {
