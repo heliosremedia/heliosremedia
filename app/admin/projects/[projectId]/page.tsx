@@ -12,6 +12,8 @@ import ProjectPreviewManager from "./ProjectPreviewManager";
 import ProjectContributors from "./ProjectContributors";
 import { requireAdminSession } from "@/lib/auth/session";
 import AdminSectionNavigator from "@/app/admin/components/AdminSectionNavigator";
+import { getProjectProgressState } from "@/lib/project-progress";
+import ProjectProgressCard from "./ProjectProgressCard";
 
 export const dynamic = "force-dynamic";
 
@@ -170,6 +172,14 @@ export default async function ProjectEditorPage({
     return Boolean(externalMedia?.embedUrl || externalMedia?.playbackUrl);
   });
 
+  const progress = getProjectProgressState({
+    hasSummary: Boolean(project.shortDescription),
+    hasPlayableVideo,
+    mediaCount: project._count.media,
+    serviceCount: project._count.services,
+    status: project.status,
+  });
+
   return (
     <div className="space-y-7">
       <section className="border-b border-white/[0.08] pb-7">
@@ -247,63 +257,10 @@ export default async function ProjectEditorPage({
       ]} bulkSectionIds={["project-identity", "project-credits", "project-media", "project-services", "project-publishing"]} projectEditor />
 
       <section className="grid gap-4 md:grid-cols-4">
-        {[
-          [
-            "01",
-            "Details",
-            project.shortDescription
-              ? "Ready"
-              : hasPlayableVideo
-                ? "Video-led"
-                : "Add summary",
-            Boolean(project.shortDescription) || hasPlayableVideo,
-          ],
-          [
-            "02",
-            "Media",
-            `${project._count.media} ${
-              project._count.media === 1 ? "asset" : "assets"
-            }`,
-            true,
-          ],
-          [
-            "03",
-            "Services",
-            `${project._count.services} selected`,
-            project._count.services > 0,
-          ],
-          [
-            "04",
-            "Publish",
-            project.status === "PUBLISHED"
-              ? "Live"
-              : project.status === "ARCHIVED"
-                ? "Archived"
-                : "Draft",
-            project.status === "PUBLISHED",
-          ],
-        ].map(([number, label, detail, active]) => (
-          <article
-            key={number as string}
-            className={`rounded-2xl border p-5 ${
-              active
-                ? "border-emerald-300/20 bg-emerald-300/[0.045]"
-                : "border-white/[0.08] bg-white/[0.02]"
-            }`}
-          >
-            <p
-              className={`text-[0.6rem] font-semibold uppercase tracking-[0.18em] ${
-                active ? "text-emerald-200/70" : "text-white/25"
-              }`}
-            >
-              Step {number}
-            </p>
-
-            <h2 className="mt-3 text-xl font-normal text-white">{label}</h2>
-
-            <p className="mt-2 text-xs text-white/30">{detail}</p>
-          </article>
-        ))}
+        <ProjectProgressCard number="01" label="Details" detail={project.shortDescription ? "Ready" : hasPlayableVideo ? "Video-led" : "Add summary"} href="#project-identity" complete={progress.detailsReady} />
+        <ProjectProgressCard number="02" label="Media" detail={`${project._count.media} ${project._count.media === 1 ? "asset" : "assets"}`} href="#project-media" complete={progress.mediaReady} />
+        <ProjectProgressCard number="03" label="Services" detail={`${project._count.services} selected`} href="#project-services" complete={progress.servicesReady} />
+        <ProjectProgressCard number="04" label="Publish" detail={project.status === "PUBLISHED" ? "Live" : project.status === "ARCHIVED" ? "Archived" : "Draft"} href="#project-publishing" complete={progress.publishReady} />
       </section>
 
       <ProjectEditorSection id="project-identity" eyebrow="Project identity" title="Project Identity" summary="Manage the project name, location, property details, public introduction, and search metadata.">

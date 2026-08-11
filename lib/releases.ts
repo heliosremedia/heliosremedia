@@ -19,6 +19,19 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
+    version: "V1.9.4.9",
+    slug: "v1-9-4-9",
+    releaseDate: "2026-08-11",
+    title: "Project Editor Progress Accuracy",
+    summary: "Makes Project Editor progress cards accurately reflect saved project readiness and keeps them synchronized after successful changes.",
+    newFeatures: ["Project progress cards now navigate directly to their corresponding editor sections"],
+    improvements: ["Progress cards are keyboard accessible and preserve the sticky section navigation workflow"],
+    bugFixes: ["Media is complete only when an asset is saved", "Details, Services, and Publish now reflect authoritative saved relationships and status", "Service and publishing changes refresh progress only after a successful save"],
+    securityInfrastructure: ["Progress state is derived from workspace-scoped server data without changing project records or media relationships"],
+    administratorActions: [],
+    status: "LIVE",
+  },
+  {
     version: "V1.9.4.8",
     slug: "v1-9-4-8",
     releaseDate: "2026-08-04",

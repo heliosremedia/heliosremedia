@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import ProjectEditorSection from "./ProjectEditorSection";
 
@@ -82,6 +83,7 @@ export default function ProjectWorkflowManager({
   services,
   initialServiceIds,
 }: ProjectWorkflowManagerProps) {
+  const router = useRouter();
   const [selectedServiceIds, setSelectedServiceIds] = useState(
     new Set(initialServiceIds),
   );
@@ -213,6 +215,7 @@ export default function ProjectWorkflowManager({
 
       setSelectedServiceIds(new Set(data.serviceIds));
       setSavedServiceIds(new Set(data.serviceIds));
+      router.refresh();
     } catch (saveError) {
       revealSection("project-services");
       console.error("Unable to save project services:", saveError);
@@ -224,7 +227,7 @@ export default function ProjectWorkflowManager({
     } finally {
       setIsSavingServices(false);
     }
-  }, [projectId, selectedServiceIds]);
+  }, [projectId, router, selectedServiceIds]);
 
   const runWorkflowAction = useCallback(
     async (action: "publish" | "unpublish" | "archive" | "set-featured", featuredDuration?: string) => {
@@ -260,6 +263,7 @@ export default function ProjectWorkflowManager({
         }
 
         updateProjectFromResponse(data);
+        router.refresh();
       } catch (workflowError) {
         revealSection("project-publishing");
         console.error("Unable to update project workflow:", workflowError);
@@ -272,7 +276,7 @@ export default function ProjectWorkflowManager({
         setWorkflowAction(null);
       }
     },
-    [featured, projectId, updateProjectFromResponse],
+    [featured, projectId, router, updateProjectFromResponse],
   );
 
   return (
