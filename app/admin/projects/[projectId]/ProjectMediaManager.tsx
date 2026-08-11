@@ -263,11 +263,18 @@ function SortableMediaCard({
             className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.035]"
           />
         ) : externalMedia?.thumbnailUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={externalMedia.thumbnailUrl}
             alt=""
-            className="h-full w-full object-cover opacity-70 transition duration-700 ease-out group-hover:scale-[1.035]"
+            fill
+            sizes={
+              viewMode === "compact"
+                ? "(min-width: 1536px) 16vw, (min-width: 1280px) 22vw, (min-width: 1024px) 30vw, (min-width: 640px) 45vw, 100vw"
+                : "(min-width: 1280px) 30vw, (min-width: 640px) 45vw, 100vw"
+            }
+            quality={75}
+            draggable={false}
+            className="object-cover opacity-70 transition duration-700 ease-out group-hover:scale-[1.035]"
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-[radial-gradient(circle_at_70%_20%,rgba(217,107,43,0.22),transparent_38%),#090909] px-6 text-center">

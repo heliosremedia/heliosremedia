@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -32,10 +33,15 @@ function ProjectRow({ project, sortable, returnTo, selecting, selected, onSelect
       <td className="px-3 py-4">
         <div className="flex items-center gap-4">
           <Link href={`/admin/projects/${project.id}?returnTo=${encodeURIComponent(returnTo)}`} aria-label={`Edit ${project.title}`} className="relative h-14 w-20 shrink-0 overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.03] transition hover:border-[var(--helios-orange)]/60 focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)]">
-            {project.thumbnailUrl ? <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={project.thumbnailUrl} alt={project.thumbnailAlt} className="h-full w-full object-cover" />
-            </> : <div className="flex h-full items-center justify-center text-white/20">▧</div>}
+            {project.thumbnailUrl ? (
+              <Image
+                src={project.thumbnailUrl}
+                alt={project.thumbnailAlt}
+                fill
+                sizes="80px"
+                className="object-cover"
+              />
+            ) : <div className="flex h-full items-center justify-center text-white/20">▧</div>}
           </Link>
           <div className="min-w-0">
             <div className="flex items-center gap-2"><p className="truncate text-sm font-medium text-white">{project.title}</p>{project.featured ? <span className="rounded-full border border-[var(--helios-orange)]/30 px-2 py-1 text-[0.45rem] uppercase tracking-[0.12em] text-[var(--helios-orange)]">Featured</span> : null}</div>

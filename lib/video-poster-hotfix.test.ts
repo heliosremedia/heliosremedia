@@ -49,3 +49,24 @@ test("the cinematic film library routes thumbnails through the shared optimizer"
   assert.match(library, /<Image[\s\S]*src=\{media\.thumbnailUrl\}/);
   assert.doesNotMatch(library, /<img[\s\S]*src=\{media\.thumbnailUrl\}/);
 });
+
+test("admin project thumbnails route through the shared optimizer", () => {
+  const projectList = read("app/admin/projects/ProjectListManager.tsx");
+  const mediaManager = read(
+    "app/admin/projects/[projectId]/ProjectMediaManager.tsx",
+  );
+
+  assert.match(projectList, /import Image from "next\/image"/);
+  assert.match(projectList, /<Image[\s\S]*src=\{project\.thumbnailUrl\}/);
+  assert.doesNotMatch(projectList, /<img[\s\S]*src=\{project\.thumbnailUrl\}/);
+
+  assert.match(mediaManager, /import Image from "next\/image"/);
+  assert.match(
+    mediaManager,
+    /<Image[\s\S]*src=\{externalMedia\.thumbnailUrl\}/,
+  );
+  assert.doesNotMatch(
+    mediaManager,
+    /<img[\s\S]*src=\{externalMedia\.thumbnailUrl\}/,
+  );
+});
