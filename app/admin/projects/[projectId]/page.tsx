@@ -338,7 +338,10 @@ export default async function ProjectEditorPage({
 
       <ProjectEditorSection id="project-media" eyebrow="Step 02" title="Media" summary="Upload, organize, and manage every asset that appears throughout this project’s portfolio." status={<p className="text-xs text-white/25">{project._count.media} {project._count.media === 1 ? "asset" : "assets"} saved</p>}>
           <ProjectMediaManager projectId={project.id} services={services} />
-          <FilmComparisonClassifier projectId={project.id} />
+          <FilmComparisonClassifier
+            projectId={project.id}
+            projectStatus={project.status}
+          />
       </ProjectEditorSection>
 
       <div><ProjectWorkflowManager

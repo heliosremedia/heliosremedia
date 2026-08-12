@@ -135,7 +135,7 @@ export default function FilmOfferingCard({
         </p>
         {offering.examples.length > 1 && (
           <div
-            className="mt-4 flex flex-wrap gap-2"
+            className="mt-4 flex flex-wrap items-center gap-2"
             aria-label={`More ${offering.publicName} examples`}
           >
             {offering.examples.map((example, index) => (
@@ -144,9 +144,9 @@ export default function FilmOfferingCard({
                 type="button"
                 aria-pressed={example.id === active?.id}
                 onClick={() => setActiveId(example.id)}
-                className={`min-h-11 rounded-full border px-4 text-xs transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--helios-orange)] ${example.id === active?.id ? "border-[var(--helios-orange)] bg-[var(--helios-orange)]/10 text-white" : "border-white/12 text-white/48 hover:border-white/30"}`}
+                className={`inline-flex min-h-9 items-center justify-center rounded-full border px-3.5 text-[.55rem] font-semibold uppercase tracking-[.14em] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--helios-orange)] ${example.id === active?.id ? "border-[var(--helios-orange)] bg-[var(--helios-orange)]/[.08] text-white" : "border-white/15 text-white/52 hover:border-white/30 hover:text-white/75"}`}
               >
-                {index === 0 ? "Featured example" : `Example ${index + 1}`}
+                {index === 0 ? "Featured" : `Example ${index + 1}`}
               </button>
             ))}
           </div>

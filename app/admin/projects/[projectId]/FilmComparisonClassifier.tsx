@@ -24,8 +24,10 @@ const field =
 
 export default function FilmComparisonClassifier({
   projectId,
+  projectStatus,
 }: {
   projectId: string;
+  projectStatus: "DRAFT" | "PUBLISHED" | "ARCHIVED";
 }) {
   const [offerings, setOfferings] = useState<Offering[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
@@ -117,6 +119,16 @@ export default function FilmComparisonClassifier({
       <p role="status" className="mt-4 min-h-5 text-sm text-white/45">
         {message}
       </p>
+      {projectStatus !== "PUBLISHED" && (
+        <div
+          role="note"
+          className="mt-3 rounded-xl border border-amber-300/20 bg-amber-300/[.06] px-4 py-3 text-sm leading-6 text-amber-100/75"
+        >
+          This project is {projectStatus.toLowerCase()}. Its classifications are
+          saved, but its videos cannot appear on the public Film Comparison page
+          until the project is published.
+        </div>
+      )}
       <div className="mt-3 space-y-4">
         {videos.map((video) => {
           const placement = video.comparisonPlacement;
@@ -168,7 +180,7 @@ export default function FilmComparisonClassifier({
                   </select>
                 </label>
                 <label className="text-xs text-white/40">
-                  Display order
+                  Additional example order
                   <input
                     type="number"
                     className={field}
