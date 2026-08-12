@@ -19,6 +19,19 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
+    version: "V1.9.5",
+    slug: "v1-9-5",
+    releaseDate: null,
+    title: "Film Comparison and Newsletter Performance Navigation",
+    summary: "Introduces a curated public film comparison experience, managed film and reel offerings, asset-level classification, and direct newsletter performance navigation.",
+    newFeatures: ["Public Film Comparison experience for cinematic films and social media reels", "Tenant-aware managed video offerings and asset-level comparison classification", "Curated featured and additional examples", "Portfolio and Services comparison links", "Newsletter View Performance shortcut"],
+    improvements: ["Responsive horizontal and vertical playback with accessible example selection", "Managed pricing, positioning, distinctions, destinations, and ordering", "Keyboard focus, reduced-motion, zoom, and mobile action-row behavior"],
+    bugFixes: ["Newsletter performance results are reachable without scrolling through the full editor"],
+    securityInfrastructure: ["Published examples remain workspace-scoped and require an active offering, visible playable media, and a published project", "The deployed canonical, sitemap, robots, redirect, poster, and media pipelines are preserved"],
+    administratorActions: ["Review the five seeded Helios offerings", "Classify and feature representative videos before production approval"],
+    status: "PLANNED",
+  },
+  {
     version: "V1.9.4.9",
     slug: "v1-9-4-9",
     releaseDate: "2026-08-11",

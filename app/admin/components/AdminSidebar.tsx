@@ -190,6 +190,11 @@ const navigation: NavigationItem[] = [
     ),
   },
   {
+    label: "Film Comparison",
+    href: "/admin/video-offerings",
+    icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="m10 9 5 3-5 3V9Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>,
+  },
+  {
     label: "Local Pages",
     href: "/admin/locations",
     icon: (
@@ -297,6 +302,7 @@ const navigationGroups: NavigationGroup[] = [
       "/admin/locations",
       "/admin/media",
       "/admin/services",
+      "/admin/video-offerings",
       "/admin/testimonials",
       "/admin/trusted-logos",
     ],

@@ -14,6 +14,7 @@ import { requireAdminSession } from "@/lib/auth/session";
 import AdminSectionNavigator from "@/app/admin/components/AdminSectionNavigator";
 import { getProjectProgressState } from "@/lib/project-progress";
 import ProjectProgressCard from "./ProjectProgressCard";
+import FilmComparisonClassifier from "./FilmComparisonClassifier";
 
 export const dynamic = "force-dynamic";
 
@@ -337,6 +338,7 @@ export default async function ProjectEditorPage({
 
       <ProjectEditorSection id="project-media" eyebrow="Step 02" title="Media" summary="Upload, organize, and manage every asset that appears throughout this project’s portfolio." status={<p className="text-xs text-white/25">{project._count.media} {project._count.media === 1 ? "asset" : "assets"} saved</p>}>
           <ProjectMediaManager projectId={project.id} services={services} />
+          <FilmComparisonClassifier projectId={project.id} />
       </ProjectEditorSection>
 
       <div><ProjectWorkflowManager
