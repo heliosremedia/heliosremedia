@@ -132,20 +132,24 @@ export default function MediaLibraryGrid({ items }: MediaLibraryGridProps) {
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-        {items.map((item) => (
-          <article
-            key={item.id}
-            className="group overflow-hidden rounded-2xl border border-white/[0.08] bg-black/20 transition duration-300 hover:border-white/[0.18] hover:shadow-[0_24px_65px_rgba(0,0,0,0.3)]"
-          >
+        {items.map((item) => {
+          const externalMedia = tryResolveExternalMedia(item.externalUrl);
+          const cardImageUrl = item.publicUrl || externalMedia?.thumbnailUrl;
+
+          return (
+            <article
+              key={item.id}
+              className="group overflow-hidden rounded-2xl border border-white/[0.08] bg-black/20 transition duration-300 hover:border-white/[0.18] hover:shadow-[0_24px_65px_rgba(0,0,0,0.3)]"
+            >
             <button
               type="button"
               onClick={() => setActiveMediaId(item.id)}
               className="relative block aspect-[4/3] w-full overflow-hidden bg-[#0d0d0e] text-left"
               aria-label={`Preview ${item.originalFilename || item.collectionLabel}`}
             >
-              {item.publicUrl ? (
+              {cardImageUrl ? (
                 <Image
-                  src={item.publicUrl}
+                  src={cardImageUrl}
                   alt={
                     item.altText ||
                     item.originalFilename ||
@@ -254,8 +258,9 @@ export default function MediaLibraryGrid({ items }: MediaLibraryGridProps) {
                 </span>
               </div>
             </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
 
       {activeMedia && (
