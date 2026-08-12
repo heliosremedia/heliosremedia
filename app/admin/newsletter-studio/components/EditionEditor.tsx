@@ -15,6 +15,15 @@ const blockLabels: Record<BlockType, string> = { HERO: "Hero", OPENING_NOTE: "Op
 const input = "mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-white outline-none focus:border-[var(--helios-orange)]";
 const placeholder: NewsletterEdition = { id: "", seriesId: "", seriesName: "", subject: "", previewText: "", status: "AWAITING_GENERATION", groupNames: [], eligibleCount: 0, excludedCount: 0, warnings: [], publishableNotes: "", internalNotes: "", blocks: [] };
 
+function scheduledDelivery(value?: string | null) {
+  if (!value) return "Not scheduled";
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "full",
+    timeStyle: "short",
+    timeZone: "America/Denver",
+  }).format(new Date(value));
+}
+
 export default function EditionEditor({ editionId }: { editionId: string }) {
   const router = useRouter();
   const [edition, setEdition] = useState(placeholder); const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -103,6 +112,7 @@ export default function EditionEditor({ editionId }: { editionId: string }) {
   if (busy === "load") return <div className="h-80 animate-pulse rounded-2xl border border-white/[0.07] bg-white/[0.02]" />;
   return <div className="space-y-6">
     <section ref={originalActionsRef} className="flex flex-col gap-5 border-b border-white/[0.08] pb-6 xl:flex-row xl:items-end xl:justify-between"><div className="min-w-0 flex-1"><Link href="/admin/newsletter-studio" onClick={event=>{if(dirty&&!confirm("Leave this edition with unsaved changes?"))event.preventDefault();}} className="admin-btn-link">← Back to Newsletter Studio</Link><div className="mt-3 flex flex-wrap items-center gap-3"><p className="eyebrow text-[var(--helios-orange)]">Newsletter Studio</p><StatusBadge status={edition.status} /></div><h1 className="mt-3 max-w-4xl break-words text-3xl font-light leading-tight text-white sm:text-4xl">{edition.subject || "Untitled edition"}</h1><p className="mt-2 text-sm text-white/35">{edition.seriesName}</p></div><div className="flex flex-wrap gap-2 xl:justify-end"><button onClick={() => perform("save")} disabled={Boolean(busy)} className="admin-btn-secondary">Save Draft</button><button onClick={()=>void saveAndClose()} disabled={Boolean(busy)} className="admin-btn-secondary">Save &amp; Close</button><button onClick={() => setPreviewOpen(true)} className="admin-btn-secondary">Preview</button><button onClick={() => void prepareApproval()} disabled={Boolean(busy) || edition.status !== "NEEDS_REVIEW"} className="admin-btn-primary">Approve &amp; schedule</button></div></section>
+    {edition.status === "SCHEDULED" && <section aria-label="Scheduled delivery" className="grid gap-4 rounded-2xl border border-white/[0.1] bg-white/[0.025] p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-6"><div><p className="text-[0.56rem] font-semibold uppercase tracking-[.16em] text-[var(--helios-orange)]">Scheduled delivery</p><p className="mt-2 text-lg font-light text-white/80">{scheduledDelivery(edition.intendedSendAt)}</p><p className="mt-1 text-xs text-white/35">Mountain Time · America/Denver</p></div><StatusBadge status={edition.status} /></section>}
     {aiStatus && <p role="status" aria-live="polite" className="flex items-center gap-3 rounded-xl border border-[var(--helios-orange)]/25 bg-[var(--helios-orange)]/[0.04] px-4 py-3 text-sm text-white/65"><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/15 border-t-[var(--helios-orange)]" aria-hidden="true" /><span>{aiStatus}{slowAi && <span className="mt-1 block text-xs text-white/38">Still writing—this may take a moment.</span>}</span></p>}
     {message && <p role="status" className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/60">{message}</p>}
     <div className="flex gap-1 rounded-lg border border-white/[0.08] bg-black/20 p-1 lg:hidden"><button onClick={() => setTab("edit")} className={`flex-1 rounded-md py-2 text-xs ${tab === "edit" ? "bg-white/10 text-white" : "text-white/35"}`}>Editor</button><button onClick={() => setTab("preview")} className={`flex-1 rounded-md py-2 text-xs ${tab === "preview" ? "bg-white/10 text-white" : "text-white/35"}`}>Preview</button></div>
