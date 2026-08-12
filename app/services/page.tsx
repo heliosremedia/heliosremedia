@@ -227,6 +227,8 @@ export default async function ServicesPage() {
                       >
                         Explore service
                       </Link>
+                      {serviceMediaCategories.includes("CINEMATIC_FILM") && <Link href="/films#cinematic-films" className="inline-flex min-h-12 items-center text-[.58rem] font-semibold uppercase tracking-[.16em] text-[var(--helios-orange)] transition hover:text-white">Compare Film Options</Link>}
+                      {serviceMediaCategories.some((category) => ["VERTICAL_REEL", "SOCIAL_CONTENT"].includes(category)) && <Link href="/films#social-reels" className="inline-flex min-h-12 items-center text-[.58rem] font-semibold uppercase tracking-[.16em] text-[var(--helios-orange)] transition hover:text-white">Compare Social Reels</Link>}
                       {service._count.projects > 0 && (
                         <span className="text-xs text-white/22">
                           {service._count.projects}{" "}

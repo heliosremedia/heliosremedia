@@ -59,6 +59,11 @@ enum MediaVisibility {
   HIDDEN
 }
 
+enum VideoOfferingGroup {
+  CINEMATIC_FILM
+  SOCIAL_MEDIA_REEL
+}
+
 enum ExternalProvider {
   CLOUDFLARE_STREAM
   YOUTUBE
@@ -620,18 +625,19 @@ model Project {
 }
 
 model ProjectAgent {
-  id String @id @default(cuid())
-  projectId String
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  workspaceId String
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
-  clientId String?
-  client CommunicationClient? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  id                  String               @id @default(cuid())
+  projectId           String
+  project             Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workspaceId         String
+  workspace           Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  clientId            String?
+  client              CommunicationClient? @relation(fields: [clientId], references: [id], onDelete: SetNull)
   displayNameSnapshot String
-  brokerageSnapshot String?
-  displayOrder Int @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  brokerageSnapshot   String?
+  displayOrder        Int                  @default(0)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
   @@index([projectId, displayOrder])
   @@index([workspaceId, clientId])
 }
@@ -699,7 +705,7 @@ model Media {
   sourceType    MediaSourceType
   mediaCategory MediaCategory
   serviceId     String
-  service       Service       @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  service       Service           @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   provider      ExternalProvider?
 
   storageKey       String?
@@ -734,6 +740,7 @@ model Media {
   socialVariants              SocialVariantMedia[]
   socialCampaignMedia         SocialCampaignMedia[]
   socialGeneratedAssetSources SocialGeneratedAsset[]      @relation("SocialGeneratedAssetSource")
+  comparisonPlacement         VideoComparisonPlacement?
 
   @@index([projectId])
   @@index([projectId, displayOrder])
@@ -741,6 +748,50 @@ model Media {
   @@index([mediaCategory])
   @@index([serviceId])
   @@index([sourceType])
+}
+
+model VideoOffering {
+  id                   String                     @id
+  workspaceId          String
+  workspace            Workspace                  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  publicName           String
+  positioningStatement String
+  publicDescription    String
+  offeringGroup        VideoOfferingGroup
+  comparisonOrder      Int                        @default(0)
+  active               Boolean                    @default(true)
+  priceLabel           String?
+  runtimeGuidance      String?
+  orientation          String?
+  bestForDescription   String?
+  featureDistinctions  Json?
+  bookingDestination   String?
+  placements           VideoComparisonPlacement[]
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+
+  @@unique([workspaceId, publicName])
+  @@index([workspaceId, active, offeringGroup, comparisonOrder])
+}
+
+model VideoComparisonPlacement {
+  id                String        @id @default(cuid())
+  workspaceId       String
+  workspace         Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  mediaId           String        @unique
+  media             Media         @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  offeringId        String
+  offering          VideoOffering @relation(fields: [offeringId], references: [id], onDelete: Cascade)
+  showOnComparison  Boolean       @default(false)
+  featuredExample   Boolean       @default(false)
+  comparisonOrder   Int           @default(0)
+  publicTitle       String?
+  posterOverrideUrl String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([workspaceId, showOnComparison])
+  @@index([offeringId, showOnComparison, comparisonOrder])
 }
 
 model ProjectMediaCollectionHero {
@@ -762,7 +813,7 @@ model ProjectMediaCollectionHero {
 }
 
 model Service {
-  id                  String  @id @default(cuid())
+  id                  String    @id @default(cuid())
   name                String
   slug                String
   workspaceId         String
@@ -772,8 +823,8 @@ model Service {
   // from each project's matching media-collection hero.
   heroImageStorageKey String?
   heroImageAlt        String?
-  displayOrder        Int     @default(0)
-  active              Boolean @default(true)
+  displayOrder        Int       @default(0)
+  active              Boolean   @default(true)
   archivedAt          DateTime?
 
   projects         ProjectService[]
@@ -1200,7 +1251,7 @@ model LocationPage {
 
   slug           String
   city           String
-  state          String @default("Colorado")
+  state          String  @default("Colorado")
   county         String
   seoTitle       String
   seoDescription String
@@ -1457,23 +1508,25 @@ model Workspace {
   name String
   slug String @unique
 
-  users                    AdminUser[]
-  socialCampaigns          SocialCampaign[]
-  socialSeries             SocialSeries[]
-  socialGeneratedAssets    SocialGeneratedAsset[]
-  socialSettings           SocialStudioSettings[]
-  socialConnections        SocialConnection[]
-  siteSettings             SiteSettings?
-  projectContributors      ProjectContributor[]
-  portfolioAnalyticsEvents PortfolioAnalyticsEvent[]
-  projects                 Project[]
-  projectAgents            ProjectAgent[]
-  communicationClients     CommunicationClientWorkspace[]
-  invitations              AdminInvitation[]
-  clientSyncRuns           ClientSyncRun[]
-  resendWebhookEvents      ResendWebhookEvent[]
-  services                 Service[]
-  locationPages            LocationPage[]
+  users                     AdminUser[]
+  socialCampaigns           SocialCampaign[]
+  socialSeries              SocialSeries[]
+  socialGeneratedAssets     SocialGeneratedAsset[]
+  socialSettings            SocialStudioSettings[]
+  socialConnections         SocialConnection[]
+  siteSettings              SiteSettings?
+  projectContributors       ProjectContributor[]
+  portfolioAnalyticsEvents  PortfolioAnalyticsEvent[]
+  projects                  Project[]
+  projectAgents             ProjectAgent[]
+  communicationClients      CommunicationClientWorkspace[]
+  invitations               AdminInvitation[]
+  clientSyncRuns            ClientSyncRun[]
+  resendWebhookEvents       ResendWebhookEvent[]
+  services                  Service[]
+  locationPages             LocationPage[]
+  videoOfferings            VideoOffering[]
+  videoComparisonPlacements VideoComparisonPlacement[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2079,14 +2132,15 @@ model CommunicationClient {
 }
 
 model CommunicationClientWorkspace {
-  id String @id @default(cuid())
+  id          String              @id @default(cuid())
   workspaceId String
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  clientId String
-  client CommunicationClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  brokerage String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  workspace   Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  clientId    String
+  client      CommunicationClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  brokerage   String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
   @@unique([workspaceId, clientId])
   @@index([workspaceId, brokerage])
 }
