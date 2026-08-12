@@ -175,26 +175,28 @@ export default async function FilmsPage() {
           </div>
         </div>
       </section>
-      <section className="container-shell py-24 text-center sm:py-32">
-        <p className="eyebrow text-[var(--helios-orange)]">
-          Choose with confidence
-        </p>
-        <h2 className="mx-auto mt-5 max-w-4xl font-display text-4xl font-light tracking-[-.04em] sm:text-6xl">
-          Let’s shape the right film around the property.
-        </h2>
-        <div className="mt-9 flex flex-wrap justify-center gap-4">
-          <Link
-            href="/inquire"
-            className="inline-flex min-h-12 items-center rounded-full bg-[var(--helios-orange)] px-7 text-[.58rem] font-semibold uppercase tracking-[.16em] text-black"
-          >
-            Start a conversation
-          </Link>
-          <Link
-            href="/services"
-            className="inline-flex min-h-12 items-center rounded-full border border-white/15 px-7 text-[.58rem] font-semibold uppercase tracking-[.16em] text-white/65"
-          >
-            Explore services
-          </Link>
+      <section className="container-shell py-24 sm:py-32">
+        <div className="mx-auto flex max-w-5xl flex-col items-center text-center">
+          <p className="eyebrow text-center text-[var(--helios-orange)]">
+            Choose with confidence
+          </p>
+          <h2 className="mt-5 w-full text-balance text-center font-display text-4xl font-light tracking-[-.04em] sm:text-6xl">
+            Let’s shape the right film around the property.
+          </h2>
+          <div className="mt-9 flex flex-wrap justify-center gap-4">
+            <Link
+              href="/inquire"
+              className="inline-flex min-h-12 items-center rounded-full bg-[var(--helios-orange)] px-7 text-[.58rem] font-semibold uppercase tracking-[.16em] text-black"
+            >
+              Start a conversation
+            </Link>
+            <Link
+              href="/services"
+              className="inline-flex min-h-12 items-center rounded-full border border-white/15 px-7 text-[.58rem] font-semibold uppercase tracking-[.16em] text-white/65"
+            >
+              Explore services
+            </Link>
+          </div>
         </div>
       </section>
       <Footer />
