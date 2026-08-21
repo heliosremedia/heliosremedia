@@ -25,6 +25,7 @@ function portfolioCollectionHref(destination: string | null, serviceSlug: string
   return href;
 }
 import { getHomepageCardVideo } from "@/lib/homepage-work-cards";
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Home() {
+  const publicWorkspaceId = await getPublicWorkspaceId();
   const [testimonials, googleReviews, trustedLogos, homepageProjects, homepageWorkCards, homepageCta, settings] = await Promise.all([
     prisma.testimonial.findMany({
       where: { published: true, featured: true, sourceProvider: "MANUAL" },
@@ -49,10 +51,11 @@ export default async function Home() {
         focalY: true, rating: true, sourceUrl: true,
       },
     }),
-    prisma.testimonial.findMany({
-      where: { published: true, sourceProvider: "GOOGLE" },
-      orderBy: [{ displayOrder: "asc" }, { reviewedAt: "desc" }],
-      select: { id: true, agentName: true, testimonial: true, rating: true, sourceUrl: true, reviewedAt: true },
+    prisma.googleBusinessReview.findMany({
+      where: { workspaceId: publicWorkspaceId, reviewText: { not: null }, testimonialId: null, syncStatus: "CURRENT" },
+      orderBy: [{ reviewUpdatedAt: "desc" }, { reviewCreatedAt: "desc" }, { createdAt: "desc" }],
+      take: 20,
+      select: { id: true, reviewerName: true, reviewText: true, starRating: true, reviewCreatedAt: true },
     }),
     prisma.trustedLogo.findMany({
       where: { published: true, logoUrl: { not: null } },
@@ -136,7 +139,7 @@ export default async function Home() {
         displayOpacity: logo.displayOpacity,
         displayScale: logo.displayScale,
       }))} />
-      <InTheirWords googleReviews={googleReviews.map((item) => ({ ...item, reviewedAt: item.reviewedAt?.toISOString() ?? null }))} testimonials={testimonials.map((item) => ({
+      <InTheirWords googleReviews={googleReviews.map((item) => ({ id: item.id, agentName: item.reviewerName, testimonial: item.reviewText!, rating: item.starRating, sourceUrl: process.env.GOOGLE_BUSINESS_REVIEWS_URL || null, reviewedAt: item.reviewCreatedAt?.toISOString() ?? null }))} testimonials={testimonials.map((item) => ({
         id: item.id,
         quote: item.testimonial,
         name: item.agentName,

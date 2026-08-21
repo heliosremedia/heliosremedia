@@ -51,3 +51,22 @@ test("Google review source records can be collapsed above manual testimonials", 
   assert.match(panel, /hidden=\{!expanded\}/);
   assert.match(panel, /imported review/);
 });
+
+test("homepage shows the newest 20 uncurated Google reviews and links to the full library", () => {
+  const homepage = read("app/page.tsx");
+  const words = read("app/components/InTheirWords.tsx");
+  assert.match(homepage, /googleBusinessReview\.findMany/);
+  assert.match(homepage, /testimonialId: null/);
+  assert.match(homepage, /take: 20/);
+  assert.match(words, /href="\/reviews"/);
+  assert.match(words, /See all Google reviews/);
+});
+
+test("public reviews page lists current Google reviews and is included in the sitemap", () => {
+  const page = read("app/reviews/page.tsx");
+  const sitemap = read("app/sitemap.ts");
+  assert.match(page, /syncStatus: "CURRENT"/);
+  assert.match(page, /googleBusinessReview\.findMany/);
+  assert.match(page, /View Helios on Google/);
+  assert.match(sitemap, /absolute\("\/reviews"\)/);
+});

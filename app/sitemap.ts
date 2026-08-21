@@ -76,6 +76,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "yearly",
       priority: 0.3,
     },
+    {
+      url: absolute("/reviews"),
+      changeFrequency: "weekly",
+      priority: 0.75,
+    },
   ];
 
   const projectPages: MetadataRoute.Sitemap = projects.map((project) => ({

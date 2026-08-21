@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { motion, useReducedMotion } from "motion/react";
+import Link from "next/link";
 import { displayTestimonial } from "@/lib/testimonials";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -381,7 +382,7 @@ export default function InTheirWords({ testimonials, googleReviews }: { testimon
 
 function GoogleReviewRibbon({ reviews, reducedMotion }: { reviews: GoogleReviewCard[]; reducedMotion: boolean }) {
   const repeated = reviews.length > 1 ? [...reviews, ...reviews] : reviews;
-  return <div className="group/reviews relative mt-12 overflow-hidden border-y border-white/[0.065] py-7 [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]" aria-label="Selected Google reviews">
+  return <div className="mt-12 border-y border-white/[0.065] py-7"><div className="mb-6 flex flex-col gap-3 px-1 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-[0.54rem] font-semibold uppercase tracking-[0.22em] text-[#f06b24]">More from Google</p><p className="mt-2 font-serif text-xl text-white/70">The latest client experiences.</p></div><Link href="/reviews" className="self-start text-[0.58rem] font-semibold uppercase tracking-[0.2em] text-white/45 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f06b24] sm:self-auto">See all Google reviews <span aria-hidden="true">→</span></Link></div><div className="group/reviews relative overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]" aria-label="Latest Google reviews">
     <div className={`flex w-max gap-5 ${reducedMotion || reviews.length === 1 ? "flex-wrap justify-center" : "animate-[google-review-ribbon_72s_linear_infinite] group-hover/reviews:[animation-play-state:paused] group-focus-within/reviews:[animation-play-state:paused]"}`}>
       {repeated.map((review, index) => {
         const content = <><div className="flex items-center justify-between gap-5"><span className="text-[0.5rem] font-semibold uppercase tracking-[0.18em] text-white/38">Google review</span><span aria-label={`${review.rating} out of 5 stars`} className="text-[0.55rem] tracking-[0.15em] text-[#f06b24]">{"★".repeat(review.rating)}</span></div><p className="mt-4 line-clamp-3 font-serif text-[1.05rem] leading-6 text-[#eee8e1]/68">“{displayTestimonial(review.testimonial)}”</p><p className="mt-4 text-[0.54rem] font-medium uppercase tracking-[0.2em] text-white/45">{review.agentName}</p></>;
@@ -389,5 +390,5 @@ function GoogleReviewRibbon({ reviews, reducedMotion }: { reviews: GoogleReviewC
         return review.sourceUrl ? <a key={`${review.id}-${index}`} href={review.sourceUrl} target="_blank" rel="noreferrer" className={className}>{content}</a> : <article key={`${review.id}-${index}`} className={className}>{content}</article>;
       })}
     </div>
-  </div>;
+  </div></div>;
 }
