@@ -71,5 +71,6 @@ test("public reviews page lists current Google reviews and is included in the si
   assert.match(page, /syncStatus: "CURRENT"/);
   assert.match(page, /googleBusinessReview\.findMany/);
   assert.match(page, /View Helios on Google/);
+  assert.match(page, /py-14 sm:py-16 lg:py-20/);
   assert.match(sitemap, /absolute\("\/reviews"\)/);
 });

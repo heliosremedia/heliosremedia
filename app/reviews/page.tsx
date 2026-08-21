@@ -27,11 +27,11 @@ export default async function ReviewsPage() {
 
   return <main className="min-h-screen bg-[#080808] text-white">
     <Navbar variant="solid" />
-    <section className="relative overflow-hidden border-b border-white/[0.07] pt-28">
+    <section className="relative overflow-hidden border-b border-white/[0.07] pt-20 sm:pt-24">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_18%,rgba(217,107,43,0.13),transparent_34%)]" />
-      <div className="container-shell relative py-20 sm:py-28 lg:py-32">
+      <div className="container-shell relative py-14 sm:py-16 lg:py-20">
         <p className="eyebrow text-[var(--helios-orange)]">Client experiences</p>
-        <h1 className="mt-7 max-w-5xl font-display text-[clamp(3rem,8vw,7rem)] font-light leading-[0.9] tracking-[-0.055em]">Trust, in their<br /><span className="italic text-white/52">own words.</span></h1>
+        <h1 className="mt-6 max-w-5xl font-display text-[clamp(3rem,7.2vw,6.5rem)] font-light leading-[0.9] tracking-[-0.055em]">Trust, in their<br /><span className="italic text-white/52">own words.</span></h1>
         <div className="mt-8 flex flex-col gap-5 sm:flex-row sm:items-center"><p className="max-w-2xl text-base leading-8 text-white/48 sm:text-lg">Verified Google reviews from the agents and teams who trust Helios to bring their listings to life.</p><p className="shrink-0 text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-white/35">{reviews.length} written review{reviews.length === 1 ? "" : "s"}</p></div>
       </div>
     </section>
