@@ -51,7 +51,7 @@ const emptyDraft: Draft = {
   focalX: 0.5, focalY: 0.2, rating: 5, published: false, featured: false,
 };
 
-export default function TestimonialManager({ initialTestimonials }: { initialTestimonials: AdminTestimonial[] }) {
+export default function TestimonialManager({ initialTestimonials, importedGoogleReviewCount }: { initialTestimonials: AdminTestimonial[]; importedGoogleReviewCount: number }) {
   const [testimonials, setTestimonials] = useState(initialTestimonials);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -62,7 +62,6 @@ export default function TestimonialManager({ initialTestimonials }: { initialTes
   const [dropId, setDropId] = useState<string | null>(null);
   const publishedCount = useMemo(() => testimonials.filter((item) => item.published).length, [testimonials]);
   const featuredCount = useMemo(() => testimonials.filter((item) => item.featured).length, [testimonials]);
-  const googleCount = useMemo(() => testimonials.filter((item) => item.sourceProvider === "GOOGLE").length, [testimonials]);
 
   useEffect(() => () => { if (previewUrl?.startsWith("blob:")) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
 
@@ -196,7 +195,7 @@ export default function TestimonialManager({ initialTestimonials }: { initialTes
   return (
     <>
       <section className="grid gap-4 sm:grid-cols-4">
-        {[{ label: "Testimonials", value: testimonials.length }, { label: "Published", value: publishedCount }, { label: "Featured", value: featuredCount }, { label: "Google", value: googleCount }].map((stat) => <div key={stat.label} className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5"><p className="text-[0.55rem] font-semibold uppercase tracking-[0.17em] text-white/25">{stat.label}</p><p className="mt-2 text-3xl font-light text-white">{stat.value}</p></div>)}
+        {[{ label: "Testimonials", value: testimonials.length }, { label: "Published", value: publishedCount }, { label: "Featured", value: featuredCount }, { label: "Imported Google", value: importedGoogleReviewCount }].map((stat) => <div key={stat.label} className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5"><p className="text-[0.55rem] font-semibold uppercase tracking-[0.17em] text-white/25">{stat.label}</p><p className="mt-2 text-3xl font-light text-white">{stat.value}</p></div>)}
       </section>
 
       {error && <div role="alert" className="rounded-xl border border-red-400/20 bg-red-400/[0.06] px-5 py-4 text-sm text-red-200/80">{error}</div>}

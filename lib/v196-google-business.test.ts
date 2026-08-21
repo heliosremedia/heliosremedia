@@ -46,12 +46,17 @@ test("scheduled Google synchronization is disabled during the initial OAuth phas
 
 test("Google review source records can be collapsed above manual testimonials", () => {
   const panel = read("app/admin/testimonials/GoogleBusinessConnectionPanel.tsx");
+  const manager = read("app/admin/testimonials/TestimonialManager.tsx");
+  const page = read("app/admin/testimonials/page.tsx");
   assert.match(panel, /aria-expanded=\{expanded\}/);
   assert.match(panel, /aria-controls="google-business-details"/);
   assert.match(panel, /hidden=\{!expanded\}/);
   assert.match(panel, /imported review/);
   assert.match(panel, /history\.replaceState/);
   assert.match(panel, /scrollTo\(\{ top: 0/);
+  assert.match(manager, /Imported Google/);
+  assert.match(manager, /importedGoogleReviewCount/);
+  assert.match(page, /importedGoogleReviewCount=\{googleState\.reviews\.length\}/);
 });
 
 test("homepage shows the newest 20 uncurated Google reviews and links to the full library", () => {

@@ -31,7 +31,7 @@ export default async function AdminTestimonialsPage({ searchParams }: { searchPa
         <p className="max-w-xs text-xs leading-5 text-white/25 sm:text-right">Published testimonials are reusable content assets for the homepage, service pages, campaigns, and future landing pages.</p>
       </section>
       <GoogleBusinessConnectionPanel initialState={{ ...googleState, connection: googleState.connection ? { ...googleState.connection, availableLocations: Array.isArray(googleState.connection.availableLocations) ? googleState.connection.availableLocations as GoogleLocationOption[] : [], lastSyncAt: googleState.connection.lastSyncAt?.toISOString() ?? null, connectedAt: googleState.connection.connectedAt?.toISOString() ?? null } : null, reviews: googleState.reviews.map((review) => ({ ...review, reviewCreatedAt: review.reviewCreatedAt?.toISOString() ?? null, reviewUpdatedAt: review.reviewUpdatedAt?.toISOString() ?? null, lastSyncedAt: review.lastSyncedAt.toISOString() })) } as GoogleConnectionState} callbackMessage={callbackMessage(query.google)} />
-      <TestimonialManager initialTestimonials={serialized} />
+      <TestimonialManager initialTestimonials={serialized} importedGoogleReviewCount={googleState.reviews.length} />
     </div>
   );
 }
