@@ -27,7 +27,7 @@ export default async function ReviewsPage() {
 
   return <main className="min-h-screen bg-[#080808] text-white">
     <Navbar variant="solid" />
-    <section className="relative overflow-hidden border-b border-white/[0.07] pt-20 sm:pt-24">
+    <section className="relative overflow-hidden border-b border-white/[0.07]">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_18%,rgba(217,107,43,0.13),transparent_34%)]" />
       <div className="container-shell relative py-14 sm:py-16 lg:py-20">
         <p className="eyebrow text-[var(--helios-orange)]">Client experiences</p>
