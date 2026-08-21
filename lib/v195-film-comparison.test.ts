@@ -16,6 +16,7 @@ test("V1.9.5 stores offerings and classifications as tenant-aware relationships"
 test("public comparison remains curated, scoped, playable, and discoverable", () => {
   const page = read("app/films/page.tsx");
   const player = read("app/films/FilmOfferingCard.tsx");
+  const styles = read("app/globals.css");
   const sitemap = read("app/sitemap.ts");
   assert.match(page, /workspaceId, status: "PUBLISHED"/);
   assert.match(page, /featuredExample: "desc"/);
@@ -23,6 +24,9 @@ test("public comparison remains curated, scoped, playable, and discoverable", ()
   assert.match(player, /preload="metadata"/);
   assert.doesNotMatch(player, /autoPlay/);
   assert.match(player, /aria-live="polite"/);
+  assert.match(player, /film-example-selector public-btn public-btn-compact/);
+  assert.doesNotMatch(player, /text-\[\.55rem\]/);
+  assert.match(styles, /button\.film-example-selector[\s\S]*--public-button-font-size/);
   assert.match(sitemap, /absolute\("\/films"\)/);
 });
 

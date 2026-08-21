@@ -144,7 +144,7 @@ export default function FilmOfferingCard({
                 type="button"
                 aria-pressed={example.id === active?.id}
                 onClick={() => setActiveId(example.id)}
-                className={`inline-flex min-h-9 items-center justify-center rounded-full border px-3.5 text-[.55rem] font-semibold uppercase tracking-[.14em] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--helios-orange)] ${example.id === active?.id ? "border-[var(--helios-orange)] bg-[var(--helios-orange)]/[.08] text-white" : "border-white/15 text-white/52 hover:border-white/30 hover:text-white/75"}`}
+                className={`film-example-selector public-btn public-btn-compact border ${example.id === active?.id ? "border-[var(--helios-orange)] bg-[var(--helios-orange)]/[.08] text-white" : "border-white/15 text-white/52 hover:border-white/30 hover:text-white/75"}`}
               >
                 {index === 0 ? "Featured" : `Example ${index + 1}`}
               </button>
