@@ -62,6 +62,7 @@ test("homepage shows the newest 20 uncurated Google reviews and links to the ful
   assert.match(homepage, /take: 20/);
   assert.match(words, /href="\/reviews"/);
   assert.match(words, /See all Google reviews/);
+  assert.match(words, /google-review-ribbon_240s_linear_infinite/);
 });
 
 test("public reviews page lists current Google reviews and is included in the sitemap", () => {
