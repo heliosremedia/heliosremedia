@@ -96,6 +96,18 @@ enum AdminRole {
   VIEWER
 }
 
+enum GoogleBusinessConnectionStatus {
+  NEEDS_LOCATION
+  CONNECTED
+  ERROR
+  REVOKED
+}
+
+enum GoogleReviewSyncStatus {
+  CURRENT
+  ERROR
+}
+
 enum PortfolioAnalyticsEventName {
   PORTFOLIO_VIEW
   PROJECT_VIEW
@@ -937,6 +949,8 @@ model Testimonial {
   featured     Boolean @default(false)
   rowVersion   Int     @default(0)
 
+  googleBusinessReview GoogleBusinessReview?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1495,6 +1509,7 @@ model AdminUser {
   socialRecommendationsActed    SocialAnalyticsRecommendation[] @relation("SocialRecommendationActor")
   projectCredits                ProjectContributor[]
   portfolioAnalyticsEvents      PortfolioAnalyticsEvent[]
+  googleBusinessConnections     GoogleBusinessConnection[]      @relation("GoogleBusinessConnectionActor")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1527,9 +1542,93 @@ model Workspace {
   locationPages             LocationPage[]
   videoOfferings            VideoOffering[]
   videoComparisonPlacements VideoComparisonPlacement[]
+  googleBusinessConnection  GoogleBusinessConnection?
+  googleBusinessReviews     GoogleBusinessReview[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model GoogleBusinessConnection {
+  id String @id @default(cuid())
+
+  workspaceId String    @unique
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  status GoogleBusinessConnectionStatus @default(NEEDS_LOCATION)
+
+  refreshTokenCiphertext String
+  accountResourceName    String?
+  accountDisplayName     String?
+  locationResourceName   String?
+  locationTitle          String?
+  locationAddress        String?
+  availableLocations     Json?
+
+  lastSyncAt     DateTime?
+  lastSyncStatus GoogleReviewSyncStatus?
+  lastSyncError  String?
+  connectedAt    DateTime?
+  disconnectedAt DateTime?
+
+  connectedById String?
+  connectedBy   AdminUser? @relation("GoogleBusinessConnectionActor", fields: [connectedById], references: [id], onDelete: SetNull)
+
+  reviews GoogleBusinessReview[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, updatedAt])
+}
+
+model GoogleBusinessOAuthState {
+  id String @id @default(cuid())
+
+  stateHash              String    @unique
+  codeVerifierCiphertext String
+  workspaceId            String
+  adminUserId            String
+  expiresAt              DateTime
+  consumedAt             DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([workspaceId, adminUserId, expiresAt])
+  @@index([expiresAt])
+}
+
+model GoogleBusinessReview {
+  id String @id @default(cuid())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  connectionId String
+  connection   GoogleBusinessConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  googleReviewId         String
+  reviewerName           String
+  reviewerPhotoUrl       String?
+  starRating             Int
+  reviewText             String?
+  reviewCreatedAt        DateTime?
+  reviewUpdatedAt        DateTime?
+  businessReplyText      String?
+  businessReplyUpdatedAt DateTime?
+  lastSyncedAt           DateTime               @default(now())
+  syncStatus             GoogleReviewSyncStatus @default(CURRENT)
+  syncError              String?
+
+  testimonialId String?      @unique
+  testimonial   Testimonial? @relation(fields: [testimonialId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([connectionId, googleReviewId])
+  @@index([workspaceId, reviewUpdatedAt])
+  @@index([workspaceId, testimonialId])
 }
 
 model PortfolioAnalyticsEvent {

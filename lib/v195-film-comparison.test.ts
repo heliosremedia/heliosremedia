@@ -39,7 +39,7 @@ test("newsletter performance shortcut preserves the existing analytics panel", (
   assert.match(analytics, /tabIndex=\{-1\}/);
 });
 
-test("V1.9.5 is planned until production approval", () => {
+test("V1.9.5 is recorded live after production deployment", () => {
   assert.match(read("lib/version.ts"), /STUDIO_VERSION = "V1\.9\.5"/);
-  assert.match(read("lib/releases.ts"), /version: "V1\.9\.5"[\s\S]*status: "PLANNED"/);
+  assert.match(read("lib/releases.ts"), /version: "V1\.9\.5"[\s\S]*status: "LIVE"/);
 });

@@ -71,6 +71,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.75,
     },
+    {
+      url: absolute("/google-business-integration"),
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
   ];
 
   const projectPages: MetadataRoute.Sitemap = projects.map((project) => ({

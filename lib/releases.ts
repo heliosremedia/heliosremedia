@@ -19,9 +19,22 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
+    version: "V1.9.6",
+    slug: "v1-9-6",
+    releaseDate: null,
+    title: "Google Business Profile Integration Foundation",
+    summary: "Prepares Helios Studio for Google OAuth verification and company-scoped, review-before-publish Google Business Profile synchronization.",
+    newFeatures: ["Public Helios Studio Google Reviews application information page", "Admin-only OAuth 2.0 connection with PKCE and secure state validation", "Company location selection, manual review synchronization, disconnection, and curated-draft workflow"],
+    improvements: ["Google review source data is separated from curated Featured Google Review presentation", "Imported reviews retain stable identifiers, ratings, reviewer details, timestamps, business replies, and synchronization status"],
+    bugFixes: [],
+    securityInfrastructure: ["Refresh tokens are encrypted at rest and never exposed to the browser or application logs", "Connections, imported reviews, state records, and mutations are workspace-scoped", "Imported reviews never publish automatically and scheduled synchronization remains disabled during this phase"],
+    administratorActions: ["Review and approve the proposed Privacy Policy and Terms wording", "Configure protected Google OAuth environment variables", "Register the exact production redirect URI in Google Cloud", "Connect and select the Helios Google Business Profile only after credentials are configured"],
+    status: "PLANNED",
+  },
+  {
     version: "V1.9.5",
     slug: "v1-9-5",
-    releaseDate: null,
+    releaseDate: "2026-08-20",
     title: "Film Comparison and Newsletter Performance Navigation",
     summary: "Introduces a curated public film comparison experience, managed film and reel offerings, asset-level classification, and direct newsletter performance navigation.",
     newFeatures: ["Public Film Comparison experience for cinematic films and social media reels", "Tenant-aware managed video offerings and asset-level comparison classification", "Curated featured and additional examples", "Portfolio and Services comparison links", "Newsletter View Performance shortcut"],
@@ -29,7 +42,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
     bugFixes: ["Newsletter performance results are reachable without scrolling through the full editor"],
     securityInfrastructure: ["Published examples remain workspace-scoped and require an active offering, visible playable media, and a published project", "The deployed canonical, sitemap, robots, redirect, poster, and media pipelines are preserved"],
     administratorActions: ["Review the five seeded Helios offerings", "Classify and feature representative videos before production approval"],
-    status: "PLANNED",
+    status: "LIVE",
   },
   {
     version: "V1.9.4.9",

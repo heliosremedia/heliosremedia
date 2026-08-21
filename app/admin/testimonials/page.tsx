@@ -1,14 +1,17 @@
 import { prisma } from "@/lib/prisma";
-import { isGoogleReviewsConfigured } from "@/lib/google-business-reviews";
+import { requireAdminSession } from "@/lib/auth/session";
+import { getGoogleBusinessAdminState } from "@/lib/google-business-admin";
 
 import TestimonialManager, { type AdminTestimonial } from "./TestimonialManager";
+import GoogleBusinessConnectionPanel, { type GoogleConnectionState, type GoogleLocationOption } from "./GoogleBusinessConnectionPanel";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminTestimonialsPage() {
-  const testimonials = await prisma.testimonial.findMany({
+export default async function AdminTestimonialsPage({ searchParams }: { searchParams: Promise<{ google?: string }> }) {
+  const session = await requireAdminSession();
+  const [testimonials, googleState, query] = await Promise.all([prisma.testimonial.findMany({
     orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
-  });
+  }), getGoogleBusinessAdminState(session), searchParams]);
 
   const serialized: AdminTestimonial[] = testimonials.map((testimonial) => ({
     ...testimonial,
@@ -27,7 +30,13 @@ export default async function AdminTestimonialsPage() {
         </div>
         <p className="max-w-xs text-xs leading-5 text-white/25 sm:text-right">Published testimonials are reusable content assets for the homepage, service pages, campaigns, and future landing pages.</p>
       </section>
-      <TestimonialManager initialTestimonials={serialized} googleConfigured={isGoogleReviewsConfigured()} />
+      <GoogleBusinessConnectionPanel initialState={{ ...googleState, connection: googleState.connection ? { ...googleState.connection, availableLocations: Array.isArray(googleState.connection.availableLocations) ? googleState.connection.availableLocations as GoogleLocationOption[] : [], lastSyncAt: googleState.connection.lastSyncAt?.toISOString() ?? null, connectedAt: googleState.connection.connectedAt?.toISOString() ?? null } : null, reviews: googleState.reviews.map((review) => ({ ...review, reviewCreatedAt: review.reviewCreatedAt?.toISOString() ?? null, reviewUpdatedAt: review.reviewUpdatedAt?.toISOString() ?? null, lastSyncedAt: review.lastSyncedAt.toISOString() })) } as GoogleConnectionState} callbackMessage={callbackMessage(query.google)} />
+      <TestimonialManager initialTestimonials={serialized} />
     </div>
   );
+}
+
+function callbackMessage(value?: string) {
+  const messages: Record<string, string> = { connected: "Google Business Profile connected.", choose_location: "Google authorization completed. Select the company location to finish connecting.", denied: "Google authorization was canceled. No connection was saved.", invalid_state: "The Google authorization request expired or could not be validated. Start again.", connection_failed: "Google authorization could not be completed. No connected status was saved.", no_locations: "Google authorized access, but no manageable Business Profile location was found." };
+  return value ? messages[value] : undefined;
 }

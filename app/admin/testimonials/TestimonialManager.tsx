@@ -51,7 +51,7 @@ const emptyDraft: Draft = {
   focalX: 0.5, focalY: 0.2, rating: 5, published: false, featured: false,
 };
 
-export default function TestimonialManager({ initialTestimonials, googleConfigured }: { initialTestimonials: AdminTestimonial[]; googleConfigured: boolean }) {
+export default function TestimonialManager({ initialTestimonials }: { initialTestimonials: AdminTestimonial[] }) {
   const [testimonials, setTestimonials] = useState(initialTestimonials);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -63,7 +63,6 @@ export default function TestimonialManager({ initialTestimonials, googleConfigur
   const publishedCount = useMemo(() => testimonials.filter((item) => item.published).length, [testimonials]);
   const featuredCount = useMemo(() => testimonials.filter((item) => item.featured).length, [testimonials]);
   const googleCount = useMemo(() => testimonials.filter((item) => item.sourceProvider === "GOOGLE").length, [testimonials]);
-  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   useEffect(() => () => { if (previewUrl?.startsWith("blob:")) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
 
@@ -194,16 +193,6 @@ export default function TestimonialManager({ initialTestimonials, googleConfigur
     finally { setBusy(null); }
   }
 
-  async function syncGoogleReviews() {
-    setBusy("google-sync"); setError(null); setSyncMessage(null);
-    try {
-      const data = await jsonRequest("/api/admin/testimonials/google-sync", { method: "POST" });
-      const result = data.result as { imported: number; updated: number };
-      setSyncMessage(`${result.imported} new review${result.imported === 1 ? "" : "s"} imported; ${result.updated} refreshed. Reloading…`);
-      window.location.reload();
-    } catch (caught) { setError(caught instanceof Error ? caught.message : "Unable to sync Google reviews."); setBusy(null); }
-  }
-
   return (
     <>
       <section className="grid gap-4 sm:grid-cols-4">
@@ -211,13 +200,6 @@ export default function TestimonialManager({ initialTestimonials, googleConfigur
       </section>
 
       {error && <div role="alert" className="rounded-xl border border-red-400/20 bg-red-400/[0.06] px-5 py-4 text-sm text-red-200/80">{error}</div>}
-      {syncMessage && <div role="status" className="rounded-xl border border-emerald-300/15 bg-emerald-300/[0.04] px-5 py-4 text-sm text-emerald-100/65">{syncMessage}</div>}
-
-      <section className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5 sm:flex sm:items-center sm:justify-between sm:gap-6 sm:p-6">
-        <div><p className="eyebrow text-[var(--helios-orange)]">Google Business Profile</p><h2 className="mt-2 text-xl font-light text-white">Review synchronization</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-white/35">{googleConfigured ? "Connection is available. Reviews arrive as drafts and never publish automatically." : "Google API approval is pending. This is an authorization state, not a synchronization failure; manual testimonials remain fully available."}</p></div>
-        <div className="mt-5 shrink-0 text-left sm:mt-0 sm:text-right"><p className={`mb-3 text-[0.52rem] uppercase tracking-[0.14em] ${googleConfigured ? "text-emerald-200/50" : "text-amber-200/50"}`}>{googleConfigured ? "Connected" : "Approval pending · authorization required"}</p><button type="button" onClick={syncGoogleReviews} disabled={!googleConfigured || busy !== null} className="admin-btn-secondary">{busy === "google-sync" ? "Testing & syncing…" : googleConfigured ? "Test connection & sync" : "Sync unavailable"}</button></div>
-      </section>
-
       <section className="rounded-2xl border border-white/[0.08] bg-[#111] p-5 sm:p-7">
         <div className="flex flex-col gap-5 border-b border-white/[0.08] pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div><p className="eyebrow text-[var(--helios-orange)]">Social proof library</p><h2 className="mt-2 text-2xl font-light text-white">Agent testimonials</h2><p className="mt-2 text-sm text-white/30">Published, featured records appear on the homepage in this order.</p></div>
