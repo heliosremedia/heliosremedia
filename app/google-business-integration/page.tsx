@@ -26,7 +26,7 @@ export default async function GoogleBusinessIntegrationPage() {
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_18%,rgba(217,107,43,0.14),transparent_34%)]" />
       <div className="container-shell relative py-20 sm:py-28 lg:py-32">
         <p className="eyebrow text-[var(--helios-orange)]">Google Business Profile integration</p>
-        <h1 className="mt-7 max-w-5xl font-display text-[clamp(3.25rem,7vw,7rem)] font-light leading-[0.9] tracking-[-0.055em]">Helios Studio<br /><span className="text-white/52">Google Reviews</span></h1>
+        <h1 className="mt-7 max-w-5xl font-display text-[clamp(2.45rem,13vw,7rem)] font-light leading-[0.9] tracking-[-0.055em] sm:text-[clamp(3.25rem,7vw,7rem)]">Helios Studio<br /><span className="whitespace-nowrap text-white/52">Google Reviews</span></h1>
         <p className="mt-8 max-w-3xl text-base leading-8 text-white/48 sm:text-lg">This application allows authorized Helios administrators to connect the company’s Google Business Profile and synchronize customer reviews into Helios Studio for administrative review and curation.</p>
       </div>
     </section>
