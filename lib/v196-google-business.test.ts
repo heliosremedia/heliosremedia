@@ -48,6 +48,7 @@ test("Google review source records can be collapsed above manual testimonials", 
   const panel = read("app/admin/testimonials/GoogleBusinessConnectionPanel.tsx");
   const manager = read("app/admin/testimonials/TestimonialManager.tsx");
   const page = read("app/admin/testimonials/page.tsx");
+  const adminState = read("lib/google-business-admin.ts");
   assert.match(panel, /aria-expanded=\{expanded\}/);
   assert.match(panel, /aria-controls="google-business-details"/);
   assert.match(panel, /hidden=\{!expanded\}/);
@@ -56,7 +57,9 @@ test("Google review source records can be collapsed above manual testimonials", 
   assert.match(panel, /scrollTo\(\{ top: 0/);
   assert.match(manager, /Imported Google/);
   assert.match(manager, /importedGoogleReviewCount/);
-  assert.match(page, /importedGoogleReviewCount=\{googleState\.reviews\.length\}/);
+  assert.match(page, /importedGoogleReviewCount=\{googleState\.importedReviewCount\}/);
+  assert.match(adminState, /googleBusinessReview\.count/);
+  assert.match(panel, /state\.importedReviewCount/);
 });
 
 test("homepage shows the newest 20 uncurated Google reviews and links to the full library", () => {

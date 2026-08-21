@@ -9,13 +9,14 @@ export function canManageGoogleBusiness(session: AdminSession) { return session.
 export async function getGoogleBusinessAdminState(session: AdminSession & { workspaceId: string }) {
   const base = { oauthConfigured: googleOAuthConfiguration().configured, authorized: canManageGoogleBusiness(session), databaseReady: true };
   try {
-    const [connection, reviews] = await Promise.all([
+    const [connection, reviews, importedReviewCount] = await Promise.all([
       prisma.googleBusinessConnection.findUnique({ where: { workspaceId: session.workspaceId }, select: { status: true, accountDisplayName: true, locationResourceName: true, locationTitle: true, locationAddress: true, availableLocations: true, lastSyncAt: true, lastSyncStatus: true, lastSyncError: true, connectedAt: true } }),
       prisma.googleBusinessReview.findMany({ where: { workspaceId: session.workspaceId }, orderBy: [{ reviewUpdatedAt: "desc" }, { createdAt: "desc" }], take: 50, select: { id: true, googleReviewId: true, reviewerName: true, reviewerPhotoUrl: true, starRating: true, reviewText: true, reviewCreatedAt: true, reviewUpdatedAt: true, businessReplyText: true, lastSyncedAt: true, syncStatus: true, testimonialId: true } }),
+      prisma.googleBusinessReview.count({ where: { workspaceId: session.workspaceId } }),
     ]);
-    return { ...base, connection, reviews };
+    return { ...base, connection, reviews, importedReviewCount };
   } catch (error) {
-    if (error instanceof Error && /GoogleBusiness(Connection|Review)|does not exist/i.test(error.message)) return { ...base, databaseReady: false, connection: null, reviews: [] };
+    if (error instanceof Error && /GoogleBusiness(Connection|Review)|does not exist/i.test(error.message)) return { ...base, databaseReady: false, connection: null, reviews: [], importedReviewCount: 0 };
     throw error;
   }
 }
