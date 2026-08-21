@@ -50,6 +50,8 @@ test("Google review source records can be collapsed above manual testimonials", 
   assert.match(panel, /aria-controls="google-business-details"/);
   assert.match(panel, /hidden=\{!expanded\}/);
   assert.match(panel, /imported review/);
+  assert.match(panel, /history\.replaceState/);
+  assert.match(panel, /scrollTo\(\{ top: 0/);
 });
 
 test("homepage shows the newest 20 uncurated Google reviews and links to the full library", () => {

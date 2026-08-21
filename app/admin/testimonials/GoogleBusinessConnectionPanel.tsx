@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export type GoogleLocationOption = { accountResourceName: string; accountDisplayName: string; locationResourceName: string; locationTitle: string; locationAddress: string | null };
 export type GoogleConnectionState = {
@@ -27,6 +27,12 @@ export default function GoogleBusinessConnectionPanel({ initialState, callbackMe
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState(callbackMessage || "");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!callbackMessage) return;
+    window.history.replaceState(window.history.state, "", window.location.pathname);
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [callbackMessage]);
 
   async function request(url: string, options: RequestInit) {
     const response = await fetch(url, { ...options, headers: { "Content-Type": "application/json", ...options.headers } });
