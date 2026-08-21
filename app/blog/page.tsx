@@ -24,7 +24,7 @@ export default async function BlogPage(){
           <h1 className="mt-6 max-w-5xl font-display text-[clamp(3.4rem,7.2vw,6.5rem)] font-light leading-[0.98] tracking-[-0.055em]">
             Ideas that shape how property is seen.
           </h1>
-          <div className="pt-20 sm:pt-24">
+          <div className="pt-8 sm:pt-10">
             <p className="mobile-summary max-w-3xl text-base leading-8 text-white/50">
               Editorial perspective, marketing guidance, and stories from{" "}
               {settings.businessName}.
