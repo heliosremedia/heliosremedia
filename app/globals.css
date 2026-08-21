@@ -304,6 +304,11 @@
   --helios-border-strong: rgba(245, 241, 234, 0.28);
 
   --font-helios: "Helios", Arial, Helvetica, sans-serif;
+  --public-button-font-size: 0.625rem;
+  --public-button-font-weight: 600;
+  --public-button-letter-spacing: 0.13em;
+  --public-button-compact-letter-spacing: 0.11em;
+  --public-button-line-height: 1;
 
   --container-width: 80rem;
   --container-padding: clamp(1.5rem, 4vw, 4rem);
@@ -614,10 +619,10 @@ video {
     gap: .55rem;
     border-radius: 9999px;
     padding: .7rem 1.15rem;
-    font-size: .625rem;
-    font-weight: 600;
-    letter-spacing: .13em;
-    line-height: 1;
+    font-size: var(--public-button-font-size);
+    font-weight: var(--public-button-font-weight);
+    letter-spacing: var(--public-button-letter-spacing);
+    line-height: var(--public-button-line-height);
     text-transform: uppercase;
     transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
   }
@@ -625,5 +630,14 @@ video {
   .public-btn:disabled { cursor: not-allowed; opacity: .42; }
   .public-btn-outline { border: 1px solid rgb(255 255 255 / .14); color: rgb(255 255 255 / .62); }
   .public-btn-outline:hover { border-color: rgb(255 255 255 / .32); color: white; }
-  .public-btn-compact { min-height: 2.75rem; padding: .65rem 1rem; letter-spacing: .11em; }
+  .public-btn-compact { min-height: 2.75rem; padding: .65rem 1rem; letter-spacing: var(--public-button-compact-letter-spacing); }
+}
+
+button.film-example-selector {
+  font-family: var(--font-helios), Arial, Helvetica, sans-serif;
+  font-size: var(--public-button-font-size) !important;
+  font-weight: var(--public-button-font-weight) !important;
+  letter-spacing: var(--public-button-compact-letter-spacing) !important;
+  line-height: var(--public-button-line-height) !important;
+  white-space: nowrap;
 }
