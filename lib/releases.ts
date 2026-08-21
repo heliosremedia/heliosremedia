@@ -19,6 +19,19 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
+    version: "V1.9.7",
+    slug: "v1-9-7",
+    releaseDate: null,
+    title: "Blog Series AI Assistant",
+    summary: "Adds a guided, review-first planning assistant for coherent Blog Series strategy and article roadmaps without saving or publishing content.",
+    newFeatures: ["Four-step Blog Series planning assistant", "Validated 6 to 12 article roadmap with conflict and factual-confirmation review", "Field-by-field apply, edit, regenerate, and explicit replacement controls"],
+    improvements: ["Existing Helios voice, services, locations, portfolio context, calls to action, and blog topics ground every proposal", "Accessible desktop dialog and mobile full-screen workflow preserve the unsaved Blog Series form"],
+    bugFixes: [],
+    securityInfrastructure: ["Assistant access is authenticated, role-restricted, rate-limited, and bound to the active workspace", "Legacy global blog context fails closed unless the canonical single workspace can be verified", "Prompts, provider details, credentials, and temporary proposals are not persisted or exposed in logs"],
+    administratorActions: ["Review conflicts and factual-confirmation warnings before applying suggestions", "Use the existing Save series action only after reviewing the populated form"],
+    status: "PLANNED",
+  },
+  {
     version: "V1.9.6",
     slug: "v1-9-6",
     releaseDate: "2026-08-21",
