@@ -43,3 +43,11 @@ test("scheduled Google synchronization is disabled during the initial OAuth phas
   assert.doesNotMatch(read("vercel.json"), /api\/cron\/google-reviews/);
   assert.match(read("app/api/cron/google-reviews/route.ts"), /scheduledSyncEnabled: false/);
 });
+
+test("Google review source records can be collapsed above manual testimonials", () => {
+  const panel = read("app/admin/testimonials/GoogleBusinessConnectionPanel.tsx");
+  assert.match(panel, /aria-expanded=\{expanded\}/);
+  assert.match(panel, /aria-controls="google-business-details"/);
+  assert.match(panel, /hidden=\{!expanded\}/);
+  assert.match(panel, /imported review/);
+});

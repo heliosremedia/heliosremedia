@@ -22,6 +22,7 @@ function statusText(state: GoogleConnectionState) {
 
 export default function GoogleBusinessConnectionPanel({ initialState, callbackMessage }: { initialState: GoogleConnectionState; callbackMessage?: string }) {
   const [state] = useState(initialState);
+  const [expanded, setExpanded] = useState(Boolean(callbackMessage));
   const [location, setLocation] = useState(state.connection?.locationResourceName || "");
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState(callbackMessage || "");
@@ -64,8 +65,9 @@ export default function GoogleBusinessConnectionPanel({ initialState, callbackMe
   return <section className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5 sm:p-7" aria-labelledby="google-business-heading">
     <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
       <div><p className="eyebrow text-[var(--helios-orange)]">Google Business Profile</p><h2 id="google-business-heading" className="mt-2 text-2xl font-light text-white">Review connection</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-white/38">Connect one company location, synchronize reviews manually, then choose which reviews become unpublished Featured Google Review drafts.</p></div>
-      <div className="lg:text-right"><p className="text-[0.55rem] font-semibold uppercase tracking-[0.16em] text-white/35">{statusText(state)}</p>{state.connection?.locationTitle && <p className="mt-2 text-sm text-white/65">{state.connection.locationTitle}</p>}{state.connection?.locationAddress && <p className="mt-1 text-xs text-white/30">{state.connection.locationAddress}</p>}</div>
+      <div className="flex items-start justify-between gap-5 lg:justify-end lg:text-right"><div><p className="text-[0.55rem] font-semibold uppercase tracking-[0.16em] text-white/35">{statusText(state)}</p>{state.connection?.locationTitle && <p className="mt-2 text-sm text-white/65">{state.connection.locationTitle}</p>}{state.connection?.locationAddress && <p className="mt-1 text-xs text-white/30">{state.connection.locationAddress}</p>}<p className="mt-2 text-xs text-white/25">{state.reviews.length} imported review{state.reviews.length === 1 ? "" : "s"}</p></div><button type="button" aria-expanded={expanded} aria-controls="google-business-details" onClick={() => setExpanded((current) => !current)} className="admin-btn-icon-sm shrink-0" title={expanded ? "Collapse Google reviews" : "Expand Google reviews"}><span aria-hidden="true">{expanded ? "−" : "+"}</span><span className="sr-only">{expanded ? "Collapse Google Business Profile" : "Expand Google Business Profile"}</span></button></div>
     </div>
+    <div id="google-business-details" hidden={!expanded}>
     {error && <p role="alert" className="mt-5 rounded-xl border border-red-400/20 bg-red-400/[0.06] p-4 text-sm text-red-200/80">{error}</p>}
     {message && <p role="status" aria-live="polite" className="mt-5 rounded-xl border border-emerald-300/15 bg-emerald-300/[0.04] p-4 text-sm text-emerald-100/65">{message}</p>}
 
@@ -82,5 +84,6 @@ export default function GoogleBusinessConnectionPanel({ initialState, callbackMe
     {state.connection?.lastSyncError && <p role="alert" className="mt-3 text-xs leading-5 text-red-200/65">{state.connection.lastSyncError}</p>}
 
     {state.reviews.length > 0 && <div className="mt-8 border-t border-white/[0.08] pt-7"><div><h3 className="text-xl font-light text-white">Imported reviews</h3><p className="mt-2 text-sm text-white/30">Imported source records stay private until you create and publish a curated testimonial.</p></div><div className="mt-5 grid gap-3 lg:grid-cols-2">{state.reviews.map((review) => <article key={review.id} className="rounded-xl border border-white/[0.08] bg-black/20 p-5"><div className="flex items-start justify-between gap-3"><div><h4 className="text-sm text-white/75">{review.reviewerName}</h4><p aria-label={`${review.starRating} out of 5 stars`} className="mt-1 text-xs text-[var(--helios-orange)]">{"★".repeat(review.starRating)}<span className="text-white/15">{"★".repeat(5 - review.starRating)}</span></p></div><span className="rounded-full border border-white/10 px-2 py-1 text-[0.48rem] uppercase tracking-[0.12em] text-white/30">{review.testimonialId ? "Draft created" : "Private"}</span></div><p className="mt-4 line-clamp-4 text-sm leading-6 text-white/45">{review.reviewText || "Rating without written review"}</p>{review.businessReplyText && <p className="mt-3 border-l border-white/10 pl-3 text-xs leading-5 text-white/28">Business reply: {review.businessReplyText}</p>}<button type="button" disabled={Boolean(review.testimonialId) || busy !== null || !review.reviewText} onClick={() => curate(review.id)} className="admin-btn-secondary mt-5">{busy === review.id ? "Creating…" : review.testimonialId ? "Draft created" : "Create curated draft"}</button></article>)}</div></div>}
+    </div>
   </section>;
 }

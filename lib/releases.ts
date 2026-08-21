@@ -21,7 +21,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
     version: "V1.9.6",
     slug: "v1-9-6",
-    releaseDate: null,
+    releaseDate: "2026-08-21",
     title: "Google Business Profile Integration Foundation",
     summary: "Prepares Helios Studio for Google OAuth verification and company-scoped, review-before-publish Google Business Profile synchronization.",
     newFeatures: ["Public Helios Studio Google Reviews application information page", "Admin-only OAuth 2.0 connection with PKCE and secure state validation", "Company location selection, manual review synchronization, disconnection, and curated-draft workflow"],
@@ -29,7 +29,7 @@ const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
     bugFixes: [],
     securityInfrastructure: ["Refresh tokens are encrypted at rest and never exposed to the browser or application logs", "Connections, imported reviews, state records, and mutations are workspace-scoped", "Imported reviews never publish automatically and scheduled synchronization remains disabled during this phase"],
     administratorActions: ["Review and approve the proposed Privacy Policy and Terms wording", "Configure protected Google OAuth environment variables", "Register the exact production redirect URI in Google Cloud", "Connect and select the Helios Google Business Profile only after credentials are configured"],
-    status: "PLANNED",
+    status: "LIVE",
   },
   {
     version: "V1.9.5",
