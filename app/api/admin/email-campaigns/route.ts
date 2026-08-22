@@ -8,14 +8,17 @@ import { findUnsupportedVariables, renderPersonalizedEmail } from "@/lib/client-
 import { DEFAULT_CAMPAIGN_TIME_ZONE, zonedLocalToUtc } from "@/lib/client-communications/scheduling";
 import { prisma } from "@/lib/prisma";
 import { bouncedBackSystemKey } from "@/lib/client-communications/bounce-core";
+import { normalizeEmailTemplateKey } from "@/lib/client-communications/email-format";
 
 type Payload = {
-  action?: "test" | "send" | "schedule";
+  action?: "draft" | "test" | "send" | "schedule";
+  draftId?: string;
   subject?: string; previewText?: string; body?: string;
   mode?: "ALL" | "GROUPS" | "INDIVIDUALS";
   groupIds?: string[]; clientIds?: string[];
   testEmail?: string; previewClientId?: string; useSampleProfile?: boolean;
   scheduledLocal?: string; scheduledTimeZone?: string;
+  templateKey?: string;
 };
 
 function cleanText(value: unknown, max: number) {
@@ -35,10 +38,31 @@ export async function POST(request: Request) {
     const subject = cleanText(input.subject, 160);
     const previewText = cleanText(input.previewText, 180);
     const body = cleanText(input.body, 20_000);
-    if (!subject || !body) return NextResponse.json({ success: false, error: "Subject and message are required." }, { status: 400 });
+    const templateKey = normalizeEmailTemplateKey(input.templateKey);
+    if (input.action === "draft" && !subject && !body) return NextResponse.json({ success: false, error: "Add a subject or message before saving a draft." }, { status: 400 });
+    if (input.action !== "draft" && (!subject || !body)) return NextResponse.json({ success: false, error: "Subject and message are required." }, { status: 400 });
     const unsupported = findUnsupportedVariables(subject, previewText, body);
     if (unsupported.length) {
       return NextResponse.json({ success: false, error: `Unsupported personalization variable: {{${unsupported[0]}}}` }, { status: 400 });
+    }
+
+    if (input.action === "draft") {
+      const mode = input.mode ?? "ALL";
+      const groupIds = [...new Set((input.groupIds ?? []).filter((value): value is string => typeof value === "string"))];
+      const clientIds = [...new Set((input.clientIds ?? []).filter((value): value is string => typeof value === "string"))];
+      const selection = { groupIds, clientIds };
+      const existing = input.draftId ? await prisma.emailCampaign.findFirst({
+        where: { id: input.draftId, status: "DRAFT", createdById: session.userId }, select: { id: true },
+      }) : null;
+      const campaign = existing
+        ? await prisma.emailCampaign.update({ where: { id: existing.id }, data: { subject: subject || "Untitled email", previewText: previewText || null, body, templateKey, recipientMode: mode, selection, rowVersion: { increment: 1 } } })
+        : await prisma.emailCampaign.create({ data: { subject: subject || "Untitled email", previewText: previewText || null, body, templateKey, status: "DRAFT", recipientMode: mode, selection, recipientCount: 0, createdById: session.userId } });
+      await recordAuditEvent({
+        actorId: session.userId, actorEmail: session.email, action: existing ? "EMAIL_CAMPAIGN_DRAFT_UPDATED" : "EMAIL_CAMPAIGN_DRAFT_SAVED",
+        entityType: "EmailCampaign", entityId: campaign.id, summary: `Email draft "${campaign.subject}" saved.`,
+        metadata: { templateKey, recipientMode: mode },
+      });
+      return NextResponse.json({ success: true, campaignId: campaign.id, updatedAt: campaign.updatedAt.toISOString(), message: "Draft saved. You can resume it from campaign history." });
     }
 
     if (input.action === "test") {
@@ -61,7 +85,7 @@ export async function POST(request: Request) {
       await sendTestCampaign({
         to: testEmail,
         subject: personalized.subject,
-        html: renderCampaignEmail({ body: personalized.body, previewText: personalized.previewText, unsubscribeToken: "test-preview-disabled" }),
+        html: renderCampaignEmail({ body: personalized.body, previewText: personalized.previewText, unsubscribeToken: "test-preview-disabled", templateKey }),
         source: "campaign",
       });
       await recordAuditEvent({
@@ -109,7 +133,7 @@ export async function POST(request: Request) {
     const status = input.action === "schedule" ? "SCHEDULED" : "PROCESSING";
     const campaign = await prisma.emailCampaign.create({
       data: {
-        subject, previewText: previewText || null, body, status, recipientMode: mode,
+        subject, previewText: previewText || null, body, templateKey, status, recipientMode: mode,
         selection: { groupIds, clientIds }, recipientCount: unique.length, createdById: session.userId,
         scheduledAt, scheduledTimeZone: scheduledAt ? timeZone : null,
         scheduledById: scheduledAt ? session.userId : null,
@@ -126,12 +150,14 @@ export async function POST(request: Request) {
       action: scheduledAt ? "EMAIL_CAMPAIGN_SCHEDULED" : "EMAIL_CAMPAIGN_SEND_NOW",
       entityType: "EmailCampaign", entityId: campaign.id,
       summary: scheduledAt ? `Campaign "${subject}" scheduled for ${scheduledAt.toISOString()}.` : `Campaign "${subject}" started immediately.`,
-      metadata: { recipientMode: mode, recipients: unique.length, scheduledAt: scheduledAt?.toISOString(), timeZone, variables: [...new Set([subject, previewText, body].flatMap((value) => [...value.matchAll(/\{\{([A-Z_]+)\}\}/g)].map((match) => match[1])))] },
+      metadata: { recipientMode: mode, recipients: unique.length, scheduledAt: scheduledAt?.toISOString(), timeZone, templateKey, variables: [...new Set([subject, previewText, body].flatMap((value) => [...value.matchAll(/\{\{([A-Z_]+)\}\}/g)].map((match) => match[1])))] },
     });
     if (scheduledAt) {
+      if (input.draftId) await prisma.emailCampaign.deleteMany({ where: { id: input.draftId, status: "DRAFT", createdById: session.userId } });
       return NextResponse.json({ success: true, campaignId: campaign.id, scheduledAt: scheduledAt.toISOString(), message: `Email scheduled for ${unique.length} recipients.` });
     }
     const completed = await processEmailCampaign(campaign.id);
+    if (completed.sentCount > 0 && input.draftId) await prisma.emailCampaign.deleteMany({ where: { id: input.draftId, status: "DRAFT", createdById: session.userId } });
     return NextResponse.json({
       success: completed.sentCount > 0, campaignId: campaign.id,
       sent: completed.sentCount, failed: completed.failedCount,
