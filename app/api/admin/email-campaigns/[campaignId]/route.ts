@@ -7,6 +7,39 @@ import { prisma } from "@/lib/prisma";
 
 type Context = { params: Promise<{ campaignId: string }> };
 
+export async function DELETE(_request: Request, context: Context) {
+  const session = await getAdminSession();
+  if (!session || !["OWNER", "ADMIN"].includes(session.role)) {
+    return NextResponse.json({ success: false, error: "Owner or administrator access is required." }, { status: 403 });
+  }
+
+  const { campaignId } = await context.params;
+  const draft = await prisma.emailCampaign.findFirst({
+    where: { id: campaignId, status: "DRAFT", createdById: session.userId },
+    select: { id: true, subject: true },
+  });
+  if (!draft) {
+    return NextResponse.json({ success: false, error: "This draft was not found or can no longer be deleted." }, { status: 404 });
+  }
+
+  const result = await prisma.emailCampaign.deleteMany({
+    where: { id: campaignId, status: "DRAFT", createdById: session.userId },
+  });
+  if (!result.count) {
+    return NextResponse.json({ success: false, error: "This draft changed in another tab. Refresh and try again." }, { status: 409 });
+  }
+
+  await recordAuditEvent({
+    actorId: session.userId,
+    actorEmail: session.email,
+    action: "EMAIL_CAMPAIGN_DRAFT_DELETED",
+    entityType: "EmailCampaign",
+    entityId: campaignId,
+    summary: `Email draft "${draft.subject}" deleted by ${session.email}.`,
+  });
+  return NextResponse.json({ success: true, message: "Draft deleted." });
+}
+
 export async function PATCH(request: Request, context: Context) {
   const session = await getAdminSession();
   if (!session || !["OWNER", "ADMIN"].includes(session.role)) {
