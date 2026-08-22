@@ -52,6 +52,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.85,
     },
     {
+      url: absolute("/photo-finishes"),
+      changeFrequency: "monthly",
+      priority: 0.85,
+    },
+    {
       url: absolute("/about"),
       changeFrequency: "monthly",
       priority: 0.7,
