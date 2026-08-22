@@ -2274,6 +2274,7 @@ model EmailCampaign {
   subject             String
   previewText         String?
   body                String
+  templateKey         String              @default("SIGNATURE")
   status              EmailCampaignStatus @default(DRAFT)
   recipientMode       String
   selection           Json
