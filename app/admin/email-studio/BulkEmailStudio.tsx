@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { renderPersonalizedEmail } from "@/lib/client-communications/personalization";
 import SentCampaignSnapshot from "./SentCampaignSnapshot";
+import { cleanPastedEmailText, EMAIL_TEMPLATES, normalizeEmailTemplateKey, renderFormattedEmailBody, type EmailTemplateKey } from "@/lib/client-communications/email-format";
 
 type Client = { id: string; firstName: string; lastName: string; displayName: string; email: string; phone: string | null; groupIds: string[] };
 type Group = { id: string; name: string; count: number };
 type Campaign = {
-  id: string; subject: string; previewText: string | null; body: string; status: string;
+  id: string; subject: string; previewText: string | null; body: string; templateKey: string; status: string;
   recipientMode: string; selection: { groupIds?: string[]; clientIds?: string[] };
   recipientCount: number; sentCount: number; failedCount: number; createdAt: string;
   sentAt: string | null; scheduledAt: string | null; scheduledTimeZone: string | null;
@@ -24,6 +25,7 @@ const variables = [
 ] as const;
 
 function campaignHistorySummary(campaign: Campaign) {
+  if (campaign.status === "DRAFT") return "Saved draft";
   if (campaign.status === "SCHEDULED" && campaign.scheduledAt) {
     return `Scheduled ${new Date(campaign.scheduledAt).toLocaleString("en-US", { timeZone: campaign.scheduledTimeZone ?? "America/Denver", timeZoneName: "short" })}`;
   }
@@ -41,7 +43,7 @@ function campaignHistorySummary(campaign: Campaign) {
 
 export default function BulkEmailStudio({ clients, groups, campaigns, canSend, defaultTestEmail, initialDraft }: {
   clients: Client[]; groups: Group[]; campaigns: Campaign[]; canSend: boolean; defaultTestEmail: string;
-  initialDraft?: { id: string; subject: string; previewText: string | null; body: string; recipientMode: string; selection: { groupIds?: string[]; clientIds?: string[] } } | null;
+  initialDraft?: { id: string; subject: string; previewText: string | null; body: string; templateKey: string; recipientMode: string; selection: { groupIds?: string[]; clientIds?: string[] } } | null;
 }) {
   const [mode, setMode] = useState<Mode>("ALL");
   const [groupIds, setGroupIds] = useState<string[]>([]);
@@ -50,6 +52,8 @@ export default function BulkEmailStudio({ clients, groups, campaigns, canSend, d
   const [subject, setSubject] = useState(initialDraft?.subject || "");
   const [previewText, setPreviewText] = useState(initialDraft?.previewText || "");
   const [body, setBody] = useState(initialDraft?.body || "");
+  const [templateKey, setTemplateKey] = useState<EmailTemplateKey>(normalizeEmailTemplateKey(initialDraft?.templateKey));
+  const [draftId, setDraftId] = useState<string | null>(initialDraft?.id ?? null);
   const [testEmail, setTestEmail] = useState(defaultTestEmail);
   const [previewClientId, setPreviewClientId] = useState("");
   const [personalizedPreview, setPersonalizedPreview] = useState(false);
@@ -131,6 +135,48 @@ export default function BulkEmailStudio({ clients, groups, campaigns, canSend, d
     });
   }
 
+  function wrapBodySelection(before: string, after = before, placeholder = "text") {
+    const element = bodyRef.current;
+    const start = element?.selectionStart ?? body.length;
+    const end = element?.selectionEnd ?? start;
+    const selected = body.slice(start, end) || placeholder;
+    const next = `${body.slice(0, start)}${before}${selected}${after}${body.slice(end)}`;
+    setBody(next);
+    requestAnimationFrame(() => {
+      element?.focus();
+      element?.setSelectionRange(start + before.length, start + before.length + selected.length);
+    });
+  }
+
+  function prefixBodySelection(prefix: string, placeholder: string) {
+    const element = bodyRef.current;
+    const start = element?.selectionStart ?? body.length;
+    const end = element?.selectionEnd ?? start;
+    const selected = body.slice(start, end) || placeholder;
+    const formatted = selected.split("\n").map((line) => `${prefix}${line}`).join("\n");
+    setBody(`${body.slice(0, start)}${formatted}${body.slice(end)}`);
+    requestAnimationFrame(() => element?.focus());
+  }
+
+  function cleanFormatting() {
+    const cleaned = cleanPastedEmailText(body);
+    setBody(cleaned);
+    setMessage({ tone: "ok", text: cleaned === body ? "Formatting is already clean." : "Copied formatting cleaned. Markdown emphasis and personalization tokens were preserved." });
+  }
+
+  async function formatWithAi() {
+    setBusy("format-ai"); setMessage(null);
+    try {
+      const response = await fetch("/api/admin/email-ai", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "format", body, templateKey }) });
+      const data = await response.json();
+      if (!response.ok || !data.success || typeof data.formattedBody !== "string") throw new Error(data.error || "AI could not format this message.");
+      if (!window.confirm("Apply the AI formatting? Wording will remain unchanged, but emphasis and section structure may be added.")) return;
+      setBody(data.formattedBody);
+      setMessage({ tone: "ok", text: `AI formatting applied${Array.isArray(data.changes) && data.changes.length ? `: ${data.changes.join("; ")}` : "."} Review the preview before sending.` });
+    } catch (error) { setMessage({ tone: "error", text: error instanceof Error ? error.message : "AI could not format this message." }); }
+    finally { setBusy(null); }
+  }
+
   async function writeWithAi() {
     setBusy("ai"); setMessage(null);
     try {
@@ -148,7 +194,7 @@ export default function BulkEmailStudio({ clients, groups, campaigns, canSend, d
     setAiDraft(null); setMessage({tone:"ok",text:"AI draft accepted. You remain in full control—review and edit before testing or sending."});
   }
 
-  async function submit(action: "test" | "send" | "schedule") {
+  async function submit(action: "draft" | "test" | "send" | "schedule") {
     if (action === "send" && !window.confirm(`Send this campaign to ${recipientCount} recipients now? This cannot be undone.`)) return;
     setBusy(action);
     setMessage(null);
@@ -157,7 +203,7 @@ export default function BulkEmailStudio({ clients, groups, campaigns, canSend, d
       const response = await fetch(rescheduling ? `/api/admin/email-campaigns/${rescheduling.id}` : "/api/admin/email-campaigns", {
         method: rescheduling ? "PATCH" : "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: rescheduling ? "reschedule" : action, subject, previewText, body, mode, groupIds, clientIds, testEmail,
+          action: rescheduling ? "reschedule" : action, draftId, subject, previewText, body, templateKey, mode, groupIds, clientIds, testEmail,
           previewClientId: previewClientId || undefined,
           scheduledLocal: scheduleLocal, scheduledTimeZone: scheduleTimeZone,
           rowVersion: rescheduling?.rowVersion,
@@ -166,7 +212,19 @@ export default function BulkEmailStudio({ clients, groups, campaigns, canSend, d
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.error || "The request could not be completed.");
       setMessage({ tone: "ok", text: data.message });
+      if (action === "draft") {
+        setDraftId(data.campaignId);
+        const saved: Campaign = {
+          id: data.campaignId, subject: subject || "Untitled email", previewText, body, templateKey, status: "DRAFT", recipientMode: mode,
+          selection: { groupIds, clientIds }, recipientCount: 0, sentCount: 0, failedCount: 0,
+          createdAt: new Date().toISOString(), sentAt: null, scheduledAt: null, scheduledTimeZone: null,
+          rowVersion: 1, createdBy: { displayName: "You" }, delivery: { accepted: 0, delivered: 0, failed: 0, awaitingConfirmation: 0 },
+        };
+        setHistory((current) => [saved, ...current.filter((item) => item.id !== data.campaignId)]);
+      }
       if (action === "schedule") {
+        if (draftId) setHistory((current) => current.filter((item) => item.id !== draftId));
+        setDraftId(null);
         setScheduleOpen(false);
         setReschedulingCampaign(null);
         if (rescheduling) {
@@ -174,18 +232,36 @@ export default function BulkEmailStudio({ clients, groups, campaigns, canSend, d
             ...item, scheduledAt: new Date(scheduleLocal).toISOString(), scheduledTimeZone: scheduleTimeZone, rowVersion: item.rowVersion + 1,
           } : item));
         } else setHistory((current) => [{
-          id: data.campaignId, subject, previewText, body, status: "SCHEDULED", recipientMode: mode,
+          id: data.campaignId, subject, previewText, body, templateKey, status: "SCHEDULED", recipientMode: mode,
           selection: { groupIds, clientIds }, recipientCount, sentCount: 0, failedCount: 0,
           createdAt: new Date().toISOString(), sentAt: null, scheduledAt: data.scheduledAt,
           scheduledTimeZone: scheduleTimeZone, rowVersion: 1, createdBy: { displayName: "You" },
           delivery: { accepted: 0, delivered: 0, failed: 0, awaitingConfirmation: 0 },
         }, ...current]);
+      } else if (action === "send" && data.sent > 0) {
+        if (draftId) setHistory((current) => current.filter((item) => item.id !== draftId));
+        setDraftId(null);
       }
     } catch (error) {
       setMessage({ tone: "error", text: error instanceof Error ? error.message : "The request could not be completed." });
     } finally {
       setBusy(null);
     }
+  }
+
+  function resumeDraft(campaign: Campaign) {
+    if ((subject.trim() || previewText.trim() || body.trim()) && campaign.id !== draftId && !window.confirm("Replace the current composer with this saved draft?")) return;
+    setSubject(campaign.subject === "Untitled email" ? "" : campaign.subject);
+    setPreviewText(campaign.previewText ?? "");
+    setBody(campaign.body);
+    setTemplateKey(normalizeEmailTemplateKey(campaign.templateKey));
+    setMode(["ALL", "GROUPS", "INDIVIDUALS"].includes(campaign.recipientMode) ? campaign.recipientMode as Mode : "ALL");
+    setGroupIds(campaign.selection.groupIds ?? []);
+    setClientIds(campaign.selection.clientIds ?? []);
+    setDraftId(campaign.id);
+    setViewingCampaign(null);
+    setMessage({ tone: "ok", text: "Draft reopened in the composer. Review recipients before testing, scheduling, or sending." });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function openSchedule(campaign?: Campaign) {
@@ -214,7 +290,7 @@ export default function BulkEmailStudio({ clients, groups, campaigns, canSend, d
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.error || "The campaign could not be updated.");
       if (action === "edit") {
-        setSubject(campaign.subject); setPreviewText(campaign.previewText ?? ""); setBody(campaign.body);
+        setSubject(campaign.subject); setPreviewText(campaign.previewText ?? ""); setBody(campaign.body); setTemplateKey(normalizeEmailTemplateKey(campaign.templateKey));
         setMode(campaign.recipientMode as Mode);
         setGroupIds(campaign.selection.groupIds ?? []); setClientIds(campaign.selection.clientIds ?? []);
       }
@@ -247,10 +323,15 @@ export default function BulkEmailStudio({ clients, groups, campaigns, canSend, d
           {aiDraft&&<div className="mt-4 rounded-xl border border-white/[0.08] bg-black/25 p-4 text-sm text-white/55"><p className="font-medium text-white/75">{aiDraft.subjectOptions?.[0]||"Subject option unavailable"}</p>{aiDraft.previewText&&<p className="mt-2 text-xs text-white/35">{aiDraft.previewText}</p>}<p className="mt-4 whitespace-pre-wrap leading-6">{aiDraft.body}</p>{aiDraft.cta&&<p className="mt-3 text-[var(--helios-orange)]">{aiDraft.cta}</p>}</div>}
           </div>
         </div>
+        <fieldset className="mt-5">
+          <legend className="text-xs text-white/35">Email template</legend>
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">{EMAIL_TEMPLATES.map((template) => <button key={template.key} type="button" aria-pressed={templateKey === template.key} onClick={() => setTemplateKey(template.key)} className={`rounded-xl border p-4 text-left transition ${templateKey === template.key ? "border-[var(--helios-orange)]/55 bg-[var(--helios-orange)]/[0.08]" : "border-white/[0.09] bg-black/20 hover:border-white/20"}`}><span className="flex items-center gap-3"><span aria-hidden="true" className="h-7 w-7 rounded-full border border-white/15" style={{ background: template.swatch }} /><span className="text-sm text-white/75">{template.name}</span></span><span className="mt-2 block text-xs leading-5 text-white/30">{template.description}</span></button>)}</div>
+          <p className="mt-3 text-xs leading-5 text-white/25">Templates control presentation only. Your wording, recipients, and sending choices remain unchanged.</p>
+        </fieldset>
         <div className="mt-5 space-y-4">
           <label className="block text-xs text-white/35">Subject<input ref={subjectRef} value={subject} maxLength={160} onFocus={() => setActiveField("subject")} onChange={(event) => setSubject(event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm font-normal text-white" /></label>
           <label className="block text-xs text-white/35">Preview text <span className="text-white/20">(optional)</span><input ref={previewRef} value={previewText} maxLength={180} onFocus={() => setActiveField("previewText")} onChange={(event) => setPreviewText(event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm font-normal text-white" /></label>
-          <label className="block text-xs text-white/35">Message<textarea ref={bodyRef} value={body} maxLength={20000} onFocus={() => setActiveField("body")} onChange={(event) => setBody(event.target.value)} rows={12} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm font-normal leading-7 text-white" /></label>
+          <div><div className="flex flex-wrap items-center justify-between gap-3"><label htmlFor="email-message" className="text-xs text-white/35">Message</label><div className="flex flex-wrap gap-1" role="toolbar" aria-label="Message formatting"><button type="button" onClick={() => wrapBodySelection("**", "**", "important text")} className="rounded-lg border border-white/10 px-2.5 py-1.5 text-xs font-bold text-white/55" title="Bold">B</button><button type="button" onClick={() => wrapBodySelection("*", "*", "emphasized text")} className="rounded-lg border border-white/10 px-2.5 py-1.5 text-xs italic text-white/55" title="Italic">I</button><button type="button" onClick={() => prefixBodySelection("### ", "Section heading")} className="rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-white/55" title="Heading">H</button><button type="button" onClick={() => prefixBodySelection("- ", "List item")} className="rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-white/55" title="Bulleted list">List</button><button type="button" onClick={() => wrapBodySelection("[", "](https://)", "link text")} className="rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-white/55" title="Link">Link</button><button type="button" onClick={() => setBody((value) => `${value.trimEnd()}\n\n---\n\n`)} className="rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-white/55" title="Divider">Divider</button></div></div><textarea id="email-message" ref={bodyRef} value={body} maxLength={20000} onFocus={() => setActiveField("body")} onChange={(event) => setBody(event.target.value)} rows={12} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm font-normal leading-7 text-white" /><div className="mt-2 flex flex-wrap items-center gap-2"><button type="button" disabled={!body.trim() || busy !== null} onClick={cleanFormatting} className="admin-btn-secondary">Clean Up Formatting</button><button type="button" disabled={body.trim().length < 12 || busy !== null} onClick={formatWithAi} className="admin-btn-secondary">{busy === "format-ai" ? "Formatting…" : "Format with AI"}</button><span className="text-xs text-white/25">Formatting changes presentation, not your message.</span></div></div>
         </div>
         <div className="mt-5 rounded-xl border border-white/[0.08] bg-black/20 p-4">
           <p className="text-xs uppercase tracking-[0.14em] text-white/35">Personalization Variables</p>
@@ -263,19 +344,27 @@ export default function BulkEmailStudio({ clients, groups, campaigns, canSend, d
       {message && <p role="status" className={`rounded-xl border px-5 py-4 text-sm ${message.tone === "ok" ? "border-emerald-400/20 bg-emerald-400/[0.06] text-emerald-200/80" : "border-red-400/20 bg-red-400/[0.06] text-red-200/80"}`}>{message.text}</p>}
       <section className="rounded-2xl border border-white/[0.08] bg-[#111] p-5">
         <div className="grid gap-3 md:grid-cols-2"><label className="text-xs text-white/35">Test recipient<input type="email" value={testEmail} onChange={(event) => setTestEmail(event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm font-normal text-white" /></label><label className="text-xs text-white/35">Preview/Test personalization<select value={previewClientId} onChange={(event) => setPreviewClientId(event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#111] px-4 py-3 text-sm font-normal text-white"><option value="">Preview Recipient</option>{clients.map((client) => <option key={client.id} value={client.id}>{client.displayName} · {client.email}</option>)}</select></label></div>
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-end"><button type="button" disabled={disabled} onClick={() => submit("test")} className="admin-btn-secondary">{busy === "test" ? "Sending test…" : "Send Test"}</button><button type="button" disabled={disabled || recipientCount === 0} onClick={() => openSchedule()} className="admin-btn-secondary">Schedule Email</button><button type="button" disabled={disabled || recipientCount === 0} onClick={() => submit("send")} className="admin-btn-primary">{busy === "send" ? "Sending…" : "Send Now"}</button></div>
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end"><button type="button" disabled={busy !== null || (!subject.trim() && !body.trim())} onClick={() => submit("draft")} className="admin-btn-secondary">{busy === "draft" ? "Saving…" : draftId ? "Update Draft" : "Save Draft"}</button><button type="button" disabled={disabled} onClick={() => submit("test")} className="admin-btn-secondary">{busy === "test" ? "Sending test…" : "Send Test"}</button><button type="button" disabled={disabled || recipientCount === 0} onClick={() => openSchedule()} className="admin-btn-secondary">Schedule Email</button><button type="button" disabled={disabled || recipientCount === 0} onClick={() => submit("send")} className="admin-btn-primary">{busy === "send" ? "Sending…" : "Send Now"}</button></div>
       </section>
       {!canSend && <p className="text-xs text-amber-200/65">Owner or administrator access is required to test, schedule, or send campaigns.</p>}
     </div>
     <aside className="space-y-6 xl:self-start">
-      <section className="rounded-2xl border border-white/[0.08] bg-[#111] p-5 xl:sticky xl:top-24 xl:z-10">
+      <section className="relative rounded-2xl border border-white/[0.08] bg-[#111] p-5">
         <div className="flex items-center justify-between gap-3"><p className="text-xs uppercase tracking-[0.16em] text-white/30">Live preview</p><button type="button" onClick={() => setPersonalizedPreview((value) => !value)} className="text-xs text-[#e7ddc8]/60">{personalizedPreview ? "Personalized" : "Template"}</button></div>
         {personalizedPreview && <p className="mt-2 text-xs text-white/25">Previewing as {previewProfile.fullName}; final content varies by recipient.</p>}
-        <div className="mt-5 bg-[#0b0b0b] p-5"><p className="text-[10px] uppercase tracking-[0.18em] text-[var(--helios-orange)]">Helios Real Estate Media</p><h3 className="mt-5 text-xl font-light text-white">{preview.subject || "Your email subject"}</h3>{preview.previewText && <p className="mt-2 text-xs text-white/30">{preview.previewText}</p>}<div className="mt-5 whitespace-pre-wrap border border-white/[0.08] bg-[#121211] p-5 text-sm leading-7 text-white/60">{preview.body || "Your message preview will appear here."}</div></div>
+        <EmailTemplatePreview templateKey={templateKey} subject={preview.subject} previewText={preview.previewText} body={preview.body} />
       </section>
-      <section className="rounded-2xl border border-white/[0.08] bg-[#111] p-5"><p className="text-xs uppercase tracking-[0.16em] text-[var(--helios-orange)]">Campaign history</p><div className="mt-3 divide-y divide-white/[0.06]">{history.map((campaign) => <article key={campaign.id} className="py-3 first:pt-0"><div className="flex items-start justify-between gap-3"><p className="line-clamp-2 text-sm text-white/65">{campaign.subject}</p><span className="text-[10px] uppercase tracking-[0.12em] text-white/30">{campaign.status}</span></div><p className="mt-1 text-xs leading-5 text-white/25">{campaignHistorySummary(campaign)} · {new Date(campaign.createdAt).toLocaleDateString()}</p><button type="button" ref={campaign.id === viewingCampaign?.id ? historyTriggerRef : undefined} aria-label={`View campaign: ${campaign.subject}`} onClick={(event)=>{historyTriggerRef.current=event.currentTarget;setViewingCampaign(campaign);}} className="mt-2 text-xs text-[#e7ddc8]/65">View</button>{campaign.status === "SCHEDULED" && <div className="mt-2 flex flex-wrap gap-2"><button type="button" onClick={() => openSchedule(campaign)} className="text-xs text-[#e7ddc8]/65">Reschedule</button><button type="button" onClick={() => manageCampaign(campaign, "send-now")} className="text-xs text-[#e7ddc8]/65">Send Now</button><button type="button" onClick={() => manageCampaign(campaign, "edit")} className="text-xs text-white/40">Edit</button><button type="button" onClick={() => manageCampaign(campaign, "cancel")} className="text-xs text-red-200/55">Cancel</button></div>}</article>)}{!history.length && <p className="py-6 text-sm text-white/30">No campaigns yet.</p>}</div></section>
+      <section className="rounded-2xl border border-white/[0.08] bg-[#111] p-5"><p className="text-xs uppercase tracking-[0.16em] text-[var(--helios-orange)]">Campaign history</p><p className="mt-1 text-xs leading-5 text-white/25">Resume drafts or inspect delivered email snapshots.</p><div className="mt-3 divide-y divide-white/[0.06]">{history.map((campaign) => <article key={campaign.id} className="py-3 first:pt-0"><div className="flex items-start justify-between gap-3"><p className="line-clamp-2 text-sm text-white/65">{campaign.subject}</p><span className="text-[10px] uppercase tracking-[0.12em] text-white/30">{campaign.status}</span></div><p className="mt-1 text-xs leading-5 text-white/25">{campaignHistorySummary(campaign)} · {new Date(campaign.createdAt).toLocaleDateString()}</p>{campaign.status === "DRAFT" ? <button type="button" onClick={() => resumeDraft(campaign)} className="mt-2 text-xs font-medium text-[#e7ddc8]">Resume Draft</button> : <button type="button" ref={campaign.id === viewingCampaign?.id ? historyTriggerRef : undefined} aria-label={`View campaign: ${campaign.subject}`} onClick={(event)=>{historyTriggerRef.current=event.currentTarget;setViewingCampaign(campaign);}} className="mt-2 text-xs text-[#e7ddc8]/65">View</button>}{campaign.status === "SCHEDULED" && <div className="mt-2 flex flex-wrap gap-2"><button type="button" onClick={() => openSchedule(campaign)} className="text-xs text-[#e7ddc8]/65">Reschedule</button><button type="button" onClick={() => manageCampaign(campaign, "send-now")} className="text-xs text-[#e7ddc8]/65">Send Now</button><button type="button" onClick={() => manageCampaign(campaign, "edit")} className="text-xs text-white/40">Edit</button><button type="button" onClick={() => manageCampaign(campaign, "cancel")} className="text-xs text-red-200/55">Cancel</button></div>}</article>)}{!history.length && <p className="py-6 text-sm text-white/30">No campaigns yet.</p>}</div></section>
     </aside>
     {scheduleOpen && <div role="dialog" aria-modal="true" aria-labelledby="schedule-title" className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4"><div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#111] p-6 shadow-2xl"><h2 id="schedule-title" className="text-2xl font-light text-white">{reschedulingCampaign ? "Reschedule Email" : "Schedule Email"}</h2><p className="mt-2 text-sm text-white/35">{reschedulingCampaign?.recipientCount ?? recipientCount} recipients · {reschedulingCampaign?.subject || subject || "Untitled campaign"}</p><div className="mt-5 grid gap-4 sm:grid-cols-2"><label className="text-xs text-white/35">Send date and time<input type="datetime-local" value={scheduleLocal} min={minimumScheduleLocal} onChange={(event) => setScheduleLocal(event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white" /></label><label className="text-xs text-white/35">Timezone<select value={scheduleTimeZone} onChange={(event) => setScheduleTimeZone(event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#111] px-4 py-3 text-sm text-white"><option value="America/Denver">Mountain Time</option><option value="America/Los_Angeles">Pacific Time</option><option value="America/Chicago">Central Time</option><option value="America/New_York">Eastern Time</option></select></label></div><p className="mt-4 text-xs leading-5 text-white/30">Delivery time is saved in UTC while preserving the selected timezone. Recipient membership and personalization values are frozen when scheduled; compliance is checked again before delivery.</p><div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><button type="button" onClick={() => { setScheduleOpen(false); setReschedulingCampaign(null); }} className="admin-btn-secondary">Cancel</button><button type="button" disabled={!scheduleLocal || busy !== null} onClick={() => submit("schedule")} className="admin-btn-primary">{busy === "schedule" ? "Scheduling…" : reschedulingCampaign ? "Confirm Reschedule" : "Confirm Schedule"}</button></div></div></div>}
-    {viewingCampaign && <div role="dialog" aria-modal="true" aria-labelledby="sent-email-title" className="fixed inset-0 z-[100] overflow-y-auto bg-black/85 p-4 backdrop-blur-sm sm:p-8"><div className="mx-auto max-w-3xl rounded-2xl border border-white/10 bg-[#111] p-6 sm:p-8"><div className="flex items-start justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Immutable sent snapshot</p><h2 id="sent-email-title" className="mt-3 text-2xl font-light text-white">{viewingCampaign.subject}</h2>{viewingCampaign.previewText && <p className="mt-2 text-sm text-white/35">{viewingCampaign.previewText}</p>}</div><button autoFocus type="button" aria-label="Close sent email" onClick={()=>{setViewingCampaign(null);window.setTimeout(()=>historyTriggerRef.current?.focus(),0);}} className="admin-btn-secondary">Close</button></div><dl className="mt-6 grid gap-4 text-xs text-white/40 sm:grid-cols-2"><div><dt className="uppercase tracking-[.12em] text-white/25">Sender</dt><dd className="mt-1">{viewingCampaign.createdBy.displayName}</dd></div><div><dt className="uppercase tracking-[.12em] text-white/25">Audience</dt><dd className="mt-1">{viewingCampaign.recipientMode.replaceAll("_"," ")} · {viewingCampaign.recipientCount} eligible recipients</dd></div><div><dt className="uppercase tracking-[.12em] text-white/25">Sent</dt><dd className="mt-1">{viewingCampaign.sentAt ? new Date(viewingCampaign.sentAt).toLocaleString("en-US", { timeZone: "America/Denver", timeZoneName: "short" }) : "Not recorded"}</dd></div><div><dt className="uppercase tracking-[.12em] text-white/25">Provider-confirmed delivery</dt><dd className="mt-1">{viewingCampaign.delivery.delivered} delivered · {viewingCampaign.delivery.accepted} provider accepted · {viewingCampaign.delivery.failed} failed{viewingCampaign.delivery.awaitingConfirmation ? ` · ${viewingCampaign.delivery.awaitingConfirmation} awaiting confirmation` : ""}</dd></div></dl><SentCampaignSnapshot body={viewingCampaign.body} /><p className="mt-4 text-xs leading-5 text-white/25">This read-only view is rendered from the immutable payload recorded at send time. Historical content is not regenerated.</p></div></div>}
+    {viewingCampaign && <div role="dialog" aria-modal="true" aria-labelledby="sent-email-title" className="fixed inset-0 z-[100] overflow-y-auto bg-black/85 p-4 backdrop-blur-sm sm:p-8"><div className="mx-auto max-w-3xl rounded-2xl border border-white/10 bg-[#111] p-6 sm:p-8"><div className="flex items-start justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Immutable sent snapshot</p><h2 id="sent-email-title" className="mt-3 text-2xl font-light text-white">{viewingCampaign.subject}</h2>{viewingCampaign.previewText && <p className="mt-2 text-sm text-white/35">{viewingCampaign.previewText}</p>}</div><button autoFocus type="button" aria-label="Close sent email" onClick={()=>{setViewingCampaign(null);window.setTimeout(()=>historyTriggerRef.current?.focus(),0);}} className="admin-btn-secondary">Close</button></div><dl className="mt-6 grid gap-4 text-xs text-white/40 sm:grid-cols-2"><div><dt className="uppercase tracking-[.12em] text-white/25">Sender</dt><dd className="mt-1">{viewingCampaign.createdBy.displayName}</dd></div><div><dt className="uppercase tracking-[.12em] text-white/25">Audience</dt><dd className="mt-1">{viewingCampaign.recipientMode.replaceAll("_"," ")} · {viewingCampaign.recipientCount} eligible recipients</dd></div><div><dt className="uppercase tracking-[.12em] text-white/25">Sent</dt><dd className="mt-1">{viewingCampaign.sentAt ? new Date(viewingCampaign.sentAt).toLocaleString("en-US", { timeZone: "America/Denver", timeZoneName: "short" }) : "Not recorded"}</dd></div><div><dt className="uppercase tracking-[.12em] text-white/25">Provider-confirmed delivery</dt><dd className="mt-1">{viewingCampaign.delivery.delivered} delivered · {viewingCampaign.delivery.accepted} provider accepted · {viewingCampaign.delivery.failed} failed{viewingCampaign.delivery.awaitingConfirmation ? ` · ${viewingCampaign.delivery.awaitingConfirmation} awaiting confirmation` : ""}</dd></div></dl><SentCampaignSnapshot body={viewingCampaign.body} templateKey={viewingCampaign.templateKey} /><p className="mt-4 text-xs leading-5 text-white/25">This read-only view is rendered from the immutable payload recorded at send time. Historical content is not regenerated.</p></div></div>}
   </div>;
+}
+
+function EmailTemplatePreview({ templateKey, subject, previewText, body }: { templateKey: EmailTemplateKey; subject: string; previewText?: string | null; body: string }) {
+  const light = templateKey === "EDITORIAL_LIGHT" || templateKey === "PERSONAL_LETTER";
+  const theme = light ? { outer: "#e8e2d7", card: "#f7f3eb", text: "#4f4942", heading: "#211f1c", border: "#d8d0c3" } : { outer: "#0b0b0b", card: "#121211", text: "#d7d1c8", heading: "#f5f1e8", border: templateKey === "OFFER_SPOTLIGHT" ? "#d96b2b" : "#2c2a27" };
+  const name = EMAIL_TEMPLATES.find((template) => template.key === templateKey)?.name ?? "Helios Signature";
+  const html = renderFormattedEmailBody(body || "Your message preview will appear here.", { textColor: theme.text, mutedColor: theme.text, headingColor: theme.heading });
+  return <div className="mt-5 p-5" style={{ background: theme.outer }}><p className="text-[10px] uppercase tracking-[0.18em] text-[var(--helios-orange)]">{name}</p><h3 className="mt-5 font-serif text-xl font-light" style={{ color: theme.heading }}>{subject || "Your email subject"}</h3>{previewText && <p className="mt-2 text-xs opacity-50" style={{ color: theme.text }}>{previewText}</p>}<div className={`mt-5 p-5 ${templateKey === "OFFER_SPOTLIGHT" ? "border-t-4 border-t-[var(--helios-orange)]" : ""}`} style={{ background: theme.card, borderColor: theme.border }} dangerouslySetInnerHTML={{ __html: html }} /></div>;
 }
