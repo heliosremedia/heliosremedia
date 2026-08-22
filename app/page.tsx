@@ -26,6 +26,7 @@ function portfolioCollectionHref(destination: string | null, serviceSlug: string
 }
 import { getHomepageCardVideo } from "@/lib/homepage-work-cards";
 import { getPublicWorkspaceId } from "@/lib/public-workspace";
+import { normalizeGoogleReviewDisplayMode, publicGoogleReviewWhere } from "@/lib/google-business-public";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function Home() {
   const publicWorkspaceId = await getPublicWorkspaceId();
-  const [testimonials, googleReviews, trustedLogos, homepageProjects, homepageWorkCards, homepageCta, settings] = await Promise.all([
+  const settings = await getSiteSettings();
+  const googleReviewDisplayMode = normalizeGoogleReviewDisplayMode(settings.googleReviewDisplayMode);
+  const [testimonials, googleReviews, googleReviewAggregate, trustedLogos, homepageProjects, homepageWorkCards, homepageCta] = await Promise.all([
     prisma.testimonial.findMany({
       where: { published: true, featured: true, sourceProvider: "MANUAL" },
       orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
@@ -52,11 +55,12 @@ export default async function Home() {
       },
     }),
     prisma.googleBusinessReview.findMany({
-      where: { workspaceId: publicWorkspaceId, reviewText: { not: null }, testimonialId: null, syncStatus: "CURRENT" },
+      where: { ...publicGoogleReviewWhere(publicWorkspaceId, googleReviewDisplayMode), testimonialId: null },
       orderBy: [{ reviewUpdatedAt: "desc" }, { reviewCreatedAt: "desc" }, { createdAt: "desc" }],
       take: 20,
       select: { id: true, reviewerName: true, reviewText: true, starRating: true, reviewCreatedAt: true },
     }),
+    prisma.googleBusinessReview.aggregate({ where: { workspaceId: publicWorkspaceId, syncStatus: "CURRENT" }, _count: { _all: true }, _avg: { starRating: true } }),
     prisma.trustedLogo.findMany({
       where: { published: true, logoUrl: { not: null } },
       orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
@@ -80,7 +84,6 @@ export default async function Home() {
       },
     }),
     getCtaForSlot("HOME_PRIMARY"),
-    getSiteSettings(),
   ]);
   const featuredProject = homepageProjects
     .filter((item) => item.project.heroMedia?.storageKey)
@@ -139,7 +142,7 @@ export default async function Home() {
         displayOpacity: logo.displayOpacity,
         displayScale: logo.displayScale,
       }))} />
-      <InTheirWords googleReviews={googleReviews.map((item) => ({ id: item.id, agentName: item.reviewerName, testimonial: item.reviewText!, rating: item.starRating, sourceUrl: process.env.GOOGLE_BUSINESS_REVIEWS_URL || null, reviewedAt: item.reviewCreatedAt?.toISOString() ?? null }))} testimonials={testimonials.map((item) => ({
+      <InTheirWords googleReviewSummary={{ average: googleReviewAggregate._avg.starRating ?? 0, total: googleReviewAggregate._count._all }} googleReviews={googleReviews.map((item) => ({ id: item.id, agentName: item.reviewerName, testimonial: item.reviewText!, rating: item.starRating, sourceUrl: process.env.GOOGLE_BUSINESS_REVIEWS_URL || null, reviewedAt: item.reviewCreatedAt?.toISOString() ?? null }))} testimonials={testimonials.map((item) => ({
         id: item.id,
         quote: item.testimonial,
         name: item.agentName,

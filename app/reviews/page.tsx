@@ -8,6 +8,7 @@ import { getPublicWorkspaceId } from "@/lib/public-workspace";
 import { buildPageMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/site-settings";
 import { displayTestimonial } from "@/lib/testimonials";
+import { normalizeGoogleReviewDisplayMode, publicGoogleReviewWhere } from "@/lib/google-business-public";
 
 export const dynamic = "force-dynamic";
 
@@ -18,12 +19,15 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ReviewsPage() {
   const [workspaceId, settings] = await Promise.all([getPublicWorkspaceId(), getSiteSettings()]);
-  const reviews = await prisma.googleBusinessReview.findMany({
-    where: { workspaceId, reviewText: { not: null }, syncStatus: "CURRENT" },
+  const mode = normalizeGoogleReviewDisplayMode(settings.googleReviewDisplayMode);
+  const [reviews, aggregate] = await Promise.all([prisma.googleBusinessReview.findMany({
+    where: publicGoogleReviewWhere(workspaceId, mode),
     orderBy: [{ reviewUpdatedAt: "desc" }, { reviewCreatedAt: "desc" }, { createdAt: "desc" }],
     select: { id: true, reviewerName: true, reviewText: true, starRating: true, reviewCreatedAt: true },
-  });
+  }), prisma.googleBusinessReview.aggregate({ where: { workspaceId, syncStatus: "CURRENT" }, _count: { _all: true }, _avg: { starRating: true } })]);
   const googleUrl = process.env.GOOGLE_BUSINESS_REVIEWS_URL || null;
+  const averageRating = aggregate._avg.starRating ?? 0;
+  const roundedRating = Math.round(averageRating);
 
   return <main className="min-h-screen bg-[#080808] text-white">
     <Navbar variant="solid" />
@@ -32,7 +36,7 @@ export default async function ReviewsPage() {
       <div className="container-shell relative py-14 sm:py-16 lg:py-20">
         <p className="eyebrow text-[var(--helios-orange)]">Client experiences</p>
         <h1 className="mt-6 max-w-5xl font-display text-[clamp(3rem,7.2vw,6.5rem)] font-light leading-[0.9] tracking-[-0.055em]">Trust, in their<br /><span className="italic text-white/52">own words.</span></h1>
-        <div className="mt-8 flex flex-col gap-5 sm:flex-row sm:items-center"><p className="max-w-2xl text-base leading-8 text-white/48 sm:text-lg">Verified Google reviews from the agents and teams who trust Helios to bring their listings to life.</p><p className="shrink-0 text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-white/35">{reviews.length} written review{reviews.length === 1 ? "" : "s"}</p></div>
+        <div className="mt-8 flex flex-col gap-5 sm:flex-row sm:items-center"><p className="max-w-2xl text-base leading-8 text-white/48 sm:text-lg">Selected Google reviews from the agents and teams who trust Helios to bring their listings to life.</p><p aria-label={`${averageRating.toFixed(1)} out of 5 stars from ${aggregate._count._all} Google reviews`} className="shrink-0 text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-white/35"><span aria-hidden="true" className="mr-2 text-[var(--helios-orange)]">{"★".repeat(roundedRating)}<span className="text-white/15">{"★".repeat(5 - roundedRating)}</span></span>{averageRating.toFixed(1)} on Google · {aggregate._count._all} reviews</p></div>
       </div>
     </section>
 

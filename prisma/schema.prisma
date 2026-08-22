@@ -1054,6 +1054,7 @@ model SiteSettings {
   bookingEmailLabel         String?
   bookingPhoneVisible       Boolean     @default(true)
   bookingEmailVisible       Boolean     @default(true)
+  googleReviewDisplayMode   String      @default("FOUR_AND_FIVE")
 
   heroVideoUrl             String?
   heroPosterUrl            String?            @default("/work/featured-estate.jpg")
@@ -1619,6 +1620,7 @@ model GoogleBusinessReview {
   lastSyncedAt           DateTime               @default(now())
   syncStatus             GoogleReviewSyncStatus @default(CURRENT)
   syncError              String?
+  publicVisibilityOverride Boolean?
 
   testimonialId String?      @unique
   testimonial   Testimonial? @relation(fields: [testimonialId], references: [id], onDelete: SetNull)

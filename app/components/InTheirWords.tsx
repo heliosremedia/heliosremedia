@@ -38,7 +38,7 @@ function getRelativePosition(
   return "left";
 }
 
-export default function InTheirWords({ testimonials, googleReviews }: { testimonials: TestimonialCard[]; googleReviews: GoogleReviewCard[] }) {
+export default function InTheirWords({ testimonials, googleReviews, googleReviewSummary }: { testimonials: TestimonialCard[]; googleReviews: GoogleReviewCard[]; googleReviewSummary: { average: number; total: number } }) {
   const prefersReducedMotion = useReducedMotion();
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -343,7 +343,7 @@ export default function InTheirWords({ testimonials, googleReviews }: { testimon
           </div>
         </div>
 
-        {googleReviews.length > 0 && <GoogleReviewRibbon reviews={googleReviews} reducedMotion={Boolean(prefersReducedMotion)} />}
+        {googleReviews.length > 0 && <GoogleReviewRibbon reviews={googleReviews} reducedMotion={Boolean(prefersReducedMotion)} summary={googleReviewSummary} />}
 
         <motion.footer
           initial={{
@@ -380,9 +380,10 @@ export default function InTheirWords({ testimonials, googleReviews }: { testimon
   );
 }
 
-function GoogleReviewRibbon({ reviews, reducedMotion }: { reviews: GoogleReviewCard[]; reducedMotion: boolean }) {
+function GoogleReviewRibbon({ reviews, reducedMotion, summary }: { reviews: GoogleReviewCard[]; reducedMotion: boolean; summary: { average: number; total: number } }) {
   const repeated = reviews.length > 1 ? [...reviews, ...reviews] : reviews;
-  return <div className="mt-12 border-y border-white/[0.065] py-7"><div className="mb-6 flex flex-col gap-3 px-1 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-[0.54rem] font-semibold uppercase tracking-[0.22em] text-[#f06b24]">More from Google</p><p className="mt-2 font-serif text-xl text-white/70">The latest client experiences.</p></div><Link href="/reviews" className="self-start text-[0.58rem] font-semibold uppercase tracking-[0.2em] text-white/45 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f06b24] sm:self-auto">See all Google reviews <span aria-hidden="true">→</span></Link></div><div className="group/reviews relative overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]" aria-label="Latest Google reviews">
+  const roundedRating = Math.round(summary.average);
+  return <div className="mt-12 border-y border-white/[0.065] py-7"><div className="mb-6 flex flex-col gap-3 px-1 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-[0.54rem] font-semibold uppercase tracking-[0.22em] text-[#f06b24]">Selected Google reviews</p><p className="mt-2 font-serif text-xl text-white/70">The latest client experiences.</p></div><div className="flex flex-col items-start gap-2 sm:items-end"><p aria-label={`${summary.average.toFixed(1)} out of 5 stars from ${summary.total} Google reviews`} className="text-[0.55rem] font-semibold uppercase tracking-[0.16em] text-white/38"><span aria-hidden="true" className="mr-2 text-[#f06b24]">{"★".repeat(roundedRating)}<span className="text-white/15">{"★".repeat(5 - roundedRating)}</span></span>{summary.average.toFixed(1)} on Google · {summary.total} reviews</p><Link href="/reviews" className="text-[0.58rem] font-semibold uppercase tracking-[0.2em] text-white/45 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f06b24]">See all Google reviews <span aria-hidden="true">→</span></Link></div></div><div className="group/reviews relative overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]" aria-label="Latest Google reviews">
     <div className={`flex w-max gap-5 ${reducedMotion || reviews.length === 1 ? "flex-wrap justify-center" : "animate-[google-review-ribbon_240s_linear_infinite] group-hover/reviews:[animation-play-state:paused] group-focus-within/reviews:[animation-play-state:paused]"}`}>
       {repeated.map((review, index) => {
         const content = <><div className="flex items-center justify-between gap-5"><span className="text-[0.5rem] font-semibold uppercase tracking-[0.18em] text-white/38">Google review</span><span aria-label={`${review.rating} out of 5 stars`} className="text-[0.55rem] tracking-[0.15em] text-[#f06b24]">{"★".repeat(review.rating)}</span></div><p className="mt-4 line-clamp-3 font-serif text-[1.05rem] leading-6 text-[#eee8e1]/68">“{displayTestimonial(review.testimonial)}”</p><p className="mt-4 text-[0.54rem] font-medium uppercase tracking-[0.2em] text-white/45">{review.agentName}</p></>;

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { normalizeGoogleReviewDisplayMode } from "@/lib/google-business-public";
 
 export type PublicNavigationItem = {
   label: string;
@@ -42,6 +43,7 @@ export type PublicSiteSettings = {
   bookingHandoffHeadline: string | null; bookingHandoffExplanation: string | null;
   bookingPrimaryLabel: string | null; bookingCallLabel: string | null; bookingEmailLabel: string | null;
   bookingPhoneVisible: boolean; bookingEmailVisible: boolean;
+  googleReviewDisplayMode: "FOUR_AND_FIVE" | "FIVE_ONLY" | "MANUAL_ONLY";
   heroVideoUrl: string | null; heroPosterUrl: string | null; heroPosterAlt: string | null; locationLabel: string;
   heroEyebrow: string | null; heroHeadlineLineOne: string | null; heroHeadlineLineTwo: string | null; heroBody: string | null; heroPrimaryLabel: string | null; heroPrimaryDestination: string | null; heroSecondaryLabel: string | null; heroSecondaryDestination: string | null; availabilityEnabled: boolean; availabilityLabel: string | null; availabilityStatus: "AVAILABLE" | "ADVISORY" | "CRITICAL";
   heliosStandardImageStorageKey: string | null; heliosStandardImageUrl: string | null;
@@ -97,6 +99,7 @@ export const defaultSiteSettings: PublicSiteSettings = {
   bookingEmailLabel: null,
   bookingPhoneVisible: true,
   bookingEmailVisible: true,
+  googleReviewDisplayMode: "FOUR_AND_FIVE",
   heroVideoUrl: null,
   heroPosterUrl: "/work/featured-estate.jpg",
   heroPosterAlt: "Luxury real estate exterior photographed by Helios Real Estate Media",
@@ -194,6 +197,7 @@ export async function getSiteSettings(): Promise<PublicSiteSettings> {
     if (!settings) return defaultSiteSettings;
     return {
       ...settings,
+      googleReviewDisplayMode: normalizeGoogleReviewDisplayMode(settings.googleReviewDisplayMode),
       standardPrinciples: Array.isArray(settings.standardPrinciples) ? settings.standardPrinciples as PublicContentCard[] : defaultStandardPrinciples,
       approachCards: Array.isArray(settings.approachCards) ? settings.approachCards as PublicContentCard[] : defaultApproachCards,
       headerNavigation: Array.isArray(settings.headerNavigation) ? settings.headerNavigation as PublicNavigationItem[] : defaultHeaderNavigation,

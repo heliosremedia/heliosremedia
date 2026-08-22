@@ -71,6 +71,10 @@ test("homepage shows the newest 20 uncurated Google reviews and links to the ful
   assert.match(words, /href="\/reviews"/);
   assert.match(words, /See all Google reviews/);
   assert.match(words, /google-review-ribbon_240s_linear_infinite/);
+  assert.match(homepage, /publicGoogleReviewWhere/);
+  assert.match(homepage, /googleBusinessReview\.aggregate/);
+  assert.match(words, /Selected Google reviews/);
+  assert.match(words, /toFixed\(1\)[\s\S]*on Google/);
 });
 
 test("public reviews page lists current Google reviews and is included in the sitemap", () => {
@@ -82,4 +86,24 @@ test("public reviews page lists current Google reviews and is included in the si
   assert.match(page, /py-14 sm:py-16 lg:py-20/);
   assert.match(page, /<section className="relative overflow-hidden border-b border-white\/\[0\.07\]">/);
   assert.match(sitemap, /absolute\("\/reviews"\)/);
+  assert.match(page, /publicGoogleReviewWhere/);
+  assert.match(page, /googleBusinessReview\.aggregate/);
+});
+
+test("public review visibility has a safe default, tenant control, and per-review override", () => {
+  const schema = read("prisma/schema.prisma");
+  const rules = read("lib/google-business-public.ts");
+  const panel = read("app/admin/testimonials/GoogleBusinessConnectionPanel.tsx");
+  const displayRoute = read("app/api/admin/integrations/google-business/review-display/route.ts");
+  const visibilityRoute = read("app/api/admin/integrations/google-business/reviews/[reviewId]/visibility/route.ts");
+  assert.match(schema, /googleReviewDisplayMode\s+String\s+@default\("FOUR_AND_FIVE"\)/);
+  assert.match(schema, /publicVisibilityOverride\s+Boolean\?/);
+  assert.match(rules, /FOUR_AND_FIVE/);
+  assert.match(rules, /MANUAL_ONLY/);
+  assert.match(panel, /4 and 5 stars \(recommended\)/);
+  assert.match(panel, /Shown publicly/);
+  assert.match(panel, /Filtered from public/);
+  assert.doesNotMatch(panel, />Private</);
+  assert.match(displayRoute, /GOOGLE_REVIEW_DISPLAY_UPDATED/);
+  assert.match(visibilityRoute, /GOOGLE_REVIEW_VISIBILITY_UPDATED/);
 });
