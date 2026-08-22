@@ -32,11 +32,11 @@ export default async function EmailStudioPage({ searchParams }: { searchParams: 
       where: { createdBy: { workspaceId: session.workspaceId } },
       take: 25,
       orderBy: { createdAt: "desc" },
-      select: { id: true, subject: true, previewText: true, body: true, status: true, recipientMode: true, selection: true, recipientCount: true, sentCount: true, failedCount: true, createdAt: true, sentAt: true, scheduledAt: true, scheduledTimeZone: true, rowVersion: true, createdBy: { select: { displayName: true } }, recipients: { select: { id: true, status: true, providerMessageId: true, events: { select: { eventType: true } } } } },
+      select: { id: true, subject: true, previewText: true, body: true, templateKey: true, status: true, recipientMode: true, selection: true, recipientCount: true, sentCount: true, failedCount: true, createdAt: true, sentAt: true, scheduledAt: true, scheduledTimeZone: true, rowVersion: true, createdBy: { select: { displayName: true } }, recipients: { select: { id: true, status: true, providerMessageId: true, events: { select: { eventType: true } } } } },
     }),
     campaignId ? prisma.emailCampaign.findFirst({
       where: { id: campaignId, status: "DRAFT", createdById: session.userId },
-      select: { id: true, subject: true, previewText: true, body: true, recipientMode: true, selection: true },
+      select: { id: true, subject: true, previewText: true, body: true, templateKey: true, recipientMode: true, selection: true },
     }) : null,
     Promise.all([
       prisma.resendWebhookEvent.findFirst({
