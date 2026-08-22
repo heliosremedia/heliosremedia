@@ -30,3 +30,10 @@ test("assistant has dialog accessibility and responsive containment", () => {
   const ui=read("app/admin/blog/BlogSeriesAssistant.tsx");const dialog=read("app/admin/newsletter-studio/components/AccessibleDialog.tsx");
   assert.match(ui,/aria-live="polite"/);assert.match(ui,/role="alert"/);assert.match(ui,/max-h-\[calc\(100vh-15rem\)\] overflow-y-auto/);assert.match(dialog,/aria-modal="true"/);assert.match(dialog,/previouslyFocused\?\.focus/);assert.match(dialog,/event\.key === "Escape"/);
 });
+
+test("expanded series editor has an immediate accessible close action", () => {
+  const panel=read("app/admin/blog/BlogSeriesPanel.tsx");
+  assert.match(panel,/aria-controls="blog-series-editor"/);
+  assert.match(panel,/aria-label="Close Blog Series form">Close Series Form/);
+  assert.match(panel,/function closeEditor\(\).*newSeriesRef\.current\?\.focus/);
+});
