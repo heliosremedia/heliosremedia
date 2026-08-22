@@ -1,5 +1,7 @@
 "use client";
 
+import { normalizeEmailTemplateKey, renderFormattedEmailBody } from "@/lib/client-communications/email-format";
+
 type SnapshotBlock = {
   type?: string;
   eyebrow?: string | null;
@@ -37,12 +39,15 @@ export function parseSentSnapshot(body: string): { blocks: SnapshotBlock[]; tech
   }
 }
 
-export default function SentCampaignSnapshot({ body }: { body: string }) {
+export default function SentCampaignSnapshot({ body, templateKey }: { body: string; templateKey?: string | null }) {
   const snapshot = parseSentSnapshot(body);
   if (!snapshot) {
+    const template = normalizeEmailTemplateKey(templateKey);
+    const light = template === "EDITORIAL_LIGHT" || template === "PERSONAL_LETTER";
+    const colors = light ? { background: "#f7f3eb", text: "#4f4942", heading: "#211f1c" } : { background: "#121211", text: "#d7d1c8", heading: "#f5f1e8" };
     return <div className="mt-5 rounded-xl border border-white/[0.08] bg-black/30 p-5">
-      <p className="text-[0.56rem] font-semibold uppercase tracking-[.16em] text-[var(--helios-orange)]">Legacy message</p>
-      <div className="mt-4 whitespace-pre-wrap text-sm leading-7 text-white/65">{body || "This historical message has no readable body snapshot."}</div>
+      <p className="text-[0.56rem] font-semibold uppercase tracking-[.16em] text-[var(--helios-orange)]">Sent message · {template.replaceAll("_", " ")}</p>
+      <div className="mt-4 p-6" style={{ background: colors.background }} dangerouslySetInnerHTML={{ __html: renderFormattedEmailBody(body || "This historical message has no readable body snapshot.", { textColor: colors.text, mutedColor: colors.text, headingColor: colors.heading }) }} />
     </div>;
   }
   if (!snapshot.blocks.length) {
