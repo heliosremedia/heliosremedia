@@ -7,6 +7,7 @@ import {
   sendEmailBatch,
   type DeliverySource,
 } from "./providers/resend";
+import { normalizeEmailTemplateKey, renderFormattedEmailBody, type EmailTemplateKey } from "./email-format";
 
 export { EmailDeliveryError } from "./providers/resend";
 
@@ -20,17 +21,24 @@ export function renderCampaignEmail(input: {
   body: string;
   previewText?: string | null;
   unsubscribeToken: string;
+  templateKey?: EmailTemplateKey | string | null;
 }) {
-  const paragraphs = input.body
-    .trim()
-    .split(/\n{2,}/)
-    .map((paragraph) => `<p style="margin:0 0 20px;color:#d7d1c8;font-size:16px;line-height:1.75">${escapeHtml(paragraph).replace(/\n/g, "<br>")}</p>`)
-    .join("");
+  const templateKey = normalizeEmailTemplateKey(input.templateKey);
+  const themes = {
+    SIGNATURE: { outer: "#0b0b0b", card: "#121211", border: "#2c2a27", text: "#d7d1c8", muted: "#d7d1c8", heading: "#f5f1e8", footer: "#777", brand: "Helios Real Estate Media" },
+    EDITORIAL_LIGHT: { outer: "#e8e2d7", card: "#f5f0e7", border: "#d8cfc0", text: "#4e4942", muted: "#5e5850", heading: "#201e1b", footer: "#756e65", brand: "The Helios Journal" },
+    OFFER_SPOTLIGHT: { outer: "#0b0b0b", card: "#171411", border: "#d96b2b", text: "#e5ddd2", muted: "#e5ddd2", heading: "#fff8ef", footer: "#777", brand: "A Helios Client Exclusive" },
+    PERSONAL_LETTER: { outer: "#e9e5dc", card: "#f8f5ee", border: "#d8d1c5", text: "#4f4a43", muted: "#5d574f", heading: "#24211d", footer: "#756e65", brand: "A note from Helios" },
+  } as const;
+  const theme = themes[templateKey];
+  const paragraphs = renderFormattedEmailBody(input.body, { textColor: theme.text, mutedColor: theme.muted, headingColor: theme.heading });
   const unsubscribeUrl = `${getSiteUrl()}/unsubscribe?token=${encodeURIComponent(input.unsubscribeToken)}`;
   const preview = input.previewText
     ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0">${escapeHtml(input.previewText)}</div>`
     : "";
-  return `${preview}<div style="margin:0;background:#0b0b0b;padding:40px 18px;font-family:Arial,sans-serif"><div style="max-width:640px;margin:auto"><p style="margin:0 0 28px;color:#df6b2b;font-size:11px;letter-spacing:.2em;text-transform:uppercase">Helios Real Estate Media</p><div style="border:1px solid #2c2a27;background:#121211;padding:42px 36px">${paragraphs}</div><p style="margin:26px 0 0;color:#777;font-size:11px;line-height:1.6">You are receiving this email because you are a Helios client.<br><a href="${escapeHtml(unsubscribeUrl)}" style="color:#aaa">Unsubscribe from marketing emails</a></p></div></div>`;
+  const cardRadius = templateKey === "PERSONAL_LETTER" ? "0" : "3px";
+  const accent = templateKey === "OFFER_SPOTLIGHT" ? "border-top:5px solid #d96b2b;" : "";
+  return `${preview}<div style="margin:0;background:${theme.outer};padding:40px 18px;font-family:Arial,sans-serif"><div style="max-width:${templateKey === "PERSONAL_LETTER" ? "600" : "640"}px;margin:auto"><p style="margin:0 0 28px;color:#df6b2b;font-size:11px;letter-spacing:.2em;text-transform:uppercase">${theme.brand}</p><div style="${accent}border:1px solid ${theme.border};border-radius:${cardRadius};background:${theme.card};padding:42px 36px">${paragraphs}</div><p style="margin:26px 0 0;color:${theme.footer};font-size:11px;line-height:1.6">You are receiving this email because you are a Helios client.<br><a href="${escapeHtml(unsubscribeUrl)}" style="color:${theme.footer}">Unsubscribe from marketing emails</a></p></div></div>`;
 }
 
 export async function sendTestCampaign(input: {
