@@ -255,6 +255,16 @@ export function createAboutPageImageKey(
   return `site/about/${kind}/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
 }
 
+export function createPhotoComparisonImageKey(
+  workspaceId: string,
+  kind: "detail" | "standard" | "editorial",
+  mimeType: string,
+) {
+  const timestamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "-");
+  const safeWorkspace = workspaceId.replace(/[^a-zA-Z0-9_-]/g, "");
+  return `site/photo-comparison/${safeWorkspace}/${kind}-${timestamp}-${randomUUID().slice(0, 8)}.${extensionFromMime(mimeType)}`;
+}
+
 export function createTeamMemberPortraitKey(mimeType: string) {
   const timestamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "-");
   const id = randomUUID().slice(0, 8);

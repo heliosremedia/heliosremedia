@@ -72,6 +72,8 @@ export default async function ServiceDetailPage({ params }: ServicePageProps) {
     image: project.heroMedia?.storageKey ? getPublicAssetUrl(project.heroMedia.storageKey) : null,
     location: project.locationLabel || [project.city, project.state].filter(Boolean).join(", "),
   }));
+  const serviceIdentity = `${service.name} ${service.slug}`.toLowerCase();
+  const isPhotographyService = serviceIdentity.includes("photo") && !serviceIdentity.includes("drone") && !serviceIdentity.includes("aerial");
   const absolute = (path: string) => getCanonicalAbsoluteUrl(path, settings.websiteUrl);
   const structuredData = {
     "@context": "https://schema.org",
@@ -97,6 +99,7 @@ export default async function ServiceDetailPage({ params }: ServicePageProps) {
           <div className="mt-9 flex flex-wrap gap-4">
             <Link href="/inquire" className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--helios-orange)] px-7 text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-[var(--helios-orange-hover)]">Book this service</Link>
             <Link href={`/portfolio?service=${service.slug}#${service.slug}`} className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-7 text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/65 transition hover:border-white/35 hover:text-white">View full portfolio</Link>
+            {isPhotographyService && <Link href="/photo-finishes#compare" className="inline-flex min-h-12 items-center justify-center px-2 text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-[var(--helios-orange)] transition hover:text-white">Compare photo finishes</Link>}
           </div>
         </div>
       </section>

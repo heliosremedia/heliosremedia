@@ -806,6 +806,44 @@ model VideoComparisonPlacement {
   @@index([offeringId, showOnComparison, comparisonOrder])
 }
 
+model PhotoComparisonPage {
+  id          String    @id @default(cuid())
+  workspaceId String    @unique
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  active      Boolean   @default(true)
+  content     Json
+
+  detailImageStorageKey String?
+  detailImageUrl        String?
+  detailImageAlt        String
+
+  pairs PhotoComparisonPair[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PhotoComparisonPair {
+  id       String              @id @default(cuid())
+  pageId   String
+  page     PhotoComparisonPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  label    String
+  alt      String
+  caption  String?
+  active   Boolean             @default(true)
+  position Int                 @default(0)
+
+  standardImageStorageKey  String?
+  standardImageUrl         String
+  editorialImageStorageKey String?
+  editorialImageUrl        String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([pageId, active, position])
+}
+
 model ProjectMediaCollectionHero {
   projectId     String
   mediaCategory MediaCategory
@@ -1543,6 +1581,7 @@ model Workspace {
   locationPages             LocationPage[]
   videoOfferings            VideoOffering[]
   videoComparisonPlacements VideoComparisonPlacement[]
+  photoComparisonPage       PhotoComparisonPage?
   googleBusinessConnection  GoogleBusinessConnection?
   googleBusinessReviews     GoogleBusinessReview[]
 

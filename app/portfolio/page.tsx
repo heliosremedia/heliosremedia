@@ -75,6 +75,7 @@ export default async function PortfolioPage({
   const selectedMediaCategories = getServiceMediaCategories(selectedService);
   const showFilmLibrary = selectedMediaCategories.includes("CINEMATIC_FILM");
   const showSocialComparison = selectedMediaCategories.some((category) => ["VERTICAL_REEL", "SOCIAL_CONTENT"].includes(category));
+  const showPhotoComparison = selectedMediaCategories.includes("PHOTOGRAPHY");
 
   const [projects, filmMedia] = await Promise.all([
     prisma.project.findMany({
@@ -363,7 +364,7 @@ export default async function PortfolioPage({
             </h2>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4"><p className="text-xs text-white/30">{projects.length} {projects.length === 1 ? "project" : "projects"}</p>{showFilmLibrary && <Link href="/films#cinematic-films" className="text-[.58rem] font-semibold uppercase tracking-[.15em] text-[var(--helios-orange)] hover:text-white">Compare Film Options</Link>}{showSocialComparison && <Link href="/films#social-reels" className="text-[.58rem] font-semibold uppercase tracking-[.15em] text-[var(--helios-orange)] hover:text-white">Compare Social Reels</Link>}</div>
+          <div className="flex flex-wrap items-center gap-4"><p className="text-xs text-white/30">{projects.length} {projects.length === 1 ? "project" : "projects"}</p>{showPhotoComparison && <Link href="/photo-finishes#compare" className="text-[.58rem] font-semibold uppercase tracking-[.15em] text-[var(--helios-orange)] hover:text-white">Compare Photo Finishes</Link>}{showFilmLibrary && <Link href="/films#cinematic-films" className="text-[.58rem] font-semibold uppercase tracking-[.15em] text-[var(--helios-orange)] hover:text-white">Compare Film Options</Link>}{showSocialComparison && <Link href="/films#social-reels" className="text-[.58rem] font-semibold uppercase tracking-[.15em] text-[var(--helios-orange)] hover:text-white">Compare Social Reels</Link>}</div>
         </div>
 
         {currentPage === 1 && carouselProjects.length > 0 ? <FeaturedProjectCarousel projects={carouselProjects} /> : null}

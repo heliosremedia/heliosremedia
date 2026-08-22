@@ -7,6 +7,7 @@ type PhotoFinishComparisonProps = {
   standardSrc: string;
   editorialSrc: string;
   alt: string;
+  caption?: string;
   priority?: boolean;
 };
 
@@ -14,6 +15,7 @@ export default function PhotoFinishComparison({
   standardSrc,
   editorialSrc,
   alt,
+  caption,
   priority = false,
 }: PhotoFinishComparisonProps) {
   const [position, setPosition] = useState(50);
@@ -78,7 +80,7 @@ export default function PhotoFinishComparison({
         />
       </div>
       <figcaption className="mt-4 text-xs leading-6 text-white/32">
-        Representative views from the same property. Framing may vary. Drag to compare the overall visual direction.
+        {caption || "Representative views from the same property. Framing may vary. Drag to compare the overall visual direction."}
       </figcaption>
     </figure>
   );
