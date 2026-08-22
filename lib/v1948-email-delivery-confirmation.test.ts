@@ -37,5 +37,5 @@ test("Email Studio exposes tenant-scoped webhook health", () => {
 
 test("campaign sends persist diagnostic tags without changing recipient delivery mapping", () => {
   const provider = read("lib/client-communications/providers/resend.ts");
-  assert.match(provider, /tags: \[\{ name: "campaign_id", value: input\.campaignId \}\]/);
+  assert.match(provider, /tags: \[\{ name: "campaign_id", value: resendTagValue\(input\.campaignId\) \}\]/);
 });
