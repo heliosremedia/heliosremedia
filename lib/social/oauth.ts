@@ -1,12 +1,13 @@
 import "server-only";
 import type { SocialPlatformName } from "./core";
+import { META_SCOPES, metaGraphVersion } from "./meta";
 
 export function oauthConfiguration(platform: SocialPlatformName) {
   const baseUrl = process.env.SOCIAL_OAUTH_BASE_URL?.replace(/\/$/, "");
   if (platform === "INSTAGRAM" || platform === "FACEBOOK") return {
     clientId: process.env.META_APP_ID, clientSecret: process.env.META_APP_SECRET,
-    authorizeUrl: "https://www.facebook.com/v23.0/dialog/oauth", tokenUrl: "https://graph.facebook.com/v23.0/oauth/access_token",
-    scopes: ["pages_show_list","pages_read_engagement","pages_manage_posts","instagram_basic","instagram_content_publish"],
+    authorizeUrl: `https://www.facebook.com/${metaGraphVersion()}/dialog/oauth`, tokenUrl: `https://graph.facebook.com/${metaGraphVersion()}/oauth/access_token`,
+    scopes: [...META_SCOPES],
     redirectUri: baseUrl ? `${baseUrl}/api/admin/social/oauth/meta/callback` : "",
   };
   if (platform === "LINKEDIN") return {
@@ -26,4 +27,3 @@ export function oauthConfiguration(platform: SocialPlatformName) {
 export function providerPlatform(provider: string): SocialPlatformName | null {
   return provider === "meta" ? "FACEBOOK" : provider === "linkedin" ? "LINKEDIN" : provider === "tiktok" ? "TIKTOK" : null;
 }
-

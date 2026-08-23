@@ -18,6 +18,9 @@ export async function createPublishingJob(input: { variantId: string; connection
   const connection = await prisma.socialConnection.findUniqueOrThrow({ where: { id: input.connectionId } });
   if (connection.workspaceId !== variant.campaign.workspaceId) throw new Error("The selected account belongs to a different workspace.");
   if (connection.platform !== variant.platform || !connection.directPublishingEnabled || connection.state !== "CONNECTED") throw new Error("Direct publishing is not enabled for the selected account.");
+  const enabled=connection.platform==="FACEBOOK"?process.env.SOCIAL_FACEBOOK_PUBLISHING_ENABLED==="true":connection.platform==="INSTAGRAM"?process.env.SOCIAL_INSTAGRAM_PUBLISHING_ENABLED==="true":false;
+  if(!enabled) throw new Error(`${connection.platform} direct publishing is not enabled for this environment.`);
+  if(connection.tokenExpiresAt&&connection.tokenExpiresAt<=new Date()) throw new Error("The Meta access token expired. Reconnect before publishing.");
   const payload: PublishPayload = {
     platform: variant.platform, postType: variant.postType, caption: variant.caption || "",
     hashtags: Array.isArray(variant.hashtags) ? variant.hashtags.filter((x): x is string => typeof x === "string") : [],
@@ -79,6 +82,7 @@ async function executeClaim(jobId: string, claimToken: string, now: Date) {
     const blockers = providerAdapters[payload.platform].validatePost(payload).filter((issue) => issue.severity === "BLOCKING");
     if (blockers.length) throw Object.assign(new Error(blockers.map((issue) => issue.message).join(" ")), { category: "VALIDATION", retryable: false });
     await prisma.socialPublishingJob.update({ where: { id: job.id }, data: { status: "PUBLISHING", attempts: attemptNumber } });
+    await prisma.socialConnection.update({where:{id:job.connectionId},data:{lastPublishingAttemptAt:now}});
     const result = await providerAdapters[payload.platform].publish(payload, accessToken, job.connection.providerAccountId || "", job.idempotencyKey);
     const status = result.outcome;
     await prisma.$transaction([
@@ -86,6 +90,7 @@ async function executeClaim(jobId: string, claimToken: string, now: Date) {
       prisma.socialPublishingAttempt.create({ data: { jobId: job.id, attemptNumber, status, providerSubmissionId: result.providerSubmissionId, externalPostId: result.externalPostId, publicUrl: result.publicUrl, durationMs: Date.now() - started } }),
       ...(status === "PUBLISHED" ? [prisma.socialVariant.update({ where: { id: job.variantId }, data: { status: "PUBLISHED", publishedAt: now, publicUrl: result.publicUrl } })] : []),
       ...(status === "PUBLISHED" ? [prisma.socialPublication.create({ data: { variantId: job.variantId, actorId: job.snapshot.approvedById, connectionId: job.connectionId, externalPostId: result.externalPostId, publishedAt: now, publicUrl: result.publicUrl, notes: "Recorded by the official direct-publishing workflow." } })] : []),
+      ...(status === "PUBLISHED" ? [prisma.socialConnection.update({where:{id:job.connectionId},data:{lastSuccessfulPublicationAt:now,lastProviderErrorCode:null,lastProviderErrorMessage:null}})] : []),
     ]);
   } catch (error) {
     const normalized = normalizeProviderError(error);
@@ -94,6 +99,7 @@ async function executeClaim(jobId: string, claimToken: string, now: Date) {
     await prisma.$transaction([
       prisma.socialPublishingJob.update({ where: { id: job.id }, data: { status, attempts: attemptNumber, claimToken: null, lastErrorCategory: normalized.category, lastErrorMessage: normalized.message, nextAttemptAt: retry ? new Date(now.getTime() + retryDelayMs(attemptNumber)) : job.nextAttemptAt } }),
       prisma.socialPublishingAttempt.create({ data: { jobId: job.id, attemptNumber, status, errorCategory: normalized.category, sanitizedError: normalized.message, durationMs: Date.now() - started } }),
+      prisma.socialConnection.update({where:{id:job.connectionId},data:{lastProviderErrorCode:normalized.category,lastProviderErrorMessage:normalized.message,...(normalized.category==="AUTHENTICATION"?{state:"REAUTHORIZATION_REQUIRED",directPublishingEnabled:false}:{})}}),
     ]);
   }
 }

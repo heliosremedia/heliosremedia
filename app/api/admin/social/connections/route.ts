@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { requireWorkspaceId } from "@/lib/workspaces";
+import { testMetaConnection } from "@/lib/social/meta";
 
 const clean=(value:unknown,max=100)=>typeof value==="string"?value.trim().slice(0,max):"";
 export async function PATCH(request:Request){
@@ -13,6 +14,9 @@ export async function PATCH(request:Request){
   if(!connection) return NextResponse.json({success:false,error:"Connection not found."},{status:404});
   if(action==="enable"){
     if(!["CONNECTED","CONNECTED_DIRECT_PUBLISHING_DISABLED"].includes(connection.state)||!connection.encryptedTokenPayload||!connection.providerAccountId) return NextResponse.json({success:false,error:"Complete OAuth and select an eligible destination before enabling direct publishing."},{status:409});
+    const flag=connection.platform==="FACEBOOK"?process.env.SOCIAL_FACEBOOK_PUBLISHING_ENABLED:connection.platform==="INSTAGRAM"?process.env.SOCIAL_INSTAGRAM_PUBLISHING_ENABLED:"false";
+    if(flag!=="true") return NextResponse.json({success:false,error:`${connection.platform} publishing remains safely disabled until controlled Meta verification passes.`},{status:409});
+    await testMetaConnection(connection);
     await prisma.$transaction([
       prisma.socialConnection.update({where:{id:connection.id},data:{state:"CONNECTED",directPublishingEnabled:true,directPublishingEnabledAt:new Date(),directPublishingEnabledById:session.userId}}),
       prisma.socialConnectionAudit.create({data:{connectionId:connection.id,actorId:session.userId,action:"DIRECT_PUBLISHING_ENABLED"}}),
@@ -28,7 +32,8 @@ export async function PATCH(request:Request){
     return NextResponse.json({success:true,state:"CONNECTED_DIRECT_PUBLISHING_DISABLED",directPublishingEnabled:false,message:"Direct publishing disabled. Future work remains available manually."});
   }
   if(action==="disconnect"){
-    if(["PUBLISHING","PROVIDER_PROCESSING"].some(()=>false)) return NextResponse.json({success:false,error:"Wait for in-progress provider submissions to reconcile before disconnecting."},{status:409});
+    const active=await prisma.socialPublishingJob.count({where:{connectionId:connection.id,status:{in:["PUBLISHING","PROVIDER_PROCESSING"]}}});
+    if(active) return NextResponse.json({success:false,error:"Wait for in-progress provider submissions to reconcile before disconnecting."},{status:409});
     await prisma.$transaction([
       prisma.socialConnection.update({where:{id:connection.id},data:{state:"DISCONNECTED",directPublishingEnabled:false,encryptedTokenPayload:null,disconnectedAt:new Date(),directPublishingEnabledAt:null,directPublishingEnabledById:null}}),
       prisma.socialPublishingJob.updateMany({where:{connectionId:connection.id,status:{in:["SCHEDULED","READY","DELAYED","RETRY_SCHEDULED"]}},data:{status:"MANUAL_FALLBACK",claimToken:null,lastErrorMessage:"The provider account was disconnected."}}),
