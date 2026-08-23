@@ -38,10 +38,15 @@ test("campaign history controls expose usable hover and focus states", () => {
   assert.match(studio, /email-studio-history-action/);
   assert.match(styles, /button\.email-studio-history-action/);
   assert.match(styles, /font-size: 0\.64rem !important/);
-  assert.match(styles, /font-size: 1\.12rem !important/);
-  assert.match(styles, /font-size: 0\.92rem !important/);
+  assert.match(styles, /font-size: 1\.3rem !important/);
+  assert.match(styles, /font-size: 1\.02rem !important/);
+  assert.match(styles, /font-size: 1\.05rem !important/);
+  assert.match(styles, /flex-direction: column/);
   assert.match(styles, /button\.email-studio-preview-control/);
   assert.match(styles, /font-size: 0\.78rem !important/);
+  assert.match(styles, /min-height: 2\.5rem/);
+  assert.match(styles, /background: rgba\(255, 255, 255, 0\.035\)/);
+  assert.match(styles, /button\.email-studio-history-action \+ div/);
 });
 
 test("live email preview can expand into an accessible full-screen dialog", () => {
