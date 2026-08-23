@@ -29,9 +29,13 @@ test("campaign image metadata persists and reaches delivery rendering", () => {
 
 test("campaign history controls expose usable hover and focus states", () => {
   const studio = read("app/admin/email-studio/BulkEmailStudio.tsx");
+  const styles = read("app/globals.css");
   assert.match(studio, /Reschedule/);
   assert.match(studio, /Send Now/);
   assert.match(studio, /hover:bg-white/);
   assert.match(studio, /focus-visible:ring-2/);
   assert.match(studio, /text-\[0\.46rem\]/);
+  assert.match(studio, /email-studio-history-action/);
+  assert.match(styles, /button\.email-studio-history-action/);
+  assert.match(styles, /font-size: 0\.52rem !important/);
 });
