@@ -2,7 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { decryptSocialToken, encryptSocialToken } from "./security";
 
-export const META_SCOPES = ["pages_show_list","pages_read_engagement","pages_manage_posts","instagram_basic","instagram_content_publish"] as const;
+export const META_SCOPES = ["business_management","pages_show_list","pages_read_engagement","pages_manage_posts","instagram_basic","instagram_content_publish"] as const;
 export const metaGraphVersion = () => (process.env.META_GRAPH_API_VERSION || "v23.0").replace(/^([^v])/, "v$1");
 const graph = (path:string) => `https://graph.facebook.com/${metaGraphVersion()}/${path.replace(/^\//,"")}`;
 const clean = (value:unknown,max=500) => typeof value === "string" ? value.trim().slice(0,max) : "";

@@ -12,7 +12,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
   const { provider } = await params; const platform=providerPlatform(provider);
   if(!platform) return NextResponse.json({error:"Unsupported provider."},{status:404});
   const config=oauthConfiguration(platform);
-  if(!config.clientId || !config.clientSecret || !config.redirectUri || !process.env.SOCIAL_TOKEN_ENCRYPTION_KEY) {
+  if(!config.clientId || !config.clientSecret || !config.redirectUri || (provider==="meta" && !config.configurationId) || !process.env.SOCIAL_TOKEN_ENCRYPTION_KEY) {
     return NextResponse.redirect(new URL("/admin/social-studio/settings?connection=missing-credentials", process.env.SOCIAL_OAUTH_BASE_URL || "http://localhost:3000"));
   }
   if(provider!=="meta" || process.env.SOCIAL_META_CONNECTIONS_ENABLED!=="true") return NextResponse.redirect(new URL("/admin/social-studio/settings?connection=meta-disabled",process.env.SOCIAL_OAUTH_BASE_URL||request.url));
@@ -23,6 +23,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
   url.searchParams.set(platform==="TIKTOK"?"client_key":"client_id",config.clientId);
   url.searchParams.set("redirect_uri",config.redirectUri); url.searchParams.set("response_type","code"); url.searchParams.set("scope",config.scopes.join(platform==="TIKTOK"?",":" "));
   url.searchParams.set("state",state);
+  if(provider==="meta" && config.configurationId) url.searchParams.set("config_id",config.configurationId);
   url.searchParams.set("auth_type","rerequest");
   return NextResponse.redirect(url);
 }

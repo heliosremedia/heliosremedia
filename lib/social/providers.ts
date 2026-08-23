@@ -132,7 +132,7 @@ export const providerAdapters: Record<SocialPlatformName, SocialProviderAdapter>
 
 export function providerConfiguration(platform: SocialPlatformName) {
   const names = platform === "OTHER" ? [] : platform === "INSTAGRAM" || platform === "FACEBOOK"
-    ? ["META_APP_ID", "META_APP_SECRET"]
+    ? ["META_APP_ID", "META_APP_SECRET", "META_LOGIN_CONFIG_ID"]
     : platform === "LINKEDIN" ? ["LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET"] : ["TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET"];
   const missing = platform === "OTHER" ? ["PROVIDER_NEUTRAL_MANUAL_ONLY"] : [...names, "SOCIAL_TOKEN_ENCRYPTION_KEY", "SOCIAL_OAUTH_BASE_URL"].filter((name) => !process.env[name]);
   return { configured: missing.length === 0, missing };
