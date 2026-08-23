@@ -425,6 +425,38 @@ button.email-studio-history-action {
   line-height: 1.1rem !important;
 }
 
+@media (max-width: 767px) {
+  .email-studio-history-heading {
+    font-size: 0.78rem !important;
+    line-height: 1.1rem !important;
+  }
+
+  .email-studio-history-helper {
+    font-size: 0.76rem !important;
+    line-height: 1.2rem !important;
+  }
+
+  .email-studio-history-subject {
+    font-size: 0.92rem !important;
+    line-height: 1.35rem !important;
+  }
+
+  .email-studio-history-status {
+    font-size: 0.58rem !important;
+    line-height: 1rem !important;
+  }
+
+  .email-studio-history-meta {
+    font-size: 0.72rem !important;
+    line-height: 1.15rem !important;
+  }
+
+  button.email-studio-history-action {
+    font-size: 0.76rem !important;
+    line-height: 1.2rem !important;
+  }
+}
+
 .admin-form-scope input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]),
 .admin-form-scope textarea,
 .admin-form-scope select,
