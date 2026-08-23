@@ -442,28 +442,54 @@ button.email-studio-history-action {
   }
 
   .email-studio-history-helper {
-    font-size: 0.84rem !important;
-    line-height: 1.3rem !important;
+    font-size: 1.05rem !important;
+    line-height: 1.55rem !important;
+    color: rgba(255, 255, 255, 0.58) !important;
   }
 
   .email-studio-history-subject {
-    font-size: 1.12rem !important;
-    line-height: 1.55rem !important;
+    font-size: 1.3rem !important;
+    line-height: 1.75rem !important;
+    color: rgba(255, 255, 255, 0.82) !important;
   }
 
   .email-studio-history-status {
-    font-size: 0.7rem !important;
-    line-height: 1rem !important;
+    font-size: 0.82rem !important;
+    line-height: 1.15rem !important;
+    color: rgba(255, 255, 255, 0.62) !important;
   }
 
   .email-studio-history-meta {
-    font-size: 0.92rem !important;
-    line-height: 1.4rem !important;
+    font-size: 1.02rem !important;
+    line-height: 1.5rem !important;
+    color: rgba(255, 255, 255, 0.5) !important;
+  }
+
+  .email-studio-history article > div:first-child {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.35rem;
   }
 
   button.email-studio-history-action {
-    font-size: 1rem !important;
-    line-height: 1.35rem !important;
+    min-height: 2.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.035);
+    padding: 0.55rem 0.75rem !important;
+    font-size: 0.95rem !important;
+    line-height: 1.2rem !important;
+    color: rgba(231, 221, 200, 0.82) !important;
+  }
+
+  .email-studio-history article > button.email-studio-history-action,
+  .email-studio-history article > button.email-studio-history-action + div {
+    display: inline-flex;
+    margin-top: 0.65rem !important;
+    vertical-align: middle;
+  }
+
+  .email-studio-history article > button.email-studio-history-action + div {
+    margin-left: 0.3rem;
   }
 }
 
