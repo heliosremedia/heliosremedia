@@ -421,8 +421,8 @@ select {
 
 /* Email Studio history actions stay compact without shrinking campaign copy. */
 button.email-studio-history-action {
-  font-size: 0.52rem !important;
-  line-height: 1rem !important;
+  font-size: 0.64rem !important;
+  line-height: 1.1rem !important;
 }
 
 .admin-form-scope input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]),
