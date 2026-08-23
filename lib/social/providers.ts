@@ -35,11 +35,12 @@ function unconfiguredPublish(platform: string): never {
 async function providerJson(url:string,init:RequestInit){
   const response=await fetch(url,{...init,cache:"no-store"});
   const data=await response.json() as Record<string,unknown>;
-  if(!response.ok){
-    const status=response.status;
-    throw Object.assign(new Error(`Provider request failed with status ${status}.`),{
-      category:status===401?"AUTHENTICATION":status===403?"PERMISSION":status===429?"RATE_LIMIT":status>=500?"TRANSIENT":"VALIDATION",
-      retryable:status===429||status>=500,
+  if(!response.ok||data.error){
+    const status=response.status;const providerError=(data.error||{}) as Record<string,unknown>;const code=String(providerError.code||status);
+    const category=code==="190"?"AUTHENTICATION":status===401?"AUTHENTICATION":status===403||code==="10"||code==="200"?"PERMISSION":status===429||["4","17","32"].includes(code)?"RATE_LIMIT":status>=500||providerError.is_transient?"TRANSIENT":"VALIDATION";
+    const safe=category==="AUTHENTICATION"?"The Meta access token expired or was revoked. Reconnect before publishing.":category==="PERMISSION"?"Meta permission to publish to this destination was removed. Reconnect the account.":category==="RATE_LIMIT"?"Meta is temporarily limiting publishing. Helios will retry safely.":"Meta rejected this post. Review its copy and media requirements.";
+    throw Object.assign(new Error(safe),{
+      category,retryable:category==="RATE_LIMIT"||category==="TRANSIENT",providerCode:code,
     });
   }
   return data;
@@ -65,9 +66,17 @@ async function publishInstagram(payload:PublishPayload,token:string,destinationI
     creationId=typeof container.id==="string"?container.id:"";
   }
   if(!creationId) throw Object.assign(new Error("Instagram container creation returned no identifier."),{category:"AMBIGUOUS",ambiguous:true});
+  for(let attempt=0;attempt<8;attempt++){
+    const status=await providerJson(`https://graph.facebook.com/v23.0/${encodeURIComponent(creationId)}?fields=status_code,status`,{method:"GET",headers:{Authorization:`Bearer ${token}`}});
+    if(status.status_code==="FINISHED") break;
+    if(status.status_code==="ERROR"||status.status_code==="EXPIRED") throw Object.assign(new Error("Instagram could not process this media. Check its dimensions, file type, and public URL."),{category:"PROVIDER_PROCESSING",retryable:false});
+    if(attempt===7) throw Object.assign(new Error("Instagram is still processing this media. Helios will retry without creating a duplicate."),{category:"PROVIDER_PROCESSING",retryable:true});
+    await new Promise(resolve=>setTimeout(resolve,1000));
+  }
   const published=await providerJson(`${graph}/media_publish`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({creation_id:creationId,access_token:token})});
   if(typeof published.id!=="string") throw Object.assign(new Error("Instagram publication returned an ambiguous result."),{category:"AMBIGUOUS",ambiguous:true});
-  return {outcome:"PUBLISHED" as const,providerSubmissionId:creationId,externalPostId:published.id};
+  const details=await providerJson(`https://graph.facebook.com/v23.0/${encodeURIComponent(published.id)}?fields=permalink`,{method:"GET",headers:{Authorization:`Bearer ${token}`}});
+  return {outcome:"PUBLISHED" as const,providerSubmissionId:creationId,externalPostId:published.id,publicUrl:typeof details.permalink==="string"?details.permalink:undefined};
 }
 
 async function publishFacebook(payload:PublishPayload,token:string,destinationId:string){

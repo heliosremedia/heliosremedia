@@ -138,6 +138,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
       const connectionId=clean(body.connectionId,100);
       const job=await createPublishingJob({variantId,connectionId});
       return NextResponse.json({success:true,jobId:job.id});
+    } else if (action === "send-now" && variant) {
+      if(variant.status!=="APPROVED") return NextResponse.json({success:false,error:"Approve this exact revision before sending now."},{status:409});
+      const connectionId=clean(body.connectionId,100);const connection=await prisma.socialConnection.findFirst({where:{id:connectionId,workspaceId,platform:variant.platform,state:"CONNECTED",directPublishingEnabled:true}});
+      if(!connection) return NextResponse.json({success:false,error:"Select a verified, enabled destination for this platform."},{status:409});
+      const scheduledAt=new Date();
+      await prisma.socialVariant.update({where:{id:variant.id},data:{status:"SCHEDULED",scheduledAt,scheduledTimeZone:"America/Denver",scheduleVersion:{increment:1}}});
+      const job=await createPublishingJob({variantId,connectionId});
+      return NextResponse.json({success:true,jobId:job.id,message:"The approved post entered the protected publishing queue."});
     } else if (action === "publish" && variant) {
       if (!["READY_TO_PUBLISH", "SCHEDULED"].includes(variant.status)) return NextResponse.json({ success: false, error: "Only scheduled or ready posts can be marked published." }, { status: 400 });
       const publishedAt = body.publishedAt ? new Date(clean(body.publishedAt, 80)) : new Date();

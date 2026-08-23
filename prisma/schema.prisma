@@ -417,6 +417,11 @@ enum SocialGeneratedAssetKind {
 }
 
 enum SocialConnectionState {
+  PENDING
+  ACTIVE
+  EXPIRING
+  EXPIRED
+  REVOKED
   NOT_CONFIGURED
   PROVIDER_CREDENTIALS_MISSING
   APP_REVIEW_REQUIRED
@@ -1544,6 +1549,7 @@ model AdminUser {
   socialPublications            SocialPublication[]
   socialConnectionsEnabled      SocialConnection[]              @relation("SocialConnectionEnabledBy")
   socialConnectionAudits        SocialConnectionAudit[]
+  socialOAuthSessions           SocialOAuthSession[]
   socialPublishingApprovals     SocialPublishingSnapshot[]      @relation("SocialPublishingApprovedBy")
   socialRecommendationsActed    SocialAnalyticsRecommendation[] @relation("SocialRecommendationActor")
   projectCredits                ProjectContributor[]
@@ -1568,6 +1574,7 @@ model Workspace {
   socialGeneratedAssets     SocialGeneratedAsset[]
   socialSettings            SocialStudioSettings[]
   socialConnections         SocialConnection[]
+  socialOAuthSessions       SocialOAuthSession[]
   siteSettings              SiteSettings?
   projectContributors       ProjectContributor[]
   portfolioAnalyticsEvents  PortfolioAnalyticsEvent[]
@@ -2017,6 +2024,7 @@ model SocialConnection {
   manualPublishingUrl         String?
   configurationMetadata       Json?
   providerAccountId           String?
+  parentProviderAccountId     String?
   providerUsername            String?
   profileImageUrl             String?
   encryptedTokenPayload       String?
@@ -2028,7 +2036,12 @@ model SocialConnection {
   directPublishingEnabledBy   AdminUser?                 @relation("SocialConnectionEnabledBy", fields: [directPublishingEnabledById], references: [id], onDelete: SetNull)
   tokenExpiresAt              DateTime?
   lastAuthorizationCheckAt    DateTime?
+  lastConnectionTestAt        DateTime?
+  lastConnectionTestSuccessAt DateTime?
+  lastPublishingAttemptAt     DateTime?
   lastSuccessfulPublicationAt DateTime?
+  lastProviderErrorCode       String?
+  lastProviderErrorMessage    String?
   disconnectedAt              DateTime?
   audits                      SocialConnectionAudit[]
   snapshots                   SocialPublishingSnapshot[]
@@ -2048,6 +2061,26 @@ model SocialConnection {
   @@unique([workspaceId, platform, providerAccountId])
   @@index([workspaceId, platform, state])
   @@index([directPublishingEnabled, state])
+}
+
+model SocialOAuthSession {
+  id                    String    @id @default(cuid())
+  workspaceId           String
+  workspace             Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId                 String
+  user                   AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider               String
+  stateHash              String    @unique
+  safeReturnPath         String
+  encryptedTokenPayload String?
+  discoveredDestinations Json?
+  expiresAt              DateTime
+  authorizedAt           DateTime?
+  consumedAt             DateTime?
+  createdAt              DateTime  @default(now())
+
+  @@index([workspaceId, provider, expiresAt])
+  @@index([userId, expiresAt])
 }
 
 model OperationalIncident {

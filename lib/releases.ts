@@ -19,6 +19,19 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
+    version: "V1.9.9",
+    slug: "v1-9-9",
+    releaseDate: null,
+    title: "Social Studio Meta Connection and Publishing",
+    summary: "Completes secure Facebook Page and Instagram professional-account discovery, selection, verification, and guarded direct publishing in the existing Social Studio workflow.",
+    newFeatures: ["Meta OAuth destination discovery and explicit Page/account selection", "Separate Facebook and Instagram connection health cards", "Read-only connection testing, reconnect, disconnect, and token-health monitoring"],
+    improvements: ["Immutable publishing snapshots target the exact selected destination", "Instagram container processing is verified before a post is marked published", "Provider failures are translated into safe, actionable administrator guidance"],
+    bugFixes: ["Meta OAuth no longer creates placeholder pending account identifiers", "Existing placeholder connections are preserved and moved to reconnect-required state"],
+    securityInfrastructure: ["Single-use expiring OAuth sessions are administrator and workspace scoped", "Page tokens remain encrypted and are never returned to the browser or logs", "Facebook and Instagram publishing remain behind independent rollout flags"],
+    administratorActions: ["Configure and review the Meta app permissions and exact production callback", "Use a Meta test user to verify controlled Facebook and Instagram publications", "Enable rollout flags sequentially only after the QA checklist passes"],
+    status: "PLANNED",
+  },
+  {
     version: "V1.9.7",
     slug: "v1-9-7",
     releaseDate: "2026-08-21",
