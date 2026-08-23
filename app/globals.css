@@ -427,33 +427,33 @@ button.email-studio-history-action {
 
 @media (max-width: 767px) {
   .email-studio-history-heading {
-    font-size: 0.78rem !important;
-    line-height: 1.1rem !important;
-  }
-
-  .email-studio-history-helper {
-    font-size: 0.76rem !important;
+    font-size: 0.86rem !important;
     line-height: 1.2rem !important;
   }
 
+  .email-studio-history-helper {
+    font-size: 0.84rem !important;
+    line-height: 1.3rem !important;
+  }
+
   .email-studio-history-subject {
-    font-size: 0.92rem !important;
-    line-height: 1.35rem !important;
+    font-size: 1rem !important;
+    line-height: 1.45rem !important;
   }
 
   .email-studio-history-status {
-    font-size: 0.58rem !important;
+    font-size: 0.64rem !important;
     line-height: 1rem !important;
   }
 
   .email-studio-history-meta {
-    font-size: 0.72rem !important;
-    line-height: 1.15rem !important;
+    font-size: 0.82rem !important;
+    line-height: 1.3rem !important;
   }
 
   button.email-studio-history-action {
-    font-size: 0.76rem !important;
-    line-height: 1.2rem !important;
+    font-size: 0.86rem !important;
+    line-height: 1.25rem !important;
   }
 }
 
