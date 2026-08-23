@@ -37,5 +37,5 @@ test("campaign history controls expose usable hover and focus states", () => {
   assert.match(studio, /text-\[0\.46rem\]/);
   assert.match(studio, /email-studio-history-action/);
   assert.match(styles, /button\.email-studio-history-action/);
-  assert.match(styles, /font-size: 0\.52rem !important/);
+  assert.match(styles, /font-size: 0\.64rem !important/);
 });
