@@ -485,7 +485,7 @@ export default function SiteSettingsForm({
         <h2 className="mt-2 text-xl font-light text-white">{group.title}</h2>
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
           {group.fields.map(([key, label]) => (
-            <label key={key} className={`block text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35 ${["footerDescription", "serviceAreaDescription"].includes(key) ? "sm:col-span-2" : ""}`}>
+            <label key={key} className={`block text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35 ${["bookingUrl", "footerDescription", "serviceAreaDescription"].includes(key) ? "sm:col-span-2" : ""}`}>
               {label}
               {["footerDescription", "serviceAreaDescription"].includes(key) ? (
                 <textarea rows={3} value={settings[key] ?? ""} onChange={(event) => update(key, event.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case leading-6 tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" />
