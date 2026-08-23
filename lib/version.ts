@@ -1,3 +1,3 @@
-export const STUDIO_VERSION = "V1.9.7" as const;
+export const STUDIO_VERSION = "V1.9.9" as const;
 export const STUDIO_ADMIN_LABEL = `STUDIO ADMIN — ${STUDIO_VERSION}` as const;
 export const STUDIO_VERSION_HREF = "/admin/release-notes/v1-9-7" as const;
