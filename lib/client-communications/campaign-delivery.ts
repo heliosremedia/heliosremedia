@@ -67,6 +67,10 @@ export async function processEmailCampaign(campaignId: string) {
             previewText: personalized.previewText,
             unsubscribeToken: tokens[offset],
             templateKey: campaign.templateKey,
+            imageUrl: campaign.imageUrl,
+            imageAlt: campaign.imageAlt,
+            imageCaption: campaign.imageCaption,
+            imageLink: campaign.imageLink,
           }),
           unsubscribeUrl: `${getSiteUrl()}/api/unsubscribe?token=${encodeURIComponent(tokens[offset])}`,
         };

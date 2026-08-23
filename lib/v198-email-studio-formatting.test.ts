@@ -12,7 +12,16 @@ test("Email Studio provides curated templates and safe formatting controls", () 
   assert.match(studio, /EmailTemplatePreview/);
   assert.match(studio, /Save Draft/);
   assert.match(studio, /Resume Draft/);
+  assert.match(studio, /Delete Draft/);
   assert.doesNotMatch(studio, /xl:sticky/);
+});
+
+test("saved email drafts can be deleted without touching sent campaigns", () => {
+  const route = read("app/api/admin/email-campaigns/[campaignId]/route.ts");
+  assert.match(route, /export async function DELETE/);
+  assert.match(route, /status: "DRAFT"/);
+  assert.match(route, /createdById: session\.userId/);
+  assert.match(route, /EMAIL_CAMPAIGN_DRAFT_DELETED/);
 });
 
 test("campaign delivery persists and renders the chosen template", () => {

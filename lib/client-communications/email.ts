@@ -22,6 +22,10 @@ export function renderCampaignEmail(input: {
   previewText?: string | null;
   unsubscribeToken: string;
   templateKey?: EmailTemplateKey | string | null;
+  imageUrl?: string | null;
+  imageAlt?: string | null;
+  imageCaption?: string | null;
+  imageLink?: string | null;
 }) {
   const templateKey = normalizeEmailTemplateKey(input.templateKey);
   const themes = {
@@ -38,7 +42,11 @@ export function renderCampaignEmail(input: {
     : "";
   const cardRadius = templateKey === "PERSONAL_LETTER" ? "0" : "3px";
   const accent = templateKey === "OFFER_SPOTLIGHT" ? "border-top:5px solid #d96b2b;" : "";
-  return `${preview}<div style="margin:0;background:${theme.outer};padding:40px 18px;font-family:Arial,sans-serif"><div style="max-width:${templateKey === "PERSONAL_LETTER" ? "600" : "640"}px;margin:auto"><p style="margin:0 0 28px;color:#df6b2b;font-size:11px;letter-spacing:.2em;text-transform:uppercase">${theme.brand}</p><div style="${accent}border:1px solid ${theme.border};border-radius:${cardRadius};background:${theme.card};padding:42px 36px">${paragraphs}</div><p style="margin:26px 0 0;color:${theme.footer};font-size:11px;line-height:1.6">You are receiving this email because you are a Helios client.<br><a href="${escapeHtml(unsubscribeUrl)}" style="color:${theme.footer}">Unsubscribe from marketing emails</a></p></div></div>`;
+  const safeHttpsUrl = (value?: string | null) => { try { const parsed = new URL(value || ""); return parsed.protocol === "https:" ? parsed.toString() : null; } catch { return null; } };
+  const imageUrl = safeHttpsUrl(input.imageUrl);
+  const imageLink = safeHttpsUrl(input.imageLink);
+  const image = imageUrl ? `<div style="margin:0 0 28px">${imageLink ? `<a href="${escapeHtml(imageLink)}" target="_blank">` : ""}<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(input.imageAlt || "")}" width="568" style="display:block;width:100%;max-width:568px;height:auto;border:0;border-radius:3px">${imageLink ? "</a>" : ""}${input.imageCaption ? `<p style="margin:9px 0 0;color:${theme.muted};font-size:11px;line-height:1.5">${escapeHtml(input.imageCaption)}</p>` : ""}</div>` : "";
+  return `${preview}<div style="margin:0;background:${theme.outer};padding:40px 18px;font-family:Arial,sans-serif"><div style="max-width:${templateKey === "PERSONAL_LETTER" ? "600" : "640"}px;margin:auto"><p style="margin:0 0 28px;color:#df6b2b;font-size:11px;letter-spacing:.2em;text-transform:uppercase">${theme.brand}</p><div style="${accent}border:1px solid ${theme.border};border-radius:${cardRadius};background:${theme.card};padding:42px 36px">${image}${paragraphs}</div><p style="margin:26px 0 0;color:${theme.footer};font-size:11px;line-height:1.6">You are receiving this email because you are a Helios client.<br><a href="${escapeHtml(unsubscribeUrl)}" style="color:${theme.footer}">Unsubscribe from marketing emails</a></p></div></div>`;
 }
 
 export async function sendTestCampaign(input: {

@@ -19,10 +19,17 @@ type Payload = {
   testEmail?: string; previewClientId?: string; useSampleProfile?: boolean;
   scheduledLocal?: string; scheduledTimeZone?: string;
   templateKey?: string;
+  imageUrl?: string; imageAlt?: string; imageCaption?: string; imageLink?: string;
 };
 
 function cleanText(value: unknown, max: number) {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
+}
+
+function cleanHttpsUrl(value: unknown) {
+  const text = cleanText(value, 2_000);
+  if (!text) return "";
+  try { const parsed = new URL(text); return parsed.protocol === "https:" ? parsed.toString() : ""; } catch { return ""; }
 }
 
 async function authorizedSession() {
@@ -39,6 +46,15 @@ export async function POST(request: Request) {
     const previewText = cleanText(input.previewText, 180);
     const body = cleanText(input.body, 20_000);
     const templateKey = normalizeEmailTemplateKey(input.templateKey);
+    const requestedImageUrl = cleanText(input.imageUrl, 2_000);
+    const imageUrl = cleanHttpsUrl(input.imageUrl);
+    const imageAlt = cleanText(input.imageAlt, 300);
+    const imageCaption = imageUrl ? cleanText(input.imageCaption, 500) || null : null;
+    const requestedImageLink = cleanText(input.imageLink, 2_000);
+    const imageLink = imageUrl ? cleanHttpsUrl(input.imageLink) || null : null;
+    if (requestedImageUrl && !imageUrl) return NextResponse.json({ success: false, error: "Email images must use a secure HTTPS URL." }, { status: 400 });
+    if (requestedImageLink && !imageLink) return NextResponse.json({ success: false, error: "Image links must use a secure HTTPS URL." }, { status: 400 });
+    if (imageUrl && input.action !== "draft" && !imageAlt) return NextResponse.json({ success: false, error: "Add an accessibility description before sending an image." }, { status: 400 });
     if (input.action === "draft" && !subject && !body) return NextResponse.json({ success: false, error: "Add a subject or message before saving a draft." }, { status: 400 });
     if (input.action !== "draft" && (!subject || !body)) return NextResponse.json({ success: false, error: "Subject and message are required." }, { status: 400 });
     const unsupported = findUnsupportedVariables(subject, previewText, body);
@@ -55,8 +71,8 @@ export async function POST(request: Request) {
         where: { id: input.draftId, status: "DRAFT", createdById: session.userId }, select: { id: true },
       }) : null;
       const campaign = existing
-        ? await prisma.emailCampaign.update({ where: { id: existing.id }, data: { subject: subject || "Untitled email", previewText: previewText || null, body, templateKey, recipientMode: mode, selection, rowVersion: { increment: 1 } } })
-        : await prisma.emailCampaign.create({ data: { subject: subject || "Untitled email", previewText: previewText || null, body, templateKey, status: "DRAFT", recipientMode: mode, selection, recipientCount: 0, createdById: session.userId } });
+        ? await prisma.emailCampaign.update({ where: { id: existing.id }, data: { subject: subject || "Untitled email", previewText: previewText || null, body, templateKey, imageUrl: imageUrl || null, imageAlt: imageUrl ? imageAlt || null : null, imageCaption, imageLink, recipientMode: mode, selection, rowVersion: { increment: 1 } } })
+        : await prisma.emailCampaign.create({ data: { subject: subject || "Untitled email", previewText: previewText || null, body, templateKey, imageUrl: imageUrl || null, imageAlt: imageUrl ? imageAlt || null : null, imageCaption, imageLink, status: "DRAFT", recipientMode: mode, selection, recipientCount: 0, createdById: session.userId } });
       await recordAuditEvent({
         actorId: session.userId, actorEmail: session.email, action: existing ? "EMAIL_CAMPAIGN_DRAFT_UPDATED" : "EMAIL_CAMPAIGN_DRAFT_SAVED",
         entityType: "EmailCampaign", entityId: campaign.id, summary: `Email draft "${campaign.subject}" saved.`,
@@ -85,7 +101,7 @@ export async function POST(request: Request) {
       await sendTestCampaign({
         to: testEmail,
         subject: personalized.subject,
-        html: renderCampaignEmail({ body: personalized.body, previewText: personalized.previewText, unsubscribeToken: "test-preview-disabled", templateKey }),
+        html: renderCampaignEmail({ body: personalized.body, previewText: personalized.previewText, unsubscribeToken: "test-preview-disabled", templateKey, imageUrl, imageAlt, imageCaption, imageLink }),
         source: "campaign",
       });
       await recordAuditEvent({
@@ -133,7 +149,7 @@ export async function POST(request: Request) {
     const status = input.action === "schedule" ? "SCHEDULED" : "PROCESSING";
     const campaign = await prisma.emailCampaign.create({
       data: {
-        subject, previewText: previewText || null, body, templateKey, status, recipientMode: mode,
+        subject, previewText: previewText || null, body, templateKey, imageUrl: imageUrl || null, imageAlt: imageUrl ? imageAlt : null, imageCaption, imageLink, status, recipientMode: mode,
         selection: { groupIds, clientIds }, recipientCount: unique.length, createdById: session.userId,
         scheduledAt, scheduledTimeZone: scheduledAt ? timeZone : null,
         scheduledById: scheduledAt ? session.userId : null,

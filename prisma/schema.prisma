@@ -2314,6 +2314,10 @@ model EmailCampaign {
   previewText         String?
   body                String
   templateKey         String              @default("SIGNATURE")
+  imageUrl            String?
+  imageAlt            String?
+  imageCaption        String?
+  imageLink           String?
   status              EmailCampaignStatus @default(DRAFT)
   recipientMode       String
   selection           Json

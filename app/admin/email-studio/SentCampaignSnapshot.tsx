@@ -39,15 +39,22 @@ export function parseSentSnapshot(body: string): { blocks: SnapshotBlock[]; tech
   }
 }
 
-export default function SentCampaignSnapshot({ body, templateKey }: { body: string; templateKey?: string | null }) {
+export default function SentCampaignSnapshot({ body, templateKey, imageUrl, imageAlt, imageCaption, imageLink }: { body: string; templateKey?: string | null; imageUrl?: string | null; imageAlt?: string | null; imageCaption?: string | null; imageLink?: string | null }) {
   const snapshot = parseSentSnapshot(body);
   if (!snapshot) {
     const template = normalizeEmailTemplateKey(templateKey);
     const light = template === "EDITORIAL_LIGHT" || template === "PERSONAL_LETTER";
     const colors = light ? { background: "#f7f3eb", text: "#4f4942", heading: "#211f1c" } : { background: "#121211", text: "#d7d1c8", heading: "#f5f1e8" };
+    const campaignImageUrl = safeUrl(imageUrl);
+    const campaignImageLink = safeUrl(imageLink);
+    const campaignImage = campaignImageUrl
+      // The immutable campaign record supplies the historical image URL.
+      // eslint-disable-next-line @next/next/no-img-element
+      ? <img src={campaignImageUrl} alt={imageAlt ?? ""} className="h-auto w-full" />
+      : null;
     return <div className="mt-5 rounded-xl border border-white/[0.08] bg-black/30 p-5">
       <p className="text-[0.56rem] font-semibold uppercase tracking-[.16em] text-[var(--helios-orange)]">Sent message · {template.replaceAll("_", " ")}</p>
-      <div className="mt-4 p-6" style={{ background: colors.background }} dangerouslySetInnerHTML={{ __html: renderFormattedEmailBody(body || "This historical message has no readable body snapshot.", { textColor: colors.text, mutedColor: colors.text, headingColor: colors.heading }) }} />
+      <div className="mt-4 p-6" style={{ background: colors.background }}>{campaignImage && (campaignImageLink ? <a href={campaignImageLink} target="_blank" rel="noreferrer">{campaignImage}</a> : campaignImage)}{imageCaption && <p className="mt-2 text-xs leading-5 opacity-60" style={{ color: colors.text }}>{imageCaption}</p>}<div className={campaignImage ? "mt-5" : ""} dangerouslySetInnerHTML={{ __html: renderFormattedEmailBody(body || "This historical message has no readable body snapshot.", { textColor: colors.text, mutedColor: colors.text, headingColor: colors.heading }) }} /></div>
     </div>;
   }
   if (!snapshot.blocks.length) {
