@@ -39,7 +39,7 @@ export async function exchangeMetaCode(input:{code:string;redirectUri:string}){
 
 export async function discoverMetaDestinations(accessToken:string,tokenExpiresAt?:Date):Promise<MetaDestination[]>{
   const [accounts,permissions]=await Promise.all([
-    metaJson("me/accounts?fields=id,name,access_token,tasks,instagram_business_account{id,username,profile_picture_url}&limit=100",{},accessToken),
+    metaJson("me/accounts?fields=id,name,access_token,instagram_business_account{id,username,profile_picture_url}&limit=100",{},accessToken),
     metaJson("me/permissions",{},accessToken),
   ]);
   const granted=new Set(((permissions.data as Array<Record<string,unknown>>|undefined)||[]).filter(x=>x.status==="granted").map(x=>clean(x.permission,100)));
@@ -63,7 +63,7 @@ export async function testMetaConnection(connection:{platform:string;providerAcc
   const required=connection.platform==="INSTAGRAM"?["instagram_basic","instagram_content_publish"]:["pages_read_engagement","pages_manage_posts"];
   const scopes=Array.isArray(connection.grantedScopes)?connection.grantedScopes.filter((x):x is string=>typeof x==="string"):[];
   const missing=required.filter(scope=>!scopes.includes(scope));if(missing.length) throw new MetaApiError(`Reconnect and grant: ${missing.join(", ")}.`,"PERMISSION_MISSING");
-  const fields=connection.platform==="INSTAGRAM"?"id,username":"id,name,tasks";
+  const fields=connection.platform==="INSTAGRAM"?"id,username":"id,name";
   const identity=await metaJson(`${encodeURIComponent(connection.providerAccountId)}?fields=${fields}`,{},token);
   if(clean(identity.id)!==connection.providerAccountId) throw new MetaApiError("Meta returned a different destination identity.","IDENTITY_MISMATCH");
   if(connection.platform==="INSTAGRAM"&&connection.parentProviderAccountId){
