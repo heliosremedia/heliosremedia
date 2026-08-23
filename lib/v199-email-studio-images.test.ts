@@ -33,5 +33,5 @@ test("campaign history controls expose usable hover and focus states", () => {
   assert.match(studio, /Send Now/);
   assert.match(studio, /hover:bg-white/);
   assert.match(studio, /focus-visible:ring-2/);
-  assert.match(studio, /text-\[0\.7rem\]/);
+  assert.match(studio, /text-\[0\.46rem\]/);
 });
