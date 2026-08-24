@@ -416,6 +416,32 @@ enum SocialGeneratedAssetKind {
   AI_ASSISTED_DERIVATIVE
 }
 
+enum SocialAutopilotWeekStatus {
+  GENERATING
+  DRAFT_REVIEW_REQUIRED
+  PARTIALLY_APPROVED
+  APPROVED
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum SocialAutopilotRunStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  PARTIAL
+  FAILED
+  CANCELLED
+}
+
+enum SocialAutopilotVerificationStatus {
+  VERIFIED
+  VERIFIED_WITH_SOURCES
+  NEEDS_REVIEW
+  BLOCKED_MISSING_INFORMATION
+}
+
 enum SocialConnectionState {
   PENDING
   ACTIVE
@@ -1574,6 +1600,9 @@ model Workspace {
   socialGeneratedAssets     SocialGeneratedAsset[]
   socialSettings            SocialStudioSettings[]
   socialConnections         SocialConnection[]
+  socialAutopilotSettings   SocialAutopilotSettings?
+  socialAutopilotWeeks      SocialAutopilotWeek[]
+  socialAutopilotRuns       SocialAutopilotRun[]
   socialOAuthSessions       SocialOAuthSession[]
   siteSettings              SiteSettings?
   projectContributors       ProjectContributor[]
@@ -1751,6 +1780,7 @@ model SocialCampaign {
   seriesLinks              SocialSeriesCampaign[]
   occurrences              SocialSeriesOccurrence[]
   analyticsRecommendations SocialAnalyticsRecommendation[]
+  autopilotDraft            SocialAutopilotDraft?
 
   archivedAt DateTime?
   createdAt  DateTime  @default(now())
@@ -1761,6 +1791,110 @@ model SocialCampaign {
   @@index([workspaceId, status, updatedAt])
   @@index([sourceType, sourceProjectId])
   @@index([archivedAt, updatedAt])
+}
+
+model SocialAutopilotSettings {
+  id          String    @id @default(cuid())
+  workspaceId String    @unique
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  enabled                 Boolean @default(false)
+  postsPerWeek            Int     @default(4)
+  enabledPlatforms        Json
+  preferredPublishingDays Json
+  preferredTimeWindows    Json
+  contentMix              Json
+  portfolioFirst          Boolean @default(true)
+  aiImagesEnabled         Boolean @default(false)
+  seasonalContentEnabled  Boolean @default(true)
+  educationalEnabled      Boolean @default(true)
+  externalResearchEnabled Boolean @default(false)
+  promotionalLimit        Int     @default(1)
+  geographicMarket        String?
+  hashtagLimit            Int     @default(5)
+  notificationRecipients  Json
+  generationDay           Int     @default(1)
+  generationLocalTime     String  @default("08:00")
+  timeZone                 String  @default("America/Denver")
+  reminderHours            Json
+  contentCooldowns         Json
+  callsToAction            Json
+  exclusions               Json
+  nextGenerationAt         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SocialAutopilotWeek {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  weekStart   DateTime
+  weekEnd     DateTime
+  status      SocialAutopilotWeekStatus @default(GENERATING)
+  inputDigest String
+  generationVersion Int @default(1)
+  lockedAt    DateTime?
+  lockedBy    String?
+  reviewNotifiedAt DateTime?
+  reminderSentAt   DateTime?
+  lastErrorCode    String?
+  lastErrorMessage String?
+
+  drafts SocialAutopilotDraft[]
+  runs   SocialAutopilotRun[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([workspaceId, weekStart])
+  @@index([workspaceId, status, weekStart])
+}
+
+model SocialAutopilotDraft {
+  id         String              @id @default(cuid())
+  weekId     String
+  week       SocialAutopilotWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  campaignId String              @unique
+  campaign   SocialCampaign      @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  pillar     String
+  reasoning  String?
+  verificationStatus SocialAutopilotVerificationStatus @default(NEEDS_REVIEW)
+  sourceReferences Json?
+  externalSources  Json?
+  suggestedAt      DateTime?
+  rejectedAt       DateTime?
+  revisionRequest  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([weekId, suggestedAt])
+}
+
+model SocialAutopilotRun {
+  id             String                   @id @default(cuid())
+  workspaceId    String
+  workspace      Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  weekId         String?
+  week           SocialAutopilotWeek?     @relation(fields: [weekId], references: [id], onDelete: SetNull)
+  idempotencyKey String                   @unique
+  trigger        String
+  status         SocialAutopilotRunStatus @default(PENDING)
+  step           String?
+  attemptCount   Int                      @default(0)
+  startedAt      DateTime?
+  completedAt    DateTime?
+  nextRetryAt    DateTime?
+  errorCode      String?
+  errorMessage   String?
+  metadata       Json?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  @@index([workspaceId, status, createdAt])
+  @@index([weekId, createdAt])
 }
 
 model SocialCampaignProject {
