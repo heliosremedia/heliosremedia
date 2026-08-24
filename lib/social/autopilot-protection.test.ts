@@ -48,3 +48,15 @@ test("autopilot client and API responses cannot expose provider credentials", ()
     assert.doesNotMatch(source, /accessToken|refreshToken|tokenCiphertext|appSecret|META_APP_SECRET/);
   }
 });
+
+test("autopilot uses strict structured output and sanitized provider diagnostics", () => {
+  const service = read("lib/social/autopilot.ts");
+  assert.match(service, /type: "json_schema"/);
+  assert.match(service, /name: "social_autopilot_week"/);
+  assert.match(service, /strict: true/);
+  assert.match(service, /additionalProperties: false/);
+  assert.doesNotMatch(service, /type: "json_object"/);
+  assert.match(service, /response\.headers\.get\("x-request-id"\)/);
+  assert.match(service, /safeProviderField\(providerError\.error\?\.code\)/);
+  assert.doesNotMatch(service, /console\.error\([^\n]*(?:apiKey|instructions|portfolio|providerError)/);
+});
