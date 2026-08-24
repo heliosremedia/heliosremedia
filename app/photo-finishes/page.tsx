@@ -29,8 +29,8 @@ export default async function PhotoFinishesPage() {
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_22%,rgba(217,107,43,0.15),transparent_34%)]" />
       <div className="container-shell relative py-16 sm:py-24 lg:py-28">
         <p className="eyebrow text-[var(--helios-orange)]">{content.heroEyebrow}</p>
-        <h1 className="mt-7 max-w-6xl font-display text-[clamp(3.2rem,7.6vw,7.25rem)] font-light leading-[0.9] tracking-[-0.055em]">{content.heroHeading}<span className="mt-2 block italic text-white/48">{content.heroAccent}</span></h1>
-        <div className="mt-9 grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end"><p className="max-w-3xl text-base leading-8 text-white/48 sm:text-lg">{content.heroBody}</p><Link href="#compare" className="public-btn public-btn-compact min-h-12 justify-center">Compare the finishes <span aria-hidden="true">↓</span></Link></div>
+        <h1 className="mt-7 max-w-6xl font-display text-[clamp(3.2rem,7.6vw,7.25rem)] font-light leading-[0.9] tracking-[-0.055em]">{content.heroHeading}</h1>
+        <div className="mt-9 grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end"><p className="max-w-3xl text-base leading-8 text-white/60 sm:text-lg">{content.heroBody}</p><Link href="#compare" className="public-btn public-btn-compact min-h-12 justify-center">Compare the finishes <span aria-hidden="true">↓</span></Link></div>
       </div>
     </section>
 
