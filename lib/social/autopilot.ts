@@ -30,6 +30,52 @@ type GeneratedPlan = {
   platforms: Record<string, { caption: string; openingHook: string; hashtags: string[]; callToAction: string; altText: string }>;
 };
 
+const socialCopySchema = (hashtagLimit: number) => ({
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    caption: { type: "string" },
+    openingHook: { type: "string" },
+    hashtags: { type: "array", items: { type: "string" }, maxItems: hashtagLimit },
+    callToAction: { type: "string" },
+    altText: { type: "string" },
+  },
+  required: ["caption", "openingHook", "hashtags", "callToAction", "altText"],
+});
+
+const weeklyPlanSchema = (postsPerWeek: number, hashtagLimit: number, platforms: string[]) => ({
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    plans: {
+      type: "array",
+      minItems: postsPerWeek,
+      maxItems: postsPerWeek,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          pillar: { type: "string" },
+          projectId: { type: "string" },
+          reasoning: { type: "string" },
+          suggestedDay: { type: "integer", minimum: 0, maximum: 6 },
+          suggestedTime: { type: "string" },
+          platforms: {
+            type: "object",
+            additionalProperties: false,
+            properties: Object.fromEntries(platforms.map((platform) => [platform, socialCopySchema(hashtagLimit)])),
+            required: platforms,
+          },
+        },
+        required: ["pillar", "projectId", "reasoning", "suggestedDay", "suggestedTime", "platforms"],
+      },
+    },
+  },
+  required: ["plans"],
+});
+
+const safeProviderField = (value: unknown) => typeof value === "string" && /^[a-zA-Z0-9_.-]{1,80}$/.test(value) ? value : undefined;
+
 const jsonArray = (value: unknown, fallback: unknown[]) => Array.isArray(value) ? value : fallback;
 const jsonObject = (value: unknown, fallback: Record<string, unknown>) => value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : fallback;
 const clean = (value: unknown, max = 4_000) => typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -118,11 +164,32 @@ async function requestPlans(input: {
         allowedTimes: input.times,
         verifiedPortfolio: input.portfolio,
       }),
-      text: { format: { type: "json_object" } },
+      text: {
+        format: {
+          type: "json_schema",
+          name: "social_autopilot_week",
+          strict: true,
+          schema: weeklyPlanSchema(input.postsPerWeek, input.hashtagLimit, input.platforms),
+        },
+      },
     }),
     signal: AbortSignal.timeout(80_000),
   });
-  if (!response.ok) throw new Error(`AI generation was rejected (${response.status}).`);
+  if (!response.ok) {
+    let providerError: { error?: { code?: unknown; type?: unknown } } = {};
+    try {
+      providerError = await response.json() as typeof providerError;
+    } catch {
+      // A provider error response is not guaranteed to contain JSON.
+    }
+    console.error("Social Autopilot provider request failed", {
+      status: response.status,
+      code: safeProviderField(providerError.error?.code),
+      type: safeProviderField(providerError.error?.type),
+      requestId: safeProviderField(response.headers.get("x-request-id")),
+    });
+    throw new Error(`AI generation was rejected (${response.status}). No drafts were created.`);
+  }
   const result = await response.json() as { output_text?: string; output?: Array<{ content?: Array<{ text?: string }> }> };
   const output = result.output_text || result.output?.flatMap((item) => item.content || []).map((item) => item.text || "").join("") || "{}";
   const parsed = JSON.parse(output) as { plans?: GeneratedPlan[] };
