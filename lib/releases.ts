@@ -19,6 +19,19 @@ export type StudioRelease = {
 // repository records.
 const STUDIO_RELEASE_AUDIT: readonly StudioRelease[] = [
   {
+    version: "V1.10.0",
+    slug: "v1-10-0",
+    releaseDate: null,
+    title: "Social Studio AI Autopilot",
+    summary: "Adds a review-first weekly social planning workflow on top of the protected Facebook and Instagram connection and publishing infrastructure.",
+    newFeatures: ["Portfolio-grounded weekly Facebook and Instagram drafts", "Weekly review workspace with suggested timing and explicit campaign-level approval", "Independent feature flags for generation and the approved-draft queue bridge"],
+    improvements: ["Existing manual campaigns remain available", "Approved AI variants use the existing immutable publishing queue", "Autopilot can be disabled without changing social connections"],
+    bugFixes: [],
+    securityInfrastructure: ["AI drafts cannot enter the queue before explicit approval", "Tokens, destination identifiers, OAuth routes, and provider adapters remain unchanged", "Generation runs are workspace-scoped, locked, and idempotent"],
+    administratorActions: ["Validate review-only generation before enabling the queue bridge", "Use controlled non-production accounts for publishing validation", "Enable AI-assisted scheduling only after Facebook and Instagram regression checks pass"],
+    status: "PLANNED",
+  },
+  {
     version: "V1.9.9",
     slug: "v1-9-9",
     releaseDate: "2026-08-23",

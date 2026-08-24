@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { deriveCampaignStatus } from "@/lib/social/core";
 import SocialDashboard from "./SocialDashboard";
+import SocialAutopilot from "./SocialAutopilot";
+import { ensureAutopilotSettings } from "@/lib/social/autopilot";
+import { approvedQueueBridgeEnabled, socialAutopilotEnabled } from "@/lib/social/autopilot-core";
 import { getAdminSession } from "@/lib/auth/session";
 import { requireWorkspaceId } from "@/lib/workspaces";
 import { redirect } from "next/navigation";
@@ -13,7 +16,7 @@ export default async function SocialStudioPage() {
   const workspaceId = await requireWorkspaceId(session.userId);
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const [campaignRows, projects, blogs, newsletters, counts] = await Promise.all([
+  const [campaignRows, projects, blogs, newsletters, counts, autopilotSettings, autopilotWeeks] = await Promise.all([
     prisma.socialCampaign.findMany({ where: { workspaceId, archivedAt: null }, orderBy: { updatedAt: "desc" }, take: 40, include: { variants: { select: { id: true, platform: true, postType: true, status: true, scheduledAt: true } } } }),
     prisma.project.findMany({ where: { workspaceId }, orderBy: { updatedAt: "desc" }, take: 100, select: { id: true, title: true, locationLabel: true } }),
     prisma.blogPost.findMany({ where: { status: "PUBLISHED" }, orderBy: { publishedAt: "desc" }, take: 100, select: { id: true, title: true } }),
@@ -27,11 +30,31 @@ export default async function SocialStudioPage() {
       prisma.socialVariant.count({ where: { campaign: { workspaceId }, status: "PUBLISHED" } }),
       prisma.socialVariant.count({ where: { campaign: { workspaceId }, status: "PUBLISHED", publishedAt: { gte: monthStart } } }),
     ]),
+    ensureAutopilotSettings(workspaceId),
+    prisma.socialAutopilotWeek.findMany({ where: { workspaceId }, orderBy: { weekStart: "desc" }, take: 6, include: { drafts: { include: { campaign: { select: { id: true, internalName: true, variants: { select: { platform: true, status: true, scheduledAt: true } } } } } } } }),
   ]);
   const campaigns = campaignRows.map((item) => ({
     id: item.id, internalName: item.internalName, updatedAt: item.updatedAt.toISOString(),
     status: deriveCampaignStatus(item.variants.map((variant) => variant.status)),
     variants: item.variants.map((variant) => ({ ...variant, scheduledAt: variant.scheduledAt?.toISOString() || null })),
   }));
-  return <div className="space-y-7 pb-10"><SocialDashboard campaigns={campaigns} projects={projects.map((item) => ({ id: item.id, label: `${item.title}${item.locationLabel ? ` · ${item.locationLabel}` : ""}` }))} blogs={blogs.map((item) => ({ id: item.id, label: item.title }))} newsletters={newsletters.map((item) => ({ id: item.id, label: item.subject || "Untitled edition" }))} summary={{ draft_campaigns: counts[0], awaiting_review: counts[1], approved: counts[2], scheduled: counts[3], ready_to_publish: counts[4], published: counts[5], published_this_month: counts[6] }}/></div>;
+  const clientWeeks = autopilotWeeks.map((week) => ({
+    id: week.id,
+    weekStart: week.weekStart.toISOString(),
+    status: week.status,
+    drafts: week.drafts.map((draft) => ({
+      id: draft.id,
+      pillar: draft.pillar,
+      campaign: {
+        id: draft.campaign.id,
+        internalName: draft.campaign.internalName,
+        variants: draft.campaign.variants.map((variant) => ({
+          platform: variant.platform,
+          status: variant.status,
+          scheduledAt: variant.scheduledAt?.toISOString() || null,
+        })),
+      },
+    })),
+  }));
+  return <div className="space-y-7 pb-10"><SocialDashboard campaigns={campaigns} projects={projects.map((item) => ({ id: item.id, label: `${item.title}${item.locationLabel ? ` · ${item.locationLabel}` : ""}` }))} blogs={blogs.map((item) => ({ id: item.id, label: item.title }))} newsletters={newsletters.map((item) => ({ id: item.id, label: item.subject || "Untitled edition" }))} summary={{ draft_campaigns: counts[0], awaiting_review: counts[1], approved: counts[2], scheduled: counts[3], ready_to_publish: counts[4], published: counts[5], published_this_month: counts[6] }}/><SocialAutopilot initialEnabled={autopilotSettings.enabled} featureAvailable={socialAutopilotEnabled()} queueBridgeAvailable={approvedQueueBridgeEnabled()} weeks={clientWeeks}/></div>;
 }
