@@ -177,7 +177,7 @@ export async function generateAutopilotWeek(input: { workspaceId: string; actorI
           data: {
             internalName: `Autopilot · ${chosen.project.title} · ${when.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
             purpose: clean(plan.reasoning, 2_000), status: "READY_FOR_REVIEW", sourceType: "PROJECT", sourceRecordIds: [chosen.project.id],
-            verifiedSourceFacts, sourceProjectId: chosen.project.id, targetAudience: studio.primaryAudience, brandVoice: studio.brandVoice,
+            verifiedSourceFacts: verifiedFacts, sourceProjectId: chosen.project.id, targetAudience: studio.primaryAudience, brandVoice: studio.brandVoice,
             objective: clean(plan.pillar, 160), desiredCallToAction: studio.defaultCallToAction, selectedPlatforms: platforms,
             scheduleNotes: "AI-suggested time only. Approval and queueing remain separate administrator actions.",
             createdById: input.actorId, lastEditedById: input.actorId, workspaceId: input.workspaceId,
