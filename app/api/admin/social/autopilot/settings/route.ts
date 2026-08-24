@@ -12,11 +12,14 @@ export async function PATCH(request: Request) {
   const workspaceId = await requireWorkspaceId(session.userId);
   const current = await ensureAutopilotSettings(workspaceId);
   const body = await request.json() as Record<string, unknown>;
+  const currentRecipients = Array.isArray(current.notificationRecipients)
+    ? current.notificationRecipients.filter((item): item is string => typeof item === "string" && item.includes("@"))
+    : [];
   const data = {
     postsPerWeek: boundedInt(body.postsPerWeek, current.postsPerWeek, 1, 7),
     hashtagLimit: boundedInt(body.hashtagLimit, current.hashtagLimit, 0, 30),
     geographicMarket: typeof body.geographicMarket === "string" ? body.geographicMarket.trim().slice(0, 300) || null : current.geographicMarket,
-    notificationRecipients: Array.isArray(body.notificationRecipients) ? body.notificationRecipients.filter((item): item is string => typeof item === "string" && item.includes("@")).slice(0, 10) : current.notificationRecipients,
+    notificationRecipients: Array.isArray(body.notificationRecipients) ? body.notificationRecipients.filter((item): item is string => typeof item === "string" && item.includes("@")).slice(0, 10) : currentRecipients,
     ...(typeof body.enabled === "boolean" ? { enabled: body.enabled } : {}),
     ...(typeof body.aiImagesEnabled === "boolean" ? { aiImagesEnabled: body.aiImagesEnabled } : {}),
     ...(typeof body.externalResearchEnabled === "boolean" ? { externalResearchEnabled: body.externalResearchEnabled } : {}),
