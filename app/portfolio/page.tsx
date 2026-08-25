@@ -342,25 +342,25 @@ export default async function PortfolioPage({
             className={compactFilterGroupClass}
             aria-label="Filter portfolio"
           >
-          <CompactFilterLink
-            href="/portfolio#selected-work"
-            active={!selectedService}
-            analyticsLabel="all-work"
-              className={compactFilterLeadClass}
-          >
-            All work
-          </CompactFilterLink>
-
-          {services.map((service) => (
             <CompactFilterLink
-              key={service.id}
-              href={`/portfolio?service=${service.slug}#${service.slug}`}
-              active={selectedService?.id === service.id}
-              analyticsLabel={service.slug}
-                className={compactFilterItemClass}
+              href="/portfolio#selected-work"
+              active={!selectedService}
+              analyticsLabel="all-work"
+              className={compactFilterLeadClass}
             >
-              {service.name}
+              All work
             </CompactFilterLink>
+
+            {services.map((service) => (
+              <CompactFilterLink
+                key={service.id}
+                href={`/portfolio?service=${service.slug}#${service.slug}`}
+                active={selectedService?.id === service.id}
+                analyticsLabel={service.slug}
+                className={compactFilterItemClass}
+              >
+                {service.name}
+              </CompactFilterLink>
             ))}
           </div>
         </div>
