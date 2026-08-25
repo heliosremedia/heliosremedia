@@ -4,8 +4,8 @@ import type { ReactNode } from "react";
 export const compactFilterClass = "inline-flex min-h-11 max-w-full items-center justify-center rounded-full border px-3.5 py-1.5 text-center text-[0.54rem] font-semibold uppercase leading-[1.2] tracking-[0.14em] transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--helios-orange)]";
 
 export function CompactFilterLink({
-  href, active = false, children, analyticsLabel,
-}: { href: string; active?: boolean; children: ReactNode; analyticsLabel?: string }) {
+  href, active = false, children, analyticsLabel, className = "",
+}: { href: string; active?: boolean; children: ReactNode; analyticsLabel?: string; className?: string }) {
   return <Link
     href={href}
     aria-current={active ? "true" : undefined}
@@ -15,7 +15,7 @@ export function CompactFilterLink({
     data-analytics-label={analyticsLabel}
     className={`${compactFilterClass} ${active
       ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] text-black"
-      : "border-white/10 text-white/45 hover:border-white/25 hover:text-white"}`}
+      : "border-white/10 text-white/45 hover:border-white/25 hover:text-white"} ${className}`}
   >{children}</Link>;
 }
 
