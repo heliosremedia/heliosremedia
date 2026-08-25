@@ -13,7 +13,12 @@ import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { getServiceMediaCategories } from "@/lib/portfolio-services";
 import { buildPageMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/site-settings";
-import { CompactFilterAnchor } from "@/app/components/CompactFilter";
+import {
+  CompactFilterAnchor,
+  compactFilterGroupClass,
+  compactFilterItemClass,
+  compactFilterSectionClass,
+} from "@/app/components/CompactFilter";
 
 function projectCollectionHref(
   projectSlug: string,
@@ -150,19 +155,26 @@ export default async function ServicesPage() {
       </section>
 
       <section className="container-shell border-b border-white/[0.08] py-8 sm:py-10">
-        <nav
-          aria-label="Service index"
-          className="flex flex-wrap justify-center gap-2"
-        >
-          {services.map((service, index) => (
-            <CompactFilterAnchor
-              key={service.id}
-              href={`#${service.slug}`}
-            >
-              {String(index + 1).padStart(2, "0")} {service.name}
-            </CompactFilterAnchor>
-          ))}
-        </nav>
+        <div className={compactFilterSectionClass}>
+          <p className="eyebrow text-left text-[var(--helios-orange)]">
+            Explore services
+          </p>
+
+          <nav
+            aria-label="Service index"
+            className={compactFilterGroupClass}
+          >
+            {services.map((service) => (
+              <CompactFilterAnchor
+                key={service.id}
+                href={`#${service.slug}`}
+                className={compactFilterItemClass}
+              >
+                {service.name}
+              </CompactFilterAnchor>
+            ))}
+          </nav>
+        </div>
       </section>
 
       {services.length > 0 ? (
