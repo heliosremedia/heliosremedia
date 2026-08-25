@@ -2,7 +2,13 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import PortfolioAnalytics from "@/app/components/PortfolioAnalytics";
-import { CompactFilterLink } from "@/app/components/CompactFilter";
+import {
+  CompactFilterLink,
+  compactFilterGroupClass,
+  compactFilterItemClass,
+  compactFilterLeadClass,
+  compactFilterSectionClass,
+} from "@/app/components/CompactFilter";
 
 import Footer from "@/app/components/Footer";
 import ManagedCtaSection from "@/app/components/ManagedCtaSection";
@@ -327,34 +333,36 @@ export default async function PortfolioPage({
       </section>
 
       <section id="portfolio-filters" className="container-shell scroll-mt-24 pb-5 pt-8 sm:pb-6 sm:pt-10">
-        <p className="eyebrow mb-6 text-left text-[var(--helios-orange)]">
-          Explore by media type
-        </p>
+        <div className={compactFilterSectionClass}>
+          <p className="eyebrow text-left text-[var(--helios-orange)]">
+            Explore by media type
+          </p>
 
-        <div
-          className="grid grid-cols-2 gap-x-2 gap-y-3 sm:flex sm:flex-wrap sm:items-stretch sm:justify-start sm:gap-2"
-          aria-label="Filter portfolio"
-        >
-          <CompactFilterLink
-            href="/portfolio#selected-work"
-            active={!selectedService}
-            analyticsLabel="all-work"
-            className="col-span-2 h-12 w-[calc((100%-0.5rem)/2)] justify-self-start px-2 sm:col-span-1 sm:h-11 sm:w-auto sm:px-4"
+          <div
+            className={compactFilterGroupClass}
+            aria-label="Filter portfolio"
           >
-            All work
-          </CompactFilterLink>
-
-          {services.map((service) => (
             <CompactFilterLink
-              key={service.id}
-              href={`/portfolio?service=${service.slug}#${service.slug}`}
-              active={selectedService?.id === service.id}
-              analyticsLabel={service.slug}
-              className="h-12 w-full px-2 sm:h-11 sm:w-auto sm:px-3.5"
+              href="/portfolio#selected-work"
+              active={!selectedService}
+              analyticsLabel="all-work"
+              className={compactFilterLeadClass}
             >
-              {service.name}
+              All work
             </CompactFilterLink>
-          ))}
+
+            {services.map((service) => (
+              <CompactFilterLink
+                key={service.id}
+                href={`/portfolio?service=${service.slug}#${service.slug}`}
+                active={selectedService?.id === service.id}
+                analyticsLabel={service.slug}
+                className={compactFilterItemClass}
+              >
+                {service.name}
+              </CompactFilterLink>
+            ))}
+          </div>
         </div>
       </section>
 
