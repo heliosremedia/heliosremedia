@@ -859,6 +859,7 @@ model PhotoComparisonPair {
   pageId   String
   page     PhotoComparisonPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
   label    String
+  editorialStyle String?
   alt      String
   caption  String?
   active   Boolean             @default(true)

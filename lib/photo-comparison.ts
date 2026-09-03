@@ -36,6 +36,7 @@ export type PhotoComparisonContent = {
 export type PhotoComparisonPairValue = {
   id: string;
   label: string;
+  editorialStyle: string | null;
   alt: string;
   caption: string;
   active: boolean;
@@ -79,7 +80,7 @@ export const defaultPhotoComparisonPairs: PhotoComparisonPairValue[] = [
   ["bathroom", "Luxury bathroom with walnut cabinetry and marble shower"],
   ["staircase", "Modern floating staircase with mountain views"],
   ["kitchen", "Custom kitchen with wood cabinetry and waterfall island"],
-].map(([label, alt], position) => ({ id: `default-${label}`, label, alt, caption: "Representative views from the same property. Framing may vary. Drag to compare the overall visual direction.", active: true, position, standardImageStorageKey: null, standardImageUrl: `/photo-finishes/standard-${label}.jpg`, editorialImageStorageKey: null, editorialImageUrl: `/photo-finishes/editorial-${label}.jpg` }));
+].map(([label, alt], position) => ({ id: `default-${label}`, label, editorialStyle: null, alt, caption: "Representative views from the same property. Framing may vary. Drag to compare the overall visual direction.", active: true, position, standardImageStorageKey: null, standardImageUrl: `/photo-finishes/standard-${label}.jpg`, editorialImageStorageKey: null, editorialImageUrl: `/photo-finishes/editorial-${label}.jpg` }));
 
 function contentFromJson(value: Prisma.JsonValue): PhotoComparisonContent {
   const record = value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};

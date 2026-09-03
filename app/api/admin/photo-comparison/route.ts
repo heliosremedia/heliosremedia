@@ -28,6 +28,12 @@ function imageUrl(value: unknown) {
   return parsed.toString();
 }
 
+function editorialStyle(value: unknown) {
+  const text = typeof value === "string" ? value.trim() : "";
+  if (text.length > 60) throw new Error("INVALID_TEXT");
+  return text || null;
+}
+
 function destination(value: unknown) {
   const text = requiredText(value, 500);
   if (text.startsWith("/") && !text.startsWith("//")) return text;
@@ -60,7 +66,7 @@ export async function PATCH(request: Request) {
       if (!item || typeof item !== "object") throw new Error("INVALID_PAIRS");
       const pair = item as Record<string, unknown>;
       return {
-        label: requiredText(pair.label, 120), alt: requiredText(pair.alt, 240), caption: requiredText(pair.caption, 500), active: pair.active !== false, position,
+        label: requiredText(pair.label, 120), editorialStyle: editorialStyle(pair.editorialStyle), alt: requiredText(pair.alt, 240), caption: requiredText(pair.caption, 500), active: pair.active !== false, position,
         standardImageStorageKey: optionalKey(pair.standardImageStorageKey), standardImageUrl: imageUrl(pair.standardImageUrl),
         editorialImageStorageKey: optionalKey(pair.editorialImageStorageKey), editorialImageUrl: imageUrl(pair.editorialImageUrl),
       };
