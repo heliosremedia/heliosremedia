@@ -47,8 +47,6 @@ export type PhotoComparisonPairValue = {
   editorialImageUrl: string;
 };
 
-export const suggestedEditorialStyles = ["Aura", "Fuze", "Brut"] as const;
-
 export const defaultPhotoComparisonContent: PhotoComparisonContent = {
   heroEyebrow: "Photography finishes",
   heroHeading: "Two ways to present a home.",

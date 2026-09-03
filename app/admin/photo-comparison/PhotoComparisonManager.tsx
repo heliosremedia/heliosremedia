@@ -3,7 +3,9 @@
 import Image from "next/image";
 import { useId, useState } from "react";
 
-import { suggestedEditorialStyles, type PhotoComparisonContent, type PhotoComparisonPairValue } from "@/lib/photo-comparison";
+import type { PhotoComparisonContent, PhotoComparisonPairValue } from "@/lib/photo-comparison";
+
+const suggestedEditorialStyles = ["Aura", "Fuze", "Brut"] as const;
 
 type PageValue = { active: boolean; content: PhotoComparisonContent; detailImageStorageKey: string | null; detailImageUrl: string; detailImageAlt: string; pairs: PhotoComparisonPairValue[] };
 
