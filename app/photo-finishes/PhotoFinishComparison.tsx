@@ -8,6 +8,7 @@ type PhotoFinishComparisonProps = {
   editorialSrc: string;
   alt: string;
   caption?: string;
+  editorialStyle?: string | null;
   priority?: boolean;
 };
 
@@ -16,10 +17,12 @@ export default function PhotoFinishComparison({
   editorialSrc,
   alt,
   caption,
+  editorialStyle,
   priority = false,
 }: PhotoFinishComparisonProps) {
   const [position, setPosition] = useState(50);
   const comparisonId = useId();
+  const editorialLabel = editorialStyle ? `${editorialStyle} Editorial Finish` : "Editorial Finish";
 
   return (
     <figure>
@@ -59,14 +62,14 @@ export default function PhotoFinishComparison({
         </div>
 
         <span className="pointer-events-none absolute left-4 top-4 rounded-full bg-black/70 px-3 py-2 text-[0.5rem] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-sm sm:left-5 sm:top-5">
-          Editorial
+          {editorialLabel}
         </span>
         <span className="pointer-events-none absolute right-4 top-4 rounded-full bg-black/70 px-3 py-2 text-[0.5rem] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-sm sm:right-5 sm:top-5">
-          Standard
+          Standard Finish
         </span>
 
         <label className="sr-only" htmlFor={comparisonId}>
-          Move the slider to compare Editorial Finish with Standard Finish
+          Move the slider to compare {editorialLabel} with Standard Finish
         </label>
         <input
           id={comparisonId}
@@ -76,7 +79,7 @@ export default function PhotoFinishComparison({
           value={position}
           onChange={(event) => setPosition(Number(event.target.value))}
           className="absolute inset-0 h-full w-full cursor-ew-resize opacity-0"
-          aria-valuetext={`${position}% Editorial Finish visible`}
+          aria-valuetext={`${position}% ${editorialLabel} visible`}
         />
       </div>
       <figcaption className="mt-4 text-xs leading-6 text-white/32">

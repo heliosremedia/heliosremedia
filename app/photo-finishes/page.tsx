@@ -36,7 +36,7 @@ export default async function PhotoFinishesPage() {
 
     <section id="compare" className="container-shell scroll-mt-28 py-16 sm:py-24">
       <div className="max-w-3xl"><p className="eyebrow text-[var(--helios-orange)]">{content.comparisonEyebrow}</p><h2 className="mt-5 font-display text-4xl font-light tracking-[-0.04em] sm:text-6xl">{content.comparisonHeading}</h2><p className="mt-6 text-sm leading-7 text-white/42 sm:text-base">{content.comparisonBody}</p></div>
-      <div className="mt-12 space-y-14 sm:mt-16 sm:space-y-20">{pairs.map((pair, index) => <PhotoFinishComparison key={pair.id} standardSrc={pair.standardImageUrl} editorialSrc={pair.editorialImageUrl} alt={pair.alt} caption={pair.caption} priority={index === 0} />)}</div>
+      <div className="mt-12 space-y-14 sm:mt-16 sm:space-y-20">{pairs.map((pair, index) => <PhotoFinishComparison key={pair.id} standardSrc={pair.standardImageUrl} editorialSrc={pair.editorialImageUrl} editorialStyle={pair.editorialStyle} alt={pair.alt} caption={pair.caption} priority={index === 0} />)}</div>
     </section>
 
     <section className="border-y border-white/[0.08] bg-[#0d0d0d]"><div className="container-shell py-16 sm:py-24"><div className="grid gap-px overflow-hidden rounded-2xl border border-white/[0.09] bg-white/[0.09] lg:grid-cols-2">
