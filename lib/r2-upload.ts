@@ -276,6 +276,17 @@ export function createEmailCampaignImageKey(mimeType: string) {
   return `email/campaigns/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
 }
 
+export function createNewsletterImageKey(workspaceId: string, mimeType: string) {
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\..+/, "")
+    .replace("T", "-");
+  const safeWorkspace = workspaceId.replace(/[^a-zA-Z0-9_-]/g, "");
+
+  return `email/newsletters/${safeWorkspace}/${timestamp}-${randomUUID().slice(0, 8)}.${extensionFromMime(mimeType)}`;
+}
+
 export function createTeamMemberPortraitKey(mimeType: string) {
   const timestamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "-");
   const id = randomUUID().slice(0, 8);
