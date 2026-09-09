@@ -4,12 +4,12 @@ import test from "node:test";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 
-test("masonry replaces the cropped grid while preserving other views and lightbox behavior", () => {
+test("project gallery uses a tightly aligned responsive grid while preserving other views and lightbox behavior", () => {
   const gallery = read("../app/portfolio/[slug]/PortfolioGallery.tsx");
-  assert.match(gallery, /title="Masonry Gallery"/);
-  assert.match(gallery, /columns-2 gap-2 md:columns-3 md:gap-3 xl:columns-4/);
-  assert.match(gallery, /width=\{item\.width \|\| 1800\}/);
-  assert.match(gallery, /height=\{item\.height \|\| 1200\}/);
+  assert.match(gallery, /title="Grid Gallery"/);
+  assert.match(gallery, /grid grid-cols-2 gap-1 md:grid-cols-3 md:gap-2 xl:grid-cols-4/);
+  assert.match(gallery, /galleryView === "gallery" \? "aspect-\[4\/3\]"/);
+  assert.match(gallery, /objectPosition: `\$\{item\.focalX \* 100\}% \$\{item\.focalY \* 100\}%`/);
   assert.match(gallery, /galleryView === "list"/);
   assert.match(gallery, /galleryView === "showcase"/);
   assert.match(gallery, /event\.key === "Escape"/);
