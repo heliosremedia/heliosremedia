@@ -34,6 +34,9 @@ test("quick browse is independently configurable, progressive, and tenant isolat
   assert.match(settingsEndpoint, /VERCEL_ENV === "preview"/);
   assert.match(portfolio, /Quick Browse/);
   assert.match(photos, /\/api\/portfolio\/gallery\?offset=/);
+  assert.match(photos, /columns-2 gap-2 md:columns-3 md:gap-3 xl:columns-4 2xl:columns-5/);
+  assert.match(photos, /sizes="\(max-width: 767px\) 50vw/);
+  assert.doesNotMatch(photos, /max-h-\[78svh\]/);
   assert.match(films, /\/api\/portfolio\/films\?offset=/);
   assert.doesNotMatch(read("../app/page.tsx"), /PhotographyBrowser|FilmsBrowser|Quick Browse/);
 });
