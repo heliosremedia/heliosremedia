@@ -436,12 +436,12 @@ export default function PortfolioGallery({
           </div>
         </section>
       ) : (
-        <div className={galleryView === "gallery" ? "mt-5 columns-1 gap-3 sm:columns-2 lg:columns-3 2xl:columns-4" : "mt-5 grid grid-cols-1 gap-7"}>
+        <div className={galleryView === "gallery" ? "mt-5 columns-2 gap-2 md:columns-3 md:gap-3 xl:columns-4" : "mt-5 grid grid-cols-1 gap-7"}>
           {items.map((item) => {
             const externalMedia = tryResolveExternalMedia(item.externalUrl);
 
             return (
-            <figure key={item.id} className={`group ${galleryView === "gallery" ? "mb-3 break-inside-avoid" : ""}`}>
+            <figure key={item.id} className={`group ${galleryView === "gallery" ? "mb-2 break-inside-avoid md:mb-3" : ""}`}>
               <div
                 className={`relative overflow-hidden bg-white/[0.03] ${
                   galleryView === "gallery" ? "" : "aspect-[16/10]"
@@ -457,7 +457,7 @@ export default function PortfolioGallery({
                     aria-label={`Open ${item.alt} in fullscreen`}
                     className={`relative block w-full cursor-zoom-in overflow-hidden text-left ${galleryView === "gallery" ? "" : "h-full"}`}
                   >
-                    {galleryView === "gallery" ? <Image src={item.imageUrl} alt={item.alt} width={item.width || 1800} height={item.height || 1200} loading="lazy" sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, (max-width: 1535px) 33vw, 25vw" quality={75} className="mx-auto h-auto max-h-[78svh] w-auto max-w-full object-contain transition duration-1000 ease-[var(--ease-luxury)] group-hover:opacity-90 motion-reduce:transition-none" /> : <Image
+                    {galleryView === "gallery" ? <Image src={item.imageUrl} alt={item.alt} width={item.width || 1800} height={item.height || 1200} loading="lazy" sizes="(max-width: 767px) 50vw, (max-width: 1279px) 33vw, 25vw" quality={75} className="h-auto w-full transition duration-1000 ease-[var(--ease-luxury)] group-hover:opacity-90 motion-reduce:transition-none" /> : <Image
                       src={item.imageUrl}
                       alt={item.alt}
                       fill
