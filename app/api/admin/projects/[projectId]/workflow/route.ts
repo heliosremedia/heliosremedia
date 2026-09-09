@@ -248,6 +248,11 @@ export async function PATCH(
         );
       }
 
+      if (duration !== "NONE" && !project.featured) {
+        const activeFeatured = await prisma.project.count({ where: { workspaceId: session.workspaceId, featured: true, status: "PUBLISHED", OR: [{ featuredExpiresAt: null }, { featuredExpiresAt: { gt: new Date() } }] } });
+        if (activeFeatured >= 6) return NextResponse.json({ success: false, error: "Six projects are already featured. Use Featured Projects management to replace one." }, { status: 409 });
+      }
+
       const updatedProject = await prisma.project.update({
         where: {
           id: project.id,

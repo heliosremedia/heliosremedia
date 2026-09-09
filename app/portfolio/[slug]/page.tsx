@@ -9,7 +9,6 @@ import RichText from "@/app/components/RichText";
 import { tryResolveExternalMedia } from "@/lib/external-media";
 import {
   buildPublicPortfolioCollections,
-  portfolioCollectionAnchor,
 } from "@/lib/portfolio-collections";
 import { optimizeProjectSocialImage, resolveProjectSocialImage } from "@/lib/project-social-image";
 import { validateProjectPreview } from "@/lib/project-preview";
@@ -23,6 +22,7 @@ import ProjectServiceLinks from "./ProjectServiceLinks";
 import ShareProject from "./ShareProject";
 import PortfolioAnalytics from "@/app/components/PortfolioAnalytics";
 import TrackedProjectVideo from "./TrackedProjectVideo";
+import MediaIntentNavigator from "./MediaIntentNavigator";
 
 export const dynamic = "force-dynamic";
 
@@ -396,7 +396,7 @@ export default async function PortfolioProjectPage({
   );
 
   return (
-    <main className="min-h-screen bg-[#090909] text-white">
+    <main id="project-top" className="min-h-screen scroll-mt-24 bg-[#090909] text-white">
       {preview && <div className="fixed inset-x-0 top-0 z-[100] flex min-h-10 items-center justify-center bg-[var(--helios-orange)] px-4 text-center text-[0.54rem] font-semibold uppercase tracking-[0.16em] text-black">Private preview · This project is not necessarily published</div>}
       <script
         type="application/ld+json"
@@ -406,6 +406,7 @@ export default async function PortfolioProjectPage({
       />
       <Navbar />
       {!preview && <PortfolioAnalytics page="project" projectId={project.id}/>}
+      {!preview && <MediaIntentNavigator projectId={project.id}/>}
 
       {leadVideoMedia && leadVideo ? (
         <section id="project-film" className="relative scroll-mt-24 overflow-hidden border-b border-white/[0.08] bg-[#0b0b0c]">
@@ -546,7 +547,7 @@ export default async function PortfolioProjectPage({
       {collections.map((collection, collectionIndex) => (
         <section
           key={collection.service.id}
-          id={portfolioCollectionAnchor(collection.service.id)}
+          id={collection.anchor}
           tabIndex={-1}
           aria-labelledby={`${collection.anchor}-title`}
           className="container-shell scroll-mt-24 border-b border-white/[0.08] py-20 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--helios-orange)]/35 sm:py-28"
@@ -558,9 +559,10 @@ export default async function PortfolioProjectPage({
                 <span aria-hidden="true"> · </span>
                 {projectCollectionTitle}
               </p>
-              <h2 id={`${collection.anchor}-title`} className="mt-4 font-display text-4xl font-light leading-[1.15] tracking-[-0.035em] text-white sm:text-5xl">
+              <h2 id={`${collection.anchor}-title`} tabIndex={-1} className="mt-4 scroll-mt-28 font-display text-4xl font-light leading-[1.15] tracking-[-0.035em] text-white outline-none sm:text-5xl">
                 {collection.service.name}
               </h2>
+              <a href="#project-top" data-analytics-event="CTA_CLICK" data-analytics-label="View the Complete Project" data-analytics-project={project.id} data-analytics-channel="portfolio" className="mt-5 inline-flex text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35 transition hover:text-[var(--helios-orange)] focus-visible:text-[var(--helios-orange)]">View the Complete Project ↑</a>
             </div>
 
             <p className="text-xs text-white/25">

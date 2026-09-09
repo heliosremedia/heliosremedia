@@ -6,11 +6,13 @@ import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { getCanonicalAbsoluteUrl } from "@/lib/site";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getPublicWorkspaceId } from "@/lib/public-workspace";
+import { getPortfolioDiscoverySettings } from "@/lib/portfolio-discovery-settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [workspaceId, settings] = await Promise.all([getPublicWorkspaceId(), getSiteSettings()]);
+  const discoverySettings = await getPortfolioDiscoverySettings(workspaceId);
   const absolute = (path: string) => getCanonicalAbsoluteUrl(path, settings.websiteUrl);
   const [projects, services, legalDocuments, locations, blogPosts] = await Promise.all([
     prisma.project.findMany({
@@ -41,6 +43,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.9,
     },
+    ...(discoverySettings.photoEnabled ? [{ url: absolute("/portfolio/gallery"), changeFrequency: "weekly" as const, priority: 0.75 }] : []),
+    ...(discoverySettings.filmEnabled ? [{ url: absolute("/portfolio/films"), changeFrequency: "weekly" as const, priority: 0.75 }] : []),
     {
       url: absolute("/services"),
       changeFrequency: "monthly",
