@@ -199,7 +199,7 @@ export default function PortfolioGallery({
             onClick={() => chooseView("gallery")}
             aria-label="Show masonry gallery view"
             aria-pressed={galleryView === "gallery"}
-            title="Masonry Gallery"
+            title="Grid Gallery"
             className={`flex h-10 w-11 items-center justify-center rounded-lg transition ${
               galleryView === "gallery"
                 ? "bg-white/[0.11] text-white"
@@ -436,15 +436,15 @@ export default function PortfolioGallery({
           </div>
         </section>
       ) : (
-        <div className={galleryView === "gallery" ? "mt-5 columns-2 gap-2 md:columns-3 md:gap-3 xl:columns-4" : "mt-5 grid grid-cols-1 gap-7"}>
+        <div className={galleryView === "gallery" ? "mt-5 grid grid-cols-2 gap-1 md:grid-cols-3 md:gap-2 xl:grid-cols-4" : "mt-5 grid grid-cols-1 gap-7"}>
           {items.map((item) => {
             const externalMedia = tryResolveExternalMedia(item.externalUrl);
 
             return (
-            <figure key={item.id} className={`group ${galleryView === "gallery" ? "mb-2 break-inside-avoid md:mb-3" : ""}`}>
+            <figure key={item.id} className="group">
               <div
                 className={`relative overflow-hidden bg-white/[0.03] ${
-                  galleryView === "gallery" ? "" : "aspect-[16/10]"
+                  galleryView === "gallery" ? "aspect-[4/3]" : "aspect-[16/10]"
                 }`}
               >
                 {item.imageUrl ? (
@@ -455,9 +455,9 @@ export default function PortfolioGallery({
                       track("GALLERY_IMAGE_OPEN", item.id);
                     }}
                     aria-label={`Open ${item.alt} in fullscreen`}
-                    className={`relative block w-full cursor-zoom-in overflow-hidden text-left ${galleryView === "gallery" ? "" : "h-full"}`}
+                    className="relative block h-full w-full cursor-zoom-in overflow-hidden text-left"
                   >
-                    {galleryView === "gallery" ? <Image src={item.imageUrl} alt={item.alt} width={item.width || 1800} height={item.height || 1200} loading="lazy" sizes="(max-width: 767px) 50vw, (max-width: 1279px) 33vw, 25vw" quality={75} className="h-auto w-full transition duration-1000 ease-[var(--ease-luxury)] group-hover:opacity-90 motion-reduce:transition-none" /> : <Image
+                    {galleryView === "gallery" ? <Image src={item.imageUrl} alt={item.alt} fill loading="lazy" sizes="(max-width: 767px) 50vw, (max-width: 1279px) 33vw, 25vw" quality={75} className="object-cover transition duration-1000 ease-[var(--ease-luxury)] group-hover:opacity-90 motion-reduce:transition-none" style={{ objectPosition: `${item.focalX * 100}% ${item.focalY * 100}%` }} /> : <Image
                       src={item.imageUrl}
                       alt={item.alt}
                       fill
