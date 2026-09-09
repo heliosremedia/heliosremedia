@@ -7,6 +7,7 @@ export type FeaturedProjectCard = {
   id: string;
   title: string;
   slug: string;
+  href: string;
   location: string;
   imageUrl: string;
   imageAlt: string;
@@ -68,7 +69,7 @@ export default function FeaturedProjectCarousel({
               aria-hidden={!active}
               className={`absolute inset-0 transition-opacity duration-1000 ease-[var(--ease-luxury)] ${active ? "z-10 opacity-100" : "pointer-events-none opacity-0"}`}
             >
-              <Link href={`/portfolio/${project.slug}`} tabIndex={active ? 0 : -1} aria-label={`View ${project.title}`} className="absolute inset-0 z-20" />
+              <Link href={project.href} tabIndex={active ? 0 : -1} aria-label={`View ${project.title}`} data-analytics-event="PORTFOLIO_CARD_CLICK" data-analytics-project={project.id} data-analytics-channel="portfolio" data-analytics-label={`Featured: ${project.title}`} className="absolute inset-0 z-20" />
               {project.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={project.imageUrl} alt={project.imageAlt} className={`h-full w-full object-cover transition-transform duration-[7000ms] ease-linear ${active && count > 1 ? "scale-[1.035]" : "scale-100"}`} />

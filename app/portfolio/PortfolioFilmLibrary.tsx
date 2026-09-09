@@ -208,7 +208,6 @@ export default function PortfolioFilmLibrary({
                 key={activeFilm.id}
                 src={activeMedia.playbackUrl}
                 controls
-                autoPlay
                 playsInline
                 className="max-h-full w-full max-w-7xl bg-black shadow-[0_35px_120px_rgba(0,0,0,0.7)]"
               >

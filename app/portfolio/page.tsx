@@ -22,6 +22,8 @@ import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { defaultPageCtas } from "@/lib/ctas";
 import { buildPageMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/site-settings";
+import { mediaIntentAnchor } from "@/lib/portfolio-discovery-core";
+import { getFeaturedProjectOrder, getPortfolioDiscoverySettings } from "@/lib/portfolio-discovery-settings";
 
 import PortfolioFilmLibrary from "./PortfolioFilmLibrary";
 import FeaturedProjectCarousel, { type FeaturedProjectCard } from "./FeaturedProjectCarousel";
@@ -49,6 +51,7 @@ export default async function PortfolioPage({
   const pageNumber = Math.max(1, Number.parseInt(getServiceParam(requestedPage), 10) || 1);
 
   const workspaceId = await getPublicWorkspaceId();
+  const [portfolioSettings, configuredFeaturedOrder] = await Promise.all([getPortfolioDiscoverySettings(workspaceId), getFeaturedProjectOrder(workspaceId)]);
   const services = await prisma.service.findMany({
     where: {
       workspaceId,
@@ -86,6 +89,7 @@ export default async function PortfolioPage({
   const [projects, filmMedia] = await Promise.all([
     prisma.project.findMany({
       where: {
+        workspaceId,
         status: "PUBLISHED",
         ...(selectedService
           ? {
@@ -205,14 +209,12 @@ export default async function PortfolioPage({
     showFilmLibrary
       ? prisma.media.findMany({
           where: {
+            project: { workspaceId, status: "PUBLISHED" },
             visibility: "VISIBLE",
             sourceType: { in: ["VIDEO_EMBED", "UPLOADED_VIDEO"] },
             mediaCategory: "CINEMATIC_FILM",
             externalUrl: {
               not: null,
-            },
-            project: {
-              status: "PUBLISHED",
             },
           },
           orderBy: [
@@ -259,10 +261,17 @@ export default async function PortfolioPage({
         ]
       : [],
   );
-  const sortedProjects = [...projects].sort(
-    (a, b) => Number(isActivelyFeatured(b)) - Number(isActivelyFeatured(a)),
-  );
-  const featuredProjects = sortedProjects.filter((project) => isActivelyFeatured(project));
+  const sortedProjects = [...projects].sort((a, b) => {
+    const featuredDifference = Number(isActivelyFeatured(b)) - Number(isActivelyFeatured(a));
+    if (featuredDifference) return featuredDifference;
+    if (isActivelyFeatured(a) && isActivelyFeatured(b)) {
+      const aOrder = configuredFeaturedOrder.indexOf(a.id);
+      const bOrder = configuredFeaturedOrder.indexOf(b.id);
+      if (aOrder >= 0 || bOrder >= 0) return (aOrder < 0 ? Number.MAX_SAFE_INTEGER : aOrder) - (bOrder < 0 ? Number.MAX_SAFE_INTEGER : bOrder);
+    }
+    return 0;
+  });
+  const featuredProjects = sortedProjects.filter((project) => isActivelyFeatured(project)).slice(0, 6);
   const pageSize = 18;
   const totalPages = Math.max(1, Math.ceil(sortedProjects.length / pageSize));
   const currentPage = Math.min(pageNumber, totalPages);
@@ -296,6 +305,7 @@ export default async function PortfolioPage({
       id: project.id,
       title: project.title,
       slug: project.slug,
+      href: selectedService ? `/portfolio/${project.slug}?from=${encodeURIComponent(selectedService.slug)}#${mediaIntentAnchor(selectedService.slug)}` : `/portfolio/${project.slug}`,
       location: project.locationLabel || [project.city, project.state].filter(Boolean).join(", ") || project.propertyType || "Helios project",
       imageUrl: imageStorageKey ? getPublicAssetUrl(imageStorageKey) : videoMedia?.thumbnailUrl || "",
       imageAlt: image?.altText || image?.originalFilename || firstVideo?.altText || firstVideo?.originalFilename || project.title,
@@ -331,6 +341,8 @@ export default async function PortfolioPage({
           </div>
         </div>
       </section>
+
+      {(portfolioSettings.photoEnabled || portfolioSettings.filmEnabled) ? <section className="container-shell border-b border-white/[0.08] py-8 sm:py-10"><p className="eyebrow text-[var(--helios-orange)]">Quick Browse</p><div className="mt-5 flex flex-wrap gap-x-8 gap-y-4">{portfolioSettings.photoEnabled ? <Link href="/portfolio/gallery" data-analytics-event="CTA_CLICK" data-analytics-channel="gallery" data-analytics-label={portfolioSettings.photoButtonLabel} className="inline-flex min-h-11 items-center border-b border-white/20 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-white/65 transition hover:border-[var(--helios-orange)] hover:text-white">{portfolioSettings.photoButtonLabel} →</Link> : null}{portfolioSettings.filmEnabled ? <Link href="/portfolio/films" data-analytics-event="CTA_CLICK" data-analytics-channel="video" data-analytics-label={portfolioSettings.filmButtonLabel} className="inline-flex min-h-11 items-center border-b border-white/20 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-white/65 transition hover:border-[var(--helios-orange)] hover:text-white">{portfolioSettings.filmButtonLabel} →</Link> : null}</div></section> : null}
 
       <section id="portfolio-filters" className="container-shell scroll-mt-24 pb-5 pt-8 sm:pb-6 sm:pt-10">
         <div className={compactFilterSectionClass}>
@@ -370,7 +382,7 @@ export default async function PortfolioPage({
         <div className="flex flex-col gap-3 border-b border-white/[0.08] pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-white/30">
-              {selectedService ? "Filtered collection" : "Published projects"}
+              {selectedService ? "Filtered collection" : "Curated collections"}
             </p>
 
             <h2 className="mt-2 font-display text-3xl font-light text-white sm:text-4xl">
@@ -459,10 +471,11 @@ export default async function PortfolioPage({
                   }`}
                 >
                   <Link
-                    href={`/portfolio/${project.slug}`}
+                    href={selectedService ? `/portfolio/${project.slug}?from=${encodeURIComponent(selectedService.slug)}#${mediaIntentAnchor(selectedService.slug)}` : `/portfolio/${project.slug}`}
                     data-analytics-event="PORTFOLIO_CARD_CLICK"
                     data-analytics-project={project.id}
                     data-analytics-channel="portfolio"
+                    data-analytics-label={selectedService?.name || project.title}
                     aria-label={`View ${project.title}`}
                     className="absolute inset-0 z-20"
                   />

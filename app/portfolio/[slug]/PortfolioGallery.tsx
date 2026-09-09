@@ -197,9 +197,9 @@ export default function PortfolioGallery({
           <button
             type="button"
             onClick={() => chooseView("gallery")}
-            aria-label="Show compact gallery view"
+            aria-label="Show masonry gallery view"
             aria-pressed={galleryView === "gallery"}
-            title="Gallery view"
+            title="Masonry Gallery"
             className={`flex h-10 w-11 items-center justify-center rounded-lg transition ${
               galleryView === "gallery"
                 ? "bg-white/[0.11] text-white"
@@ -300,7 +300,7 @@ export default function PortfolioGallery({
               <ViewportVideoFrame
                 src={showcaseExternalMedia.embedUrl}
                 title={showcaseMedia.alt}
-                autoplay={cinematic}
+                autoplay={false}
                 projectId={projectId}
                 mediaId={showcaseMedia.id}
                 className={`max-h-full border-0 bg-black ${
@@ -436,21 +436,15 @@ export default function PortfolioGallery({
           </div>
         </section>
       ) : (
-        <div
-          className={`mt-5 grid ${
-            galleryView === "gallery"
-              ? "grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 lg:gap-3"
-              : "grid-cols-1 gap-7"
-          }`}
-        >
+        <div className={galleryView === "gallery" ? "mt-5 columns-1 gap-3 sm:columns-2 lg:columns-3 2xl:columns-4" : "mt-5 grid grid-cols-1 gap-7"}>
           {items.map((item) => {
             const externalMedia = tryResolveExternalMedia(item.externalUrl);
 
             return (
-            <figure key={item.id} className="group">
+            <figure key={item.id} className={`group ${galleryView === "gallery" ? "mb-3 break-inside-avoid" : ""}`}>
               <div
                 className={`relative overflow-hidden bg-white/[0.03] ${
-                  galleryView === "gallery" ? "aspect-[4/3]" : "aspect-[16/10]"
+                  galleryView === "gallery" ? "" : "aspect-[16/10]"
                 }`}
               >
                 {item.imageUrl ? (
@@ -461,23 +455,17 @@ export default function PortfolioGallery({
                       track("GALLERY_IMAGE_OPEN", item.id);
                     }}
                     aria-label={`Open ${item.alt} in fullscreen`}
-                    className="relative block h-full w-full cursor-zoom-in overflow-hidden text-left"
+                    className={`relative block w-full cursor-zoom-in overflow-hidden text-left ${galleryView === "gallery" ? "" : "h-full"}`}
                   >
-                    <Image
+                    {galleryView === "gallery" ? <Image src={item.imageUrl} alt={item.alt} width={item.width || 1800} height={item.height || 1200} loading="lazy" sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, (max-width: 1535px) 33vw, 25vw" quality={75} className="mx-auto h-auto max-h-[78svh] w-auto max-w-full object-contain transition duration-1000 ease-[var(--ease-luxury)] group-hover:opacity-90 motion-reduce:transition-none" /> : <Image
                       src={item.imageUrl}
                       alt={item.alt}
                       fill
-                      sizes={
-                        galleryView === "gallery"
-                          ? "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                          : "(max-width: 1440px) 100vw, 1280px"
-                      }
+                      sizes="(max-width: 1440px) 100vw, 1280px"
                       quality={75}
                       className="object-cover transition duration-1000 ease-[var(--ease-luxury)] group-hover:scale-[1.025]"
-                      style={{
-                        objectPosition: `${item.focalX * 100}% ${item.focalY * 100}%`,
-                      }}
-                    />
+                      style={{ objectPosition: `${item.focalX * 100}% ${item.focalY * 100}%` }}
+                    />}
                     <span className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
                     <span
                       className={`absolute flex translate-y-2 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white/65 opacity-0 backdrop-blur-md transition duration-500 group-hover:translate-y-0 group-hover:opacity-100 ${
@@ -505,7 +493,7 @@ export default function PortfolioGallery({
                   <ViewportVideoFrame
                     src={externalMedia.embedUrl}
                     title={item.alt}
-                    autoplay={cinematic}
+                    autoplay={false}
                     projectId={projectId}
                     mediaId={item.id}
                     className={`mx-auto h-full border-0 bg-black ${
