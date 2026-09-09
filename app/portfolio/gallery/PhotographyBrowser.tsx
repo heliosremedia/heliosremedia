@@ -63,10 +63,10 @@ export default function PhotographyBrowser({ initialItems, initialNextOffset, to
 
   return <>
     <p className="sr-only" aria-live="polite">Showing {visibleItems.length} of {total} photographs.</p>
-    <div className="mt-10 columns-1 gap-3 sm:columns-2 lg:columns-3 2xl:columns-4">
-      {visibleItems.map((item) => <figure key={item.id} className="mb-3 break-inside-avoid overflow-hidden bg-white/[0.025]">
+    <div className="mt-10 columns-2 gap-2 md:columns-3 md:gap-3 xl:columns-4 2xl:columns-5">
+      {visibleItems.map((item) => <figure key={item.id} className="mb-2 break-inside-avoid overflow-hidden bg-white/[0.025] md:mb-3">
         <button type="button" onClick={(event) => { triggerRef.current = event.currentTarget; setActiveId(item.id); }} data-analytics-event="GALLERY_IMAGE_OPEN" data-analytics-project={item.project.id} data-analytics-channel="gallery" data-analytics-label={item.alt} aria-label={`Open ${item.alt}`} className="group block w-full cursor-zoom-in focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--helios-orange)]">
-          <Image src={item.imageUrl} alt={item.alt} width={item.width} height={item.height} loading="lazy" sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, (max-width: 1535px) 33vw, 25vw" onError={() => setBrokenIds((current) => new Set(current).add(item.id))} className="mx-auto h-auto max-h-[78svh] w-auto max-w-full object-contain transition duration-700 ease-[var(--ease-luxury)] group-hover:opacity-90 motion-reduce:transition-none" />
+          <Image src={item.imageUrl} alt={item.alt} width={item.width} height={item.height} loading="lazy" sizes="(max-width: 767px) 50vw, (max-width: 1279px) 33vw, (max-width: 1535px) 25vw, 20vw" onError={() => setBrokenIds((current) => new Set(current).add(item.id))} className="h-auto w-full transition duration-700 ease-[var(--ease-luxury)] group-hover:opacity-90 motion-reduce:transition-none" />
         </button>
       </figure>)}
     </div>
