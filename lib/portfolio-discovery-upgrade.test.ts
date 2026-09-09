@@ -31,6 +31,7 @@ test("quick browse is independently configurable, progressive, and tenant isolat
   assert.match(query, /excludedMediaIds/);
   assert.match(settingsEndpoint, /ids\(body\.excludedProjectIds\)/);
   assert.match(settingsEndpoint, /ids\(body\.excludedMediaIds\)/);
+  assert.match(settingsEndpoint, /VERCEL_ENV === "preview"/);
   assert.match(portfolio, /Quick Browse/);
   assert.match(photos, /\/api\/portfolio\/gallery\?offset=/);
   assert.match(films, /\/api\/portfolio\/films\?offset=/);
@@ -48,6 +49,7 @@ test("featured projects enforce six, require replacement confirmation, and never
   assert.match(manager, /Confirm Replacement/);
   assert.match(manager, /More than 6 projects are currently featured/);
   assert.match(workflow, /activeFeatured >= 6/);
+  assert.match(endpoint, /VERCEL_ENV === "preview"/);
   assert.doesNotMatch(endpoint, /\.delete\(|deleteMany/);
   assert.doesNotMatch(endpoint, /status: "ARCHIVED"/);
 });

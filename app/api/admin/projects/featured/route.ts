@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 export async function PATCH(request: Request) {
   const session = await getAdminSession();
   if (!session || !["OWNER", "ADMIN"].includes(session.role)) return NextResponse.json({ success: false, error: "Owner or administrator access is required." }, { status: 403 });
+  if (process.env.VERCEL_ENV === "preview") return NextResponse.json({ success: false, error: "Preview is read-only. Featured projects can be saved after production approval." }, { status: 409 });
   const body = await request.json() as { projectIds?: unknown };
   const projectIds = Array.isArray(body.projectIds) ? body.projectIds.filter((id): id is string => typeof id === "string") : [];
   if (projectIds.length > 6 || new Set(projectIds).size !== projectIds.length) return NextResponse.json({ success: false, error: "Choose up to six unique featured projects." }, { status: 400 });

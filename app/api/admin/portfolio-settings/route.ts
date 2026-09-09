@@ -10,6 +10,7 @@ function ids(value: unknown) { return Array.isArray(value) ? [...new Set(value.f
 export async function PATCH(request: Request) {
   const session = await getAdminSession();
   if (!session || !["OWNER", "ADMIN"].includes(session.role)) return NextResponse.json({ success: false, error: "Owner or administrator access is required." }, { status: 403 });
+  if (process.env.VERCEL_ENV === "preview") return NextResponse.json({ success: false, error: "Preview is read-only. Gallery settings can be saved after production approval." }, { status: 409 });
   const body = await request.json() as Record<string, unknown>;
   const requestedProjectIds = ids(body.excludedProjectIds);
   const requestedMediaIds = ids(body.excludedMediaIds);
