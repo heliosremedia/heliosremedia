@@ -7,7 +7,7 @@ const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf
 test("masonry replaces the cropped grid while preserving other views and lightbox behavior", () => {
   const gallery = read("../app/portfolio/[slug]/PortfolioGallery.tsx");
   assert.match(gallery, /title="Masonry Gallery"/);
-  assert.match(gallery, /columns-1 gap-3 sm:columns-2 lg:columns-3 2xl:columns-4/);
+  assert.match(gallery, /columns-2 gap-2 md:columns-3 md:gap-3 xl:columns-4/);
   assert.match(gallery, /width=\{item\.width \|\| 1800\}/);
   assert.match(gallery, /height=\{item\.height \|\| 1200\}/);
   assert.match(gallery, /galleryView === "list"/);
