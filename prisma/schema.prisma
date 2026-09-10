@@ -96,6 +96,28 @@ enum AdminRole {
   VIEWER
 }
 
+enum WorkspaceMembershipStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  REVOKED
+}
+
+enum WorkspaceDomainPurpose {
+  PUBLIC_SITE
+  ADMIN_ALIAS
+  TRACKING
+  EMAIL_LINK
+}
+
+enum WorkspaceDomainStatus {
+  PENDING
+  VERIFYING
+  ACTIVE
+  FAILED
+  SUSPENDED
+}
+
 enum GoogleBusinessConnectionStatus {
   NEEDS_LOCATION
   CONNECTED
@@ -855,15 +877,15 @@ model PhotoComparisonPage {
 }
 
 model PhotoComparisonPair {
-  id       String              @id @default(cuid())
-  pageId   String
-  page     PhotoComparisonPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
-  label    String
+  id             String              @id @default(cuid())
+  pageId         String
+  page           PhotoComparisonPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  label          String
   editorialStyle String?
-  alt      String
-  caption  String?
-  active   Boolean             @default(true)
-  position Int                 @default(0)
+  alt            String
+  caption        String?
+  active         Boolean             @default(true)
+  position       Int                 @default(0)
 
   standardImageStorageKey  String?
   standardImageUrl         String
@@ -1582,6 +1604,7 @@ model AdminUser {
   projectCredits                ProjectContributor[]
   portfolioAnalyticsEvents      PortfolioAnalyticsEvent[]
   googleBusinessConnections     GoogleBusinessConnection[]      @relation("GoogleBusinessConnectionActor")
+  workspaceMemberships          WorkspaceMembership[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1621,9 +1644,51 @@ model Workspace {
   photoComparisonPage       PhotoComparisonPage?
   googleBusinessConnection  GoogleBusinessConnection?
   googleBusinessReviews     GoogleBusinessReview[]
+  memberships               WorkspaceMembership[]
+  domains                   WorkspaceDomain[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model WorkspaceMembership {
+  id String @id @default(cuid())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String
+  user        AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  role   AdminRole                 @default(EDITOR)
+  status WorkspaceMembershipStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([workspaceId, userId])
+  @@index([userId, status])
+  @@index([workspaceId, status, role])
+}
+
+model WorkspaceDomain {
+  id String @id @default(cuid())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  hostname          String                 @unique
+  purpose           WorkspaceDomainPurpose @default(PUBLIC_SITE)
+  status            WorkspaceDomainStatus  @default(PENDING)
+  primary           Boolean                @default(false)
+  verificationToken String?
+  verifiedAt        DateTime?
+  lastCheckedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workspaceId, purpose, status])
+  @@index([workspaceId, primary])
 }
 
 model GoogleBusinessConnection {
@@ -1684,18 +1749,18 @@ model GoogleBusinessReview {
   connectionId String
   connection   GoogleBusinessConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
 
-  googleReviewId         String
-  reviewerName           String
-  reviewerPhotoUrl       String?
-  starRating             Int
-  reviewText             String?
-  reviewCreatedAt        DateTime?
-  reviewUpdatedAt        DateTime?
-  businessReplyText      String?
-  businessReplyUpdatedAt DateTime?
-  lastSyncedAt           DateTime               @default(now())
-  syncStatus             GoogleReviewSyncStatus @default(CURRENT)
-  syncError              String?
+  googleReviewId           String
+  reviewerName             String
+  reviewerPhotoUrl         String?
+  starRating               Int
+  reviewText               String?
+  reviewCreatedAt          DateTime?
+  reviewUpdatedAt          DateTime?
+  businessReplyText        String?
+  businessReplyUpdatedAt   DateTime?
+  lastSyncedAt             DateTime               @default(now())
+  syncStatus               GoogleReviewSyncStatus @default(CURRENT)
+  syncError                String?
   publicVisibilityOverride Boolean?
 
   testimonialId String?      @unique
@@ -1781,7 +1846,7 @@ model SocialCampaign {
   seriesLinks              SocialSeriesCampaign[]
   occurrences              SocialSeriesOccurrence[]
   analyticsRecommendations SocialAnalyticsRecommendation[]
-  autopilotDraft            SocialAutopilotDraft?
+  autopilotDraft           SocialAutopilotDraft?
 
   archivedAt DateTime?
   createdAt  DateTime  @default(now())
@@ -1799,49 +1864,49 @@ model SocialAutopilotSettings {
   workspaceId String    @unique
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
-  enabled                 Boolean @default(false)
-  postsPerWeek            Int     @default(4)
+  enabled                 Boolean   @default(false)
+  postsPerWeek            Int       @default(4)
   enabledPlatforms        Json
   preferredPublishingDays Json
   preferredTimeWindows    Json
   contentMix              Json
-  portfolioFirst          Boolean @default(true)
-  aiImagesEnabled         Boolean @default(false)
-  seasonalContentEnabled  Boolean @default(true)
-  educationalEnabled      Boolean @default(true)
-  externalResearchEnabled Boolean @default(false)
-  promotionalLimit        Int     @default(1)
+  portfolioFirst          Boolean   @default(true)
+  aiImagesEnabled         Boolean   @default(false)
+  seasonalContentEnabled  Boolean   @default(true)
+  educationalEnabled      Boolean   @default(true)
+  externalResearchEnabled Boolean   @default(false)
+  promotionalLimit        Int       @default(1)
   geographicMarket        String?
-  hashtagLimit            Int     @default(5)
+  hashtagLimit            Int       @default(5)
   notificationRecipients  Json
-  generationDay           Int     @default(1)
-  generationLocalTime     String  @default("08:00")
-  timeZone                 String  @default("America/Denver")
-  reminderHours            Json
-  contentCooldowns         Json
-  callsToAction            Json
-  exclusions               Json
-  nextGenerationAt         DateTime?
+  generationDay           Int       @default(1)
+  generationLocalTime     String    @default("08:00")
+  timeZone                String    @default("America/Denver")
+  reminderHours           Json
+  contentCooldowns        Json
+  callsToAction           Json
+  exclusions              Json
+  nextGenerationAt        DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model SocialAutopilotWeek {
-  id          String    @id @default(cuid())
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  weekStart   DateTime
-  weekEnd     DateTime
-  status      SocialAutopilotWeekStatus @default(GENERATING)
-  inputDigest String
-  generationVersion Int @default(1)
-  lockedAt    DateTime?
-  lockedBy    String?
-  reviewNotifiedAt DateTime?
-  reminderSentAt   DateTime?
-  lastErrorCode    String?
-  lastErrorMessage String?
+  id                String                    @id @default(cuid())
+  workspaceId       String
+  workspace         Workspace                 @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  weekStart         DateTime
+  weekEnd           DateTime
+  status            SocialAutopilotWeekStatus @default(GENERATING)
+  inputDigest       String
+  generationVersion Int                       @default(1)
+  lockedAt          DateTime?
+  lockedBy          String?
+  reviewNotifiedAt  DateTime?
+  reminderSentAt    DateTime?
+  lastErrorCode     String?
+  lastErrorMessage  String?
 
   drafts SocialAutopilotDraft[]
   runs   SocialAutopilotRun[]
@@ -1854,19 +1919,19 @@ model SocialAutopilotWeek {
 }
 
 model SocialAutopilotDraft {
-  id         String              @id @default(cuid())
-  weekId     String
-  week       SocialAutopilotWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
-  campaignId String              @unique
-  campaign   SocialCampaign      @relation(fields: [campaignId], references: [id], onDelete: Restrict)
-  pillar     String
-  reasoning  String?
+  id                 String                            @id @default(cuid())
+  weekId             String
+  week               SocialAutopilotWeek               @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  campaignId         String                            @unique
+  campaign           SocialCampaign                    @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  pillar             String
+  reasoning          String?
   verificationStatus SocialAutopilotVerificationStatus @default(NEEDS_REVIEW)
-  sourceReferences Json?
-  externalSources  Json?
-  suggestedAt      DateTime?
-  rejectedAt       DateTime?
-  revisionRequest  String?
+  sourceReferences   Json?
+  externalSources    Json?
+  suggestedAt        DateTime?
+  rejectedAt         DateTime?
+  revisionRequest    String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2199,15 +2264,15 @@ model SocialConnection {
 }
 
 model SocialOAuthSession {
-  id                    String    @id @default(cuid())
-  workspaceId           String
-  workspace             Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  id                     String    @id @default(cuid())
+  workspaceId            String
+  workspace              Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   userId                 String
   user                   AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
   provider               String
   stateHash              String    @unique
   safeReturnPath         String
-  encryptedTokenPayload String?
+  encryptedTokenPayload  String?
   discoveredDestinations Json?
   expiresAt              DateTime
   authorizedAt           DateTime?
