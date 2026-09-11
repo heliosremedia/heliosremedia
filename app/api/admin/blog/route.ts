@@ -1,3 +1,4 @@
+import { verifyRegisteredBrandImage } from "@/lib/workspace-brand-assets";
 import { resolveBrandImage, brandAssetPrefix } from "@/lib/workspace-brand-storage";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { verifyContentImage } from "@/lib/content-image-storage";
@@ -72,7 +73,13 @@ async function validatePostImage(next: ReturnType<typeof data>, workspaceId: str
     { key: next.featuredImageStorageKey, url: next.featuredImageUrl },
     existing ? { key: existing.featuredImageStorageKey, url: existing.featuredImageUrl } : null,
     getPublicAssetUrl);
-  if (image.key && image.key !== existing?.featuredImageStorageKey) await verifyContentImage(image.key);
+  if (kind === "newsletter-ai" && image.key) {
+    const asset = await prisma.newsletterImageAsset.findFirst({ where: { storageKey: image.key, AND: [await getBlogOwnershipScope(workspaceId)] }, select: { id: true } });
+    if (!asset) throw new Error("INVALID_BRAND_IMAGE");
+    if (image.key !== existing?.featuredImageStorageKey) await verifyContentImage(image.key);
+  } else {
+    await verifyRegisteredBrandImage({ workspaceId, kind: "blog", key: image.key, existingKey: existing?.featuredImageStorageKey });
+  }
   next.featuredImageStorageKey = image.key;
   next.featuredImageUrl = image.url;
 }

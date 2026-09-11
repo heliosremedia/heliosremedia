@@ -3184,6 +3184,7 @@
         "storageKey"
       ],
       "sourceReferences": [
+        "app/api/admin/blog/route.ts",
         "app/api/admin/newsletters/editions/[editionId]/route.ts",
         "app/api/admin/newsletters/images/route.ts",
         "lib/newsletters/image-assets.ts",
