@@ -4,7 +4,7 @@ import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
-import { verifyContentImage } from "@/lib/content-image-storage";
+import { verifyRegisteredBrandImage } from "@/lib/workspace-brand-assets";
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/auth/session";
 
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     const scope = await getContentOwnershipScope(session.workspaceId);
     const body = (await request.json()) as Record<string, unknown>;
     const data = validate(body, session.workspaceId);
-    await verifyContentImage(data.logoStorageKey);
+    await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "trusted-logos", key: data.logoStorageKey });
     const order = await prisma.trustedLogo.aggregate({ where: { ...scope }, _max: { displayOrder: true } });
     const logo = await prisma.trustedLogo.create({ data: { ...data, workspaceId: session.workspaceId, displayOrder: (order._max.displayOrder ?? -1) + 1, published: body.published === true }, select: logoSelect });
     refresh();
@@ -97,7 +97,7 @@ export async function PATCH(request: Request) {
       const existing = await prisma.trustedLogo.findFirst({ where: { id: logoId, ...scope }, select: { logoStorageKey: true, logoUrl: true } });
       if (!existing) return NextResponse.json({ success: false, error: "The logo was not found." }, { status: 404 });
       const data = validate(body, session.workspaceId, existing);
-      if (data.logoStorageKey !== existing.logoStorageKey) await verifyContentImage(data.logoStorageKey);
+      await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "trusted-logos", key: data.logoStorageKey, existingKey: existing.logoStorageKey });
       const changed = await prisma.trustedLogo.updateMany({ where: { id: logoId, ...scope }, data: { ...data, ...(typeof body.published === "boolean" ? { published: body.published } : {}) } });
       if (changed.count !== 1) return NextResponse.json({ success: false, error: "The logo was not found." }, { status: 404 });
       const logo = await prisma.trustedLogo.findFirstOrThrow({ where: { id: logoId, ...scope }, select: logoSelect });

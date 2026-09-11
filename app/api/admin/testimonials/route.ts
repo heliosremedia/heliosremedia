@@ -4,7 +4,7 @@ import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
-import { verifyContentImage } from "@/lib/content-image-storage";
+import { verifyRegisteredBrandImage } from "@/lib/workspace-brand-assets";
 import { prisma } from "@/lib/prisma";
 import { TESTIMONIAL_CHARACTER_LIMIT } from "@/lib/testimonials";
 import { getAdminSession } from "@/lib/auth/session";
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
     const scope = await getContentOwnershipScope(session.workspaceId);
     const body = (await request.json()) as Record<string, unknown>;
     const data = validateBody(body, session.workspaceId);
-    await verifyContentImage(data.photoStorageKey);
+    await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "testimonials", key: data.photoStorageKey });
     const order = await prisma.testimonial.aggregate({ where: { ...scope }, _max: { displayOrder: true } });
     const testimonial = await prisma.testimonial.create({
       data: { ...data, workspaceId: session.workspaceId, displayOrder: (order._max.displayOrder ?? -1) + 1, published: body.published === true, featured: body.featured === true },
@@ -164,7 +164,7 @@ export async function PATCH(request: Request) {
       const existing = await prisma.testimonial.findFirst({ where: { id: testimonialId, ...scope }, select: { photoStorageKey: true, photoUrl: true } });
       if (!existing) return NextResponse.json({ success: false, error: "The testimonial was not found." }, { status: 404 });
       const data = validateBody(body, session.workspaceId, existing);
-      if (data.photoStorageKey !== existing.photoStorageKey) await verifyContentImage(data.photoStorageKey);
+      await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "testimonials", key: data.photoStorageKey, existingKey: existing.photoStorageKey });
       const changed = await prisma.testimonial.updateMany({
         where: { id: testimonialId, ...scope },
         data: {
