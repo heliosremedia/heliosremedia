@@ -44,7 +44,7 @@ export async function POST(request: Request) {
       return created;
     });
     await recordAuditEvent({
-      actorId: session.userId, actorEmail: session.email, action: "MANUAL_REFERRAL_CREATED",
+      workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: "MANUAL_REFERRAL_CREATED",
       entityType: "ReferralSubmission", entityId: referral.id, summary: "Created a manual referral record.",
     });
     return NextResponse.json({ success: true, referralId: referral.id }, { status: 201 });

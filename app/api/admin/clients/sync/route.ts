@@ -62,7 +62,7 @@ export async function POST() {
       },
     });
     await recordAuditEvent({
-      actorId: session.userId,
+      workspaceId: session.workspaceId, actorId: session.userId,
       actorEmail: session.email,
       action: "HDPH_CLIENTS_SYNCED",
       entityType: "CommunicationClient",

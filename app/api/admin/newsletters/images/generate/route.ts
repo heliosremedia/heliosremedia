@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       actorId: session.userId,
     });
     await recordAuditEvent({
-      actorId: session.userId,
+      workspaceId: session.workspaceId, actorId: session.userId,
       actorEmail: session.email,
       action: "NEWSLETTER_AI_IMAGE_GENERATED",
       entityType: "NewsletterImageAsset",

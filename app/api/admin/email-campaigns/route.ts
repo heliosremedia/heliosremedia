@@ -77,7 +77,7 @@ export async function POST(request: Request) {
         ? await prisma.emailCampaign.update({ where: { id: existing.id, AND: [scope] }, data: { subject: subject || "Untitled email", previewText: previewText || null, body, templateKey, imageUrl: imageUrl || null, imageAlt: imageUrl ? imageAlt || null : null, imageCaption, imageLink, recipientMode: mode, selection, rowVersion: { increment: 1 } } })
         : await prisma.emailCampaign.create({ data: { workspaceId: session.workspaceId, subject: subject || "Untitled email", previewText: previewText || null, body, templateKey, imageUrl: imageUrl || null, imageAlt: imageUrl ? imageAlt || null : null, imageCaption, imageLink, status: "DRAFT", recipientMode: mode, selection, recipientCount: 0, createdById: session.userId } });
       await recordAuditEvent({
-        actorId: session.userId, actorEmail: session.email, action: existing ? "EMAIL_CAMPAIGN_DRAFT_UPDATED" : "EMAIL_CAMPAIGN_DRAFT_SAVED",
+        workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: existing ? "EMAIL_CAMPAIGN_DRAFT_UPDATED" : "EMAIL_CAMPAIGN_DRAFT_SAVED",
         entityType: "EmailCampaign", entityId: campaign.id, summary: `Email draft "${campaign.subject}" saved.`,
         metadata: { templateKey, recipientMode: mode },
       });
@@ -108,7 +108,7 @@ export async function POST(request: Request) {
         source: "campaign",
       });
       await recordAuditEvent({
-        actorId: session.userId, actorEmail: session.email, action: "EMAIL_CAMPAIGN_TEST_SENT",
+        workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: "EMAIL_CAMPAIGN_TEST_SENT",
         entityType: "EmailCampaign", summary: `Personalized campaign test sent to ${testEmail}.`,
         metadata: { previewClientId: selected ? input.previewClientId : null, sampleProfile: !selected },
       });
@@ -167,7 +167,7 @@ export async function POST(request: Request) {
       },
     });
     await recordAuditEvent({
-      actorId: session.userId, actorEmail: session.email,
+      workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email,
       action: scheduledAt ? "EMAIL_CAMPAIGN_SCHEDULED" : "EMAIL_CAMPAIGN_SEND_NOW",
       entityType: "EmailCampaign", entityId: campaign.id,
       summary: scheduledAt ? `Campaign "${subject}" scheduled for ${scheduledAt.toISOString()}.` : `Campaign "${subject}" started immediately.`,

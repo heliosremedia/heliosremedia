@@ -4,7 +4,7 @@ import { getAdminSession, SESSION_COOKIE, sessionCookieOptions } from "@/lib/aut
 
 export async function POST(request: Request) {
   const session = await getAdminSession();
-  if (session) await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: "AUTH_LOGOUT", entityType: "AdminUser", entityId: session.userId, summary: "Admin signed out.", ipAddress: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null, userAgent: request.headers.get("user-agent") });
+  if (session) await recordAuditEvent({ workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: "AUTH_LOGOUT", entityType: "AdminUser", entityId: session.userId, summary: "Admin signed out.", ipAddress: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null, userAgent: request.headers.get("user-agent") });
   const response = NextResponse.json({ success: true });
   response.cookies.set(SESSION_COOKIE, "", { ...sessionCookieOptions, maxAge: 0 });
   return response;

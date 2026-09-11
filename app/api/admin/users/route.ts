@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   await prisma.adminInvitation.updateMany({ where: { workspaceId: session.workspaceId, email, acceptedAt: null, revokedAt: null }, data: { revokedAt: new Date() } });
   const token = createInvitationToken();
   const invitation = await prisma.adminInvitation.create({ data: { email, displayName, title: title || null, role, tokenHash: hashInvitationToken(token), createdById: session.userId, workspaceId: session.workspaceId, expiresAt: new Date(Date.now() + 7 * 86400000) } });
-  await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: "USER_INVITED", entityType: "AdminInvitation", entityId: invitation.id, summary: `${email} invited as ${role}.` });
+  await recordAuditEvent({ workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: "USER_INVITED", entityType: "AdminInvitation", entityId: invitation.id, summary: `${email} invited as ${role}.` });
   revalidatePath("/admin/users");
   return NextResponse.json({ success: true, invitationUrl: getAbsoluteUrl(`/accept-invite?token=${encodeURIComponent(token)}`) }, { status: 201 });
 }
@@ -71,7 +71,7 @@ export async function PATCH(request: Request) {
       return true;
     });
     if (!transferred) return NextResponse.json({ success: false, error: "The new owner must have active workspace access." }, { status: 409 });
-    await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: "WORKSPACE_OWNERSHIP_TRANSFERRED", entityType: "Workspace", entityId: session.workspaceId, summary: `Workspace ownership transferred to ${target.email}.` });
+    await recordAuditEvent({ workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: "WORKSPACE_OWNERSHIP_TRANSFERRED", entityType: "Workspace", entityId: session.workspaceId, summary: `Workspace ownership transferred to ${target.email}.` });
     return NextResponse.json({ success: true, signedOut: true });
   }
   const targetMembership = tenantContextEnabled()
@@ -97,7 +97,7 @@ export async function PATCH(request: Request) {
     return saved;
   });
   if ("error" in updated) return NextResponse.json({ success: false, error: updated.error }, { status: 409 });
-  await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: password !== null ? "USER_PASSWORD_RESET" : "USER_UPDATED", entityType: "AdminUser", entityId: userId, summary: password !== null ? `${target.email} password reset and active sessions revoked.` : `${target.email} account access updated.` });
+  await recordAuditEvent({ workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: password !== null ? "USER_PASSWORD_RESET" : "USER_UPDATED", entityType: "AdminUser", entityId: userId, summary: password !== null ? `${target.email} password reset and active sessions revoked.` : `${target.email} account access updated.` });
   revalidatePath("/admin/users");
   return NextResponse.json({ success: true, user: updated });
 }
@@ -110,7 +110,7 @@ export async function DELETE(request: Request) {
   const invitation = await prisma.adminInvitation.findFirst({ where: { id: invitationId, workspaceId: session.workspaceId, acceptedAt: null, revokedAt: null } });
   if (!invitation) return NextResponse.json({ success: false, error: "Invitation not found." }, { status: 404 });
   await prisma.adminInvitation.update({ where: { id: invitation.id }, data: { revokedAt: new Date() } });
-  await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: "USER_INVITATION_REVOKED", entityType: "AdminInvitation", entityId: invitation.id, summary: `${invitation.email} invitation revoked.` });
+  await recordAuditEvent({ workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: "USER_INVITATION_REVOKED", entityType: "AdminInvitation", entityId: invitation.id, summary: `${invitation.email} invitation revoked.` });
   revalidatePath("/admin/users");
   return NextResponse.json({ success: true });
 }

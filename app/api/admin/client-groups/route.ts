@@ -55,7 +55,7 @@ export async function POST(request: Request) {
       select: { id: true, name: true },
     });
     await recordAuditEvent({
-      actorId: session.userId,
+      workspaceId: session.workspaceId, actorId: session.userId,
       actorEmail: session.email,
       action: "COMMUNICATION_GROUP_CREATED",
       entityType: "CommunicationGroup",
@@ -89,7 +89,7 @@ export async function PATCH(request: Request) {
       select: { id: true, name: true },
     });
     await recordAuditEvent({
-      actorId: session.userId,
+      workspaceId: session.workspaceId, actorId: session.userId,
       actorEmail: session.email,
       action: "COMMUNICATION_GROUP_RENAMED",
       entityType: "CommunicationGroup",
@@ -125,7 +125,7 @@ export async function DELETE(request: Request) {
   }
   await prisma.communicationGroup.delete({ where: { id: group.id, systemManaged: false, AND: [await getContentOwnershipScope(session.workspaceId)] } });
   await recordAuditEvent({
-    actorId: session.userId,
+    workspaceId: session.workspaceId, actorId: session.userId,
     actorEmail: session.email,
     action: "COMMUNICATION_GROUP_DELETED",
     entityType: "CommunicationGroup",

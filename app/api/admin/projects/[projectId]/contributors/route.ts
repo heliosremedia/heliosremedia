@@ -30,7 +30,7 @@ export async function PUT(request: Request, context: { params: Promise<{ project
   });
   try{
     await prisma.$transaction(async tx=>{await tx.projectContributor.deleteMany({where:{projectId,workspaceId:session.workspaceId}});if(rows.length)await tx.projectContributor.createMany({data:rows});});
-    await recordAuditEvent({actorId:session.userId,actorEmail:session.email,action:"PROJECT_CONTRIBUTORS_UPDATED",entityType:"Project",entityId:projectId,summary:`Project contributor credits updated (${rows.length}).`});
+    await recordAuditEvent({workspaceId: session.workspaceId, actorId:session.userId,actorEmail:session.email,action:"PROJECT_CONTRIBUTORS_UPDATED",entityType:"Project",entityId:projectId,summary:`Project contributor credits updated (${rows.length}).`});
     return NextResponse.json({success:true});
   }catch(error){if(error instanceof Error&&error.message==="INVALID_CONTRIBUTOR")return NextResponse.json({success:false,error:"Every external contributor needs a name."},{status:400});console.error("Unable to save project contributors:",error);return NextResponse.json({success:false,error:"Project contributors could not be saved."},{status:500});}
 }

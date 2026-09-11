@@ -1,5 +1,5 @@
 {
-  "schemaSha256": "146253023616d3952b9ea6737a37109bb7257ec811b08d2376e28b32ff730641",
+  "schemaSha256": "98499cf93ec6de08711682478955f831e533f5b113980101c62ef93cf3a2d0c1",
   "scope": "Static code inventory, not an authorization or tenant-isolation verdict. No database connection or environment values read.",
   "limitations": [
     "Nullable ownership requires verified mapping before activation.",
@@ -11,8 +11,8 @@
   "counts": {
     "models": 111,
     "requiredWorkspace": 27,
-    "nullableWorkspace": 16,
-    "withoutWorkspace": 68,
+    "nullableWorkspace": 17,
+    "withoutWorkspace": 67,
     "routeFiles": 138
   },
   "models": [
@@ -4171,8 +4171,20 @@
     },
     {
       "model": "AuditEvent",
-      "workspaceField": "absent",
+      "workspaceField": "nullable",
       "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": true,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
         {
           "relation": "actor",
           "model": "AdminUser",

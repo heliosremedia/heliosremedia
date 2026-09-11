@@ -190,7 +190,7 @@ export async function POST(request: Request) {
       select: selectLocation(),
     });
     await recordAuditEvent({
-      actorId: session.userId,
+      workspaceId: session.workspaceId, actorId: session.userId,
       actorEmail: session.email,
       action: "LOCATION_PAGE_CREATED",
       entityType: "LocationPage",
@@ -242,7 +242,7 @@ export async function PATCH(request: Request) {
         select: selectLocation(),
       });
       await recordAuditEvent({
-        actorId: session.userId,
+        workspaceId: session.workspaceId, actorId: session.userId,
         actorEmail: session.email,
         action: location.published ? "LOCATION_PAGE_PUBLISHED" : "LOCATION_PAGE_UNPUBLISHED",
         entityType: "LocationPage",
@@ -267,7 +267,7 @@ export async function PATCH(request: Request) {
     });
     if (data.featureImageStorageKey !== existing.featureImageStorageKey) await deleteContentImage(existing.featureImageStorageKey);
     await recordAuditEvent({
-      actorId: session.userId,
+      workspaceId: session.workspaceId, actorId: session.userId,
       actorEmail: session.email,
       action: "LOCATION_PAGE_UPDATED",
       entityType: "LocationPage",
@@ -296,7 +296,7 @@ export async function DELETE(request: Request) {
     const location = await prisma.locationPage.delete({ where: { id: locationId }, select: { id: true, city: true, slug: true } });
     await deleteContentImage(existing.featureImageStorageKey);
     await recordAuditEvent({
-      actorId: session.userId,
+      workspaceId: session.workspaceId, actorId: session.userId,
       actorEmail: session.email,
       action: "LOCATION_PAGE_DELETED",
       entityType: "LocationPage",

@@ -42,7 +42,7 @@ export async function POST(_request: Request, context: { params: Promise<{ postI
     },
   });
   await recordAuditEvent({
-    actorId: session.userId, actorEmail: session.email,
+    workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email,
     action: "BLOG_EMAIL_DRAFT_CREATED", entityType: "EmailCampaign", entityId: campaign.id,
     summary: `Created an Email Studio draft from "${post.title}".`,
     metadata: { postId },

@@ -27,7 +27,7 @@ export async function POST(request: Request, { params }: Context) {
       return { title: project.title, preview: { ...preview, url } };
     });
     if (!result) return NextResponse.json({ success: false, error: "Project not found." }, { status: 404 });
-    await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: "PROJECT_PREVIEW_CREATED", entityType: "Project", entityId: projectId, summary: `Preview link created for ${result.title}.` });
+    await recordAuditEvent({ workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: "PROJECT_PREVIEW_CREATED", entityType: "Project", entityId: projectId, summary: `Preview link created for ${result.title}.` });
     revalidatePath(`/admin/projects/${projectId}`);
     return NextResponse.json({ success: true, preview: result.preview }, { status: 201 });
   } catch (error) {
@@ -46,7 +46,7 @@ export async function DELETE(request: Request, { params }: Context) {
     if (!previewId) return NextResponse.json({ success: false, error: "Preview ID required." }, { status: 400 });
     const result = await prisma.projectPreviewLink.updateMany({ where: { id: previewId, projectId, project: { workspaceId: session.workspaceId }, revokedAt: null }, data: { revokedAt: new Date() } });
     if (!result.count) return NextResponse.json({ success: false, error: "Active preview not found." }, { status: 404 });
-    await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: "PROJECT_PREVIEW_REVOKED", entityType: "Project", entityId: projectId, summary: "Project preview link revoked." });
+    await recordAuditEvent({ workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: "PROJECT_PREVIEW_REVOKED", entityType: "Project", entityId: projectId, summary: "Project preview link revoked." });
     revalidatePath(`/admin/projects/${projectId}`);
     return NextResponse.json({ success: true });
   } catch (error) {

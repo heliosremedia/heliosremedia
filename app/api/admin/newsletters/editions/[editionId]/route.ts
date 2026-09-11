@@ -366,7 +366,7 @@ export async function PATCH(request: Request, context: Context) {
     await saveEdition(editionId, body.edition, session.userId, session.workspaceId);
     const edition = await getEditionForStudio(editionId, session.workspaceId);
     await recordAuditEvent({
-      actorId: session.userId, actorEmail: session.email,
+      workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email,
       action: "NEWSLETTER_EDITION_SAVED", entityType: "NewsletterEdition", entityId: editionId,
       summary: "Saved a newsletter edition and created an immutable revision.",
     });
@@ -566,7 +566,7 @@ export async function POST(request: Request, context: Context) {
       }
       message = `Test newsletter sent to ${recipient}.`;
       await recordAuditEvent({
-        actorId: session.userId,
+        workspaceId: session.workspaceId, actorId: session.userId,
         actorEmail: session.email,
         action: "NEWSLETTER_TEST_SENT",
         entityType: "NewsletterEdition",
@@ -599,7 +599,7 @@ export async function POST(request: Request, context: Context) {
       throw new Error("Unsupported edition action.");
     }
     await recordAuditEvent({
-      actorId: session.userId, actorEmail: session.email,
+      workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email,
       action: `NEWSLETTER_${action.replaceAll("-", "_").toUpperCase()}`,
       entityType: "NewsletterEdition", entityId: editionId,
       summary: message,

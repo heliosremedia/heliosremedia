@@ -62,7 +62,7 @@ export async function PATCH(request: Request) {
         });
 
   await recordAuditEvent({
-    actorId: session.userId,
+    workspaceId: session.workspaceId, actorId: session.userId,
     actorEmail: session.email,
     action: operation === "add" ? "CLIENTS_ADDED_TO_GROUP" : "CLIENTS_REMOVED_FROM_GROUP",
     entityType: "CommunicationGroup",

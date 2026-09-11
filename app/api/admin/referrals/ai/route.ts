@@ -32,7 +32,7 @@ export async function POST(request: Request) {
         : undefined,
     });
     await recordAuditEvent({
-      actorId: session.userId, actorEmail: session.email, action: "REFERRAL_AI_GENERATED",
+      workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: "REFERRAL_AI_GENERATED",
       entityType: "ReferralCampaign", summary: `Referral AI completed a ${action.toLowerCase().replaceAll("_", " ")} draft.`,
       metadata: { action, warningCount: result.warnings.length },
     });

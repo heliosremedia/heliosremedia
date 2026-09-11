@@ -31,7 +31,7 @@ export async function DELETE(_request: Request, context: Context) {
   }
 
   await recordAuditEvent({
-    actorId: session.userId,
+    workspaceId: session.workspaceId, actorId: session.userId,
     actorEmail: session.email,
     action: "EMAIL_CAMPAIGN_DRAFT_DELETED",
     entityType: "EmailCampaign",
@@ -77,6 +77,6 @@ export async function PATCH(request: Request, context: Context) {
   } else {
     return NextResponse.json({ success: false, error: "Choose a valid schedule action." }, { status: 400 });
   }
-  await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action, entityType: "EmailCampaign", entityId: campaignId, summary: `${action.replaceAll("_", " ").toLowerCase()} by ${session.email}.` });
+  await recordAuditEvent({ workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action, entityType: "EmailCampaign", entityId: campaignId, summary: `${action.replaceAll("_", " ").toLowerCase()} by ${session.email}.` });
   return NextResponse.json({ success: true });
 }

@@ -43,7 +43,7 @@ export async function PATCH(request: Request, context: Context) {
     const { seriesId } = await context.params;
     const series = await updateSeries(seriesId, await request.json(), session.workspaceId);
     await recordAuditEvent({
-      actorId: session.userId,
+      workspaceId: session.workspaceId, actorId: session.userId,
       actorEmail: session.email,
       action: "NEWSLETTER_SERIES_UPDATED",
       entityType: "NewsletterSeries",

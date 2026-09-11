@@ -15,7 +15,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
   const review = await prisma.googleBusinessReview.findFirst({ where: { id: reviewId, workspaceId: session.workspaceId }, select: { id: true, reviewerName: true } });
   if (!review) return NextResponse.json({ success: false, error: "The imported review was not found." }, { status: 404 });
   await prisma.googleBusinessReview.update({ where: { id: review.id }, data: { publicVisibilityOverride: body.visible } });
-  await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: "GOOGLE_REVIEW_VISIBILITY_UPDATED", entityType: "GoogleBusinessReview", entityId: review.id, summary: `${review.reviewerName}'s review visibility was ${body.visible === null ? "returned to the automatic rule" : body.visible ? "set to public" : "hidden from public pages"}.` });
+  await recordAuditEvent({ workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: "GOOGLE_REVIEW_VISIBILITY_UPDATED", entityType: "GoogleBusinessReview", entityId: review.id, summary: `${review.reviewerName}'s review visibility was ${body.visible === null ? "returned to the automatic rule" : body.visible ? "set to public" : "hidden from public pages"}.` });
   revalidatePath("/");
   revalidatePath("/reviews");
   revalidatePath("/admin/testimonials");

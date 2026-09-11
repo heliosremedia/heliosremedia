@@ -12,7 +12,7 @@ export async function POST() {
   if (!canManageGoogleBusiness(session)) return NextResponse.json({ success: false, error: "Owner or administrator access is required." }, { status: 403 });
   try {
     const result = await syncGoogleBusinessReviews(session.workspaceId);
-    await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: "GOOGLE_REVIEWS_SYNCED", entityType: "Testimonial", summary: `${result.imported} Google reviews imported and ${result.updated} refreshed.` });
+    await recordAuditEvent({ workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: "GOOGLE_REVIEWS_SYNCED", entityType: "Testimonial", summary: `${result.imported} Google reviews imported and ${result.updated} refreshed.` });
     revalidatePath("/"); revalidatePath("/admin/testimonials");
     return NextResponse.json({ success: true, result });
   } catch (error) {

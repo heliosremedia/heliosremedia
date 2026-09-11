@@ -39,7 +39,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ re
   });
   if ("error" in result) return NextResponse.json({ success: false, error: result.error }, { status: result.status });
   if (result.status === 201) {
-    await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: "GOOGLE_REVIEW_CURATED", entityType: "Testimonial", entityId: result.testimonialId, summary: "Imported Google review added to Featured Google Reviews as an unpublished draft." });
+    await recordAuditEvent({ workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: "GOOGLE_REVIEW_CURATED", entityType: "Testimonial", entityId: result.testimonialId, summary: "Imported Google review added to Featured Google Reviews as an unpublished draft." });
     revalidatePath("/admin/testimonials");
   }
   return NextResponse.json({ success: true, testimonialId: result.testimonialId }, { status: result.status });

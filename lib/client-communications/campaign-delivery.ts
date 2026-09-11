@@ -113,6 +113,7 @@ export async function processEmailCampaign(campaignId: string) {
     },
   });
   await recordAuditEvent({
+    workspaceId,
     action: status === "SENT" ? "EMAIL_SCHEDULED_DELIVERY_COMPLETED" : status === "PARTIAL" ? "EMAIL_SCHEDULED_DELIVERY_PARTIAL" : "EMAIL_SCHEDULED_DELIVERY_FAILED",
     entityType: "EmailCampaign",
     entityId: campaign.id,

@@ -47,7 +47,7 @@ export async function PATCH(request: Request) {
       await tx.inquiryActivity.create({ data: { inquiryId, actorId: session.userId, action: "WORKFLOW_UPDATED", summary, metadata: { previousStatus: existing.status, status: status ?? existing.status } } });
       return { inquiry, summary };
     });
-    await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: action === "add-note" ? "INQUIRY_NOTE_ADDED" : "INQUIRY_UPDATED", entityType: "Inquiry", entityId: inquiryId, summary: result.summary });
+    await recordAuditEvent({ workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: action === "add-note" ? "INQUIRY_NOTE_ADDED" : "INQUIRY_UPDATED", entityType: "Inquiry", entityId: inquiryId, summary: result.summary });
     refresh();
     return NextResponse.json({ success: true, ...("note" in result ? { note: result.note } : { inquiry: result.inquiry }) });
   } catch (error) {

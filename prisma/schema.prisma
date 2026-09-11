@@ -1696,6 +1696,7 @@ model Workspace {
   aboutPageContent          AboutPageContent?
   teamMembers               TeamMember[]
   inquiries                 Inquiry[]
+  auditEvents               AuditEvent[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3665,6 +3666,10 @@ model InquiryActivity {
 }
 
 model AuditEvent {
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  @@index([workspaceId, createdAt])
+
   id String @id @default(cuid())
 
   actorId    String?
