@@ -1,3 +1,4 @@
+import { requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
 import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -79,43 +80,70 @@ export async function verifiedSourceFacts(sourceType: string, sourceRecordId: st
   return {} satisfies Prisma.InputJsonValue;
 }
 
+type SocialContentChange =
+  | { kind: "MEDIA_PRESENTATION"; relationId: string; data: { altText: string; cropAspect: string | null; cropX: number; cropY: number; cropScale: number } }
+  | { kind: "MEDIA_SELECTION"; mediaIds: string[] }
+  | { kind: "AI_IMAGE"; assetId: string };
+
+const editableVariantFields = new Set(["postType", "caption", "openingHook", "hashtags", "callToAction", "destinationLink", "altText", "onScreenText", "videoConcept", "suggestedCover", "platformNotes", "internalNotes", "aiMetadata"]);
+
 export async function updateVariantContent(input: {
-  variantId: string;
-  actorId: string;
-  data: Record<string, unknown>;
+  variantId: string; workspaceId: string; actorId: string; actorSessionVersion: number;
+  expectedContentVersion: number; data: Record<string, unknown>; change?: SocialContentChange;
 }) {
-  const current = await prisma.socialVariant.findUniqueOrThrow({
-    where: { id: input.variantId },
-    select: { status: true, contentVersion: true },
-  });
-  const status = contentEditState(current.status as VariantState);
+  if (Object.keys(input.data).some((key) => !editableVariantFields.has(key))) throw new Error("INVALID_SOCIAL_CONTENT");
+  const imageScope = input.change?.kind === "AI_IMAGE" ? await getBlogOwnershipScope(input.workspaceId) : null;
   return prisma.$transaction(async (tx) => {
-    const variant = await tx.socialVariant.update({
-      where: { id: input.variantId },
-      data: {
-        ...input.data,
-        status,
-        lastEditedById: input.actorId,
-        contentVersion: { increment: 1 },
-        ...(status === "NEEDS_REVIEW" ? { approvedAt: null, approvalActorId: null } : {}),
-      },
+    await requireLockedWorkspaceEditor(tx, { userId: input.actorId, workspaceId: input.workspaceId, sessionVersion: input.actorSessionVersion });
+    // Lock existing jobs before the variant, matching the publisher's completion
+    // order. A claimed/provider-submitted job must settle before content changes.
+    await tx.$queryRaw`SELECT j.id FROM "SocialPublishingJob" j JOIN "SocialVariant" v ON v.id=j."variantId" JOIN "SocialCampaign" c ON c.id=v."campaignId" WHERE v.id=${input.variantId} AND c."workspaceId"=${input.workspaceId} ORDER BY j.id FOR UPDATE OF j`;
+    const locked = await tx.$queryRaw<Array<{ id: string }>>`SELECT v.id FROM "SocialVariant" v JOIN "SocialCampaign" c ON c.id=v."campaignId" WHERE v.id=${input.variantId} AND c."workspaceId"=${input.workspaceId} FOR UPDATE OF v`;
+    if (!locked.length) throw new Error("SOCIAL_VARIANT_NOT_FOUND");
+    const where = { id: input.variantId, campaign: { workspaceId: input.workspaceId } };
+    const current = await tx.socialVariant.findFirstOrThrow({ where, select: { id: true, campaignId: true, status: true, contentVersion: true } });
+    if (current.contentVersion !== input.expectedContentVersion) throw new Error("SOCIAL_EDIT_CONFLICT");
+    const status = contentEditState(current.status as VariantState);
+    const executing = await tx.socialPublishingJob.findFirst({
+      where: { variantId: input.variantId, variant: { campaign: { workspaceId: input.workspaceId } }, OR: [{ claimToken: { not: null } }, { status: { in: ["VALIDATING", "PUBLISHING", "PROVIDER_PROCESSING", "MANUAL_FALLBACK", "TRANSFERRED_AS_DRAFT", "REQUIRES_MANUAL_COMPLETION"] } }] }, select: { id: true },
     });
-    if (status === "NEEDS_REVIEW" && current.status !== "NEEDS_REVIEW") {
-      await tx.socialPublishingSnapshot.updateMany({
-        where: { variantId: input.variantId, invalidatedAt: null },
-        data: { invalidatedAt: new Date() },
+    if (executing) throw new Error("SOCIAL_PUBLICATION_IN_PROGRESS");
+    const data = { ...input.data };
+    if (input.change?.kind === "MEDIA_PRESENTATION") {
+      const changed = await tx.socialVariantMedia.updateMany({
+        where: { id: input.change.relationId, variantId: input.variantId, variant: { campaign: { workspaceId: input.workspaceId } }, media: { project: { workspaceId: input.workspaceId } } },
+        data: input.change.data,
       });
-      await tx.socialPublishingJob.updateMany({
-        where: { variantId: input.variantId, status: { in: ["SCHEDULED", "VALIDATING", "READY", "DELAYED", "RETRY_SCHEDULED"] } },
-        data: { status: "CANCELLED", cancelledAt: new Date(), claimToken: null, lastErrorCategory: "CANCELLED", lastErrorMessage: "Publishable content changed after approval." },
-      });
-      await tx.socialApprovalEvent.create({
-        data: {
-          variantId: input.variantId, actorId: input.actorId, action: "REVOKED",
-          contentVersion: current.contentVersion + 1, reason: "Publishable content or media changed.",
-        },
-      });
+      if (changed.count !== 1) throw new Error("INVALID_SOCIAL_MEDIA");
+    } else if (input.change?.kind === "MEDIA_SELECTION") {
+      const mediaIds = input.change.mediaIds;
+      if (new Set(mediaIds).size !== mediaIds.length) throw new Error("INVALID_SOCIAL_MEDIA");
+      const valid = await tx.media.findMany({ where: { id: { in: mediaIds }, visibility: "VISIBLE", project: { workspaceId: input.workspaceId } }, select: { id: true, altText: true } });
+      if (valid.length !== mediaIds.length) throw new Error("INVALID_SOCIAL_MEDIA");
+      const byId = new Map(valid.map((item) => [item.id, item]));
+      await tx.socialVariantMedia.deleteMany({ where: { variantId: input.variantId, variant: { campaign: { workspaceId: input.workspaceId } } } });
+      if (mediaIds.length) {
+        await tx.socialVariantMedia.createMany({ data: mediaIds.map((mediaId, displayOrder) => ({ variantId: input.variantId, mediaId, displayOrder, altText: byId.get(mediaId)!.altText })) });
+        await tx.socialCampaignMedia.createMany({ data: mediaIds.map((mediaId, displayOrder) => ({ campaignId: current.campaignId, mediaId, displayOrder })), skipDuplicates: true });
+      }
+    } else if (input.change?.kind === "AI_IMAGE") {
+      const asset = await tx.newsletterImageAsset.findFirst({ where: { id: input.change.assetId, AND: [imageScope!] }, select: { id: true, publicUrl: true, model: true } });
+      if (!asset) throw new Error("SOCIAL_IMAGE_NOT_FOUND");
+      await tx.socialGeneratedAsset.create({ data: { workspaceId: input.workspaceId, variantId: input.variantId, kind: "AI_GENERATED", publicUrl: asset.publicUrl, provider: "OpenAI", model: asset.model, disclosure: "AI-generated concept image, not authentic property photography." } });
+      data.suggestedCover = asset.publicUrl;
+      data.aiMetadata = { generatedImageAssetId: asset.id, generatedImageDisclosure: "AI-generated image; never represent it as authentic property photography." };
     }
+    const variant = await tx.socialVariant.update({
+      where: { ...where, contentVersion: input.expectedContentVersion },
+      data: { ...data, status, lastEditedById: input.actorId, contentVersion: { increment: 1 }, approvedAt: null, approvalActorId: null },
+    });
+    await tx.socialPublishingSnapshot.updateMany({ where: { variantId: input.variantId, variant: { campaign: { workspaceId: input.workspaceId } }, invalidatedAt: null }, data: { invalidatedAt: new Date() } });
+    await tx.socialPublishingJob.updateMany({
+      where: { variantId: input.variantId, variant: { campaign: { workspaceId: input.workspaceId } }, status: { in: ["SCHEDULED", "READY", "DELAYED", "RETRY_SCHEDULED"] }, claimToken: null },
+      data: { status: "CANCELLED", cancelledAt: new Date(), lastErrorCategory: "CANCELLED", lastErrorMessage: "Publishable content changed after approval." },
+    });
+    if (status === "NEEDS_REVIEW" && current.status !== "NEEDS_REVIEW") await tx.socialApprovalEvent.create({ data: { variantId: input.variantId, actorId: input.actorId, action: "REVOKED", contentVersion: current.contentVersion + 1, reason: "Publishable content or media changed." } });
+    await tx.socialCampaign.update({ where: { id: current.campaignId, workspaceId: input.workspaceId }, data: { status: "IN_PROGRESS", lastEditedById: input.actorId } });
     return variant;
   });
 }
