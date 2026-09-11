@@ -1,3 +1,4 @@
+import { requireLegacyBlogAccess } from "@/lib/blog-access";
 import { NextResponse } from "next/server";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getAdminSession } from "@/lib/auth/session";
@@ -42,6 +43,8 @@ function openAiErrorMessage(status: number, payload: OpenAiError) {
 }
 
 export async function POST(request: Request) {
+  const accessError = await requireLegacyBlogAccess();
+  if (accessError) return accessError;
   const session = await getAdminSession();
   if (!session) return NextResponse.json({ success: false, error: "Authentication is required." }, { status: 401 });
   try {

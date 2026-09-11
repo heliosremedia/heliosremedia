@@ -1,7 +1,10 @@
+import { requireLegacyBlogAccess } from "@/lib/blog-access";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: Request) {
+  const accessError = await requireLegacyBlogAccess();
+  if (accessError) return accessError;
   const postId = new URL(request.url).searchParams.get("postId")?.trim();
   if (!postId) return NextResponse.json({ success: false, error: "Article ID required." }, { status: 400 });
   const revisions = await prisma.blogPostRevision.findMany({
@@ -11,6 +14,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const accessError = await requireLegacyBlogAccess();
+  if (accessError) return accessError;
   try {
     const body = await request.json() as { postId?: string; revisionId?: string };
     if (!body.postId || !body.revisionId) throw new Error("INVALID");

@@ -1,3 +1,4 @@
+import { requireLegacyBlogAccess } from "@/lib/blog-access";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { BlogPostStatus } from "@/app/generated/prisma/client";
@@ -72,6 +73,8 @@ function error(error: unknown) {
 }
 
 export async function POST(request: Request) {
+  const accessError = await requireLegacyBlogAccess();
+  if (accessError) return accessError;
   try {
     const post = await prisma.blogPost.create({ data: data(await request.json()) });
     refresh(post.slug);
@@ -84,6 +87,8 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const accessError = await requireLegacyBlogAccess();
+  if (accessError) return accessError;
   try {
     const body = await request.json() as Record<string, unknown>;
     const postId = required(body.postId, 200);
@@ -113,6 +118,8 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const accessError = await requireLegacyBlogAccess();
+  if (accessError) return accessError;
   try {
     const postId = new URL(request.url).searchParams.get("postId")?.trim();
     if (!postId) return NextResponse.json({ success: false, error: "An article ID is required." }, { status: 400 });

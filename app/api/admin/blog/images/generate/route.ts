@@ -1,3 +1,4 @@
+import { requireLegacyBlogAccess } from "@/lib/blog-access";
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth/session";
 import { recordAuditEvent } from "@/lib/audit";
@@ -6,6 +7,8 @@ import { generateNewsletterImage } from "@/lib/newsletters/image-assets";
 export const maxDuration = 180;
 
 export async function POST(request: Request) {
+  const accessError = await requireLegacyBlogAccess();
+  if (accessError) return accessError;
   const session = await getAdminSession();
   if (!session || (session.role !== "OWNER" && session.role !== "ADMIN")) {
     return NextResponse.json({ success: false, error: "Owner or administrator access is required." }, { status: 403 });

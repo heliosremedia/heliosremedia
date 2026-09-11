@@ -1,3 +1,4 @@
+import { requireLegacyBlogAccess } from "@/lib/blog-access";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -28,6 +29,8 @@ function payload(body: Record<string, unknown>) {
   };
 }
 export async function POST(request: Request) {
+  const accessError = await requireLegacyBlogAccess();
+  if (accessError) return accessError;
   try {
     const series = await prisma.blogSeries.create({ data: payload(await request.json()) });
     return NextResponse.json({ success: true, series }, { status: 201 });
@@ -36,6 +39,8 @@ export async function POST(request: Request) {
   }
 }
 export async function PATCH(request: Request) {
+  const accessError = await requireLegacyBlogAccess();
+  if (accessError) return accessError;
   try {
     const body = await request.json() as Record<string, unknown>;
     const id = text(body.id, 200, true)!;
