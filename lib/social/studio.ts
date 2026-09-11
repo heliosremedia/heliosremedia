@@ -1,3 +1,4 @@
+import { tenantContextEnabled } from "@/lib/workspace-context-core";
 import { requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
 import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import { Prisma } from "@/app/generated/prisma/client";
@@ -14,9 +15,17 @@ export const SOCIAL_SETTINGS_DEFAULTS = {
 };
 
 export async function ensureSocialSettings(workspaceId: string) {
+  const companies = tenantContextEnabled() ? [] : await prisma.workspace.findMany({ take: 2, select: { id: true } });
+  const legacy = companies.length === 1 && companies[0].id === workspaceId;
+  const defaults = legacy ? SOCIAL_SETTINGS_DEFAULTS : {
+    ...SOCIAL_SETTINGS_DEFAULTS,
+    primaryAudience: "Real estate agents, brokers, teams, builders, designers, and property-marketing professionals.",
+    defaultCallToAction: "Invite the audience to explore the company's relevant work or service when appropriate.",
+    prohibitedTopics: "Unsupported claims, fabricated results, politics, legal advice, and representation of AI imagery as authentic property photography.",
+  };
   return prisma.socialStudioSettings.upsert({
     where: { workspaceId },
-    create: { workspaceId, ...SOCIAL_SETTINGS_DEFAULTS },
+    create: { workspaceId, ...defaults },
     update: {},
   });
 }
@@ -90,10 +99,10 @@ const editableVariantFields = new Set(["postType", "caption", "openingHook", "ha
 export async function updateVariantContent(input: {
   variantId: string; workspaceId: string; actorId: string; actorSessionVersion: number;
   expectedContentVersion: number; data: Record<string, unknown>; change?: SocialContentChange;
-}) {
+}, transaction?: Prisma.TransactionClient) {
   if (Object.keys(input.data).some((key) => !editableVariantFields.has(key))) throw new Error("INVALID_SOCIAL_CONTENT");
   const imageScope = input.change?.kind === "AI_IMAGE" ? await getBlogOwnershipScope(input.workspaceId) : null;
-  return prisma.$transaction(async (tx) => {
+  const perform = async (tx: Prisma.TransactionClient) => {
     await requireLockedWorkspaceEditor(tx, { userId: input.actorId, workspaceId: input.workspaceId, sessionVersion: input.actorSessionVersion });
     // Lock existing jobs before the variant, matching the publisher's completion
     // order. A claimed/provider-submitted job must settle before content changes.
@@ -145,7 +154,8 @@ export async function updateVariantContent(input: {
     if (status === "NEEDS_REVIEW" && current.status !== "NEEDS_REVIEW") await tx.socialApprovalEvent.create({ data: { variantId: input.variantId, actorId: input.actorId, action: "REVOKED", contentVersion: current.contentVersion + 1, reason: "Publishable content or media changed." } });
     await tx.socialCampaign.update({ where: { id: current.campaignId, workspaceId: input.workspaceId }, data: { status: "IN_PROGRESS", lastEditedById: input.actorId } });
     return variant;
-  });
+  };
+  return transaction ? perform(transaction) : prisma.$transaction(perform);
 }
 
 export async function processDueSocialVariants(now = new Date()) {

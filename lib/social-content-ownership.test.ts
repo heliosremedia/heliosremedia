@@ -68,7 +68,7 @@ function editingHarness() {
   const api = load<typeof import("./social/studio")>("./social/studio.ts", {
     "@/lib/workspace-write-access": { requireLockedWorkspaceEditor: async () => { state.order.push("access-lock"); if (state.forbidden) throw new Error("WORKSPACE_WRITE_FORBIDDEN"); } },
     "@/lib/blog-ownership": { getBlogOwnershipScope: async (workspaceId: string) => ({ workspaceId }) },
-    "@/app/generated/prisma/client": {}, "./core": core,
+    "@/lib/workspace-context-core": {}, "@/app/generated/prisma/client": {}, "./core": core,
     "@/lib/prisma": { prisma: { $transaction: (fn: (client: typeof tx) => Promise<unknown>) => fn(tx) } },
   });
   const input = { variantId: "variant", workspaceId: "a", actorId: "actor", actorSessionVersion: 1, expectedContentVersion: 3, data: {} };

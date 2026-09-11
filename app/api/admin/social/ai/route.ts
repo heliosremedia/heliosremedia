@@ -4,8 +4,9 @@ import { getAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { normalizeAiCampaignBrief, platformPrompt, sanitizedVerifiedFacts, SOCIAL_PLATFORMS } from "@/lib/social/core";
 import { deterministicallyGroundSocialDrafts, socialDraftText } from "@/lib/social/grounding";
-import { ensureSocialSettings } from "@/lib/social/studio";
-import { requireWorkspaceId } from "@/lib/workspaces";
+import { ensureSocialSettings, updateVariantContent } from "@/lib/social/studio";
+import { claimSocialGeneration, failSocialGeneration } from "@/lib/social/generation-ownership";
+import { requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
 
 export const maxDuration = 120;
 
@@ -30,23 +31,27 @@ export async function POST(request: Request) {
   const session = await getAdminSession();
   if (!session || session.role === "VIEWER") return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   const body = await request.json() as { campaignId?: string; variantId?: string; action?: string; requestId?: string; tone?: string };
-  if (!body.campaignId || !body.requestId) return NextResponse.json({ success: false, error: "Campaign and request ID are required." }, { status: 400 });
-  const workspaceId = await requireWorkspaceId(session.userId);
-  const campaign = await prisma.socialCampaign.findFirst({ where: { id: body.campaignId, workspaceId }, include: { variants: true } });
-  if (!campaign) return NextResponse.json({ success: false, error: "Campaign not found." }, { status: 404 });
-  if (campaign.generationStatus === "RUNNING") return NextResponse.json({ success: false, error: "Generation is already in progress." }, { status: 409 });
-  if (campaign.generationRequestId === body.requestId && campaign.generationStatus === "SUCCEEDED") return NextResponse.json({ success: true, duplicate: true });
+  if (typeof body.campaignId !== "string" || !body.campaignId || body.campaignId.length > 100 || typeof body.requestId !== "string" || !body.requestId || body.requestId.length > 180 || (body.variantId !== undefined && (typeof body.variantId !== "string" || body.variantId.length > 100))) return NextResponse.json({ success: false, error: "Valid campaign and request IDs are required." }, { status: 400 });
+  const workspaceId = session.workspaceId;
+  const requestId = body.requestId;
+  const campaignId = body.campaignId;
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) return NextResponse.json({ success: false, error: "AI writing is not configured yet." }, { status: 503 });
-  await prisma.socialCampaign.update({ where: { id: campaign.id }, data: { generationStatus: "RUNNING", generationError: null, generationRequestId: body.requestId } });
+  let claim: Awaited<ReturnType<typeof claimSocialGeneration>>;
+  try {
+    claim = await claimSocialGeneration(session, campaignId, requestId, body.variantId);
+  } catch (error) {
+    const code = error instanceof Error ? error.message : "";
+    if (code === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Your workspace access changed. Sign in again." }, { status: 403 });
+    if (["SOCIAL_CAMPAIGN_NOT_FOUND", "SOCIAL_VARIANT_NOT_FOUND"].includes(code)) return NextResponse.json({ success: false, error: "Campaign or variant not found." }, { status: 404 });
+    if (["SOCIAL_GENERATION_BUSY", "SOCIAL_GENERATION_LOCKED"].includes(code)) return NextResponse.json({ success: false, error: "Generation is already running, or the selected posts cannot be edited." }, { status: 409 });
+    return NextResponse.json({ success: false, error: "AI generation could not be prepared." }, { status: 500 });
+  }
+  if (claim.duplicate) return NextResponse.json({ success: true, duplicate: true });
+  const { campaign, chosen } = claim;
   try {
     const settings = await ensureSocialSettings(workspaceId);
-    const requested = body.variantId ? campaign.variants.filter((variant) => variant.id === body.variantId) : campaign.variants;
-    const chosen = requested.filter((variant) => variant.status !== "PUBLISHED");
-    if (!chosen.length) {
-      await prisma.socialCampaign.update({ where: { id: campaign.id }, data: { generationStatus: "FAILED", generationError: "Published variants are immutable and cannot be regenerated." } });
-      return NextResponse.json({ success: false, error: "Published variants are immutable. Create a new campaign or variant revision instead." }, { status: 409 });
-    }
+    const company = await prisma.workspace.findUniqueOrThrow({ where: { id: workspaceId }, select: { name: true } });
     const platforms = chosen.map((variant) => variant.platform).filter((platform) => SOCIAL_PLATFORMS.includes(platform));
     const savedPlatformGuidance = settings.platformGuidance && typeof settings.platformGuidance === "object" && !Array.isArray(settings.platformGuidance)
       ? settings.platformGuidance as Record<string, unknown>
@@ -78,7 +83,7 @@ export async function POST(request: Request) {
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: process.env.OPENAI_SOCIAL_MODEL?.trim() || process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-5-mini",
-        instructions: `You are Social Studio for Helios Real Estate Media. Voice: ${settings.brandVoice}. Guardrails: ${settings.writingGuardrails}. Hashtag guidance: ${settings.hashtagGuidance || ""}. Prohibited: ${settings.prohibitedTopics || ""}`,
+        instructions: `You are Social Studio for ${company.name}. Voice: ${settings.brandVoice}. Guardrails: ${settings.writingGuardrails}. Hashtag guidance: ${settings.hashtagGuidance || ""}. Prohibited: ${settings.prohibitedTopics || ""}`,
         input: prompt, text: { format: { type: "json_object" } },
       }),
       signal: AbortSignal.timeout(70_000),
@@ -161,22 +166,24 @@ export async function POST(request: Request) {
     const brief = normalizeAiCampaignBrief(groundedDrafts.campaignBrief);
     if (!brief || platforms.some((platform) => !groundedDrafts[platform])) throw new Error("OpenAI returned an invalid grounding review.");
     await prisma.$transaction(async (tx) => {
+      await requireLockedWorkspaceEditor(tx, session);
+      const current = await tx.socialCampaign.findFirst({ where: { id: campaign.id, workspaceId, generationRequestId: requestId, generationStatus: "RUNNING", status: { not: "ARCHIVED" } }, select: { id: true } });
+      if (!current) throw new Error("SOCIAL_GENERATION_CONFLICT");
       for (const variant of chosen) {
         const draft = groundedDrafts[variant.platform] || {};
-        await tx.socialVariant.update({
-          where: { id: variant.id },
+        await updateVariantContent({
+          variantId: variant.id, workspaceId, actorId: session.userId, actorSessionVersion: session.sessionVersion, expectedContentVersion: variant.contentVersion,
           data: {
             caption: String(draft.caption || variant.caption || ""), openingHook: String(draft.openingHook || variant.openingHook || ""),
             hashtags: Array.isArray(draft.hashtags) ? draft.hashtags.slice(0, 30) as Prisma.InputJsonValue : variant.hashtags || [],
             callToAction: String(draft.callToAction || variant.callToAction || ""), onScreenText: String(draft.onScreenText || variant.onScreenText || ""),
             videoConcept: String(draft.videoConcept || variant.videoConcept || ""), altText: String(draft.altText || variant.altText || ""),
-            status: "DRAFT", aiMetadata: { requestId: body.requestId, action, model: process.env.OPENAI_SOCIAL_MODEL || process.env.OPENAI_BLOG_MODEL || "gpt-5-mini", generatedAt: new Date().toISOString(), sourceCampaignId: campaign.id },
-            lastEditedById: session.userId, contentVersion: { increment: 1 },
+            aiMetadata: { requestId: requestId, action, model: process.env.OPENAI_SOCIAL_MODEL || process.env.OPENAI_BLOG_MODEL || "gpt-5-mini", generatedAt: new Date().toISOString(), sourceCampaignId: campaign.id },
           },
-        });
+        }, tx);
       }
       await tx.socialCampaign.update({
-        where: { id: campaign.id },
+        where: { id: campaign.id, workspaceId, generationRequestId: requestId, generationStatus: "RUNNING" },
         data: {
           purpose: [
             brief.positioning,
@@ -194,7 +201,9 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({ success: true });
   } catch (error) {
-    await prisma.socialCampaign.update({ where: { id: campaign.id }, data: { generationStatus: "FAILED", generationError: error instanceof Error ? error.message : "Generation failed." } });
-    return NextResponse.json({ success: false, error: safeGenerationError(error) }, { status: 502 });
+    await failSocialGeneration(workspaceId, campaign.id, requestId, safeGenerationError(error));
+    const code = error instanceof Error ? error.message : "";
+    const status = code === "WORKSPACE_WRITE_FORBIDDEN" ? 403 : ["SOCIAL_EDIT_CONFLICT", "SOCIAL_GENERATION_CONFLICT", "SOCIAL_PUBLICATION_IN_PROGRESS"].includes(code) ? 409 : 502;
+    return NextResponse.json({ success: false, error: safeGenerationError(error) }, { status });
   }
 }

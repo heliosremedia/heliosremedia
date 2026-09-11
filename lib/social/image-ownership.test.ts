@@ -30,7 +30,7 @@ test("Social AI image attachment rejects a foreign record and ignores a forged U
   const access = { requireLockedWorkspaceEditor: async (_tx: unknown, actor: { workspaceId: string }) => { assert.equal(actor.workspaceId, "a"); } };
   const studio = load<typeof import("./studio")>("./studio.ts", {
     "@/lib/workspace-write-access": access, "@/lib/blog-ownership": { getBlogOwnershipScope: async () => ({ workspaceId: "a" }) },
-    "@/app/generated/prisma/client": {}, "./core": core,
+    "@/lib/workspace-context-core": {}, "@/app/generated/prisma/client": {}, "./core": core,
     "@/lib/prisma": { prisma: { $transaction: (fn: (client: typeof tx) => Promise<unknown>) => fn(tx) } },
   });
   const api = load<{ PATCH: (request: Request, context: { params: Promise<{ campaignId: string }> }) => Promise<Response> }>("../../app/api/admin/social/campaigns/[campaignId]/route.ts", {
