@@ -1,7 +1,9 @@
+import { resolveBrandImage, brandImageCleanupPending } from "@/lib/workspace-brand-storage";
+import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
-import { deleteContentImage, verifyContentImage } from "@/lib/content-image-storage";
+import { verifyContentImage } from "@/lib/content-image-storage";
 import { prisma } from "@/lib/prisma";
 import { TESTIMONIAL_CHARACTER_LIMIT } from "@/lib/testimonials";
 import { getAdminSession } from "@/lib/auth/session";
@@ -45,7 +47,7 @@ function validateUrl(value: unknown) {
   return url.toString();
 }
 
-function validateBody(body: Record<string, unknown>) {
+function validateBody(body: Record<string, unknown>, workspaceId: string, existing: { photoStorageKey: string | null; photoUrl: string | null } | null = null) {
   const agentName = typeof body.agentName === "string" ? body.agentName.trim() : "";
   const testimonial = typeof body.testimonial === "string" ? body.testimonial.trim() : "";
   if (!agentName || agentName.length > 120) throw new Error("INVALID_NAME");
@@ -53,15 +55,15 @@ function validateBody(body: Record<string, unknown>) {
   const rating = typeof body.rating === "number" ? Math.round(body.rating) : 5;
   if (rating < 1 || rating > 5) throw new Error("INVALID_RATING");
   const photoStorageKey = optionalText(body.photoStorageKey, 1000);
-  if (photoStorageKey && !photoStorageKey.startsWith("testimonials/")) throw new Error("INVALID_PHOTO_KEY");
 
+  const image = resolveBrandImage(workspaceId, "testimonials", { key: photoStorageKey, url: optionalText(body.photoUrl, 1500) }, existing ? { key: existing.photoStorageKey, url: existing.photoUrl } : null, getPublicAssetUrl);
   return {
     agentName,
     testimonial,
     jobTitle: optionalText(body.jobTitle, 120),
     brokerage: optionalText(body.brokerage, 160),
-    photoStorageKey,
-    photoUrl: optionalText(body.photoUrl, 1500),
+    photoStorageKey: image.key,
+    photoUrl: image.url,
     photoAlt: optionalText(body.photoAlt, 240),
     sourceUrl: validateUrl(body.sourceUrl),
     focalX: typeof body.focalX === "number" ? Math.min(1, Math.max(0, body.focalX)) : 0.5,
@@ -77,6 +79,7 @@ function refreshTestimonials() {
 
 function validationResponse(error: unknown) {
   if (!(error instanceof Error)) return null;
+  if (error.message === "INVALID_BRAND_IMAGE") return "Upload an image for this workspace or keep the existing image unchanged.";
   const messages: Record<string, string> = {
     INVALID_NAME: "An agent name between 1 and 120 characters is required.",
     INVALID_TESTIMONIAL: `A testimonial between 1 and ${TESTIMONIAL_CHARACTER_LIMIT} characters is required.`,
@@ -93,7 +96,7 @@ export async function POST(request: Request) {
   if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
   try {
     const body = (await request.json()) as Record<string, unknown>;
-    const data = validateBody(body);
+    const data = validateBody(body, session.workspaceId);
     await verifyContentImage(data.photoStorageKey);
     const order = await prisma.testimonial.aggregate({ where: { workspaceId: session.workspaceId }, _max: { displayOrder: true } });
     const testimonial = await prisma.testimonial.create({
@@ -155,9 +158,9 @@ export async function PATCH(request: Request) {
     }
 
     if (action === "update") {
-      const existing = await prisma.testimonial.findFirst({ where: { id: testimonialId, workspaceId: session.workspaceId }, select: { photoStorageKey: true } });
+      const existing = await prisma.testimonial.findFirst({ where: { id: testimonialId, workspaceId: session.workspaceId }, select: { photoStorageKey: true, photoUrl: true } });
       if (!existing) return NextResponse.json({ success: false, error: "The testimonial was not found." }, { status: 404 });
-      const data = validateBody(body);
+      const data = validateBody(body, session.workspaceId, existing);
       if (data.photoStorageKey !== existing.photoStorageKey) await verifyContentImage(data.photoStorageKey);
       const changed = await prisma.testimonial.updateMany({
         where: { id: testimonialId, workspaceId: session.workspaceId },
@@ -169,7 +172,7 @@ export async function PATCH(request: Request) {
       });
       if (changed.count !== 1) return NextResponse.json({ success: false, error: "The testimonial was not found." }, { status: 404 });
       const testimonial = await prisma.testimonial.findFirstOrThrow({ where: { id: testimonialId, workspaceId: session.workspaceId }, select: testimonialSelect });
-      const storageCleanupPending = data.photoStorageKey !== existing.photoStorageKey ? await deleteContentImage(existing.photoStorageKey) : false;
+      const storageCleanupPending = data.photoStorageKey !== existing.photoStorageKey ? brandImageCleanupPending(existing.photoStorageKey) : false;
       refreshTestimonials();
       return NextResponse.json({ success: true, testimonial, storageCleanupPending });
     }
@@ -193,7 +196,7 @@ export async function DELETE(request: Request) {
     if (!testimonial) return NextResponse.json({ success: false, error: "The testimonial was not found." }, { status: 404 });
     const deleted = await prisma.testimonial.deleteMany({ where: { id: testimonial.id, workspaceId: session.workspaceId } });
     if (deleted.count !== 1) return NextResponse.json({ success: false, error: "The testimonial changed before deletion." }, { status: 409 });
-    const storageCleanupPending = await deleteContentImage(testimonial.photoStorageKey);
+    const storageCleanupPending = brandImageCleanupPending(testimonial.photoStorageKey);
     refreshTestimonials();
     return NextResponse.json({ success: true, deletedTestimonialId: testimonial.id, storageCleanupPending });
   } catch (error) {
