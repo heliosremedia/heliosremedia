@@ -1,3 +1,4 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/auth/session";
 import { getGoogleBusinessAdminState } from "@/lib/google-business-admin";
@@ -10,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminTestimonialsPage({ searchParams }: { searchParams: Promise<{ google?: string }> }) {
   const session = await requireAdminSession();
   const [testimonials, googleState, query] = await Promise.all([prisma.testimonial.findMany({
-    where: { workspaceId: session.workspaceId },
+    where: await getContentOwnershipScope(session.workspaceId),
     orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
   }), getGoogleBusinessAdminState(session), searchParams]);
 
