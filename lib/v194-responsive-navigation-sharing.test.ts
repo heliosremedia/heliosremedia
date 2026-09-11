@@ -42,7 +42,7 @@ test("social metadata uses configured domain, revisioned default image, and page
   assert.match(seo, /defaultSocialImageVersion/);
   assert.match(seo, /secureUrl/);
   assert.match(seo, /width: 1200, height: 630/);
-  assert.match(seo, /getConfiguredAbsoluteUrl/);
+  assert.match(seo, /getCanonicalAbsoluteUrl/);
   assert.match(layout, /buildPageMetadata/);
   assert.match(project, /resolveProjectSocialImage/);
   assert.match(blog, /buildPageMetadata/);

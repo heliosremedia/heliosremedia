@@ -4,10 +4,13 @@ import test from "node:test";
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
-test("Email Studio uses sticky preview and provider-confirmed delivery language", () => {
+test("Email Studio keeps inline preview in flow and provider-confirmed delivery language", () => {
   const studio = read("app/admin/email-studio/BulkEmailStudio.tsx");
   const page = read("app/admin/email-studio/page.tsx");
-  assert.match(studio, /xl:sticky xl:top-24/);
+  assert.match(studio, /<aside className="space-y-6 xl:self-start">/);
+  assert.doesNotMatch(studio, /xl:sticky xl:top-24/);
+  assert.match(studio, /aria-label="Expand live email preview"/);
+  assert.match(studio, /aria-labelledby="expanded-preview-title"/);
   assert.match(studio, /provider accepted/);
   assert.doesNotMatch(studio, /sentCount}\/{campaign\.recipientCount} sent/);
   assert.match(page, /communicationMetrics/);

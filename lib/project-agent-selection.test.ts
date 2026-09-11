@@ -9,7 +9,7 @@ const route = readFileSync("app/api/admin/projects/[projectId]/details/route.ts"
 const portfolio = readFileSync("app/portfolio/[slug]/page.tsx", "utf8");
 
 test("project agents use ordered snapshots and optional stable client identity", () => {
-  assert.match(schema, /model ProjectAgent[\s\S]*clientId String\?[\s\S]*displayNameSnapshot String[\s\S]*brokerageSnapshot String\?[\s\S]*displayOrder Int/);
+  assert.match(schema, /model ProjectAgent[\s\S]*clientId\s+String\?[\s\S]*displayNameSnapshot\s+String[\s\S]*brokerageSnapshot\s+String\?[\s\S]*displayOrder\s+Int/);
   assert.match(migration, /Legacy ProjectDetails credits remain untouched and are never auto-matched/);
   assert.doesNotMatch(migration, /INSERT INTO "ProjectAgent"/);
   assert.match(portfolio, /project\.agents\.length[\s\S]*project\.details\?\.listingAgent/);
