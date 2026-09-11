@@ -13,3 +13,9 @@ The PGlite test executes the actual additive SQL against an isolated PostgreSQL 
 Rollback: disable tenant reads first, then compatibility writes if necessary. Keep additive tables and all existing membership data. Do not use a destructive down migration or change Meta records.
 
 No database migration is applied by this change. Existing Meta files and credentials are unchanged.
+
+## Transaction authorization follow-up
+
+Account PATCH and ownership transfer now lock the workspace and affected user/membership rows, then re-read actor status, session version, role and target ownership inside the write transaction. This prevents a request that passed its initial session check from relying on stale account permissions. The original early checks remain for prompt validation.
+
+A PostgreSQL-backed narrow adapter test exercises the production guard using actual SQL reads and row-lock statements: foreign-workspace targets, revoked actors, revoked transfer recipients, changed session versions, membership/legacy owner divergence, inactive users, and legacy operation without membership tables. This does not establish concurrent multi-connection Prisma behavior. Invitation creation/revocation and other authorization entry points still need equivalent transaction review.
