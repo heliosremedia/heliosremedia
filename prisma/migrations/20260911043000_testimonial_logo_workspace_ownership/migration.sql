@@ -6,32 +6,21 @@ SET "workspaceId" = review."workspaceId"
 FROM "GoogleBusinessReview" AS review
 WHERE review."testimonialId" = testimonial."id";
 
-WITH legacy_workspace AS (
-  SELECT COALESCE(
-    (SELECT "workspaceId" FROM "SiteSettings" WHERE "id" = 'default' AND "workspaceId" IS NOT NULL LIMIT 1),
-    (SELECT "id" FROM "Workspace" ORDER BY "createdAt" ASC, "id" ASC LIMIT 1)
-  ) AS id
-)
-UPDATE "Testimonial"
-SET "workspaceId" = legacy_workspace.id
-FROM legacy_workspace
-WHERE "Testimonial"."workspaceId" IS NULL;
-
-WITH legacy_workspace AS (
-  SELECT COALESCE(
-    (SELECT "workspaceId" FROM "SiteSettings" WHERE "id" = 'default' AND "workspaceId" IS NOT NULL LIMIT 1),
-    (SELECT "id" FROM "Workspace" ORDER BY "createdAt" ASC, "id" ASC LIMIT 1)
-  ) AS id
-)
-UPDATE "TrustedLogo"
-SET "workspaceId" = legacy_workspace.id
-FROM legacy_workspace;
-
+-- The release operator must verify legacy ownership and set this value on the
+-- migration connection. Never infer ownership from creation order or branding.
 DO $$
+DECLARE
+  legacy_workspace TEXT := NULLIF(current_setting('helios.legacy_brand_workspace_id', true), '');
 BEGIN
   IF EXISTS (SELECT 1 FROM "Testimonial" WHERE "workspaceId" IS NULL)
-    OR EXISTS (SELECT 1 FROM "TrustedLogo" WHERE "workspaceId" IS NULL) THEN
-    RAISE EXCEPTION 'Cannot assign legacy testimonials and trusted logos without a workspace';
+    OR EXISTS (SELECT 1 FROM "TrustedLogo") THEN
+    IF legacy_workspace IS NULL OR NOT EXISTS (
+      SELECT 1 FROM "Workspace" WHERE "id" = legacy_workspace
+    ) THEN
+      RAISE EXCEPTION 'Verified legacy brand workspace mapping required: helios.legacy_brand_workspace_id';
+    END IF;
+    UPDATE "Testimonial" SET "workspaceId" = legacy_workspace WHERE "workspaceId" IS NULL;
+    UPDATE "TrustedLogo" SET "workspaceId" = legacy_workspace;
   END IF;
 END $$;
 
