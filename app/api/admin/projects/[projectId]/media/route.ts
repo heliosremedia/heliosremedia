@@ -1,3 +1,4 @@
+import { resolveStreamAssetForAttachment } from "@/lib/workspace-assets";
 import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
@@ -342,6 +343,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
         });
       }
 
+      const assetId = await resolveStreamAssetForAttachment(session.workspaceId, streamUid);
       const displayOrderResult = await prisma.media.aggregate({
         where: { projectId, serviceId: selectedService.id },
         _max: { displayOrder: true },
@@ -349,6 +351,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
       const media = await prisma.media.create({
         data: {
           projectId,
+          assetId,
           sourceType: "UPLOADED_VIDEO",
           provider: "CLOUDFLARE_STREAM",
           mediaCategory: selectedCategory,
@@ -809,6 +812,9 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
       },
     );
   } catch (error) {
+    if (error instanceof Error && error.message === "INVALID_STREAM_ASSET") {
+      return NextResponse.json({ success: false, error: "This video is not available to this company. Upload it again from this project." }, { status: 400 });
+    }
     console.error("Unable to create project media:", error);
 
     return NextResponse.json(

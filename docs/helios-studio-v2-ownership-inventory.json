@@ -1,5 +1,5 @@
 {
-  "schemaSha256": "1d4490fd5a9594699901c7bfddc8474d188f0ad8a193cddffa36af4b691bc6c0",
+  "schemaSha256": "ddf47f8abbd8380cb7a094be6af87acc73e83f165a0f2e2f1d892c0bf0334164",
   "scope": "Static code inventory, not an authorization or tenant-isolation verdict. No database connection or environment values read.",
   "limitations": [
     "Nullable ownership requires verified mapping before activation.",
@@ -9,8 +9,8 @@
     "Caches, storage objects, integration configuration, running jobs and hosted behavior require separate evidence."
   ],
   "counts": {
-    "models": 111,
-    "requiredWorkspace": 27,
+    "models": 112,
+    "requiredWorkspace": 28,
     "nullableWorkspace": 19,
     "withoutWorkspace": 65,
     "routeFiles": 138
@@ -134,7 +134,8 @@
         "lib/newsletters/content-sources.ts",
         "lib/newsletters/generation.ts",
         "lib/social/autopilot.ts",
-        "lib/social/studio.ts"
+        "lib/social/studio.ts",
+        "lib/workspace-assets.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     },
@@ -281,6 +282,18 @@
           "optional": false,
           "fields": [
             "serviceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "asset",
+          "model": "WorkspaceAsset",
+          "optional": true,
+          "fields": [
+            "assetId"
           ],
           "references": [
             "id"
@@ -1192,6 +1205,7 @@
         "lib/public-workspace.ts",
         "lib/referrals/access.ts",
         "lib/referrals/ownership.ts",
+        "lib/workspace-assets.ts",
         "lib/workspace-singleton.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
@@ -4234,6 +4248,31 @@
         "lib/audit.ts",
         "lib/dashboard.ts",
         "lib/portfolio-discovery-settings.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "WorkspaceAsset",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "provider, providerNamespace, providerKey"
+      ],
+      "sourceReferences": [
+        "lib/workspace-assets.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     }

@@ -811,6 +811,10 @@ model Media {
   socialGeneratedAssetSources SocialGeneratedAsset[]      @relation("SocialGeneratedAssetSource")
   comparisonPlacement         VideoComparisonPlacement?
 
+  assetId String?
+  asset WorkspaceAsset? @relation(fields: [assetId], references: [id], onDelete: Restrict)
+
+  @@index([assetId])
   @@index([projectId])
   @@index([projectId, displayOrder])
   @@index([projectId, visibility])
@@ -1703,6 +1707,7 @@ model Workspace {
   auditEvents               AuditEvent[]
   clientPortals             ClientPortal[]
   referralCampaigns         ReferralCampaign[]
+  assets                    WorkspaceAsset[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3699,4 +3704,38 @@ model AuditEvent {
   @@index([createdAt])
   @@index([actorId, createdAt])
   @@index([entityType, entityId])
+}
+
+
+enum WorkspaceAssetProvider {
+  R2
+  CLOUDFLARE_STREAM
+}
+
+enum WorkspaceAssetStatus {
+  UPLOAD_PENDING
+  UPLOAD_PROVISIONED
+  READY
+  FAILED
+  QUARANTINED
+  RETIRED
+}
+
+model WorkspaceAsset {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  provider WorkspaceAssetProvider
+  providerNamespace String
+  providerKey String?
+  status WorkspaceAssetStatus @default(UPLOAD_PENDING)
+  byteSize BigInt?
+  provenance Json
+  uploadExpiresAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  media Media[]
+
+  @@unique([provider, providerNamespace, providerKey])
+  @@index([workspaceId, status, createdAt])
 }
