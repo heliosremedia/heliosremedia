@@ -1,5 +1,5 @@
 {
-  "schemaSha256": "ef7be1f31129b326c361c65b7d017cb74564859bffd9ee1efaae4249f9516c0d",
+  "schemaSha256": "1d4490fd5a9594699901c7bfddc8474d188f0ad8a193cddffa36af4b691bc6c0",
   "scope": "Static code inventory, not an authorization or tenant-isolation verdict. No database connection or environment values read.",
   "limitations": [
     "Nullable ownership requires verified mapping before activation.",
@@ -11,8 +11,8 @@
   "counts": {
     "models": 111,
     "requiredWorkspace": 27,
-    "nullableWorkspace": 18,
-    "withoutWorkspace": 66,
+    "nullableWorkspace": 19,
+    "withoutWorkspace": 65,
     "routeFiles": 138
   },
   "models": [
@@ -1191,6 +1191,7 @@
         "lib/project-preview-url.ts",
         "lib/public-workspace.ts",
         "lib/referrals/access.ts",
+        "lib/referrals/ownership.ts",
         "lib/workspace-singleton.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
@@ -3353,8 +3354,20 @@
     },
     {
       "model": "ReferralCampaign",
-      "workspaceField": "absent",
+      "workspaceField": "nullable",
       "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": true,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
         {
           "relation": "createdBy",
           "model": "AdminUser",

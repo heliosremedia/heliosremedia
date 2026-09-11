@@ -21,7 +21,7 @@ test("referral cron cannot automatically resume a stale launch", () => {
   assert.match(launch, /stopReferralCampaignPreparation/);
   assert.match(route, /return-to-approved/);
   assert.match(route, /retry-safe/);
-  assert.match(route, /createdBy: \{ workspaceId: session\.workspaceId \}/);
+  assert.match(route, /getContentOwnershipScope\(session\.workspaceId\)/);
 });
 
 test("every claimed referral launch queues the owned processor", () => {
