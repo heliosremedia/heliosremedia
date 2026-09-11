@@ -100,3 +100,9 @@ Combined verification: 416 tests passed, zero failed; Prisma generation, non-inc
 Continued after #225: additive nullable group ownership, scoped manual creation/rename/deletion, client membership validation for whole edit batches, scoped directory/options counts, and group ownership in newsletter recipient resolution. Newsletter series updates now take authenticated workspace identity and validate target/audience before approval or scheduling changes. Existing global safety-group writers remain untouched; legacy compatibility requires an unambiguous single-company installation.
 
 Added executable membership-route and series-update tests plus isolated SQL old/new-write rehearsal. Full suite: 419 passing; non-incremental TypeScript, focused lint and diff checks passed. Hosted QA, verified historical group mapping, concurrency review, remaining campaign/lifecycle mutations and global consent policy remain open. See communication-groups document. No production deployment, database migration or delivery was run.
+
+## 2026-09-11 Newsletter lifecycle authorization and stale-write protection
+
+Continued after draft #226: scoped pause/resume transactions, actor-bound manual generation, stored-company block AI settings and stamped source snapshots. Moved block updates into the revision/approval transaction. Added row-version guards to save, approve, block rewrite and full-generation completion, with conditional failure handling that preserves a newer edition state. No protected OAuth/provider adapter changed.
+
+Verification: 423 tests passed, zero failed; non-incremental TypeScript, focused lint and diff checks passed. Actual-handler tests mock dependencies; they do not prove database concurrency or hosted workflow parity. Remaining delivery/lifecycle concurrency, historical snapshot reconciliation and full tenant-isolation gates remain open. No production migration, deployment, campaign or live AI call performed.

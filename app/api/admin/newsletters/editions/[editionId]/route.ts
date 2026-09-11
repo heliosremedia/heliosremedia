@@ -125,7 +125,7 @@ async function saveEdition(editionId: string, value: unknown, actorId: string, w
   const editor = parseEditorEdition(value);
   if (!editor.subject) throw new Error("Subject is required.");
   const current = await prisma.newsletterEdition.findUnique({
-    where: { id: editionId },
+    where: { id: editionId, series: await getBlogOwnershipScope(workspaceId) },
     include: { blocks: { include: { sources: true } }, approvals: { where: { revokedAt: null } } },
   });
   if (!current || ["SENT", "PARTIALLY_SENT", "CANCELLED"].includes(current.status)) {
@@ -206,6 +206,12 @@ async function saveEdition(editionId: string, value: unknown, actorId: string, w
   const revisionNumber = current.currentRevisionNumber + 1;
   const hash = contentHash({ subject: editor.subject, previewText: editor.previewText, blocks: snapshot });
   await prisma.$transaction(async (tx) => {
+    const claimed = await tx.newsletterEdition.updateMany({
+      where: { id: editionId, rowVersion: current.rowVersion, series: await getBlogOwnershipScope(workspaceId),
+        status: { notIn: ["SENT", "PARTIALLY_SENT", "CANCELLED", "GENERATING", "SENDING"] } },
+      data: { rowVersion: { increment: 1 } },
+    });
+    if (claimed.count !== 1) throw new Error("Edition changed while saving. Reopen and retry.");
     await tx.newsletterBlock.updateMany({
       where: { editionId },
       data: { position: { increment: 1_000 } },
@@ -239,7 +245,7 @@ async function saveEdition(editionId: string, value: unknown, actorId: string, w
               create: {
                 sourceType: "ADMIN_CONTENT",
                 sourceTitle: "Administrator-provided newsletter content",
-                sourceSnapshot: { manuallyEntered: true },
+                sourceSnapshot: { workspaceId, manuallyEntered: true },
               },
             },
           },
@@ -265,7 +271,7 @@ async function saveEdition(editionId: string, value: unknown, actorId: string, w
       });
     }
     await tx.newsletterEdition.update({
-      where: { id: editionId },
+      where: { id: editionId, series: await getBlogOwnershipScope(workspaceId) },
       data: {
         subject: editor.subject,
         previewText: editor.previewText || null,
@@ -281,9 +287,9 @@ async function saveEdition(editionId: string, value: unknown, actorId: string, w
   });
 }
 
-async function approveAndSchedule(editionId: string, actorId: string) {
+async function approveAndSchedule(editionId: string, actorId: string, workspaceId: string) {
   const edition = await prisma.newsletterEdition.findUnique({
-    where: { id: editionId },
+    where: { id: editionId, series: await getBlogOwnershipScope(workspaceId) },
     include: {
       series: { include: { groups: true, recipients: true } },
       revisions: { orderBy: { revisionNumber: "desc" }, take: 1 },
@@ -299,6 +305,11 @@ async function approveAndSchedule(editionId: string, actorId: string) {
   if (!audience.eligible.length) throw new Error("No eligible recipients are currently selected.");
   const revision = edition.revisions[0];
   await prisma.$transaction(async (tx) => {
+    const claimed = await tx.newsletterEdition.updateMany({
+      where: { id: editionId, rowVersion: edition.rowVersion, status: "NEEDS_REVIEW", series: await getBlogOwnershipScope(workspaceId) },
+      data: { rowVersion: { increment: 1 } },
+    });
+    if (claimed.count !== 1) throw new Error("Edition changed before approval. Review it again.");
     await tx.newsletterApproval.create({
       data: {
         editionId,
@@ -311,7 +322,7 @@ async function approveAndSchedule(editionId: string, actorId: string) {
       },
     });
     await tx.newsletterEdition.update({
-      where: { id: editionId },
+      where: { id: editionId, series: await getBlogOwnershipScope(workspaceId) },
       data: { approvedRevisionId: revision.id, status: "SCHEDULED", rowVersion: { increment: 1 } },
     });
     await tx.newsletterJob.createMany({
@@ -392,7 +403,7 @@ export async function POST(request: Request, context: Context) {
       });
       message = result.message;
     } else if (action === "approve") {
-      const audience = await approveAndSchedule(editionId, session.userId);
+      const audience = await approveAndSchedule(editionId, session.userId, session.workspaceId);
       message = `Approved and scheduled for ${audience.eligible.length} currently eligible recipients.`;
     } else if (action === "revoke-approval") {
       await prisma.$transaction([

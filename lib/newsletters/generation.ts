@@ -1,3 +1,4 @@
+import { requireWorkspaceId } from "@/lib/workspaces";
 import { resolveNewsletterWorkspace } from "./ownership";
 import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import "server-only";
@@ -19,9 +20,11 @@ function notes(value: unknown) {
 }
 
 export async function generateNewsletterEdition(editionId: string, actorId?: string) {
-  const owner = await prisma.newsletterEdition.findUnique({ where: { id: editionId }, select: { series: { select: { workspaceId: true } } } });
+  const actorWorkspaceId = actorId ? await requireWorkspaceId(actorId) : null;
+  const owner = await prisma.newsletterEdition.findUnique({ where: { id: editionId, ...(actorWorkspaceId ? { series: await getBlogOwnershipScope(actorWorkspaceId) } : {}) }, select: { series: { select: { workspaceId: true } } } });
   if (!owner) throw new Error("Edition was not found.");
   const workspaceId = await resolveNewsletterWorkspace(owner.series.workspaceId);
+  if (actorWorkspaceId && actorWorkspaceId !== workspaceId) throw new Error("Edition was not found.");
   const claimed = await prisma.newsletterEdition.updateMany({
     where: {
       id: editionId,
@@ -47,7 +50,7 @@ export async function generateNewsletterEdition(editionId: string, actorId?: str
       editionId,
       status: "RUNNING",
       promptVersion: "newsletter-v1.5.0",
-      instructionsSnapshot: { seriesId: edition.seriesId, contentNotes: edition.contentNotes },
+      instructionsSnapshot: { workspaceId, seriesId: edition.seriesId, contentNotes: edition.contentNotes },
       sourceManifest: [],
       attempt,
       startedAt: new Date(),
@@ -80,7 +83,7 @@ export async function generateNewsletterEdition(editionId: string, actorId?: str
       brand: {
         businessName: settings.businessName,
         voice: settings.brandVoice || "refined, intentional, cinematic, knowledgeable, and human",
-        audience: settings.brandAudience || "Helios real estate media clients",
+        audience: settings.brandAudience || "Real estate media clients",
         writingGuidance: settings.brandWritingGuidance || "Avoid hype, clichés, and unsupported claims.",
       },
       goals: edition.series.goals ?? "",
@@ -126,6 +129,16 @@ export async function generateNewsletterEdition(editionId: string, actorId?: str
     const hash = contentHash({ subject: draft.subject, previewText: draft.previewText, blocks: blockSnapshot });
 
     await prisma.$transaction(async (tx) => {
+      const current = await tx.newsletterEdition.updateMany({
+        where: { id: editionId, status: "GENERATING", rowVersion: edition.rowVersion,
+          series: { status: "ACTIVE", workspaceId: edition.series.workspaceId } },
+        data: { rowVersion: { increment: 1 } },
+      });
+      if (current.count !== 1) throw new Error("Edition changed during generation. Reopen and retry.");
+      await tx.newsletterApproval.updateMany({
+        where: { editionId, revokedAt: null },
+        data: { revokedAt: new Date(), revocationReason: "Newsletter content was regenerated." },
+      });
       await tx.newsletterBlock.deleteMany({ where: { editionId } });
       for (const [position, block] of preparedBlocks.entries()) {
         await tx.newsletterBlock.create({
@@ -145,7 +158,7 @@ export async function generateNewsletterEdition(editionId: string, actorId?: str
                   sourceId,
                   sourceTitle: source.label,
                   sourceUrl: source.url,
-                  sourceSnapshot: { excerpt: source.excerpt, imageCandidates: source.imageCandidates ?? [] },
+                  sourceSnapshot: { workspaceId, excerpt: source.excerpt, imageCandidates: source.imageCandidates ?? [] },
                 };
               }),
             },
@@ -183,7 +196,7 @@ export async function generateNewsletterEdition(editionId: string, actorId?: str
           status: "SUCCEEDED",
           model: process.env.OPENAI_NEWSLETTER_MODEL?.trim() || process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-5-mini",
           sourceManifest: sources.map((source) => ({
-            id: source.id, kind: source.kind, label: source.label,
+            workspaceId, id: source.id, kind: source.kind, label: source.label,
             imageCandidates: source.imageCandidates ?? [],
           })),
           outputSnapshot: { subject: draft.subject, blockCount: draft.blocks.length, warnings: draft.warnings },
@@ -199,8 +212,8 @@ export async function generateNewsletterEdition(editionId: string, actorId?: str
         where: { id: run.id },
         data: { status: "FAILED", errorCode: "GENERATION_FAILED", errorMessage: message, completedAt: new Date() },
       }),
-      prisma.newsletterEdition.update({
-        where: { id: editionId },
+      prisma.newsletterEdition.updateMany({
+        where: { id: editionId, status: "GENERATING", rowVersion: edition.rowVersion, series: { workspaceId: edition.series.workspaceId } },
         data: { status: "GENERATION_FAILED", warnings: [message], rowVersion: { increment: 1 } },
       }),
     ]);
@@ -213,10 +226,11 @@ export async function regenerateNewsletterBlock(input: {
   blockId: string;
   action: "regenerate-block" | "rewrite-block" | "shorten-block" | "expand-block";
   instruction?: string;
-  actorId?: string;
+  actorId: string;
 }) {
+  const actorWorkspaceId = await requireWorkspaceId(input.actorId);
   const block = await prisma.newsletterBlock.findFirst({
-    where: { id: input.blockId, editionId: input.editionId },
+    where: { id: input.blockId, editionId: input.editionId, edition: { series: await getBlogOwnershipScope(actorWorkspaceId) } },
     include: {
       sources: true,
       edition: {
@@ -228,6 +242,16 @@ export async function regenerateNewsletterBlock(input: {
     },
   });
   if (!block) throw new Error("Newsletter block was not found.");
+  const workspaceId = await resolveNewsletterWorkspace(block.edition.series.workspaceId);
+  if (workspaceId !== actorWorkspaceId) throw new Error("Newsletter block was not found.");
+  for (const source of block.sources) {
+    const snapshot = source.sourceSnapshot && typeof source.sourceSnapshot === "object"
+      ? source.sourceSnapshot as Record<string, unknown> : {};
+    if (snapshot.workspaceId !== workspaceId &&
+      (snapshot.workspaceId !== undefined || await resolveNewsletterWorkspace(null) !== workspaceId)) {
+      throw new Error("Newsletter source ownership must be verified before rewriting.");
+    }
+  }
   if (["SENT", "PARTIALLY_SENT", "CANCELLED"].includes(block.edition.status)) {
     throw new Error("This edition can no longer be edited.");
   }
@@ -247,7 +271,7 @@ export async function regenerateNewsletterBlock(input: {
     };
   });
   if (!sources.length) throw new Error("Attach verified source material before using block AI.");
-  const settings = await getSiteSettings();
+  const settings = await getSiteSettings(workspaceId);
   const actionGuidance = {
     "regenerate-block": "Rewrite this one block while preserving all verified facts and links.",
     "rewrite-block": `Adjust this one block as directed: ${input.instruction || "refine the tone"}.`,
@@ -260,7 +284,7 @@ export async function regenerateNewsletterBlock(input: {
     brand: {
       businessName: settings.businessName,
       voice: settings.brandVoice || "refined, intentional, cinematic, knowledgeable, and human",
-      audience: settings.brandAudience || "Helios real estate media clients",
+      audience: settings.brandAudience || "Real estate media clients",
       writingGuidance: settings.brandWritingGuidance || "Avoid hype, clichés, and unsupported claims.",
     },
     goals: `${actionGuidance} Return exactly one ${block.type} block.`,
@@ -298,16 +322,6 @@ export async function regenerateNewsletterBlock(input: {
     alignment: replacement.alignment === "CENTER" ? "center" : "left",
   };
   const content = preserveManualImage(current, generatedContent);
-  await prisma.newsletterBlock.update({
-    where: { id: block.id },
-    data: {
-      internalLabel: replacement.internalLabel || block.internalLabel,
-      content: content as Prisma.InputJsonValue,
-      aiGenerated: true,
-      manuallyEdited: false,
-      contentVersion: { increment: 1 },
-    },
-  });
   const updatedBlocks = block.edition.blocks.map((item) => {
     const itemContent = item.id === block.id
       ? content
@@ -325,8 +339,26 @@ export async function regenerateNewsletterBlock(input: {
     previewText: block.edition.previewText,
     blocks: updatedBlocks,
   });
-  await prisma.$transaction([
-    prisma.newsletterRevision.create({
+  await prisma.$transaction(async (tx) => {
+    const claimed = await tx.newsletterEdition.updateMany({
+      where: { id: input.editionId, rowVersion: block.edition.rowVersion,
+        series: { workspaceId: block.edition.series.workspaceId },
+        status: { notIn: ["SENT", "PARTIALLY_SENT", "CANCELLED", "GENERATING", "SENDING"] } },
+      data: { rowVersion: { increment: 1 } },
+    });
+    if (claimed.count !== 1) throw new Error("Edition changed during rewriting. Reopen and retry.");
+    await tx.newsletterBlock.update({
+      where: { id: block.id },
+      data: {
+        internalLabel: replacement.internalLabel || block.internalLabel,
+        content: content as Prisma.InputJsonValue,
+        aiGenerated: true,
+        manuallyEdited: false,
+        contentVersion: { increment: 1 },
+      },
+    });
+
+    await tx.newsletterRevision.create({
       data: {
         editionId: input.editionId,
         revisionNumber,
@@ -337,12 +369,12 @@ export async function regenerateNewsletterBlock(input: {
         changeSummary: `AI ${input.action}`,
         createdById: input.actorId,
       },
-    }),
-    prisma.newsletterApproval.updateMany({
+    });
+    await tx.newsletterApproval.updateMany({
       where: { editionId: input.editionId, revokedAt: null },
       data: { revokedAt: new Date(), revocationReason: "A content block changed after approval." },
-    }),
-    prisma.newsletterEdition.update({
+    });
+    await tx.newsletterEdition.update({
       where: { id: input.editionId },
       data: {
         status: "NEEDS_REVIEW",
@@ -351,7 +383,7 @@ export async function regenerateNewsletterBlock(input: {
         warnings: draft.warnings,
         rowVersion: { increment: 1 },
       },
-    }),
-  ]);
+    });
+  });
   return { message: "Selected block refreshed from its verified sources." };
 }

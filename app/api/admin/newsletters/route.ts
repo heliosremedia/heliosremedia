@@ -81,10 +81,10 @@ function generationFromSeries(series: {
   return { mode: "RECURRENCE", recurrence } satisfies GenerationRule;
 }
 
-async function pauseSeries(seriesId: string) {
+async function pauseSeries(seriesId: string, workspaceId: string) {
   return prisma.$transaction(async tx => {
     const series = await tx.newsletterSeries.update({
-      where: { id: seriesId },
+      where: { id: seriesId, AND: [await getContentOwnershipScope(workspaceId)] },
       data: { status: "PAUSED" },
     });
     await tx.newsletterJob.updateMany({
@@ -102,10 +102,10 @@ async function pauseSeries(seriesId: string) {
   });
 }
 
-async function resumeSeries(seriesId: string) {
+async function resumeSeries(seriesId: string, workspaceId: string) {
   const now = new Date();
   return prisma.$transaction(async tx => {
-    const series = await tx.newsletterSeries.findUnique({ where: { id: seriesId } });
+    const series = await tx.newsletterSeries.findUnique({ where: { id: seriesId, AND: [await getContentOwnershipScope(workspaceId)] } });
     if (!series) throw new Error("Newsletter series was not found.");
     const upcoming = await tx.newsletterEdition.findFirst({
       where: {
@@ -131,7 +131,7 @@ async function resumeSeries(seriesId: string) {
         },
       });
       return tx.newsletterSeries.update({
-        where: { id: seriesId },
+        where: { id: seriesId, AND: [await getContentOwnershipScope(workspaceId)] },
         data: {
           status: "ACTIVE",
           nextSendAt: upcoming.intendedSendAt,
@@ -189,7 +189,7 @@ async function resumeSeries(seriesId: string) {
       ],
     });
     return tx.newsletterSeries.update({
-      where: { id: seriesId },
+      where: { id: seriesId, AND: [await getContentOwnershipScope(workspaceId)] },
       data: { status: "ACTIVE", nextSendAt, nextGenerationAt },
     });
   });
@@ -247,8 +247,8 @@ export async function POST(request: Request) {
       const seriesId = typeof body.seriesId === "string" ? body.seriesId : "";
       if (!seriesId) throw new Error("Newsletter series is required.");
       const series = action === "pause-series"
-        ? await pauseSeries(seriesId)
-        : await resumeSeries(seriesId);
+        ? await pauseSeries(seriesId, session.workspaceId)
+        : await resumeSeries(seriesId, session.workspaceId);
       await recordAuditEvent({
         actorId: session.userId, actorEmail: session.email,
         action: action === "pause-series" ? "NEWSLETTER_SERIES_PAUSED" : "NEWSLETTER_SERIES_RESUMED",
