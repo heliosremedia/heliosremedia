@@ -9,8 +9,10 @@ test("V1.8.7 enforces workspace-scoped project and media selection", () => {
   const updateRoute = read("../../app/api/admin/social/campaigns/[campaignId]/route.ts");
   const campaignPage = read("../../app/admin/social-studio/campaigns/[campaignId]/page.tsx");
   assert.match(createRoute, /project\.findMany\(\{ where: \{ id: \{ in: projectIds \}, workspaceId \}/);
-  assert.match(updateRoute, /project: \{ workspaceId \}/);
-  assert.match(updateRoute, /selected assets are unavailable to this workspace/);
+  const content = read("../../lib/social/studio.ts");
+  assert.match(updateRoute, /kind: "MEDIA_SELECTION"/);
+  assert.match(content, /project: \{ workspaceId: input\.workspaceId \}/);
+  assert.match(content, /valid\.length !== mediaIds\.length/);
   assert.match(campaignPage, /project: \{ workspaceId \}/);
 });
 

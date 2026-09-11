@@ -1,10 +1,10 @@
+import { requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
 import { NextResponse } from "next/server";
 import type { SocialPlatform, SocialSourceType } from "@/app/generated/prisma/client";
 import { getAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { POST_TYPES, SOCIAL_PLATFORMS } from "@/lib/social/core";
 import { verifiedSourceFacts } from "@/lib/social/studio";
-import { requireWorkspaceId } from "@/lib/workspaces";
 
 const allowedSources = ["PROJECT", "PORTFOLIO_ITEM", "MEDIA_LIBRARY", "BLOG", "NEWSLETTER", "UPLOADED_IMAGE", "UPLOADED_VIDEO", "AI_GENERATED_IMAGE", "BLANK"];
 const clean = (value: unknown, max = 5000) => typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   const session = await getAdminSession();
   if (!session || session.role === "VIEWER") return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   try {
-    const workspaceId = await requireWorkspaceId(session.userId);
+    const workspaceId = session.workspaceId;
     const body = await request.json() as Record<string, unknown>;
     const sourceType = clean(body.sourceType, 40).toUpperCase();
     const platforms = Array.isArray(body.platforms)
@@ -29,7 +29,9 @@ export async function POST(request: Request) {
     const authorizedProjects = projectIds.length ? await prisma.project.findMany({ where: { id: { in: projectIds }, workspaceId }, select: { id: true } }) : [];
     if (authorizedProjects.length !== projectIds.length) return NextResponse.json({ success: false, error: "One or more selected projects are unavailable to this workspace." }, { status: 403 });
     const verifiedFacts = sourceRecordId ? await verifiedSourceFacts(sourceType, sourceRecordId, workspaceId) : {};
-    const campaign = await prisma.socialCampaign.create({
+    const campaign = await prisma.$transaction(async (tx) => {
+      await requireLockedWorkspaceEditor(tx, session);
+      return tx.socialCampaign.create({
       data: {
         internalName: clean(body.internalName, 180), description: clean(body.description), purpose: clean(body.purpose), sourceType: sourceType as SocialSourceType,
         sourceRecordIds: body.sourceRecordId ? [clean(body.sourceRecordId, 100)] : [],
@@ -57,8 +59,10 @@ export async function POST(request: Request) {
       },
       select: { id: true },
     });
+    });
     return NextResponse.json({ success: true, campaign });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Your workspace access changed. Sign in again." }, { status: 403 });
     console.error("Social campaign creation failed:", error);
     return NextResponse.json({ success: false, error: "The social campaign could not be created." }, { status: 500 });
   }
