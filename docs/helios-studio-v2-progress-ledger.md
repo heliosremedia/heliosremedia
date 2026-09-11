@@ -54,3 +54,11 @@ Executable guard tests cover anonymous/read-only sessions and empty, foreign, am
 Remaining Blog ownership conversion inventory: app/blog/page.tsx, app/blog/[slug]/page.tsx, app/sitemap.ts, app/admin/blog/page.tsx, lib/blog-series.ts, cron/blog-series, lib/social/studio.ts, app/admin/social-studio/page.tsx, lib/newsletters/generation.ts, lib/newsletters/content-sources.ts, newsletter edition/image routes, and the guarded Blog routes. Public reads, cron and cross-module source reads remain global. No second company may be activated until they are converted. No schedules or provider connections changed in this slice.
 
 Combined verification on recovered #220 plus Blog changes: 395 tests passed, zero failed; non-incremental TypeScript passed; focused Blog ESLint passed. No production build, migration, deployment, recipient message or publication was run.
+
+## 2026-09-11 Blog ownership expansion
+
+Implemented nullable ownership fields with restrictive foreign keys and ownership indexes, preserving legacy inserts and global slug uniqueness. New manual post/series writes store session workspace. Generated drafts store series context; legacy generation requires a sole workspace and scopes source/settings reads. Blog public index/detail/sitemap use workspace ownership behind tenant mode; draft preview requires matching session/public/stored workspace. Existing Blog admin containment remains until all consumers and backfill are complete.
+
+Migration tests exercise actual SQL with two companies: unchanged historical content, nullable old-app inserts, owned new inserts, invalid references, restricted workspace deletion and retained slug uniqueness. Added executable preview policy tests. See helios-studio-v2-blog-ownership.md for remaining conversion and deployment gates. No production data or scheduled execution changed.
+
+Verification: Prisma 7.8 generation passed with a loopback placeholder configuration (no database connection); full suite 397 passed, zero failed; non-incremental TypeScript and focused lint passed; diff check passed. This is development evidence, not hosted QA or release readiness.

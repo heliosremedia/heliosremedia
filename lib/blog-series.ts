@@ -12,6 +12,11 @@ export async function generateSeriesDraft(seriesId: string) {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) throw new Error("AI writing is not configured.");
   const series = await prisma.blogSeries.findUniqueOrThrow({ where: { id: seriesId } });
+  const legacyWorkspaces = series.workspaceId ? [] : await prisma.workspace.findMany({ take: 2, select: { id: true } });
+  const workspaceId = series.workspaceId || (legacyWorkspaces.length === 1 ? legacyWorkspaces[0].id : null);
+  if (!workspaceId) throw new Error("Blog series ownership must be configured before generation.");
+  // Nullable legacy articles are eligible only in the existing single-company mode.
+  const ownership = series.workspaceId ? { workspaceId } : { OR: [{ workspaceId }, { workspaceId: null }] };
   if (series.status !== "ACTIVE") throw new Error("Only active blog series can generate drafts.");
   const pillars = Array.isArray(series.contentPillars)
     ? series.contentPillars.filter((item): item is string => typeof item === "string" && Boolean(item.trim()))
@@ -19,12 +24,13 @@ export async function generateSeriesDraft(seriesId: string) {
   const pillarIndex = pillars.length ? (series.lastPillarIndex + 1) % pillars.length : 0;
   const pillar = pillars[pillarIndex] || "Listing Marketing";
   const existing = await prisma.blogPost.findMany({
-    where: { status: { in: ["NEEDS_REVIEW", "SCHEDULED", "PUBLISHED"] } },
+    where: { ...ownership, status: { in: ["NEEDS_REVIEW", "SCHEDULED", "PUBLISHED"] } },
     orderBy: { createdAt: "desc" },
     take: 40,
     select: { title: true, excerpt: true, category: true, slug: true },
   });
   const settings = await prisma.siteSettings.findFirst({
+    where: { workspaceId },
     select: { businessName: true, brandVoice: true, brandAudience: true, brandWritingGuidance: true, defaultBlogAuthor: true },
   });
   const response = await fetch("https://api.openai.com/v1/responses", {
@@ -36,7 +42,7 @@ export async function generateSeriesDraft(seriesId: string) {
     },
     body: JSON.stringify({
       model: process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-5-mini",
-      instructions: `You are the editorial partner for ${settings?.businessName || "Helios Real Estate Media"}. Draft useful, specific content for ${series.targetAudience}. Voice: ${series.brandVoice || settings?.brandVoice || "refined, intentional, knowledgeable, and human"}. ${settings?.brandWritingGuidance || ""} Never invent statistics, trends, laws, client results, testimonials, or property details. Any current or externally verifiable claim must be omitted unless it is supported by a URL in sourceLinks. Avoid generic openings, generic conclusions, keyword stuffing, and repeated phrasing.`,
+      instructions: `You are the editorial partner for ${settings?.businessName || "your real estate media company"}. Draft useful, specific content for ${series.targetAudience}. Voice: ${series.brandVoice || settings?.brandVoice || "refined, intentional, knowledgeable, and human"}. ${settings?.brandWritingGuidance || ""} Never invent statistics, trends, laws, client results, testimonials, or property details. Any current or externally verifiable claim must be omitted unless it is supported by a URL in sourceLinks. Avoid generic openings, generic conclusions, keyword stuffing, and repeated phrasing.`,
       input: `Create one original article draft for this recurring series.
 Series purpose: ${series.purpose}
 Content pillar for this edition: ${pillar}
@@ -44,8 +50,8 @@ Prioritize: ${series.prioritizeTopics || "useful real-estate media expertise"}
 Avoid: ${series.avoidTopics || "unsupported claims and generic AI filler"}
 Target length: approximately ${series.targetLength} words
 SEO focus: ${series.seoFocus || "natural search relevance"}
-Preferred CTA: ${series.preferredCta || "invite the reader to explore Helios services"}
-Image direction: ${series.imagePreferences || "recommend a relevant Helios portfolio image"}
+Preferred CTA: ${series.preferredCta || "invite the reader to explore the company services"}
+Image direction: ${series.imagePreferences || "recommend a relevant company portfolio image"}
 Existing and scheduled articles to avoid repeating:
 ${existing.map(item => `- ${item.title} | ${item.category || ""} | ${item.excerpt || ""} | /blog/${item.slug}`).join("\n")}
 
@@ -72,11 +78,12 @@ Return JSON with: title, excerpt, content (Markdown), category, seoTitle, seoDes
   const post = await prisma.$transaction(async transaction => {
     const created = await transaction.blogPost.create({
       data: {
+        workspaceId,
         title,
         slug: slugifyBlogTitle(String(draft.slug || title)),
         excerpt: String(draft.excerpt || "").trim() || null,
         content,
-        author: settings?.defaultBlogAuthor || settings?.businessName || "Helios Real Estate Media",
+        author: settings?.defaultBlogAuthor || settings?.businessName || "your real estate media company",
         category: String(draft.category || pillar).trim(),
         status: "NEEDS_REVIEW",
         seoTitle: String(draft.seoTitle || "").trim() || null,
@@ -97,7 +104,7 @@ Return JSON with: title, excerpt, content (Markdown), category, seoTitle, seoDes
     });
     const dates = nextBlogSeriesDates(series.cadence, series.nextPublishAt || new Date(), series.leadDays);
     await transaction.blogSeries.update({
-      where: { id: series.id },
+      where: { id: series.id, workspaceId: series.workspaceId },
       data: { ...dates, lastPillarIndex: pillarIndex },
     });
     return created;

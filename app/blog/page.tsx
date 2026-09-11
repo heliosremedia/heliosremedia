@@ -1,3 +1,5 @@
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
+import { tenantContextEnabled } from "@/lib/workspace-context-core";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -10,7 +12,7 @@ import { buildPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata():Promise<Metadata>{const settings=await getSiteSettings();return buildPageMetadata({title:`Insights | ${settings.businessName}`,description:`Ideas, guidance, and perspective from ${settings.businessName}.`,path:"/blog",settings});}
-async function getPublishedPosts(){try{return await prisma.blogPost.findMany({where:{OR:[{status:"PUBLISHED",publishedAt:{lte:new Date()}},{status:"SCHEDULED",scheduledAt:{lte:new Date()}}]},orderBy:[{publishedAt:"desc"},{scheduledAt:"desc"},{createdAt:"desc"}],include:{featuredMedia:{select:{storageKey:true}}}});}catch(error){if(process.env.NODE_ENV!=="production")console.warn("Blog posts unavailable; showing the empty journal state.",error);return[];}}
+async function getPublishedPosts(){try{const workspaceId=await getPublicWorkspaceId();return await prisma.blogPost.findMany({where:{...(tenantContextEnabled()?{workspaceId}:{}),OR:[{status:"PUBLISHED",publishedAt:{lte:new Date()}},{status:"SCHEDULED",scheduledAt:{lte:new Date()}}]},orderBy:[{publishedAt:"desc"},{scheduledAt:"desc"},{createdAt:"desc"}],include:{featuredMedia:{select:{storageKey:true}}}});}catch(error){if(process.env.NODE_ENV!=="production")console.warn("Blog posts unavailable; showing the empty journal state.",error);return[];}}
 
 export default async function BlogPage(){
   const [settings,posts]=await Promise.all([getSiteSettings(),getPublishedPosts()]);
