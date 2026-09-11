@@ -1525,6 +1525,10 @@ model LegalDocument {
 }
 
 model CallToAction {
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  @@index([workspaceId])
+
   id String @id @default(cuid())
 
   internalName String
@@ -1679,6 +1683,7 @@ model Workspace {
   communicationGroups       CommunicationGroup[]
   faqCategories             FaqCategory[]
   legalDocuments            LegalDocument[]
+  callsToAction             CallToAction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -1,3 +1,5 @@
+import { getAdminSession } from "@/lib/auth/session";
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { CtaActionType, CtaPlacementSlot } from "@/app/generated/prisma/client";
@@ -28,16 +30,34 @@ function refresh() { revalidatePath("/", "layout"); revalidatePath("/admin/ctas"
 function errorResponse(error: unknown) { const messages: Record<string,string> = { INVALID_TEXT: "Complete the required CTA fields and stay within their limits.", INVALID_ACTION: "Choose a valid button action.", INVALID_TARGET: "Internal links must begin with / and external links must be valid web addresses.", INVALID_SLOTS: "Choose valid, non-duplicate site placements." }; return error instanceof Error && messages[error.message] ? NextResponse.json({ success: false, error: messages[error.message] }, { status: 400 }) : null; }
 
 export async function POST(request: Request) {
-  try { const body = await request.json() as Record<string, unknown>; const data = validate(body); const selectedSlots = placementSlots(body.slots ?? []); const cta = await prisma.$transaction(async (tx) => { const created = await tx.callToAction.create({ data }); await Promise.all(selectedSlots.map((slot) => tx.ctaPlacement.upsert({ where: { slot }, create: { slot, ctaId: created.id }, update: { ctaId: created.id } }))); return tx.callToAction.findUniqueOrThrow({ where: { id: created.id }, select }); }); refresh(); return NextResponse.json({ success: true, cta }, { status: 201 }); }
+  try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) {
+      return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
+    }
+    const scope = await getContentOwnershipScope(session.workspaceId);
+    const body = await request.json() as Record<string, unknown>; const data = validate(body); const selectedSlots = placementSlots(body.slots ?? []); const cta = await prisma.$transaction(async (tx) => { const created = await tx.callToAction.create({ data: { ...data, workspaceId: session.workspaceId } }); await Promise.all(selectedSlots.map((slot) => tx.ctaPlacement.upsert({ where: { slot, cta: scope }, create: { slot, ctaId: created.id }, update: { ctaId: created.id } }))); return tx.callToAction.findUniqueOrThrow({ where: { id: created.id, AND: [scope] }, select }); }); refresh(); return NextResponse.json({ success: true, cta }, { status: 201 }); }
   catch (error) { const response = errorResponse(error); if (response) return response; console.error("Unable to create CTA:", error); return NextResponse.json({ success: false, error: "The CTA could not be created." }, { status: 500 }); }
 }
 
 export async function PATCH(request: Request) {
-  try { const body = await request.json() as Record<string, unknown>; const ctaId = requiredText(body.ctaId, 200); const data = validate(body); const selectedSlots = placementSlots(body.slots ?? []); const cta = await prisma.$transaction(async (tx) => { await tx.callToAction.update({ where: { id: ctaId }, data }); await tx.ctaPlacement.deleteMany({ where: { ctaId, slot: { notIn: selectedSlots } } }); await Promise.all(selectedSlots.map((slot) => tx.ctaPlacement.upsert({ where: { slot }, create: { slot, ctaId }, update: { ctaId } }))); return tx.callToAction.findUniqueOrThrow({ where: { id: ctaId }, select }); }); refresh(); return NextResponse.json({ success: true, cta }); }
+  try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) {
+      return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
+    }
+    const scope = await getContentOwnershipScope(session.workspaceId);
+    const body = await request.json() as Record<string, unknown>; const ctaId = requiredText(body.ctaId, 200); const data = validate(body); const selectedSlots = placementSlots(body.slots ?? []); const cta = await prisma.$transaction(async (tx) => { await tx.callToAction.update({ where: { id: ctaId, AND: [scope] }, data }); await tx.ctaPlacement.deleteMany({ where: { ctaId, cta: scope, slot: { notIn: selectedSlots } } }); await Promise.all(selectedSlots.map((slot) => tx.ctaPlacement.upsert({ where: { slot, cta: scope }, create: { slot, ctaId }, update: { ctaId } }))); return tx.callToAction.findUniqueOrThrow({ where: { id: ctaId, AND: [scope] }, select }); }); refresh(); return NextResponse.json({ success: true, cta }); }
   catch (error) { const response = errorResponse(error); if (response) return response; console.error("Unable to update CTA:", error); return NextResponse.json({ success: false, error: "The CTA could not be updated." }, { status: 500 }); }
 }
 
 export async function DELETE(request: Request) {
-  try { const ctaId = new URL(request.url).searchParams.get("ctaId")?.trim(); if (!ctaId) return NextResponse.json({ success: false, error: "A CTA ID is required." }, { status: 400 }); await prisma.callToAction.delete({ where: { id: ctaId } }); refresh(); return NextResponse.json({ success: true, deletedCtaId: ctaId }); }
+  try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) {
+      return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
+    }
+    const scope = await getContentOwnershipScope(session.workspaceId);
+    const ctaId = new URL(request.url).searchParams.get("ctaId")?.trim(); if (!ctaId) return NextResponse.json({ success: false, error: "A CTA ID is required." }, { status: 400 }); await prisma.callToAction.delete({ where: { id: ctaId, AND: [scope] } }); refresh(); return NextResponse.json({ success: true, deletedCtaId: ctaId }); }
   catch (error) { console.error("Unable to delete CTA:", error); return NextResponse.json({ success: false, error: "The CTA could not be deleted." }, { status: 500 }); }
 }
