@@ -1,3 +1,4 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { tenantContextEnabled } from "@/lib/workspace-context-core";
 import type { MetadataRoute } from "next";
 
@@ -23,12 +24,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         slug: true,
         updatedAt: true,
         heroMedia: {
+          where: { project: { workspaceId }, visibility: "VISIBLE" },
           select: { storageKey: true },
         },
       },
     }),
     prisma.service.findMany({ where: { workspaceId, active: true, archivedAt: null }, select: { slug: true, updatedAt: true } }),
-    prisma.legalDocument.findMany({ where: { published: true }, select: { type: true, updatedAt: true } }),
+    prisma.legalDocument.findMany({ where: { AND: [await getContentOwnershipScope(workspaceId)], published: true }, select: { type: true, updatedAt: true } }),
     getPublishedLocationPages(),
     prisma.blogPost.findMany({ where: { ...(tenantContextEnabled() ? { workspaceId } : {}), OR: [{ status: "PUBLISHED", publishedAt: { lte: new Date() } }, { status: "SCHEDULED", scheduledAt: { lte: new Date() } }] }, select: { slug: true, updatedAt: true } }),
   ]);

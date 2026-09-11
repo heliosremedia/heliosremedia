@@ -1,3 +1,6 @@
+import { getAdminSession } from "@/lib/auth/session";
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
+import { tenantContextEnabled } from "@/lib/workspace-context-core";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
@@ -6,6 +9,18 @@ import { sanitizeLegalHtml } from "@/lib/legal-html";
 
 export async function PATCH(request: Request) {
   try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN"].includes(session.role)) {
+      return NextResponse.json({ success: false, error: "Owner or administrator access is required." }, { status: 403 });
+    }
+    const tenantMode = tenantContextEnabled();
+    if (!tenantMode) {
+      const workspaces = await prisma.workspace.findMany({ take: 2, select: { id: true } });
+      if (workspaces.length !== 1 || workspaces[0].id !== session.workspaceId) {
+        return NextResponse.json({ success: false, error: "Legal settings require configured company ownership." }, { status: 409 });
+      }
+    }
+    const scope = await getContentOwnershipScope(session.workspaceId);
     const body = (await request.json()) as Record<string, unknown>;
     const type = body.type === "PRIVACY_POLICY" || body.type === "TERMS_OF_SERVICE" ? body.type : null;
     const title = typeof body.title === "string" ? body.title.trim() : "";
@@ -21,13 +36,16 @@ export async function PATCH(request: Request) {
     }
 
     const documentMutation = prisma.legalDocument.upsert({
-      where: { type },
-      create: { type, title, content, published },
+      where: { type, AND: [scope] },
+      create: { workspaceId: session.workspaceId, type, title, content, published },
       update: { title, content, published },
     });
-    const settingsMutation = type === "PRIVACY_POLICY"
-      ? prisma.siteSettings.upsert({ where: { id: "default" }, create: { id: "default", privacyPolicyPublished: published }, update: { privacyPolicyPublished: published } })
-      : prisma.siteSettings.upsert({ where: { id: "default" }, create: { id: "default", termsOfServicePublished: published }, update: { termsOfServicePublished: published } });
+    const flags = type === "PRIVACY_POLICY" ? { privacyPolicyPublished: published } : { termsOfServicePublished: published };
+    const settingsMutation = prisma.siteSettings.upsert({
+      where: tenantMode ? { workspaceId: session.workspaceId } : { id: "default", AND: [scope] },
+      create: { ...(tenantMode ? {} : { id: "default" }), workspaceId: session.workspaceId, ...flags },
+      update: flags,
+    });
     const [document] = await prisma.$transaction([documentMutation, settingsMutation]);
 
     revalidatePath("/", "layout");

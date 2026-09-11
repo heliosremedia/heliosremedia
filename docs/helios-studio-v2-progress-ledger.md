@@ -118,3 +118,9 @@ Verification: 425 tests passed, zero failed; non-incremental TypeScript and diff
 Continued after draft #228. Added nullable ownership to FAQ category roots and local editor authorization to every FAQ/category mutation. Scoped reads, reorder, writes and source/destination category checks. Public/admin FAQ queries no longer return another company's categories; existing unassigned content has single-company-only compatibility.
 
 Verification: 428 tests passed, zero failed; Prisma generation, non-incremental TypeScript, focused lint and diff checks passed. Route tests use mocked dependencies and migration tests use PGlite. Historical mapping, slug contract migration and hosted/browser verification remain open. No production data or deployment changed.
+
+## 2026-09-11 legal document ownership and settings binding
+
+Continued after draft #229. Added nullable legal-document ownership, local administrator authorization, company-bound document/settings transaction predicates, scoped public/admin readers and sitemap legal entries. Legacy default-settings writes require one matching company. Preserved all legal copy and global type uniqueness pending a controlled contract migration. Also scoped sitemap hero-media references.
+
+Verification: 431 tests passed, zero failed; Prisma generation, non-incremental TypeScript, focused lint and diff checks passed. Actual-handler tests mock data access; SQL rehearsal uses PGlite. Historical mapping, uniqueness rollout, broader settings ownership and hosted/browser QA remain open. No production data, legal text, deployment or external delivery changed.
