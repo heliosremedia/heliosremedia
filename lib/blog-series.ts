@@ -1,3 +1,4 @@
+import { requireLockedWorkspaceEditor, type WorkspaceWriteActor } from "@/lib/workspace-write-access";
 import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import "server-only";
 
@@ -9,16 +10,25 @@ function outputText(result: { output_text?: string; output?: Array<{ content?: A
   return result.output_text || result.output?.flatMap(item => item.content || []).map(item => item.text || "").join("") || "{}";
 }
 
-export async function generateSeriesDraft(seriesId: string, expectedWorkspaceId?: string) {
+type BlogGenerationContext = { kind: "ADMIN"; actor: WorkspaceWriteActor } | { kind: "BACKGROUND"; claimedAt: Date; workspaceId: string | null };
+
+export async function generateSeriesDraft(seriesId: string, context: BlogGenerationContext) {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) throw new Error("AI writing is not configured.");
-  const series = await prisma.blogSeries.findUniqueOrThrow({ where: { id: seriesId, ...(expectedWorkspaceId ? { AND: [await getBlogOwnershipScope(expectedWorkspaceId)] } : {}) } });
-  const legacyWorkspaces = series.workspaceId ? [] : await prisma.workspace.findMany({ take: 2, select: { id: true } });
-  const workspaceId = series.workspaceId || (legacyWorkspaces.length === 1 ? legacyWorkspaces[0].id : null);
-  if (!workspaceId) throw new Error("Blog series ownership must be configured before generation.");
-  // Nullable legacy articles are eligible only in the existing single-company mode.
-  const ownership = series.workspaceId ? { workspaceId } : { OR: [{ workspaceId }, { workspaceId: null }] };
-  if (series.status !== "ACTIVE") throw new Error("Only active blog series can generate drafts.");
+  const initial = await prisma.blogSeries.findUniqueOrThrow({ where: { id: seriesId, ...(context.kind === "ADMIN" ? { AND: [await getBlogOwnershipScope(context.actor.workspaceId)] } : { workspaceId: context.workspaceId, updatedAt: context.claimedAt }) } });
+  const legacyWorkspaces = initial.workspaceId ? [] : await prisma.workspace.findMany({ take: 2, select: { id: true } });
+  const workspaceId = initial.workspaceId || (legacyWorkspaces.length === 1 ? legacyWorkspaces[0].id : null);
+  if (!workspaceId) throw new Error("BLOG_SERIES_OWNERSHIP_REQUIRED");
+  if (context.kind === "ADMIN" && context.actor.workspaceId !== workspaceId) throw new Error("WORKSPACE_WRITE_FORBIDDEN");
+  const ownership = await getBlogOwnershipScope(workspaceId);
+  if (!initial.workspaceId && !("OR" in ownership)) throw new Error("BLOG_SERIES_OWNERSHIP_REQUIRED");
+  const series = await prisma.$transaction(async tx => {
+    if (context.kind === "ADMIN") await requireLockedWorkspaceEditor(tx, context.actor);
+    else await tx.$queryRaw`SELECT id FROM "Workspace" WHERE id=${workspaceId} FOR UPDATE`;
+    const current = await tx.blogSeries.findFirst({ where: { id: seriesId, workspaceId: initial.workspaceId, status: "ACTIVE", updatedAt: initial.updatedAt, ...(context.kind === "BACKGROUND" ? { nextGenerationAt: null } : {}) } });
+    if (!current) throw new Error("BLOG_SERIES_CHANGED");
+    return current;
+  });
   const pillars = Array.isArray(series.contentPillars)
     ? series.contentPillars.filter((item): item is string => typeof item === "string" && Boolean(item.trim()))
     : [];
@@ -77,6 +87,14 @@ Return JSON with: title, excerpt, content (Markdown), category, seoTitle, seoDes
     editorialChecks: Array.isArray(draft.editorialChecks) ? draft.editorialChecks : [],
   };
   const post = await prisma.$transaction(async transaction => {
+    if (context.kind === "ADMIN") await requireLockedWorkspaceEditor(transaction, context.actor);
+    else await transaction.$queryRaw`SELECT id FROM "Workspace" WHERE id=${workspaceId} FOR UPDATE`;
+    const dates = nextBlogSeriesDates(series.cadence, series.nextPublishAt || new Date(), series.leadDays);
+    const advanced = await transaction.blogSeries.updateMany({
+      where: { id: series.id, workspaceId: series.workspaceId, status: "ACTIVE", updatedAt: series.updatedAt, nextPublishAt: series.nextPublishAt },
+      data: { ...dates, lastPillarIndex: pillarIndex },
+    });
+    if (advanced.count !== 1) throw new Error("BLOG_SERIES_CHANGED");
     const created = await transaction.blogPost.create({
       data: {
         workspaceId,
@@ -102,11 +120,6 @@ Return JSON with: title, excerpt, content (Markdown), category, seoTitle, seoDes
         seoTitle: created.seoTitle, seoDescription: created.seoDescription, sourceLinks,
         changeSummary: "AI series draft generated", aiGenerated: true,
       },
-    });
-    const dates = nextBlogSeriesDates(series.cadence, series.nextPublishAt || new Date(), series.leadDays);
-    await transaction.blogSeries.update({
-      where: { id: series.id, workspaceId: series.workspaceId },
-      data: { ...dates, lastPillarIndex: pillarIndex },
     });
     return created;
   });

@@ -16,17 +16,18 @@ export async function GET(request: Request) {
   });
   const results = [];
   for (const series of due) {
+    const claimedAt = new Date();
     const claimed = await prisma.blogSeries.updateMany({
-      where: { id: series.id, status: "ACTIVE", nextGenerationAt: series.nextGenerationAt },
-      data: { nextGenerationAt: null },
+      where: { id: series.id, workspaceId: series.workspaceId, status: "ACTIVE", nextGenerationAt: series.nextGenerationAt, updatedAt: series.updatedAt },
+      data: { nextGenerationAt: null, updatedAt: claimedAt },
     });
     if (!claimed.count) continue;
     try {
-      const generated = await generateSeriesDraft(series.id);
+      const generated = await generateSeriesDraft(series.id, { kind: "BACKGROUND", claimedAt, workspaceId: series.workspaceId });
       results.push({ seriesId: series.id, postId: generated.post.id, success: true });
     } catch (error) {
       await prisma.blogSeries.updateMany({
-        where: { id: series.id, status: "ACTIVE", nextGenerationAt: null },
+        where: { id: series.id, workspaceId: series.workspaceId, status: "ACTIVE", nextGenerationAt: null, updatedAt: claimedAt },
         data: { nextGenerationAt: series.nextGenerationAt },
       });
       results.push({ seriesId: series.id, success: false, error: error instanceof Error ? error.message.slice(0, 200) : "Unknown error" });
