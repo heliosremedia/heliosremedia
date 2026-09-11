@@ -1,3 +1,4 @@
+import { requireLegacyBlogAccess } from "@/lib/blog-access";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/auth/session";
@@ -45,6 +46,8 @@ function extractOutput(result: { output_text?: string; output?: Array<{ content?
 }
 
 export async function POST(request: Request) {
+  const accessError = await requireLegacyBlogAccess();
+  if (accessError) return accessError;
   const session = await getAdminSession();
   if (!session) return NextResponse.json({ success:false, error:"Authentication is required." }, { status:401 });
   if (session.role === "VIEWER") return NextResponse.json({ success:false, error:"You do not have permission to build blog series." }, { status:403 });

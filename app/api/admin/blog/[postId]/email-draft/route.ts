@@ -1,3 +1,4 @@
+import { requireLegacyBlogAccess } from "@/lib/blog-access";
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth/session";
 import { recordAuditEvent } from "@/lib/audit";
@@ -6,6 +7,8 @@ import { getSiteUrl } from "@/lib/site";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(_request: Request, context: { params: Promise<{ postId: string }> }) {
+  const accessError = await requireLegacyBlogAccess();
+  if (accessError) return accessError;
   const session = await getAdminSession();
   if (!session || !["OWNER", "ADMIN"].includes(session.role)) {
     return NextResponse.json({ success: false, error: "Owner or administrator access is required." }, { status: 403 });

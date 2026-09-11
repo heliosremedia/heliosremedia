@@ -40,3 +40,17 @@ Roadmap phases 2 through 7 remain as described in helios-studio-v2-roadmap.md. C
 - Fetched current main: its three commits are gallery spacing and featured drag ordering hotfixes. These must be retained in reconciliation.
 
 Reconciliation completed locally: merged main 72dab34568cb6885f3e93b5ed9db38edca156835 without conflicts, retaining all five hotfix files. Combined suite: 393 passed, zero failed. Non-incremental TypeScript and focused ESLint passed. Actual DELETE handler tests also verify a corrupted foreign storage association does not issue a storage deletion (focused rerun passed). No production merge/deployment performed. This branch does not resolve the older stack's individual dependency conflicts or establish rollout readiness.
+
+## 2026-09-11 Blog access containment and release instruction
+
+Jake clarified the release sequence: complete implementation, report readiness, conduct QA together, then consider production deployment. Do not use earlier broad production authority to skip that sequence. Development and draft publication remain authorized.
+
+Recovered published #220 into /workspace/scratch/dd93a0742694/heliosremedia-v2 at bf1c2a080604a463d97cb6ae3fe396c494f3d03b. The older checkout had returned to #218 and contains an unrelated standard-13.jpg edit; left intact. Use this new worktree for subsequent implementation.
+
+Added a common local editor/session guard to every Blog admin route: posts, revisions, presign, AI, generated images, series management/generation/assistant, and email-draft conversion. Until Blog ownership is explicit, access requires exactly one workspace matching the authenticated session. Empty, foreign and multiple-workspace databases fail closed. Existing stricter route checks remain. This is temporary containment, not multi-company Blog support. Provisioning a second workspace still requires the full isolation gate; a workspace-count check is not a concurrency-safe tenant ownership model.
+
+Executable guard tests cover anonymous/read-only sessions and empty, foreign, ambiguous and valid workspaces. A separate source contract verifies every Blog admin handler enters the guard before its own work. These do not establish authenticated hosted HTTP or browser verification.
+
+Remaining Blog ownership conversion inventory: app/blog/page.tsx, app/blog/[slug]/page.tsx, app/sitemap.ts, app/admin/blog/page.tsx, lib/blog-series.ts, cron/blog-series, lib/social/studio.ts, app/admin/social-studio/page.tsx, lib/newsletters/generation.ts, lib/newsletters/content-sources.ts, newsletter edition/image routes, and the guarded Blog routes. Public reads, cron and cross-module source reads remain global. No second company may be activated until they are converted. No schedules or provider connections changed in this slice.
+
+Combined verification on recovered #220 plus Blog changes: 395 tests passed, zero failed; non-incremental TypeScript passed; focused Blog ESLint passed. No production build, migration, deployment, recipient message or publication was run.

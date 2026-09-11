@@ -1,9 +1,12 @@
+import { requireLegacyBlogAccess } from "@/lib/blog-access";
 import { NextResponse } from "next/server";
 import { generateSeriesDraft } from "@/lib/blog-series";
 
 export const maxDuration = 120;
 
 export async function POST(request: Request) {
+  const accessError = await requireLegacyBlogAccess();
+  if (accessError) return accessError;
   try {
     const body = await request.json() as { seriesId?: string };
     if (!body.seriesId) return NextResponse.json({ success: false, error: "Choose a blog series." }, { status: 400 });
