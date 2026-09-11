@@ -1,3 +1,5 @@
+import { requireAdminSession } from "@/lib/auth/session";
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { prisma } from "@/lib/prisma";
 
 import FaqManager, { type AdminFaqCategory } from "./FaqManager";
@@ -5,7 +7,9 @@ import FaqManager, { type AdminFaqCategory } from "./FaqManager";
 export const dynamic = "force-dynamic";
 
 export default async function AdminFaqPage() {
+  const session = await requireAdminSession();
   const categories = await prisma.faqCategory.findMany({
+    where: await getContentOwnershipScope(session.workspaceId),
     orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
     select: {
       id: true,

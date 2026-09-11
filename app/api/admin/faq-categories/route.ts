@@ -1,3 +1,5 @@
+import { getAdminSession } from "@/lib/auth/session";
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
@@ -49,6 +51,11 @@ function refreshFaqs() {
 
 export async function POST(request: Request) {
   try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) {
+      return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
+    }
+    const scope = await getContentOwnershipScope(session.workspaceId);
     const body = (await request.json()) as Record<string, unknown>;
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const description =
@@ -64,9 +71,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "The category description must be 300 characters or fewer." }, { status: 400 });
     }
 
-    const order = await prisma.faqCategory.aggregate({ _max: { displayOrder: true } });
+    const order = await prisma.faqCategory.aggregate({ where: scope, _max: { displayOrder: true } });
     const category = await prisma.faqCategory.create({
       data: {
+        workspaceId: session.workspaceId,
         name,
         slug: await uniqueSlug(typeof body.slug === "string" ? body.slug : name),
         description,
@@ -85,6 +93,11 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) {
+      return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
+    }
+    const scope = await getContentOwnershipScope(session.workspaceId);
     const body = (await request.json()) as Record<string, unknown>;
     const action = typeof body.action === "string" ? body.action : "";
 
@@ -92,13 +105,13 @@ export async function PATCH(request: Request) {
       const ids = Array.isArray(body.categoryIds)
         ? body.categoryIds.filter((id): id is string => typeof id === "string")
         : [];
-      const current = await prisma.faqCategory.findMany({ select: { id: true } });
+      const current = await prisma.faqCategory.findMany({ where: scope, select: { id: true } });
 
       if (ids.length !== current.length || new Set(ids).size !== ids.length || current.some(({ id }) => !ids.includes(id))) {
         return NextResponse.json({ success: false, error: "The category list changed before the order was saved. Refresh and try again." }, { status: 409 });
       }
 
-      await prisma.$transaction(ids.map((id, index) => prisma.faqCategory.update({ where: { id }, data: { displayOrder: index } })));
+      await prisma.$transaction(ids.map((id, index) => prisma.faqCategory.update({ where: { id, AND: [scope] }, data: { displayOrder: index } })));
       refreshFaqs();
       return NextResponse.json({ success: true, categoryIds: ids });
     }
@@ -112,7 +125,7 @@ export async function PATCH(request: Request) {
       if (typeof body.active !== "boolean") {
         return NextResponse.json({ success: false, error: "A valid category status is required." }, { status: 400 });
       }
-      const category = await prisma.faqCategory.update({ where: { id: categoryId }, data: { active: body.active }, select: categorySelect });
+      const category = await prisma.faqCategory.update({ where: { id: categoryId, AND: [scope] }, data: { active: body.active }, select: categorySelect });
       refreshFaqs();
       return NextResponse.json({ success: true, category });
     }
@@ -126,7 +139,7 @@ export async function PATCH(request: Request) {
       }
 
       const category = await prisma.faqCategory.update({
-        where: { id: categoryId },
+        where: { id: categoryId, AND: [scope] },
         data: {
           name,
           slug: await uniqueSlug(typeof body.slug === "string" ? body.slug : name, categoryId),
@@ -147,12 +160,17 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) {
+      return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
+    }
+    const scope = await getContentOwnershipScope(session.workspaceId);
     const categoryId = new URL(request.url).searchParams.get("categoryId")?.trim();
     if (!categoryId) {
       return NextResponse.json({ success: false, error: "A category ID is required." }, { status: 400 });
     }
 
-    const category = await prisma.faqCategory.findUnique({ where: { id: categoryId }, select: { _count: { select: { faqs: true } } } });
+    const category = await prisma.faqCategory.findUnique({ where: { id: categoryId, AND: [scope] }, select: { _count: { select: { faqs: true } } } });
     if (!category) {
       return NextResponse.json({ success: false, error: "The category was not found." }, { status: 404 });
     }
@@ -160,7 +178,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, error: "Move or delete every FAQ in this category before deleting it." }, { status: 409 });
     }
 
-    await prisma.faqCategory.delete({ where: { id: categoryId } });
+    await prisma.faqCategory.delete({ where: { id: categoryId, AND: [scope] } });
     refreshFaqs();
     return NextResponse.json({ success: true, deletedCategoryId: categoryId });
   } catch (error) {

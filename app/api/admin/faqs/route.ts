@@ -1,3 +1,5 @@
+import { getAdminSession } from "@/lib/auth/session";
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
@@ -29,13 +31,18 @@ function validateContent(question: unknown, answer: unknown) {
 
 export async function POST(request: Request) {
   try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) {
+      return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
+    }
+    const scope = await getContentOwnershipScope(session.workspaceId);
     const body = (await request.json()) as Record<string, unknown>;
     const categoryId = typeof body.categoryId === "string" ? body.categoryId : "";
     const { question, answer } = validateContent(body.question, body.answer);
-    const category = await prisma.faqCategory.findUnique({ where: { id: categoryId }, select: { id: true } });
+    const category = await prisma.faqCategory.findUnique({ where: { id: categoryId, AND: [scope] }, select: { id: true } });
     if (!category) return NextResponse.json({ success: false, error: "Select a valid FAQ category." }, { status: 400 });
 
-    const order = await prisma.faq.aggregate({ where: { categoryId }, _max: { displayOrder: true } });
+    const order = await prisma.faq.aggregate({ where: { categoryId, category: scope }, _max: { displayOrder: true } });
     const faq = await prisma.faq.create({
       data: { categoryId, question, answer, displayOrder: (order._max.displayOrder ?? -1) + 1, published: body.published === true },
       select: faqSelect,
@@ -52,17 +59,22 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) {
+      return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
+    }
+    const scope = await getContentOwnershipScope(session.workspaceId);
     const body = (await request.json()) as Record<string, unknown>;
     const action = typeof body.action === "string" ? body.action : "";
 
     if (action === "reorder") {
       const categoryId = typeof body.categoryId === "string" ? body.categoryId : "";
       const ids = Array.isArray(body.faqIds) ? body.faqIds.filter((id): id is string => typeof id === "string") : [];
-      const current = await prisma.faq.findMany({ where: { categoryId }, select: { id: true } });
+      const current = await prisma.faq.findMany({ where: { categoryId, category: scope }, select: { id: true } });
       if (!categoryId || ids.length !== current.length || new Set(ids).size !== ids.length || current.some(({ id }) => !ids.includes(id))) {
         return NextResponse.json({ success: false, error: "This FAQ category changed before the order was saved. Refresh and try again." }, { status: 409 });
       }
-      await prisma.$transaction(ids.map((id, index) => prisma.faq.update({ where: { id }, data: { displayOrder: index } })));
+      await prisma.$transaction(ids.map((id, index) => prisma.faq.update({ where: { id, category: scope }, data: { displayOrder: index } })));
       refreshFaqs();
       return NextResponse.json({ success: true, faqIds: ids });
     }
@@ -72,25 +84,25 @@ export async function PATCH(request: Request) {
 
     if (action === "set-published") {
       if (typeof body.published !== "boolean") return NextResponse.json({ success: false, error: "A valid publishing status is required." }, { status: 400 });
-      const faq = await prisma.faq.update({ where: { id: faqId }, data: { published: body.published }, select: faqSelect });
+      const faq = await prisma.faq.update({ where: { id: faqId, category: scope }, data: { published: body.published }, select: faqSelect });
       refreshFaqs();
       return NextResponse.json({ success: true, faq });
     }
 
     if (action === "update") {
       const categoryId = typeof body.categoryId === "string" ? body.categoryId : "";
-      const category = await prisma.faqCategory.findUnique({ where: { id: categoryId }, select: { id: true } });
+      const category = await prisma.faqCategory.findUnique({ where: { id: categoryId, AND: [scope] }, select: { id: true } });
       if (!category) return NextResponse.json({ success: false, error: "Select a valid FAQ category." }, { status: 400 });
       const { question, answer } = validateContent(body.question, body.answer);
-      const existing = await prisma.faq.findUnique({ where: { id: faqId }, select: { categoryId: true } });
+      const existing = await prisma.faq.findUnique({ where: { id: faqId, category: scope }, select: { categoryId: true } });
       if (!existing) return NextResponse.json({ success: false, error: "The FAQ was not found." }, { status: 404 });
 
       let displayOrder: number | undefined;
       if (existing.categoryId !== categoryId) {
-        const order = await prisma.faq.aggregate({ where: { categoryId }, _max: { displayOrder: true } });
+        const order = await prisma.faq.aggregate({ where: { categoryId, category: scope }, _max: { displayOrder: true } });
         displayOrder = (order._max.displayOrder ?? -1) + 1;
       }
-      const faq = await prisma.faq.update({ where: { id: faqId }, data: { categoryId, question, answer, ...(displayOrder === undefined ? {} : { displayOrder }) }, select: faqSelect });
+      const faq = await prisma.faq.update({ where: { id: faqId, category: scope }, data: { categoryId, question, answer, ...(displayOrder === undefined ? {} : { displayOrder }) }, select: faqSelect });
       refreshFaqs();
       return NextResponse.json({ success: true, faq });
     }
@@ -106,9 +118,14 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) {
+      return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
+    }
+    const scope = await getContentOwnershipScope(session.workspaceId);
     const faqId = new URL(request.url).searchParams.get("faqId")?.trim();
     if (!faqId) return NextResponse.json({ success: false, error: "An FAQ ID is required." }, { status: 400 });
-    await prisma.faq.delete({ where: { id: faqId } });
+    await prisma.faq.delete({ where: { id: faqId, category: scope } });
     refreshFaqs();
     return NextResponse.json({ success: true, deletedFaqId: faqId });
   } catch (error) {

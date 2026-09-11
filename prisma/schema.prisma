@@ -982,6 +982,9 @@ model ProjectTag {
 }
 
 model FaqCategory {
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
   id           String  @id @default(cuid())
   name         String
   slug         String  @unique
@@ -990,6 +993,8 @@ model FaqCategory {
   active       Boolean @default(true)
 
   faqs Faq[]
+
+  @@index([workspaceId])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1668,6 +1673,7 @@ model Workspace {
   newsletterSeries          NewsletterSeries[]
   newsletterImages          NewsletterImageAsset[]
   communicationGroups       CommunicationGroup[]
+  faqCategories             FaqCategory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
