@@ -9,10 +9,11 @@ export async function POST(request: Request) {
   if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   try {
     const body = await request.json() as Record<string, unknown>;
-    const asset = await generateNewsletterImage({ prompt: `Social campaign concept. This must look conceptual and must not depict or imply a specific real property. ${String(body.prompt || "")}`, altText: body.altText, actorId: session.userId });
+    const asset = await generateNewsletterImage({ prompt: `Social campaign concept. This must look conceptual and must not depict or imply a specific real property. ${String(body.prompt || "")}`, altText: body.altText, actor: session, minimumRole: "EDITOR" });
     await recordAuditEvent({ workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: "SOCIAL_AI_IMAGE_GENERATED", entityType: "NewsletterImageAsset", entityId: asset.id, summary: "Generated and stored a clearly disclosed Social Studio concept image.", metadata: { model: asset.model } });
     return NextResponse.json({ success: true, image: { assetId: asset.id, url: asset.publicUrl, altText: asset.altText, provider: "OpenAI", model: asset.model, disclosure: "AI-generated concept image — not authentic Helios property photography." } }, { status: 201 });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Your workspace access changed. Sign in again." }, { status: 403 });
     return NextResponse.json({ success: false, error: error instanceof Error ? error.message : "The image could not be generated." }, { status: 502 });
   }
 }
