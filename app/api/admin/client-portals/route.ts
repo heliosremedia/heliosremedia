@@ -1,3 +1,4 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
@@ -26,13 +27,17 @@ function revalidate() {
 }
 
 export async function GET() {
-  if (!(await getAdminSession())) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
-  const portals = await prisma.clientPortal.findMany({ orderBy: [{ displayOrder: "asc" }, { name: "asc" }], select });
+  const session = await getAdminSession();
+  if (!session || !["OWNER", "ADMIN"].includes(session.role)) return NextResponse.json({ success: false, error: "Administrator access is required." }, { status: 403 });
+  const scope = await getContentOwnershipScope(session.workspaceId);
+  const portals = await prisma.clientPortal.findMany({ where: scope, orderBy: [{ displayOrder: "asc" }, { name: "asc" }], select });
   return NextResponse.json({ success: true, portals });
 }
 
 export async function POST(request: Request) {
-  if (!(await getAdminSession())) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+  const session = await getAdminSession();
+  if (!session || !["OWNER", "ADMIN"].includes(session.role)) return NextResponse.json({ success: false, error: "Administrator access is required." }, { status: 403 });
+  const scope = await getContentOwnershipScope(session.workspaceId);
   try {
     const body = await request.json() as Record<string, unknown>;
     const name = cleanText(body.name, 120, true)!;
@@ -40,9 +45,10 @@ export async function POST(request: Request) {
     if (!requestedSlug) throw new Error("INVALID_TEXT");
     const existing = await prisma.clientPortal.findUnique({ where: { slug: requestedSlug }, select: { id: true } });
     if (existing) throw new Error("DUPLICATE_SLUG");
-    const max = await prisma.clientPortal.aggregate({ _max: { displayOrder: true } });
+    const max = await prisma.clientPortal.aggregate({ where: scope, _max: { displayOrder: true } });
     const isDefault = body.isDefault === true;
     const data = {
+      workspaceId: session.workspaceId,
       name,
       slug: requestedSlug,
       description: cleanText(body.description, 500),
@@ -57,7 +63,8 @@ export async function POST(request: Request) {
       displayOrder: (max._max.displayOrder ?? -1) + 1,
     };
     const portal = await prisma.$transaction(async (tx) => {
-      if (isDefault) await tx.clientPortal.updateMany({ where: { isDefault: true }, data: { isDefault: false } });
+      await tx.$queryRaw`SELECT "id" FROM "Workspace" WHERE "id"=${session.workspaceId} FOR UPDATE`;
+      if (isDefault) await tx.clientPortal.updateMany({ where: { ...scope, isDefault: true }, data: { isDefault: false } });
       return tx.clientPortal.create({ data, select });
     });
     revalidate();
@@ -71,7 +78,9 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  if (!(await getAdminSession())) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+  const session = await getAdminSession();
+  if (!session || !["OWNER", "ADMIN"].includes(session.role)) return NextResponse.json({ success: false, error: "Administrator access is required." }, { status: 403 });
+  const scope = await getContentOwnershipScope(session.workspaceId);
   try {
     const body = await request.json() as Record<string, unknown>;
     if (body.action === "reorder") {
@@ -81,10 +90,11 @@ export async function PATCH(request: Request) {
       const portalIds = body.portalIds.map((value) => (value as string).trim());
       if (new Set(portalIds).size !== portalIds.length) return NextResponse.json({ success: false, error: "The portal order contains duplicate IDs." }, { status: 400 });
       await prisma.$transaction(async (tx) => {
-        const current = await tx.clientPortal.findMany({ select: { id: true } });
+        await tx.$queryRaw`SELECT "id" FROM "Workspace" WHERE "id"=${session.workspaceId} FOR UPDATE`;
+        const current = await tx.clientPortal.findMany({ where: scope, select: { id: true } });
         const requested = new Set(portalIds);
         if (current.length !== portalIds.length || current.some(({ id }) => !requested.has(id))) throw new Error("STALE_PORTAL_ORDER");
-        for (const [displayOrder, id] of portalIds.entries()) await tx.clientPortal.update({ where: { id }, data: { displayOrder } });
+        for (const [displayOrder, id] of portalIds.entries()) await tx.clientPortal.update({ where: { id, ...scope }, data: { displayOrder } });
       });
       revalidate();
       return NextResponse.json({ success: true, portalIds });
@@ -95,22 +105,28 @@ export async function PATCH(request: Request) {
     const isDefault = body.isDefault === true;
     const data = { name, slug, description: cleanText(body.description, 500), provider: provider(body.provider), hdphGroupId: groupId(body.hdphGroupId), loginUrl: cleanUrl(body.loginUrl), registrationUrl: cleanUrl(body.registrationUrl), bookingUrl: cleanUrl(body.bookingUrl), registrationEnabled: body.registrationEnabled !== false, isDefault, active: body.active !== false };
     const portal = await prisma.$transaction(async (tx) => {
-      if (isDefault) await tx.clientPortal.updateMany({ where: { isDefault: true, id: { not: id } }, data: { isDefault: false } });
-      return tx.clientPortal.update({ where: { id }, data, select });
+      await tx.$queryRaw`SELECT "id" FROM "Workspace" WHERE "id"=${session.workspaceId} FOR UPDATE`;
+      if (!await tx.clientPortal.findFirst({ where: { id, ...scope }, select: { id: true } })) throw new Error("PORTAL_NOT_FOUND");
+      if (isDefault) await tx.clientPortal.updateMany({ where: { ...scope, isDefault: true, id: { not: id } }, data: { isDefault: false } });
+      return tx.clientPortal.update({ where: { id, ...scope }, data, select });
     });
     revalidate();
     return NextResponse.json({ success: true, portal });
   } catch (error) {
+    if (error instanceof Error && error.message === "PORTAL_NOT_FOUND") return NextResponse.json({ success: false, error: "Portal not found." }, { status: 404 });
     console.error("Unable to update client portal:", error);
     return NextResponse.json({ success: false, error: "The client portal could not be updated. Check its name, group, and links." }, { status: 400 });
   }
 }
 
 export async function DELETE(request: Request) {
-  if (!(await getAdminSession())) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+  const session = await getAdminSession();
+  if (!session || !["OWNER", "ADMIN"].includes(session.role)) return NextResponse.json({ success: false, error: "Administrator access is required." }, { status: 403 });
+  const scope = await getContentOwnershipScope(session.workspaceId);
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return NextResponse.json({ success: false, error: "Portal ID required." }, { status: 400 });
-  await prisma.clientPortal.delete({ where: { id } });
+  const deleted = await prisma.clientPortal.deleteMany({ where: { id, ...scope } });
+  if (!deleted.count) return NextResponse.json({ success: false, error: "Portal not found." }, { status: 404 });
   revalidate();
   return NextResponse.json({ success: true });
 }

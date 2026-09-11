@@ -1411,6 +1411,10 @@ model LocationPage {
 }
 
 model ClientPortal {
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  @@index([workspaceId, active, displayOrder])
+
   id          String               @id @default(cuid())
   name        String
   slug        String               @unique
@@ -1697,6 +1701,7 @@ model Workspace {
   teamMembers               TeamMember[]
   inquiries                 Inquiry[]
   auditEvents               AuditEvent[]
+  clientPortals             ClientPortal[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

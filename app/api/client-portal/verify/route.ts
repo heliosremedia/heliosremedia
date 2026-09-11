@@ -1,3 +1,6 @@
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
+import { canUseLegacyPortalProvider } from "@/lib/client-portal/ownership";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -13,8 +16,11 @@ function portalError(request: Request, slug: string, message: string) {
 }
 
 export async function GET(request: Request) {
+  const workspaceId = await getPublicWorkspaceId();
+  if (!await canUseLegacyPortalProvider(workspaceId)) return NextResponse.redirect(new URL("/client-portal?error=Client+access+is+not+configured+for+this+company.", request.url));
+  const scope = await getContentOwnershipScope(workspaceId);
   const token = new URL(request.url).searchParams.get("token") || "";
-  const challenge = await prisma.clientPortalChallenge.findUnique({ where: { tokenHash: hashPortalToken(token) }, include: { portal: true } });
+  const challenge = await prisma.clientPortalChallenge.findFirst({ where: { portal: scope, tokenHash: hashPortalToken(token) }, include: { portal: true } });
   if (!challenge) return NextResponse.redirect(new URL("/client-portal?error=This+access+link+is+invalid.", request.url));
   if (!challenge.portal.active || challenge.portal.provider !== "HDPHOTOHUB") return portalError(request, challenge.portal.slug, "This client portal is no longer available.");
   if (challenge.consumedAt || challenge.expiresAt <= new Date()) return portalError(request, challenge.portal.slug, "This access link has expired. Request a new one.");
@@ -24,12 +30,12 @@ export async function GET(request: Request) {
       const user = await getHdPhotoHubUser(challenge.email);
       if (!user || !userBelongsToGroup(user, challenge.portal.hdphGroupId)) return portalError(request, challenge.portal.slug, "The account could not be opened from this portal.");
       const sso = await getHdPhotoHubSso(challenge.email);
-      const consumed = await prisma.clientPortalChallenge.updateMany({ where: { id: challenge.id, consumedAt: null, expiresAt: { gt: new Date() } }, data: { consumedAt: new Date() } });
+      const consumed = await prisma.clientPortalChallenge.updateMany({ where: { id: challenge.id, portal: { ...scope, active: true, provider: "HDPHOTOHUB" }, consumedAt: null, expiresAt: { gt: new Date() } }, data: { consumedAt: new Date() } });
       if (!consumed.count) return portalError(request, challenge.portal.slug, "This access link has already been used.");
       return NextResponse.redirect(safeSsoUrl(sso.url));
     }
 
-    const consumed = await prisma.clientPortalChallenge.updateMany({ where: { id: challenge.id, consumedAt: null, expiresAt: { gt: new Date() } }, data: { consumedAt: new Date() } });
+    const consumed = await prisma.clientPortalChallenge.updateMany({ where: { id: challenge.id, portal: { ...scope, active: true, provider: "HDPHOTOHUB" }, consumedAt: null, expiresAt: { gt: new Date() } }, data: { consumedAt: new Date() } });
     if (!consumed.count) return portalError(request, challenge.portal.slug, "This access link has already been used.");
     const session = createRegistrationSession({ challengeId: challenge.id, portalId: challenge.portalId, email: challenge.email });
     (await cookies()).set(PORTAL_REGISTRATION_COOKIE, session, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 15 * 60 });

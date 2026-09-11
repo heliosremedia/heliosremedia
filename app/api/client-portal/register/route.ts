@@ -1,3 +1,6 @@
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
+import { canUseLegacyPortalProvider } from "@/lib/client-portal/ownership";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -11,7 +14,10 @@ export async function POST(request: Request) {
   const session = verifyRegistrationSession(cookieStore.get(PORTAL_REGISTRATION_COOKIE)?.value);
   if (!session) return NextResponse.json({ success: false, error: "Your registration session expired. Start again from the client portal." }, { status: 401 });
   try {
-    const challenge = await prisma.clientPortalChallenge.findFirst({ where: { id: session.challengeId, portalId: session.portalId, email: session.email, purpose: "REGISTER", consumedAt: { not: null }, expiresAt: { gt: new Date() } }, select: { id: true } });
+    const workspaceId = await getPublicWorkspaceId();
+    if (!await canUseLegacyPortalProvider(workspaceId)) return NextResponse.json({ success: false, error: "Client access is not configured for this company." }, { status: 503 });
+    const scope = await getContentOwnershipScope(workspaceId);
+    const challenge = await prisma.clientPortalChallenge.findFirst({ where: { portal: { ...scope, active: true, registrationEnabled: true, provider: "HDPHOTOHUB" }, id: session.challengeId, portalId: session.portalId, email: session.email, purpose: "REGISTER", consumedAt: { not: null }, expiresAt: { gt: new Date() } }, select: { id: true } });
     if (!challenge) return NextResponse.json({ success: false, error: "Your registration session expired. Start again from the client portal." }, { status: 401 });
     const body = await request.json() as Record<string, unknown>;
     const firstName = cleanText(body.firstName, 100, true)!;
@@ -19,7 +25,7 @@ export async function POST(request: Request) {
     const phone = cleanText(body.phone, 40);
     const password = typeof body.password === "string" ? body.password : "";
     if (password.length < 10 || !/[a-z]/i.test(password) || !/\d/.test(password)) return NextResponse.json({ success: false, error: "Use at least 10 characters with a letter and a number." }, { status: 400 });
-    const portal = await prisma.clientPortal.findFirst({ where: { id: session.portalId, active: true, provider: "HDPHOTOHUB" } });
+    const portal = await prisma.clientPortal.findFirst({ where: { ...scope, id: session.portalId, active: true, provider: "HDPHOTOHUB" } });
     if (!portal) return NextResponse.json({ success: false, error: "This client portal is no longer available." }, { status: 404 });
     const existing = await getHdPhotoHubUser(session.email);
     if (existing) {

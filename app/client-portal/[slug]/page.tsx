@@ -1,3 +1,5 @@
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -15,7 +17,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const portal = await prisma.clientPortal.findFirst({
-    where: { slug: (await params).slug, active: true },
+    where: { ...await getContentOwnershipScope(await getPublicWorkspaceId()), slug: (await params).slug, active: true },
     select: { name: true },
   });
   return {
@@ -27,7 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function PortalPage({ params, searchParams }: Props) {
   const { slug } = await params;
   const portal = await prisma.clientPortal.findFirst({
-    where: { slug, active: true },
+    where: { ...await getContentOwnershipScope(await getPublicWorkspaceId()), slug, active: true },
   });
   if (!portal) notFound();
   const errorValue = (await searchParams).error;

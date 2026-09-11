@@ -1,5 +1,5 @@
 {
-  "schemaSha256": "98499cf93ec6de08711682478955f831e533f5b113980101c62ef93cf3a2d0c1",
+  "schemaSha256": "ef7be1f31129b326c361c65b7d017cb74564859bffd9ee1efaae4249f9516c0d",
   "scope": "Static code inventory, not an authorization or tenant-isolation verdict. No database connection or environment values read.",
   "limitations": [
     "Nullable ownership requires verified mapping before activation.",
@@ -11,8 +11,8 @@
   "counts": {
     "models": 111,
     "requiredWorkspace": 27,
-    "nullableWorkspace": 17,
-    "withoutWorkspace": 67,
+    "nullableWorkspace": 18,
+    "withoutWorkspace": 66,
     "routeFiles": 138
   },
   "models": [
@@ -969,8 +969,21 @@
     },
     {
       "model": "ClientPortal",
-      "workspaceField": "absent",
-      "foreignKeys": [],
+      "workspaceField": "nullable",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": true,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
       "uniqueConstraints": [
         "slug"
       ],
@@ -1171,6 +1184,7 @@
         "lib/blog-ownership.ts",
         "lib/blog-series.ts",
         "lib/client-communications/campaign-ownership.ts",
+        "lib/client-portal/ownership.ts",
         "lib/inquiry-ownership.ts",
         "lib/newsletters/api.ts",
         "lib/newsletters/ownership.ts",
