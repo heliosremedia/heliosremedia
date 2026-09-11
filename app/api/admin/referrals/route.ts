@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     if (body.action === "estimate") {
       return NextResponse.json({
         success: true,
-        data: await estimateReferralAudience({ mode, groupIds, clientIds, excludedClientIds, filters }),
+        data: await estimateReferralAudience({ workspaceId: session.workspaceId, mode, groupIds, clientIds, excludedClientIds, filters }),
       });
     }
     const startsAt = optionalDate(body.startsAt);
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
         rewardEligible: text(body.rewardEligibleBody, 8_000),
         rewardIssued: text(body.rewardIssuedBody, 8_000),
       },
-    }, { userId: session.userId, email: session.email });
+    }, { userId: session.userId, email: session.email, workspaceId: session.workspaceId });
     return NextResponse.json({ success: true, campaignId: campaign.id, message: "Referral campaign created." }, { status: 201 });
   } catch (error) {
     if (error instanceof ReferralValidationError) {

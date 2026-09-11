@@ -1,3 +1,4 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import "server-only";
 
 import { createHash } from "node:crypto";
@@ -50,7 +51,7 @@ export class ReferralCampaignConflictError extends Error {
 }
 
 export async function referralDashboardData(from: Date, to: Date, workspaceId: string) {
-  const campaignScope = { createdBy: { workspaceId } };
+  const campaignScope = await getContentOwnershipScope(workspaceId);
   const [campaigns, submissions, invitationCounts, campaignInvitationCounts, rewards, clients, groups, linkVisits] = await Promise.all([
     prisma.referralCampaign.findMany({
       where: { ...campaignScope, createdAt: { lte: to }, updatedAt: { gte: from } },
@@ -82,8 +83,8 @@ export async function referralDashboardData(from: Date, to: Date, workspaceId: s
       where: { submission: { campaign: campaignScope }, createdAt: { gte: from, lte: to } },
       _count: true,
     }),
-    prisma.communicationClient.count(),
-    prisma.communicationGroup.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.communicationClient.count({ where: { workspaceMemberships: { some: { workspaceId } } } }),
+    prisma.communicationGroup.findMany({ where: campaignScope, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.referralLink.aggregate({ where: { campaign: campaignScope, lastVisitedAt: { gte: from, lte: to } }, _sum: { visitCount: true } }),
   ]);
   const statusCount = (status: ReferralStatus) => submissions.filter(item => item.status === status).length;
@@ -132,28 +133,29 @@ export async function referralDashboardData(from: Date, to: Date, workspaceId: s
   };
 }
 
-async function audienceCandidates(groupIds: string[], clientIds: string[], mode: ReferralAudienceMode, filters?: { updatedWithinDays?: number | null }) {
+async function audienceCandidates(workspaceId: string, groupIds: string[], clientIds: string[], mode: ReferralAudienceMode, filters?: { updatedWithinDays?: number | null }) {
   const updatedSince = mode === "FILTERED" && filters?.updatedWithinDays
     ? new Date(Date.now() - filters.updatedWithinDays * 86_400_000)
     : null;
   return prisma.communicationClient.findMany({
-    where: mode === "ALL_ELIGIBLE" ? {} : mode === "FILTERED" ? {
+    where: { workspaceMemberships: { some: { workspaceId } }, ...(mode === "ALL_ELIGIBLE" ? {} : mode === "FILTERED" ? {
       updatedAt: updatedSince ? { gte: updatedSince } : undefined,
     } : {
       OR: [
         { id: { in: clientIds } },
         { groupMemberships: { some: { groupId: { in: groupIds } } } },
       ],
-    },
+    }) },
     include: {
       newsletterSuppressions: { where: { releasedAt: null }, select: { id: true } },
-      groupMemberships: { include: { group: { select: { id: true, name: true } } } },
+      groupMemberships: { where: { group: await getContentOwnershipScope(workspaceId) }, include: { group: { select: { id: true, name: true } } } },
     },
     orderBy: { displayName: "asc" },
   });
 }
 
 export async function estimateReferralAudience(input: {
+  workspaceId: string;
   mode: ReferralAudienceMode;
   groupIds: string[];
   clientIds: string[];
@@ -163,7 +165,15 @@ export async function estimateReferralAudience(input: {
   if (input.mode === "FILTERED" && !input.filters?.updatedWithinDays) {
     throw new Error("Choose at least one dynamic audience filter.");
   }
-  const candidates = await audienceCandidates(input.groupIds, input.clientIds, input.mode, input.filters);
+  const scope = await getContentOwnershipScope(input.workspaceId);
+  const selectedClients = [...new Set([...input.clientIds, ...input.excludedClientIds])];
+  const selectedGroups = [...new Set(input.groupIds)];
+  const [groups, clients] = await Promise.all([
+    prisma.communicationGroup.count({ where: { id: { in: selectedGroups }, ...scope } }),
+    prisma.communicationClient.count({ where: { id: { in: selectedClients }, workspaceMemberships: { some: { workspaceId: input.workspaceId } } } }),
+  ]);
+  if (groups !== selectedGroups.length || clients !== selectedClients.length) throw new Error("The selected audience is unavailable in this company.");
+  const candidates = await audienceCandidates(input.workspaceId, input.groupIds, input.clientIds, input.mode, input.filters);
   const groupClientIds = candidates
     .filter(client => client.groupMemberships.some(membership => input.groupIds.includes(membership.groupId)))
     .map(client => client.id);
@@ -229,14 +239,15 @@ function campaignData(input: CampaignInput) {
   };
 }
 
-export async function createReferralCampaign(input: CampaignInput, actor: { userId: string; email: string }) {
+export async function createReferralCampaign(input: CampaignInput, actor: { userId: string; email: string; workspaceId: string }) {
   await estimateReferralAudience({
+    workspaceId: actor.workspaceId,
     mode: input.audienceMode, groupIds: input.groupIds, clientIds: input.clientIds,
     excludedClientIds: input.excludedClientIds, filters: input.filters,
   });
   const campaign = await prisma.$transaction(async tx => {
     const created = await tx.referralCampaign.create({
-      data: { ...campaignData(input), createdById: actor.userId },
+      data: { ...campaignData(input), workspaceId: actor.workspaceId, createdById: actor.userId },
     });
     const audienceRows = [
       ...input.groupIds.map(groupId => ({ campaignId: created.id, groupId, excluded: false })),
@@ -250,7 +261,7 @@ export async function createReferralCampaign(input: CampaignInput, actor: { user
     return created;
   });
   await recordAuditEvent({
-    actorId: actor.userId, actorEmail: actor.email, action: "REFERRAL_CAMPAIGN_CREATED",
+    workspaceId: actor.workspaceId, actorId: actor.userId, actorEmail: actor.email, action: "REFERRAL_CAMPAIGN_CREATED",
     entityType: "ReferralCampaign", entityId: campaign.id, summary: `Created referral campaign "${campaign.internalName}".`,
   });
   return campaign;
@@ -260,14 +271,15 @@ export async function updateReferralCampaignDraft(
   id: string,
   input: CampaignInput,
   expectedRowVersion: number,
-  actor: { userId: string; email: string },
+  actor: { userId: string; email: string; workspaceId: string },
 ) {
   await estimateReferralAudience({
+    workspaceId: actor.workspaceId,
     mode: input.audienceMode, groupIds: input.groupIds, clientIds: input.clientIds,
     excludedClientIds: input.excludedClientIds, filters: input.filters,
   });
   const before = await prisma.referralCampaign.findUnique({
-    where: { id },
+    where: { id, ...await getContentOwnershipScope(actor.workspaceId) },
     select: { id: true, internalName: true, status: true, rowVersion: true },
   });
   if (!before) throw new Error("Campaign not found.");
@@ -280,7 +292,7 @@ export async function updateReferralCampaignDraft(
   const contentHash = createHash("sha256").update(JSON.stringify(snapshot)).digest("hex");
   const updated = await prisma.$transaction(async tx => {
     const result = await tx.referralCampaign.updateMany({
-      where: { id, status: "DRAFT", rowVersion: expectedRowVersion },
+      where: { id, ...await getContentOwnershipScope(actor.workspaceId), status: "DRAFT", rowVersion: expectedRowVersion },
       data: { ...data, approvedRevisionId: null, rowVersion: { increment: 1 } },
     });
     if (result.count !== 1) throw new ReferralCampaignConflictError();
@@ -493,8 +505,9 @@ export async function archiveReferralCampaign(id: string, actor: { userId: strin
   });
 }
 
-function approvalSnapshot(campaign: Awaited<ReturnType<typeof loadCampaignForApproval>>, audience: Awaited<ReturnType<typeof estimateReferralAudience>>) {
+function approvalSnapshot(campaign: Awaited<ReturnType<typeof loadCampaignForApproval>>, audience: Awaited<ReturnType<typeof estimateReferralAudience>>, workspaceId: string) {
   return {
+    workspaceId,
     campaign: {
       internalName: campaign.internalName, publicTitle: campaign.publicTitle, purpose: campaign.purpose,
       referralOffer: campaign.referralOffer, advocateReward: campaign.advocateReward,
@@ -512,17 +525,18 @@ function approvalSnapshot(campaign: Awaited<ReturnType<typeof loadCampaignForApp
   };
 }
 
-async function loadCampaignForApproval(id: string) {
-  const campaign = await prisma.referralCampaign.findUnique({ where: { id } });
+async function loadCampaignForApproval(id: string, workspaceId: string) {
+  const campaign = await prisma.referralCampaign.findFirst({ where: { id, ...await getContentOwnershipScope(workspaceId) } });
   if (!campaign) throw new Error("Campaign not found.");
   return campaign;
 }
 
-export async function approveReferralCampaign(id: string, actor: { userId: string; email: string }) {
-  const campaign = await loadCampaignForApproval(id);
+export async function approveReferralCampaign(id: string, actor: { userId: string; email: string; workspaceId: string }) {
+  const campaign = await loadCampaignForApproval(id, actor.workspaceId);
   if (campaign.status !== "DRAFT" && campaign.status !== "APPROVED") throw new Error("Only a draft campaign can be approved.");
   const rules = campaign.audienceRules as { groupIds?: string[]; clientIds?: string[]; excludedClientIds?: string[]; filters?: { updatedWithinDays?: number | null } };
   const audience = await estimateReferralAudience({
+    workspaceId: actor.workspaceId,
     mode: campaign.audienceMode,
     groupIds: rules.groupIds ?? [],
     clientIds: rules.clientIds ?? [],
@@ -530,9 +544,11 @@ export async function approveReferralCampaign(id: string, actor: { userId: strin
     filters: rules.filters,
   });
   if (!audience.eligible.length) throw new Error("No eligible advocates are selected.");
-  const snapshot = approvalSnapshot(campaign, audience);
+  const snapshot = approvalSnapshot(campaign, audience, actor.workspaceId);
   const contentHash = createHash("sha256").update(JSON.stringify(snapshot)).digest("hex");
   const approved = await prisma.$transaction(async tx => {
+    const locked = await tx.referralCampaign.updateMany({ where: { id, ...await getContentOwnershipScope(actor.workspaceId), rowVersion: campaign.rowVersion, status: { in: ["DRAFT", "APPROVED"] } }, data: { rowVersion: { increment: 1 } } });
+    if (locked.count !== 1) throw new ReferralCampaignConflictError();
     const latest = await tx.referralCampaignRevision.findFirst({ where: { campaignId: id }, orderBy: { revisionNumber: "desc" } });
     const revision = await tx.referralCampaignRevision.create({
       data: {
@@ -547,7 +563,7 @@ export async function approveReferralCampaign(id: string, actor: { userId: strin
     return revision;
   });
   await recordAuditEvent({
-    actorId: actor.userId, actorEmail: actor.email, action: "REFERRAL_CAMPAIGN_APPROVED",
+    workspaceId: actor.workspaceId, actorId: actor.userId, actorEmail: actor.email, action: "REFERRAL_CAMPAIGN_APPROVED",
     entityType: "ReferralCampaign", entityId: id, summary: `Approved referral campaign "${campaign.internalName}".`,
     metadata: { revisionId: approved.id, eligible: audience.eligible.length, excluded: audience.excluded.length },
   });

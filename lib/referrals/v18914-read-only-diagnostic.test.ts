@@ -12,7 +12,7 @@ const workspace = fs.readFileSync(
 );
 
 test("delivery diagnostic is tenant-scoped and read-only", () => {
-  assert.match(route, /createdBy: \{ workspaceId: session\.workspaceId \}/);
+  assert.match(route, /getContentOwnershipScope\(session\.workspaceId\)/);
   assert.match(route, /deliveryDiagnostic: \{/);
   assert.match(route, /readOnly: true/);
   assert.doesNotMatch(workspace, /deliveryDiagnostic[\s\S]{0,200}(fetch|POST|PUT|DELETE)/);

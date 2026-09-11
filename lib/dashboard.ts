@@ -105,7 +105,7 @@ export async function getDashboardData(workspaceId: string, days = 30) {
             Promise.resolve([] as Array<{ id: string; name: string; nextGenerationAt: Date | null }>),
             prisma.referralCampaign.findMany({
               where: {
-                createdBy: { workspaceId },
+                AND: [ownershipScope],
                 status: { in: ["APPROVED", "ACTIVE"] },
                 OR: [
                   { startsAt: { gte: now, lte: upcomingEnd } },
@@ -549,7 +549,7 @@ export async function getDashboardData(workspaceId: string, days = 30) {
               select: { id: true, action: true, summary: true, inquiryId: true, createdAt: true },
             }),
             prisma.referralAuditEvent.findMany({
-              where: { campaign: { createdBy: { workspaceId } } },
+              where: { campaign: ownershipScope },
               take: 6,
               orderBy: { createdAt: "desc" },
               select: { id: true, action: true, summary: true, campaignId: true, submissionId: true, createdAt: true },

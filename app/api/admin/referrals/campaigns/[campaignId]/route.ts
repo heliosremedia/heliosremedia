@@ -1,3 +1,4 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { after, NextResponse } from "next/server";
 import type { ReferralAudienceMode } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -24,7 +25,7 @@ export async function GET(_request: Request, context: { params: Promise<{ campai
   if (!session) return NextResponse.json({ success: false, error: "Administrator access is required." }, { status: 403 });
   const { campaignId } = await context.params;
   const campaign = await prisma.referralCampaign.findFirst({
-    where: { id: campaignId, createdBy: { workspaceId: session.workspaceId } },
+    where: { id: campaignId, ...await getContentOwnershipScope(session.workspaceId) },
     include: {
       audiences: { include: { group: true, client: true } },
       advocates: { include: { client: true, _count: { select: { submissions: true, rewards: true } } }, orderBy: { client: { displayName: "asc" } } },
@@ -40,6 +41,7 @@ export async function GET(_request: Request, context: { params: Promise<{ campai
   if (!campaign) return NextResponse.json({ success: false, error: "Campaign not found." }, { status: 404 });
   const rules = campaign.audienceRules as { groupIds?: string[]; clientIds?: string[]; excludedClientIds?: string[]; filters?: { updatedWithinDays?: number | null } };
   const audienceEstimate = await estimateReferralAudience({
+    workspaceId: session.workspaceId,
     mode: campaign.audienceMode,
     groupIds: rules.groupIds ?? [],
     clientIds: rules.clientIds ?? [],
@@ -240,7 +242,7 @@ export async function PUT(request: Request, context: { params: Promise<{ campaig
   try {
     const { campaignId } = await context.params;
     const authorizedCampaign = await prisma.referralCampaign.findFirst({
-      where: { id: campaignId, createdBy: { workspaceId: session.workspaceId } },
+      where: { id: campaignId, ...await getContentOwnershipScope(session.workspaceId) },
       select: { id: true },
     });
     if (!authorizedCampaign) return NextResponse.json({ success: false, error: "Campaign not found." }, { status: 404 });
@@ -302,7 +304,7 @@ export async function PUT(request: Request, context: { params: Promise<{ campaig
         rewardEligible: text(body.rewardEligibleBody, 8_000),
         rewardIssued: text(body.rewardIssuedBody, 8_000),
       },
-    }, rowVersion, { userId: session.userId, email: session.email });
+    }, rowVersion, { userId: session.userId, email: session.email, workspaceId: session.workspaceId });
     return NextResponse.json({ success: true, campaign, message: "Draft campaign saved." });
   } catch (error) {
     if (error instanceof ReferralCampaignConflictError) {
@@ -321,7 +323,7 @@ export async function POST(request: Request, context: { params: Promise<{ campai
   try {
     const { campaignId } = await context.params;
     const authorizedCampaign = await prisma.referralCampaign.findFirst({
-      where: { id: campaignId, createdBy: { workspaceId: session.workspaceId } },
+      where: { id: campaignId, ...await getContentOwnershipScope(session.workspaceId) },
       select: { id: true },
     });
     if (!authorizedCampaign) return NextResponse.json({ success: false, error: "Campaign not found." }, { status: 404 });
@@ -396,7 +398,7 @@ export async function POST(request: Request, context: { params: Promise<{ campai
       return NextResponse.json({ success: true, message: `Test referral invitation sent to ${recipient}.` });
     }
     if (body.action === "approve") {
-      const result = await approveReferralCampaign(campaignId, { userId: session.userId, email: session.email });
+      const result = await approveReferralCampaign(campaignId, { userId: session.userId, email: session.email, workspaceId: session.workspaceId });
       return NextResponse.json({ success: true, message: `Campaign approved for ${result.audience.eligible.length} eligible advocates.` });
     }
     if (body.action === "launch" || body.action === "retry-safe") {

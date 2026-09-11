@@ -1,14 +1,15 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
 
-export async function recommendedAdvocates(limit = 24) {
+export async function recommendedAdvocates(workspaceId: string, limit = 24) {
   const clients = await prisma.communicationClient.findMany({
-    where: { archivedAt: null },
+    where: { archivedAt: null, workspaceMemberships: { some: { workspaceId } } },
     include: {
-      groupMemberships: { include: { group: { select: { name: true } } } },
+      groupMemberships: { where: { group: await getContentOwnershipScope(workspaceId) }, include: { group: { select: { name: true } } } },
       newsletterSuppressions: { where: { releasedAt: null }, select: { reason: true } },
-      referralAdvocates: { include: { _count: { select: { submissions: true } } } },
+      referralAdvocates: { where: { campaign: await getContentOwnershipScope(workspaceId) }, include: { _count: { select: { submissions: true } } } },
     },
     orderBy: [{ updatedAt: "desc" }, { displayName: "asc" }],
     take: Math.max(limit * 4, 100),

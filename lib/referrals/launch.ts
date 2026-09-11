@@ -1,3 +1,5 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
+import { legacyReferralExecutionWorkspace } from "./ownership";
 import "server-only";
 
 import { createHash, randomUUID } from "node:crypto";
@@ -23,6 +25,7 @@ const LEASE_MS = 4 * 60_000;
 type LaunchActor = { userId: string; email: string };
 type ApprovedRecipient = { id: string; displayName: string; firstName: string; email: string };
 type ApprovedSnapshot = {
+  workspaceId?: string;
   audience?: { eligible?: ApprovedRecipient[] };
   campaign?: {
     invitationSubject?: string;
@@ -337,6 +340,11 @@ export async function processReferralLaunch(campaignId: string, attemptId: strin
     });
     return null;
   }
+  const workspaceId = await legacyReferralExecutionWorkspace(campaign.workspaceId);
+  if (!workspaceId) return null;
+  const approvedSnapshot = campaign.approvedRevision.snapshot;
+  if (!approvedSnapshot || typeof approvedSnapshot !== "object" || Array.isArray(approvedSnapshot)
+    || ("workspaceId" in approvedSnapshot && approvedSnapshot.workspaceId !== workspaceId)) return null;
   const processingStartedAt = new Date();
   const ownsAttempt = await prisma.$transaction(async tx => {
     const acquired = await tx.referralCampaign.updateMany({
@@ -506,11 +514,14 @@ export async function processReferralLaunch(campaignId: string, attemptId: strin
 }
 
 export async function processPendingReferralLaunches(limit = 2) {
+  const workspaceId = await legacyReferralExecutionWorkspace(null);
+  if (!workspaceId) return [];
+  const scope = await getContentOwnershipScope(workspaceId);
   const now = new Date();
   const recentLaunchCutoff = new Date(now.getTime() - REFERRAL_STALE_LAUNCH_MS);
   const candidates = await prisma.referralCampaign.findMany({
     where: {
-      status: "LAUNCHING", launchFailedAt: null,
+      AND: [scope], status: "LAUNCHING", launchFailedAt: null,
       launchStartedAt: { gte: recentLaunchCutoff },
       OR: [{ launchLeaseExpiresAt: null }, { launchLeaseExpiresAt: { lt: now } }],
     },

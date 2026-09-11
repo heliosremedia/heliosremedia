@@ -1,3 +1,5 @@
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
@@ -35,8 +37,9 @@ export async function createReferralTestPreview(input: {
 }
 
 export async function getReferralTestPreview(token: string) {
-  const preview = await prisma.referralTestToken.findUnique({
-    where: { tokenHash: hashReferralTestToken(token) },
+  const workspaceId = await getPublicWorkspaceId();
+  const preview = await prisma.referralTestToken.findFirst({
+    where: { campaign: await getContentOwnershipScope(workspaceId), tokenHash: hashReferralTestToken(token) },
     include: { campaign: true },
   });
   if (!preview || preview.revokedAt || preview.expiresAt <= new Date()) return null;
@@ -46,9 +49,9 @@ export async function getReferralTestPreview(token: string) {
 export async function submitReferralTestPreview(token: string) {
   const preview = await getReferralTestPreview(token);
   if (!preview) return null;
-  await prisma.referralTestToken.updateMany({
+  const updated = await prisma.referralTestToken.updateMany({
     where: { id: preview.id, revokedAt: null, expiresAt: { gt: new Date() } },
     data: { usedAt: new Date() },
   });
-  return { message: preview.campaign.landingThankYou };
+  return updated.count === 1 ? { message: preview.campaign.landingThankYou } : null;
 }

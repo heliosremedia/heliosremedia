@@ -1,3 +1,5 @@
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import "server-only";
 
 import { createHmac } from "node:crypto";
@@ -6,9 +8,12 @@ import { hashReferralToken } from "./tokens";
 import { normalizedPhone, resolveAttribution } from "./attribution";
 
 export async function getPublicReferralCampaign(tokenOrCode: string) {
+  const workspaceId = await getPublicWorkspaceId();
+  const scope = await getContentOwnershipScope(workspaceId);
   const normalized = tokenOrCode.trim().toUpperCase();
   const link = await prisma.referralLink.findFirst({
     where: {
+      campaign: scope, advocate: { campaign: scope, client: { workspaceMemberships: { some: { workspaceId } } } },
       OR: [
         { tokenHash: hashReferralToken(tokenOrCode) },
         { code: normalized },
@@ -22,9 +27,9 @@ export async function getPublicReferralCampaign(tokenOrCode: string) {
   if (!link || link.revokedAt || link.campaign.status !== "ACTIVE") return null;
   const now = new Date();
   if (link.expiresAt < now || (link.campaign.endsAt && link.campaign.endsAt < now)) {
-    return { expired: true as const, link };
+    return { expired: true as const, link, workspaceId };
   }
-  return { expired: false as const, link };
+  return { expired: false as const, link, workspaceId };
 }
 
 export function referralIpHash(request: Request) {
@@ -68,9 +73,11 @@ export async function submitPublicReferral(input: {
 }, request: Request) {
   const publicCampaign = await getPublicReferralCampaign(input.token);
   if (!publicCampaign) throw new Error("REFERRAL_UNAVAILABLE");
+  const workspaceId = publicCampaign.workspaceId;
+  const scope = await getContentOwnershipScope(workspaceId);
   const hash = referralIpHash(request);
   const recent = await prisma.referralSubmission.count({
-    where: { ipHash: hash, createdAt: { gte: new Date(Date.now() - 60 * 60_000) } },
+    where: { campaign: scope, ipHash: hash, createdAt: { gte: new Date(Date.now() - 60 * 60_000) } },
   });
   if (recent >= 5) throw new Error("RATE_LIMITED");
 
@@ -78,6 +85,7 @@ export async function submitPublicReferral(input: {
   const [priorSubmissions, existingClient] = await Promise.all([
     prisma.referralSubmission.findMany({
       where: {
+        campaign: scope,
         createdAt: { gte: new Date(Date.now() - 365 * 86_400_000) },
         OR: [
           { normalizedEmail: input.email },
@@ -90,6 +98,7 @@ export async function submitPublicReferral(input: {
     }),
     prisma.communicationClient.findFirst({
       where: {
+        workspaceMemberships: { some: { workspaceId } },
         OR: [
           { normalizedEmail: input.email },
           ...(phone ? [{ normalizedPhone: phone }] : []),

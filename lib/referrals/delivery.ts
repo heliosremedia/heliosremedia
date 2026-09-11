@@ -1,3 +1,5 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
+import { legacyReferralExecutionWorkspace } from "./ownership";
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
@@ -21,7 +23,7 @@ export async function processReferralCommunications(now = new Date(), limit = 50
         include: {
           advocate: {
             include: {
-              client: { include: { newsletterSuppressions: { where: { releasedAt: null }, select: { id: true } } } },
+              client: { include: { workspaceMemberships: { select: { workspaceId: true } }, newsletterSuppressions: { where: { releasedAt: null }, select: { id: true } } } },
               _count: { select: { submissions: true } },
             },
           },
@@ -37,6 +39,14 @@ export async function processReferralCommunications(now = new Date(), limit = 50
   for (const communication of due) {
     const invitation = communication.invitation;
     const client = invitation?.advocate.client;
+    const workspaceId = await legacyReferralExecutionWorkspace(communication.campaign.workspaceId);
+    if (!workspaceId || (invitation && invitation.campaignId !== communication.campaignId)
+      || (communication.submission && communication.submission.campaignId !== communication.campaignId)
+      || (client && (!client.workspaceMemberships.some(membership => membership.workspaceId === workspaceId)
+        || client.normalizedEmail !== communication.recipientEmail.trim().toLowerCase()))) {
+      result.skipped += 1;
+      continue;
+    }
     const campaignActive = referralScheduleIsRunnable({
       campaignStatus: communication.campaign.status,
       scheduleConfirmedAt: communication.campaign.scheduleConfirmedAt,
@@ -78,7 +88,7 @@ export async function processReferralCommunications(now = new Date(), limit = 50
       continue;
     }
     const claimed = await prisma.referralCommunication.updateMany({
-      where: { id: communication.id, status: "SCHEDULED" },
+      where: { id: communication.id, status: "SCHEDULED", campaign: { ...await getContentOwnershipScope(workspaceId), status: { in: ["APPROVED", "ACTIVE"] }, approvedRevisionId: communication.campaign.approvedRevisionId, scheduledRevisionId: communication.campaign.scheduledRevisionId, scheduleVersion: communication.campaign.scheduleVersion } },
       data: { status: "SENDING" },
     });
     if (!claimed.count) continue;

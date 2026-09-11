@@ -1702,6 +1702,7 @@ model Workspace {
   inquiries                 Inquiry[]
   auditEvents               AuditEvent[]
   clientPortals             ClientPortal[]
+  referralCampaigns         ReferralCampaign[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3130,6 +3131,10 @@ model NewsletterJob {
 }
 
 model ReferralCampaign {
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  @@index([workspaceId, status, createdAt])
+
   id String @id @default(cuid())
 
   internalName  String
