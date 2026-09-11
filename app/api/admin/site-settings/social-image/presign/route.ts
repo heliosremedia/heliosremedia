@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     if (file.size <= 0 || file.size > 10 * 1024 * 1024) {
       return NextResponse.json({ success: false, error: "Choose an image under 10 MB." }, { status: 400 });
     }
-    const key = createDefaultSocialImageKey(file.type);
+    const key = createDefaultSocialImageKey(session.workspaceId, file.type);
     const upload = { key, uploadUrl: await createPresignedUploadUrl(key, file.type), publicUrl: getPublicAssetUrl(key), contentType: file.type };
     return NextResponse.json({ success: true, upload });
   } catch (error) {

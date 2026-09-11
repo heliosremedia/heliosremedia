@@ -12,7 +12,7 @@ test("legal editing requires administrator access and binds document/settings mu
       "next/cache": { revalidatePath() {} }, "next/server": { NextResponse: { json: (body: unknown, init?: ResponseInit) => Response.json(body, init) } },
       "@/lib/auth/session": { getAdminSession: async () => role ? { role, workspaceId: "a" } : null },
       "@/lib/blog-ownership": { getContentOwnershipScope: async () => ({ workspaceId: "a" }) },
-      "@/lib/workspace-context-core": { tenantContextEnabled: () => true },
+      "@/lib/site-settings-ownership": { getSiteSettingsWriteTarget: async () => ({ where: { workspaceId: "a" }, createIdentity: { id: "workspace:a", workspaceId: "a" } }) },
       "@/lib/legal-html": { sanitizeLegalHtml: (html: string) => html },
       "@/lib/prisma": { prisma: {
         legalDocument: { upsert: async ({ where, create }: { where: { AND: Array<{ workspaceId: string }> }; create: { workspaceId: string } }) => { assert.equal(where.AND[0].workspaceId, "a"); assert.equal(create.workspaceId, "a"); writes++; return { id: "legal" }; } },

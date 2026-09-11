@@ -130,3 +130,9 @@ Verification: 431 tests passed, zero failed; Prisma generation, non-incremental 
 Continued after draft #230. Added nullable CTA ownership, local editor authorization and scoped CRUD/placement predicates. Public lookup requires company ownership. Preserved existing CTA text, booking destinations, legacy writes and global slot uniqueness; foreign occupied slots cannot be reassigned by the scoped upsert.
 
 Verification: 435 tests passed, zero failed; Prisma generation, non-incremental TypeScript, focused lint and diff checks passed. Refetched main and confirmed 72dab34568cb6885f3e93b5ed9db38edca156835, matching the previously reconciled hotfix state. Hosted/browser evidence, historical mapping and tenant slot uniqueness remain open. No production database/deployment/booking operation ran.
+
+## 2026-09-11 settings write targets and media ownership
+
+Continued after draft #231. Removed global settings overwrite/reassignment paths, added shared company targets and distinct tenant row IDs, and updated legal publication settings to use them. Added local administrator checks to every settings presign route, company namespaces, server-derived image URLs and hero URL ownership checks. Physical image cleanup is deferred pending asset usage/recovery evidence.
+
+Verification: 439 tests passed, zero failed; non-incremental TypeScript, focused lint and diff checks passed. Mocked actual-route tests check keys before storage, URL canonicalization, presign permissions and target identity. One test initially hit the VM's separate Error class; corrected the harness to match the single application realm and re-ran the full suite. No production settings, object, deployment or provider configuration changed. Actual uploads/browser flows, rollback namespace compatibility and remaining global consumers remain open.

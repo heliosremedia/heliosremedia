@@ -1,6 +1,6 @@
+import { getSiteSettingsWriteTarget } from "@/lib/site-settings-ownership";
 import { getAdminSession } from "@/lib/auth/session";
 import { getContentOwnershipScope } from "@/lib/blog-ownership";
-import { tenantContextEnabled } from "@/lib/workspace-context-core";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
@@ -13,13 +13,7 @@ export async function PATCH(request: Request) {
     if (!session || !["OWNER", "ADMIN"].includes(session.role)) {
       return NextResponse.json({ success: false, error: "Owner or administrator access is required." }, { status: 403 });
     }
-    const tenantMode = tenantContextEnabled();
-    if (!tenantMode) {
-      const workspaces = await prisma.workspace.findMany({ take: 2, select: { id: true } });
-      if (workspaces.length !== 1 || workspaces[0].id !== session.workspaceId) {
-        return NextResponse.json({ success: false, error: "Legal settings require configured company ownership." }, { status: 409 });
-      }
-    }
+    const target = await getSiteSettingsWriteTarget(session.workspaceId);
     const scope = await getContentOwnershipScope(session.workspaceId);
     const body = (await request.json()) as Record<string, unknown>;
     const type = body.type === "PRIVACY_POLICY" || body.type === "TERMS_OF_SERVICE" ? body.type : null;
@@ -42,8 +36,8 @@ export async function PATCH(request: Request) {
     });
     const flags = type === "PRIVACY_POLICY" ? { privacyPolicyPublished: published } : { termsOfServicePublished: published };
     const settingsMutation = prisma.siteSettings.upsert({
-      where: tenantMode ? { workspaceId: session.workspaceId } : { id: "default", AND: [scope] },
-      create: { ...(tenantMode ? {} : { id: "default" }), workspaceId: session.workspaceId, ...flags },
+      where: target.where,
+      create: { ...target.createIdentity, ...flags },
       update: flags,
     });
     const [document] = await prisma.$transaction([documentMutation, settingsMutation]);
