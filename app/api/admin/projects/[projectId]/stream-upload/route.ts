@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { getAdminSession } from "@/lib/auth/session";
 
 const MAX_VIDEO_SIZE = 1024 * 1024 * 1024;
 const MAX_DURATION_SECONDS = 180;
@@ -21,6 +22,10 @@ export async function POST(
   { params }: StreamUploadRouteProps,
 ) {
   try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) {
+      return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
+    }
     const { projectId } = await params;
     const uploadLength = Number(request.headers.get("upload-length"));
     const tusVersion = request.headers.get("tus-resumable");
@@ -42,8 +47,8 @@ export async function POST(
       );
     }
 
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, workspaceId: session.workspaceId },
       select: { id: true },
     });
 

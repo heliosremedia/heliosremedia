@@ -1174,6 +1174,7 @@
         "lib/inquiry-ownership.ts",
         "lib/newsletters/api.ts",
         "lib/newsletters/ownership.ts",
+        "lib/project-preview-url.ts",
         "lib/public-workspace.ts",
         "lib/referrals/access.ts",
         "lib/workspace-singleton.ts"
@@ -1243,6 +1244,7 @@
         "hostname"
       ],
       "sourceReferences": [
+        "lib/project-preview-url.ts",
         "lib/public-workspace.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"

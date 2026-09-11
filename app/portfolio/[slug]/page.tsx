@@ -36,7 +36,7 @@ type ProjectPageProps = {
 
 async function getProject(slug: string, previewToken?: string) {
   const workspaceId = await getPublicWorkspaceId();
-  const preview = await validateProjectPreview(slug, previewToken);
+  const preview = await validateProjectPreview(slug, previewToken, workspaceId);
   return prisma.project.findFirst({
     where: {
       slug,
@@ -167,7 +167,7 @@ export async function generateMetadata({
   const previewValue = (await searchParams).preview;
   const previewToken = typeof previewValue === "string" ? previewValue : undefined;
   const workspaceId = await getPublicWorkspaceId();
-  const preview = await validateProjectPreview(slug, previewToken);
+  const preview = await validateProjectPreview(slug, previewToken, workspaceId);
   const [project, settings] = await Promise.all([prisma.project.findFirst({
     where: {
       slug,
@@ -260,7 +260,8 @@ export default async function PortfolioProjectPage({
   const { slug } = await params;
   const previewValue = (await searchParams).preview;
   const previewToken = typeof previewValue === "string" ? previewValue : undefined;
-  const preview = await validateProjectPreview(slug, previewToken);
+  const workspaceId = await getPublicWorkspaceId();
+  const preview = await validateProjectPreview(slug, previewToken, workspaceId);
   const [project, settings] = await Promise.all([getProject(slug, previewToken), getSiteSettings()]);
 
   if (!project) {
