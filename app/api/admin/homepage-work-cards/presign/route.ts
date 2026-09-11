@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { getAdminSession } from "@/lib/auth/session";
 import {
   createHomepageWorkCardKey,
   createPresignedUploadUrl,
@@ -12,6 +13,8 @@ const VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
 
 export async function POST(request: Request) {
   try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
     const body = (await request.json()) as Record<string, unknown>;
     const cardId = typeof body.cardId === "string" ? body.cardId.trim() : "";
     const kind = body.kind === "image" || body.kind === "video" ? body.kind : null;
@@ -29,7 +32,7 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    const card = await prisma.homepageWorkCard.findUnique({ where: { id: cardId }, select: { id: true } });
+    const card = await prisma.homepageWorkCard.findFirst({ where: { id: cardId, service: { workspaceId: session.workspaceId }, OR: [{ featuredMediaId: null }, { featuredMedia: { project: { workspaceId: session.workspaceId } } }] }, select: { id: true } });
     if (!card) return NextResponse.json({ success: false, error: "Homepage card not found." }, { status: 404 });
 
     const key = createHomepageWorkCardKey(card.id, kind, fileType);
