@@ -1,5 +1,5 @@
 {
-  "schemaSha256": "d1e3fa51ecdf62abff9f322e8407be2a59e018b20889df18530f67aaaa4abb1c",
+  "schemaSha256": "350e8fc896299876a1e15fcc55a67af6098e9fd2ec0ea5ab16bf8ea420fa840f",
   "scope": "Static code inventory, not an authorization or tenant-isolation verdict. No database connection or environment values read.",
   "limitations": [
     "Nullable ownership requires verified mapping before activation.",
@@ -11,15 +11,28 @@
   "counts": {
     "models": 111,
     "requiredWorkspace": 29,
-    "nullableWorkspace": 11,
-    "withoutWorkspace": 71,
+    "nullableWorkspace": 13,
+    "withoutWorkspace": 69,
     "routeFiles": 138
   },
   "models": [
     {
       "model": "TeamMember",
-      "workspaceField": "absent",
-      "foreignKeys": [],
+      "workspaceField": "nullable",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": true,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
       "uniqueConstraints": [],
       "sourceReferences": [
         "app/admin/about/page.tsx",
@@ -1000,9 +1013,24 @@
     },
     {
       "model": "AboutPageContent",
-      "workspaceField": "absent",
-      "foreignKeys": [],
-      "uniqueConstraints": [],
+      "workspaceField": "nullable",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": true,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "workspaceId"
+      ],
       "sourceReferences": [
         "app/api/admin/about/route.ts",
         "lib/about-page.ts"
@@ -1145,7 +1173,7 @@
         "lib/newsletters/api.ts",
         "lib/newsletters/ownership.ts",
         "lib/public-workspace.ts",
-        "lib/site-settings-ownership.ts"
+        "lib/workspace-singleton.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     },

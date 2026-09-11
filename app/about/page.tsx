@@ -23,14 +23,14 @@ export default async function AboutPage() {
       <Navbar />
 
       <section className="relative min-h-[100svh] overflow-hidden bg-[#111] sm:min-h-[88vh]">
-        <Image
-          src={content.heroImageUrl ?? "/approach/helios-approach.jpg"}
+        {content.heroImageUrl && <Image
+          src={content.heroImageUrl}
           alt={content.heroImageAlt}
           fill
           priority
           sizes="100vw"
           className="object-cover object-center"
-        />
+        />}
         <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/42 to-black/15" />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/38" />
         <div className="hero-grain absolute inset-0 opacity-[0.035] mix-blend-soft-light" />
@@ -203,34 +203,34 @@ export default async function AboutPage() {
 
       <section className="container-shell grid gap-5 border-b border-white/[0.08] py-20 sm:grid-cols-2 sm:py-28 lg:grid-cols-[1.25fr_0.75fr] lg:py-36">
         <div className="relative min-h-[32rem] overflow-hidden bg-[#111] sm:min-h-[42rem]">
-          <Image
-            src={content.galleryOneUrl ?? "/standard/standard-8.jpg"}
+          {content.galleryOneUrl && <Image
+            src={content.galleryOneUrl}
             alt={content.galleryOneAlt}
             fill
             sizes="(max-width: 640px) 100vw, 65vw"
             className="object-cover object-center"
-          />
+          />}
           <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
         </div>
 
         <div className="grid gap-5">
           <div className="relative min-h-64 overflow-hidden bg-[#111]">
-            <Image
-              src={content.galleryTwoUrl ?? "/standard/standard-3.jpg"}
+            {content.galleryTwoUrl && <Image
+              src={content.galleryTwoUrl}
               alt={content.galleryTwoAlt}
               fill
               sizes="(max-width: 640px) 100vw, 35vw"
               className="object-cover"
-            />
+            />}
           </div>
           <div className="relative min-h-64 overflow-hidden bg-[#111]">
-            <Image
-              src={content.galleryThreeUrl ?? "/standard/standard-12.jpg"}
+            {content.galleryThreeUrl && <Image
+              src={content.galleryThreeUrl}
               alt={content.galleryThreeAlt}
               fill
               sizes="(max-width: 640px) 100vw, 35vw"
               className="object-cover"
-            />
+            />}
           </div>
         </div>
       </section>

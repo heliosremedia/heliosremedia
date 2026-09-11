@@ -607,6 +607,10 @@ enum WorkspaceUserState {
 }
 
 model TeamMember {
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  @@index([workspaceId])
+
   id String @id @default(cuid())
 
   name      String
@@ -1455,6 +1459,10 @@ model ClientPortalChallenge {
 }
 
 model AboutPageContent {
+  workspaceId String? @unique
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  @@index([workspaceId])
+
   id String @id @default("default")
 
   heroEyebrow  String @default("About Helios")
@@ -1685,6 +1693,8 @@ model Workspace {
   legalDocuments            LegalDocument[]
   callsToAction             CallToAction[]
   emailCampaigns            EmailCampaign[]
+  aboutPageContent          AboutPageContent?
+  teamMembers               TeamMember[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
