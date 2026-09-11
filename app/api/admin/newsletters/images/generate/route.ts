@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     const asset = await generateNewsletterImage({
       prompt: body.prompt,
       altText: body.altText,
-      actorId: session.userId,
+      actor: session, minimumRole: "ADMIN",
     });
     await recordAuditEvent({
       workspaceId: session.workspaceId, actorId: session.userId,
@@ -43,6 +43,7 @@ export async function POST(request: Request) {
       },
     }, { status: 201 });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Your workspace access changed. Sign in again." }, { status: 403 });
     const message = error instanceof Error ? error.message : "The image could not be generated.";
     const inputError = /characters|alt text/i.test(message);
     console.error("Newsletter image generation failed:", { message });

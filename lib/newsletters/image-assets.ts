@@ -1,4 +1,5 @@
-import { requireWorkspaceId } from "@/lib/workspaces";
+import { requireLockedWorkspaceEditor, type WorkspaceWriteActor } from "@/lib/workspace-write-access";
+import type { Prisma } from "@/app/generated/prisma/client";
 import "server-only";
 
 import { DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
@@ -53,9 +54,17 @@ export function imageProviderError(status: number, payload: OpenAiImageResponse)
 export async function generateNewsletterImage(input: {
   prompt: unknown;
   altText: unknown;
-  actorId: string;
+  actor: WorkspaceWriteActor;
+  minimumRole: "ADMIN" | "EDITOR";
 }) {
-  const workspaceId = await requireWorkspaceId(input.actorId);
+  const actor = { userId: input.actor.userId, workspaceId: input.actor.workspaceId, sessionVersion: input.actor.sessionVersion };
+  const workspaceId = actor.workspaceId;
+  const minimumRole = input.minimumRole;
+  const authorize = async (tx: Prisma.TransactionClient) => {
+    const access = await requireLockedWorkspaceEditor(tx, actor);
+    if (minimumRole === "ADMIN" && !["OWNER", "ADMIN"].includes(access.role)) throw new Error("WORKSPACE_WRITE_FORBIDDEN");
+  };
+  await prisma.$transaction(authorize);
   const prompt = cleanImagePrompt(input.prompt);
   const altText = cleanImageAltText(input.altText);
   const apiKey = process.env.OPENAI_API_KEY?.trim();
@@ -94,6 +103,7 @@ export async function generateNewsletterImage(input: {
     throw new Error("OpenAI returned an invalid image.");
   }
 
+  await prisma.$transaction(authorize);
   const storageKey = createNewsletterAiImageKey(workspaceId);
   await r2Client.send(new PutObjectCommand({
     Bucket: r2Config.bucketName,
@@ -104,21 +114,24 @@ export async function generateNewsletterImage(input: {
   }));
   const publicUrl = getPublicAssetUrl(storageKey);
   try {
-    return await prisma.newsletterImageAsset.create({
-      data: {
-        workspaceId,
-        storageKey,
-        publicUrl,
-        prompt,
-        altText,
-        attribution: "AI-generated with OpenAI gpt-image-1.5",
-        model: NEWSLETTER_IMAGE_MODEL,
-        quality: NEWSLETTER_IMAGE_QUALITY,
-        width: 1536,
-        height: 1024,
-        fileSize: bytes.length,
-        createdById: input.actorId,
-      },
+    return await prisma.$transaction(async tx => {
+      await authorize(tx);
+      return tx.newsletterImageAsset.create({
+        data: {
+          workspaceId,
+          storageKey,
+          publicUrl,
+          prompt,
+          altText,
+          attribution: "AI-generated with OpenAI gpt-image-1.5",
+          model: NEWSLETTER_IMAGE_MODEL,
+          quality: NEWSLETTER_IMAGE_QUALITY,
+          width: 1536,
+          height: 1024,
+          fileSize: bytes.length,
+          createdById: actor.userId,
+        },
+      });
     });
   } catch (error) {
     try {
@@ -126,6 +139,7 @@ export async function generateNewsletterImage(input: {
     } catch (cleanupError) {
       console.error("Unable to remove orphaned Newsletter Studio image:", { storageKey, cleanupError });
     }
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") throw error;
     console.error("Newsletter AI image asset record failed:", { storageKey, error });
     throw new Error("The image was generated but could not be added to the gallery.");
   }
