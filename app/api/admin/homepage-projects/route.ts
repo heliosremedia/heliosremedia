@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/auth/session";
 
-const select = { id: true, projectId: true, titleOverride: true, displayOrder: true, active: true, createdAt: true, updatedAt: true, project: { select: { id: true, title: true, slug: true, status: true, locationLabel: true, heroMedia: { select: { storageKey: true, altText: true } } } } } as const;
+const placementSelect = (workspaceId: string) => ({ id: true, projectId: true, titleOverride: true, displayOrder: true, active: true, createdAt: true, updatedAt: true, project: { select: { id: true, title: true, slug: true, status: true, locationLabel: true, heroMedia: { where: { project: { workspaceId }, visibility: "VISIBLE" }, select: { storageKey: true, altText: true } } } } } as const);
 function refresh() { revalidatePath("/"); revalidatePath("/admin/homepage"); }
 
 export async function POST(request: Request) {
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     if (!project) return NextResponse.json({ success: false, error: "Only published projects can be added to the homepage." }, { status: 400 });
     const count = await prisma.homepageProject.count({ where: { project: { workspaceId: session.workspaceId } } });
     if (count >= 1) return NextResponse.json({ success: false, error: "Remove the current Featured Project before selecting another." }, { status: 409 });
-    const placement = await prisma.homepageProject.create({ data: { projectId, displayOrder: count }, select });
+    const placement = await prisma.homepageProject.create({ data: { projectId, displayOrder: count }, select: placementSelect(session.workspaceId) });
     refresh(); return NextResponse.json({ success: true, placement }, { status: 201 });
   } catch (error) { console.error("Unable to add homepage project:", error); return NextResponse.json({ success: false, error: "The project could not be added to the homepage." }, { status: 500 }); }
 }
@@ -39,7 +39,7 @@ export async function PATCH(request: Request) {
     if (!placementId || (titleOverride?.length ?? 0) > 120) return NextResponse.json({ success: false, error: "Enter a valid homepage project title." }, { status: 400 });
     const updated = await prisma.homepageProject.updateMany({ where: { id: placementId, project: { workspaceId: session.workspaceId } }, data: { titleOverride, ...(typeof body.active === "boolean" ? { active: body.active } : {}) } });
     if (updated.count !== 1) return NextResponse.json({ success: false, error: "Homepage project not found." }, { status: 404 });
-    const placement = await prisma.homepageProject.findFirstOrThrow({ where: { id: placementId, project: { workspaceId: session.workspaceId } }, select });
+    const placement = await prisma.homepageProject.findFirstOrThrow({ where: { id: placementId, project: { workspaceId: session.workspaceId } }, select: placementSelect(session.workspaceId) });
     refresh(); return NextResponse.json({ success: true, placement });
   } catch (error) { console.error("Unable to update homepage project:", error); return NextResponse.json({ success: false, error: "The homepage project could not be updated." }, { status: 500 }); }
 }

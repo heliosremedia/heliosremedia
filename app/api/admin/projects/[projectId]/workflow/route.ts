@@ -69,6 +69,7 @@ export async function PATCH(
         heroMediaId: true,
         shortDescription: true,
         heroMedia: {
+          where: { projectId },
           select: {
             visibility: true,
           },

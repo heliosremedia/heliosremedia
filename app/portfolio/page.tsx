@@ -130,14 +130,14 @@ export default async function PortfolioPage({
         propertyType: true,
         featured: true,
         featuredExpiresAt: true,
-        thumbnailMedia: {
+        thumbnailMedia: { where: { project: { workspaceId: workspaceId }, visibility: "VISIBLE" },
           select: {
             storageKey: true,
             originalFilename: true,
             altText: true,
           },
         },
-        heroMedia: {
+        heroMedia: { where: { project: { workspaceId: workspaceId }, visibility: "VISIBLE" },
           select: {
             storageKey: true,
             originalFilename: true,
@@ -147,6 +147,7 @@ export default async function PortfolioPage({
         collectionHeroes: {
           where: {
             media: {
+              project: { workspaceId },
               visibility: "VISIBLE",
               storageKey: { not: null },
               sourceType: "UPLOADED_IMAGE",

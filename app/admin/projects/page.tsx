@@ -145,14 +145,14 @@ export default async function ProjectsPage({
       status: true,
       featured: true,
       updatedAt: true,
-      thumbnailMedia: {
+      thumbnailMedia: { where: { project: { workspaceId: session.workspaceId }, visibility: "VISIBLE" },
         select: {
           storageKey: true,
           altText: true,
           originalFilename: true,
         },
       },
-      heroMedia: {
+      heroMedia: { where: { project: { workspaceId: session.workspaceId }, visibility: "VISIBLE" },
         select: {
           storageKey: true,
           altText: true,

@@ -70,7 +70,7 @@ export default async function Home() {
       where: { active: true, project: { workspaceId: publicWorkspaceId, status: "PUBLISHED" } },
       orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
       take: 1,
-      select: { titleOverride: true, project: { select: { title: true, slug: true, heroMedia: { select: { storageKey: true, altText: true } } } } },
+      select: { titleOverride: true, project: { select: { title: true, slug: true, heroMedia: { where: { project: { workspaceId: publicWorkspaceId }, visibility: "VISIBLE" }, select: { storageKey: true, altText: true } } } } },
     }),
     prisma.homepageWorkCard.findMany({
       where: { active: true, service: { workspaceId: publicWorkspaceId, active: true }, OR: [{ featuredMediaId: null }, { featuredMedia: { project: { workspaceId: publicWorkspaceId } } }] },

@@ -1,3 +1,4 @@
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -34,10 +35,12 @@ type ProjectPageProps = {
 };
 
 async function getProject(slug: string, previewToken?: string) {
+  const workspaceId = await getPublicWorkspaceId();
   const preview = await validateProjectPreview(slug, previewToken);
   return prisma.project.findFirst({
     where: {
       slug,
+      workspaceId,
       ...(preview ? { id: preview.projectId } : { status: "PUBLISHED" as const }),
     },
     select: {
@@ -54,7 +57,7 @@ async function getProject(slug: string, previewToken?: string) {
       seoTitle: true,
       seoDescription: true,
       heroMediaId: true,
-      heroMedia: {
+      heroMedia: { where: { project: { workspaceId: workspaceId }, visibility: "VISIBLE" },
         select: {
           id: true,
           sourceType: true,
@@ -73,7 +76,7 @@ async function getProject(slug: string, previewToken?: string) {
           focalY: true,
         },
       },
-      socialImageMedia: {
+      socialImageMedia: { where: { project: { workspaceId: workspaceId }, visibility: "VISIBLE" },
         select: {
           id: true, sourceType: true, storageKey: true, originalFilename: true,
           mimeType: true, altText: true, width: true, height: true, aspectRatio: true,
@@ -97,6 +100,7 @@ async function getProject(slug: string, previewToken?: string) {
       },
       agents: { orderBy: { displayOrder: "asc" }, select: { displayNameSnapshot: true, brokerageSnapshot: true } },
       services: {
+        where: { service: { workspaceId } },
         orderBy: {
           service: {
             displayOrder: "asc",
@@ -162,10 +166,12 @@ export async function generateMetadata({
   const { slug } = await params;
   const previewValue = (await searchParams).preview;
   const previewToken = typeof previewValue === "string" ? previewValue : undefined;
+  const workspaceId = await getPublicWorkspaceId();
   const preview = await validateProjectPreview(slug, previewToken);
   const [project, settings] = await Promise.all([prisma.project.findFirst({
     where: {
       slug,
+      workspaceId,
       ...(preview ? { id: preview.projectId } : { status: "PUBLISHED" as const }),
     },
     select: {
@@ -174,14 +180,14 @@ export async function generateMetadata({
       shortDescription: true,
       seoTitle: true,
       seoDescription: true,
-      socialImageMedia: {
+      socialImageMedia: { where: { project: { workspaceId: workspaceId }, visibility: "VISIBLE" },
         select: {
           id: true, sourceType: true, storageKey: true, mimeType: true, altText: true,
           originalFilename: true, width: true, height: true, aspectRatio: true,
           visibility: true, displayOrder: true, externalUrl: true,
         },
       },
-      heroMedia: {
+      heroMedia: { where: { project: { workspaceId: workspaceId }, visibility: "VISIBLE" },
         select: {
           id: true, sourceType: true, storageKey: true, mimeType: true, altText: true,
           originalFilename: true, width: true, height: true, aspectRatio: true,
