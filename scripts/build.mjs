@@ -11,8 +11,8 @@ function run(command, args) {
 }
 
 if (process.env.VERCEL_ENV === "production") {
-  console.log("Applying production database migrations…");
-  run("npx", ["prisma", "migrate", "deploy"]);
+  console.log("Checking production migration history. Apply reviewed migrations separately before deployment.");
+  run("npx", ["prisma", "migrate", "status"]);
 }
 
 run("npx", ["prisma", "generate"]);
