@@ -1,3 +1,4 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { NextResponse } from "next/server";
 import type { ReferralStatus } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -16,7 +17,7 @@ export async function GET(_request: Request, context: { params: Promise<{ submis
       campaign: true,
       advocate: { include: { client: true } },
       matchedClient: true,
-      inquiry: true,
+      inquiry: { where: await getContentOwnershipScope(session.workspaceId) },
       statusEvents: { include: { actor: { select: { displayName: true, email: true } } }, orderBy: { createdAt: "desc" } },
       rewards: true,
       communications: { orderBy: { createdAt: "desc" } },
@@ -37,10 +38,10 @@ export async function POST(request: Request, context: { params: Promise<{ submis
       const inquiryId = text(body.inquiryId, 200);
       const clientId = text(body.clientId, 200);
       const externalOrderId = text(body.externalOrderId, 240);
-      if (inquiryId && !(await prisma.inquiry.findUnique({ where: { id: inquiryId }, select: { id: true } }))) {
+      if (inquiryId && !(await prisma.inquiry.findFirst({ where: { id: inquiryId, ...await getContentOwnershipScope(session.workspaceId) }, select: { id: true } }))) {
         return NextResponse.json({ success: false, error: "The selected inquiry does not exist." }, { status: 400 });
       }
-      if (clientId && !(await prisma.communicationClient.findUnique({ where: { id: clientId }, select: { id: true } }))) {
+      if (clientId && !(await prisma.communicationClient.findFirst({ where: { id: clientId, workspaceMemberships: { some: { workspaceId: session.workspaceId } } }, select: { id: true } }))) {
         return NextResponse.json({ success: false, error: "The selected client does not exist." }, { status: 400 });
       }
       const referral = await prisma.referralSubmission.update({

@@ -64,7 +64,7 @@ export async function getDashboardData(workspaceId: string, days = 30) {
             }),
             Promise.resolve([] as Array<{ id: string; title: string; updatedAt: Date; intendedPublishAt: Date | null }>),
             prisma.inquiry.findMany({
-              where: { status: "NEW", assignedTo: { workspaceId } },
+              where: { status: "NEW", ...ownershipScope },
               select: { id: true, name: true, createdAt: true },
               take: 10,
               orderBy: { createdAt: "asc" },
@@ -514,8 +514,8 @@ export async function getDashboardData(workspaceId: string, days = 30) {
               prisma.project.count({ where: { workspaceId, status: "PUBLISHED", publishedAt: { gte: rangeStart, lte: rangeEnd } } }),
               prisma.project.count({ where: { workspaceId, status: "DRAFT" } }),
               prisma.media.count({ where: { project: { workspaceId } } }),
-              prisma.inquiry.count({ where: { status: "NEW", assignedTo: { workspaceId }, createdAt: { gte: rangeStart } } }),
-              prisma.inquiry.count({ where: { status: "NEW", assignedTo: { workspaceId } } }),
+              prisma.inquiry.count({ where: { status: "NEW", ...ownershipScope, createdAt: { gte: rangeStart } } }),
+              prisma.inquiry.count({ where: { status: "NEW", ...ownershipScope } }),
               prisma.portfolioAnalyticsEvent.count({
                 where: { workspaceId, eventName: { in: ["PORTFOLIO_VIEW", "PROJECT_VIEW"] }, occurredAt: { gte: rangeStart, lte: rangeEnd } },
               }),
@@ -543,7 +543,7 @@ export async function getDashboardData(workspaceId: string, days = 30) {
               select: { id: true, action: true, summary: true, entityType: true, entityId: true, createdAt: true },
             }),
             prisma.inquiryActivity.findMany({
-              where: { actor: { workspaceId } },
+              where: { inquiry: ownershipScope },
               take: 6,
               orderBy: { createdAt: "desc" },
               select: { id: true, action: true, summary: true, inquiryId: true, createdAt: true },
