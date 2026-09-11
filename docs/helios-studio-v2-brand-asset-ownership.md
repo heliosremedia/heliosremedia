@@ -17,3 +17,9 @@ The isolated rehearsal uses `SET helios.legacy_brand_workspace_id = 'helios'` on
 This edits an unpublished draft migration. Confirm it has never been applied in any target environment before adopting the changed checksum; otherwise use an additive corrective migration instead.
 
 Production builds currently execute `prisma migrate deploy`. This branch must not be merged into a deployment-bound branch until controlled migration execution is established. Required ownership columns still reject old application writes without workspace IDs. Old/new overlap, rollback compatibility, backup restoration and hosted verification remain unresolved. Storage attachment and cleanup ownership are also incomplete; database predicates alone do not close those paths.
+
+## Storage compatibility
+
+New uploads use `workspaces/<workspaceId>/testimonials/` and `workspaces/<workspaceId>/trusted-logos/`. Upload routes take workspace identity only from the authenticated session and generate the destination. Mutation paths reject cross-workspace keys and derive managed URLs on the server. Legacy images remain usable only as unchanged attachments on their current authorized record. New URL-only images require upload; existing URL-only images can be retained.
+
+Physical cleanup is deferred, with the existing cleanup-pending response populated. No automatic cleanup job exists yet. Do not purge retained objects until an asset registry, usages and recovery policy prove deletion safe. This deliberately retains storage and requires later garbage collection. Old application versions cannot accept the new key namespace; rollback and deployment overlap need a compatibility release before production activation.

@@ -46,7 +46,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const key = createTrustedLogoKey(image.type);
+    const key = createTrustedLogoKey(session.workspaceId, image.type);
     const body = Buffer.from(await image.arrayBuffer());
 
     await r2Client.send(

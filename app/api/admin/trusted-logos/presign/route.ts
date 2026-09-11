@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     if (!fileName || !fileType || !Number.isFinite(fileSize)) return NextResponse.json({ success: false, error: "Valid logo information is required." }, { status: 400 });
     validateImageUpload({ name: fileName, type: fileType, size: fileSize });
     if (fileSize > 5 * 1024 * 1024) return NextResponse.json({ success: false, error: "Logo files must be smaller than 5 MB." }, { status: 400 });
-    const key = createTrustedLogoKey(fileType);
+    const key = createTrustedLogoKey(session.workspaceId, fileType);
     return NextResponse.json({ success: true, upload: { key, uploadUrl: await createPresignedUploadUrl(key, fileType), publicUrl: getPublicAssetUrl(key), contentType: fileType } });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to prepare this upload.";

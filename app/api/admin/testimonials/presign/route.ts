@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     }
 
     validateImageUpload({ name: fileName, type: fileType, size: fileSize });
-    const key = createTestimonialImageKey(fileType);
+    const key = createTestimonialImageKey(session.workspaceId, fileType);
     const uploadUrl = await createPresignedUploadUrl(key, fileType);
 
     return NextResponse.json({

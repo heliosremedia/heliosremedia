@@ -1,3 +1,4 @@
+import { brandAssetPrefix } from "@/lib/workspace-brand-storage";
 import { randomUUID } from "crypto";
 
 import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
@@ -117,7 +118,7 @@ export function createServiceImageKey(projectId: string, serviceFolder: string, 
   return `projects/${projectId}/${serviceFolder}/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
 }
 
-export function createTestimonialImageKey(mimeType: string) {
+export function createTestimonialImageKey(workspaceId: string, mimeType: string) {
   const timestamp = new Date()
     .toISOString()
     .replace(/[-:]/g, "")
@@ -125,7 +126,7 @@ export function createTestimonialImageKey(mimeType: string) {
     .replace("T", "-");
   const id = randomUUID().slice(0, 8);
 
-  return `testimonials/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
+  return `${brandAssetPrefix(workspaceId, "testimonials")}${timestamp}-${id}.${extensionFromMime(mimeType)}`;
 }
 
 export function createBlogImageKey(mimeType: string) {
@@ -146,7 +147,7 @@ export function createNewsletterAiImageKey() {
   return `newsletter/ai/${timestamp}-${randomUUID().slice(0, 8)}.webp`;
 }
 
-export function createTrustedLogoKey(mimeType: string) {
+export function createTrustedLogoKey(workspaceId: string, mimeType: string) {
   const timestamp = new Date()
     .toISOString()
     .replace(/[-:]/g, "")
@@ -154,7 +155,7 @@ export function createTrustedLogoKey(mimeType: string) {
     .replace("T", "-");
   const id = randomUUID().slice(0, 8);
 
-  return `trusted-logos/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
+  return `${brandAssetPrefix(workspaceId, "trusted-logos")}${timestamp}-${id}.${extensionFromMime(mimeType)}`;
 }
 
 export function createSiteHeroKey(
