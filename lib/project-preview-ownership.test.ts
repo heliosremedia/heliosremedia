@@ -105,7 +105,7 @@ test("media mutation permissions and scoped deletion retain unverified storage r
   let deletes = 0;
   const api = load<Record<"POST" | "PATCH" | "DELETE", (request: Request, context: { params: Promise<{ projectId: string }> }) => Promise<Response>>>("../app/api/admin/projects/[projectId]/media/route.ts", {
     "@aws-sdk/client-s3": {}, "next/cache": {}, "next/server": { NextResponse: Response },
-    "@/lib/media-collections": {}, "@/lib/cloudflare-stream": {}, "@/lib/external-media": {},
+    "@/lib/workspace-assets": {}, "@/lib/media-collections": {}, "@/lib/cloudflare-stream": {}, "@/lib/external-media": {},
     "@/lib/r2": {}, "@/lib/r2-upload": {}, "@/lib/service-media": {}, "@/lib/project-media-upload": {},
     "@/lib/auth/session": { getAdminSession: async () => ({ role, workspaceId: "a" }) },
     "@/lib/prisma": { prisma: { media: {
@@ -137,6 +137,11 @@ test("Stream provisioning checks editor and project ownership before the unchang
   let provisions = 0;
   const api = load<{ POST: (request: Request, context: { params: Promise<{ projectId: string }> }) => Promise<Response> }>("../app/api/admin/projects/[projectId]/stream-upload/route.ts", {
     "next/server": { NextResponse: Response },
+    "@/lib/cloudflare-stream": { isCloudflareStreamUid: (uid: string) => /^[a-f0-9]{32}$/i.test(uid) },
+    "@/lib/workspace-assets": {
+      beginStreamUploadAsset: async () => ({ id: "asset" }),
+      bindStreamUploadAsset: async () => {}, failStreamUploadAsset: async () => {},
+    },
     "@/lib/auth/session": { getAdminSession: async () => ({ role, workspaceId: "a" }) },
     "@/lib/prisma": { prisma: { project: { findFirst: async ({ where }: { where: { workspaceId: string } }) => {
       assert.equal(where.workspaceId, "a"); return own ? { id: "target" } : null;
@@ -147,7 +152,7 @@ test("Stream provisioning checks editor and project ownership before the unchang
       provisions++; assert.equal(options.headers["Tus-Resumable"], "1.0.0");
       assert.equal(options.headers["Upload-Length"], "100");
       assert.match(options.headers["Upload-Metadata"], /maxDurationSeconds /);
-      return new Response(null, { status: 201, headers: { location: "https://upload.example.test/session" } });
+      return new Response(null, { status: 201, headers: { location: "https://upload.example.test/session", "stream-media-id": "a".repeat(32) } });
     },
   });
   const call = () => api.POST(new Request("https://example.test/api", { method: "POST", headers: { "upload-length": "100", "tus-resumable": "1.0.0" } }), { params: Promise.resolve({ projectId: "target" }) });

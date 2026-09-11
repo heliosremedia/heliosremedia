@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/auth/session";
+import { isCloudflareStreamUid } from "@/lib/cloudflare-stream";
+import { beginStreamUploadAsset, bindStreamUploadAsset, failStreamUploadAsset } from "@/lib/workspace-assets";
 
 const MAX_VIDEO_SIZE = 1024 * 1024 * 1024;
 const MAX_DURATION_SECONDS = 180;
@@ -21,6 +23,7 @@ export async function POST(
   request: Request,
   { params }: StreamUploadRouteProps,
 ) {
+  let pendingAsset: { id: string; workspaceId: string } | null = null;
   try {
     const session = await getAdminSession();
     if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) {
@@ -73,12 +76,16 @@ export async function POST(
       );
     }
 
+    const expiresAt = new Date(Date.now() + UPLOAD_EXPIRY_HOURS * 60 * 60 * 1000);
+    const asset = await beginStreamUploadAsset({
+      workspaceId: session.workspaceId, projectId, actorId: session.userId,
+      providerNamespace: accountId, byteSize: uploadLength, expiresAt,
+    });
+    pendingAsset = { id: asset.id, workspaceId: session.workspaceId };
     const constraints = [
       `maxDurationSeconds ${encodeMetadataValue(String(MAX_DURATION_SECONDS))}`,
       `expiry ${encodeMetadataValue(
-        new Date(
-          Date.now() + UPLOAD_EXPIRY_HOURS * 60 * 60 * 1000,
-        ).toISOString(),
+        expiresAt.toISOString(),
       )}`,
     ];
     const uploadMetadata = [requestedMetadata, ...constraints]
@@ -98,7 +105,11 @@ export async function POST(
     );
     const location = response.headers.get("location");
 
-    if (!response.ok || !location) {
+    const uid = response.headers.get("stream-media-id")?.trim() ?? "";
+
+    if (!response.ok || !location || !isCloudflareStreamUid(uid)) {
+      await failStreamUploadAsset(asset.id, session.workspaceId);
+      pendingAsset = null;
       const responseText = await response.text();
       console.error(
         "Cloudflare Stream upload provisioning failed:",
@@ -114,15 +125,23 @@ export async function POST(
       );
     }
 
+    await bindStreamUploadAsset({ assetId: asset.id, workspaceId: session.workspaceId, providerNamespace: accountId, uid });
+    pendingAsset = null;
     return new NextResponse(null, {
       status: 201,
       headers: {
         Location: location,
         "Tus-Resumable": "1.0.0",
-        "Access-Control-Expose-Headers": "Location,Tus-Resumable",
+        "Stream-Media-Id": uid,
+        "Access-Control-Expose-Headers": "Location,Tus-Resumable,Stream-Media-Id",
       },
     });
   } catch (error) {
+    if (pendingAsset) {
+      await failStreamUploadAsset(pendingAsset.id, pendingAsset.workspaceId).catch((failure) => {
+        console.error("Unable to record failed Stream upload intent:", failure);
+      });
+    }
     console.error("Unable to prepare Cloudflare Stream upload:", error);
     return NextResponse.json(
       {

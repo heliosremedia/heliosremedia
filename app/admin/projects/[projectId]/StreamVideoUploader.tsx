@@ -169,6 +169,7 @@ export default function StreamVideoUploader({
     const dimensions = await getVideoDimensions(file);
     setStatus("uploading");
     setProgress(0);
+    let provisionedUid: string | null = null;
     const upload = new tus.Upload(file, {
       endpoint: `/api/admin/projects/${projectId}/stream-upload`,
       chunkSize: 50 * 1024 * 1024,
@@ -189,8 +190,14 @@ export default function StreamVideoUploader({
       onProgress(bytesUploaded, bytesTotal) {
         setProgress(Math.round((bytesUploaded / bytesTotal) * 100));
       },
+      onAfterResponse(_request, response) {
+        const uid = response.getHeader("stream-media-id");
+        if (uid && /^[a-f0-9]{32}$/i.test(uid)) provisionedUid = uid;
+      },
       onSuccess() {
-        const streamUid = getStreamUid(upload.url);
+        // URL fallback supports prior resumable uploads. The server independently
+        // requires a matching owned registry record before attaching this ID.
+        const streamUid = provisionedUid ?? getStreamUid(upload.url);
         if (!streamUid) {
           setStatus("error");
           setError("Cloudflare finished the upload but did not return a video ID.");
