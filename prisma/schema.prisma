@@ -1018,6 +1018,9 @@ model Faq {
 model Testimonial {
   id String @id @default(cuid())
 
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
   agentName   String
   jobTitle    String?
   brokerage   String?
@@ -1028,7 +1031,7 @@ model Testimonial {
   photoAlt         String?
   sourceUrl        String?
   sourceProvider   String    @default("MANUAL")
-  externalReviewId String?   @unique
+  externalReviewId String?
   reviewerPhotoUrl String?
   reviewedAt       DateTime?
 
@@ -1046,13 +1049,17 @@ model Testimonial {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([published, displayOrder])
-  @@index([featured])
-  @@index([sourceProvider, published, displayOrder])
+  @@index([workspaceId, published, displayOrder])
+  @@index([workspaceId, featured])
+  @@index([workspaceId, sourceProvider, published, displayOrder])
+  @@unique([workspaceId, externalReviewId])
 }
 
 model TrustedLogo {
   id String @id @default(cuid())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   organizationName String
   logoStorageKey   String?
@@ -1071,7 +1078,7 @@ model TrustedLogo {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([published, displayOrder])
+  @@index([workspaceId, published, displayOrder])
 }
 
 model HomepageProject {
@@ -1646,6 +1653,8 @@ model Workspace {
   googleBusinessReviews     GoogleBusinessReview[]
   memberships               WorkspaceMembership[]
   domains                   WorkspaceDomain[]
+  testimonials              Testimonial[]
+  trustedLogos              TrustedLogo[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

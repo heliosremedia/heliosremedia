@@ -6,9 +6,12 @@ import {
   getPublicAssetUrl,
   validateImageUpload,
 } from "@/lib/r2-upload";
+import { getAdminSession } from "@/lib/auth/session";
 
 export async function POST(request: Request) {
   try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
     const body = (await request.json()) as Record<string, unknown>;
     const fileName = typeof body.fileName === "string" ? body.fileName.trim() : "";
     const fileType = typeof body.fileType === "string" ? body.fileType.trim() : "";

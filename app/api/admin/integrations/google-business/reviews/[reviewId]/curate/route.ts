@@ -16,8 +16,8 @@ export async function POST(_request: Request, { params }: { params: Promise<{ re
   if (review.testimonialId) return NextResponse.json({ success: true, testimonialId: review.testimonialId });
   if (!review.reviewText?.trim()) return NextResponse.json({ success: false, error: "A text review is required before creating a curated draft." }, { status: 400 });
   const result = await prisma.$transaction(async (tx) => {
-    const order = await tx.testimonial.aggregate({ _max: { displayOrder: true } });
-    const testimonial = await tx.testimonial.create({ data: { agentName: review.reviewerName, testimonial: displayTestimonial(review.reviewText!.trim()), rating: review.starRating, sourceProvider: "GOOGLE", externalReviewId: null, reviewerPhotoUrl: review.reviewerPhotoUrl, reviewedAt: review.reviewCreatedAt, displayOrder: (order._max.displayOrder ?? -1) + 1, published: false, featured: false } });
+    const order = await tx.testimonial.aggregate({ where: { workspaceId: session.workspaceId }, _max: { displayOrder: true } });
+    const testimonial = await tx.testimonial.create({ data: { workspaceId: session.workspaceId, agentName: review.reviewerName, testimonial: displayTestimonial(review.reviewText!.trim()), rating: review.starRating, sourceProvider: "GOOGLE", externalReviewId: null, reviewerPhotoUrl: review.reviewerPhotoUrl, reviewedAt: review.reviewCreatedAt, displayOrder: (order._max.displayOrder ?? -1) + 1, published: false, featured: false } });
     await tx.googleBusinessReview.update({ where: { id: review.id }, data: { testimonialId: testimonial.id } });
     return testimonial;
   });

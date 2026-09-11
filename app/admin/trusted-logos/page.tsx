@@ -1,11 +1,13 @@
 import { prisma } from "@/lib/prisma";
+import { requireAdminSession } from "@/lib/auth/session";
 
 import TrustedLogoManager, { type AdminTrustedLogo } from "./TrustedLogoManager";
 
 export const dynamic = "force-dynamic";
 
 export default async function TrustedLogosPage() {
-  const logos = await prisma.trustedLogo.findMany({ orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }] });
+  const session = await requireAdminSession();
+  const logos = await prisma.trustedLogo.findMany({ where: { workspaceId: session.workspaceId }, orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }] });
   const serialized: AdminTrustedLogo[] = logos.map((logo) => ({ ...logo, createdAt: logo.createdAt.toISOString(), updatedAt: logo.updatedAt.toISOString() }));
   return (
     <div className="space-y-7">
