@@ -1,3 +1,4 @@
+import { resolveCampaignSourceContext } from "@/lib/social/source-context";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
@@ -23,12 +24,13 @@ export default async function SocialCampaignPage({ params }: { params: Promise<{
     prisma.socialConnection.findMany({where:{workspaceId,state:"CONNECTED",directPublishingEnabled:true},select:{id:true,platform:true,intendedAccountName:true,providerUsername:true,supportedPostTypes:true}}),
   ]);
   if (!campaign) notFound();
+  const context = await resolveCampaignSourceContext(campaign, workspaceId).catch(() => ({ facts: {} }));
   const readableMedia = (item: { projectId: string; storageKey: string | null; visibility: string; project: { workspaceId: string } }) => item.project.workspaceId === workspaceId && item.visibility === "VISIBLE" && publishingStorageReferenceMatches(workspaceId, item.projectId, item.storageKey);
   const serializeMedia = (item: (typeof media)[number]) => ({ id: item.id, url: item.storageKey ? getPublicAssetUrl(item.storageKey) : item.externalUrl || "", altText: item.altText || item.originalFilename || "Company media", mimeType: item.mimeType, project: item.project.title, aspectRatio: item.aspectRatio });
   const library = media.filter(readableMedia).map(serializeMedia).filter((item) => item.url);
   return <SocialCampaignEditor initialCampaign={{
     id: campaign.id, internalName: campaign.internalName, purpose: campaign.purpose || "", targetAudience: campaign.targetAudience || "", primaryMessage: campaign.primaryMessage || "", sourceType: campaign.sourceType,
-    verifiedSourceFacts: campaign.verifiedSourceFacts && typeof campaign.verifiedSourceFacts === "object" && !Array.isArray(campaign.verifiedSourceFacts) ? campaign.verifiedSourceFacts as Record<string, unknown> : {},
+    verifiedSourceFacts: context.facts && typeof context.facts === "object" && !Array.isArray(context.facts) ? context.facts as Record<string, unknown> : {},
     generationStatus: campaign.generationStatus, generationError: campaign.generationError,
     variants: campaign.variants.map((variant) => ({
       id: variant.id, platform: variant.platform, postType: variant.postType, status: variant.status, caption: variant.caption || "", openingHook: variant.openingHook || "",

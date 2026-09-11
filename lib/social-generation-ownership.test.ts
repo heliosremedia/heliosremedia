@@ -17,12 +17,14 @@ test("social generation claim checks company, request and editable variants befo
   let present = false;
   let claimed = 0;
   let stale = false;
+  let validSource = true;
   const campaign = { id: "campaign", status: "DRAFT", generationStatus: null as string | null, generationRequestId: null as string | null, variants: [{ id: "variant", status: "DRAFT", contentVersion: 3 }] };
   const tx = { socialCampaign: {
     findFirst: async ({ where }: { where: { id: string; workspaceId: string } }) => { assert.equal(where.id, "campaign"); assert.equal(where.workspaceId, "a"); return present ? campaign : null; },
     updateMany: async ({ where, data }: { where: { workspaceId: string; generationStatus: string | null }; data: { generationStatus: string; generationRequestId: string } }) => { assert.equal(where.workspaceId, "a"); assert.equal(where.generationStatus, campaign.generationStatus); assert.equal(data.generationRequestId, "request"); if (stale) return { count: 0 }; claimed++; return { count: 1 }; },
   } };
   const api = load<typeof import("./social/generation-ownership")>("./social/generation-ownership.ts", {
+    "./source-context": { resolveCampaignSourceContext: async (_campaign: unknown, workspaceId: string, db: unknown) => { assert.equal(workspaceId, "a"); assert.equal(db, tx); if (!validSource) throw new Error("INVALID_SOCIAL_SOURCE"); return { facts: { title: "Fresh owned context" } }; } },
     "@/lib/workspace-write-access": { requireLockedWorkspaceEditor: async () => {} },
     "@/lib/prisma": { prisma: { $transaction: (fn: (client: typeof tx) => Promise<unknown>) => fn(tx) } },
   });
@@ -34,13 +36,14 @@ test("social generation claim checks company, request and editable variants befo
   campaign.variants[0].status = "DRAFT"; campaign.generationStatus = "RUNNING"; await assert.rejects(call(), /SOCIAL_GENERATION_BUSY/);
   campaign.generationStatus = "SUCCEEDED"; campaign.generationRequestId = "request"; assert.equal((await call()).duplicate, true); assert.equal(claimed, 0);
   campaign.generationStatus = null; campaign.generationRequestId = null; stale = true; await assert.rejects(call(), /SOCIAL_GENERATION_BUSY/); assert.equal(claimed, 0);
-  stale = false; const result = await call(); assert.equal(result.duplicate, false); assert.equal(claimed, 1);
+  stale = false; validSource = false; await assert.rejects(call(), /INVALID_SOCIAL_SOURCE/); assert.equal(claimed, 0); validSource = true; const result = await call(); assert.equal(result.duplicate, false); assert.equal(claimed, 1);
+  if (!result.duplicate) assert.equal(JSON.stringify(result.campaign.verifiedSourceFacts), '{"title":"Fresh owned context"}');
 });
 
 test("late social generation failures cannot overwrite a newer company's request", async () => {
   let changed = false;
   const api = load<typeof import("./social/generation-ownership")>("./social/generation-ownership.ts", {
-    "@/lib/workspace-write-access": {}, "@/lib/prisma": { prisma: { socialCampaign: { updateMany: async ({ where }: { where: { workspaceId: string; generationRequestId: string; generationStatus: string } }) => {
+    "./source-context": {}, "@/lib/workspace-write-access": {}, "@/lib/prisma": { prisma: { socialCampaign: { updateMany: async ({ where }: { where: { workspaceId: string; generationRequestId: string; generationStatus: string } }) => {
       assert.equal(where.workspaceId, "a"); assert.equal(where.generationRequestId, "old-request"); assert.equal(where.generationStatus, "RUNNING"); changed = true; return { count: 0 };
     } } } },
   });
@@ -89,6 +92,7 @@ test("social generation uses company identity and commits through the existing g
   const call = () => api.POST(new Request("https://example.test/api", { method: "POST", body: JSON.stringify({ campaignId: "campaign", requestId: "request", workspaceId: "b" }) }));
   assert.equal((await call()).status, 404); assert.equal(fetches, 0);
   claimError = "WORKSPACE_WRITE_FORBIDDEN"; assert.equal((await call()).status, 403); assert.equal(fetches, 0);
+  claimError = "INVALID_SOCIAL_SOURCE"; assert.equal((await call()).status, 409); assert.equal(fetches, 0);
   claimError = ""; current = false; assert.equal((await call()).status, 409); assert.equal(edits, 0); assert.equal(completed, 0);
   current = true; editError = "SOCIAL_EDIT_CONFLICT"; assert.equal((await call()).status, 409); assert.equal(edits, 0); assert.equal(completed, 0);
   editError = ""; assert.equal((await call()).status, 200); assert.equal(edits, 1); assert.equal(completed, 1); assert.equal(failures, 2);

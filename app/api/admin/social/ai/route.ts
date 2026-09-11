@@ -44,6 +44,7 @@ export async function POST(request: Request) {
     const code = error instanceof Error ? error.message : "";
     if (code === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Your workspace access changed. Sign in again." }, { status: 403 });
     if (["SOCIAL_CAMPAIGN_NOT_FOUND", "SOCIAL_VARIANT_NOT_FOUND"].includes(code)) return NextResponse.json({ success: false, error: "Campaign or variant not found." }, { status: 404 });
+    if (code === "INVALID_SOCIAL_SOURCE") return NextResponse.json({ success: false, error: "Review the campaign source before generating content." }, { status: 409 });
     if (["SOCIAL_GENERATION_BUSY", "SOCIAL_GENERATION_LOCKED"].includes(code)) return NextResponse.json({ success: false, error: "Generation is already running, or the selected posts cannot be edited." }, { status: 409 });
     return NextResponse.json({ success: false, error: "AI generation could not be prepared." }, { status: 500 });
   }

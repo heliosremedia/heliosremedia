@@ -1,3 +1,4 @@
+import { resolveCampaignSourceContext } from "./source-context";
 import { prisma } from "@/lib/prisma";
 import { requireLockedWorkspaceEditor, type WorkspaceWriteActor } from "@/lib/workspace-write-access";
 
@@ -13,12 +14,13 @@ export async function claimSocialGeneration(actor: WorkspaceWriteActor, campaign
     if (!requested.length) throw new Error("SOCIAL_VARIANT_NOT_FOUND");
     const chosen = requested.filter((variant) => !["PUBLISHED", "ARCHIVED"].includes(variant.status));
     if (!chosen.length) throw new Error("SOCIAL_GENERATION_LOCKED");
+    const { facts } = await resolveCampaignSourceContext(campaign, actor.workspaceId, tx);
     const claimed = await tx.socialCampaign.updateMany({
       where: { id: campaign.id, workspaceId: actor.workspaceId, generationStatus: campaign.generationStatus, generationRequestId: campaign.generationRequestId },
-      data: { generationStatus: "RUNNING", generationError: null, generationRequestId: requestId },
+      data: { generationStatus: "RUNNING", generationError: null, generationRequestId: requestId, verifiedSourceFacts: facts },
     });
     if (claimed.count !== 1) throw new Error("SOCIAL_GENERATION_BUSY");
-    return { duplicate: false as const, campaign, chosen };
+    return { duplicate: false as const, campaign: { ...campaign, verifiedSourceFacts: facts }, chosen };
   });
 }
 
