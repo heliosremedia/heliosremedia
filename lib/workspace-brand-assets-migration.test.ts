@@ -29,6 +29,19 @@ test("brand asset ownership migration preserves Helios data and honors an import
       INSERT INTO "GoogleBusinessReview" VALUES ('review-b', 'company-b', 'google-b');
     `);
 
+    // Branding settings and workspace age are not ownership evidence.
+    await db.exec('BEGIN');
+    await assert.rejects(db.exec(migration), /Verified legacy brand workspace mapping required/);
+    await db.exec('ROLLBACK');
+    assert.equal((await db.query(`SELECT * FROM "TrustedLogo"`)).rows.length, 1);
+    assert.equal((await db.query(`SELECT column_name FROM information_schema.columns WHERE table_name = 'TrustedLogo' AND column_name = 'workspaceId'`)).rows.length, 0);
+
+    await db.exec("SET helios.legacy_brand_workspace_id = 'missing'");
+    await db.exec('BEGIN');
+    await assert.rejects(db.exec(migration), /Verified legacy brand workspace mapping required/);
+    await db.exec('ROLLBACK');
+
+    await db.exec("SET helios.legacy_brand_workspace_id = 'helios'");
     await db.exec(migration);
 
     assert.deepEqual((await db.query(`SELECT "id", "workspaceId" FROM "Testimonial" ORDER BY "id"`)).rows, [
