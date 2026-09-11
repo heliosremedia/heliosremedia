@@ -116,3 +116,45 @@ test("server logo upload registers the server-generated key before writing bytes
   const response = await api.POST(new Request("https://example.test/api", { method: "POST", body: form }));
   assert.equal(response.status, 200); assert.equal(writes, 1);
 });
+
+for (const route of ["brand-logo", "brand-monogram", "favicon", "social-image", "homepage-images", "hero-media"] as const) {
+  test(`website ${route} upload registers the authenticated owner before returning a signed URL`, async () => {
+    const kind = route === "hero-media" ? "site-hero" : route === "homepage-images" ? "site-homepage" : "site-brand";
+    const ownedKey = `workspaces/a/${kind}/${route === "hero-media" ? "video-id.mp4" : "image.png"}`;
+    let registered = false;
+    let allow = true;
+    let signed = 0;
+    const keyFor = (workspaceId: string) => { assert.equal(workspaceId, "a"); return ownedKey; };
+    const api = load<{ POST: (request: Request) => Promise<Response> }>(`../app/api/admin/site-settings/${route}/presign/route.ts`, {
+      "next/server": { NextResponse: Response }, "@/lib/auth/session": { getAdminSession: async () => ({ role: "ADMIN", userId: "actor", workspaceId: "a" }) },
+      "@/lib/r2-upload": {
+        createBrandLogoKey: keyFor, createBrandMonogramKey: keyFor, createFaviconKey: keyFor, createDefaultSocialImageKey: keyFor, createHomepageSectionImageKey: keyFor, createSiteHeroKey: keyFor,
+        validateImageUpload() {}, getPublicAssetUrl: (key: string) => `https://assets.test/${key}`,
+        createPresignedUploadUrl: async (key: string) => { assert.equal(registered, true); assert.equal(key, ownedKey); signed++; return "signed-url"; },
+      },
+      "@/lib/workspace-brand-assets": { withBrandUploadAsset: async (input: { workspaceId: string; actorId: string; kind: string; key: string; byteSize: number }, fn: () => Promise<string>) => {
+        assert.equal(input.workspaceId, "a"); assert.equal(input.actorId, "actor"); assert.equal(input.kind, kind); assert.equal(input.key, ownedKey); assert.equal(input.byteSize, 100);
+        if (!allow) throw new Error("INVALID_BRAND_IMAGE"); registered = true; return fn();
+      } },
+    }, { console: { error() {} } });
+    const call = () => api.POST(new Request("https://example.test/api", { method: "POST", body: JSON.stringify({ kind: route === "hero-media" ? "video" : "helios-standard", fileType: route === "hero-media" ? "video/mp4" : "image/png", fileName: "image.png", fileSize: 100, workspaceId: "b" }) }));
+    let response = await call(); assert.equal(response.status, 200); assert.equal((await response.json()).upload.key, ownedKey); assert.equal(signed, 1);
+    allow = false; response = await call(); assert.ok(response.status >= 400); assert.equal(signed, 1); assert.equal((await response.json()).upload, undefined);
+  });
+}
+
+test("hero registry permits only explicit video and poster formats in the owned namespace", async () => {
+  let checks = 0;
+  let owner = "a";
+  let status = "UPLOAD_PROVISIONED";
+  const api = load<BrandApi>("./workspace-brand-assets.ts", {
+    "server-only": {}, "@/lib/r2": r2, "@/lib/workspace-brand-storage": policy, "@/lib/workspace-context-core": { tenantContextEnabled: () => true },
+    "@/lib/content-image-storage": { verifyContentImage: async () => { checks++; } },
+    "@/lib/prisma": { prisma: { workspaceAsset: { findUnique: async () => ({ id: "asset", workspaceId: owner, status }) } } },
+  });
+  for (const filename of ["video-id.mp4", "video-id.webm", "poster-id.webp", "poster-id.avif"]) await api.verifyRegisteredBrandImage({ workspaceId: "a", kind: "site-hero", key: `workspaces/a/site-hero/${filename}` });
+  assert.equal(checks, 4);
+  for (const filename of ["video-id.svg", "poster-id.mp4", "image.png", "../video-id.mp4"]) await assert.rejects(api.verifyRegisteredBrandImage({ workspaceId: "a", kind: "site-hero", key: `workspaces/a/site-hero/${filename}` }), /INVALID_BRAND_IMAGE/);
+  owner = "b"; await assert.rejects(api.verifyRegisteredBrandImage({ workspaceId: "a", kind: "site-hero", key: "workspaces/a/site-hero/video-id.mp4" }), /INVALID_BRAND_IMAGE/);
+  owner = "a"; status = "QUARANTINED"; await assert.rejects(api.verifyRegisteredBrandImage({ workspaceId: "a", kind: "site-hero", key: "workspaces/a/site-hero/video-id.mp4", existingKey: "workspaces/a/site-hero/video-id.mp4" }), /INVALID_BRAND_IMAGE/); assert.equal(checks, 4);
+});

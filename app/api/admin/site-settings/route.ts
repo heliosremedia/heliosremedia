@@ -6,7 +6,7 @@ import { getSiteSettingsWriteTarget } from "@/lib/site-settings-ownership";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyContentImage } from "@/lib/content-image-storage";
+import { verifyRegisteredBrandImage } from "@/lib/workspace-brand-assets";
 import { getAdminSession } from "@/lib/auth/session";
 
 function text(value: unknown, max: number, required = false) { const result = typeof value === "string" ? value.trim() : ""; if ((required && !result) || result.length > max) throw new Error("INVALID_TEXT"); return result || null; }
@@ -120,14 +120,14 @@ export async function PATCH(request: Request) {
     const primaryConversionImage = resolveBrandImage(session.workspaceId, "site-homepage", { key: primaryConversionImageStorageKey, url: assetUrl(body.primaryConversionImageUrl) }, existing ? { key: existing.primaryConversionImageStorageKey, url: existing.primaryConversionImageUrl } : null, getPublicAssetUrl);
     const heroVideo = resolveSiteHeroUrl(session.workspaceId, "video", assetUrl(body.heroVideoUrl), existing?.heroVideoUrl ?? null, getPublicAssetUrl);
     const heroPoster = resolveSiteHeroUrl(session.workspaceId, "poster", assetUrl(body.heroPosterUrl), existing?.heroPosterUrl ?? (!tenantContextEnabled() ? "/work/featured-estate.jpg" : null), getPublicAssetUrl);
-    if (heroVideo.url !== existing?.heroVideoUrl) await verifyContentImage(heroVideo.key);
-    if (heroPoster.url !== existing?.heroPosterUrl) await verifyContentImage(heroPoster.key);
-    if (brandLogoStorageKey !== existing?.brandLogoStorageKey) await verifyContentImage(brandLogoStorageKey);
-    if (brandMonogramStorageKey !== existing?.brandMonogramStorageKey) await verifyContentImage(brandMonogramStorageKey);
-    if (faviconStorageKey !== existing?.faviconStorageKey) await verifyContentImage(faviconStorageKey);
-    if (defaultSocialImageStorageKey !== existing?.defaultSocialImageStorageKey) await verifyContentImage(defaultSocialImageStorageKey);
-    if (heliosStandardImageStorageKey !== existing?.heliosStandardImageStorageKey) await verifyContentImage(heliosStandardImageStorageKey);
-    if (primaryConversionImageStorageKey !== existing?.primaryConversionImageStorageKey) await verifyContentImage(primaryConversionImageStorageKey);
+    await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "site-hero", key: heroVideo.key, existingKey: heroVideo.url === existing?.heroVideoUrl ? heroVideo.key : undefined });
+    await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "site-hero", key: heroPoster.key, existingKey: heroPoster.url === existing?.heroPosterUrl ? heroPoster.key : undefined });
+    await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "site-brand", key: brandLogoStorageKey, existingKey: existing?.brandLogoStorageKey });
+    await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "site-brand", key: brandMonogramStorageKey, existingKey: existing?.brandMonogramStorageKey });
+    await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "site-brand", key: faviconStorageKey, existingKey: existing?.faviconStorageKey });
+    await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "site-brand", key: defaultSocialImageStorageKey, existingKey: existing?.defaultSocialImageStorageKey });
+    await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "site-homepage", key: heliosStandardImageStorageKey, existingKey: existing?.heliosStandardImageStorageKey });
+    await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "site-homepage", key: primaryConversionImageStorageKey, existingKey: existing?.primaryConversionImageStorageKey });
     const data = {
       businessName: text(body.businessName, 160, true)!, phoneDisplay: text(body.phoneDisplay, 40, true)!, phoneE164, email,
       bookingUrl: url(body.bookingUrl), bookingMode: bookingMode(body.bookingMode),

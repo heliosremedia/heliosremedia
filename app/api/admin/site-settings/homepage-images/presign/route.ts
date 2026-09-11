@@ -1,3 +1,4 @@
+import { withBrandUploadAsset } from "@/lib/workspace-brand-assets";
 import { getAdminSession } from "@/lib/auth/session";
 import { NextResponse } from "next/server";
 
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
     }
 
     const key = createHomepageSectionImageKey(session.workspaceId, kind, fileType);
-    const uploadUrl = await createPresignedUploadUrl(key, fileType);
+    const uploadUrl = await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, kind: "site-homepage", key, byteSize: fileSize }, () => createPresignedUploadUrl(key, fileType));
 
     return NextResponse.json({
       success: true,

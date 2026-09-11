@@ -43,7 +43,7 @@ test("all settings presigns enforce local administrator access", async () => {
 });
 
 test("full settings save rejects foreign keys before storage access and derives owned URLs without deleting assets", async () => {
-  for (const company of ["a", "b"]) {
+  for (const company of ["a", "b", "unregistered"]) {
     let writes = 0;
     let checks = 0;
     const loaded = load("../app/api/admin/site-settings/route.ts", {
@@ -54,6 +54,7 @@ test("full settings save rejects foreign keys before storage access and derives 
       "@/lib/workspace-brand-storage": brandPolicy,
       "@/lib/site-hero-ownership": { resolveSiteHeroUrl: () => ({ url: null, key: null }) },
       "@/lib/r2-upload": { getPublicAssetUrl: (key: string) => `https://assets.example/${key}` },
+      "@/lib/workspace-brand-assets": { verifyRegisteredBrandImage: async (input: { key: string | null }) => { if (input.key && company === "unregistered") throw new Error("INVALID_BRAND_IMAGE"); if (input.key) checks++; } },
       "@/lib/content-image-storage": { verifyContentImage: async (key: string | null) => { if (key) checks++; }, deleteContentImage: async () => { throw new Error("Deletion is forbidden"); } },
       "@/lib/prisma": { prisma: { siteSettings: {
         findUnique: async ({ where }: { where: { workspaceId: string } }) => { assert.equal(where.workspaceId, "a"); return null; },
@@ -62,7 +63,7 @@ test("full settings save rejects foreign keys before storage access and derives 
         },
       } } },
     });
-    const body = { businessName: "Company A", phoneDisplay: "+15555555555", phoneE164: "+15555555555", bookingMode: "ONLINE", locationLabel: "City", serviceArea: "Area", defaultSeoTitle: "Company A", defaultSeoDescription: "Description", standardPrinciples: [], approachCards: [], headerNavigation: [], footerNavigation: [], brandLogoStorageKey: `workspaces/${company}/site-brand/logo.png`, brandLogoUrl: "https://forged.example/logo.png" };
+    const body = { businessName: "Company A", phoneDisplay: "+15555555555", phoneE164: "+15555555555", bookingMode: "ONLINE", locationLabel: "City", serviceArea: "Area", defaultSeoTitle: "Company A", defaultSeoDescription: "Description", standardPrinciples: [], approachCards: [], headerNavigation: [], footerNavigation: [], brandLogoStorageKey: `workspaces/${company === "unregistered" ? "a" : company}/site-brand/logo.png`, brandLogoUrl: "https://forged.example/logo.png" };
     const response = await loaded.PATCH(new Request("http://localhost", { method: "PATCH", body: JSON.stringify(body) })) as Response;
     assert.equal(response.status, company === "a" ? 200 : 400);
     assert.equal(writes, company === "a" ? 1 : 0); assert.equal(checks, writes);
