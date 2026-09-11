@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { deleteContentImage, verifyContentImage } from "@/lib/content-image-storage";
 import { prisma } from "@/lib/prisma";
+import { getAdminSession } from "@/lib/auth/session";
 
 const logoSelect = { id: true, organizationName: true, logoStorageKey: true, logoUrl: true, logoAlt: true, websiteUrl: true, monochrome: true, displayColor: true, displayOpacity: true, displayScale: true, displayOrder: true, published: true, createdAt: true, updatedAt: true } as const;
 
@@ -44,11 +45,13 @@ function validationMessage(error: unknown) {
 
 export async function POST(request: Request) {
   try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
     const body = (await request.json()) as Record<string, unknown>;
     const data = validate(body);
     await verifyContentImage(data.logoStorageKey);
-    const order = await prisma.trustedLogo.aggregate({ _max: { displayOrder: true } });
-    const logo = await prisma.trustedLogo.create({ data: { ...data, displayOrder: (order._max.displayOrder ?? -1) + 1, published: body.published === true }, select: logoSelect });
+    const order = await prisma.trustedLogo.aggregate({ where: { workspaceId: session.workspaceId }, _max: { displayOrder: true } });
+    const logo = await prisma.trustedLogo.create({ data: { ...data, workspaceId: session.workspaceId, displayOrder: (order._max.displayOrder ?? -1) + 1, published: body.published === true }, select: logoSelect });
     refresh();
     return NextResponse.json({ success: true, logo }, { status: 201 });
   } catch (error) {
@@ -61,13 +64,15 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
     const body = (await request.json()) as Record<string, unknown>;
     const action = typeof body.action === "string" ? body.action : "";
     if (action === "reorder") {
       const ids = Array.isArray(body.logoIds) ? body.logoIds.filter((id): id is string => typeof id === "string") : [];
-      const current = await prisma.trustedLogo.findMany({ select: { id: true } });
+      const current = await prisma.trustedLogo.findMany({ where: { workspaceId: session.workspaceId }, select: { id: true } });
       if (ids.length !== current.length || new Set(ids).size !== ids.length || current.some(({ id }) => !ids.includes(id))) return NextResponse.json({ success: false, error: "The logo list changed before the order was saved. Refresh and try again." }, { status: 409 });
-      await prisma.$transaction(ids.map((id, displayOrder) => prisma.trustedLogo.update({ where: { id }, data: { displayOrder } })));
+      await prisma.$transaction(ids.map((id, displayOrder) => prisma.trustedLogo.updateMany({ where: { id, workspaceId: session.workspaceId }, data: { displayOrder } })));
       refresh();
       return NextResponse.json({ success: true, logoIds: ids });
     }
@@ -76,16 +81,20 @@ export async function PATCH(request: Request) {
     if (!logoId) return NextResponse.json({ success: false, error: "A logo ID is required." }, { status: 400 });
     if (action === "set-published") {
       if (typeof body.published !== "boolean") return NextResponse.json({ success: false, error: "A valid publishing status is required." }, { status: 400 });
-      const logo = await prisma.trustedLogo.update({ where: { id: logoId }, data: { published: body.published }, select: logoSelect });
+      const changed = await prisma.trustedLogo.updateMany({ where: { id: logoId, workspaceId: session.workspaceId }, data: { published: body.published } });
+      if (changed.count !== 1) return NextResponse.json({ success: false, error: "The logo was not found." }, { status: 404 });
+      const logo = await prisma.trustedLogo.findFirstOrThrow({ where: { id: logoId, workspaceId: session.workspaceId }, select: logoSelect });
       refresh();
       return NextResponse.json({ success: true, logo });
     }
     if (action === "update") {
-      const existing = await prisma.trustedLogo.findUnique({ where: { id: logoId }, select: { logoStorageKey: true } });
+      const existing = await prisma.trustedLogo.findFirst({ where: { id: logoId, workspaceId: session.workspaceId }, select: { logoStorageKey: true } });
       if (!existing) return NextResponse.json({ success: false, error: "The logo was not found." }, { status: 404 });
       const data = validate(body);
       if (data.logoStorageKey !== existing.logoStorageKey) await verifyContentImage(data.logoStorageKey);
-      const logo = await prisma.trustedLogo.update({ where: { id: logoId }, data: { ...data, ...(typeof body.published === "boolean" ? { published: body.published } : {}) }, select: logoSelect });
+      const changed = await prisma.trustedLogo.updateMany({ where: { id: logoId, workspaceId: session.workspaceId }, data: { ...data, ...(typeof body.published === "boolean" ? { published: body.published } : {}) } });
+      if (changed.count !== 1) return NextResponse.json({ success: false, error: "The logo was not found." }, { status: 404 });
+      const logo = await prisma.trustedLogo.findFirstOrThrow({ where: { id: logoId, workspaceId: session.workspaceId }, select: logoSelect });
       const storageCleanupPending = data.logoStorageKey !== existing.logoStorageKey ? await deleteContentImage(existing.logoStorageKey) : false;
       refresh();
       return NextResponse.json({ success: true, logo, storageCleanupPending });
@@ -101,9 +110,14 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
     const logoId = new URL(request.url).searchParams.get("logoId")?.trim();
     if (!logoId) return NextResponse.json({ success: false, error: "A logo ID is required." }, { status: 400 });
-    const logo = await prisma.trustedLogo.delete({ where: { id: logoId }, select: { id: true, logoStorageKey: true } });
+    const logo = await prisma.trustedLogo.findFirst({ where: { id: logoId, workspaceId: session.workspaceId }, select: { id: true, logoStorageKey: true } });
+    if (!logo) return NextResponse.json({ success: false, error: "The logo was not found." }, { status: 404 });
+    const deleted = await prisma.trustedLogo.deleteMany({ where: { id: logo.id, workspaceId: session.workspaceId } });
+    if (deleted.count !== 1) return NextResponse.json({ success: false, error: "The logo changed before deletion." }, { status: 409 });
     const storageCleanupPending = await deleteContentImage(logo.logoStorageKey);
     refresh();
     return NextResponse.json({ success: true, deletedLogoId: logo.id, storageCleanupPending });

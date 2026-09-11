@@ -7,6 +7,7 @@ import {
   validateImageUpload,
 } from "@/lib/r2-upload";
 import { r2Client, r2Config } from "@/lib/r2";
+import { getAdminSession } from "@/lib/auth/session";
 
 const MAX_LOGO_SIZE = 4 * 1024 * 1024;
 
@@ -14,6 +15,8 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
     const formData = await request.formData();
     const image = formData.get("image");
 

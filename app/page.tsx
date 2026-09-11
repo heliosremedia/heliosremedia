@@ -46,7 +46,7 @@ export default async function Home() {
   const googleReviewDisplayMode = normalizeGoogleReviewDisplayMode(settings.googleReviewDisplayMode);
   const [testimonials, googleReviews, googleReviewAggregate, trustedLogos, homepageProjects, homepageWorkCards, homepageCta] = await Promise.all([
     prisma.testimonial.findMany({
-      where: { published: true, featured: true, sourceProvider: "MANUAL" },
+      where: { workspaceId: publicWorkspaceId, published: true, featured: true, sourceProvider: "MANUAL" },
       orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
       select: {
         id: true, agentName: true, jobTitle: true, brokerage: true,
@@ -62,7 +62,7 @@ export default async function Home() {
     }),
     prisma.googleBusinessReview.aggregate({ where: { workspaceId: publicWorkspaceId, syncStatus: "CURRENT" }, _count: { _all: true }, _avg: { starRating: true } }),
     prisma.trustedLogo.findMany({
-      where: { published: true, logoUrl: { not: null } },
+      where: { workspaceId: publicWorkspaceId, published: true, logoUrl: { not: null } },
       orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
       select: { id: true, organizationName: true, logoUrl: true, logoAlt: true, websiteUrl: true, monochrome: true, displayColor: true, displayOpacity: true, displayScale: true },
     }),

@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminTestimonialsPage({ searchParams }: { searchParams: Promise<{ google?: string }> }) {
   const session = await requireAdminSession();
   const [testimonials, googleState, query] = await Promise.all([prisma.testimonial.findMany({
+    where: { workspaceId: session.workspaceId },
     orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
   }), getGoogleBusinessAdminState(session), searchParams]);
 

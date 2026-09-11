@@ -89,14 +89,15 @@ function validationResponse(error: unknown) {
 }
 
 export async function POST(request: Request) {
-  if (!await getAdminSession()) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+  const session = await getAdminSession();
+  if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
   try {
     const body = (await request.json()) as Record<string, unknown>;
     const data = validateBody(body);
     await verifyContentImage(data.photoStorageKey);
-    const order = await prisma.testimonial.aggregate({ _max: { displayOrder: true } });
+    const order = await prisma.testimonial.aggregate({ where: { workspaceId: session.workspaceId }, _max: { displayOrder: true } });
     const testimonial = await prisma.testimonial.create({
-      data: { ...data, displayOrder: (order._max.displayOrder ?? -1) + 1, published: body.published === true, featured: body.featured === true },
+      data: { ...data, workspaceId: session.workspaceId, displayOrder: (order._max.displayOrder ?? -1) + 1, published: body.published === true, featured: body.featured === true },
       select: testimonialSelect,
     });
     refreshTestimonials();
@@ -111,14 +112,15 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  if (!await getAdminSession()) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+  const session = await getAdminSession();
+  if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
   try {
     const body = (await request.json()) as Record<string, unknown>;
     const action = typeof body.action === "string" ? body.action : "";
 
     if (action === "reorder") {
       const ids = Array.isArray(body.testimonialIds) ? body.testimonialIds.filter((id): id is string => typeof id === "string") : [];
-      const current = await prisma.testimonial.findMany({ select: { id: true, rowVersion: true } });
+      const current = await prisma.testimonial.findMany({ where: { workspaceId: session.workspaceId }, select: { id: true, rowVersion: true } });
       const versions = body.versions && typeof body.versions === "object" ? body.versions as Record<string, unknown> : {};
       if (ids.length !== current.length || new Set(ids).size !== ids.length || current.some(({ id }) => !ids.includes(id))) {
         return NextResponse.json({ success: false, error: "The testimonial list changed before the order was saved. Refresh and try again." }, { status: 409 });
@@ -127,7 +129,7 @@ export async function PATCH(request: Request) {
       const updated = await prisma.$transaction(async (tx) => {
         const results: Array<{ id: string; rowVersion: number }> = [];
         for (const [displayOrder, id] of ids.entries()) {
-          const result = await tx.testimonial.updateMany({ where: { id, rowVersion: Number(versions[id]) }, data: { displayOrder: displayOrder * 1000, rowVersion: { increment: 1 } } });
+          const result = await tx.testimonial.updateMany({ where: { id, workspaceId: session.workspaceId, rowVersion: Number(versions[id]) }, data: { displayOrder: displayOrder * 1000, rowVersion: { increment: 1 } } });
           if (result.count !== 1) throw new Error("REORDER_CONFLICT");
           results.push({ id, rowVersion: Number(versions[id]) + 1 });
         }
@@ -145,25 +147,28 @@ export async function PATCH(request: Request) {
       if (typeof body.published === "boolean") update.published = body.published;
       if (typeof body.featured === "boolean") update.featured = body.featured;
       if (Object.keys(update).length === 0) return NextResponse.json({ success: false, error: "A publishing or featured status is required." }, { status: 400 });
-      const testimonial = await prisma.testimonial.update({ where: { id: testimonialId }, data: update, select: testimonialSelect });
+      const changed = await prisma.testimonial.updateMany({ where: { id: testimonialId, workspaceId: session.workspaceId }, data: update });
+      if (changed.count !== 1) return NextResponse.json({ success: false, error: "The testimonial was not found." }, { status: 404 });
+      const testimonial = await prisma.testimonial.findFirstOrThrow({ where: { id: testimonialId, workspaceId: session.workspaceId }, select: testimonialSelect });
       refreshTestimonials();
       return NextResponse.json({ success: true, testimonial });
     }
 
     if (action === "update") {
-      const existing = await prisma.testimonial.findUnique({ where: { id: testimonialId }, select: { photoStorageKey: true } });
+      const existing = await prisma.testimonial.findFirst({ where: { id: testimonialId, workspaceId: session.workspaceId }, select: { photoStorageKey: true } });
       if (!existing) return NextResponse.json({ success: false, error: "The testimonial was not found." }, { status: 404 });
       const data = validateBody(body);
       if (data.photoStorageKey !== existing.photoStorageKey) await verifyContentImage(data.photoStorageKey);
-      const testimonial = await prisma.testimonial.update({
-        where: { id: testimonialId },
+      const changed = await prisma.testimonial.updateMany({
+        where: { id: testimonialId, workspaceId: session.workspaceId },
         data: {
           ...data,
           ...(typeof body.published === "boolean" ? { published: body.published } : {}),
           ...(typeof body.featured === "boolean" ? { featured: body.featured } : {}),
         },
-        select: testimonialSelect,
       });
+      if (changed.count !== 1) return NextResponse.json({ success: false, error: "The testimonial was not found." }, { status: 404 });
+      const testimonial = await prisma.testimonial.findFirstOrThrow({ where: { id: testimonialId, workspaceId: session.workspaceId }, select: testimonialSelect });
       const storageCleanupPending = data.photoStorageKey !== existing.photoStorageKey ? await deleteContentImage(existing.photoStorageKey) : false;
       refreshTestimonials();
       return NextResponse.json({ success: true, testimonial, storageCleanupPending });
@@ -179,11 +184,15 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  if (!await getAdminSession()) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+  const session = await getAdminSession();
+  if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
   try {
     const testimonialId = new URL(request.url).searchParams.get("testimonialId")?.trim();
     if (!testimonialId) return NextResponse.json({ success: false, error: "A testimonial ID is required." }, { status: 400 });
-    const testimonial = await prisma.testimonial.delete({ where: { id: testimonialId }, select: { id: true, photoStorageKey: true } });
+    const testimonial = await prisma.testimonial.findFirst({ where: { id: testimonialId, workspaceId: session.workspaceId }, select: { id: true, photoStorageKey: true } });
+    if (!testimonial) return NextResponse.json({ success: false, error: "The testimonial was not found." }, { status: 404 });
+    const deleted = await prisma.testimonial.deleteMany({ where: { id: testimonial.id, workspaceId: session.workspaceId } });
+    if (deleted.count !== 1) return NextResponse.json({ success: false, error: "The testimonial changed before deletion." }, { status: 409 });
     const storageCleanupPending = await deleteContentImage(testimonial.photoStorageKey);
     refreshTestimonials();
     return NextResponse.json({ success: true, deletedTestimonialId: testimonial.id, storageCleanupPending });
