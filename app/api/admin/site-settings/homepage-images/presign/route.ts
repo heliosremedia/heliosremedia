@@ -1,3 +1,4 @@
+import { getAdminSession } from "@/lib/auth/session";
 import { NextResponse } from "next/server";
 
 import {
@@ -14,6 +15,10 @@ const IMAGE_TYPES = new Set([
 ]);
 
 export async function POST(request: Request) {
+  const session = await getAdminSession();
+  if (!session || !["OWNER", "ADMIN"].includes(session.role)) {
+    return NextResponse.json({ success: false, error: "Owner or administrator access is required." }, { status: 403 });
+  }
   try {
     const body = (await request.json()) as Record<string, unknown>;
     const kind =
@@ -40,7 +45,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const key = createHomepageSectionImageKey(kind, fileType);
+    const key = createHomepageSectionImageKey(session.workspaceId, kind, fileType);
     const uploadUrl = await createPresignedUploadUrl(key, fileType);
 
     return NextResponse.json({

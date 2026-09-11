@@ -159,6 +159,7 @@ export function createTrustedLogoKey(workspaceId: string, mimeType: string) {
 }
 
 export function createSiteHeroKey(
+  workspaceId: string,
   kind: "video" | "poster",
   mimeType: string,
 ) {
@@ -176,10 +177,11 @@ export function createSiteHeroKey(
         ? "webm"
         : extensionFromMime(mimeType);
 
-  return `site/homepage/hero/${kind}-${timestamp}-${id}.${extension}`;
+  return `${brandAssetPrefix(workspaceId, "site-hero")}${kind}-${timestamp}-${id}.${extension}`;
 }
 
 export function createHomepageSectionImageKey(
+  workspaceId: string,
   kind: "helios-standard" | "primary-conversion",
   mimeType: string,
 ) {
@@ -190,10 +192,10 @@ export function createHomepageSectionImageKey(
     .replace("T", "-");
   const id = randomUUID().slice(0, 8);
 
-  return `site/homepage/${kind}/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
+  return `${brandAssetPrefix(workspaceId, "site-homepage")}${kind}-${timestamp}-${id}.${extensionFromMime(mimeType)}`;
 }
 
-export function createBrandLogoKey(mimeType: string) {
+export function createBrandLogoKey(workspaceId: string, mimeType: string) {
   const timestamp = new Date()
     .toISOString()
     .replace(/[-:]/g, "")
@@ -201,10 +203,10 @@ export function createBrandLogoKey(mimeType: string) {
     .replace("T", "-");
   const id = randomUUID().slice(0, 8);
 
-  return `site/brand/logo-${timestamp}-${id}.${extensionFromMime(mimeType)}`;
+  return `${brandAssetPrefix(workspaceId, "site-brand")}logo-${timestamp}-${id}.${extensionFromMime(mimeType)}`;
 }
 
-export function createBrandMonogramKey(mimeType: string) {
+export function createBrandMonogramKey(workspaceId: string, mimeType: string) {
   const timestamp = new Date()
     .toISOString()
     .replace(/[-:]/g, "")
@@ -212,17 +214,17 @@ export function createBrandMonogramKey(mimeType: string) {
     .replace("T", "-");
   const id = randomUUID().slice(0, 8);
 
-  return `site/brand/monogram-${timestamp}-${id}.${extensionFromMime(mimeType)}`;
+  return `${brandAssetPrefix(workspaceId, "site-brand")}monogram-${timestamp}-${id}.${extensionFromMime(mimeType)}`;
 }
 
-export function createFaviconKey(mimeType: string) {
+export function createFaviconKey(workspaceId: string, mimeType: string) {
   const timestamp = Date.now();
-  return `site/brand/favicon-${timestamp}-${randomUUID().slice(0, 8)}.${extensionFromMime(mimeType)}`;
+  return `${brandAssetPrefix(workspaceId, "site-brand")}favicon-${timestamp}-${randomUUID().slice(0, 8)}.${extensionFromMime(mimeType)}`;
 }
 
-export function createDefaultSocialImageKey(mimeType: string) {
+export function createDefaultSocialImageKey(workspaceId: string, mimeType: string) {
   const timestamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "-");
-  return `site/brand/social-${timestamp}-${randomUUID().slice(0, 8)}.${extensionFromMime(mimeType)}`;
+  return `${brandAssetPrefix(workspaceId, "site-brand")}social-${timestamp}-${randomUUID().slice(0, 8)}.${extensionFromMime(mimeType)}`;
 }
 
 export function createFeaturedFilmKey(kind: "video" | "poster", mimeType: string) {

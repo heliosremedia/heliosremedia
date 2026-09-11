@@ -1,0 +1,9 @@
+# Settings writes and media ownership
+
+A shared write-target resolver binds tenant settings by workspace and gives new rows distinct `workspace:<id>` primary keys. This is necessary because the schema's old default ID is literally `default`. Legacy default writes require exactly one matching workspace and an existing owner that is matching or null. Settings updates no longer reassign workspace ownership. Main settings, homepage navigation/structure and legal publication settings use this target.
+
+All six settings presign routes require administrator/owner access locally. New brand, homepage-section and hero objects use workspace namespaces. Settings mutations validate owned image keys and derive their canonical URLs. Existing legacy attachments can only be retained unchanged on their authorized settings record. Hero media uses an equivalent URL policy that checks canonical workspace paths and media kind. New/changed managed objects receive the existing HEAD verification. Unchanged legacy hero defaults remain compatible only with tenant mode off.
+
+Replaced images are retained; physical deletion is deferred until the asset registry can establish usage and recovery safety. The response marks pending cleanup. No cleanup worker has been introduced. Existing R2/Stream configuration and provider adapters are unchanged. Actual object uploads, MIME verification, browser save/reopen and old/new key-format compatibility still need hosted rehearsal. Prior application versions reject the new namespaces, so rollback must use a compatible version.
+
+Tests execute the actual settings route and policy helpers with mocked storage/database services. They cover foreign keys before storage access, forged URL canonicalization, local presign permissions, distinct settings IDs, fail-closed legacy ambiguity and hero-path manipulation. No real R2 object or production settings value was changed.

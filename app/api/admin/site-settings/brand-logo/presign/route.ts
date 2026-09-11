@@ -1,3 +1,4 @@
+import { getAdminSession } from "@/lib/auth/session";
 import { NextResponse } from "next/server";
 
 import {
@@ -9,6 +10,10 @@ import {
 const LOGO_TYPES = new Set(["image/png", "image/webp", "image/avif"]);
 
 export async function POST(request: Request) {
+  const session = await getAdminSession();
+  if (!session || !["OWNER", "ADMIN"].includes(session.role)) {
+    return NextResponse.json({ success: false, error: "Owner or administrator access is required." }, { status: 403 });
+  }
   try {
     const body = (await request.json()) as Record<string, unknown>;
     const fileType = typeof body.fileType === "string" ? body.fileType : "";
@@ -28,7 +33,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const key = createBrandLogoKey(fileType);
+    const key = createBrandLogoKey(session.workspaceId, fileType);
     const uploadUrl = await createPresignedUploadUrl(key, fileType);
 
     return NextResponse.json({
