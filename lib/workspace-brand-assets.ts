@@ -5,7 +5,7 @@ import { verifyContentImage } from "@/lib/content-image-storage";
 import { brandAssetPrefix, type BrandAssetKind } from "@/lib/workspace-brand-storage";
 import { tenantContextEnabled } from "@/lib/workspace-context-core";
 
-type RegisteredBrandKind = Extract<BrandAssetKind, "testimonials" | "trusted-logos">;
+type RegisteredBrandKind = Extract<BrandAssetKind, "testimonials" | "trusted-logos" | "photo-comparison">;
 
 function namespace() {
   if (!r2Config.accountId || !r2Config.bucketName) throw new Error("INVALID_BRAND_IMAGE");
