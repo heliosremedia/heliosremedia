@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  newsletterImageReferenceMatches,
   preserveManualImage,
   safeNewsletterImageUrl,
   suggestedCandidate,
@@ -90,4 +91,16 @@ test("delivered email renders a responsive linked image with stable alt text", (
   assert.match(html, /alt="Twilight exterior photography"/);
   assert.match(html, /width:100%;max-width:640px;height:auto/);
   assert.equal(renderNewsletterImage({ imageUrl: "javascript:alert(1)" }), "");
+});
+
+
+test("image references reject foreign company/project namespaces and traversal", () => {
+  for (const reference of [
+    "workspaces/b/blog/image.png", "email/newsletters/b/image.png", "projects/foreign/image.png",
+    "https://assets.example/workspaces/b/blog/image.png", "workspaces/a/../b/image.png",
+    "workspaces/a/%2e%2e/b/image.png", "workspaces%252fb/image.png", "workspaces/a/\\image.png",
+  ]) assert.equal(newsletterImageReferenceMatches("a", reference, "mine"), false, reference);
+  for (const reference of ["workspaces/a/blog/image.png", "email/newsletters/a/image.png", "projects/mine/image.png", "legacy/image.png", "https://external.example/photo.jpg?width=300"])
+    assert.equal(newsletterImageReferenceMatches("a", reference, "mine"), true, reference);
+  assert.equal(newsletterImageReferenceMatches("a", "projects/mine/image.png"), false);
 });
