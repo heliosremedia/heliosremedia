@@ -104,3 +104,10 @@ test("invitation and public credits keep professional identity separate from acc
   assert.match(portfolio, /label: contributor\.externalDiscipline \|\| contributor\.titleSnapshot/);
   assert.match(portfolio, /value: contributor\.displayNameSnapshot/);
 });
+
+test("membership owner remains protected when legacy permissions differ", () => {
+  assert.match(getProtectedOwnerMutationError("EDITOR", { role: null, active: false }, "OWNER") ?? "", /cannot be deactivated/);
+  assert.match(getProtectedOwnerMutationError("ADMIN", { role: "VIEWER", active: null }, "OWNER") ?? "", /ownership transfer/);
+  assert.equal(getProtectedOwnerMutationError("EDITOR", { role: null, active: null }, "OWNER"), null);
+  assert.match(getProtectedOwnerMutationError("OWNER", { role: null, active: false }, "EDITOR") ?? "", /cannot be deactivated/);
+});

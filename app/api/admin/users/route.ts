@@ -9,7 +9,7 @@ import { getAbsoluteUrl } from "@/lib/site";
 import { recordAuditEvent } from "@/lib/audit";
 import type { AdminRole, TeamDiscipline } from "@/app/generated/prisma/client";
 import { hashPassword } from "@/lib/auth/password";
-import { getProtectedOwnerMutationError } from "@/lib/workspace-account-policy";
+import { getProtectedOwnerMutationError, isProtectedWorkspaceOwner } from "@/lib/workspace-account-policy";
 
 const roles: AdminRole[] = ["OWNER", "ADMIN", "EDITOR", "VIEWER"];
 const disciplineOptions: TeamDiscipline[] = ["PHOTOGRAPHER","VIDEOGRAPHER","DRONE_PILOT","EDITOR","CREATIVE_DIRECTOR","OTHER"];
@@ -72,10 +72,13 @@ export async function PATCH(request: Request) {
     await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: "WORKSPACE_OWNERSHIP_TRANSFERRED", entityType: "Workspace", entityId: session.workspaceId, summary: `Workspace ownership transferred to ${target.email}.` });
     return NextResponse.json({ success: true, signedOut: true });
   }
-  if (target.role === "OWNER" && session.role !== "OWNER") return NextResponse.json({ success: false, error: "Only an owner can manage owner accounts." }, { status: 403 });
+  const targetMembership = tenantContextEnabled()
+    ? await prisma.workspaceMembership.findUnique({ where: { workspaceId_userId: { workspaceId: session.workspaceId, userId: target.id } }, select: { role: true } })
+    : null;
+  if (isProtectedWorkspaceOwner(target.role, targetMembership?.role) && session.role !== "OWNER") return NextResponse.json({ success: false, error: "Only an owner can manage owner accounts." }, { status: 403 });
   if (target.id === session.userId && active === false) return NextResponse.json({ success: false, error: "You cannot deactivate your own account." }, { status: 400 });
   if (role === "OWNER" && session.role !== "OWNER") return NextResponse.json({ success: false, error: "Only an owner can grant owner access." }, { status: 403 });
-  const protectedOwnerError = getProtectedOwnerMutationError(target.role, { role, active });
+  const protectedOwnerError = getProtectedOwnerMutationError(target.role, { role, active }, targetMembership?.role);
   if (protectedOwnerError) return NextResponse.json({ success: false, error: protectedOwnerError }, { status: 409 });
   if (password !== null && (password.length < 12 || password.length > 128)) return NextResponse.json({ success: false, error: "Passwords must contain 12–128 characters." }, { status: 400 });
   if (password !== null && session.role !== "OWNER" && target.id !== session.userId) return NextResponse.json({ success: false, error: "Only an owner can reset another user's password." }, { status: 403 });
