@@ -1,3 +1,6 @@
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
+import { tenantContextEnabled } from "@/lib/workspace-context-core";
+import { loadWorkspaceSettings } from "@/lib/workspace-settings-core";
 import { prisma } from "@/lib/prisma";
 import { normalizeGoogleReviewDisplayMode } from "@/lib/google-business-public";
 
@@ -193,8 +196,11 @@ export const defaultSiteSettings: PublicSiteSettings = {
 
 export async function getSiteSettings(): Promise<PublicSiteSettings> {
   try {
-    const settings = await prisma.siteSettings.findUnique({ where: { id: "default" }, select: Object.fromEntries(Object.keys(defaultSiteSettings).map((key) => [key, true])) as Record<keyof PublicSiteSettings, true> });
-    if (!settings) return defaultSiteSettings;
+    const settings = await loadWorkspaceSettings(
+      tenantContextEnabled(), getPublicWorkspaceId,
+      (where) => prisma.siteSettings.findUnique({ where, select: Object.fromEntries(Object.keys(defaultSiteSettings).map((key) => [key, true])) as Record<keyof PublicSiteSettings, true> }),
+      defaultSiteSettings,
+    );
     return {
       ...settings,
       googleReviewDisplayMode: normalizeGoogleReviewDisplayMode(settings.googleReviewDisplayMode),
@@ -204,6 +210,7 @@ export async function getSiteSettings(): Promise<PublicSiteSettings> {
       footerNavigation: Array.isArray(settings.footerNavigation) ? settings.footerNavigation as PublicNavigationItem[] : defaultFooterNavigation,
     };
   } catch (error) {
+    if (tenantContextEnabled()) throw error;
     if (process.env.NODE_ENV !== "production") console.warn("Using default site settings because the database is unavailable.", error);
     return defaultSiteSettings;
   }
