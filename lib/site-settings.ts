@@ -194,10 +194,10 @@ export const defaultSiteSettings: PublicSiteSettings = {
   termsOfServicePublished: false,
 };
 
-export async function getSiteSettings(): Promise<PublicSiteSettings> {
+export async function getSiteSettings(workspaceId?: string): Promise<PublicSiteSettings> {
   try {
     const settings = await loadWorkspaceSettings(
-      tenantContextEnabled(), getPublicWorkspaceId,
+      tenantContextEnabled(), workspaceId ? async () => workspaceId : getPublicWorkspaceId,
       (where) => prisma.siteSettings.findUnique({ where, select: Object.fromEntries(Object.keys(defaultSiteSettings).map((key) => [key, true])) as Record<keyof PublicSiteSettings, true> }),
       defaultSiteSettings,
     );

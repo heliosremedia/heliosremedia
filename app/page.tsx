@@ -42,7 +42,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function Home() {
   const publicWorkspaceId = await getPublicWorkspaceId();
-  const settings = await getSiteSettings();
+  const settings = await getSiteSettings(publicWorkspaceId);
   const googleReviewDisplayMode = normalizeGoogleReviewDisplayMode(settings.googleReviewDisplayMode);
   const [testimonials, googleReviews, googleReviewAggregate, trustedLogos, homepageProjects, homepageWorkCards, homepageCta] = await Promise.all([
     prisma.testimonial.findMany({
@@ -67,13 +67,13 @@ export default async function Home() {
       select: { id: true, organizationName: true, logoUrl: true, logoAlt: true, websiteUrl: true, monochrome: true, displayColor: true, displayOpacity: true, displayScale: true },
     }),
     prisma.homepageProject.findMany({
-      where: { active: true, project: { status: "PUBLISHED" } },
+      where: { active: true, project: { workspaceId: publicWorkspaceId, status: "PUBLISHED" } },
       orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
       take: 1,
       select: { titleOverride: true, project: { select: { title: true, slug: true, heroMedia: { select: { storageKey: true, altText: true } } } } },
     }),
     prisma.homepageWorkCard.findMany({
-      where: { active: true, service: { active: true } },
+      where: { active: true, service: { workspaceId: publicWorkspaceId, active: true }, OR: [{ featuredMediaId: null }, { featuredMedia: { project: { workspaceId: publicWorkspaceId } } }] },
       orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
       take: 5,
       select: {

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { deleteContentImage, verifyContentImage } from "@/lib/content-image-storage";
 import { prisma } from "@/lib/prisma";
+import { getAdminSession } from "@/lib/auth/session";
 
 const select = {
   id: true,
@@ -45,11 +46,13 @@ function refresh() {
 
 export async function POST(request: Request) {
   try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
     const body = (await request.json()) as Record<string, unknown>;
     const serviceId = typeof body.serviceId === "string" ? body.serviceId.trim() : "";
     const [service, count] = await Promise.all([
-      prisma.service.findFirst({ where: { id: serviceId, active: true }, select: { id: true, slug: true } }),
-      prisma.homepageWorkCard.count(),
+      prisma.service.findFirst({ where: { id: serviceId, workspaceId: session.workspaceId, active: true }, select: { id: true, slug: true } }),
+      prisma.homepageWorkCard.count({ where: { service: { workspaceId: session.workspaceId } } }),
     ]);
     if (!service) return NextResponse.json({ success: false, error: "Select an active service." }, { status: 400 });
     if (count >= 5) return NextResponse.json({ success: false, error: "The homepage supports up to five work cards." }, { status: 409 });
@@ -68,27 +71,29 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
     const body = (await request.json()) as Record<string, unknown>;
     if (body.action === "reorder") {
       const ids = Array.isArray(body.cardIds) ? body.cardIds.filter((id): id is string => typeof id === "string") : [];
-      const current = await prisma.homepageWorkCard.findMany({ select: { id: true } });
+      const current = await prisma.homepageWorkCard.findMany({ where: { service: { workspaceId: session.workspaceId }, OR: [{ featuredMediaId: null }, { featuredMedia: { project: { workspaceId: session.workspaceId } } }] }, select: { id: true } });
       if (ids.length !== current.length || new Set(ids).size !== ids.length || current.some(({ id }) => !ids.includes(id))) {
         return NextResponse.json({ success: false, error: "Homepage cards changed before the order was saved." }, { status: 409 });
       }
-      await prisma.$transaction(ids.map((id, displayOrder) => prisma.homepageWorkCard.update({ where: { id }, data: { displayOrder } })));
+      await prisma.$transaction(ids.map((id, displayOrder) => prisma.homepageWorkCard.updateMany({ where: { id, service: { workspaceId: session.workspaceId } }, data: { displayOrder } })));
       refresh();
       return NextResponse.json({ success: true, cardIds: ids });
     }
 
     const cardId = typeof body.cardId === "string" ? body.cardId.trim() : "";
-    const existing = await prisma.homepageWorkCard.findUnique({ where: { id: cardId }, include: { service: { select: { slug: true } } } });
+    const existing = await prisma.homepageWorkCard.findFirst({ where: { id: cardId, service: { workspaceId: session.workspaceId }, OR: [{ featuredMediaId: null }, { featuredMedia: { project: { workspaceId: session.workspaceId } } }] }, include: { service: { select: { slug: true } } } });
     if (!existing) return NextResponse.json({ success: false, error: "Homepage card not found." }, { status: 404 });
 
     const nextServiceId = typeof body.serviceId === "string" && body.serviceId.trim() ? body.serviceId.trim() : existing.serviceId;
-    const nextService = await prisma.service.findFirst({ where: { id: nextServiceId, active: true }, select: { id: true, slug: true } });
+    const nextService = await prisma.service.findFirst({ where: { id: nextServiceId, workspaceId: session.workspaceId, active: true }, select: { id: true, slug: true } });
     if (!nextService) return NextResponse.json({ success: false, error: "Select an active service for this card." }, { status: 400 });
     if (nextServiceId !== existing.serviceId) {
-      const duplicate = await prisma.homepageWorkCard.findUnique({ where: { serviceId: nextServiceId }, select: { id: true } });
+      const duplicate = await prisma.homepageWorkCard.findFirst({ where: { serviceId: nextServiceId, service: { workspaceId: session.workspaceId } }, select: { id: true } });
       if (duplicate) return NextResponse.json({ success: false, error: "That service is already assigned to another homepage card." }, { status: 409 });
     }
 
@@ -107,7 +112,7 @@ export async function PATCH(request: Request) {
           id: featuredMediaId,
           visibility: "VISIBLE",
           sourceType: { in: ["UPLOADED_VIDEO", "VIDEO_EMBED"] },
-          project: { status: "PUBLISHED" },
+          project: { workspaceId: session.workspaceId, status: "PUBLISHED" },
         },
         select: { id: true },
       }) : null;
@@ -120,8 +125,8 @@ export async function PATCH(request: Request) {
     if (imageStorageKey !== existing.imageStorageKey) await verifyContentImage(imageStorageKey);
     if (videoStorageKey !== existing.videoStorageKey) await verifyContentImage(videoStorageKey);
 
-    const card = await prisma.homepageWorkCard.update({
-      where: { id: cardId },
+    const changed = await prisma.homepageWorkCard.updateMany({
+      where: { id: cardId, service: { workspaceId: session.workspaceId } },
       data: {
         titleOverride: textValue(body.titleOverride, 120),
         serviceId: nextService.id,
@@ -135,8 +140,9 @@ export async function PATCH(request: Request) {
         videoUrl: textValue(body.videoUrl, 1500),
         ...(typeof body.active === "boolean" ? { active: body.active } : {}),
       },
-      select,
     });
+    if (changed.count !== 1) return NextResponse.json({ success: false, error: "Homepage card not found." }, { status: 404 });
+    const card = await prisma.homepageWorkCard.findFirstOrThrow({ where: { id: cardId, service: { workspaceId: session.workspaceId }, OR: [{ featuredMediaId: null }, { featuredMedia: { project: { workspaceId: session.workspaceId } } }] }, select });
 
     if (imageStorageKey !== existing.imageStorageKey) await deleteContentImage(existing.imageStorageKey);
     if (videoStorageKey !== existing.videoStorageKey) await deleteContentImage(existing.videoStorageKey);
@@ -153,9 +159,14 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
     const id = new URL(request.url).searchParams.get("cardId")?.trim();
     if (!id) return NextResponse.json({ success: false, error: "A card ID is required." }, { status: 400 });
-    const card = await prisma.homepageWorkCard.delete({ where: { id }, select: { id: true, imageStorageKey: true, videoStorageKey: true } });
+    const card = await prisma.homepageWorkCard.findFirst({ where: { id, service: { workspaceId: session.workspaceId }, OR: [{ featuredMediaId: null }, { featuredMedia: { project: { workspaceId: session.workspaceId } } }] }, select: { id: true, imageStorageKey: true, videoStorageKey: true } });
+    if (!card) return NextResponse.json({ success: false, error: "Homepage card not found." }, { status: 404 });
+    const deleted = await prisma.homepageWorkCard.deleteMany({ where: { id: card.id, service: { workspaceId: session.workspaceId } } });
+    if (deleted.count !== 1) return NextResponse.json({ success: false, error: "Homepage card changed before deletion." }, { status: 409 });
     await Promise.all([deleteContentImage(card.imageStorageKey), deleteContentImage(card.videoStorageKey)]);
     refresh();
     return NextResponse.json({ success: true, deletedCardId: card.id });
