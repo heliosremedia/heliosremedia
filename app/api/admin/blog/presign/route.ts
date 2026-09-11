@@ -1,3 +1,4 @@
+import { withBrandUploadAsset } from "@/lib/workspace-brand-assets";
 import { getAdminSession } from "@/lib/auth/session";
 import { requireLegacyBlogAccess } from "@/lib/blog-access";
 import { NextResponse } from "next/server";
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
     };
     validateImageUpload(file);
     const key = createBlogImageKey(session.workspaceId, file.type);
-    return NextResponse.json({ success: true, upload: { key, uploadUrl: await createPresignedUploadUrl(key, file.type), publicUrl: getPublicAssetUrl(key), contentType: file.type } });
+    return NextResponse.json({ success: true, upload: { key, uploadUrl: await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, kind: "blog", key, byteSize: file.size }, () => createPresignedUploadUrl(key, file.type)), publicUrl: getPublicAssetUrl(key), contentType: file.type } });
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : "Unable to prepare this image.";
     return NextResponse.json({ success: false, error: message }, { status: message.startsWith("Unsupported") || message.includes("25 MB") ? 400 : 500 });
