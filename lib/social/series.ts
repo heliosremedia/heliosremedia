@@ -1,4 +1,5 @@
-import type { SocialPlatform, SocialRecurrenceFrequency } from "@/app/generated/prisma/client";
+import { requireLockedWorkspaceEditor, type WorkspaceWriteActor } from "@/lib/workspace-write-access";
+import type { Prisma, SocialPlatform, SocialRecurrenceFrequency } from "@/app/generated/prisma/client";
 import { zonedLocalToUtc } from "@/lib/client-communications/scheduling";
 import { prisma } from "@/lib/prisma";
 import { recurrenceDates, SOCIAL_PLATFORMS } from "./core";
@@ -11,29 +12,32 @@ const dateKey = (value: Date) => [
 
 export async function generateSeriesOccurrences(input: {
   seriesId: string;
-  workspaceId: string;
+  actor: WorkspaceWriteActor;
   through: Date;
-}) {
-  const series = await prisma.socialSeries.findFirst({
-    where: { id: input.seriesId, workspaceId: input.workspaceId, status: "ACTIVE" },
-  });
-  if (!series) throw new Error("Series not found.");
-  const [hour, minute] = series.localTime.split(":").map(Number);
-  const localDates = recurrenceDates({
-    startsAt: series.startsAt,
-    through: series.endsAt && series.endsAt < input.through ? series.endsAt : input.through,
-    frequency: series.frequency,
-    interval: series.interval,
-    dayOfWeek: series.dayOfWeek,
-    dayOfMonth: series.dayOfMonth,
-    hour,
-    minute,
-  });
-  const platforms = Array.isArray(series.defaultPlatforms)
-    ? series.defaultPlatforms.filter((value): value is SocialPlatform => typeof value === "string" && SOCIAL_PLATFORMS.includes(value as never))
-    : [];
-  let created = 0;
-  await prisma.$transaction(async (tx) => {
+}, transaction?: Prisma.TransactionClient) {
+  if (!Number.isFinite(input.through.getTime())) throw new Error("INVALID_SERIES_DATE");
+  const perform = async (tx: Prisma.TransactionClient) => {
+    await requireLockedWorkspaceEditor(tx, input.actor);
+    await tx.$queryRaw`SELECT id FROM "SocialSeries" WHERE id=${input.seriesId} AND "workspaceId"=${input.actor.workspaceId} FOR UPDATE`;
+    const series = await tx.socialSeries.findFirst({
+      where: { id: input.seriesId, workspaceId: input.actor.workspaceId, status: "ACTIVE" },
+    });
+    if (!series) throw new Error("SOCIAL_SERIES_NOT_FOUND");
+    const [hour, minute] = series.localTime.split(":").map(Number);
+    const localDates = recurrenceDates({
+      startsAt: series.startsAt,
+      through: series.endsAt && series.endsAt < input.through ? series.endsAt : input.through,
+      frequency: series.frequency,
+      interval: series.interval,
+      dayOfWeek: series.dayOfWeek,
+      dayOfMonth: series.dayOfMonth,
+      hour,
+      minute,
+    });
+    const platforms = Array.isArray(series.defaultPlatforms)
+      ? series.defaultPlatforms.filter((value): value is SocialPlatform => typeof value === "string" && SOCIAL_PLATFORMS.includes(value as never))
+      : [];
+    let created = 0;
     for (const [sequence, localDate] of localDates.entries()) {
       const scheduledAt = zonedLocalToUtc(`${dateKey(localDate)}T${series.localTime}`, series.timeZone);
       for (const platform of platforms) {
@@ -45,11 +49,12 @@ export async function generateSeriesOccurrences(input: {
       }
     }
     await tx.socialSeries.update({
-      where: { id: series.id },
+      where: { id: series.id, workspaceId: input.actor.workspaceId, status: "ACTIVE" },
       data: { generationThrough: input.through },
     });
-  });
-  return { created, inspected: localDates.length * platforms.length };
+    return { created, inspected: localDates.length * platforms.length };
+  };
+  return transaction ? perform(transaction) : prisma.$transaction(perform);
 }
 
 export function normalizeSeriesFrequency(value: unknown): SocialRecurrenceFrequency {
