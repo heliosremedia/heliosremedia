@@ -1,3 +1,6 @@
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
+import { canUseLegacyPortalProvider } from "@/lib/client-portal/ownership";
 import { NextResponse } from "next/server";
 
 import { sendPortalVerificationEmail } from "@/lib/client-portal/email";
@@ -9,10 +12,12 @@ import { getSiteSettings } from "@/lib/site-settings";
 
 export async function POST(request: Request) {
   try {
+    const workspaceId = await getPublicWorkspaceId();
+    const scope = await getContentOwnershipScope(workspaceId);
     const body = await request.json() as Record<string, unknown>;
     const slug = typeof body.slug === "string" ? body.slug.trim() : "";
     const email = normalizeEmail(body.email);
-    const portal = await prisma.clientPortal.findFirst({ where: { slug, active: true } });
+    const portal = await prisma.clientPortal.findFirst({ where: { ...scope, slug, active: true } });
     if (!portal) return NextResponse.json({ success: false, error: "This client portal is not available." }, { status: 404 });
 
     if (portal.provider === "EXTERNAL") {
@@ -21,11 +26,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, redirectUrl: destination });
     }
 
+    if (!await canUseLegacyPortalProvider(workspaceId)) return NextResponse.json({ success: false, error: "Client access is not configured for this company." }, { status: 503 });
     const requestFingerprint = portalRequestFingerprint(request);
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const [recent, recentFromAddress] = await Promise.all([
       prisma.clientPortalChallenge.count({ where: { portalId: portal.id, email, createdAt: { gte: oneHourAgo } } }),
-      prisma.clientPortalChallenge.count({ where: { requestFingerprint, createdAt: { gte: oneHourAgo } } }),
+      prisma.clientPortalChallenge.count({ where: { portal: scope, requestFingerprint, createdAt: { gte: oneHourAgo } } }),
     ]);
     if (recent >= 5) return NextResponse.json({ success: false, error: "Too many access requests were made. Please wait before trying again." }, { status: 429 });
     if (recentFromAddress >= 20) return NextResponse.json({ success: false, error: "Too many access requests were made. Please wait before trying again." }, { status: 429 });
@@ -41,7 +47,7 @@ export async function POST(request: Request) {
     const purpose = user ? "LOGIN" as const : "REGISTER" as const;
     const token = createPortalToken();
     const challenge = await prisma.clientPortalChallenge.create({ data: { portalId: portal.id, purpose, email, tokenHash: hashPortalToken(token), requestFingerprint, expiresAt: new Date(Date.now() + 15 * 60 * 1000) }, select: { id: true } });
-    const settings = await getSiteSettings();
+    const settings = await getSiteSettings(workspaceId);
     const verificationUrl = new URL("/api/client-portal/verify", request.url);
     verificationUrl.searchParams.set("token", token);
     try {

@@ -1,3 +1,5 @@
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
@@ -10,7 +12,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Complete Client Registration | Helios", robots: { index: false, follow: false } };
 export default async function CompleteRegistrationPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const portal = await prisma.clientPortal.findFirst({ where: { slug, active: true, registrationEnabled: true } });
+  const portal = await prisma.clientPortal.findFirst({ where: { ...await getContentOwnershipScope(await getPublicWorkspaceId()), slug, active: true, registrationEnabled: true } });
   if (!portal) notFound();
   const session = verifyRegistrationSession((await cookies()).get(PORTAL_REGISTRATION_COOKIE)?.value);
   if (!session || session.portalId !== portal.id) redirect(`/client-portal/${slug}?error=Your+registration+link+expired.+Please+start+again.`);

@@ -1,10 +1,13 @@
+import { canUseLegacyPortalProvider } from "@/lib/client-portal/ownership";
 import { NextResponse } from "next/server";
 
 import { getAdminSession } from "@/lib/auth/session";
 import { getHdPhotoHubBrand, getHdPhotoHubGroups, isHdPhotoHubConfigured } from "@/lib/client-portal/hdphotohub";
 
 export async function GET() {
-  if (!(await getAdminSession())) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+  const session = await getAdminSession();
+  if (!session || !["OWNER", "ADMIN"].includes(session.role)) return NextResponse.json({ success: false, error: "Administrator access is required." }, { status: 403 });
+  if (!await canUseLegacyPortalProvider(session.workspaceId)) return NextResponse.json({ success: false, configured: false, error: "Client access is not configured for this company." }, { status: 503 });
   if (!isHdPhotoHubConfigured()) return NextResponse.json({ success: false, configured: false, error: "Add HDPH_API_KEY to the deployment environment first." }, { status: 503 });
 
   try {
