@@ -1,3 +1,4 @@
+import { tenantContextEnabled } from "@/lib/workspace-context-core";
 import type { MetadataRoute } from "next";
 
 import { prisma } from "@/lib/prisma";
@@ -29,7 +30,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     prisma.service.findMany({ where: { workspaceId, active: true, archivedAt: null }, select: { slug: true, updatedAt: true } }),
     prisma.legalDocument.findMany({ where: { published: true }, select: { type: true, updatedAt: true } }),
     getPublishedLocationPages(),
-    prisma.blogPost.findMany({ where: { OR: [{ status: "PUBLISHED", publishedAt: { lte: new Date() } }, { status: "SCHEDULED", scheduledAt: { lte: new Date() } }] }, select: { slug: true, updatedAt: true } }),
+    prisma.blogPost.findMany({ where: { ...(tenantContextEnabled() ? { workspaceId } : {}), OR: [{ status: "PUBLISHED", publishedAt: { lte: new Date() } }, { status: "SCHEDULED", scheduledAt: { lte: new Date() } }] }, select: { slug: true, updatedAt: true } }),
   ]);
 
   const staticPages: MetadataRoute.Sitemap = [

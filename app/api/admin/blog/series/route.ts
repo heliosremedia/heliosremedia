@@ -1,3 +1,4 @@
+import { getAdminSession } from "@/lib/auth/session";
 import { requireLegacyBlogAccess } from "@/lib/blog-access";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -32,7 +33,9 @@ export async function POST(request: Request) {
   const accessError = await requireLegacyBlogAccess();
   if (accessError) return accessError;
   try {
-    const series = await prisma.blogSeries.create({ data: payload(await request.json()) });
+    const session = await getAdminSession();
+    if (!session) return NextResponse.json({ success: false }, { status: 403 });
+    const series = await prisma.blogSeries.create({ data: { ...payload(await request.json()), workspaceId: session.workspaceId } });
     return NextResponse.json({ success: true, series }, { status: 201 });
   } catch {
     return NextResponse.json({ success: false, error: "Complete the required series fields and choose a valid publication date." }, { status: 400 });

@@ -1264,6 +1264,10 @@ model SiteSettings {
 
 model BlogPost {
   id String @id @default(cuid())
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  @@index([workspaceId])
 
   title    String
   slug     String  @unique
@@ -1310,6 +1314,10 @@ model BlogPost {
 
 model BlogSeries {
   id String @id @default(cuid())
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  @@index([workspaceId])
 
   name             String
   purpose          String
@@ -1655,6 +1663,8 @@ model Workspace {
   domains                   WorkspaceDomain[]
   testimonials              Testimonial[]
   trustedLogos              TrustedLogo[]
+  blogPosts                 BlogPost[]
+  blogSeries                BlogSeries[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

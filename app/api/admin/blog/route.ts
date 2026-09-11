@@ -1,3 +1,4 @@
+import { getAdminSession } from "@/lib/auth/session";
 import { requireLegacyBlogAccess } from "@/lib/blog-access";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
@@ -76,7 +77,9 @@ export async function POST(request: Request) {
   const accessError = await requireLegacyBlogAccess();
   if (accessError) return accessError;
   try {
-    const post = await prisma.blogPost.create({ data: data(await request.json()) });
+    const session = await getAdminSession();
+    if (!session) return NextResponse.json({ success: false }, { status: 403 });
+    const post = await prisma.blogPost.create({ data: { ...data(await request.json()), workspaceId: session.workspaceId } });
     refresh(post.slug);
     return NextResponse.json({ success: true, post }, { status: 201 });
   } catch (cause) {
