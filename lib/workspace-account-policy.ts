@@ -5,11 +5,16 @@ type AccountMutation = {
   active: boolean | null;
 };
 
+export function isProtectedWorkspaceOwner(legacyRole: AdminRole, membershipRole?: AdminRole | null) {
+  return legacyRole === "OWNER" || membershipRole === "OWNER";
+}
+
 export function getProtectedOwnerMutationError(
   targetRole: AdminRole,
   mutation: AccountMutation,
+  membershipRole?: AdminRole | null,
 ) {
-  if (targetRole !== "OWNER") return null;
+  if (!isProtectedWorkspaceOwner(targetRole, membershipRole)) return null;
   if (mutation.active === false) {
     return "The workspace owner cannot be deactivated.";
   }

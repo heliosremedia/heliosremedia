@@ -1,3 +1,5 @@
+import { getWorkspaceAccess } from "@/lib/workspace-memberships";
+import { membershipWritesEnabled } from "@/lib/workspace-membership-lifecycle";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { recordAuditEvent } from "@/lib/audit";
@@ -42,7 +44,14 @@ export async function POST(request: Request) {
     const passwordHash = normalizeEnvironmentValue(process.env.HELIOS_ADMIN_PASSWORD_HASH, "HELIOS_ADMIN_PASSWORD_HASH");
     if (ownerEmail && passwordHash && !/^scrypt:[a-f0-9]{32}:[a-f0-9]{128}$/i.test(passwordHash)) return NextResponse.json({ success: false, error: "The admin password hash is not valid. Generate and replace it in the deployment settings." }, { status: 503 });
 
-    if (ownerEmail && passwordHash) await prisma.adminUser.upsert({ where: { email: ownerEmail }, create: { email: ownerEmail, displayName: process.env.HELIOS_ADMIN_NAME?.trim() || "Helios Owner", role: "OWNER", workspace: { connectOrCreate: { where: { slug: "helios" }, create: { name: "Helios Real Estate Media", slug: "helios" } } } }, update: {} });
+    if (ownerEmail && passwordHash) {
+      await prisma.$transaction(async (tx) => {
+        const existing = await tx.adminUser.findUnique({ where: { email: ownerEmail }, select: { id: true } });
+        if (existing) return;
+        const owner = await tx.adminUser.create({ data: { email: ownerEmail, displayName: process.env.HELIOS_ADMIN_NAME?.trim() || "Helios Owner", role: "OWNER", workspace: { connectOrCreate: { where: { slug: "helios" }, create: { name: "Helios Real Estate Media", slug: "helios" } } } } });
+        if (membershipWritesEnabled()) await tx.workspaceMembership.create({ data: { userId: owner.id, workspaceId: owner.workspaceId, role: owner.role, status: "ACTIVE" } });
+      });
+    }
     const user = await prisma.adminUser.findUnique({ where: { email } });
     if (!user) return NextResponse.json({ success: false, error: "The email or password is incorrect." }, { status: 401 });
     const context = requestContext(request);
@@ -58,6 +67,8 @@ export async function POST(request: Request) {
       await recordAuditEvent({ actorId: user.id, actorEmail: email || null, action: "AUTH_LOGIN_FAILED", entityType: "AdminUser", entityId: user.id, summary: lockedUntil ? "Admin account temporarily locked after repeated failed sign-ins." : "Failed admin sign-in attempt.", ...context });
       return NextResponse.json({ success: false, error: "The email or password is incorrect." }, { status: 401 });
     }
+
+    if (!await getWorkspaceAccess(user)) return NextResponse.json({ success: false, error: "Workspace access is unavailable." }, { status: 403 });
 
     await prisma.adminUser.update({ where: { id: user.id }, data: { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date() } });
     await recordAuditEvent({ actorId: user.id, actorEmail: user.email, action: "AUTH_LOGIN_SUCCEEDED", entityType: "AdminUser", entityId: user.id, summary: "Admin signed in.", ...context });

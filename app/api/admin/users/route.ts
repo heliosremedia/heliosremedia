@@ -1,3 +1,6 @@
+import { checkLockedAccountMutation } from "@/lib/workspace-account-mutation";
+import { tenantContextEnabled } from "@/lib/workspace-context-core";
+import { updateCompatibilityMembership } from "@/lib/workspace-membership-lifecycle";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -7,7 +10,7 @@ import { getAbsoluteUrl } from "@/lib/site";
 import { recordAuditEvent } from "@/lib/audit";
 import type { AdminRole, TeamDiscipline } from "@/app/generated/prisma/client";
 import { hashPassword } from "@/lib/auth/password";
-import { getProtectedOwnerMutationError } from "@/lib/workspace-account-policy";
+import { getProtectedOwnerMutationError, isProtectedWorkspaceOwner } from "@/lib/workspace-account-policy";
 
 const roles: AdminRole[] = ["OWNER", "ADMIN", "EDITOR", "VIEWER"];
 const disciplineOptions: TeamDiscipline[] = ["PHOTOGRAPHER","VIDEOGRAPHER","DRONE_PILOT","EDITOR","CREATIVE_DIRECTOR","OTHER"];
@@ -55,17 +58,29 @@ export async function PATCH(request: Request) {
   if (!target) return NextResponse.json({ success: false, error: "User not found." }, { status: 404 });
   if (action === "transferOwnership") {
     if (session.role !== "OWNER" || target.id === session.userId || !target.active) return NextResponse.json({ success: false, error: "Ownership can only be transferred by the current owner to another active workspace user." }, { status: 403 });
-    await prisma.$transaction([
-      prisma.adminUser.update({ where: { id: target.id }, data: { role: "OWNER" } }),
-      prisma.adminUser.update({ where: { id: session.userId }, data: { role: "ADMIN", sessionVersion: { increment: 1 } } }),
-    ]);
+    const transferred = await prisma.$transaction(async (tx) => {
+      if (await checkLockedAccountMutation(tx, session, target.id, { transfer: true, role: null, active: null, password: false })) return false;
+      if (tenantContextEnabled()) {
+        const membership = await tx.workspaceMembership.findUnique({ where: { workspaceId_userId: { workspaceId: session.workspaceId, userId: target.id } } });
+        if (membership?.status !== "ACTIVE") return false;
+      }
+      const promoted = await tx.adminUser.update({ where: { id: target.id, workspaceId: session.workspaceId }, data: { role: "OWNER" } });
+      const demoted = await tx.adminUser.update({ where: { id: session.userId, workspaceId: session.workspaceId }, data: { role: "ADMIN", sessionVersion: { increment: 1 } } });
+      await updateCompatibilityMembership(tx, promoted, { role: true });
+      await updateCompatibilityMembership(tx, demoted, { role: true });
+      return true;
+    });
+    if (!transferred) return NextResponse.json({ success: false, error: "The new owner must have active workspace access." }, { status: 409 });
     await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: "WORKSPACE_OWNERSHIP_TRANSFERRED", entityType: "Workspace", entityId: session.workspaceId, summary: `Workspace ownership transferred to ${target.email}.` });
     return NextResponse.json({ success: true, signedOut: true });
   }
-  if (target.role === "OWNER" && session.role !== "OWNER") return NextResponse.json({ success: false, error: "Only an owner can manage owner accounts." }, { status: 403 });
+  const targetMembership = tenantContextEnabled()
+    ? await prisma.workspaceMembership.findUnique({ where: { workspaceId_userId: { workspaceId: session.workspaceId, userId: target.id } }, select: { role: true } })
+    : null;
+  if (isProtectedWorkspaceOwner(target.role, targetMembership?.role) && session.role !== "OWNER") return NextResponse.json({ success: false, error: "Only an owner can manage owner accounts." }, { status: 403 });
   if (target.id === session.userId && active === false) return NextResponse.json({ success: false, error: "You cannot deactivate your own account." }, { status: 400 });
   if (role === "OWNER" && session.role !== "OWNER") return NextResponse.json({ success: false, error: "Only an owner can grant owner access." }, { status: 403 });
-  const protectedOwnerError = getProtectedOwnerMutationError(target.role, { role, active });
+  const protectedOwnerError = getProtectedOwnerMutationError(target.role, { role, active }, targetMembership?.role);
   if (protectedOwnerError) return NextResponse.json({ success: false, error: protectedOwnerError }, { status: 409 });
   if (password !== null && (password.length < 12 || password.length > 128)) return NextResponse.json({ success: false, error: "Passwords must contain 12–128 characters." }, { status: 400 });
   if (password !== null && session.role !== "OWNER" && target.id !== session.userId) return NextResponse.json({ success: false, error: "Only an owner can reset another user's password." }, { status: 403 });
@@ -74,7 +89,14 @@ export async function PATCH(request: Request) {
   if (phone && !/^\+?\d{7,15}$/.test(phone)) return NextResponse.json({ success: false, error: "Enter a valid phone number." }, { status: 400 });
   const passwordHash = password !== null ? await hashPassword(password) : null;
   const revokeSessions = password !== null || active === false;
-  const updated = await prisma.adminUser.update({ where: { id: userId }, data: { ...(role ? { role } : {}), ...(active !== null ? { active, state: active ? "ACTIVE" : "DEACTIVATED" } : {}), ...(nextDisplayName !== null ? { displayName: nextDisplayName } : {}), ...(nextTitle !== undefined ? { title: nextTitle } : {}), ...(firstName !== undefined ? { firstName } : {}), ...(lastName !== undefined ? { lastName } : {}), ...(phone !== undefined ? { phone } : {}), ...(selectedDisciplines ? { disciplines: selectedDisciplines } : {}), ...(passwordHash ? { passwordHash, failedLoginCount: 0, lockedUntil: null } : {}), ...(revokeSessions ? { sessionVersion: { increment: 1 } } : {}) }, select: { id: true, displayName: true, title: true, firstName: true, lastName: true, phone: true, disciplines: true, role: true, active: true, state: true } });
+  const updated = await prisma.$transaction(async (tx) => {
+    const error = await checkLockedAccountMutation(tx, session, userId, { role, active, password: password !== null });
+    if (error) return { error } as const;
+    const saved = await tx.adminUser.update({ where: { id: userId, workspaceId: session.workspaceId }, data: { ...(role ? { role } : {}), ...(active !== null ? { active, state: active ? "ACTIVE" : "DEACTIVATED" } : {}), ...(nextDisplayName !== null ? { displayName: nextDisplayName } : {}), ...(nextTitle !== undefined ? { title: nextTitle } : {}), ...(firstName !== undefined ? { firstName } : {}), ...(lastName !== undefined ? { lastName } : {}), ...(phone !== undefined ? { phone } : {}), ...(selectedDisciplines ? { disciplines: selectedDisciplines } : {}), ...(passwordHash ? { passwordHash, failedLoginCount: 0, lockedUntil: null } : {}), ...(revokeSessions ? { sessionVersion: { increment: 1 } } : {}) }, select: { id: true, displayName: true, title: true, firstName: true, lastName: true, phone: true, disciplines: true, role: true, active: true, state: true } });
+    await updateCompatibilityMembership(tx, { ...saved, workspaceId: session.workspaceId }, { role: role !== null, active: active !== null });
+    return saved;
+  });
+  if ("error" in updated) return NextResponse.json({ success: false, error: updated.error }, { status: 409 });
   await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: password !== null ? "USER_PASSWORD_RESET" : "USER_UPDATED", entityType: "AdminUser", entityId: userId, summary: password !== null ? `${target.email} password reset and active sessions revoked.` : `${target.email} account access updated.` });
   revalidatePath("/admin/users");
   return NextResponse.json({ success: true, user: updated });
