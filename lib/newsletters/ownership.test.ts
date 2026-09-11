@@ -88,7 +88,7 @@ test("actual delivery aborts a foreign approval before recipients, tokens or pro
   const exports: { deliverApprovedNewsletter?: (id: string) => Promise<unknown> } = {};
   let providerCalls = 0;
   const modules: Record<string, unknown> = {
-    "server-only": {}, "node:crypto": {}, "./recipient-identity": {},
+    "server-only": {}, "node:crypto": {}, "./recipient-identity": {}, "@/lib/client-communications/campaign-ownership": {},
     "@/lib/newsletters/ownership": { requireNewsletterApprovalWorkspace: async () => { throw new Error("Foreign approval"); } },
     "@/lib/prisma": { prisma: { newsletterEdition: { findUnique: async () => ({ status: "SCHEDULED", series: { status: "ACTIVE", workspaceId: "a" }, approvedRevision: { id: "revision" }, approvedRevisionId: "revision", approvals: [{ recipientSelectionSnapshot: { mode: "ALL", workspaceId: "b" } }] }) } } },
     "@/lib/client-communications/email": { sendCampaignBatch: async () => { providerCalls++; } },

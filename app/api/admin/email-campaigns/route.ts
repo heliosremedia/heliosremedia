@@ -1,6 +1,7 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { NextResponse } from "next/server";
 import { recordAuditEvent } from "@/lib/audit";
-import { getAdminSession } from "@/lib/auth/session";
+import { getCampaignAdminSession as getAdminSession } from "@/lib/client-communications/campaign-ownership";
 import { processEmailCampaign } from "@/lib/client-communications/campaign-delivery";
 import { renderCampaignEmail, sendTestCampaign } from "@/lib/client-communications/email";
 import { EmailDeliveryError } from "@/lib/client-communications/email";
@@ -41,6 +42,7 @@ export async function POST(request: Request) {
   const session = await authorizedSession();
   if (!session) return NextResponse.json({ success: false, error: "Owner or administrator access is required." }, { status: 403 });
   try {
+    const scope = await getContentOwnershipScope(session.workspaceId);
     const input = await request.json() as Payload;
     const subject = cleanText(input.subject, 160);
     const previewText = cleanText(input.previewText, 180);
@@ -68,11 +70,12 @@ export async function POST(request: Request) {
       const clientIds = [...new Set((input.clientIds ?? []).filter((value): value is string => typeof value === "string"))];
       const selection = { groupIds, clientIds };
       const existing = input.draftId ? await prisma.emailCampaign.findFirst({
-        where: { id: input.draftId, status: "DRAFT", createdById: session.userId }, select: { id: true },
+        where: { id: input.draftId, status: "DRAFT", createdById: session.userId, AND: [scope] }, select: { id: true },
       }) : null;
+      if (input.draftId && !existing) return NextResponse.json({ success: false, error: "Draft not found." }, { status: 404 });
       const campaign = existing
-        ? await prisma.emailCampaign.update({ where: { id: existing.id }, data: { subject: subject || "Untitled email", previewText: previewText || null, body, templateKey, imageUrl: imageUrl || null, imageAlt: imageUrl ? imageAlt || null : null, imageCaption, imageLink, recipientMode: mode, selection, rowVersion: { increment: 1 } } })
-        : await prisma.emailCampaign.create({ data: { subject: subject || "Untitled email", previewText: previewText || null, body, templateKey, imageUrl: imageUrl || null, imageAlt: imageUrl ? imageAlt || null : null, imageCaption, imageLink, status: "DRAFT", recipientMode: mode, selection, recipientCount: 0, createdById: session.userId } });
+        ? await prisma.emailCampaign.update({ where: { id: existing.id, AND: [scope] }, data: { subject: subject || "Untitled email", previewText: previewText || null, body, templateKey, imageUrl: imageUrl || null, imageAlt: imageUrl ? imageAlt || null : null, imageCaption, imageLink, recipientMode: mode, selection, rowVersion: { increment: 1 } } })
+        : await prisma.emailCampaign.create({ data: { workspaceId: session.workspaceId, subject: subject || "Untitled email", previewText: previewText || null, body, templateKey, imageUrl: imageUrl || null, imageAlt: imageUrl ? imageAlt || null : null, imageCaption, imageLink, status: "DRAFT", recipientMode: mode, selection, recipientCount: 0, createdById: session.userId } });
       await recordAuditEvent({
         actorId: session.userId, actorEmail: session.email, action: existing ? "EMAIL_CAMPAIGN_DRAFT_UPDATED" : "EMAIL_CAMPAIGN_DRAFT_SAVED",
         entityType: "EmailCampaign", entityId: campaign.id, summary: `Email draft "${campaign.subject}" saved.`,
@@ -87,7 +90,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: "Enter a valid test email." }, { status: 400 });
       }
       const selected = input.previewClientId ? await prisma.communicationClient.findFirst({
-        where: { id: input.previewClientId, emailSubscribed: true, archivedAt: null },
+        where: { workspaceMemberships: { some: { workspaceId: session.workspaceId } }, id: input.previewClientId, emailSubscribed: true, archivedAt: null },
         select: { firstName: true, lastName: true, displayName: true, email: true, phone: true },
       }) : null;
       const profile = selected ? {
@@ -120,10 +123,11 @@ export async function POST(request: Request) {
     }
     const clients = await prisma.communicationClient.findMany({
       where: {
+        workspaceMemberships: { some: { workspaceId: session.workspaceId } },
         emailSubscribed: true, emailStatus: "VALID", archivedAt: null, normalizedEmail: { not: "" },
         groupMemberships: {
           none: { group: { systemKey: bouncedBackSystemKey(session.workspaceId) } },
-          ...(mode === "GROUPS" ? { some: { groupId: { in: groupIds } } } : {}),
+          ...(mode === "GROUPS" ? { some: { groupId: { in: groupIds }, group: scope } } : {}),
         },
         ...(mode === "INDIVIDUALS" ? { id: { in: clientIds } } : {}),
       },
@@ -149,6 +153,7 @@ export async function POST(request: Request) {
     const status = input.action === "schedule" ? "SCHEDULED" : "PROCESSING";
     const campaign = await prisma.emailCampaign.create({
       data: {
+        workspaceId: session.workspaceId,
         subject, previewText: previewText || null, body, templateKey, imageUrl: imageUrl || null, imageAlt: imageUrl ? imageAlt : null, imageCaption, imageLink, status, recipientMode: mode,
         selection: { groupIds, clientIds }, recipientCount: unique.length, createdById: session.userId,
         scheduledAt, scheduledTimeZone: scheduledAt ? timeZone : null,
@@ -169,11 +174,11 @@ export async function POST(request: Request) {
       metadata: { recipientMode: mode, recipients: unique.length, scheduledAt: scheduledAt?.toISOString(), timeZone, templateKey, variables: [...new Set([subject, previewText, body].flatMap((value) => [...value.matchAll(/\{\{([A-Z_]+)\}\}/g)].map((match) => match[1])))] },
     });
     if (scheduledAt) {
-      if (input.draftId) await prisma.emailCampaign.deleteMany({ where: { id: input.draftId, status: "DRAFT", createdById: session.userId } });
+      if (input.draftId) await prisma.emailCampaign.deleteMany({ where: { id: input.draftId, status: "DRAFT", createdById: session.userId, AND: [scope] } });
       return NextResponse.json({ success: true, campaignId: campaign.id, scheduledAt: scheduledAt.toISOString(), message: `Email scheduled for ${unique.length} recipients.` });
     }
     const completed = await processEmailCampaign(campaign.id);
-    if (completed.sentCount > 0 && input.draftId) await prisma.emailCampaign.deleteMany({ where: { id: input.draftId, status: "DRAFT", createdById: session.userId } });
+    if (completed.sentCount > 0 && input.draftId) await prisma.emailCampaign.deleteMany({ where: { id: input.draftId, status: "DRAFT", createdById: session.userId, AND: [scope] } });
     return NextResponse.json({
       success: completed.sentCount > 0, campaignId: campaign.id,
       sent: completed.sentCount, failed: completed.failedCount,

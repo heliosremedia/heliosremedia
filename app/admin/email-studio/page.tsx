@@ -31,13 +31,13 @@ export default async function EmailStudioPage({ searchParams }: { searchParams: 
       select: { id: true, name: true, _count: { select: { memberships: { where: { client: { workspaceMemberships: { some: { workspaceId: session.workspaceId } } } } } } } },
     }),
     prisma.emailCampaign.findMany({
-      where: { createdBy: { workspaceId: session.workspaceId } },
+      where: await getContentOwnershipScope(session.workspaceId),
       take: 25,
       orderBy: { createdAt: "desc" },
       select: { id: true, subject: true, previewText: true, body: true, templateKey: true, imageUrl: true, imageAlt: true, imageCaption: true, imageLink: true, status: true, recipientMode: true, selection: true, recipientCount: true, sentCount: true, failedCount: true, createdAt: true, sentAt: true, scheduledAt: true, scheduledTimeZone: true, rowVersion: true, createdBy: { select: { displayName: true } }, recipients: { select: { id: true, status: true, providerMessageId: true, events: { select: { eventType: true } } } } },
     }),
     campaignId ? prisma.emailCampaign.findFirst({
-      where: { id: campaignId, status: "DRAFT", createdById: session.userId },
+      where: { id: campaignId, status: "DRAFT", createdById: session.userId, AND: [await getContentOwnershipScope(session.workspaceId)] },
       select: { id: true, subject: true, previewText: true, body: true, templateKey: true, imageUrl: true, imageAlt: true, imageCaption: true, imageLink: true, recipientMode: true, selection: true },
     }) : null,
     Promise.all([
