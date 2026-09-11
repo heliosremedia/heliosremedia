@@ -112,3 +112,9 @@ Verification: 423 tests passed, zero failed; non-incremental TypeScript, focused
 Continued after draft #227. Found and scoped global public project-detail/metadata queries, including preview targets. Filtered referenced hero/thumbnail/social/collection media by workspace and public visibility, service-project joins/counts by company, and admin media selections. Scoped thumbnail repair writes and checked same-project hero identity in editor/publish readiness. Preserved existing layout and gallery hotfixes.
 
 Verification: 425 tests passed, zero failed; non-incremental TypeScript and diff checks passed. Focused lint found an unused workspace binding introduced in the page wrapper; removed it. Executable query/repair tests use mocked data access. Hosted browser/SEO checks, inconsistent-reference inventory and comprehensive relational ownership remain open. No production deployment or database operation executed.
+
+## 2026-09-11 FAQ authorization and ownership
+
+Continued after draft #228. Added nullable ownership to FAQ category roots and local editor authorization to every FAQ/category mutation. Scoped reads, reorder, writes and source/destination category checks. Public/admin FAQ queries no longer return another company's categories; existing unassigned content has single-company-only compatibility.
+
+Verification: 428 tests passed, zero failed; Prisma generation, non-incremental TypeScript, focused lint and diff checks passed. Route tests use mocked dependencies and migration tests use PGlite. Historical mapping, slug contract migration and hosted/browser verification remain open. No production data or deployment changed.

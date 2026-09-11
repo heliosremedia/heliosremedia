@@ -1,3 +1,5 @@
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import type { Metadata } from "next";
 
 import Footer from "@/app/components/Footer";
@@ -17,8 +19,9 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> { const settings = await getSiteSettings(); return buildPageMetadata({ title: "Frequently Asked Questions | Helios Real Estate Media", description: "Answers about booking, preparing a property, real estate photography, video, aerial media, delivery, and working with Helios Real Estate Media.", path: "/faq", settings }); }
 
 export default async function FaqPage() {
+  const workspaceId = await getPublicWorkspaceId();
   const [categories, settings] = await Promise.all([prisma.faqCategory.findMany({
-    where: { active: true, faqs: { some: { published: true } } },
+    where: { AND: [await getContentOwnershipScope(workspaceId)], active: true, faqs: { some: { published: true } } },
     orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
     select: {
       id: true,
