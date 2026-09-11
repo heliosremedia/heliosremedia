@@ -3,6 +3,8 @@ import "server-only";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getPublicWorkspaceId } from "@/lib/public-workspace";
+import { tenantContextEnabled } from "@/lib/workspace-context-core";
+import { photoComparisonImageMatchesWorkspace } from "@/lib/photo-comparison-storage";
 
 export type PhotoComparisonContent = {
   heroEyebrow: string;
@@ -82,9 +84,19 @@ export const defaultPhotoComparisonPairs: PhotoComparisonPairValue[] = [
   ["kitchen", "Custom kitchen with wood cabinetry and waterfall island"],
 ].map(([label, alt], position) => ({ id: `default-${label}`, label, editorialStyle: null, alt, caption: "Representative views from the same property. Framing may vary. Drag to compare the overall visual direction.", active: true, position, standardImageStorageKey: null, standardImageUrl: `/photo-finishes/standard-${label}.jpg`, editorialImageStorageKey: null, editorialImageUrl: `/photo-finishes/editorial-${label}.jpg` }));
 
-function contentFromJson(value: Prisma.JsonValue): PhotoComparisonContent {
+export const emptyPhotoComparisonContent = Object.fromEntries(
+  Object.entries(defaultPhotoComparisonContent).map(([key, value]) => [key, Array.isArray(value) ? [] : ""]),
+) as unknown as PhotoComparisonContent;
+
+export async function canUseLegacyPhotoComparison(workspaceId: string) {
+  if (tenantContextEnabled()) return false;
+  const companies = await prisma.workspace.findMany({ take: 2, select: { id: true } });
+  return companies.length === 1 && companies[0].id === workspaceId;
+}
+
+function contentFromJson(value: Prisma.JsonValue, defaults: PhotoComparisonContent): PhotoComparisonContent {
   const record = value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
-  return Object.fromEntries(Object.entries(defaultPhotoComparisonContent).map(([key, fallback]) => {
+  return Object.fromEntries(Object.entries(defaults).map(([key, fallback]) => {
     const candidate = record[key];
     if (Array.isArray(fallback)) return [key, Array.isArray(candidate) ? candidate.filter((item): item is string => typeof item === "string") : fallback];
     return [key, typeof candidate === "string" && candidate.trim() ? candidate : fallback];
@@ -94,12 +106,19 @@ function contentFromJson(value: Prisma.JsonValue): PhotoComparisonContent {
 export async function getPhotoComparisonPage(workspaceId?: string) {
   const resolvedWorkspaceId = workspaceId || await getPublicWorkspaceId();
   const page = await prisma.photoComparisonPage.findUnique({ where: { workspaceId: resolvedWorkspaceId }, include: { pairs: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] } } });
+  const legacy = await canUseLegacyPhotoComparison(resolvedWorkspaceId);
+  const detailOwned = photoComparisonImageMatchesWorkspace(resolvedWorkspaceId, { key: page?.detailImageStorageKey ?? null, url: page?.detailImageUrl ?? null });
+  const ownedPairs = page?.pairs.filter((pair) =>
+    photoComparisonImageMatchesWorkspace(resolvedWorkspaceId, { key: pair.standardImageStorageKey, url: pair.standardImageUrl })
+    && photoComparisonImageMatchesWorkspace(resolvedWorkspaceId, { key: pair.editorialImageStorageKey, url: pair.editorialImageUrl }),
+  ) ?? [];
   return {
-    active: page?.active ?? true,
-    content: page ? contentFromJson(page.content) : defaultPhotoComparisonContent,
-    detailImageStorageKey: page?.detailImageStorageKey ?? null,
-    detailImageUrl: page?.detailImageUrl || "/photo-finishes/editorial-detail.jpg",
-    detailImageAlt: page?.detailImageAlt || "Editorial detail photograph of a custom luxury kitchen",
-    pairs: page?.pairs.length ? page.pairs.map((pair) => ({ ...pair, caption: pair.caption || "" })) : defaultPhotoComparisonPairs,
+    active: detailOwned && (page?.active ?? legacy) && (legacy || Boolean(page?.detailImageUrl && ownedPairs.some((pair) => pair.active))),
+    updatedAt: page?.updatedAt ?? null,
+    content: page ? contentFromJson(page.content, legacy ? defaultPhotoComparisonContent : emptyPhotoComparisonContent) : legacy ? defaultPhotoComparisonContent : emptyPhotoComparisonContent,
+    detailImageStorageKey: detailOwned ? page?.detailImageStorageKey ?? null : null,
+    detailImageUrl: detailOwned ? page?.detailImageUrl || (legacy ? "/photo-finishes/editorial-detail.jpg" : "") : "",
+    detailImageAlt: page?.detailImageAlt || (legacy ? "Editorial detail photograph of a custom luxury kitchen" : ""),
+    pairs: page ? ownedPairs.map((pair) => ({ ...pair, caption: pair.caption || "" })) : legacy ? defaultPhotoComparisonPairs : [],
   };
 }
