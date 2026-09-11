@@ -1,3 +1,4 @@
+import { requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
 import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import { getAdminSession } from "@/lib/auth/session";
 import { requireLegacyBlogAccess } from "@/lib/blog-access";
@@ -36,11 +37,14 @@ export async function POST(request: Request) {
   const actor = await getAdminSession();
   if (!actor) return NextResponse.json({ success: false }, { status: 403 });
   try {
-    const session = await getAdminSession();
-    if (!session) return NextResponse.json({ success: false }, { status: 403 });
-    const series = await prisma.blogSeries.create({ data: { ...payload(await request.json()), workspaceId: session.workspaceId } });
+    const data = payload(await request.json());
+    const series = await prisma.$transaction(async tx => {
+      await requireLockedWorkspaceEditor(tx, actor);
+      return tx.blogSeries.create({ data: { ...data, workspaceId: actor.workspaceId } });
+    });
     return NextResponse.json({ success: true, series }, { status: 201 });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Your workspace access changed. Sign in again." }, { status: 403 });
     return NextResponse.json({ success: false, error: "Complete the required series fields and choose a valid publication date." }, { status: 400 });
   }
 }
@@ -53,9 +57,14 @@ export async function PATCH(request: Request) {
   try {
     const body = await request.json() as Record<string, unknown>;
     const id = text(body.id, 200, true)!;
-    const series = await prisma.blogSeries.update({ where: { id, AND: [ownership] }, data: payload(body) });
+    const data = payload(body);
+    const series = await prisma.$transaction(async tx => {
+      await requireLockedWorkspaceEditor(tx, actor);
+      return tx.blogSeries.update({ where: { id, AND: [ownership] }, data });
+    });
     return NextResponse.json({ success: true, series });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Your workspace access changed. Sign in again." }, { status: 403 });
     return NextResponse.json({ success: false, error: "The blog series could not be saved." }, { status: 400 });
   }
 }
