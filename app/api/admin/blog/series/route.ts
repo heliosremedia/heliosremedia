@@ -1,3 +1,4 @@
+import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import { getAdminSession } from "@/lib/auth/session";
 import { requireLegacyBlogAccess } from "@/lib/blog-access";
 import { NextResponse } from "next/server";
@@ -32,6 +33,8 @@ function payload(body: Record<string, unknown>) {
 export async function POST(request: Request) {
   const accessError = await requireLegacyBlogAccess();
   if (accessError) return accessError;
+  const actor = await getAdminSession();
+  if (!actor) return NextResponse.json({ success: false }, { status: 403 });
   try {
     const session = await getAdminSession();
     if (!session) return NextResponse.json({ success: false }, { status: 403 });
@@ -44,10 +47,13 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const accessError = await requireLegacyBlogAccess();
   if (accessError) return accessError;
+  const actor = await getAdminSession();
+  if (!actor) return NextResponse.json({ success: false }, { status: 403 });
+  const ownership = await getBlogOwnershipScope(actor.workspaceId);
   try {
     const body = await request.json() as Record<string, unknown>;
     const id = text(body.id, 200, true)!;
-    const series = await prisma.blogSeries.update({ where: { id }, data: payload(body) });
+    const series = await prisma.blogSeries.update({ where: { id, AND: [ownership] }, data: payload(body) });
     return NextResponse.json({ success: true, series });
   } catch {
     return NextResponse.json({ success: false, error: "The blog series could not be saved." }, { status: 400 });

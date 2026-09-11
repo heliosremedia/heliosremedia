@@ -1,3 +1,6 @@
+import { requireLegacyBlogAccess } from "@/lib/blog-access";
+import { getBlogOwnershipScope } from "@/lib/blog-ownership";
+import { getAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { getMediaCollection } from "@/lib/media-collections";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
@@ -9,18 +12,24 @@ import AdminSummaryCards from "@/app/admin/components/AdminSummaryCards";
 export const dynamic = "force-dynamic";
 
 export default async function BlogStudioPage() {
+  const error = await requireLegacyBlogAccess();
+  if (error) return <p>Blog access is unavailable for this workspace.</p>;
+  const session = await getAdminSession();
+  if (!session) return null;
+  const ownership = await getBlogOwnershipScope(session.workspaceId);
   const [posts, media, settings, seriesRows] = await Promise.all([
-    prisma.blogPost.findMany({ orderBy: { updatedAt: "desc" }, include: { featuredMedia: { select: { storageKey: true } } } }),
+    prisma.blogPost.findMany({ where: ownership, orderBy: { updatedAt: "desc" }, include: { featuredMedia: { select: { storageKey: true, project: { select: { workspaceId: true } } } } } }),
     prisma.media.findMany({
-      where: { sourceType: "UPLOADED_IMAGE", visibility: "VISIBLE", storageKey: { not: null } },
+      where: { project: { workspaceId: session.workspaceId }, sourceType: "UPLOADED_IMAGE", visibility: "VISIBLE", storageKey: { not: null } },
       orderBy: { createdAt: "desc" },
       select: { id: true, projectId: true, storageKey: true, altText: true, caption: true, mediaCategory: true, project: { select: { title: true, locationLabel: true } } },
     }),
-    getSiteSettings(),
-    prisma.blogSeries.findMany({ orderBy: { updatedAt: "desc" } }),
+    getSiteSettings(session.workspaceId),
+    prisma.blogSeries.findMany({ where: ownership, orderBy: { updatedAt: "desc" } }),
   ]);
   const serialized: BlogEditorPost[] = posts.map(post => ({
     ...post,
+    featuredMedia: post.featuredMedia?.project.workspaceId === session.workspaceId ? { storageKey: post.featuredMedia.storageKey } : null,
     status: post.status,
     scheduledAt: post.scheduledAt?.toISOString() || null,
     publishedAt: post.publishedAt?.toISOString() || null,

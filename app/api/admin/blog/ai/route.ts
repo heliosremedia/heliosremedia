@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     const body = await request.json() as Record<string, unknown>;
     const action = typeof body.action === "string" ? body.action : "draft";
     const input = text(body.input, action === "draft" ? 5000 : 100_000);
-    const settings = await getSiteSettings();
+    const settings = await getSiteSettings(session.workspaceId);
     const instruction = `You are the editorial assistant for ${settings.businessName}. Write polished, accurate real-estate media marketing content. Brand voice: ${settings.brandVoice || "refined, intentional, cinematic, knowledgeable, and human"}. Audience: ${settings.brandAudience || "real estate agents, builders, designers, and property professionals"}. Guidance: ${settings.brandWritingGuidance || "Avoid hype, clichés, fabricated statistics, legal claims, and keyword stuffing."} Always preserve factual uncertainty and never invent sources. For every complete article: keep the title only in the title field; never repeat it as a # heading in content; use logical ## section headings and restrained ### subheadings; use valid Markdown lists with spaces after markers; write short readable paragraphs, useful transitions, a conclusion, and an appropriate call to action. Preserve links and citations exactly when editing existing work.`;
     const actionPrompt: Record<string, string> = {
       draft: "Create a complete blog draft. Return JSON with title, excerpt, content, category, seoTitle, seoDescription, socialCaption, and suggestedInternalLinks. Content must be plain text with Markdown headings.",

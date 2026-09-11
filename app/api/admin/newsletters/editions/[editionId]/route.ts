@@ -1,3 +1,4 @@
+import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import { NextResponse } from "next/server";
 import { recordAuditEvent } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
@@ -119,7 +120,7 @@ function revisionSnapshot(editor: ReturnType<typeof parseEditorEdition>) {
   }));
 }
 
-async function saveEdition(editionId: string, value: unknown, actorId: string) {
+async function saveEdition(editionId: string, value: unknown, actorId: string, workspaceId: string) {
   const editor = parseEditorEdition(value);
   if (!editor.subject) throw new Error("Subject is required.");
   const current = await prisma.newsletterEdition.findUnique({
@@ -161,11 +162,11 @@ async function saveEdition(editionId: string, value: unknown, actorId: string) {
     .filter((value): value is string => Boolean(value));
   const [mediaAssets, blogAssets] = await Promise.all([
     mediaAssetIds.length ? prisma.media.findMany({
-      where: { id: { in: mediaAssetIds }, visibility: "VISIBLE" },
+      where: { project: { workspaceId }, id: { in: mediaAssetIds }, visibility: "VISIBLE" },
       select: { id: true, storageKey: true, externalUrl: true },
     }) : [],
     blogAssetIds.length ? prisma.blogPost.findMany({
-      where: { id: { in: blogAssetIds } },
+      where: { AND: [await getBlogOwnershipScope(workspaceId)], id: { in: blogAssetIds } },
       select: { id: true, featuredImageStorageKey: true, featuredImageUrl: true },
     }) : [],
   ]);
@@ -350,7 +351,7 @@ export async function PATCH(request: Request, context: Context) {
     }
     const body = await request.json() as Record<string, unknown>;
     if (body.action !== "save") throw new Error("Unsupported edition update.");
-    await saveEdition(editionId, body.edition, session.userId);
+    await saveEdition(editionId, body.edition, session.userId, session.workspaceId);
     const edition = await getEditionForStudio(editionId, session.workspaceId);
     await recordAuditEvent({
       actorId: session.userId, actorEmail: session.email,
@@ -489,7 +490,7 @@ export async function POST(request: Request, context: Context) {
       );
       if (!isImmutableSnapshot) {
         try {
-          await saveEdition(editionId, body.edition, session.userId);
+          await saveEdition(editionId, body.edition, session.userId, session.workspaceId);
         } catch (error) {
           console.error("[newsletter:test] edition save failed", {
             editionId,

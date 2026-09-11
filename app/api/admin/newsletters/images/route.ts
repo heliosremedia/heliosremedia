@@ -1,3 +1,4 @@
+import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import { NextResponse } from "next/server";
 import { getMediaCollection } from "@/lib/media-collections";
 import { prisma } from "@/lib/prisma";
@@ -36,6 +37,7 @@ async function getNewsletterImages(request: Request) {
     const projectSearch = (params.get("projectSearch") || "").trim().slice(0, 100);
     const projects = await prisma.project.findMany({
       where: {
+        workspaceId: session.workspaceId,
         status: "PUBLISHED",
         archivedAt: null,
         media: {
@@ -76,6 +78,7 @@ async function getNewsletterImages(request: Request) {
   const selectedProject = projectId ? await prisma.project.findFirst({
     where: {
       id: projectId,
+      workspaceId: session.workspaceId,
       status: "PUBLISHED",
       archivedAt: null,
       media: {
@@ -102,7 +105,7 @@ async function getNewsletterImages(request: Request) {
       ? prisma.media.findMany({
           where: {
             visibility: "VISIBLE",
-            project: { status: "PUBLISHED", archivedAt: null },
+            project: { workspaceId: session.workspaceId, status: "PUBLISHED", archivedAt: null },
             ...(projectId ? { projectId } : {}),
             OR: [
               { mimeType: { startsWith: "image/" } },
@@ -126,6 +129,7 @@ async function getNewsletterImages(request: Request) {
     !projectId && (source === "ALL" || source === "BLOG")
       ? prisma.blogPost.findMany({
           where: {
+            AND: [await getBlogOwnershipScope(session.workspaceId)],
             status: "PUBLISHED",
             publishedAt: { lte: new Date() },
             OR: [{ featuredImageUrl: { not: null } }, { featuredImageStorageKey: { not: null } }],

@@ -1,3 +1,4 @@
+import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import { prisma } from "@/lib/prisma";
 import { deriveCampaignStatus } from "@/lib/social/core";
 import SocialDashboard from "./SocialDashboard";
@@ -19,8 +20,8 @@ export default async function SocialStudioPage() {
   const [campaignRows, projects, blogs, newsletters, counts, autopilotSettings, autopilotWeeks] = await Promise.all([
     prisma.socialCampaign.findMany({ where: { workspaceId, archivedAt: null }, orderBy: { updatedAt: "desc" }, take: 40, include: { variants: { select: { id: true, platform: true, postType: true, status: true, scheduledAt: true } } } }),
     prisma.project.findMany({ where: { workspaceId }, orderBy: { updatedAt: "desc" }, take: 100, select: { id: true, title: true, locationLabel: true } }),
-    prisma.blogPost.findMany({ where: { status: "PUBLISHED" }, orderBy: { publishedAt: "desc" }, take: 100, select: { id: true, title: true } }),
-    prisma.newsletterEdition.findMany({ where: { status: "SENT" }, orderBy: { intendedSendAt: "desc" }, take: 100, select: { id: true, subject: true } }),
+    prisma.blogPost.findMany({ where: { AND: [await getBlogOwnershipScope(workspaceId)], status: "PUBLISHED" }, orderBy: { publishedAt: "desc" }, take: 100, select: { id: true, title: true } }),
+    prisma.newsletterEdition.findMany({ where: { series: await getBlogOwnershipScope(workspaceId), status: "SENT" }, orderBy: { intendedSendAt: "desc" }, take: 100, select: { id: true, subject: true } }),
     Promise.all([
       prisma.socialCampaign.count({ where: { workspaceId, archivedAt: null, variants: { some: { status: "DRAFT" } } } }),
       prisma.socialVariant.count({ where: { campaign: { workspaceId }, status: "NEEDS_REVIEW" } }),

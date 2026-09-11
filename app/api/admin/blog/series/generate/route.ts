@@ -1,3 +1,4 @@
+import { getAdminSession } from "@/lib/auth/session";
 import { requireLegacyBlogAccess } from "@/lib/blog-access";
 import { NextResponse } from "next/server";
 import { generateSeriesDraft } from "@/lib/blog-series";
@@ -7,10 +8,12 @@ export const maxDuration = 120;
 export async function POST(request: Request) {
   const accessError = await requireLegacyBlogAccess();
   if (accessError) return accessError;
+  const session = await getAdminSession();
+  if (!session) return NextResponse.json({ success: false }, { status: 403 });
   try {
     const body = await request.json() as { seriesId?: string };
     if (!body.seriesId) return NextResponse.json({ success: false, error: "Choose a blog series." }, { status: 400 });
-    const result = await generateSeriesDraft(body.seriesId);
+    const result = await generateSeriesDraft(body.seriesId, session.workspaceId);
     return NextResponse.json({ success: true, ...result });
   } catch (cause) {
     console.error("Blog series generation failed:", cause);

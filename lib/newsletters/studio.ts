@@ -1,3 +1,4 @@
+import { requireWorkspaceId } from "@/lib/workspaces";
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
@@ -98,11 +99,13 @@ function cycleKey(date: Date, timeZone: string) {
 }
 
 export async function createSeries(inputValue: unknown, createdById: string) {
+  const workspaceId = await requireWorkspaceId(createdById);
   const input = parseSeriesInput(inputValue);
   const schedule = scheduleFor(input);
   return prisma.$transaction(async (tx) => {
     const series = await tx.newsletterSeries.create({
       data: {
+        workspaceId,
         name: input.name,
         description: input.description,
         status: input.active ? "ACTIVE" : "PAUSED",

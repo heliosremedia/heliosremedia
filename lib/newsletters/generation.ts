@@ -1,3 +1,5 @@
+import { resolveNewsletterWorkspace } from "./ownership";
+import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import "server-only";
 
 import type { Prisma } from "@/app/generated/prisma/client";
@@ -17,11 +19,14 @@ function notes(value: unknown) {
 }
 
 export async function generateNewsletterEdition(editionId: string, actorId?: string) {
+  const owner = await prisma.newsletterEdition.findUnique({ where: { id: editionId }, select: { series: { select: { workspaceId: true } } } });
+  if (!owner) throw new Error("Edition was not found.");
+  const workspaceId = await resolveNewsletterWorkspace(owner.series.workspaceId);
   const claimed = await prisma.newsletterEdition.updateMany({
     where: {
       id: editionId,
       status: { in: ["AWAITING_GENERATION", "NEEDS_REVIEW", "GENERATION_FAILED", "DRAFT_GENERATED"] },
-      series: { status: "ACTIVE" },
+      series: { status: "ACTIVE", workspaceId: owner.series.workspaceId },
     },
     data: { status: "GENERATING", rowVersion: { increment: 1 } },
   });
@@ -52,19 +57,19 @@ export async function generateNewsletterEdition(editionId: string, actorId?: str
   try {
     const [posts, projects, services, settings] = await Promise.all([
       prisma.blogPost.findMany({
-        where: { status: "PUBLISHED", publishedAt: { lte: new Date() } },
+        where: { AND: [await getBlogOwnershipScope(workspaceId)], status: "PUBLISHED", publishedAt: { lte: new Date() } },
         orderBy: { publishedAt: "desc" }, take: 5, select: { id: true },
       }),
       prisma.project.findMany({
-        where: { status: "PUBLISHED" },
+        where: { workspaceId, status: "PUBLISHED" },
         orderBy: { publishedAt: "desc" }, take: 5, select: { id: true },
       }),
       prisma.service.findMany({
-        where: { active: true }, orderBy: { displayOrder: "asc" }, take: 8, select: { id: true },
+        where: { workspaceId, active: true }, orderBy: { displayOrder: "asc" }, take: 8, select: { id: true },
       }),
-      getSiteSettings(),
+      getSiteSettings(workspaceId),
     ]);
-    const sources = await collectVerifiedNewsletterSources({
+    const sources = await collectVerifiedNewsletterSources(workspaceId, {
       blogPostIds: posts.map((item) => item.id),
       projectIds: projects.map((item) => item.id),
       serviceIds: services.map((item) => item.id),
