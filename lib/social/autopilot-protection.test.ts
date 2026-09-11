@@ -35,7 +35,7 @@ test("existing discovery, decryption and queue idempotency remain authoritative"
 
 test("approved AI drafts delegate to the existing publishing queue", () => {
   const service = read("lib/social/autopilot.ts");
-  assert.match(service, /createPublishingJob\(\{ variantId: variant\.id, connectionId: connection\.id \}\)/);
+  assert.match(service, /createPublishingJob\(\{ variantId: variant\.id, connectionId: connection\.id, actor: input\.actor, autopilotDraftId: draft\.id \}\)/);
   assert.match(service, /Every variant must be explicitly approved before queueing/);
   assert.match(service, /Rejected autopilot drafts cannot enter the publishing queue/);
   assert.doesNotMatch(service, /fetch\([^)]*(?:graph\.facebook|instagram\.com)/i);

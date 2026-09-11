@@ -98,7 +98,7 @@ test("new company social defaults omit Helios branding and geographic assumption
   let enabled = true;
   let companies = [{ id: "a" }];
   const api = load<typeof import("./social/studio")>("./social/studio.ts", {
-    "@/lib/workspace-context-core": { tenantContextEnabled: () => enabled }, "@/lib/workspace-write-access": {}, "@/lib/blog-ownership": {}, "@/app/generated/prisma/client": {}, "./core": core,
+    "@/lib/workspace-context-core": { tenantContextEnabled: () => enabled }, "@/lib/workspace-write-access": {}, "@/lib/blog-ownership": {}, "@/app/generated/prisma/client": {}, "./core": core, "./mutation-lock": {},
     "@/lib/prisma": { prisma: { workspace: { findMany: async () => companies }, socialStudioSettings: { upsert: async ({ create, update }: { create: Record<string, unknown>; update: Record<string, unknown> }) => { assert.equal(Object.keys(update).length, 0); return create; } } } },
   });
   let settings = await api.ensureSocialSettings("a"); assert.doesNotMatch(JSON.stringify(settings), /Helios|Northern Colorado/);

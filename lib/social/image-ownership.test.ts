@@ -28,12 +28,14 @@ test("Social AI image attachment rejects a foreign record and ignores a forged U
     socialGeneratedAsset: { create: async ({ data }: { data: { workspaceId: string } }) => { assert.equal(data.workspaceId, "a"); writes++; } },
   };
   const access = { requireLockedWorkspaceEditor: async (_tx: unknown, actor: { workspaceId: string }) => { assert.equal(actor.workspaceId, "a"); } };
+  const mutationLock = load<typeof import("./mutation-lock")>("./mutation-lock.ts", {});
   const studio = load<typeof import("./studio")>("./studio.ts", {
     "@/lib/workspace-write-access": access, "@/lib/blog-ownership": { getBlogOwnershipScope: async () => ({ workspaceId: "a" }) },
-    "@/lib/workspace-context-core": {}, "@/app/generated/prisma/client": {}, "./core": core,
+    "@/lib/workspace-context-core": {}, "@/app/generated/prisma/client": {}, "./core": core, "./mutation-lock": mutationLock,
     "@/lib/prisma": { prisma: { $transaction: (fn: (client: typeof tx) => Promise<unknown>) => fn(tx) } },
   });
   const api = load<{ PATCH: (request: Request, context: { params: Promise<{ campaignId: string }> }) => Promise<Response> }>("../../app/api/admin/social/campaigns/[campaignId]/route.ts", {
+    "@/lib/social/mutation-lock": mutationLock,
     "next/server": { NextResponse: Response }, "@/lib/workspace-write-access": access,
     "@/lib/auth/session": { getAdminSession: async () => ({ userId: "actor", role: "ADMIN", workspaceId: "a", sessionVersion: 1 }) },
     "@/lib/social/core": core, "@/lib/client-communications/scheduling": {}, "@/lib/social/publishing": {}, "@/lib/social/studio": studio,

@@ -1,3 +1,4 @@
+import type { WorkspaceWriteActor } from "@/lib/workspace-write-access";
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
@@ -295,10 +296,11 @@ export async function generateAutopilotWeek(input: { workspaceId: string; actorI
   }
 }
 
-export async function queueApprovedAutopilotDraft(input: { workspaceId: string; draftId: string }) {
+export async function queueApprovedAutopilotDraft(input: { workspaceId: string; draftId: string; actor: WorkspaceWriteActor }) {
+  if (input.workspaceId !== input.actor.workspaceId) throw new Error("Workspace access changed.");
   if (!approvedQueueBridgeEnabled()) throw new Error("The approved-draft queue bridge is disabled.");
   const draft = await prisma.socialAutopilotDraft.findFirst({
-    where: { id: input.draftId, week: { workspaceId: input.workspaceId } },
+    where: { id: input.draftId, week: { workspaceId: input.workspaceId }, campaign: { workspaceId: input.workspaceId } },
     include: { campaign: { include: { variants: true } } },
   });
   if (!draft) throw new Error("Autopilot draft not found.");
@@ -308,7 +310,7 @@ export async function queueApprovedAutopilotDraft(input: { workspaceId: string; 
     if (!mayEnterExistingQueue({ variantStatus: variant.status, rejectedAt: draft.rejectedAt })) throw new Error("Every variant must be explicitly approved before queueing.");
     const connection = await prisma.socialConnection.findFirst({ where: { workspaceId: input.workspaceId, platform: variant.platform, state: "CONNECTED", directPublishingEnabled: true }, orderBy: { lastConnectionTestSuccessAt: "desc" } });
     if (!connection) throw new Error(`No active ${variant.platform} destination is available.`);
-    jobs.push(await createPublishingJob({ variantId: variant.id, connectionId: connection.id }));
+    jobs.push(await createPublishingJob({ variantId: variant.id, connectionId: connection.id, actor: input.actor, autopilotDraftId: draft.id }));
   }
   return jobs;
 }
