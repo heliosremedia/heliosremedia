@@ -1,0 +1,5190 @@
+{
+  "schemaSha256": "67d9a2ffacc409c12a760b037755caef67294a9f98bdbb0891be8427f5f9ffcf",
+  "scope": "Static code inventory, not an authorization or tenant-isolation verdict. No database connection or environment values read.",
+  "limitations": [
+    "Nullable ownership requires verified mapping before activation.",
+    "Foreign-key presence does not prove same-workspace relationships.",
+    "Creator/account relations are not immutable content ownership.",
+    "Delegate references are lexical; aliases, wrappers, dynamic access and raw SQL require manual review.",
+    "Caches, storage objects, integration configuration, running jobs and hosted behavior require separate evidence."
+  ],
+  "counts": {
+    "models": 111,
+    "requiredWorkspace": 29,
+    "nullableWorkspace": 10,
+    "withoutWorkspace": 72,
+    "routeFiles": 138
+  },
+  "models": [
+    {
+      "model": "TeamMember",
+      "workspaceField": "absent",
+      "foreignKeys": [],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/admin/about/page.tsx",
+        "app/api/admin/team-members/route.ts",
+        "lib/team-members.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "Project",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "heroMedia",
+          "model": "Media",
+          "optional": true,
+          "fields": [
+            "heroMediaId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        },
+        {
+          "relation": "thumbnailMedia",
+          "model": "Media",
+          "optional": true,
+          "fields": [
+            "thumbnailMediaId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        },
+        {
+          "relation": "socialImageMedia",
+          "model": "Media",
+          "optional": true,
+          "fields": [
+            "socialImageMediaId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [
+        "slug",
+        "heroMediaId",
+        "thumbnailMediaId",
+        "socialImageMediaId"
+      ],
+      "sourceReferences": [
+        "app/admin/homepage/page.tsx",
+        "app/admin/media/page.tsx",
+        "app/admin/portfolio-intelligence/[projectId]/page.tsx",
+        "app/admin/portfolio-intelligence/page.tsx",
+        "app/admin/projects/[projectId]/page.tsx",
+        "app/admin/projects/new/actions.ts",
+        "app/admin/projects/page.tsx",
+        "app/admin/social-studio/page.tsx",
+        "app/api/admin/blog/series/assistant/route.ts",
+        "app/api/admin/homepage-projects/route.ts",
+        "app/api/admin/locations/ai/route.ts",
+        "app/api/admin/newsletters/images/route.ts",
+        "app/api/admin/portfolio-settings/route.ts",
+        "app/api/admin/projects/[projectId]/contributors/route.ts",
+        "app/api/admin/projects/[projectId]/details/route.ts",
+        "app/api/admin/projects/[projectId]/film-comparison/route.ts",
+        "app/api/admin/projects/[projectId]/media/route.ts",
+        "app/api/admin/projects/[projectId]/previews/route.ts",
+        "app/api/admin/projects/[projectId]/stream-upload/route.ts",
+        "app/api/admin/projects/[projectId]/workflow/route.ts",
+        "app/api/admin/projects/featured/route.ts",
+        "app/api/admin/projects/order/route.ts",
+        "app/api/admin/projects/repair-thumbnails/route.ts",
+        "app/api/admin/r2/presign/route.ts",
+        "app/api/admin/social/campaigns/route.ts",
+        "app/api/portfolio-analytics/route.ts",
+        "app/portfolio/[slug]/page.tsx",
+        "app/portfolio/page.tsx",
+        "app/sitemap.ts",
+        "lib/dashboard.ts",
+        "lib/newsletters/content-sources.ts",
+        "lib/newsletters/generation.ts",
+        "lib/social/autopilot.ts",
+        "lib/social/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ProjectAgent",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "project",
+          "model": "Project",
+          "optional": false,
+          "fields": [
+            "projectId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "client",
+          "model": "CommunicationClient",
+          "optional": true,
+          "fields": [
+            "clientId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/api/admin/projects/[projectId]/details/route.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ProjectContributor",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "project",
+          "model": "Project",
+          "optional": false,
+          "fields": [
+            "projectId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "adminUser",
+          "model": "AdminUser",
+          "optional": true,
+          "fields": [
+            "adminUserId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        },
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "projectId, adminUserId"
+      ],
+      "sourceReferences": [
+        "app/api/admin/projects/[projectId]/contributors/route.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ProjectDetails",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "project",
+          "model": "Project",
+          "optional": false,
+          "fields": [
+            "projectId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        "projectId"
+      ],
+      "sourceReferences": [
+        "app/api/admin/projects/[projectId]/details/route.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "Media",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "project",
+          "model": "Project",
+          "optional": false,
+          "fields": [
+            "projectId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "service",
+          "model": "Service",
+          "optional": false,
+          "fields": [
+            "serviceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/admin/blog/page.tsx",
+        "app/admin/homepage/page.tsx",
+        "app/admin/media/page.tsx",
+        "app/admin/projects/page.tsx",
+        "app/admin/social-studio/campaigns/[campaignId]/page.tsx",
+        "app/api/admin/blog/route.ts",
+        "app/api/admin/homepage-work-cards/route.ts",
+        "app/api/admin/newsletters/editions/[editionId]/route.ts",
+        "app/api/admin/newsletters/images/route.ts",
+        "app/api/admin/portfolio-settings/route.ts",
+        "app/api/admin/projects/[projectId]/film-comparison/route.ts",
+        "app/api/admin/projects/[projectId]/media/route.ts",
+        "app/api/admin/social/campaigns/[campaignId]/route.ts",
+        "app/portfolio/page.tsx",
+        "lib/dashboard.ts",
+        "lib/portfolio-discovery.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "VideoOffering",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        "workspaceId, publicName"
+      ],
+      "sourceReferences": [
+        "app/admin/video-offerings/page.tsx",
+        "app/api/admin/projects/[projectId]/film-comparison/route.ts",
+        "app/api/admin/video-offerings/route.ts",
+        "app/films/page.tsx"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "VideoComparisonPlacement",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "media",
+          "model": "Media",
+          "optional": false,
+          "fields": [
+            "mediaId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "offering",
+          "model": "VideoOffering",
+          "optional": false,
+          "fields": [
+            "offeringId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        "mediaId"
+      ],
+      "sourceReferences": [
+        "app/api/admin/projects/[projectId]/film-comparison/route.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "PhotoComparisonPage",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        "workspaceId"
+      ],
+      "sourceReferences": [
+        "app/api/admin/photo-comparison/route.ts",
+        "lib/photo-comparison.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "PhotoComparisonPair",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "page",
+          "model": "PhotoComparisonPage",
+          "optional": false,
+          "fields": [
+            "pageId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/api/admin/photo-comparison/route.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ProjectMediaCollectionHero",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "project",
+          "model": "Project",
+          "optional": false,
+          "fields": [
+            "projectId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "media",
+          "model": "Media",
+          "optional": false,
+          "fields": [
+            "mediaId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "service",
+          "model": "Service",
+          "optional": false,
+          "fields": [
+            "serviceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "mediaId"
+      ],
+      "sourceReferences": [
+        "app/api/admin/projects/[projectId]/media/route.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "Service",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "workspaceId, slug"
+      ],
+      "sourceReferences": [
+        "app/admin/homepage/page.tsx",
+        "app/admin/projects/[projectId]/page.tsx",
+        "app/admin/services/page.tsx",
+        "app/api/admin/blog/series/assistant/route.ts",
+        "app/api/admin/homepage-work-cards/route.ts",
+        "app/api/admin/locations/ai/route.ts",
+        "app/api/admin/projects/[projectId]/media/route.ts",
+        "app/api/admin/projects/[projectId]/workflow/route.ts",
+        "app/api/admin/r2/presign/route.ts",
+        "app/api/admin/referrals/ai/route.ts",
+        "app/api/admin/services/route.ts",
+        "app/api/inquiries/route.ts",
+        "app/inquire/page.tsx",
+        "app/locations/[city]/page.tsx",
+        "app/portfolio/page.tsx",
+        "app/services/[slug]/page.tsx",
+        "app/services/page.tsx",
+        "app/sitemap.ts",
+        "lib/newsletters/content-sources.ts",
+        "lib/newsletters/generation.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ProjectService",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "project",
+          "model": "Project",
+          "optional": false,
+          "fields": [
+            "projectId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "service",
+          "model": "Service",
+          "optional": false,
+          "fields": [
+            "serviceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/api/admin/projects/[projectId]/media/route.ts",
+        "app/api/admin/projects/[projectId]/workflow/route.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "Tag",
+      "workspaceField": "absent",
+      "foreignKeys": [],
+      "uniqueConstraints": [
+        "slug"
+      ],
+      "sourceReferences": [],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ProjectTag",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "project",
+          "model": "Project",
+          "optional": false,
+          "fields": [
+            "projectId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "tag",
+          "model": "Tag",
+          "optional": false,
+          "fields": [
+            "tagId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "FaqCategory",
+      "workspaceField": "nullable",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": true,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "slug"
+      ],
+      "sourceReferences": [
+        "app/admin/faqs/page.tsx",
+        "app/api/admin/faq-categories/route.ts",
+        "app/api/admin/faqs/route.ts",
+        "app/faq/page.tsx"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "Faq",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "category",
+          "model": "FaqCategory",
+          "optional": false,
+          "fields": [
+            "categoryId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/api/admin/faqs/route.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "Testimonial",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        "workspaceId, externalReviewId"
+      ],
+      "sourceReferences": [
+        "app/admin/testimonials/page.tsx",
+        "app/api/admin/integrations/google-business/reviews/[reviewId]/curate/route.ts",
+        "app/api/admin/testimonials/route.ts",
+        "app/page.tsx"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "TrustedLogo",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/admin/trusted-logos/page.tsx",
+        "app/api/admin/trusted-logos/route.ts",
+        "app/page.tsx"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "HomepageProject",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "project",
+          "model": "Project",
+          "optional": false,
+          "fields": [
+            "projectId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        "projectId"
+      ],
+      "sourceReferences": [
+        "app/admin/homepage/page.tsx",
+        "app/api/admin/homepage-projects/route.ts",
+        "app/page.tsx"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "HomepageWorkCard",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "service",
+          "model": "Service",
+          "optional": false,
+          "fields": [
+            "serviceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "featuredMedia",
+          "model": "Media",
+          "optional": true,
+          "fields": [
+            "featuredMediaId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [
+        "serviceId"
+      ],
+      "sourceReferences": [
+        "app/admin/homepage/page.tsx",
+        "app/api/admin/homepage-work-cards/presign/route.ts",
+        "app/api/admin/homepage-work-cards/route.ts",
+        "app/page.tsx"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SiteSettings",
+      "workspaceField": "nullable",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": true,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "workspaceId"
+      ],
+      "sourceReferences": [
+        "app/admin/portfolio-intelligence/[projectId]/page.tsx",
+        "app/admin/portfolio-intelligence/page.tsx",
+        "app/api/admin/blog/series/assistant/route.ts",
+        "app/api/admin/homepage-film/route.ts",
+        "app/api/admin/integrations/google-business/review-display/route.ts",
+        "app/api/admin/legal-documents/route.ts",
+        "app/api/admin/locations/ai/route.ts",
+        "app/api/admin/locations/route.ts",
+        "app/api/admin/site-settings/route.ts",
+        "app/api/health/public/route.ts",
+        "app/api/portfolio-analytics/route.ts",
+        "lib/blog-series.ts",
+        "lib/dashboard.ts",
+        "lib/google-business-admin.ts",
+        "lib/location-pages.ts",
+        "lib/newsletters/content-sources.ts",
+        "lib/portfolio-analytics.ts",
+        "lib/public-workspace.ts",
+        "lib/site-settings.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "BlogPost",
+      "workspaceField": "nullable",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": true,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "featuredMedia",
+          "model": "Media",
+          "optional": true,
+          "fields": [
+            "featuredMediaId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        },
+        {
+          "relation": "series",
+          "model": "BlogSeries",
+          "optional": true,
+          "fields": [
+            "seriesId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [
+        "slug"
+      ],
+      "sourceReferences": [
+        "app/admin/blog/page.tsx",
+        "app/admin/social-studio/page.tsx",
+        "app/api/admin/blog/[postId]/email-draft/route.ts",
+        "app/api/admin/blog/revisions/route.ts",
+        "app/api/admin/blog/route.ts",
+        "app/api/admin/blog/series/assistant/route.ts",
+        "app/api/admin/newsletters/editions/[editionId]/route.ts",
+        "app/api/admin/newsletters/images/route.ts",
+        "app/blog/[slug]/page.tsx",
+        "app/blog/page.tsx",
+        "app/sitemap.ts",
+        "lib/blog-series.ts",
+        "lib/newsletters/content-sources.ts",
+        "lib/newsletters/generation.ts",
+        "lib/social/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "BlogSeries",
+      "workspaceField": "nullable",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": true,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/admin/blog/page.tsx",
+        "app/api/admin/blog/series/assistant/route.ts",
+        "app/api/admin/blog/series/route.ts",
+        "app/api/cron/blog-series/route.ts",
+        "lib/blog-series.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "BlogPostRevision",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "post",
+          "model": "BlogPost",
+          "optional": false,
+          "fields": [
+            "postId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/api/admin/blog/revisions/route.ts",
+        "app/api/admin/blog/route.ts",
+        "lib/blog-series.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "LocationPage",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "workspaceId, slug"
+      ],
+      "sourceReferences": [
+        "app/admin/locations/page.tsx",
+        "app/api/admin/blog/series/assistant/route.ts",
+        "app/api/admin/locations/ai/route.ts",
+        "app/api/admin/locations/presign/route.ts",
+        "app/api/admin/locations/route.ts",
+        "lib/location-pages.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ClientPortal",
+      "workspaceField": "absent",
+      "foreignKeys": [],
+      "uniqueConstraints": [
+        "slug"
+      ],
+      "sourceReferences": [
+        "app/admin/client-portals/page.tsx",
+        "app/api/admin/client-portals/route.ts",
+        "app/api/client-portal/challenge/route.ts",
+        "app/api/client-portal/register/route.ts",
+        "app/client-portal/[slug]/complete-registration/page.tsx",
+        "app/client-portal/[slug]/page.tsx",
+        "app/client-portal/page.tsx"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ClientPortalChallenge",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "portal",
+          "model": "ClientPortal",
+          "optional": false,
+          "fields": [
+            "portalId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        "tokenHash"
+      ],
+      "sourceReferences": [
+        "app/api/client-portal/challenge/route.ts",
+        "app/api/client-portal/register/route.ts",
+        "app/api/client-portal/verify/route.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "AboutPageContent",
+      "workspaceField": "absent",
+      "foreignKeys": [],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/api/admin/about/route.ts",
+        "lib/about-page.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "LegalDocument",
+      "workspaceField": "nullable",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": true,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "type"
+      ],
+      "sourceReferences": [
+        "app/api/admin/legal-documents/route.ts",
+        "app/sitemap.ts",
+        "lib/legal-documents.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "CallToAction",
+      "workspaceField": "nullable",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": true,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/admin/ctas/page.tsx",
+        "app/api/admin/blog/series/assistant/route.ts",
+        "app/api/admin/ctas/route.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "CtaPlacement",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "cta",
+          "model": "CallToAction",
+          "optional": false,
+          "fields": [
+            "ctaId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        "slot"
+      ],
+      "sourceReferences": [
+        "app/api/admin/ctas/route.ts",
+        "lib/ctas.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "AdminUser",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "email"
+      ],
+      "sourceReferences": [
+        "app/admin/homepage/page.tsx",
+        "app/admin/inquiries/page.tsx",
+        "app/admin/page.tsx",
+        "app/admin/projects/[projectId]/page.tsx",
+        "app/admin/users/page.tsx",
+        "app/api/admin/auth/login/route.ts",
+        "app/api/admin/dashboard-layout/route.ts",
+        "app/api/admin/homepage-layout/route.ts",
+        "app/api/admin/inquiries/route.ts",
+        "app/api/admin/navigation-favorites/route.ts",
+        "app/api/admin/profile/route.ts",
+        "app/api/admin/projects/[projectId]/contributors/route.ts",
+        "app/api/admin/users/route.ts",
+        "app/api/admin/users/title-migration-report/route.ts",
+        "app/api/auth/accept-invite/route.ts",
+        "lib/auth/session.ts",
+        "lib/workspace-account-mutation.ts",
+        "lib/workspaces.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "Workspace",
+      "workspaceField": "absent",
+      "foreignKeys": [],
+      "uniqueConstraints": [
+        "slug"
+      ],
+      "sourceReferences": [
+        "app/api/admin/blog/series/assistant/route.ts",
+        "lib/blog-access.ts",
+        "lib/blog-ownership.ts",
+        "lib/blog-series.ts",
+        "lib/newsletters/api.ts",
+        "lib/newsletters/ownership.ts",
+        "lib/public-workspace.ts",
+        "lib/site-settings-ownership.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "WorkspaceMembership",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "user",
+          "model": "AdminUser",
+          "optional": false,
+          "fields": [
+            "userId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        "workspaceId, userId"
+      ],
+      "sourceReferences": [
+        "app/api/admin/auth/login/route.ts",
+        "app/api/admin/users/route.ts",
+        "app/api/auth/accept-invite/route.ts",
+        "lib/workspace-account-mutation.ts",
+        "lib/workspace-membership-lifecycle.ts",
+        "lib/workspace-memberships.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "WorkspaceDomain",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        "hostname"
+      ],
+      "sourceReferences": [
+        "lib/public-workspace.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "GoogleBusinessConnection",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "connectedBy",
+          "model": "AdminUser",
+          "optional": true,
+          "fields": [
+            "connectedById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [
+        "workspaceId"
+      ],
+      "sourceReferences": [
+        "app/api/admin/integrations/google-business/callback/route.ts",
+        "app/api/admin/integrations/google-business/route.ts",
+        "lib/google-business-admin.ts",
+        "lib/google-business-reviews.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "GoogleBusinessOAuthState",
+      "workspaceField": "required",
+      "foreignKeys": [],
+      "uniqueConstraints": [
+        "stateHash"
+      ],
+      "sourceReferences": [
+        "app/api/admin/integrations/google-business/callback/route.ts",
+        "app/api/admin/integrations/google-business/start/route.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "GoogleBusinessReview",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "connection",
+          "model": "GoogleBusinessConnection",
+          "optional": false,
+          "fields": [
+            "connectionId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "testimonial",
+          "model": "Testimonial",
+          "optional": true,
+          "fields": [
+            "testimonialId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [
+        "testimonialId",
+        "connectionId, googleReviewId"
+      ],
+      "sourceReferences": [
+        "app/api/admin/integrations/google-business/reviews/[reviewId]/curate/route.ts",
+        "app/api/admin/integrations/google-business/reviews/[reviewId]/visibility/route.ts",
+        "app/page.tsx",
+        "app/reviews/page.tsx",
+        "lib/google-business-admin.ts",
+        "lib/google-business-reviews.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "PortfolioAnalyticsEvent",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "project",
+          "model": "Project",
+          "optional": true,
+          "fields": [
+            "projectId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "adminUser",
+          "model": "AdminUser",
+          "optional": true,
+          "fields": [
+            "adminUserId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Prisma default"
+        }
+      ],
+      "uniqueConstraints": [
+        "eventKey"
+      ],
+      "sourceReferences": [
+        "app/admin/portfolio-intelligence/page.tsx",
+        "app/api/cron/portfolio-analytics/route.ts",
+        "app/api/health/public/route.ts",
+        "app/api/portfolio-analytics/route.ts",
+        "lib/dashboard.ts",
+        "lib/portfolio-analytics.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialCampaign",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "sourceProject",
+          "model": "Project",
+          "optional": true,
+          "fields": [
+            "sourceProjectId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        },
+        {
+          "relation": "createdBy",
+          "model": "AdminUser",
+          "optional": false,
+          "fields": [
+            "createdById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "lastEditedBy",
+          "model": "AdminUser",
+          "optional": false,
+          "fields": [
+            "lastEditedById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "generationRequestId"
+      ],
+      "sourceReferences": [
+        "app/admin/social-studio/campaigns/[campaignId]/page.tsx",
+        "app/admin/social-studio/page.tsx",
+        "app/api/admin/social/ai/route.ts",
+        "app/api/admin/social/campaigns/[campaignId]/route.ts",
+        "app/api/admin/social/campaigns/route.ts",
+        "lib/dashboard.ts",
+        "lib/social/autopilot.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialAutopilotSettings",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        "workspaceId"
+      ],
+      "sourceReferences": [
+        "app/api/admin/social/autopilot/settings/route.ts",
+        "lib/social/autopilot.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialAutopilotWeek",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        "workspaceId, weekStart"
+      ],
+      "sourceReferences": [
+        "app/admin/social-studio/page.tsx",
+        "app/api/admin/social/autopilot/route.ts",
+        "lib/social/autopilot.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialAutopilotDraft",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "week",
+          "model": "SocialAutopilotWeek",
+          "optional": false,
+          "fields": [
+            "weekId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "campaign",
+          "model": "SocialCampaign",
+          "optional": false,
+          "fields": [
+            "campaignId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "campaignId"
+      ],
+      "sourceReferences": [
+        "lib/social/autopilot.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialAutopilotRun",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "week",
+          "model": "SocialAutopilotWeek",
+          "optional": true,
+          "fields": [
+            "weekId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [
+        "idempotencyKey"
+      ],
+      "sourceReferences": [
+        "lib/social/autopilot.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialCampaignProject",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "campaign",
+          "model": "SocialCampaign",
+          "optional": false,
+          "fields": [
+            "campaignId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "project",
+          "model": "Project",
+          "optional": false,
+          "fields": [
+            "projectId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialCampaignMedia",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "campaign",
+          "model": "SocialCampaign",
+          "optional": false,
+          "fields": [
+            "campaignId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "media",
+          "model": "Media",
+          "optional": false,
+          "fields": [
+            "mediaId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/api/admin/social/campaigns/[campaignId]/route.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialSeries",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "createdBy",
+          "model": "AdminUser",
+          "optional": false,
+          "fields": [
+            "createdById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "lastEditedBy",
+          "model": "AdminUser",
+          "optional": false,
+          "fields": [
+            "lastEditedById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/admin/social-studio/series/page.tsx",
+        "app/api/admin/social/series/[seriesId]/route.ts",
+        "app/api/admin/social/series/route.ts",
+        "lib/social/series.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialSeriesCampaign",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "series",
+          "model": "SocialSeries",
+          "optional": false,
+          "fields": [
+            "seriesId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "campaign",
+          "model": "SocialCampaign",
+          "optional": false,
+          "fields": [
+            "campaignId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialSeriesOccurrence",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "series",
+          "model": "SocialSeries",
+          "optional": false,
+          "fields": [
+            "seriesId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "campaign",
+          "model": "SocialCampaign",
+          "optional": true,
+          "fields": [
+            "campaignId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        },
+        {
+          "relation": "variant",
+          "model": "SocialVariant",
+          "optional": true,
+          "fields": [
+            "variantId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [
+        "seriesId, platform, scheduledAt"
+      ],
+      "sourceReferences": [
+        "app/admin/social-studio/calendar/page.tsx",
+        "app/api/admin/social/series/[seriesId]/route.ts",
+        "lib/social/series.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialVariant",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "campaign",
+          "model": "SocialCampaign",
+          "optional": false,
+          "fields": [
+            "campaignId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "lastEditedBy",
+          "model": "AdminUser",
+          "optional": true,
+          "fields": [
+            "lastEditedById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [
+        "campaignId, platform"
+      ],
+      "sourceReferences": [
+        "app/admin/social-studio/analytics/page.tsx",
+        "app/admin/social-studio/analytics/posts/[variantId]/page.tsx",
+        "app/admin/social-studio/analytics/report/page.tsx",
+        "app/admin/social-studio/calendar/page.tsx",
+        "app/admin/social-studio/page.tsx",
+        "app/api/admin/social/ai/route.ts",
+        "app/api/admin/social/campaigns/[campaignId]/route.ts",
+        "lib/dashboard.ts",
+        "lib/social/publishing.ts",
+        "lib/social/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialGeneratedAsset",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "variant",
+          "model": "SocialVariant",
+          "optional": false,
+          "fields": [
+            "variantId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "sourceMedia",
+          "model": "Media",
+          "optional": true,
+          "fields": [
+            "sourceMediaId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        },
+        {
+          "relation": "reviewedBy",
+          "model": "AdminUser",
+          "optional": true,
+          "fields": [
+            "reviewedById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/api/admin/social/campaigns/[campaignId]/route.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialVariantMedia",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "variant",
+          "model": "SocialVariant",
+          "optional": false,
+          "fields": [
+            "variantId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "media",
+          "model": "Media",
+          "optional": false,
+          "fields": [
+            "mediaId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "variantId, mediaId"
+      ],
+      "sourceReferences": [
+        "app/api/admin/social/campaigns/[campaignId]/route.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialApprovalEvent",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "variant",
+          "model": "SocialVariant",
+          "optional": false,
+          "fields": [
+            "variantId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "actor",
+          "model": "AdminUser",
+          "optional": false,
+          "fields": [
+            "actorId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/api/admin/social/campaigns/[campaignId]/route.ts",
+        "lib/social/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialPublication",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "variant",
+          "model": "SocialVariant",
+          "optional": false,
+          "fields": [
+            "variantId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "actor",
+          "model": "AdminUser",
+          "optional": false,
+          "fields": [
+            "actorId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "connection",
+          "model": "SocialConnection",
+          "optional": true,
+          "fields": [
+            "connectionId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/api/admin/social/campaigns/[campaignId]/route.ts",
+        "lib/social/analytics.ts",
+        "lib/social/publishing.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialStudioSettings",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "workspaceId"
+      ],
+      "sourceReferences": [
+        "app/api/admin/social/settings/route.ts",
+        "lib/social/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialConnection",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "directPublishingEnabledBy",
+          "model": "AdminUser",
+          "optional": true,
+          "fields": [
+            "directPublishingEnabledById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [
+        "workspaceId, platform, providerAccountId"
+      ],
+      "sourceReferences": [
+        "app/admin/social-studio/analytics/page.tsx",
+        "app/admin/social-studio/campaigns/[campaignId]/page.tsx",
+        "app/admin/social-studio/settings/page.tsx",
+        "app/api/admin/social/analytics/route.ts",
+        "app/api/admin/social/campaigns/[campaignId]/route.ts",
+        "app/api/admin/social/connections/route.ts",
+        "app/api/admin/social/connections/test/route.ts",
+        "app/api/admin/social/oauth/meta/destinations/route.ts",
+        "app/api/admin/social/settings/route.ts",
+        "app/api/cron/social-studio/route.ts",
+        "lib/dashboard.ts",
+        "lib/social/analytics.ts",
+        "lib/social/autopilot.ts",
+        "lib/social/meta-health.ts",
+        "lib/social/publishing.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialOAuthSession",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "user",
+          "model": "AdminUser",
+          "optional": false,
+          "fields": [
+            "userId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        "stateHash"
+      ],
+      "sourceReferences": [
+        "app/api/admin/social/oauth/[provider]/callback/route.ts",
+        "app/api/admin/social/oauth/[provider]/connect/route.ts",
+        "app/api/admin/social/oauth/meta/destinations/route.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "OperationalIncident",
+      "workspaceField": "absent",
+      "foreignKeys": [],
+      "uniqueConstraints": [
+        "providerEventId"
+      ],
+      "sourceReferences": [
+        "app/api/webhooks/uptimerobot/route.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialConnectionAudit",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "connection",
+          "model": "SocialConnection",
+          "optional": false,
+          "fields": [
+            "connectionId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "actor",
+          "model": "AdminUser",
+          "optional": true,
+          "fields": [
+            "actorId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/api/admin/social/connections/route.ts",
+        "app/api/admin/social/connections/test/route.ts",
+        "app/api/admin/social/oauth/meta/destinations/route.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialPublishingSnapshot",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "variant",
+          "model": "SocialVariant",
+          "optional": false,
+          "fields": [
+            "variantId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "connection",
+          "model": "SocialConnection",
+          "optional": false,
+          "fields": [
+            "connectionId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "approvedBy",
+          "model": "AdminUser",
+          "optional": false,
+          "fields": [
+            "approvedById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "variantId, connectionId, contentVersion, scheduledAt"
+      ],
+      "sourceReferences": [
+        "app/api/admin/social/campaigns/[campaignId]/route.ts",
+        "lib/social/publishing.ts",
+        "lib/social/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialPublishingJob",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "variant",
+          "model": "SocialVariant",
+          "optional": false,
+          "fields": [
+            "variantId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "connection",
+          "model": "SocialConnection",
+          "optional": false,
+          "fields": [
+            "connectionId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "snapshot",
+          "model": "SocialPublishingSnapshot",
+          "optional": false,
+          "fields": [
+            "snapshotId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "idempotencyKey"
+      ],
+      "sourceReferences": [
+        "app/admin/social-studio/queue/page.tsx",
+        "app/api/admin/social/campaigns/[campaignId]/route.ts",
+        "app/api/admin/social/connections/route.ts",
+        "app/api/admin/social/publishing-jobs/route.ts",
+        "lib/social/publishing.ts",
+        "lib/social/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialPublishingAttempt",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "job",
+          "model": "SocialPublishingJob",
+          "optional": false,
+          "fields": [
+            "jobId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "jobId, attemptNumber"
+      ],
+      "sourceReferences": [
+        "lib/social/publishing.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialMetricSnapshot",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "connection",
+          "model": "SocialConnection",
+          "optional": false,
+          "fields": [
+            "connectionId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "variant",
+          "model": "SocialVariant",
+          "optional": true,
+          "fields": [
+            "variantId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "publication",
+          "model": "SocialPublication",
+          "optional": true,
+          "fields": [
+            "publicationId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "sourceFingerprint"
+      ],
+      "sourceReferences": [
+        "app/admin/social-studio/analytics/page.tsx",
+        "app/admin/social-studio/analytics/report/page.tsx",
+        "lib/social/analytics.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialAnalyticsJob",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "connection",
+          "model": "SocialConnection",
+          "optional": false,
+          "fields": [
+            "connectionId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "idempotencyKey"
+      ],
+      "sourceReferences": [
+        "lib/social/analytics.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "SocialAnalyticsRecommendation",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "campaign",
+          "model": "SocialCampaign",
+          "optional": true,
+          "fields": [
+            "campaignId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        },
+        {
+          "relation": "variant",
+          "model": "SocialVariant",
+          "optional": true,
+          "fields": [
+            "variantId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        },
+        {
+          "relation": "actedBy",
+          "model": "AdminUser",
+          "optional": true,
+          "fields": [
+            "actedById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/admin/social-studio/analytics/page.tsx"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "CommunicationClient",
+      "workspaceField": "absent",
+      "foreignKeys": [],
+      "uniqueConstraints": [
+        "hdPhotoHubUserId"
+      ],
+      "sourceReferences": [
+        "app/admin/clients/page.tsx",
+        "app/admin/email-studio/page.tsx",
+        "app/api/admin/client-groups/memberships/route.ts",
+        "app/api/admin/clients/preferences/route.ts",
+        "app/api/admin/email-campaigns/route.ts",
+        "app/api/admin/referrals/options/route.ts",
+        "app/api/admin/referrals/submissions/[submissionId]/route.ts",
+        "app/api/webhooks/resend/route.ts",
+        "lib/client-communications/preferences.ts",
+        "lib/client-communications/sync.ts",
+        "lib/newsletters/recipients.ts",
+        "lib/newsletters/studio.ts",
+        "lib/referrals/public.ts",
+        "lib/referrals/recommendations.ts",
+        "lib/referrals/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "CommunicationClientWorkspace",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "client",
+          "model": "CommunicationClient",
+          "optional": false,
+          "fields": [
+            "clientId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        "workspaceId, clientId"
+      ],
+      "sourceReferences": [
+        "app/admin/projects/[projectId]/page.tsx",
+        "app/api/admin/projects/[projectId]/details/route.ts",
+        "lib/client-communications/sync.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ClientSyncRun",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/admin/clients/page.tsx",
+        "app/api/admin/clients/sync/route.ts",
+        "lib/dashboard.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "EmailCampaign",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "createdBy",
+          "model": "AdminUser",
+          "optional": false,
+          "fields": [
+            "createdById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/admin/email-studio/page.tsx",
+        "app/api/admin/blog/[postId]/email-draft/route.ts",
+        "app/api/admin/email-campaigns/[campaignId]/route.ts",
+        "app/api/admin/email-campaigns/route.ts",
+        "app/api/webhooks/resend/route.ts",
+        "lib/client-communications/campaign-delivery.ts",
+        "lib/dashboard.ts",
+        "lib/newsletters/delivery.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "CampaignRecipient",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "campaign",
+          "model": "EmailCampaign",
+          "optional": false,
+          "fields": [
+            "campaignId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "client",
+          "model": "CommunicationClient",
+          "optional": false,
+          "fields": [
+            "clientId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "campaignId, clientId"
+      ],
+      "sourceReferences": [
+        "app/api/webhooks/resend/route.ts",
+        "lib/client-communications/bounces.ts",
+        "lib/client-communications/campaign-delivery.ts",
+        "lib/newsletters/delivery.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ResendWebhookEvent",
+      "workspaceField": "nullable",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": true,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        },
+        {
+          "relation": "client",
+          "model": "CommunicationClient",
+          "optional": true,
+          "fields": [
+            "clientId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        },
+        {
+          "relation": "campaignRecipient",
+          "model": "CampaignRecipient",
+          "optional": true,
+          "fields": [
+            "campaignRecipientId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [
+        "providerEventId"
+      ],
+      "sourceReferences": [
+        "app/admin/email-studio/page.tsx",
+        "app/api/webhooks/resend/route.ts",
+        "lib/client-communications/bounces.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "CampaignDeliveryEvent",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "campaignRecipient",
+          "model": "CampaignRecipient",
+          "optional": false,
+          "fields": [
+            "campaignRecipientId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        "providerEventId"
+      ],
+      "sourceReferences": [
+        "app/api/webhooks/resend/route.ts",
+        "lib/dashboard.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "CommunicationGroup",
+      "workspaceField": "nullable",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": true,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "normalizedName",
+        "systemKey"
+      ],
+      "sourceReferences": [
+        "app/admin/clients/page.tsx",
+        "app/admin/email-studio/page.tsx",
+        "app/api/admin/client-groups/memberships/route.ts",
+        "app/api/admin/client-groups/route.ts",
+        "app/api/admin/newsletters/route.ts",
+        "app/api/admin/newsletters/series/[seriesId]/route.ts",
+        "app/api/admin/newsletters/series/options/route.ts",
+        "app/api/admin/referrals/options/route.ts",
+        "lib/client-communications/bounces.ts",
+        "lib/client-communications/preferences.ts",
+        "lib/newsletters/studio.ts",
+        "lib/referrals/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "CommunicationGroupMembership",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "group",
+          "model": "CommunicationGroup",
+          "optional": false,
+          "fields": [
+            "groupId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "client",
+          "model": "CommunicationClient",
+          "optional": false,
+          "fields": [
+            "clientId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        "groupId, clientId"
+      ],
+      "sourceReferences": [
+        "app/api/admin/client-groups/memberships/route.ts",
+        "lib/client-communications/bounces.ts",
+        "lib/client-communications/preferences.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "CommunicationSuppression",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "client",
+          "model": "CommunicationClient",
+          "optional": true,
+          "fields": [
+            "clientId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [
+        "providerEventId"
+      ],
+      "sourceReferences": [
+        "app/api/webhooks/resend/route.ts",
+        "lib/client-communications/preferences.ts",
+        "lib/newsletters/recipients.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "MarketingEmailPreference",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "actingAdmin",
+          "model": "AdminUser",
+          "optional": true,
+          "fields": [
+            "actingAdminId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [
+        "normalizedEmail"
+      ],
+      "sourceReferences": [
+        "app/admin/clients/page.tsx",
+        "lib/client-communications/preferences.ts",
+        "lib/client-communications/sync.ts",
+        "lib/newsletters/recipients.ts",
+        "lib/referrals/launch.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "MarketingEmailPreferenceEvent",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "preference",
+          "model": "MarketingEmailPreference",
+          "optional": false,
+          "fields": [
+            "preferenceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "actor",
+          "model": "AdminUser",
+          "optional": true,
+          "fields": [
+            "actorId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "lib/client-communications/preferences.ts",
+        "lib/newsletters/analytics.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "MarketingEmailPreferenceToken",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "preference",
+          "model": "MarketingEmailPreference",
+          "optional": false,
+          "fields": [
+            "preferenceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        "tokenHash"
+      ],
+      "sourceReferences": [
+        "app/api/unsubscribe/route.ts",
+        "lib/client-communications/preferences.ts",
+        "lib/referrals/launch.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "NewsletterSeries",
+      "workspaceField": "nullable",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": true,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "createdBy",
+          "model": "AdminUser",
+          "optional": false,
+          "fields": [
+            "createdById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/admin/newsletter-studio/page.tsx",
+        "app/api/admin/newsletters/route.ts",
+        "app/api/admin/newsletters/series/[seriesId]/route.ts",
+        "lib/dashboard.ts",
+        "lib/newsletters/scheduler.ts",
+        "lib/newsletters/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "NewsletterSeriesGroup",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "series",
+          "model": "NewsletterSeries",
+          "optional": false,
+          "fields": [
+            "seriesId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "group",
+          "model": "CommunicationGroup",
+          "optional": false,
+          "fields": [
+            "groupId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "lib/newsletters/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "NewsletterSeriesRecipient",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "series",
+          "model": "NewsletterSeries",
+          "optional": false,
+          "fields": [
+            "seriesId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "client",
+          "model": "CommunicationClient",
+          "optional": false,
+          "fields": [
+            "clientId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "lib/newsletters/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "NewsletterEdition",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "series",
+          "model": "NewsletterSeries",
+          "optional": false,
+          "fields": [
+            "seriesId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "createdBy",
+          "model": "AdminUser",
+          "optional": false,
+          "fields": [
+            "createdById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "approvedRevision",
+          "model": "NewsletterRevision",
+          "optional": true,
+          "fields": [
+            "approvedRevisionId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "approvedRevisionId",
+        "seriesId, cycleKey"
+      ],
+      "sourceReferences": [
+        "app/admin/newsletter-studio/page.tsx",
+        "app/admin/social-studio/page.tsx",
+        "app/api/admin/newsletters/editions/[editionId]/route.ts",
+        "app/api/admin/newsletters/route.ts",
+        "app/api/cron/newsletters/route.ts",
+        "lib/dashboard.ts",
+        "lib/newsletters/api.ts",
+        "lib/newsletters/delivery.ts",
+        "lib/newsletters/generation.ts",
+        "lib/newsletters/scheduler.ts",
+        "lib/newsletters/studio.ts",
+        "lib/social/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "NewsletterBlock",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "edition",
+          "model": "NewsletterEdition",
+          "optional": false,
+          "fields": [
+            "editionId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        "editionId, position"
+      ],
+      "sourceReferences": [
+        "app/api/admin/newsletters/editions/[editionId]/route.ts",
+        "lib/newsletters/generation.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "NewsletterBlockSource",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "block",
+          "model": "NewsletterBlock",
+          "optional": false,
+          "fields": [
+            "blockId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "NewsletterImageAsset",
+      "workspaceField": "nullable",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": true,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "createdBy",
+          "model": "AdminUser",
+          "optional": false,
+          "fields": [
+            "createdById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "storageKey"
+      ],
+      "sourceReferences": [
+        "app/api/admin/newsletters/editions/[editionId]/route.ts",
+        "app/api/admin/newsletters/images/route.ts",
+        "app/api/admin/social/campaigns/[campaignId]/route.ts",
+        "lib/newsletters/image-assets.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "NewsletterRevision",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "edition",
+          "model": "NewsletterEdition",
+          "optional": false,
+          "fields": [
+            "editionId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "createdBy",
+          "model": "AdminUser",
+          "optional": true,
+          "fields": [
+            "createdById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [
+        "editionId, revisionNumber"
+      ],
+      "sourceReferences": [
+        "app/api/admin/newsletters/editions/[editionId]/route.ts",
+        "lib/newsletters/generation.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "NewsletterGenerationRun",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "edition",
+          "model": "NewsletterEdition",
+          "optional": false,
+          "fields": [
+            "editionId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        "editionId, attempt"
+      ],
+      "sourceReferences": [
+        "lib/newsletters/generation.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "NewsletterApproval",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "edition",
+          "model": "NewsletterEdition",
+          "optional": false,
+          "fields": [
+            "editionId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "revision",
+          "model": "NewsletterRevision",
+          "optional": false,
+          "fields": [
+            "revisionId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "approvedBy",
+          "model": "AdminUser",
+          "optional": false,
+          "fields": [
+            "approvedById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/api/admin/newsletters/editions/[editionId]/route.ts",
+        "app/api/cron/newsletters/route.ts",
+        "lib/newsletters/generation.ts",
+        "lib/newsletters/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "NewsletterDelivery",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "edition",
+          "model": "NewsletterEdition",
+          "optional": false,
+          "fields": [
+            "editionId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "campaign",
+          "model": "EmailCampaign",
+          "optional": false,
+          "fields": [
+            "campaignId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "editionId",
+        "campaignId"
+      ],
+      "sourceReferences": [
+        "lib/newsletters/analytics.ts",
+        "lib/newsletters/delivery.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "NewsletterJob",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "edition",
+          "model": "NewsletterEdition",
+          "optional": false,
+          "fields": [
+            "editionId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        "idempotencyKey",
+        "claimToken",
+        "editionId, type, dueAt"
+      ],
+      "sourceReferences": [
+        "app/api/admin/newsletters/editions/[editionId]/route.ts",
+        "app/api/admin/newsletters/route.ts",
+        "lib/dashboard.ts",
+        "lib/newsletters/scheduler.ts",
+        "lib/newsletters/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ReferralCampaign",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "createdBy",
+          "model": "AdminUser",
+          "optional": false,
+          "fields": [
+            "createdById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "approvedRevision",
+          "model": "ReferralCampaignRevision",
+          "optional": true,
+          "fields": [
+            "approvedRevisionId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "approvedRevisionId",
+        "launchAttemptId"
+      ],
+      "sourceReferences": [
+        "app/admin/referral-studio/campaigns/[campaignId]/edit/page.tsx",
+        "app/api/admin/referrals/campaigns/[campaignId]/route.ts",
+        "app/api/admin/referrals/manual/route.ts",
+        "lib/dashboard.ts",
+        "lib/referrals/delivery.ts",
+        "lib/referrals/launch.ts",
+        "lib/referrals/scheduling.ts",
+        "lib/referrals/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ReferralCampaignAudience",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "campaign",
+          "model": "ReferralCampaign",
+          "optional": false,
+          "fields": [
+            "campaignId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "group",
+          "model": "CommunicationGroup",
+          "optional": true,
+          "fields": [
+            "groupId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "client",
+          "model": "CommunicationClient",
+          "optional": true,
+          "fields": [
+            "clientId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "campaignId, groupId, clientId, excluded"
+      ],
+      "sourceReferences": [
+        "lib/referrals/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ReferralAdvocate",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "campaign",
+          "model": "ReferralCampaign",
+          "optional": false,
+          "fields": [
+            "campaignId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "client",
+          "model": "CommunicationClient",
+          "optional": false,
+          "fields": [
+            "clientId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "campaignId, clientId"
+      ],
+      "sourceReferences": [
+        "app/api/admin/referrals/manual/route.ts",
+        "lib/referrals/launch.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ReferralInvitation",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "campaign",
+          "model": "ReferralCampaign",
+          "optional": false,
+          "fields": [
+            "campaignId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "advocate",
+          "model": "ReferralAdvocate",
+          "optional": false,
+          "fields": [
+            "advocateId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "campaignId, advocateId, approvedRevisionId"
+      ],
+      "sourceReferences": [
+        "app/api/admin/referrals/campaigns/[campaignId]/route.ts",
+        "app/api/webhooks/resend/route.ts",
+        "lib/referrals/delivery.ts",
+        "lib/referrals/launch.ts",
+        "lib/referrals/public.ts",
+        "lib/referrals/scheduling.ts",
+        "lib/referrals/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ReferralLink",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "invitation",
+          "model": "ReferralInvitation",
+          "optional": false,
+          "fields": [
+            "invitationId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "campaign",
+          "model": "ReferralCampaign",
+          "optional": false,
+          "fields": [
+            "campaignId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "advocate",
+          "model": "ReferralAdvocate",
+          "optional": false,
+          "fields": [
+            "advocateId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "invitationId",
+        "tokenHash",
+        "code"
+      ],
+      "sourceReferences": [
+        "lib/referrals/launch.ts",
+        "lib/referrals/public.ts",
+        "lib/referrals/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ReferralSubmission",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "campaign",
+          "model": "ReferralCampaign",
+          "optional": false,
+          "fields": [
+            "campaignId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "advocate",
+          "model": "ReferralAdvocate",
+          "optional": true,
+          "fields": [
+            "advocateId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        },
+        {
+          "relation": "link",
+          "model": "ReferralLink",
+          "optional": true,
+          "fields": [
+            "linkId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        },
+        {
+          "relation": "duplicateOf",
+          "model": "ReferralSubmission",
+          "optional": true,
+          "fields": [
+            "duplicateOfId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        },
+        {
+          "relation": "matchedClient",
+          "model": "CommunicationClient",
+          "optional": true,
+          "fields": [
+            "matchedClientId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        },
+        {
+          "relation": "inquiry",
+          "model": "Inquiry",
+          "optional": true,
+          "fields": [
+            "inquiryId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/api/admin/referrals/export/route.ts",
+        "app/api/admin/referrals/manual/route.ts",
+        "app/api/admin/referrals/submissions/[submissionId]/route.ts",
+        "lib/referrals/launch.ts",
+        "lib/referrals/public.ts",
+        "lib/referrals/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ReferralStatusEvent",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "submission",
+          "model": "ReferralSubmission",
+          "optional": false,
+          "fields": [
+            "submissionId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "actor",
+          "model": "AdminUser",
+          "optional": true,
+          "fields": [
+            "actorId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "lib/referrals/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ReferralReward",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "submission",
+          "model": "ReferralSubmission",
+          "optional": false,
+          "fields": [
+            "submissionId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "advocate",
+          "model": "ReferralAdvocate",
+          "optional": false,
+          "fields": [
+            "advocateId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "approvedBy",
+          "model": "AdminUser",
+          "optional": true,
+          "fields": [
+            "approvedById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        },
+        {
+          "relation": "issuedBy",
+          "model": "AdminUser",
+          "optional": true,
+          "fields": [
+            "issuedById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [
+        "submissionId, advocateId"
+      ],
+      "sourceReferences": [
+        "lib/referrals/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ReferralCommunication",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "campaign",
+          "model": "ReferralCampaign",
+          "optional": false,
+          "fields": [
+            "campaignId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "invitation",
+          "model": "ReferralInvitation",
+          "optional": true,
+          "fields": [
+            "invitationId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        },
+        {
+          "relation": "submission",
+          "model": "ReferralSubmission",
+          "optional": true,
+          "fields": [
+            "submissionId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [
+        "idempotencyKey"
+      ],
+      "sourceReferences": [
+        "app/api/admin/referrals/campaigns/[campaignId]/route.ts",
+        "app/api/webhooks/resend/route.ts",
+        "lib/referrals/delivery.ts",
+        "lib/referrals/launch.ts",
+        "lib/referrals/public.ts",
+        "lib/referrals/scheduling.ts",
+        "lib/referrals/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ReferralCampaignRevision",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "campaign",
+          "model": "ReferralCampaign",
+          "optional": false,
+          "fields": [
+            "campaignId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "approvedBy",
+          "model": "AdminUser",
+          "optional": true,
+          "fields": [
+            "approvedById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [
+        "campaignId, revisionNumber"
+      ],
+      "sourceReferences": [
+        "lib/referrals/launch.ts",
+        "lib/referrals/studio.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ReferralAuditEvent",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "campaign",
+          "model": "ReferralCampaign",
+          "optional": true,
+          "fields": [
+            "campaignId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "submission",
+          "model": "ReferralSubmission",
+          "optional": true,
+          "fields": [
+            "submissionId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "actor",
+          "model": "AdminUser",
+          "optional": true,
+          "fields": [
+            "actorId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/api/admin/referrals/campaigns/[campaignId]/route.ts",
+        "app/api/admin/referrals/manual/route.ts",
+        "app/api/admin/referrals/submissions/[submissionId]/route.ts",
+        "app/api/webhooks/resend/route.ts",
+        "lib/dashboard.ts",
+        "lib/referrals/delivery.ts",
+        "lib/referrals/launch.ts",
+        "lib/referrals/public.ts",
+        "lib/referrals/scheduling.ts",
+        "lib/referrals/studio.ts",
+        "lib/referrals/test-preview.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ReferralCronInvocation",
+      "workspaceField": "absent",
+      "foreignKeys": [],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/api/admin/referrals/campaigns/[campaignId]/route.ts",
+        "app/api/cron/referrals/route.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ReferralTestToken",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "campaign",
+          "model": "ReferralCampaign",
+          "optional": false,
+          "fields": [
+            "campaignId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "createdBy",
+          "model": "AdminUser",
+          "optional": false,
+          "fields": [
+            "createdById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        "tokenHash"
+      ],
+      "sourceReferences": [
+        "app/api/admin/referrals/campaigns/[campaignId]/route.ts",
+        "lib/referrals/test-preview.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "AdminInvitation",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "createdBy",
+          "model": "AdminUser",
+          "optional": false,
+          "fields": [
+            "createdById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        "tokenHash"
+      ],
+      "sourceReferences": [
+        "app/admin/users/page.tsx",
+        "app/api/admin/users/route.ts",
+        "app/api/auth/accept-invite/route.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "ProjectPreviewLink",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "project",
+          "model": "Project",
+          "optional": false,
+          "fields": [
+            "projectId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "createdBy",
+          "model": "AdminUser",
+          "optional": false,
+          "fields": [
+            "createdById"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "tokenHash"
+      ],
+      "sourceReferences": [
+        "app/api/admin/projects/[projectId]/previews/route.ts",
+        "lib/project-preview.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "Inquiry",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "assignedTo",
+          "model": "AdminUser",
+          "optional": true,
+          "fields": [
+            "assignedToId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/admin/inquiries/page.tsx",
+        "app/api/admin/inquiries/export/route.ts",
+        "app/api/admin/inquiries/route.ts",
+        "app/api/admin/referrals/submissions/[submissionId]/route.ts",
+        "app/api/inquiries/route.ts",
+        "lib/dashboard.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "InquiryService",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "inquiry",
+          "model": "Inquiry",
+          "optional": false,
+          "fields": [
+            "inquiryId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "service",
+          "model": "Service",
+          "optional": false,
+          "fields": [
+            "serviceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "InquiryNote",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "inquiry",
+          "model": "Inquiry",
+          "optional": false,
+          "fields": [
+            "inquiryId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "author",
+          "model": "AdminUser",
+          "optional": false,
+          "fields": [
+            "authorId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/api/admin/inquiries/route.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "InquiryActivity",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "inquiry",
+          "model": "Inquiry",
+          "optional": false,
+          "fields": [
+            "inquiryId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Cascade"
+        },
+        {
+          "relation": "actor",
+          "model": "AdminUser",
+          "optional": true,
+          "fields": [
+            "actorId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/api/admin/inquiries/route.ts",
+        "lib/dashboard.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
+      "model": "AuditEvent",
+      "workspaceField": "absent",
+      "foreignKeys": [
+        {
+          "relation": "actor",
+          "model": "AdminUser",
+          "optional": true,
+          "fields": [
+            "actorId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "SetNull"
+        }
+      ],
+      "uniqueConstraints": [],
+      "sourceReferences": [
+        "app/admin/activity/page.tsx",
+        "app/api/admin/blog/series/assistant/route.ts",
+        "app/api/admin/portfolio-settings/route.ts",
+        "app/api/admin/projects/featured/route.ts",
+        "lib/audit.ts",
+        "lib/dashboard.ts",
+        "lib/portfolio-discovery-settings.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    }
+  ],
+  "routes": [
+    {
+      "path": "app/api/admin/about/presign/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/about/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/auth/login/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/auth/logout/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/blog/[postId]/email-draft/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/blog/ai/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/blog/images/generate/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/blog/presign/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/blog/revisions/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/blog/route.ts",
+      "methods": [
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/blog/series/assistant/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/blog/series/generate/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/blog/series/route.ts",
+      "methods": [
+        "POST",
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/client-groups/memberships/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/client-groups/route.ts",
+      "methods": [
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/client-portals/connection/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/client-portals/route.ts",
+      "methods": [
+        "GET",
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/clients/preferences/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/clients/sync/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/ctas/route.ts",
+      "methods": [
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/dashboard-layout/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/email-ai/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/email-campaigns/[campaignId]/route.ts",
+      "methods": [
+        "DELETE",
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/email-campaigns/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/email-images/presign/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/faq-categories/route.ts",
+      "methods": [
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/faqs/route.ts",
+      "methods": [
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/homepage-film/presign/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/homepage-film/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/homepage-layout/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/homepage-projects/route.ts",
+      "methods": [
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/homepage-work-cards/presign/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/homepage-work-cards/route.ts",
+      "methods": [
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/inquiries/export/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/inquiries/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/integrations/google-business/callback/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/integrations/google-business/review-display/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/integrations/google-business/reviews/[reviewId]/curate/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/integrations/google-business/reviews/[reviewId]/visibility/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/integrations/google-business/route.ts",
+      "methods": [
+        "PATCH",
+        "DELETE"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/integrations/google-business/start/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/legal-documents/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/locations/ai/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/locations/presign/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/locations/route.ts",
+      "methods": [
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/navigation-favorites/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/newsletters/editions/[editionId]/route.ts",
+      "methods": [
+        "GET",
+        "PATCH",
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/newsletters/images/generate/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/newsletters/images/presign/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/newsletters/images/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/newsletters/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/newsletters/series/[seriesId]/route.ts",
+      "methods": [
+        "GET",
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/newsletters/series/options/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/newsletters/series/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/photo-comparison/presign/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/photo-comparison/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/portfolio-settings/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/profile/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/projects/[projectId]/contributors/route.ts",
+      "methods": [
+        "PUT"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/projects/[projectId]/details/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/projects/[projectId]/film-comparison/route.ts",
+      "methods": [
+        "GET",
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/projects/[projectId]/media/route.ts",
+      "methods": [
+        "GET",
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/projects/[projectId]/previews/route.ts",
+      "methods": [
+        "POST",
+        "DELETE"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/projects/[projectId]/stream-upload/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/projects/[projectId]/workflow/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/projects/featured/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/projects/order/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/projects/repair-thumbnails/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/r2/presign/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/r2/verify/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/referrals/ai/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/referrals/campaigns/[campaignId]/route.ts",
+      "methods": [
+        "GET",
+        "PUT",
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/referrals/export/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/referrals/manual/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/referrals/options/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/referrals/recommendations/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/referrals/rewards/[rewardId]/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/referrals/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/referrals/submissions/[submissionId]/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/services/route.ts",
+      "methods": [
+        "POST",
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/site-settings/brand-logo/presign/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/site-settings/brand-monogram/presign/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/site-settings/favicon/presign/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/site-settings/hero-media/presign/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/site-settings/homepage-images/presign/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/site-settings/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/site-settings/social-image/presign/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/social/ai/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/social/analytics/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/social/autopilot/drafts/[draftId]/queue/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/social/autopilot/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/social/autopilot/settings/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/social/campaigns/[campaignId]/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/social/campaigns/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/social/connections/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/social/connections/test/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/social/images/generate/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/social/oauth/[provider]/callback/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/social/oauth/[provider]/connect/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/social/oauth/meta/destinations/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/social/publishing-jobs/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/social/series/[seriesId]/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/social/series/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/social/settings/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/team-members/presign/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/team-members/route.ts",
+      "methods": [
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/testimonials/google-sync/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/testimonials/presign/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/testimonials/route.ts",
+      "methods": [
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/trusted-logos/presign/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/trusted-logos/route.ts",
+      "methods": [
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/trusted-logos/upload/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/users/route.ts",
+      "methods": [
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/users/title-migration-report/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/video-offerings/route.ts",
+      "methods": [
+        "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/auth/accept-invite/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/client-portal/challenge/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/client-portal/register/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/client-portal/verify/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/cron/blog-series/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/cron/email-campaigns/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/cron/google-reviews/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/cron/newsletters/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/cron/portfolio-analytics/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/cron/referrals/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/cron/social-studio/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/health/public/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/inquiries/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/portfolio/films/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/portfolio/gallery/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/portfolio-analytics/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/referrals/[token]/qr/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/referrals/[token]/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/referrals/test/[token]/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/unsubscribe/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/webhooks/resend/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/webhooks/uptimerobot/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/trusted-logo-assets/[fileName]/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    }
+  ],
+  "serverActionFiles": [
+    "app/admin/projects/new/actions.ts"
+  ],
+  "scheduledRoutes": [
+    {
+      "path": "/api/cron/newsletters",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/blog-series",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/referrals",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/email-campaigns",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/social-studio",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/portfolio-analytics",
+      "schedule": "15 10 1 * *"
+    }
+  ]
+}

@@ -191,3 +191,13 @@ Before a second tenant is provisioned:
 ## Immediate recommendation
 
 Do not add a second tenant yet. Complete the ownership map, host resolver, identity/membership design, shared asset design, and tenant-isolation test harness first. Preserve the current Helios behavior behind compatibility paths while these foundations are introduced.
+
+## 2026-09-11 repeatable ownership inventory
+
+Run `node scripts/audit/tenant-ownership.mjs` to refresh `docs/helios-studio-v2-ownership-inventory.json`. It reads tracked source/schema/configuration only, not environment values or a database. Current inventory: 111 models, 138 route files, one detected server-action file and six configured cron routes. Of the models, 29 have required workspace fields, 10 nullable fields and 72 no direct workspace field.
+
+These numbers are not completion percentages or an isolation verdict. Many child records inherit ownership; creator/account relations do not establish immutable ownership. Every model includes its explicit foreign keys, uniqueness constraints and lexical delegate references so the review can follow actual data paths. Aliases, wrappers, raw SQL, cache behavior, storage usage and hosted integration behavior still need semantic inspection.
+
+Remaining unowned roots found by this pass include TeamMember, AboutPageContent, ClientPortal, EmailCampaign, ReferralCampaign and Inquiry. OperationalIncident, ReferralCronInvocation and AuditEvent need platform-versus-tenant visibility rules. CommunicationClient and global marketing preferences/suppression require careful shared-identity/consent handling without weakening existing opt-outs. These are prioritized review targets, not authorization to modify protected provider connections.
+
+The six scheduled routes are newsletters, blog series, referrals, email campaigns, social studio and portfolio analytics. This inventory does not execute them. Production schedules, tokens, destinations and delivery histories remain untouched.

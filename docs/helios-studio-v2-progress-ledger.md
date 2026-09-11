@@ -136,3 +136,9 @@ Verification: 435 tests passed, zero failed; Prisma generation, non-incremental 
 Continued after draft #231. Removed global settings overwrite/reassignment paths, added shared company targets and distinct tenant row IDs, and updated legal publication settings to use them. Added local administrator checks to every settings presign route, company namespaces, server-derived image URLs and hero URL ownership checks. Physical image cleanup is deferred pending asset usage/recovery evidence.
 
 Verification: 439 tests passed, zero failed; non-incremental TypeScript, focused lint and diff checks passed. Mocked actual-route tests check keys before storage, URL canonicalization, presign permissions and target identity. One test initially hit the VM's separate Error class; corrected the harness to match the single application realm and re-ran the full suite. No production settings, object, deployment or provider configuration changed. Actual uploads/browser flows, rollback namespace compatibility and remaining global consumers remain open.
+
+## 2026-09-11 repeatable Phase 0 ownership inventory
+
+Continued after draft #232. Added a source-only inventory generator and checked-in schema-hashed snapshot covering all 111 models, 138 route files, detected server actions and six configured cron routes. Recorded explicit foreign keys, nullable/required ownership, uniqueness and lexical call sites. The snapshot deliberately labels semantic review outstanding; required fields are not counted as proof of isolation.
+
+Ran the generator and reconciled its 111-model count with schema declarations. No database or environment values read. Main remaining content roots and platform/shared-data decisions are documented in the current-state audit. Next implementation follows immutable email-campaign ownership and the remaining public content roots; protected integration behavior stays intact. No production action performed.
