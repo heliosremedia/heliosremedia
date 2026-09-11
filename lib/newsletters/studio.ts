@@ -1,3 +1,5 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
+import type { Prisma } from "@/app/generated/prisma/client";
 import { resolveNewsletterWorkspace } from "@/lib/newsletters/ownership";
 import { requireWorkspaceId } from "@/lib/workspaces";
 import "server-only";
@@ -99,11 +101,22 @@ function cycleKey(date: Date, timeZone: string) {
   return `${year}-${month}`;
 }
 
+async function validateSeriesAudience(tx: Prisma.TransactionClient, workspaceId: string, input: SeriesInput) {
+  const [groups, clients] = await Promise.all([
+    tx.communicationGroup.count({ where: { id: { in: input.groupIds }, AND: [await getContentOwnershipScope(workspaceId)] } }),
+    tx.communicationClient.count({ where: { id: { in: input.clientIds }, workspaceMemberships: { some: { workspaceId } } } }),
+  ]);
+  if (groups !== input.groupIds.length || clients !== input.clientIds.length) {
+    throw new Error("Selected audience is unavailable in this workspace.");
+  }
+}
+
 export async function createSeries(inputValue: unknown, createdById: string) {
   const workspaceId = await requireWorkspaceId(createdById);
   const input = parseSeriesInput(inputValue);
   const schedule = scheduleFor(input);
   return prisma.$transaction(async (tx) => {
+    await validateSeriesAudience(tx, workspaceId, input);
     const series = await tx.newsletterSeries.create({
       data: {
         workspaceId,
@@ -169,12 +182,13 @@ export async function createSeries(inputValue: unknown, createdById: string) {
   });
 }
 
-export async function updateSeries(seriesId: string, inputValue: unknown) {
+export async function updateSeries(seriesId: string, inputValue: unknown, workspaceId: string) {
   const input = parseSeriesInput(inputValue);
   const schedule = scheduleFor(input);
   return prisma.$transaction(async (tx) => {
-    const existing = await tx.newsletterSeries.findUnique({ where: { id: seriesId } });
+    const existing = await tx.newsletterSeries.findUnique({ where: { id: seriesId, AND: [await getContentOwnershipScope(workspaceId)] } });
     if (!existing) throw new Error("Newsletter series was not found.");
+    await validateSeriesAudience(tx, workspaceId, input);
     const affected = await tx.newsletterEdition.findMany({
       where: { seriesId, status: { in: ["APPROVED", "SCHEDULED"] } },
       select: { id: true },

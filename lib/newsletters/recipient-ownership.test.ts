@@ -6,21 +6,22 @@ import ts from "typescript";
 
 test("real recipient resolver intersects every selection mode with company membership and preserves opt-outs", async () => {
   const clients = [
-    { id: "a", company: "company-a", groups: ["group"], emailSubscribed: true },
-    { id: "b", company: "company-b", groups: ["group"], emailSubscribed: true },
-    { id: "out", company: "company-a", groups: ["group"], emailSubscribed: false },
-    { id: "suppressed", company: "company-a", groups: ["group"], emailSubscribed: true },
+    { id: "a", company: "company-a", groups: ["group", "foreign-group"], emailSubscribed: true },
+    { id: "b", company: "company-b", groups: ["group", "foreign-group"], emailSubscribed: true },
+    { id: "out", company: "company-a", groups: ["group", "foreign-group"], emailSubscribed: false },
+    { id: "suppressed", company: "company-a", groups: ["group", "foreign-group"], emailSubscribed: true },
   ].map(row => ({ ...row, displayName: row.id, email: `${row.id}@example.com`, normalizedEmail: `${row.id}@example.com`, archivedAt: null, emailStatus: "VALID" }));
-  type SelectionWhere = { id?: { in: string[] }; groupMemberships?: { some: { groupId: { in: string[] } } }; OR?: SelectionWhere[] };
+  type SelectionWhere = { id?: { in: string[] }; groupMemberships?: { some: { groupId: { in: string[] }; group: { workspaceId: string } } }; OR?: SelectionWhere[] };
   function selected(row: typeof clients[number], where: SelectionWhere): boolean {
     if (where.OR) return where.OR.some(part => selected(row, part));
     if (where.id) return where.id.in.includes(row.id);
-    if (where.groupMemberships) return row.groups.some(group => where.groupMemberships!.some.groupId.in.includes(group));
+    if (where.groupMemberships) return row.groups.some(group => where.groupMemberships!.some.groupId.in.includes(group) && (group === "foreign-group" ? "company-b" : "company-a") === where.groupMemberships!.some.group.workspaceId);
     return true;
   }
   const exports: { resolveEligibleNewsletterRecipients?: (workspaceId: string, selection: unknown) => Promise<{ eligible: Array<{ id: string }> }> } = {};
   const modules: Record<string, unknown> = {
     "server-only": {},
+    "@/lib/blog-ownership": { getContentOwnershipScope: async (workspaceId: string) => ({ workspaceId }) },
     "@/lib/prisma": { prisma: {
       communicationClient: { findMany: async ({ where }: { where: { AND: SelectionWhere[]; workspaceMemberships: { some: { workspaceId: string } } } }) => clients.filter(row => row.company === where.workspaceMemberships.some.workspaceId && where.AND.every(part => selected(row, part))) },
       communicationSuppression: { findMany: async () => [{ normalizedEmail: "suppressed@example.com" }] },
@@ -35,5 +36,6 @@ test("real recipient resolver intersects every selection mode with company membe
     assert.equal(result.eligible[0].id, "a", mode);
   }
   assert.equal((await resolve("company-a", { mode: "INDIVIDUALS", clientIds: ["b"], groupIds: [] })).eligible.length, 0);
+  assert.equal((await resolve("company-a", { mode: "GROUPS", groupIds: ["foreign-group"], clientIds: [] })).eligible.length, 0);
   await assert.rejects(resolve("", { mode: "ALL" }));
 });

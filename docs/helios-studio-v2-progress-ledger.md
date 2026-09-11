@@ -94,3 +94,9 @@ Continued after the image milestone: recipient selection now requires stored ser
 Release gate: reconcile existing client-workspace mappings before deployment, because unmapped contacts are excluded. No production send, token issuance, provider call or real scheduled execution was tested. Global group/consent semantics, campaign ownership and remaining concurrency/job/analytics paths still require work. See editorial-assets-audiences document for scope and limits.
 
 Combined verification: 416 tests passed, zero failed; Prisma generation, non-incremental TypeScript, focused lint and diff checks passed. New actual-handler tests use mocked services, and migration/backfill tests use isolated PGlite. The result is draft implementation evidence, not hosted QA or full tenant-isolation proof.
+
+## 2026-09-11 communication group ownership expansion
+
+Continued after #225: additive nullable group ownership, scoped manual creation/rename/deletion, client membership validation for whole edit batches, scoped directory/options counts, and group ownership in newsletter recipient resolution. Newsletter series updates now take authenticated workspace identity and validate target/audience before approval or scheduling changes. Existing global safety-group writers remain untouched; legacy compatibility requires an unambiguous single-company installation.
+
+Added executable membership-route and series-update tests plus isolated SQL old/new-write rehearsal. Full suite: 419 passing; non-incremental TypeScript, focused lint and diff checks passed. Hosted QA, verified historical group mapping, concurrency review, remaining campaign/lifecycle mutations and global consent policy remain open. See communication-groups document. No production deployment, database migration or delivery was run.

@@ -1,3 +1,4 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Record<string, unknown>;
     const group = await prisma.communicationGroup.create({
-      data: normalizeName(body.name),
+      data: { ...normalizeName(body.name), workspaceId: session.workspaceId },
       select: { id: true, name: true },
     });
     await recordAuditEvent({
@@ -83,7 +84,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ success: false, error: "Group not found." }, { status: 404 });
     }
     const group = await prisma.communicationGroup.update({
-      where: { id: groupId, systemManaged: false },
+      where: { id: groupId, systemManaged: false, AND: [await getContentOwnershipScope(session.workspaceId)] },
       data: normalizeName(body.name),
       select: { id: true, name: true },
     });
@@ -113,7 +114,7 @@ export async function DELETE(request: Request) {
   const body = (await request.json()) as Record<string, unknown>;
   const groupId = typeof body.groupId === "string" ? body.groupId : "";
   const group = await prisma.communicationGroup.findUnique({
-    where: { id: groupId },
+    where: { id: groupId, AND: [await getContentOwnershipScope(session.workspaceId)] },
     select: { id: true, name: true, systemManaged: true, _count: { select: { memberships: true } } },
   });
   if (!group) {
@@ -122,7 +123,7 @@ export async function DELETE(request: Request) {
   if (group.systemManaged) {
     return NextResponse.json({ success: false, error: "System-managed groups cannot be deleted or repurposed." }, { status: 409 });
   }
-  await prisma.communicationGroup.delete({ where: { id: group.id } });
+  await prisma.communicationGroup.delete({ where: { id: group.id, systemManaged: false, AND: [await getContentOwnershipScope(session.workspaceId)] } });
   await recordAuditEvent({
     actorId: session.userId,
     actorEmail: session.email,

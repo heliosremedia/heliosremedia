@@ -1,3 +1,4 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { NextResponse } from "next/server";
 import { recordAuditEvent } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
@@ -16,13 +17,15 @@ const include = {
 type Context = { params: Promise<{ seriesId: string }> };
 
 export async function GET(_request: Request, context: Context) {
-  if (!await requireNewsletterAdministrator()) return forbiddenNewsletterResponse();
+  const session = await requireNewsletterAdministrator();
+  if (!session) return forbiddenNewsletterResponse();
   const { seriesId } = await context.params;
   const [series, groups] = await Promise.all([
-    prisma.newsletterSeries.findUnique({ where: { id: seriesId }, include }),
+    prisma.newsletterSeries.findUnique({ where: { id: seriesId, AND: [await getContentOwnershipScope(session.workspaceId)] }, include }),
     prisma.communicationGroup.findMany({
+      where: await getContentOwnershipScope(session.workspaceId),
       orderBy: { name: "asc" },
-      select: { id: true, name: true, _count: { select: { memberships: true } } },
+      select: { id: true, name: true, _count: { select: { memberships: { where: { client: { workspaceMemberships: { some: { workspaceId: session.workspaceId } } } } } } } },
     }),
   ]);
   if (!series) return NextResponse.json({ success: false, error: "Series not found." }, { status: 404 });
@@ -38,7 +41,7 @@ export async function PATCH(request: Request, context: Context) {
   if (!session) return forbiddenNewsletterResponse();
   try {
     const { seriesId } = await context.params;
-    const series = await updateSeries(seriesId, await request.json());
+    const series = await updateSeries(seriesId, await request.json(), session.workspaceId);
     await recordAuditEvent({
       actorId: session.userId,
       actorEmail: session.email,

@@ -1,3 +1,4 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import ClientDirectory from "./ClientDirectory";
@@ -9,6 +10,7 @@ export default async function ClientsPage() {
   const session = await requireAdminSession();
   const [clients, groups, lastSync] = await Promise.all([
     prisma.communicationClient.findMany({
+      where: { workspaceMemberships: { some: { workspaceId: session.workspaceId } } },
       orderBy: [{ displayName: "asc" }, { email: "asc" }],
       select: {
         id: true,
@@ -19,11 +21,11 @@ export default async function ClientsPage() {
         normalizedEmail: true,
         emailSubscribed: true,
         archivedAt: true,
-        groupMemberships: { select: { groupId: true } },
+        groupMemberships: { where: { group: await getContentOwnershipScope(session.workspaceId) }, select: { groupId: true } },
       },
     }),
     prisma.communicationGroup.findMany({
-      where: {
+      where: { AND: [await getContentOwnershipScope(session.workspaceId)],
         OR: [
           { systemKey: null },
           { systemKey: bouncedBackSystemKey(session.workspaceId) },
@@ -36,7 +38,7 @@ export default async function ClientsPage() {
         name: true,
         systemManaged: true,
         systemKey: true,
-        _count: { select: { memberships: true } },
+        _count: { select: { memberships: { where: { client: { workspaceMemberships: { some: { workspaceId: session.workspaceId } } } } } } },
       },
     }),
     prisma.clientSyncRun.findFirst({
