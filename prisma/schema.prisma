@@ -1695,6 +1695,7 @@ model Workspace {
   emailCampaigns            EmailCampaign[]
   aboutPageContent          AboutPageContent?
   teamMembers               TeamMember[]
+  inquiries                 Inquiry[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3575,6 +3576,10 @@ model ProjectPreviewLink {
 }
 
 model Inquiry {
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  @@index([workspaceId, status, createdAt])
+
   id String @id @default(cuid())
 
   status InquiryStatus @default(NEW)

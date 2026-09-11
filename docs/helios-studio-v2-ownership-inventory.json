@@ -1,5 +1,5 @@
 {
-  "schemaSha256": "c8fde9cf0efa6db42387cdbb3b77a3f40df88ef8216f17a170e5d95806ee6729",
+  "schemaSha256": "146253023616d3952b9ea6737a37109bb7257ec811b08d2376e28b32ff730641",
   "scope": "Static code inventory, not an authorization or tenant-isolation verdict. No database connection or environment values read.",
   "limitations": [
     "Nullable ownership requires verified mapping before activation.",
@@ -11,8 +11,8 @@
   "counts": {
     "models": 111,
     "requiredWorkspace": 27,
-    "nullableWorkspace": 15,
-    "withoutWorkspace": 69,
+    "nullableWorkspace": 16,
+    "withoutWorkspace": 68,
     "routeFiles": 138
   },
   "models": [
@@ -1171,9 +1171,11 @@
         "lib/blog-ownership.ts",
         "lib/blog-series.ts",
         "lib/client-communications/campaign-ownership.ts",
+        "lib/inquiry-ownership.ts",
         "lib/newsletters/api.ts",
         "lib/newsletters/ownership.ts",
         "lib/public-workspace.ts",
+        "lib/referrals/access.ts",
         "lib/workspace-singleton.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
@@ -4023,8 +4025,20 @@
     },
     {
       "model": "Inquiry",
-      "workspaceField": "absent",
+      "workspaceField": "nullable",
       "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": true,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
         {
           "relation": "assignedTo",
           "model": "AdminUser",
