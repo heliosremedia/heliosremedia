@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { renderFormattedEmailBody } from "./client-communications/email-format.ts";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
@@ -34,7 +35,7 @@ test("legacy dashboard order migrates to full-width rows", () => {
   assert.deepEqual(normalized.rows[1], ["platform-health"]);
 });
 
-test("V1.9.2 surfaces retain the frozen public boundaries", () => {
+test("admin surfaces preserve explicit publication and safe historical rendering", () => {
   const homepage = read("app/admin/homepage/HomepageCurationOrganizer.tsx");
   const profile = read("app/admin/users/ProfileManager.tsx");
   const portals = read("app/admin/client-portals/ClientPortalManager.tsx");
@@ -45,9 +46,13 @@ test("V1.9.2 surfaces retain the frozen public boundaries", () => {
   assert.match(homepage, /Collapse All/);
   assert.match(profile, /setExpanded\(false\)/);
   assert.match(portals, /Create Portal/);
-  assert.match(testimonials, /Approval pending/);
+  assert.match(testimonials, /checked=\{draft\.published\}/);
+  assert.match(read("app/api/admin/testimonials/route.ts"), /published: body\.published === true/);
   assert.match(snapshot, /Technical details/);
-  assert.doesNotMatch(snapshot, /dangerouslySetInnerHTML/);
+  assert.match(snapshot, /__html: renderFormattedEmailBody\(/);
+  const rendered = renderFormattedEmailBody('<img src=x onerror=alert(1)>\n\n<script>alert(1)</script>\n\n[bad](javascript:alert(1))');
+  assert.doesNotMatch(rendered, /<(?:script|img)\b|href="javascript:/i);
+  assert.match(rendered, /&lt;script&gt;/);
   assert.match(project, /bulkSectionIds/);
 });
 

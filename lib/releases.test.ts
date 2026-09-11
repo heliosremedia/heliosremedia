@@ -4,9 +4,13 @@ import { getStudioRelease, STUDIO_RELEASES } from "./releases.ts";
 import { STUDIO_VERSION, STUDIO_VERSION_HREF } from "./version.ts";
 
 test("visible version links to the matching code-controlled release", () => {
-  assert.equal(STUDIO_VERSION, "V1.9.4.9");
-  assert.equal(STUDIO_VERSION_HREF, "/admin/release-notes/v1-9-4-9");
-  assert.equal(getStudioRelease("v1-9-4-9")?.version, STUDIO_VERSION);
+  const slug = STUDIO_VERSION_HREF.split("/").at(-1)!;
+  const current = getStudioRelease(slug);
+  assert.ok(current, "the displayed release must have a release-notes record");
+  assert.equal(current.version, STUDIO_VERSION);
+  assert.equal(current.status, "LIVE");
+  assert.ok(current.releaseDate);
+  assert.match(STUDIO_VERSION_HREF, /^\/admin\/release-notes\/v[0-9]+(?:-[0-9]+)+$/);
   assert.equal(getStudioRelease("v1-9-4-8")?.status, "LIVE");
   assert.equal(getStudioRelease("v1-9-4-8")?.releaseDate, "2026-08-04");
   assert.equal(getStudioRelease("v1-9-4-1")?.status, "LIVE");
