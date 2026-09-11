@@ -35,6 +35,7 @@ test("Social AI image attachment rejects a foreign record and ignores a forged U
     "@/lib/prisma": { prisma: { $transaction: (fn: (client: typeof tx) => Promise<unknown>) => fn(tx) } },
   });
   const api = load<{ PATCH: (request: Request, context: { params: Promise<{ campaignId: string }> }) => Promise<Response> }>("../../app/api/admin/social/campaigns/[campaignId]/route.ts", {
+    "@/lib/social/campaign-duplication": {},
     "@/lib/social/mutation-lock": mutationLock,
     "next/server": { NextResponse: Response }, "@/lib/workspace-write-access": access,
     "@/lib/auth/session": { getAdminSession: async () => ({ userId: "actor", role: "ADMIN", workspaceId: "a", sessionVersion: 1 }) },

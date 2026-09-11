@@ -33,8 +33,8 @@ export async function ensureSocialSettings(workspaceId: string) {
 
 const text = (value: string | null | undefined, max = 12_000) => value?.trim().slice(0, max) || "";
 
-export async function verifiedProjectFacts(projectId: string, workspaceId: string) {
-  const project = await prisma.project.findFirst({
+export async function verifiedProjectFacts(projectId: string, workspaceId: string, db: Prisma.TransactionClient = prisma) {
+  const project = await db.project.findFirst({
     where: { id: projectId, workspaceId },
     select: {
       id: true, title: true, slug: true, shortDescription: true, description: true,
@@ -59,10 +59,10 @@ export async function verifiedProjectFacts(projectId: string, workspaceId: strin
   } satisfies Prisma.InputJsonValue;
 }
 
-export async function verifiedSourceFacts(sourceType: string, sourceRecordId: string, workspaceId: string) {
-  if (sourceType === "PROJECT" || sourceType === "PORTFOLIO_ITEM") return verifiedProjectFacts(sourceRecordId, workspaceId);
+export async function verifiedSourceFacts(sourceType: string, sourceRecordId: string, workspaceId: string, db: Prisma.TransactionClient = prisma) {
+  if (sourceType === "PROJECT" || sourceType === "PORTFOLIO_ITEM") return verifiedProjectFacts(sourceRecordId, workspaceId, db);
   if (sourceType === "BLOG") {
-    const post = await prisma.blogPost.findFirst({
+    const post = await db.blogPost.findFirst({
       where: { AND: [await getBlogOwnershipScope(workspaceId)], id: sourceRecordId, status: "PUBLISHED" },
       select: { id: true, title: true, slug: true, excerpt: true, content: true, author: true, category: true, publishedAt: true, canonicalUrl: true, socialCaption: true },
     });
@@ -75,7 +75,7 @@ export async function verifiedSourceFacts(sourceType: string, sourceRecordId: st
     } satisfies Prisma.InputJsonValue;
   }
   if (sourceType === "NEWSLETTER") {
-    const edition = await prisma.newsletterEdition.findFirst({
+    const edition = await db.newsletterEdition.findFirst({
       where: { id: sourceRecordId, series: await getBlogOwnershipScope(workspaceId), status: "SENT" },
       select: { id: true, subject: true, previewText: true, intendedSendAt: true, sentAt: true, series: { select: { name: true, description: true } }, blocks: { orderBy: { position: "asc" }, select: { type: true, internalLabel: true, content: true } } },
     });

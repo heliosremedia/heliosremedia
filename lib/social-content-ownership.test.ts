@@ -118,6 +118,7 @@ test("social API keeps session ownership and version when changing media present
   let found = false;
   let edits = 0;
   const api = load<{ PATCH: (request: Request, context: { params: Promise<{ campaignId: string }> }) => Promise<Response> }>("../app/api/admin/social/campaigns/[campaignId]/route.ts", {
+    "@/lib/social/campaign-duplication": {},
     "@/lib/social/mutation-lock": { lockEditableSocialVariant: async () => {} },
     "next/server": { NextResponse: Response }, "@/lib/workspace-write-access": {},
     "@/lib/auth/session": { getAdminSession: async () => ({ role: "EDITOR", workspaceId: "a", userId: "actor", sessionVersion: 7 }) },
@@ -141,6 +142,7 @@ test("social approval rechecks actor access and rejects an obsolete content revi
     } }, socialApprovalEvent: { create: async () => ({}) }, socialGeneratedAsset: { updateMany: async () => ({ count: 0 }) }, socialCampaign: { update: async () => ({}) },
   };
   const api = load<{ PATCH: (request: Request, context: { params: Promise<{ campaignId: string }> }) => Promise<Response> }>("../app/api/admin/social/campaigns/[campaignId]/route.ts", {
+    "@/lib/social/campaign-duplication": {},
     "@/lib/social/mutation-lock": { lockEditableSocialVariant: async () => {} },
     "next/server": { NextResponse: Response }, "@/lib/workspace-write-access": { requireLockedWorkspaceEditor: async () => { if (!access) throw new Error("WORKSPACE_WRITE_FORBIDDEN"); checked++; } },
     "@/lib/auth/session": { getAdminSession: async () => ({ role: "EDITOR", workspaceId: "a", userId: "actor", sessionVersion: 1 }) },

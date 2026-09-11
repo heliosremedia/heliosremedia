@@ -183,6 +183,7 @@ test("campaign archival takes the publishing mutation guard before changing camp
     socialCampaign: { updateMany: async () => { writes++; return { count: 1 }; } },
   };
   const api = load<{ PATCH: (request: Request, context: { params: Promise<{ campaignId: string }> }) => Promise<Response> }>("../app/api/admin/social/campaigns/[campaignId]/route.ts", {
+    "@/lib/social/campaign-duplication": {},
     "@/lib/social/mutation-lock": { lockEditableSocialVariant: async (_tx: unknown, id: string, workspaceId: string) => { assert.equal(id, "variant"); assert.equal(workspaceId, "a"); if (executing) throw new Error("SOCIAL_PUBLICATION_IN_PROGRESS"); } },
     "next/server": { NextResponse: Response }, "@/lib/workspace-write-access": { requireLockedWorkspaceEditor: async () => ({ role: "EDITOR" }) },
     "@/lib/auth/session": { getAdminSession: async () => ({ role: "EDITOR", workspaceId: "a", userId: "actor", sessionVersion: 1 }) },
