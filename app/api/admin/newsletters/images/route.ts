@@ -144,12 +144,14 @@ async function getNewsletterImages(request: Request) {
         }) : [],
     !projectId && (source === "ALL" || source === "AI")
       ? prisma.newsletterImageAsset.findMany({
-          where: search ? {
-            OR: [
+          where: {
+            AND: [await getBlogOwnershipScope(session.workspaceId)],
+            ...(search ? { OR: [
               { prompt: { contains: search, mode: "insensitive" } },
               { altText: { contains: search, mode: "insensitive" } },
             ],
-          } : undefined,
+            } : {}),
+          },
           take: 60,
           orderBy: { createdAt: "desc" },
         }) : [],

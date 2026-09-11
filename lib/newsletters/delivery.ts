@@ -1,3 +1,5 @@
+import { newsletterRecipientIdentity } from "./recipient-identity";
+import { requireNewsletterApprovalWorkspace } from "@/lib/newsletters/ownership";
 import "server-only";
 
 import { createHash } from "node:crypto";
@@ -65,7 +67,7 @@ export async function deliverApprovedNewsletter(editionId: string) {
   const approval = edition.approvals[0];
   const selection = parseSelection(approval.recipientSelectionSnapshot);
   // Eligibility is deliberately resolved again immediately before campaign creation.
-  const resolvedRecipients = await resolveEligibleNewsletterRecipients(selection);
+  const resolvedRecipients = await resolveEligibleNewsletterRecipients(await requireNewsletterApprovalWorkspace(approval.recipientSelectionSnapshot, edition.series.workspaceId), selection);
   const eligible = resolvedRecipients.eligible;
   if (!eligible.length && !edition.delivery) throw new Error("No eligible newsletter recipients remain.");
   const approvedBlocks = parseBlocks(edition.approvedRevision.blocksSnapshot);
@@ -141,10 +143,10 @@ export async function deliverApprovedNewsletter(editionId: string) {
     campaign = created;
   }
 
-  const currentlyEligible = new Set(eligible.map((recipient) => recipient.normalizedEmail));
+  const currentlyEligible = new Set(eligible.map((recipient) => newsletterRecipientIdentity(recipient.id, recipient.normalizedEmail)));
   const newlyIneligible = campaign.recipients.filter((recipient) =>
     (recipient.status === "PENDING" || recipient.status === "FAILED") &&
-    !currentlyEligible.has(recipient.email.trim().toLowerCase()));
+    !currentlyEligible.has(newsletterRecipientIdentity(recipient.clientId, recipient.email)));
   if (newlyIneligible.length) {
     await prisma.campaignRecipient.updateMany({
       where: { id: { in: newlyIneligible.map((recipient) => recipient.id) } },
@@ -153,7 +155,7 @@ export async function deliverApprovedNewsletter(editionId: string) {
   }
   const pending = campaign.recipients.filter((recipient) =>
     (recipient.status === "PENDING" || recipient.status === "FAILED") &&
-    currentlyEligible.has(recipient.email.trim().toLowerCase()));
+    currentlyEligible.has(newsletterRecipientIdentity(recipient.clientId, recipient.email)));
   let sent = campaign.recipients.filter((recipient) => recipient.status === "SENT").length;
   let failed = 0;
   for (let index = 0; index < pending.length; index += 100) {

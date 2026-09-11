@@ -1,3 +1,4 @@
+import { resolveNewsletterWorkspace } from "@/lib/newsletters/ownership";
 import { requireWorkspaceId } from "@/lib/workspaces";
 import "server-only";
 
@@ -251,10 +252,11 @@ export async function estimateSeriesRecipients(seriesId: string) {
   const series = await prisma.newsletterSeries.findUnique({
     where: { id: seriesId },
     select: {
+      workspaceId: true,
       groups: { select: { groupId: true } },
       recipients: { select: { clientId: true } },
     },
   });
   if (!series) throw new Error("Newsletter series was not found.");
-  return resolveEligibleNewsletterRecipients(recipientSelectionFromSeries(series));
+  return resolveEligibleNewsletterRecipients(await resolveNewsletterWorkspace(series.workspaceId), recipientSelectionFromSeries(series));
 }

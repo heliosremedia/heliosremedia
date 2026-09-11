@@ -129,10 +129,10 @@ export function createTestimonialImageKey(workspaceId: string, mimeType: string)
   return `${brandAssetPrefix(workspaceId, "testimonials")}${timestamp}-${id}.${extensionFromMime(mimeType)}`;
 }
 
-export function createBlogImageKey(mimeType: string) {
+export function createBlogImageKey(workspaceId: string, mimeType: string) {
   const timestamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "-");
   const id = randomUUID().slice(0, 8);
-  return `blog/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
+  return `${brandAssetPrefix(workspaceId, "blog")}${timestamp}-${id}.${extensionFromMime(mimeType)}`;
 }
 
 export function createLocationFeatureImageKey(workspaceId: string, locationId: string, mimeType: string) {
@@ -142,9 +142,9 @@ export function createLocationFeatureImageKey(workspaceId: string, locationId: s
   return `site/locations/${safeWorkspace}/${safeLocation}/${timestamp}-${randomUUID().slice(0, 8)}.${extensionFromMime(mimeType)}`;
 }
 
-export function createNewsletterAiImageKey() {
+export function createNewsletterAiImageKey(workspaceId: string) {
   const timestamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "-");
-  return `newsletter/ai/${timestamp}-${randomUUID().slice(0, 8)}.webp`;
+  return `${brandAssetPrefix(workspaceId, "newsletter-ai")}${timestamp}-${randomUUID()}.webp`;
 }
 
 export function createTrustedLogoKey(workspaceId: string, mimeType: string) {

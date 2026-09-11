@@ -1666,6 +1666,7 @@ model Workspace {
   blogPosts                 BlogPost[]
   blogSeries                BlogSeries[]
   newsletterSeries          NewsletterSeries[]
+  newsletterImages          NewsletterImageAsset[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2948,6 +2949,10 @@ model NewsletterBlockSource {
 
 model NewsletterImageAsset {
   id String @id @default(cuid())
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  @@index([workspaceId])
 
   storageKey  String @unique
   publicUrl   String

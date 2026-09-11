@@ -3,7 +3,7 @@ import test from "node:test";
 import { brandAssetPrefix, resolveBrandImage, brandImageCleanupPending } from "./workspace-brand-storage.ts";
 
 const url = (key: string) => `https://assets.example/${key}`;
-for (const kind of ["testimonials", "trusted-logos"] as const) {
+for (const kind of ["testimonials", "trusted-logos", "blog", "newsletter-ai"] as const) {
   test(`${kind}: workspace ownership and canonical URL`, () => {
     const key = `${brandAssetPrefix("company-a", kind)}upload-123.webp`;
     assert.deepEqual(resolveBrandImage("company-a", kind, { key, url: "https://foreign.example/photo" }, null, url), { key, url: url(key) });

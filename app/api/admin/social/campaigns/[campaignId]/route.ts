@@ -1,3 +1,4 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { NextResponse } from "next/server";
 import type { Prisma, SocialVariantStatus } from "@/app/generated/prisma/client";
 import { getAdminSession } from "@/lib/auth/session";
@@ -193,18 +194,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
         },
       });
     } else if (action === "set-ai-image" && variant) {
-      const suggestedCover = clean(body.url, 3000);
-      if (!suggestedCover.startsWith("https://")) return NextResponse.json({ success: false, error: "A valid generated image URL is required." }, { status: 400 });
+      const asset = await prisma.newsletterImageAsset.findFirst({
+        where: { id: clean(body.assetId, 100), AND: [await getContentOwnershipScope(workspaceId)] },
+        select: { id: true, publicUrl: true, model: true },
+      });
+      if (!asset) return NextResponse.json({ success: false, error: "The generated image was not found." }, { status: 404 });
+      const suggestedCover = asset.publicUrl;
       await prisma.$transaction(async (tx) => {
         await tx.socialGeneratedAsset.create({
           data: {
             workspaceId, variantId, kind: "AI_GENERATED", publicUrl: suggestedCover,
-            provider: clean(body.provider, 120) || "OpenAI", model: clean(body.model, 120) || null,
+            provider: "OpenAI", model: asset.model,
             disclosure: "AI-generated concept image — not authentic Helios property photography.",
           },
         });
       });
-      await updateVariantContent({ variantId, actorId: session.userId, data: { suggestedCover, aiMetadata: { generatedImageAssetId: clean(body.assetId, 100), generatedImageDisclosure: "AI-generated image; never represent as authentic Helios photography or a real property." } } });
+      await updateVariantContent({ variantId, actorId: session.userId, data: { suggestedCover, aiMetadata: { generatedImageAssetId: asset.id, generatedImageDisclosure: "AI-generated image; never represent as authentic Helios photography or a real property." } } });
     } else if (action === "archive" && variant) {
       await prisma.socialVariant.update({ where: { id: variantId }, data: { status: "ARCHIVED", archivedAt: new Date(), scheduledAt: null } });
     } else {

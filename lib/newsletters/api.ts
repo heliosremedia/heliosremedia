@@ -1,3 +1,4 @@
+import { resolveNewsletterWorkspace } from "@/lib/newsletters/ownership";
 import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import "server-only";
 
@@ -92,14 +93,14 @@ export async function serializeEdition(edition: {
   id: string; seriesId: string; status: string; subject: string | null;
   previewText: string | null; intendedSendAt: Date; generationDueAt: Date | null;
   contentNotes: unknown; internalNotes: string | null; warnings: unknown;
-  series: { name: string; senderName?: string | null; replyTo?: string | null; groups: Array<{ groupId: string; group: { name: string } }>;
+  series: { workspaceId: string | null; name: string; senderName?: string | null; replyTo?: string | null; groups: Array<{ groupId: string; group: { name: string } }>;
     recipients: Array<{ clientId: string }> };
   blocks: Array<{ id: string; type: string; internalLabel: string | null; content: unknown;
     aiGenerated: boolean; manuallyEdited: boolean;
     sources: Array<{ sourceTitle: string }> }>;
 }) {
   const selection = recipientSelectionFromSeries(edition.series);
-  const audience = await resolveEligibleNewsletterRecipients(selection);
+  const audience = await resolveEligibleNewsletterRecipients(await resolveNewsletterWorkspace(edition.series.workspaceId), selection);
   const notes = edition.contentNotes && typeof edition.contentNotes === "object"
     ? edition.contentNotes as Record<string, unknown> : {};
   return {
