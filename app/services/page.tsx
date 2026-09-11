@@ -51,14 +51,14 @@ export default async function ServicesPage() {
         select: {
           projects: {
             where: {
-              project: { status: "PUBLISHED" },
+              project: { workspaceId, status: "PUBLISHED" },
             },
           },
         },
       },
       projects: {
         where: {
-          project: { status: "PUBLISHED" },
+          project: { workspaceId, status: "PUBLISHED" },
         },
         orderBy: { createdAt: "desc" },
         select: {
@@ -70,7 +70,7 @@ export default async function ServicesPage() {
               locationLabel: true,
               city: true,
               state: true,
-              heroMedia: {
+              heroMedia: { where: { project: { workspaceId: workspaceId }, visibility: "VISIBLE" },
                 select: {
                   storageKey: true,
                   altText: true,
@@ -80,6 +80,7 @@ export default async function ServicesPage() {
               collectionHeroes: {
                 where: {
                   media: {
+                    project: { workspaceId },
                     visibility: "VISIBLE",
                     storageKey: { not: null },
                     sourceType: "UPLOADED_IMAGE",

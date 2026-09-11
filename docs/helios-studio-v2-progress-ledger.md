@@ -106,3 +106,9 @@ Added executable membership-route and series-update tests plus isolated SQL old/
 Continued after draft #226: scoped pause/resume transactions, actor-bound manual generation, stored-company block AI settings and stamped source snapshots. Moved block updates into the revision/approval transaction. Added row-version guards to save, approve, block rewrite and full-generation completion, with conditional failure handling that preserves a newer edition state. No protected OAuth/provider adapter changed.
 
 Verification: 423 tests passed, zero failed; non-incremental TypeScript, focused lint and diff checks passed. Actual-handler tests mock dependencies; they do not prove database concurrency or hosted workflow parity. Remaining delivery/lifecycle concurrency, historical snapshot reconciliation and full tenant-isolation gates remain open. No production migration, deployment, campaign or live AI call performed.
+
+## 2026-09-11 public project and media boundaries
+
+Continued after draft #227. Found and scoped global public project-detail/metadata queries, including preview targets. Filtered referenced hero/thumbnail/social/collection media by workspace and public visibility, service-project joins/counts by company, and admin media selections. Scoped thumbnail repair writes and checked same-project hero identity in editor/publish readiness. Preserved existing layout and gallery hotfixes.
+
+Verification: 425 tests passed, zero failed; non-incremental TypeScript and diff checks passed. Focused lint found an unused workspace binding introduced in the page wrapper; removed it. Executable query/repair tests use mocked data access. Hosted browser/SEO checks, inconsistent-reference inventory and comprehensive relational ownership remain open. No production deployment or database operation executed.

@@ -80,6 +80,7 @@ export default async function ProjectEditorPage({
         featuredExpiresAt: true,
         heroMediaId: true,
         heroMedia: {
+          where: { projectId },
           select: {
             visibility: true,
           },

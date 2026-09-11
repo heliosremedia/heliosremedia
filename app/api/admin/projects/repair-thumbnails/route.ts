@@ -11,7 +11,7 @@ export async function POST() {
   }
 
   const projects = await prisma.project.findMany({
-    where: { thumbnailMediaId: null },
+    where: { workspaceId: session.workspaceId, thumbnailMediaId: null },
     select: {
       id: true,
       heroMedia: { select: { id: true, projectId: true, sourceType: true, storageKey: true, visibility: true } },
@@ -34,7 +34,7 @@ export async function POST() {
 
   if (repairs.length) {
     await prisma.$transaction(repairs.map(({ id, thumbnailMediaId }) =>
-      prisma.project.updateMany({ where: { id, thumbnailMediaId: null }, data: { thumbnailMediaId } })
+      prisma.project.updateMany({ where: { id, workspaceId: session.workspaceId, thumbnailMediaId: null }, data: { thumbnailMediaId } })
     ));
   }
 

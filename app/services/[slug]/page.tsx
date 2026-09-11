@@ -30,7 +30,7 @@ async function getService(slug: string) {
       slug: true,
       description: true,
       projects: {
-        where: { project: { status: "PUBLISHED" } },
+        where: { project: { workspaceId, status: "PUBLISHED" } },
         orderBy: { project: { publishedAt: "desc" } },
         take: 9,
         select: {
@@ -43,7 +43,7 @@ async function getService(slug: string) {
               city: true,
               state: true,
               locationLabel: true,
-              heroMedia: { select: { storageKey: true, altText: true, originalFilename: true } },
+              heroMedia: { where: { project: { workspaceId: workspaceId }, visibility: "VISIBLE" }, select: { storageKey: true, altText: true, originalFilename: true } },
             },
           },
         },
