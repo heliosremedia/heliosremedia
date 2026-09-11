@@ -31,7 +31,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
       return NextResponse.json({ success: false, error: "Published posts are immutable. Create a new campaign or variant revision instead." }, { status: 409 });
     }
     if (action === "update-campaign") {
-      const changed = await prisma.socialCampaign.updateMany({
+      const changed = await prisma.$transaction(async (tx) => {
+        await requireLockedWorkspaceEditor(tx, session);
+        return tx.socialCampaign.updateMany({
         where: { id: campaignId, workspaceId },
         data: {
           internalName: clean(body.internalName, 180), purpose: clean(body.purpose, 5000),
@@ -40,6 +42,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
           scheduleNotes: clean(body.scheduleNotes, 3000), internalAiInstructions: clean(body.internalAiInstructions, 5000),
           lastEditedById: session.userId,
         },
+      });
       });
       if (!changed.count) return NextResponse.json({ success: false, error: "Campaign not found." }, { status: 404 });
     } else if (action === "archive-campaign") {
