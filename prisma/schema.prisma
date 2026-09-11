@@ -1508,6 +1508,10 @@ model AboutPageContent {
 }
 
 model LegalDocument {
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  @@index([workspaceId])
+
   id        String            @id @default(cuid())
   type      LegalDocumentType @unique
   title     String
@@ -1674,6 +1678,7 @@ model Workspace {
   newsletterImages          NewsletterImageAsset[]
   communicationGroups       CommunicationGroup[]
   faqCategories             FaqCategory[]
+  legalDocuments            LegalDocument[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

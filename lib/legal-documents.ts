@@ -1,3 +1,6 @@
+import "server-only";
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
 import { prisma } from "@/lib/prisma";
 
 export type ManagedLegalDocument = {
@@ -14,9 +17,9 @@ const defaults: ManagedLegalDocument[] = [
   { id: "legal-terms-of-service", type: "TERMS_OF_SERVICE", title: "Terms of Service", content: "", published: false, updatedAt: new Date(0) },
 ];
 
-export async function getLegalDocuments() {
+export async function getLegalDocuments(workspaceId: string) {
   try {
-    const documents = await prisma.legalDocument.findMany({ orderBy: { type: "asc" } });
+    const documents = await prisma.legalDocument.findMany({ where: await getContentOwnershipScope(workspaceId), orderBy: { type: "asc" } });
     return defaults.map((fallback) => documents.find(({ type }) => type === fallback.type) ?? fallback);
   } catch (error) {
     if (process.env.NODE_ENV !== "production") console.warn("Using unpublished legal-document defaults because the database is unavailable.", error);
@@ -26,7 +29,7 @@ export async function getLegalDocuments() {
 
 export async function getPublishedLegalDocument(type: ManagedLegalDocument["type"]) {
   try {
-    return await prisma.legalDocument.findFirst({ where: { type, published: true } });
+    return await prisma.legalDocument.findFirst({ where: { type, AND: [await getContentOwnershipScope(await getPublicWorkspaceId())], published: true } });
   } catch (error) {
     if (process.env.NODE_ENV !== "production") console.warn("Unable to load the published legal document.", error);
     return null;
