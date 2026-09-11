@@ -250,12 +250,13 @@ export function createHomepageWorkCardKey(
 }
 
 export function createAboutPageImageKey(
+  workspaceId: string,
   kind: "hero" | "founder" | "gallery-one" | "gallery-two" | "gallery-three",
   mimeType: string,
 ) {
   const timestamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "-");
   const id = randomUUID().slice(0, 8);
-  return `site/about/${kind}/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
+  return `${brandAssetPrefix(workspaceId, "about")}${kind}-${timestamp}-${id}.${extensionFromMime(mimeType)}`;
 }
 
 export function createPhotoComparisonImageKey(
@@ -290,10 +291,10 @@ export function createNewsletterImageKey(workspaceId: string, mimeType: string) 
   return `email/newsletters/${safeWorkspace}/${timestamp}-${randomUUID().slice(0, 8)}.${extensionFromMime(mimeType)}`;
 }
 
-export function createTeamMemberPortraitKey(mimeType: string) {
+export function createTeamMemberPortraitKey(workspaceId: string, mimeType: string) {
   const timestamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "-");
   const id = randomUUID().slice(0, 8);
-  return `site/team/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
+  return `${brandAssetPrefix(workspaceId, "team")}${timestamp}-${id}.${extensionFromMime(mimeType)}`;
 }
 
 export async function createPresignedUploadUrl(

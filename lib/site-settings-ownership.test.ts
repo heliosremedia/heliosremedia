@@ -14,19 +14,19 @@ function load(path: string, modules: Record<string, unknown>) {
 test("settings targets never reassign a foreign default and allocate distinct tenant row IDs", async () => {
   let enabled = true;
   let rows = [{ id: "a" }];
-  const loaded = load("./site-settings-ownership.ts", {
+  const loaded = load("./workspace-singleton.ts", {
     "server-only": {}, "@/lib/workspace-context-core": { tenantContextEnabled: () => enabled },
     "@/lib/prisma": { prisma: { workspace: { findMany: async () => rows } } },
   });
-  const a = await loaded.getSiteSettingsWriteTarget("a") as { where: { workspaceId: string }; createIdentity: { id: string } };
-  const b = await loaded.getSiteSettingsWriteTarget("b") as typeof a;
+  const a = await loaded.getWorkspaceSingletonTarget("a") as { where: { workspaceId: string }; createIdentity: { id: string } };
+  const b = await loaded.getWorkspaceSingletonTarget("b") as typeof a;
   assert.equal(a.where.workspaceId, "a"); assert.notEqual(a.createIdentity.id, b.createIdentity.id); assert.notEqual(a.createIdentity.id, "default");
   enabled = false;
-  const legacy = await loaded.getSiteSettingsWriteTarget("a") as { where: { id: string; OR: Array<{ workspaceId: string | null }> } };
+  const legacy = await loaded.getWorkspaceSingletonTarget("a") as { where: { id: string; OR: Array<{ workspaceId: string | null }> } };
   assert.equal(legacy.where.id, "default"); assert.equal(legacy.where.OR[0].workspaceId, "a"); assert.equal(legacy.where.OR[1].workspaceId, null);
-  rows = [{ id: "a" }, { id: "b" }]; await assert.rejects(loaded.getSiteSettingsWriteTarget("a"));
-  rows = [{ id: "b" }]; await assert.rejects(loaded.getSiteSettingsWriteTarget("a"));
-  await assert.rejects(loaded.getSiteSettingsWriteTarget(""));
+  rows = [{ id: "a" }, { id: "b" }]; await assert.rejects(loaded.getWorkspaceSingletonTarget("a"));
+  rows = [{ id: "b" }]; await assert.rejects(loaded.getWorkspaceSingletonTarget("a"));
+  await assert.rejects(loaded.getWorkspaceSingletonTarget(""));
 });
 
 test("all settings presigns enforce local administrator access", async () => {

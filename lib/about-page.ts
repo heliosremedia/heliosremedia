@@ -1,3 +1,7 @@
+import "server-only";
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
+import { tenantContextEnabled } from "@/lib/workspace-context-core";
 import { prisma } from "@/lib/prisma";
 
 export type AboutListItem = { number: string; title: string; copy: string };
@@ -110,22 +114,66 @@ function list(value: unknown, fallback: AboutListItem[]) {
   return items.length ? items : fallback;
 }
 
-export async function getAboutPageContent(): Promise<PublicAboutPageContent> {
+const emptyAboutPageContent: PublicAboutPageContent = {
+  id: "",
+  heroEyebrow: "",
+  heroHeadline: "",
+  heroBody: "",
+  heroImageStorageKey: null,
+  heroImageUrl: null,
+  heroImageAlt: "",
+  storyEyebrow: "",
+  storyIntro: "",
+  storyHeadline: "",
+  storyBodyLeft: "",
+  storyBodyRight: "",
+  founderEnabled: false,
+  founderEyebrow: "",
+  founderFirstName: "",
+  founderRole: "",
+  founderBody: "",
+  founderSignature: "",
+  founderTitle: "",
+  founderTeamNote: "",
+  founderImageStorageKey: null,
+  founderImageUrl: null,
+  founderImageAlt: "",
+  principlesEyebrow: "",
+  principlesHeadline: "",
+  principlesIntro: "",
+  principles: [],
+  galleryOneStorageKey: null,
+  galleryOneUrl: null,
+  galleryOneAlt: "",
+  galleryTwoStorageKey: null,
+  galleryTwoUrl: null,
+  galleryTwoAlt: "",
+  galleryThreeStorageKey: null,
+  galleryThreeUrl: null,
+  galleryThreeAlt: "",
+  processEyebrow: "",
+  processHeadline: "",
+  process: [],
+};
+
+export async function getAboutPageContent(workspaceId?: string): Promise<PublicAboutPageContent> {
+  const tenantMode = tenantContextEnabled();
+  const fallback = tenantMode ? emptyAboutPageContent : defaultAboutPageContent;
   try {
-    const content = await prisma.aboutPageContent.findUnique({ where: { id: "default" } });
-    if (!content) return defaultAboutPageContent;
+    const content = await prisma.aboutPageContent.findFirst({ where: await getContentOwnershipScope(workspaceId ?? await getPublicWorkspaceId()) });
+    if (!content) return fallback;
     return {
       ...content,
-      heroImageUrl: content.heroImageUrl ?? defaultAboutPageContent.heroImageUrl,
-      founderImageUrl: content.founderImageUrl ?? defaultAboutPageContent.founderImageUrl,
-      galleryOneUrl: content.galleryOneUrl ?? defaultAboutPageContent.galleryOneUrl,
-      galleryTwoUrl: content.galleryTwoUrl ?? defaultAboutPageContent.galleryTwoUrl,
-      galleryThreeUrl: content.galleryThreeUrl ?? defaultAboutPageContent.galleryThreeUrl,
-      principles: list(content.principles, defaultPrinciples),
-      process: list(content.process, defaultProcess),
+      heroImageUrl: content.heroImageUrl ?? fallback.heroImageUrl,
+      founderImageUrl: content.founderImageUrl ?? fallback.founderImageUrl,
+      galleryOneUrl: content.galleryOneUrl ?? fallback.galleryOneUrl,
+      galleryTwoUrl: content.galleryTwoUrl ?? fallback.galleryTwoUrl,
+      galleryThreeUrl: content.galleryThreeUrl ?? fallback.galleryThreeUrl,
+      principles: list(content.principles, fallback.principles),
+      process: list(content.process, fallback.process),
     };
   } catch (error) {
     if (process.env.NODE_ENV !== "production") console.warn("Using default About content because the database is unavailable.", error);
-    return defaultAboutPageContent;
+    return fallback;
   }
 }

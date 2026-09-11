@@ -1,9 +1,15 @@
+import { getAdminSession } from "@/lib/auth/session";
+import { getWorkspaceSingletonTarget } from "@/lib/workspace-singleton";
+import { resolveBrandImage } from "@/lib/workspace-brand-storage";
+import { defaultAboutPageContent } from "@/lib/about-page";
+import { tenantContextEnabled } from "@/lib/workspace-context-core";
+import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import type { Prisma } from "@/app/generated/prisma/client";
 import type { AboutListItem } from "@/lib/about-page";
-import { deleteContentImage, verifyContentImage } from "@/lib/content-image-storage";
+import { verifyContentImage } from "@/lib/content-image-storage";
 import { prisma } from "@/lib/prisma";
 
 const imageFields = [
@@ -23,7 +29,7 @@ function requiredText(value: unknown, max: number) {
 function optionalKey(value: unknown) {
   const result = typeof value === "string" ? value.trim() : "";
   if (!result) return null;
-  if (!result.startsWith("site/about/")) throw new Error("INVALID_IMAGE");
+  if (result.length > 1000) throw new Error("INVALID_IMAGE");
   return result;
 }
 
@@ -51,13 +57,16 @@ function items(value: unknown): AboutListItem[] {
 
 export async function PATCH(request: Request) {
   try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
+    const target = await getWorkspaceSingletonTarget(session.workspaceId);
     const body = (await request.json()) as Record<string, unknown>;
-    const existing = await prisma.aboutPageContent.findUnique({ where: { id: "default" } });
-    const images = Object.fromEntries(imageFields.flatMap((field) => [
-      [field.storage, optionalKey(body[field.storage])],
-      [field.url, imageUrl(body[field.url])],
-      [field.alt, requiredText(body[field.alt], 240)],
-    ])) as Record<string, string | null>;
+    const existing = await prisma.aboutPageContent.findUnique({ where: target.where });
+    const images = Object.fromEntries(imageFields.flatMap((field) => {
+      const previousUrl = existing?.[field.url] ?? (!tenantContextEnabled() ? defaultAboutPageContent[field.url] : null);
+      const image = resolveBrandImage(session.workspaceId, "about", { key: optionalKey(body[field.storage]), url: imageUrl(body[field.url]) }, { key: existing?.[field.storage] ?? null, url: previousUrl }, getPublicAssetUrl);
+      return [[field.storage, image.key], [field.url, image.url], [field.alt, requiredText(body[field.alt], 240)]];
+    })) as Record<string, string | null>;
 
     for (const field of imageFields) {
       const storageKey = images[field.storage] as string | null;
@@ -106,19 +115,15 @@ export async function PATCH(request: Request) {
       process: items(body.process) as unknown as Prisma.InputJsonValue,
     };
 
-    const content = await prisma.aboutPageContent.upsert({ where: { id: "default" }, create: { id: "default", ...data }, update: data });
+    const content = await prisma.aboutPageContent.upsert({ where: target.where, create: { ...target.createIdentity, ...data }, update: data });
 
-    for (const field of imageFields) {
-      const storageKey = images[field.storage] as string | null;
-      const previousKey = existing?.[field.storage] as string | null | undefined;
-      if (storageKey !== previousKey) await deleteContentImage(previousKey ?? null);
-    }
+    const storageCleanupPending = imageFields.some((field) => Boolean(existing?.[field.storage] && existing[field.storage] !== images[field.storage]));
 
     revalidatePath("/about");
     revalidatePath("/admin/about");
-    return NextResponse.json({ success: true, content });
+    return NextResponse.json({ success: true, content, storageCleanupPending });
   } catch (error) {
-    if (error instanceof Error && ["INVALID_TEXT", "INVALID_ITEMS", "INVALID_IMAGE"].includes(error.message)) {
+    if (error instanceof Error && ["INVALID_TEXT", "INVALID_ITEMS", "INVALID_IMAGE", "INVALID_BRAND_IMAGE"].includes(error.message)) {
       return NextResponse.json({ success: false, error: "Complete the About fields with valid text and images." }, { status: 400 });
     }
     console.error("Unable to save About page:", error);

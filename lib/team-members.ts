@@ -1,3 +1,5 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
 import type { TeamMemberCategory } from "@/app/generated/prisma/client";
 
 import { prisma } from "@/lib/prisma";
@@ -53,7 +55,7 @@ export const teamMemberSelect = {
 export async function getVisibleTeamMembers(): Promise<PublicTeamMember[]> {
   try {
     return await prisma.teamMember.findMany({
-      where: { visible: true },
+      where: { AND: [await getContentOwnershipScope(await getPublicWorkspaceId())], visible: true },
       orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
       select: {
         id: true,
