@@ -1,3 +1,4 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { NextResponse } from "next/server";
 import { recordAuditEvent } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
@@ -195,17 +196,20 @@ async function resumeSeries(seriesId: string) {
 }
 
 export async function GET() {
-  if (!await requireNewsletterAdministrator()) return forbiddenNewsletterResponse();
+  const session = await requireNewsletterAdministrator();
+  if (!session) return forbiddenNewsletterResponse();
   const [series, editions, groups] = await Promise.all([
-    prisma.newsletterSeries.findMany({ orderBy: { updatedAt: "desc" }, include: seriesInclude }),
+    prisma.newsletterSeries.findMany({ where: await getContentOwnershipScope(session.workspaceId), orderBy: { updatedAt: "desc" }, include: seriesInclude }),
     prisma.newsletterEdition.findMany({
+      where: { series: await getContentOwnershipScope(session.workspaceId) },
       take: 50,
       orderBy: [{ intendedSendAt: "asc" }, { createdAt: "desc" }],
       include: editionInclude,
     }),
     prisma.communicationGroup.findMany({
+      where: await getContentOwnershipScope(session.workspaceId),
       orderBy: { name: "asc" },
-      select: { id: true, name: true, _count: { select: { memberships: true } } },
+      select: { id: true, name: true, _count: { select: { memberships: { where: { client: { workspaceMemberships: { some: { workspaceId: session.workspaceId } } } } } } } },
     }),
   ]);
   const serializedEditions = await Promise.all(editions.map(serializeEdition));

@@ -1667,6 +1667,7 @@ model Workspace {
   blogSeries                BlogSeries[]
   newsletterSeries          NewsletterSeries[]
   newsletterImages          NewsletterImageAsset[]
+  communicationGroups       CommunicationGroup[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2684,6 +2685,10 @@ model CampaignDeliveryEvent {
 
 model CommunicationGroup {
   id String @id @default(cuid())
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  @@index([workspaceId])
 
   name              String
   normalizedName    String                         @unique

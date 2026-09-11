@@ -1,3 +1,4 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import BulkEmailStudio from "./BulkEmailStudio";
@@ -14,6 +15,7 @@ export default async function EmailStudioPage({ searchParams }: { searchParams: 
   const [clients, groups, campaigns, initialDraft, webhookHealth] = await Promise.all([
     prisma.communicationClient.findMany({
       where: {
+        workspaceMemberships: { some: { workspaceId: session.workspaceId } },
         emailSubscribed: true,
         emailStatus: "VALID",
         archivedAt: null,
@@ -21,12 +23,12 @@ export default async function EmailStudioPage({ searchParams }: { searchParams: 
         groupMemberships: { none: { group: { systemKey: bouncedBackSystemKey(session.workspaceId) } } },
       },
       orderBy: [{ displayName: "asc" }, { email: "asc" }],
-      select: { id: true, firstName: true, lastName: true, displayName: true, email: true, phone: true, groupMemberships: { select: { groupId: true } } },
+      select: { id: true, firstName: true, lastName: true, displayName: true, email: true, phone: true, groupMemberships: { where: { group: await getContentOwnershipScope(session.workspaceId) }, select: { groupId: true } } },
     }),
     prisma.communicationGroup.findMany({
-      where: { OR: [{ systemKey: null }, { systemKey: { not: { startsWith: "BOUNCED_BACK:" } } }] },
+      where: { AND: [await getContentOwnershipScope(session.workspaceId)], OR: [{ systemKey: null }, { systemKey: { not: { startsWith: "BOUNCED_BACK:" } } }] },
       orderBy: { name: "asc" },
-      select: { id: true, name: true, _count: { select: { memberships: true } } },
+      select: { id: true, name: true, _count: { select: { memberships: { where: { client: { workspaceMemberships: { some: { workspaceId: session.workspaceId } } } } } } } },
     }),
     prisma.emailCampaign.findMany({
       where: { createdBy: { workspaceId: session.workspaceId } },

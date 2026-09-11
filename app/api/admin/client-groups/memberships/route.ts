@@ -1,3 +1,4 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
@@ -29,9 +30,9 @@ export async function PATCH(request: Request) {
   }
 
   const [group, validClients] = await Promise.all([
-    prisma.communicationGroup.findUnique({ where: { id: groupId }, select: { id: true, name: true, systemManaged: true, systemKey: true } }),
+    prisma.communicationGroup.findUnique({ where: { id: groupId, OR: [await getContentOwnershipScope(session.workspaceId), { workspaceId: null, systemManaged: true, systemKey: bouncedBackSystemKey(session.workspaceId) }] }, select: { id: true, name: true, systemManaged: true, systemKey: true } }),
     prisma.communicationClient.findMany({
-      where: { id: { in: clientIds } },
+      where: { id: { in: clientIds }, workspaceMemberships: { some: { workspaceId: session.workspaceId } } },
       select: { id: true },
     }),
   ]);
@@ -46,7 +47,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ success: false, error: "System-managed group membership is reconciled from email preferences." }, { status: 409 });
   }
   const validIds = validClients.map((client) => client.id);
-  if (!validIds.length) {
+  if (validIds.length !== clientIds.length) {
     return NextResponse.json({ success: false, error: "No matching clients were found." }, { status: 404 });
   }
 

@@ -1,3 +1,4 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
@@ -10,17 +11,18 @@ export async function resolveEligibleNewsletterRecipients(
   selection: RecipientSelection,
 ): Promise<{ eligible: EligibleRecipient[]; excludedCount: number }> {
   if (!workspaceId) throw new Error("Recipient workspace is required.");
+  const groupOwnership = await getContentOwnershipScope(workspaceId);
   const selectedWhere =
     selection.mode === "ALL"
       ? {}
       : selection.mode === "GROUPS"
-        ? { groupMemberships: { some: { groupId: { in: selection.groupIds } } } }
+        ? { groupMemberships: { some: { groupId: { in: selection.groupIds }, group: groupOwnership } } }
         : selection.mode === "INDIVIDUALS"
           ? { id: { in: selection.clientIds } }
           : {
               OR: [
                 { id: { in: selection.clientIds } },
-                { groupMemberships: { some: { groupId: { in: selection.groupIds } } } },
+                { groupMemberships: { some: { groupId: { in: selection.groupIds }, group: groupOwnership } } },
               ],
             };
 
