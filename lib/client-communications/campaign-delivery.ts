@@ -1,3 +1,4 @@
+import { resolveCampaignWorkspace } from "./campaign-ownership";
 import "server-only";
 
 import { recordAuditEvent } from "@/lib/audit";
@@ -12,13 +13,14 @@ export async function processEmailCampaign(campaignId: string) {
   const campaign = await prisma.emailCampaign.findUnique({
     where: { id: campaignId },
     include: {
-      createdBy: { select: { workspaceId: true } },
-      recipients: { include: { client: { include: { groupMemberships: { include: { group: true } } } } }, orderBy: { createdAt: "asc" } },
+      recipients: { include: { client: { include: { workspaceMemberships: { select: { workspaceId: true } }, groupMemberships: { include: { group: true } } } } }, orderBy: { createdAt: "asc" } },
     },
   });
   if (!campaign || !["PROCESSING", "SENDING"].includes(campaign.status)) {
     throw new Error("Campaign is not available for delivery.");
   }
+
+  const workspaceId = await resolveCampaignWorkspace(campaign.workspaceId);
 
   let sent = campaign.recipients.filter((recipient) => recipient.status === "SENT").length;
   const pending = campaign.recipients.filter((recipient) => recipient.status !== "SENT" && recipient.status !== "SKIPPED");
@@ -27,11 +29,12 @@ export async function processEmailCampaign(campaignId: string) {
     const eligibility = await Promise.all(candidates.map(async (recipient) => ({
       recipient,
       eligible:
+        recipient.client.workspaceMemberships.some((membership) => membership.workspaceId === workspaceId) &&
         !recipient.client.archivedAt &&
         recipient.client.emailSubscribed &&
         recipient.client.emailStatus === "VALID" &&
         !recipient.client.groupMemberships.some(({ group }) =>
-          group.systemKey === bouncedBackSystemKey(campaign.createdBy.workspaceId)) &&
+          group.systemKey === bouncedBackSystemKey(workspaceId)) &&
         await addressIsMarketingEligible(recipient.email.trim().toLowerCase()),
     })));
     const skipped = eligibility.filter((item) => !item.eligible).map((item) => item.recipient);

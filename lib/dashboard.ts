@@ -1,3 +1,4 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { prisma } from "@/lib/prisma";
 import {
   communicationMetrics,
@@ -21,6 +22,7 @@ async function section<T>(fallback: T, load: () => Promise<T>): Promise<Section<
 }
 
 export async function getDashboardData(workspaceId: string, days = 30) {
+  const ownershipScope = await getContentOwnershipScope(workspaceId);
   const now = new Date();
   const rangeStart = new Date(now.getTime() - days * 86_400_000);
   const rangeEnd = now;
@@ -51,7 +53,7 @@ export async function getDashboardData(workspaceId: string, days = 30) {
           ] = await Promise.all([
             prisma.newsletterEdition.findMany({
               where: {
-                series: { createdBy: { workspaceId } },
+                series: ownershipScope,
                 status: {
                   in: ["NEEDS_REVIEW", "MISSED_APPROVAL", "GENERATION_FAILED", "SEND_FAILED", "PARTIALLY_SENT"],
                 },
@@ -69,7 +71,7 @@ export async function getDashboardData(workspaceId: string, days = 30) {
             }),
             prisma.emailCampaign.findMany({
               where: {
-                createdBy: { workspaceId },
+                AND: [ownershipScope],
                 OR: [
                   { status: { in: ["FAILED", "PARTIAL"] } },
                   { scheduleError: { not: null } },
@@ -80,14 +82,14 @@ export async function getDashboardData(workspaceId: string, days = 30) {
               orderBy: { updatedAt: "desc" },
             }),
             prisma.newsletterJob.findMany({
-              where: { status: "FAILED", edition: { series: { createdBy: { workspaceId } } } },
+              where: { status: "FAILED", edition: { series: ownershipScope } },
               select: { id: true, editionId: true, type: true, updatedAt: true },
               take: 8,
               orderBy: { updatedAt: "desc" },
             }),
             prisma.newsletterEdition.findMany({
               where: {
-                series: { createdBy: { workspaceId } },
+                series: ownershipScope,
                 intendedSendAt: { gte: now, lte: upcomingEnd },
                 status: { notIn: ["CANCELLED", "SENT", "PAUSED"] },
               },
@@ -95,7 +97,7 @@ export async function getDashboardData(workspaceId: string, days = 30) {
               orderBy: { intendedSendAt: "asc" },
             }),
             prisma.emailCampaign.findMany({
-              where: { createdBy: { workspaceId }, status: "SCHEDULED", scheduledAt: { gte: now, lte: upcomingEnd } },
+              where: { AND: [ownershipScope], status: "SCHEDULED", scheduledAt: { gte: now, lte: upcomingEnd } },
               select: { id: true, subject: true, scheduledAt: true, status: true },
               orderBy: { scheduledAt: "asc" },
             }),
@@ -372,7 +374,7 @@ export async function getDashboardData(workspaceId: string, days = 30) {
         async () => {
           const [campaigns, lastProviderEvent] = await Promise.all([
             prisma.emailCampaign.findMany({
-              where: { createdBy: { workspaceId }, sentAt: { gte: rangeStart, lte: rangeEnd } },
+              where: { AND: [ownershipScope], sentAt: { gte: rangeStart, lte: rangeEnd } },
               select: {
                 id: true,
                 subject: true,
@@ -388,7 +390,7 @@ export async function getDashboardData(workspaceId: string, days = 30) {
               },
             }),
             prisma.campaignDeliveryEvent.findFirst({
-              where: { campaignRecipient: { campaign: { createdBy: { workspaceId } } } },
+              where: { campaignRecipient: { campaign: ownershipScope } },
               orderBy: { occurredAt: "desc" },
               select: { occurredAt: true },
             }),
@@ -431,10 +433,10 @@ export async function getDashboardData(workspaceId: string, days = 30) {
             Promise.resolve(0),
             Promise.resolve(0),
             Promise.resolve(0),
-            prisma.newsletterSeries.count({ where: { status: "ACTIVE", createdBy: { workspaceId } } }),
-            prisma.newsletterEdition.count({ where: { status: "NEEDS_REVIEW", series: { createdBy: { workspaceId } } } }),
+            prisma.newsletterSeries.count({ where: { status: "ACTIVE", AND: [ownershipScope] } }),
+            prisma.newsletterEdition.count({ where: { status: "NEEDS_REVIEW", series: ownershipScope } }),
             Promise.resolve(null as { nextGenerationAt: Date } | null),
-            prisma.newsletterSeries.findFirst({ where: { status: "ACTIVE", createdBy: { workspaceId }, nextGenerationAt: { not: null } }, orderBy: { nextGenerationAt: "asc" }, select: { nextGenerationAt: true } }),
+            prisma.newsletterSeries.findFirst({ where: { status: "ACTIVE", AND: [ownershipScope], nextGenerationAt: { not: null } }, orderBy: { nextGenerationAt: "asc" }, select: { nextGenerationAt: true } }),
             prisma.socialCampaign.count({ where: { workspaceId, archivedAt: null, variants: { some: { status: { in: ["DRAFT", "NEEDS_REVIEW"] } } } } }),
             prisma.socialVariant.count({ where: { campaign: { workspaceId }, status: { in: ["APPROVED", "SCHEDULED", "READY_TO_PUBLISH"] } } }),
             prisma.socialVariant.count({ where: { campaign: { workspaceId }, status: "PUBLISHED", publishedAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } } }),
@@ -562,7 +564,7 @@ export async function getDashboardData(workspaceId: string, days = 30) {
               },
             }),
             prisma.newsletterEdition.findMany({
-              where: { series: { createdBy: { workspaceId } } },
+              where: { series: ownershipScope },
               take: 6,
               orderBy: { updatedAt: "desc" },
               select: { id: true, subject: true, status: true, updatedAt: true },

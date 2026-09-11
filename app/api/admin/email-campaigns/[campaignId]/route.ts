@@ -1,6 +1,7 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { NextResponse } from "next/server";
 import { recordAuditEvent } from "@/lib/audit";
-import { getAdminSession } from "@/lib/auth/session";
+import { getCampaignAdminSession as getAdminSession } from "@/lib/client-communications/campaign-ownership";
 import { processEmailCampaign } from "@/lib/client-communications/campaign-delivery";
 import { zonedLocalToUtc } from "@/lib/client-communications/scheduling";
 import { prisma } from "@/lib/prisma";
@@ -15,7 +16,7 @@ export async function DELETE(_request: Request, context: Context) {
 
   const { campaignId } = await context.params;
   const draft = await prisma.emailCampaign.findFirst({
-    where: { id: campaignId, status: "DRAFT", createdById: session.userId },
+    where: { id: campaignId, status: "DRAFT", createdById: session.userId, AND: [await getContentOwnershipScope(session.workspaceId)] },
     select: { id: true, subject: true },
   });
   if (!draft) {
@@ -23,7 +24,7 @@ export async function DELETE(_request: Request, context: Context) {
   }
 
   const result = await prisma.emailCampaign.deleteMany({
-    where: { id: campaignId, status: "DRAFT", createdById: session.userId },
+    where: { id: campaignId, status: "DRAFT", createdById: session.userId, AND: [await getContentOwnershipScope(session.workspaceId)] },
   });
   if (!result.count) {
     return NextResponse.json({ success: false, error: "This draft changed in another tab. Refresh and try again." }, { status: 409 });
@@ -47,11 +48,11 @@ export async function PATCH(request: Request, context: Context) {
   }
   const { campaignId } = await context.params;
   const input = await request.json() as { action?: "reschedule" | "cancel" | "send-now" | "edit"; scheduledLocal?: string; scheduledTimeZone?: string; rowVersion?: number };
-  const campaign = await prisma.emailCampaign.findUnique({ where: { id: campaignId } });
+  const campaign = await prisma.emailCampaign.findUnique({ where: { id: campaignId, AND: [await getContentOwnershipScope(session.workspaceId)] } });
   if (!campaign || campaign.status !== "SCHEDULED") {
     return NextResponse.json({ success: false, error: "Only scheduled campaigns can be changed." }, { status: 409 });
   }
-  const where = { id: campaignId, status: "SCHEDULED" as const, rowVersion: input.rowVersion ?? campaign.rowVersion };
+  const where = { id: campaignId, AND: [await getContentOwnershipScope(session.workspaceId)], status: "SCHEDULED" as const, rowVersion: input.rowVersion ?? campaign.rowVersion };
   let action = "";
   if (input.action === "reschedule") {
     const timeZone = input.scheduledTimeZone?.trim() || "America/Denver";

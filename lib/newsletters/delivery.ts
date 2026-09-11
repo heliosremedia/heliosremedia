@@ -1,3 +1,4 @@
+import { resolveCampaignWorkspace } from "@/lib/client-communications/campaign-ownership";
 import { newsletterRecipientIdentity } from "./recipient-identity";
 import { requireNewsletterApprovalWorkspace } from "@/lib/newsletters/ownership";
 import "server-only";
@@ -67,7 +68,9 @@ export async function deliverApprovedNewsletter(editionId: string) {
   const approval = edition.approvals[0];
   const selection = parseSelection(approval.recipientSelectionSnapshot);
   // Eligibility is deliberately resolved again immediately before campaign creation.
-  const resolvedRecipients = await resolveEligibleNewsletterRecipients(await requireNewsletterApprovalWorkspace(approval.recipientSelectionSnapshot, edition.series.workspaceId), selection);
+  const workspaceId = await requireNewsletterApprovalWorkspace(approval.recipientSelectionSnapshot, edition.series.workspaceId);
+  if (edition.delivery && await resolveCampaignWorkspace(edition.delivery.campaign.workspaceId) !== workspaceId) throw new Error("Newsletter delivery campaign belongs to another workspace.");
+  const resolvedRecipients = await resolveEligibleNewsletterRecipients(workspaceId, selection);
   const eligible = resolvedRecipients.eligible;
   if (!eligible.length && !edition.delivery) throw new Error("No eligible newsletter recipients remain.");
   const approvedBlocks = parseBlocks(edition.approvedRevision.blocksSnapshot);
@@ -108,6 +111,7 @@ export async function deliverApprovedNewsletter(editionId: string) {
       if (claimed.count !== 1) throw new Error("Newsletter delivery was already claimed.");
       const nextCampaign = await transaction.emailCampaign.create({
         data: {
+          workspaceId,
           subject: edition.approvedRevision!.subject,
           previewText: edition.approvedRevision!.previewText,
           body: JSON.stringify({ newsletterEditionId: edition.id, revisionId: edition.approvedRevision!.id, blocks }),

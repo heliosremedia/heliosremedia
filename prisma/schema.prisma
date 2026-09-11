@@ -1684,6 +1684,7 @@ model Workspace {
   faqCategories             FaqCategory[]
   legalDocuments            LegalDocument[]
   callsToAction             CallToAction[]
+  emailCampaigns            EmailCampaign[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2579,6 +2580,10 @@ model ClientSyncRun {
 }
 
 model EmailCampaign {
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  @@index([workspaceId])
+
   id String @id @default(cuid())
 
   subject             String

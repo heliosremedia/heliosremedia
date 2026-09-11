@@ -1,5 +1,5 @@
 {
-  "schemaSha256": "67d9a2ffacc409c12a760b037755caef67294a9f98bdbb0891be8427f5f9ffcf",
+  "schemaSha256": "d1e3fa51ecdf62abff9f322e8407be2a59e018b20889df18530f67aaaa4abb1c",
   "scope": "Static code inventory, not an authorization or tenant-isolation verdict. No database connection or environment values read.",
   "limitations": [
     "Nullable ownership requires verified mapping before activation.",
@@ -11,8 +11,8 @@
   "counts": {
     "models": 111,
     "requiredWorkspace": 29,
-    "nullableWorkspace": 10,
-    "withoutWorkspace": 72,
+    "nullableWorkspace": 11,
+    "withoutWorkspace": 71,
     "routeFiles": 138
   },
   "models": [
@@ -1141,6 +1141,7 @@
         "lib/blog-access.ts",
         "lib/blog-ownership.ts",
         "lib/blog-series.ts",
+        "lib/client-communications/campaign-ownership.ts",
         "lib/newsletters/api.ts",
         "lib/newsletters/ownership.ts",
         "lib/public-workspace.ts",
@@ -2510,8 +2511,20 @@
     },
     {
       "model": "EmailCampaign",
-      "workspaceField": "absent",
+      "workspaceField": "nullable",
       "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": true,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
         {
           "relation": "createdBy",
           "model": "AdminUser",

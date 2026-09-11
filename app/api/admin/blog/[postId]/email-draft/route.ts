@@ -31,6 +31,7 @@ export async function POST(_request: Request, context: { params: Promise<{ postI
   ].filter(Boolean).join("\n\n");
   const campaign = await prisma.emailCampaign.create({
     data: {
+      workspaceId: session.workspaceId,
       subject: post.title,
       previewText: post.excerpt?.slice(0, 180) || null,
       body,
