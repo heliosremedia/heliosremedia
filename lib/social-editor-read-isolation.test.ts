@@ -11,6 +11,7 @@ function fixture() {
   let authenticated = true;
   let found = true;
   const modules: Record<string, unknown> = {
+    "@/lib/social/source-context": { resolveCampaignSourceContext: async () => ({ facts: { title: "Owned current facts" } }) },
     "react/jsx-runtime": { jsx: (_type: unknown, props: unknown) => props },
     "next/navigation": { notFound: () => { throw new Error("NOT_FOUND"); } }, "./SocialCampaignEditor": {},
     "@/lib/auth/session": { getAdminSession: async () => authenticated ? { workspaceId: "a", userId: "actor" } : null },

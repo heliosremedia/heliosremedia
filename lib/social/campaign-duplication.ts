@@ -2,7 +2,7 @@ import "server-only";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireLockedWorkspaceEditor, type WorkspaceWriteActor } from "@/lib/workspace-write-access";
-import { verifiedSourceFacts } from "./studio";
+import { resolveCampaignSourceContext } from "./source-context";
 import { publishingStorageReferenceMatches } from "./publishing-payload";
 
 export async function duplicateSocialCampaign(campaignId: string, actor: WorkspaceWriteActor) {
@@ -24,17 +24,7 @@ export async function duplicateSocialCampaign(campaignId: string, actor: Workspa
     if ((source.sourceProjectId && source.sourceProject?.workspaceId !== workspaceId)
       || source.projects.some((item) => item.project.workspaceId !== workspaceId)
       || media.some((item) => item.media.project.workspaceId !== workspaceId || item.media.visibility !== "VISIBLE" || !publishingStorageReferenceMatches(workspaceId, item.media.projectId, item.media.storageKey))) throw new Error("INVALID_SOCIAL_SOURCE");
-    if (source.sourceRecordIds !== null && (!Array.isArray(source.sourceRecordIds) || source.sourceRecordIds.some((id) => typeof id !== "string" || !id.trim()))) throw new Error("INVALID_SOCIAL_SOURCE");
-    const sourceIds = (source.sourceRecordIds || []) as string[];
-    let facts: Prisma.InputJsonValue = {};
-    if (["PROJECT", "PORTFOLIO_ITEM", "BLOG", "NEWSLETTER"].includes(source.sourceType)) {
-      if (sourceIds.length !== 1 || (source.sourceProjectId && source.sourceProjectId !== sourceIds[0])) throw new Error("INVALID_SOCIAL_SOURCE");
-      try { facts = await verifiedSourceFacts(source.sourceType, sourceIds[0], workspaceId, tx); }
-      catch { throw new Error("INVALID_SOCIAL_SOURCE"); }
-    } else if (sourceIds.length) {
-      // Unmodelled source IDs have no trustworthy ownership contract yet.
-      throw new Error("INVALID_SOCIAL_SOURCE");
-    }
+    const { sourceIds, facts } = await resolveCampaignSourceContext(source, workspaceId, tx);
     return tx.socialCampaign.create({
         data: {
           internalName: `${source.internalName} - Copy`,

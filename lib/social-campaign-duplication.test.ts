@@ -30,6 +30,9 @@ function harness() {
     "./studio": { verifiedSourceFacts: async (_type: string, id: string, workspaceId: string, db: unknown) => { assert.equal(id, "project"); assert.equal(workspaceId, "a"); assert.equal(db, tx); if (!sourceAllowed) throw new Error("missing"); return { title: "Current owned facts" }; } },
     "./publishing-payload": { publishingStorageReferenceMatches: (workspaceId: string, projectId: string, key: string) => key === `projects/${projectId}/image.webp` && workspaceId === "a" },
   };
+  const contextExports = {};
+  runInNewContext(ts.transpileModule(readFileSync(new URL("./social/source-context.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports: contextExports, require: (id: string) => { assert.ok(id in modules, id); return modules[id]; }, Error });
+  modules["./source-context"] = contextExports;
   runInNewContext(ts.transpileModule(readFileSync(new URL("./social/campaign-duplication.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, require: (id: string) => { assert.ok(id in modules, id); return modules[id]; }, Error });
   const api = exports as typeof import("./social/campaign-duplication");
   return { source, media, call: () => api.duplicateSocialCampaign("campaign", { userId: "actor", workspaceId: "a", sessionVersion: 1 }), setAllowed: (value: boolean) => { allowed = value; }, setFound: (value: boolean) => { found = value; }, setSourceAllowed: (value: boolean) => { sourceAllowed = value; }, getWrites: () => writes, getSaved: () => saved! };
