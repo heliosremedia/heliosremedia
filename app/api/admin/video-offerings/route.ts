@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
-import { requireAdminSession } from "@/lib/auth/session";
+import { getAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
 const groups = new Set(["CINEMATIC_FILM", "SOCIAL_MEDIA_REEL"]);
@@ -9,7 +9,8 @@ const text = (value: unknown, max: number) => typeof value === "string" && value
 
 export async function PATCH(request: Request) {
   try {
-    const session = await requireAdminSession();
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
     const body = await request.json() as Record<string, unknown>;
     const id = text(body.id, 120);
     const publicName = text(body.publicName, 120);
@@ -25,7 +26,7 @@ export async function PATCH(request: Request) {
       ? body.featureDistinctions.map((item) => text(item, 180)).filter(Boolean).slice(0, 16)
       : [];
     const offering = await prisma.videoOffering.update({
-      where: { id },
+      where: { id, workspaceId: session.workspaceId },
       data: {
         publicName,
         positioningStatement,
