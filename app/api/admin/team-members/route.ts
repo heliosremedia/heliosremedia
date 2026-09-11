@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import type { TeamMemberCategory } from "@/app/generated/prisma/client";
-import { verifyContentImage } from "@/lib/content-image-storage";
+import { verifyRegisteredBrandImage } from "@/lib/workspace-brand-assets";
 import { prisma } from "@/lib/prisma";
 import { teamMemberCategories, teamMemberSelect } from "@/lib/team-members";
 
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     const scope = await getContentOwnershipScope(session.workspaceId);
     const body = (await request.json()) as Record<string, unknown>;
     const validated = data(body, session.workspaceId);
-    await verifyContentImage(validated.portraitStorageKey);
+    await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "team", key: validated.portraitStorageKey });
     const order = await prisma.teamMember.aggregate({ where: scope, _max: { displayOrder: true } });
     const teamMember = await prisma.teamMember.create({ data: { workspaceId: session.workspaceId, ...validated, displayOrder: (order._max.displayOrder ?? -1) + 1 }, select: teamMemberSelect });
     refresh();
@@ -86,7 +86,7 @@ export async function PATCH(request: Request) {
     const existing = await prisma.teamMember.findUnique({ where: { id: teamMemberId, AND: [scope] }, select: { portraitStorageKey: true, portraitUrl: true } });
     if (!existing) return NextResponse.json({ success: false, error: "The team member was not found." }, { status: 404 });
     const validated = data(body, session.workspaceId, existing);
-    if (validated.portraitStorageKey !== existing.portraitStorageKey) await verifyContentImage(validated.portraitStorageKey);
+    await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "team", key: validated.portraitStorageKey, existingKey: existing.portraitStorageKey });
     const teamMember = await prisma.teamMember.update({ where: { id: teamMemberId, AND: [scope] }, data: validated, select: teamMemberSelect });
     const storageCleanupPending = validated.portraitStorageKey !== existing.portraitStorageKey ? brandImageCleanupPending(existing.portraitStorageKey) : false;
     refresh();
