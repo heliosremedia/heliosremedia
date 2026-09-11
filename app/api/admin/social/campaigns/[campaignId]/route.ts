@@ -1,3 +1,4 @@
+import { duplicateSocialCampaign } from "@/lib/social/campaign-duplication";
 import { lockEditableSocialVariant } from "@/lib/social/mutation-lock";
 import { requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
 import { NextResponse } from "next/server";
@@ -53,39 +54,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
       });
       if (!changed.count) return NextResponse.json({ success: false, error: "Campaign not found." }, { status: 404 });
     } else if (action === "duplicate-campaign") {
-      const source = await prisma.socialCampaign.findFirst({
-        where: { id: campaignId, workspaceId },
-        include: { projects: true, media: true, variants: { include: { media: true } } },
-      });
-      if (!source) return NextResponse.json({ success: false, error: "Campaign not found." }, { status: 404 });
-      const copy = await prisma.socialCampaign.create({
-        data: {
-          internalName: `${source.internalName} — Copy`,
-          description: source.description, purpose: source.purpose, status: "DRAFT", sourceType: source.sourceType,
-          sourceRecordIds: source.sourceRecordIds === null ? undefined : source.sourceRecordIds as Prisma.InputJsonValue,
-          verifiedSourceFacts: source.verifiedSourceFacts === null ? undefined : source.verifiedSourceFacts as Prisma.InputJsonValue,
-          targetAudience: source.targetAudience, brandVoice: source.brandVoice, primaryMessage: source.primaryMessage,
-          objective: source.objective, desiredCallToAction: source.desiredCallToAction, destinationLink: source.destinationLink,
-          selectedPlatforms: source.selectedPlatforms as Prisma.InputJsonValue, scheduleNotes: source.scheduleNotes, internalNotes: source.internalNotes,
-          internalAiInstructions: source.internalAiInstructions, sourceProjectId: source.sourceProjectId,
-          createdById: session.userId, lastEditedById: session.userId, workspaceId,
-          projects: { create: source.projects.map((item) => ({ projectId: item.projectId })) },
-          media: { create: source.media.map((item) => ({ mediaId: item.mediaId, displayOrder: item.displayOrder })) },
-          variants: { create: source.variants.map((item) => ({
-            platform: item.platform, postType: item.postType, status: "DRAFT",
-            caption: item.caption, openingHook: item.openingHook, hashtags: item.hashtags === null ? undefined : item.hashtags as Prisma.InputJsonValue,
-            callToAction: item.callToAction, destinationLink: item.destinationLink, altText: item.altText,
-            onScreenText: item.onScreenText, videoConcept: item.videoConcept, suggestedCover: item.suggestedCover,
-            platformNotes: item.platformNotes, internalNotes: item.internalNotes, aiMetadata: item.aiMetadata === null ? undefined : item.aiMetadata as Prisma.InputJsonValue,
-            lastEditedById: session.userId,
-            media: { create: item.media.map((relation) => ({
-              mediaId: relation.mediaId, displayOrder: relation.displayOrder, altText: relation.altText,
-              cropAspect: relation.cropAspect, cropX: relation.cropX, cropY: relation.cropY, cropScale: relation.cropScale,
-            })) },
-          })) },
-        },
-        select: { id: true },
-      });
+      const copy = await duplicateSocialCampaign(campaignId, session);
       return NextResponse.json({ success: true, campaignId: copy.id });
     } else if (action === "update-variant" && variant) {
       const hashtags = Array.isArray(body.hashtags) ? body.hashtags.map((value) => clean(value, 100)).filter(Boolean).slice(0, 30) : clean(body.hashtags, 2000).split(/\s+/).filter(Boolean);
@@ -214,6 +183,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
     if (error instanceof Error) {
       const code = (error as { code?: string }).code;
       if (error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Your workspace access changed. Sign in again." }, { status: 403 });
+      if (error.message === "SOCIAL_CAMPAIGN_NOT_FOUND") return NextResponse.json({ success: false, error: "Campaign not found." }, { status: 404 });
+      if (error.message === "INVALID_SOCIAL_SOURCE") return NextResponse.json({ success: false, error: "Review this campaign’s source and media before copying it." }, { status: 409 });
       if (error.message === "SOCIAL_IMAGE_NOT_FOUND") return NextResponse.json({ success: false, error: "The generated image was not found." }, { status: 404 });
       if (error.message === "SOCIAL_VARIANT_NOT_FOUND") return NextResponse.json({ success: false, error: "Variant not found." }, { status: 404 });
       if (error.message === "SOCIAL_EDIT_CONFLICT" || code === "P2025") return NextResponse.json({ success: false, error: "This post changed. Refresh before reviewing or editing it." }, { status: 409 });
