@@ -1,3 +1,4 @@
+import { withBrandUploadAsset } from "@/lib/workspace-brand-assets";
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth/session";
 import { createDefaultSocialImageKey, createPresignedUploadUrl, getPublicAssetUrl, validateImageUpload } from "@/lib/r2-upload";
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Choose an image under 10 MB." }, { status: 400 });
     }
     const key = createDefaultSocialImageKey(session.workspaceId, file.type);
-    const upload = { key, uploadUrl: await createPresignedUploadUrl(key, file.type), publicUrl: getPublicAssetUrl(key), contentType: file.type };
+    const upload = { key, uploadUrl: await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, kind: "site-brand", key, byteSize: file.size }, () => createPresignedUploadUrl(key, file.type)), publicUrl: getPublicAssetUrl(key), contentType: file.type };
     return NextResponse.json({ success: true, upload });
   } catch (error) {
     return NextResponse.json({ success: false, error: error instanceof Error ? error.message : "Unable to prepare social image upload." }, { status: 400 });
