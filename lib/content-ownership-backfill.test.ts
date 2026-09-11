@@ -8,14 +8,15 @@ test("explicit ownership backfill is atomic, rejects conflicting references and 
   const db = new PGlite();
   try {
     await db.exec(`CREATE TABLE "Workspace" (id TEXT PRIMARY KEY);
-      CREATE TABLE "BlogPost" (id TEXT PRIMARY KEY, "workspaceId" TEXT, "seriesId" TEXT, "featuredMediaId" TEXT, content TEXT);
+      CREATE TABLE "BlogPost" (id TEXT PRIMARY KEY, "workspaceId" TEXT, "seriesId" TEXT, "featuredMediaId" TEXT, content TEXT, "featuredImageStorageKey" TEXT);
       CREATE TABLE "BlogSeries" (id TEXT PRIMARY KEY, "workspaceId" TEXT);
+      CREATE TABLE "NewsletterImageAsset" (id TEXT PRIMARY KEY, "workspaceId" TEXT, "storageKey" TEXT);
       CREATE TABLE "NewsletterSeries" (id TEXT PRIMARY KEY, "workspaceId" TEXT);
       CREATE TABLE "Project" (id TEXT PRIMARY KEY, "workspaceId" TEXT);
       CREATE TABLE "Media" (id TEXT PRIMARY KEY, "projectId" TEXT);
       INSERT INTO "Workspace" VALUES ('a'),('b');
       INSERT INTO "BlogSeries" VALUES ('series',NULL);
-      INSERT INTO "BlogPost" VALUES ('post',NULL,'series','image','Preserve this text');
+      INSERT INTO "BlogPost" VALUES ('post',NULL,'series','image','Preserve this text',NULL);
       INSERT INTO "NewsletterSeries" VALUES ('newsletter',NULL);
       INSERT INTO "Project" VALUES ('project','b');
       INSERT INTO "Media" VALUES ('image','project');`);
@@ -34,6 +35,12 @@ test("explicit ownership backfill is atomic, rejects conflicting references and 
     await assert.rejects(db.exec(backfill), /featured media ownership mismatch/);
     await db.exec('ROLLBACK');
     await db.exec(`UPDATE "ContentOwnershipMapping" SET "workspaceId"='b' WHERE kind IN ('BlogPost','BlogSeries');`);
+    await db.exec(`INSERT INTO "NewsletterImageAsset" VALUES ('generated',NULL,'legacy-ai.webp');
+      UPDATE "BlogPost" SET "featuredImageStorageKey"='legacy-ai.webp';
+      INSERT INTO "ContentOwnershipMapping" VALUES ('NewsletterImageAsset','generated','a');`);
+    await assert.rejects(db.exec(backfill), /generated image ownership mismatch/);
+    await db.exec('ROLLBACK');
+    await db.exec(`UPDATE "ContentOwnershipMapping" SET "workspaceId"='b' WHERE kind='NewsletterImageAsset';`);
     await db.exec(backfill);
     assert.deepEqual((await db.query(`SELECT "workspaceId", content FROM "BlogPost"`)).rows, [{ workspaceId: 'b', content: 'Preserve this text' }]);
     await db.exec(backfill); // idempotent verified mapping

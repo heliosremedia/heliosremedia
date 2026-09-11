@@ -1,3 +1,4 @@
+import { requireWorkspaceId } from "@/lib/workspaces";
 import "server-only";
 
 import { DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
@@ -54,6 +55,7 @@ export async function generateNewsletterImage(input: {
   altText: unknown;
   actorId: string;
 }) {
+  const workspaceId = await requireWorkspaceId(input.actorId);
   const prompt = cleanImagePrompt(input.prompt);
   const altText = cleanImageAltText(input.altText);
   const apiKey = process.env.OPENAI_API_KEY?.trim();
@@ -68,7 +70,7 @@ export async function generateNewsletterImage(input: {
     },
     body: JSON.stringify({
       model: NEWSLETTER_IMAGE_MODEL,
-      prompt: `Create an original, refined editorial image for Helios Real Estate Media newsletter use. No logos, watermarks, readable text, invented property claims, or identifiable people. Keep the composition useful beneath email copy and maintain a cinematic, natural, premium photographic feel.\n\nCreative direction: ${prompt}`,
+      prompt: `Create an original, refined editorial image for real estate media marketing. No logos, watermarks, readable text, invented property claims, or identifiable people. Keep the composition useful beneath email copy and maintain a cinematic, natural, premium photographic feel.\n\nCreative direction: ${prompt}`,
       size: NEWSLETTER_IMAGE_SIZE,
       quality: NEWSLETTER_IMAGE_QUALITY,
       output_format: "webp",
@@ -92,7 +94,7 @@ export async function generateNewsletterImage(input: {
     throw new Error("OpenAI returned an invalid image.");
   }
 
-  const storageKey = createNewsletterAiImageKey();
+  const storageKey = createNewsletterAiImageKey(workspaceId);
   await r2Client.send(new PutObjectCommand({
     Bucket: r2Config.bucketName,
     Key: storageKey,
@@ -104,6 +106,7 @@ export async function generateNewsletterImage(input: {
   try {
     return await prisma.newsletterImageAsset.create({
       data: {
+        workspaceId,
         storageKey,
         publicUrl,
         prompt,

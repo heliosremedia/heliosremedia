@@ -80,3 +80,17 @@ Continued after publishing #223. Replaced production-build `prisma migrate deplo
 Added controlled-migrations runbook for pinned artifacts, full pending-migration review, verified backfill, backup restoration, old/new overlap and schema-compatible rollback. The safeguard exists only on the draft branch; main/production are unchanged. No production build or database command was executed. Production still waits for implementation readiness and QA with Jake.
 
 Verification: full combined suite 406 passed, zero failed; non-incremental TypeScript, focused build-script lint and diff checks passed. These tests did not launch a real production build or connect to production.
+
+## 2026-09-11 editorial image ownership
+
+Added nullable NewsletterImageAsset workspace ownership and scoped AI gallery/save queries. The shared image generator verifies actor access before provider use and persists workspace identity. Blog presigns and shared AI images use workspace namespaces; Blog attachments validate ownership and derive URLs server-side while preserving unchanged legacy images. Social set-ai-image resolves an owned asset record rather than trusting a URL. This changes only attachment validation, not OAuth, provider configuration or publishing/approval execution.
+
+Extended the explicit backfill operator script to image assets, including mismatched Blog generated-image references. Rehearsal and mocked real-handler tests cover old writes, foreign references, authorization before provider use and forged Social image URLs. No real generation, upload or publication was performed. Asset usage registry, source snapshots and consent/delivery review remain outstanding.
+
+## 2026-09-11 Newsletter audience and approval ownership
+
+Continued after the image milestone: recipient selection now requires stored series workspace and client-workspace membership in every mode. Estimates, approvals and delivery pass that context. New approval snapshots bind workspace identity; foreign snapshots abort before recipient resolution/provider access, and missing legacy ownership is only allowed in single-company compatibility mode. Retries bind client ID plus normalized email instead of email alone. Conservative opt-out/suppression behavior is preserved.
+
+Release gate: reconcile existing client-workspace mappings before deployment, because unmapped contacts are excluded. No production send, token issuance, provider call or real scheduled execution was tested. Global group/consent semantics, campaign ownership and remaining concurrency/job/analytics paths still require work. See editorial-assets-audiences document for scope and limits.
+
+Combined verification: 416 tests passed, zero failed; Prisma generation, non-incremental TypeScript, focused lint and diff checks passed. New actual-handler tests use mocked services, and migration/backfill tests use isolated PGlite. The result is draft implementation evidence, not hosted QA or full tenant-isolation proof.

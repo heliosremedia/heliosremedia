@@ -1,3 +1,4 @@
+import { getAdminSession } from "@/lib/auth/session";
 import { requireLegacyBlogAccess } from "@/lib/blog-access";
 import { NextResponse } from "next/server";
 import { createBlogImageKey, createPresignedUploadUrl, getPublicAssetUrl, validateImageUpload } from "@/lib/r2-upload";
@@ -5,6 +6,8 @@ import { createBlogImageKey, createPresignedUploadUrl, getPublicAssetUrl, valida
 export async function POST(request: Request) {
   const accessError = await requireLegacyBlogAccess();
   if (accessError) return accessError;
+  const session = await getAdminSession();
+  if (!session) return NextResponse.json({ success: false }, { status: 403 });
   try {
     const body = await request.json() as Record<string, unknown>;
     const file = {
@@ -13,7 +16,7 @@ export async function POST(request: Request) {
       size: typeof body.fileSize === "number" ? body.fileSize : Number.NaN,
     };
     validateImageUpload(file);
-    const key = createBlogImageKey(file.type);
+    const key = createBlogImageKey(session.workspaceId, file.type);
     return NextResponse.json({ success: true, upload: { key, uploadUrl: await createPresignedUploadUrl(key, file.type), publicUrl: getPublicAssetUrl(key), contentType: file.type } });
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : "Unable to prepare this image.";

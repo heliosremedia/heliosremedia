@@ -1,3 +1,6 @@
+import { resolveBrandImage, brandAssetPrefix } from "@/lib/workspace-brand-storage";
+import { getPublicAssetUrl } from "@/lib/r2-upload";
+import { verifyContentImage } from "@/lib/content-image-storage";
 import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import { getAdminSession } from "@/lib/auth/session";
 import { requireLegacyBlogAccess } from "@/lib/blog-access";
@@ -63,8 +66,19 @@ function data(body: Record<string, unknown>) {
     sourceLinks: sourceLinks(body.sourceLinks),
   };
 }
+async function validatePostImage(next: ReturnType<typeof data>, workspaceId: string, existing: { featuredImageStorageKey: string | null; featuredImageUrl: string | null } | null = null) {
+  const kind = next.featuredImageStorageKey?.startsWith(brandAssetPrefix(workspaceId, "newsletter-ai")) ? "newsletter-ai" : "blog";
+  const image = resolveBrandImage(workspaceId, kind,
+    { key: next.featuredImageStorageKey, url: next.featuredImageUrl },
+    existing ? { key: existing.featuredImageStorageKey, url: existing.featuredImageUrl } : null,
+    getPublicAssetUrl);
+  if (image.key && image.key !== existing?.featuredImageStorageKey) await verifyContentImage(image.key);
+  next.featuredImageStorageKey = image.key;
+  next.featuredImageUrl = image.url;
+}
 function error(error: unknown) {
   const messages: Record<string, string> = {
+    INVALID_BRAND_IMAGE: "Upload an image for this workspace or retain the current image unchanged.",
     INVALID_MEDIA: "Choose an image from this workspace.",
     INVALID_TEXT: "Complete the required fields and stay within their limits.",
     INVALID_URL: "Use a valid http or https URL.",
@@ -84,6 +98,7 @@ export async function POST(request: Request) {
     const session = await getAdminSession();
     if (!session) return NextResponse.json({ success: false }, { status: 403 });
     const next = data(await request.json());
+    await validatePostImage(next, actor.workspaceId);
     if (next.featuredMediaId && !await prisma.media.findFirst({ where: { id: next.featuredMediaId, project: { workspaceId: actor.workspaceId } }, select: { id: true } })) throw new Error("INVALID_MEDIA");
     const post = await prisma.blogPost.create({ data: { ...next, workspaceId: session.workspaceId } });
     refresh(post.slug);
@@ -104,8 +119,9 @@ export async function PATCH(request: Request) {
   try {
     const body = await request.json() as Record<string, unknown>;
     const postId = required(body.postId, 200);
-    const previous = await prisma.blogPost.findUniqueOrThrow({ where: { id: postId, AND: [ownership] }, select: { slug: true } });
+    const previous = await prisma.blogPost.findUniqueOrThrow({ where: { id: postId, AND: [ownership] }, select: { slug: true, featuredImageStorageKey: true, featuredImageUrl: true } });
     const next = data(body);
+    await validatePostImage(next, actor.workspaceId, previous);
     if (next.featuredMediaId && !await prisma.media.findFirst({ where: { id: next.featuredMediaId, project: { workspaceId: actor.workspaceId } }, select: { id: true } })) throw new Error("INVALID_MEDIA");
     const post = await prisma.$transaction(async transaction => {
       const current = await transaction.blogPost.findUniqueOrThrow({ where: { id: postId, AND: [ownership] } });

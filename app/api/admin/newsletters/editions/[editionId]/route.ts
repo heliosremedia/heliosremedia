@@ -1,3 +1,4 @@
+import { resolveNewsletterWorkspace } from "@/lib/newsletters/ownership";
 import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import { NextResponse } from "next/server";
 import { recordAuditEvent } from "@/lib/audit";
@@ -150,7 +151,7 @@ async function saveEdition(editionId: string, value: unknown, actorId: string, w
     .map((block) => block.content.imageSelection.assetId)
     .filter((value): value is string => Boolean(value));
   const aiAssets = aiAssetIds.length
-    ? await prisma.newsletterImageAsset.findMany({ where: { id: { in: aiAssetIds } } })
+    ? await prisma.newsletterImageAsset.findMany({ where: { AND: [await getBlogOwnershipScope(workspaceId)], id: { in: aiAssetIds } } })
     : [];
   const mediaAssetIds = managedSelections
     .filter((block) => block.content.imageSelection.assetSource === "PORTFOLIO")
@@ -294,7 +295,7 @@ async function approveAndSchedule(editionId: string, actorId: string) {
   }
   if (!edition.subject || !edition.blocks.length) throw new Error("Add a subject and content before approval.");
   const selection = recipientSelectionFromSeries(edition.series);
-  const audience = await resolveEligibleNewsletterRecipients(selection);
+  const audience = await resolveEligibleNewsletterRecipients(await resolveNewsletterWorkspace(edition.series.workspaceId), selection);
   if (!audience.eligible.length) throw new Error("No eligible recipients are currently selected.");
   const revision = edition.revisions[0];
   await prisma.$transaction(async (tx) => {
@@ -306,7 +307,7 @@ async function approveAndSchedule(editionId: string, actorId: string) {
         approvedSendAt: edition.intendedSendAt,
         estimatedEligibleCount: audience.eligible.length,
         estimatedExcludedCount: audience.excludedCount,
-        recipientSelectionSnapshot: selection,
+        recipientSelectionSnapshot: { ...selection, workspaceId: await resolveNewsletterWorkspace(edition.series.workspaceId) },
       },
     });
     await tx.newsletterEdition.update({

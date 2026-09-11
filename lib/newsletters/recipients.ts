@@ -6,8 +6,10 @@ import type { EligibleRecipient, RecipientSelection } from "./types";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function resolveEligibleNewsletterRecipients(
+  workspaceId: string,
   selection: RecipientSelection,
 ): Promise<{ eligible: EligibleRecipient[]; excludedCount: number }> {
+  if (!workspaceId) throw new Error("Recipient workspace is required.");
   const selectedWhere =
     selection.mode === "ALL"
       ? {}
@@ -23,7 +25,7 @@ export async function resolveEligibleNewsletterRecipients(
             };
 
   const candidates = await prisma.communicationClient.findMany({
-    where: selectedWhere,
+    where: { AND: [selectedWhere], workspaceMemberships: { some: { workspaceId } } },
     select: {
       id: true,
       displayName: true,

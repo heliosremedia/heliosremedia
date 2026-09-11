@@ -8,19 +8,26 @@ test("background ownership uses stored identity and fails closed on ambiguous le
   let enabled = true;
   let rows = [{ id: "other" }];
   let reads = 0;
-  const exports: { resolveNewsletterWorkspace?: (id: string | null) => Promise<string> } = {};
+  const exports: { resolveNewsletterWorkspace?: (id: string | null) => Promise<string>; requireNewsletterApprovalWorkspace?: (snapshot: unknown, id: string | null) => Promise<string> } = {};
   const modules: Record<string, unknown> = {
     "server-only": {},
     "@/lib/prisma": { prisma: { workspace: { findMany: async () => { reads++; return rows; } } } },
     "@/lib/workspace-context-core": { tenantContextEnabled: () => enabled },
   };
   runInNewContext(ts.transpileModule(readFileSync(new URL("./ownership.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { exports, require: (id: string) => modules[id] });
+  const approval = exports.requireNewsletterApprovalWorkspace!;
+  assert.equal(await approval({ workspaceId: "a" }, "a"), "a");
+  await assert.rejects(approval({ workspaceId: "b" }, "a"));
+  await assert.rejects(approval({ workspaceId: null }, "a"));
+  await assert.rejects(approval({}, "a"));
   const resolve = exports.resolveNewsletterWorkspace!;
   assert.equal(await resolve("original-company"), "original-company");
   assert.equal(reads, 0);
   await assert.rejects(resolve(null));
   enabled = false;
   assert.equal(await resolve(null), "other");
+  assert.equal(await approval({}, "other"), "other");
+  await assert.rejects(approval({}, "a"));
   rows = [{ id: "other" }, { id: "second" }];
   await assert.rejects(resolve(null));
   rows = [];
@@ -75,4 +82,23 @@ test("Newsletter admin guard keeps unfinished workflows unavailable to a second 
   assert.equal(await guard(), null);
   rows = [{ id: "b" }];
   assert.equal(await guard(), null);
+});
+
+test("actual delivery aborts a foreign approval before recipients, tokens or provider calls", async () => {
+  const exports: { deliverApprovedNewsletter?: (id: string) => Promise<unknown> } = {};
+  let providerCalls = 0;
+  const modules: Record<string, unknown> = {
+    "server-only": {}, "node:crypto": {}, "./recipient-identity": {},
+    "@/lib/newsletters/ownership": { requireNewsletterApprovalWorkspace: async () => { throw new Error("Foreign approval"); } },
+    "@/lib/prisma": { prisma: { newsletterEdition: { findUnique: async () => ({ status: "SCHEDULED", series: { status: "ACTIVE", workspaceId: "a" }, approvedRevision: { id: "revision" }, approvedRevisionId: "revision", approvals: [{ recipientSelectionSnapshot: { mode: "ALL", workspaceId: "b" } }] }) } } },
+    "@/lib/client-communications/email": { sendCampaignBatch: async () => { providerCalls++; } },
+    "@/lib/newsletters/email-renderer": {}, "@/lib/newsletters/recipients": {},
+    "@/lib/client-communications/preferences": {}, "@/lib/site": {}, "@/lib/newsletters/integrity": {},
+  };
+  runInNewContext(ts.transpileModule(readFileSync(new URL("./delivery.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, console, require: (id: string) => {
+    if (!(id in modules)) throw new Error(`Unexpected dependency ${id}`);
+    return modules[id];
+  } });
+  await assert.rejects(exports.deliverApprovedNewsletter!("edition"), /Foreign approval/);
+  assert.equal(providerCalls, 0);
 });
