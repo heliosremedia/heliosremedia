@@ -36,7 +36,7 @@ for (const kind of ["testimonials", "trusted-logos"] as const) {
       "@/lib/testimonials": { TESTIMONIAL_CHARACTER_LIMIT: 1000 },
       "@/lib/workspace-brand-storage": policy,
       "@/lib/r2-upload": { getPublicAssetUrl: (key: string) => `https://assets.example/${key}` },
-      "@/lib/content-image-storage": { verifyContentImage: async () => { verified++; } },
+      "@/lib/workspace-brand-assets": { verifyRegisteredBrandImage: async () => { verified++; } },
     };
     runInNewContext(compiled, { exports, require: (name: string) => {
       if (!(name in modules)) throw new Error(`Unexpected module ${name}`);

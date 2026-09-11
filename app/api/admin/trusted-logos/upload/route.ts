@@ -1,3 +1,4 @@
+import { withBrandUploadAsset } from "@/lib/workspace-brand-assets";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { NextResponse } from "next/server";
 
@@ -49,14 +50,14 @@ export async function POST(request: Request) {
     const key = createTrustedLogoKey(session.workspaceId, image.type);
     const body = Buffer.from(await image.arrayBuffer());
 
-    await r2Client.send(
+    await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, kind: "trusted-logos", key, byteSize: image.size }, () => r2Client.send(
       new PutObjectCommand({
         Bucket: r2Config.bucketName,
         Key: key,
         Body: body,
         ContentType: image.type,
       }),
-    );
+    ));
 
     return NextResponse.json({
       success: true,
@@ -69,6 +70,7 @@ export async function POST(request: Request) {
     const message =
       error instanceof Error ? error.message : "Unable to upload this logo.";
     const validation =
+      message === "INVALID_BRAND_IMAGE" ||
       message === "Unsupported image type." ||
       message === "Images must be smaller than 25 MB.";
 
@@ -77,7 +79,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        error: validation ? message : "The logo could not be uploaded.",
+        error: message === "INVALID_BRAND_IMAGE" ? "Choose a valid logo file for this company." : validation ? message : "The logo could not be uploaded.",
       },
       { status: validation ? 400 : 500 },
     );

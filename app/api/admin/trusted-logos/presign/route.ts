@@ -1,3 +1,4 @@
+import { withBrandUploadAsset } from "@/lib/workspace-brand-assets";
 import { NextResponse } from "next/server";
 
 import { createPresignedUploadUrl, createTrustedLogoKey, getPublicAssetUrl, validateImageUpload } from "@/lib/r2-upload";
@@ -15,11 +16,12 @@ export async function POST(request: Request) {
     validateImageUpload({ name: fileName, type: fileType, size: fileSize });
     if (fileSize > 5 * 1024 * 1024) return NextResponse.json({ success: false, error: "Logo files must be smaller than 5 MB." }, { status: 400 });
     const key = createTrustedLogoKey(session.workspaceId, fileType);
-    return NextResponse.json({ success: true, upload: { key, uploadUrl: await createPresignedUploadUrl(key, fileType), publicUrl: getPublicAssetUrl(key), contentType: fileType } });
+    const uploadUrl = await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, kind: "trusted-logos", key, byteSize: fileSize }, () => createPresignedUploadUrl(key, fileType));
+    return NextResponse.json({ success: true, upload: { key, uploadUrl, publicUrl: getPublicAssetUrl(key), contentType: fileType } });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to prepare this upload.";
-    const validation = message === "Unsupported image type." || message === "Images must be smaller than 25 MB.";
+    const validation = message === "INVALID_BRAND_IMAGE" || message === "Unsupported image type." || message === "Images must be smaller than 25 MB.";
     console.error("Unable to prepare trusted logo upload:", error);
-    return NextResponse.json({ success: false, error: message }, { status: validation ? 400 : 500 });
+    return NextResponse.json({ success: false, error: message === "INVALID_BRAND_IMAGE" ? "Choose a valid image file for this company." : validation ? message : "The image upload could not be prepared." }, { status: validation ? 400 : 500 });
   }
 }
