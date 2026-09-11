@@ -1,3 +1,4 @@
+import { requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
 import { verifyRegisteredBrandImage } from "@/lib/workspace-brand-assets";
 import { resolveBrandImage, brandAssetPrefix } from "@/lib/workspace-brand-storage";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
@@ -84,6 +85,8 @@ async function validatePostImage(next: ReturnType<typeof data>, workspaceId: str
   next.featuredImageUrl = image.url;
 }
 function error(error: unknown) {
+  if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Your workspace access changed. Sign in again." }, { status: 403 });
+  if ((error as { code?: string })?.code === "P2025") return NextResponse.json({ success: false, error: "The article changed or is no longer available. Refresh before editing." }, { status: 409 });
   const messages: Record<string, string> = {
     INVALID_BRAND_IMAGE: "Upload an image for this workspace or retain the current image unchanged.",
     INVALID_MEDIA: "Choose an image from this workspace.",
@@ -102,12 +105,13 @@ export async function POST(request: Request) {
   const actor = await getAdminSession();
   if (!actor) return NextResponse.json({ success: false }, { status: 403 });
   try {
-    const session = await getAdminSession();
-    if (!session) return NextResponse.json({ success: false }, { status: 403 });
     const next = data(await request.json());
     await validatePostImage(next, actor.workspaceId);
-    if (next.featuredMediaId && !await prisma.media.findFirst({ where: { id: next.featuredMediaId, project: { workspaceId: actor.workspaceId } }, select: { id: true } })) throw new Error("INVALID_MEDIA");
-    const post = await prisma.blogPost.create({ data: { ...next, workspaceId: session.workspaceId } });
+    const post = await prisma.$transaction(async transaction => {
+      await requireLockedWorkspaceEditor(transaction, actor);
+      if (next.featuredMediaId && !await transaction.media.findFirst({ where: { id: next.featuredMediaId, visibility: "VISIBLE", project: { workspaceId: actor.workspaceId } }, select: { id: true } })) throw new Error("INVALID_MEDIA");
+      return transaction.blogPost.create({ data: { ...next, workspaceId: actor.workspaceId } });
+    });
     refresh(post.slug);
     return NextResponse.json({ success: true, post }, { status: 201 });
   } catch (cause) {
@@ -129,8 +133,9 @@ export async function PATCH(request: Request) {
     const previous = await prisma.blogPost.findUniqueOrThrow({ where: { id: postId, AND: [ownership] }, select: { slug: true, featuredImageStorageKey: true, featuredImageUrl: true } });
     const next = data(body);
     await validatePostImage(next, actor.workspaceId, previous);
-    if (next.featuredMediaId && !await prisma.media.findFirst({ where: { id: next.featuredMediaId, project: { workspaceId: actor.workspaceId } }, select: { id: true } })) throw new Error("INVALID_MEDIA");
     const post = await prisma.$transaction(async transaction => {
+      await requireLockedWorkspaceEditor(transaction, actor);
+      if (next.featuredMediaId && !await transaction.media.findFirst({ where: { id: next.featuredMediaId, visibility: "VISIBLE", project: { workspaceId: actor.workspaceId } }, select: { id: true } })) throw new Error("INVALID_MEDIA");
       const current = await transaction.blogPost.findUniqueOrThrow({ where: { id: postId, AND: [ownership] } });
       await transaction.blogPostRevision.create({
         data: {
@@ -140,7 +145,7 @@ export async function PATCH(request: Request) {
         },
       });
       return transaction.blogPost.update({
-        where: { id: postId, AND: [ownership] },
+        where: { id: postId, AND: [ownership], updatedAt: current.updatedAt },
         data: { ...next, manualContent: next.content !== current.content || current.manualContent },
       });
     });
@@ -162,10 +167,14 @@ export async function DELETE(request: Request) {
   try {
     const postId = new URL(request.url).searchParams.get("postId")?.trim();
     if (!postId) return NextResponse.json({ success: false, error: "An article ID is required." }, { status: 400 });
-    const post = await prisma.blogPost.delete({ where: { id: postId, AND: [ownership] } });
+    const post = await prisma.$transaction(async transaction => {
+      await requireLockedWorkspaceEditor(transaction, actor);
+      return transaction.blogPost.delete({ where: { id: postId, AND: [ownership] } });
+    });
     refresh(post.slug);
     return NextResponse.json({ success: true });
   } catch (cause) {
+    const response = error(cause); if (response) return response;
     console.error("Unable to delete blog post:", cause);
     return NextResponse.json({ success: false, error: "The article could not be deleted." }, { status: 500 });
   }
