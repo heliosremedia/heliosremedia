@@ -72,3 +72,11 @@ Prepared a separate explicit per-record backfill script and isolated SQL rehears
 See helios-studio-v2-content-ownership-paths.md for exact behavior, compatibility limits and remaining work. Next dependencies: Blog upload/image-generation ownership; Newsletter AI assets and immutable source snapshots; recipient/group and delivery ownership; complete model/route/job inventory; controlled migration gates and hosted QA access. Keep both marketing modules single-company and keep production release on hold for Jake's QA sequence.
 
 Verification for this combined milestone: 403 tests passed, zero failed; regenerated Prisma client; non-incremental TypeScript passed after correcting a test result type; focused lint and diff checks passed. Reviewed changed server-rendered pages using the React checklist and stripped extra featured-media ownership metadata from editor props. No hosted browser/HTTP test, production build, migration, external AI generation, message, campaign or publication was executed.
+
+## 2026-09-11 production build migration gate
+
+Continued after publishing #223. Replaced production-build `prisma migrate deploy` with a migration-history status check that must pass before Prisma generation and Next.js build. No build-time database migration is invoked by the changed script. Actual-script tests with mocked child processes cover successful production checks, nonzero/missing process status and preview/local behavior. Installed Prisma 7.8 code confirms unapplied migration history returns nonzero. This does not prove schema drift, data integrity or hosted QA.
+
+Added controlled-migrations runbook for pinned artifacts, full pending-migration review, verified backfill, backup restoration, old/new overlap and schema-compatible rollback. The safeguard exists only on the draft branch; main/production are unchanged. No production build or database command was executed. Production still waits for implementation readiness and QA with Jake.
+
+Verification: full combined suite 406 passed, zero failed; non-incremental TypeScript, focused build-script lint and diff checks passed. These tests did not launch a real production build or connect to production.
