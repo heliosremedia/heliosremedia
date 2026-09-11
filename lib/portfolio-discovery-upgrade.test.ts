@@ -52,6 +52,9 @@ test("featured projects enforce six, require replacement confirmation, and never
   assert.match(endpoint, /new Set\(projectIds\)\.size/);
   assert.match(manager, /Confirm Replacement/);
   assert.match(manager, /More than 6 projects are currently featured/);
+  assert.match(manager, /strategy=\{rectSortingStrategy\}/);
+  assert.match(manager, /dropEdge === "before"/);
+  assert.match(manager, /bg-\[var\(--helios-orange\)\]/);
   assert.match(workflow, /activeFeatured >= 6/);
   assert.match(endpoint, /VERCEL_ENV === "preview"/);
   assert.doesNotMatch(endpoint, /\.delete\(|deleteMany/);
