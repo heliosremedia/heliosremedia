@@ -1,3 +1,6 @@
+import "server-only";
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import type { CtaActionType, CtaPlacementSlot } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
@@ -47,7 +50,7 @@ export const defaultPageCtas: Record<Exclude<CtaPlacementSlot, "HOME_PRIMARY">, 
 export async function getCtaForSlot(slot: CtaPlacementSlot): Promise<PublicCta | null> {
   try {
     const placement = await prisma.ctaPlacement.findUnique({
-      where: { slot },
+      where: { slot, cta: await getContentOwnershipScope(await getPublicWorkspaceId()) },
       select: { cta: { select: { id: true, internalName: true, eyebrow: true, headline: true, body: true, primaryLabel: true, primaryActionType: true, primaryValue: true, secondaryLabel: true, secondaryActionType: true, secondaryValue: true, published: true } } },
     });
     return placement?.cta.published ? placement.cta : null;

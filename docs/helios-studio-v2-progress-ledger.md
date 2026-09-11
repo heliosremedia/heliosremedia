@@ -124,3 +124,9 @@ Verification: 428 tests passed, zero failed; Prisma generation, non-incremental 
 Continued after draft #229. Added nullable legal-document ownership, local administrator authorization, company-bound document/settings transaction predicates, scoped public/admin readers and sitemap legal entries. Legacy default-settings writes require one matching company. Preserved all legal copy and global type uniqueness pending a controlled contract migration. Also scoped sitemap hero-media references.
 
 Verification: 431 tests passed, zero failed; Prisma generation, non-incremental TypeScript, focused lint and diff checks passed. Actual-handler tests mock data access; SQL rehearsal uses PGlite. Historical mapping, uniqueness rollout, broader settings ownership and hosted/browser QA remain open. No production data, legal text, deployment or external delivery changed.
+
+## 2026-09-11 CTA ownership and placement isolation
+
+Continued after draft #230. Added nullable CTA ownership, local editor authorization and scoped CRUD/placement predicates. Public lookup requires company ownership. Preserved existing CTA text, booking destinations, legacy writes and global slot uniqueness; foreign occupied slots cannot be reassigned by the scoped upsert.
+
+Verification: 435 tests passed, zero failed; Prisma generation, non-incremental TypeScript, focused lint and diff checks passed. Refetched main and confirmed 72dab34568cb6885f3e93b5ed9db38edca156835, matching the previously reconciled hotfix state. Hosted/browser evidence, historical mapping and tenant slot uniqueness remain open. No production database/deployment/booking operation ran.
