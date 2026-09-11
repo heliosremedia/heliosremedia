@@ -315,10 +315,10 @@
         "app/api/admin/portfolio-settings/route.ts",
         "app/api/admin/projects/[projectId]/film-comparison/route.ts",
         "app/api/admin/projects/[projectId]/media/route.ts",
-        "app/api/admin/social/campaigns/[campaignId]/route.ts",
         "app/portfolio/page.tsx",
         "lib/dashboard.ts",
-        "lib/portfolio-discovery.ts"
+        "lib/portfolio-discovery.ts",
+        "lib/social/studio.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     },
@@ -1180,6 +1180,7 @@
         "app/api/auth/accept-invite/route.ts",
         "lib/auth/session.ts",
         "lib/workspace-account-mutation.ts",
+        "lib/workspace-write-access.ts",
         "lib/workspaces.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
@@ -1193,6 +1194,7 @@
       ],
       "sourceReferences": [
         "app/api/admin/blog/series/assistant/route.ts",
+        "app/api/admin/social/ai/route.ts",
         "lib/blog-access.ts",
         "lib/blog-ownership.ts",
         "lib/blog-series.ts",
@@ -1201,11 +1203,14 @@
         "lib/inquiry-ownership.ts",
         "lib/newsletters/api.ts",
         "lib/newsletters/ownership.ts",
+        "lib/photo-comparison.ts",
         "lib/project-preview-url.ts",
         "lib/public-workspace.ts",
         "lib/referrals/access.ts",
         "lib/referrals/ownership.ts",
+        "lib/social/studio.ts",
         "lib/workspace-assets.ts",
+        "lib/workspace-brand-assets.ts",
         "lib/workspace-singleton.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
@@ -1248,7 +1253,8 @@
         "app/api/auth/accept-invite/route.ts",
         "lib/workspace-account-mutation.ts",
         "lib/workspace-membership-lifecycle.ts",
-        "lib/workspace-memberships.ts"
+        "lib/workspace-memberships.ts",
+        "lib/workspace-write-access.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     },
@@ -1503,7 +1509,9 @@
         "app/api/admin/social/campaigns/[campaignId]/route.ts",
         "app/api/admin/social/campaigns/route.ts",
         "lib/dashboard.ts",
-        "lib/social/autopilot.ts"
+        "lib/social/autopilot.ts",
+        "lib/social/generation-ownership.ts",
+        "lib/social/studio.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     },
@@ -1698,7 +1706,7 @@
       ],
       "uniqueConstraints": [],
       "sourceReferences": [
-        "app/api/admin/social/campaigns/[campaignId]/route.ts"
+        "lib/social/studio.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     },
@@ -1874,7 +1882,6 @@
         "app/admin/social-studio/analytics/report/page.tsx",
         "app/admin/social-studio/calendar/page.tsx",
         "app/admin/social-studio/page.tsx",
-        "app/api/admin/social/ai/route.ts",
         "app/api/admin/social/campaigns/[campaignId]/route.ts",
         "lib/dashboard.ts",
         "lib/social/publishing.ts",
@@ -1937,7 +1944,8 @@
       ],
       "uniqueConstraints": [],
       "sourceReferences": [
-        "app/api/admin/social/campaigns/[campaignId]/route.ts"
+        "app/api/admin/social/campaigns/[campaignId]/route.ts",
+        "lib/social/studio.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     },
@@ -1974,7 +1982,7 @@
         "variantId, mediaId"
       ],
       "sourceReferences": [
-        "app/api/admin/social/campaigns/[campaignId]/route.ts"
+        "lib/social/studio.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     },
@@ -3178,8 +3186,8 @@
       "sourceReferences": [
         "app/api/admin/newsletters/editions/[editionId]/route.ts",
         "app/api/admin/newsletters/images/route.ts",
-        "app/api/admin/social/campaigns/[campaignId]/route.ts",
-        "lib/newsletters/image-assets.ts"
+        "lib/newsletters/image-assets.ts",
+        "lib/social/studio.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     },
@@ -4272,7 +4280,8 @@
         "provider, providerNamespace, providerKey"
       ],
       "sourceReferences": [
-        "lib/workspace-assets.ts"
+        "lib/workspace-assets.ts",
+        "lib/workspace-brand-assets.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     }
