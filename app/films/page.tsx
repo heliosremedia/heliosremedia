@@ -1,3 +1,4 @@
+import { filmPosterMatchesWorkspace } from "@/lib/film-poster";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Footer from "@/app/components/Footer";
@@ -30,6 +31,7 @@ async function getOfferings(): Promise<FilmOfferingView[]> {
     include: {
       placements: {
         where: {
+          workspaceId,
           showOnComparison: true,
           media: {
             visibility: "VISIBLE",
@@ -46,6 +48,7 @@ async function getOfferings(): Promise<FilmOfferingView[]> {
           media: {
             select: {
               id: true,
+              projectId: true,
               originalFilename: true,
               externalUrl: true,
               width: true,
@@ -84,7 +87,7 @@ async function getOfferings(): Promise<FilmOfferingView[]> {
             offering.publicName,
           embedUrl: resolved.embedUrl,
           playbackUrl: resolved.playbackUrl,
-          posterUrl: placement.posterOverrideUrl || resolved.thumbnailUrl,
+          posterUrl: placement.posterOverrideUrl && filmPosterMatchesWorkspace(workspaceId, placement.media.projectId, placement.posterOverrideUrl) ? placement.posterOverrideUrl : resolved.thumbnailUrl,
           orientation:
             placement.media.height &&
             placement.media.width &&
