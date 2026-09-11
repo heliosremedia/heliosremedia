@@ -1,15 +1,14 @@
-import { DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { isMediaCategory } from "@/lib/media-collections";
 import {
-  deleteCloudflareStreamVideo,
   getCloudflareStreamEmbedUrl,
   isCloudflareStreamUid,
 } from "@/lib/cloudflare-stream";
 import { resolveExternalMedia } from "@/lib/external-media";
-import { requireAdminSession } from "@/lib/auth/session";
+import { getAdminSession, requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { r2Client, r2Config } from "@/lib/r2";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
@@ -188,7 +187,8 @@ export async function GET(_request: Request, { params }: MediaRouteProps) {
 export async function POST(request: Request, { params }: MediaRouteProps) {
   try {
     const { projectId } = await params;
-    const session = await requireAdminSession();
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
     const body = (await request.json()) as CreateMediaRequestBody;
     const requestedServiceId = typeof body.serviceId === "string" ? body.serviceId.trim() : "";
     const ownedProject = await prisma.project.findFirst({
@@ -826,7 +826,8 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
 export async function PATCH(request: Request, { params }: MediaRouteProps) {
   try {
     const { projectId } = await params;
-    const session = await requireAdminSession();
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
     const body = (await request.json()) as UpdateMediaRequestBody;
     const ownedProject = await prisma.project.findFirst({ where: { id: projectId, workspaceId: session.workspaceId }, select: { id: true } });
     if (!ownedProject) return NextResponse.json({ success: false, error: "Project not found." }, { status: 404 });
@@ -1373,7 +1374,6 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
     }
 
     if (action === "set-social-image") {
-      const session = await requireAdminSession();
       const ownedProject = await prisma.project.findFirst({
         where: { id: projectId, workspaceId: session.workspaceId },
         select: { id: true },
@@ -1443,6 +1443,8 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
 
 export async function DELETE(request: Request, { params }: MediaRouteProps) {
   try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
     const { projectId } = await params;
     const body = (await request.json()) as DeleteMediaRequestBody;
     const mediaId = typeof body.mediaId === "string" ? body.mediaId.trim() : "";
@@ -1475,6 +1477,7 @@ export async function DELETE(request: Request, { params }: MediaRouteProps) {
       where: {
         id: mediaId,
         projectId,
+        project: { workspaceId: session.workspaceId },
       },
       select: {
         id: true,
@@ -1496,45 +1499,14 @@ export async function DELETE(request: Request, { params }: MediaRouteProps) {
       );
     }
 
-    await prisma.media.delete({
-      where: {
-        id: media.id,
-      },
+    const deleted = await prisma.media.deleteMany({
+      where: { id: media.id, projectId, project: { workspaceId: session.workspaceId } },
     });
+    if (deleted.count !== 1) return NextResponse.json({ success: false, error: "The selected asset changed before deletion." }, { status: 409 });
 
-    let storageCleanupPending = false;
-
-    if (media.storageKey) {
-      try {
-        await r2Client.send(
-          new DeleteObjectCommand({
-            Bucket: r2Config.bucketName,
-            Key: media.storageKey,
-          }),
-        );
-      } catch (storageError) {
-        storageCleanupPending = true;
-        console.error(
-          "The media record was deleted, but its R2 object could not be removed:",
-          storageError,
-        );
-      }
-    }
-
-    if (
-      media.provider === "CLOUDFLARE_STREAM" &&
-      media.externalId
-    ) {
-      try {
-        await deleteCloudflareStreamVideo(media.externalId);
-      } catch (streamError) {
-        storageCleanupPending = true;
-        console.error(
-          "The media record was deleted, but its Stream video could not be removed:",
-          streamError,
-        );
-      }
-    }
+    // Database ownership does not prove exclusive ownership of an R2 key or
+    // provider ID. Retain objects until the shared asset registry can verify it.
+    const storageCleanupPending = Boolean(media.storageKey || (media.provider === "CLOUDFLARE_STREAM" && media.externalId));
 
     return NextResponse.json({
       success: true,
