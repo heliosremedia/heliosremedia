@@ -32,3 +32,7 @@ export function normalizeWorkspaceHostname(input: string | null | undefined) {
 export function tenantContextEnabled(value = process.env.STUDIO_V2_TENANT_CONTEXT_ENABLED) {
   return value?.trim().toLowerCase() === "true";
 }
+
+export function isLocalWorkspaceHostname(hostname: string) {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+}

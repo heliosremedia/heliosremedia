@@ -2,7 +2,7 @@ import "server-only";
 
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { normalizeWorkspaceHostname, tenantContextEnabled } from "@/lib/workspace-context-core";
+import { normalizeWorkspaceHostname, tenantContextEnabled, isLocalWorkspaceHostname } from "@/lib/workspace-context-core";
 
 async function getLegacyPublicWorkspaceId() {
   const settings = await prisma.siteSettings.findFirst({
@@ -32,7 +32,7 @@ export async function getPublicWorkspaceId() {
   });
   if (domain?.purpose === "PUBLIC_SITE" && domain.status === "ACTIVE") return domain.workspaceId;
 
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV !== "production" && isLocalWorkspaceHostname(hostname)) {
     const localWorkspaceSlug = process.env.STUDIO_V2_LOCAL_WORKSPACE_SLUG?.trim();
     if (localWorkspaceSlug) {
       const workspace = await prisma.workspace.findUnique({ where: { slug: localWorkspaceSlug }, select: { id: true } });

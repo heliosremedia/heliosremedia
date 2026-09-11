@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { normalizeWorkspaceHostname, tenantContextEnabled } from "./workspace-context-core.ts";
+import { normalizeWorkspaceHostname, tenantContextEnabled, isLocalWorkspaceHostname } from "./workspace-context-core.ts";
 
 test("workspace hostnames normalize consistently without retaining ports or paths", () => {
   assert.equal(normalizeWorkspaceHostname("WWW.HeliosRealEstateMedia.com:443"), "www.heliosrealestatemedia.com");
@@ -36,4 +36,9 @@ test("tenant foundation is additive, backfilled, and fail-closed behind its flag
   assert.match(resolver, /if \(!tenantContextEnabled\(\)\) return getLegacyPublicWorkspaceId\(\)/);
   assert.match(resolver, /purpose === "PUBLIC_SITE" && domain\.status === "ACTIVE"/);
   assert.match(resolver, /throw new Error\("No active public workspace is configured for this host\."\)/);
+});
+
+test("development workspace override is restricted to loopback hosts", () => {
+  for (const host of ["localhost", "127.0.0.1", "[::1]"]) assert.equal(isLocalWorkspaceHostname(host), true);
+  for (const host of ["company.example", "localhost.attacker.example", "127.0.0.1.attacker.example", "preview.vercel.app"]) assert.equal(isLocalWorkspaceHostname(host), false);
 });
