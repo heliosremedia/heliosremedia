@@ -1,3 +1,5 @@
+import { requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
+import { revalidatePath } from "next/cache";
 import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import { getAdminSession } from "@/lib/auth/session";
 import { requireLegacyBlogAccess } from "@/lib/blog-access";
@@ -27,8 +29,9 @@ export async function POST(request: Request) {
   try {
     const body = await request.json() as { postId?: string; revisionId?: string };
     if (!body.postId || !body.revisionId) throw new Error("INVALID");
-    const revision = await prisma.blogPostRevision.findFirstOrThrow({ where: { id: body.revisionId, postId: body.postId, post: ownership } });
     const post = await prisma.$transaction(async transaction => {
+      await requireLockedWorkspaceEditor(transaction, actor);
+      const revision = await transaction.blogPostRevision.findFirstOrThrow({ where: { id: body.revisionId, postId: body.postId, post: ownership } });
       const current = await transaction.blogPost.findUniqueOrThrow({ where: { id: body.postId, AND: [ownership] } });
       await transaction.blogPostRevision.create({
         data: {
@@ -38,7 +41,7 @@ export async function POST(request: Request) {
         },
       });
       return transaction.blogPost.update({
-        where: { id: current.id, AND: [ownership] },
+        where: { id: current.id, AND: [ownership], updatedAt: current.updatedAt },
         data: {
           title: revision.title, excerpt: revision.excerpt, content: revision.content,
           seoTitle: revision.seoTitle, seoDescription: revision.seoDescription,
@@ -46,8 +49,11 @@ export async function POST(request: Request) {
         },
       });
     });
+    revalidatePath("/admin/blog"); revalidatePath("/blog"); revalidatePath(`/blog/${post.slug}`); revalidatePath("/sitemap.xml");
     return NextResponse.json({ success: true, post });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Your workspace access changed. Sign in again." }, { status: 403 });
+    if ((error as { code?: string })?.code === "P2025") return NextResponse.json({ success: false, error: "The article or revision changed. Refresh and try again." }, { status: 409 });
     return NextResponse.json({ success: false, error: "That revision could not be restored." }, { status: 400 });
   }
 }

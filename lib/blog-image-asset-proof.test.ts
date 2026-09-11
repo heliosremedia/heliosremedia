@@ -17,6 +17,7 @@ test("blog attachments require registered uploads or an owned AI image record be
   let writes = 0;
   let objectChecks = 0;
   const api = load<{ POST: (request: Request) => Promise<Response> }>("../app/api/admin/blog/route.ts", {
+    "@/lib/workspace-write-access": { requireLockedWorkspaceEditor: async () => {} },
     "@/lib/workspace-brand-assets": { verifyRegisteredBrandImage: async (input: { workspaceId: string; kind: string; key: string }) => { assert.equal(input.workspaceId, "a"); assert.equal(input.kind, "blog"); if (input.key && !registered) throw new Error("INVALID_BRAND_IMAGE"); } },
     "@/lib/workspace-brand-storage": policy, "@/lib/r2-upload": { getPublicAssetUrl: (key: string) => `https://assets.test/${key}` },
     "@/lib/content-image-storage": { verifyContentImage: async () => { objectChecks++; } },
@@ -26,8 +27,8 @@ test("blog attachments require registered uploads or an owned AI image record be
     "@/app/generated/prisma/client": { BlogPostStatus: { DRAFT: "DRAFT", PUBLISHED: "PUBLISHED", SCHEDULED: "SCHEDULED", ARCHIVED: "ARCHIVED" } },
     "@/lib/blog": { slugifyBlogTitle: () => "article" },
     "@/lib/prisma": { prisma: {
+      $transaction: async (fn: (tx: unknown) => Promise<unknown>) => fn({ blogPost: { create: async ({ data }: { data: { workspaceId: string; featuredImageUrl: string } }) => { assert.equal(data.workspaceId, "a"); assert.match(data.featuredImageUrl, /^https:\/\/assets.test\/workspaces\/a\//); writes++; return { slug: "article" }; } } }),
       newsletterImageAsset: { findFirst: async ({ where }: { where: { storageKey: string; AND: Array<{ workspaceId: string }> } }) => { assert.equal(where.AND[0].workspaceId, "a"); assert.equal(where.storageKey, "workspaces/a/newsletter-ai/image.webp"); return ownedAi ? { id: "asset" } : null; } },
-      blogPost: { create: async ({ data }: { data: { workspaceId: string; featuredImageUrl: string } }) => { assert.equal(data.workspaceId, "a"); assert.match(data.featuredImageUrl, /^https:\/\/assets.test\/workspaces\/a\//); writes++; return { slug: "article" }; } },
     } },
   });
   const call = (key: string) => api.POST(new Request("https://example.test/api", { method: "POST", body: JSON.stringify({ title: "Article", content: "Article body", featuredImageStorageKey: key, featuredImageUrl: "https://forged.test/image.webp", workspaceId: "b" }) }));
