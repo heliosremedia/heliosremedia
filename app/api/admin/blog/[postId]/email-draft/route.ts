@@ -1,9 +1,11 @@
+import { getSiteSettings } from "@/lib/site-settings";
+import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import { requireLegacyBlogAccess } from "@/lib/blog-access";
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth/session";
 import { recordAuditEvent } from "@/lib/audit";
 import { blogImageUrl } from "@/lib/blog";
-import { getSiteUrl } from "@/lib/site";
+import { getCanonicalAbsoluteUrl } from "@/lib/site";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(_request: Request, context: { params: Promise<{ postId: string }> }) {
@@ -15,12 +17,13 @@ export async function POST(_request: Request, context: { params: Promise<{ postI
   }
   const { postId } = await context.params;
   const post = await prisma.blogPost.findFirst({
-    where: { id: postId, status: "PUBLISHED" },
-    include: { featuredMedia: { select: { storageKey: true } } },
+    where: { AND: [await getBlogOwnershipScope(session.workspaceId)], id: postId, status: "PUBLISHED" },
+    include: { featuredMedia: { select: { storageKey: true, project: { select: { workspaceId: true } } } } },
   });
   if (!post) return NextResponse.json({ success: false, error: "Publish this article before sharing it with clients." }, { status: 409 });
-  const articleUrl = `${getSiteUrl()}/blog/${post.slug}`;
-  const imageUrl = blogImageUrl(post);
+  const settings = await getSiteSettings(session.workspaceId);
+  const articleUrl = getCanonicalAbsoluteUrl(`/blog/${post.slug}`, settings.websiteUrl);
+  const imageUrl = blogImageUrl({ ...post, featuredMedia: post.featuredMedia?.project.workspaceId === session.workspaceId ? post.featuredMedia : null });
   const body = [
     imageUrl ? `Featured image: ${imageUrl}` : "",
     post.excerpt || "",

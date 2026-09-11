@@ -1665,6 +1665,7 @@ model Workspace {
   trustedLogos              TrustedLogo[]
   blogPosts                 BlogPost[]
   blogSeries                BlogSeries[]
+  newsletterSeries          NewsletterSeries[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2791,6 +2792,10 @@ model MarketingEmailPreferenceToken {
 
 model NewsletterSeries {
   id String @id @default(cuid())
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  @@index([workspaceId])
 
   name        String
   description String?

@@ -1,3 +1,4 @@
+import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import { requireLegacyBlogAccess } from "@/lib/blog-access";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -34,8 +35,8 @@ async function authorizedContext(workspaceId: string) {
     prisma.service.findMany({ where:{ workspaceId, active:true, archivedAt:null }, orderBy:{ displayOrder:"asc" }, take:30, select:{ name:true, description:true } }),
     prisma.locationPage.findMany({ where:{ workspaceId, published:true }, orderBy:{ displayOrder:"asc" }, take:30, select:{ city:true, state:true, serviceArea:true, slug:true } }),
     prisma.project.findMany({ where:{ workspaceId, status:"PUBLISHED", archivedAt:null }, orderBy:{ publishedAt:"desc" }, take:40, select:{ title:true, shortDescription:true, projectType:true, services:{ select:{ service:{ select:{ name:true } } } } } }),
-    prisma.blogSeries.findMany({ orderBy:{ updatedAt:"desc" }, take:30, select:{ name:true, purpose:true, contentPillars:true, seoFocus:true } }),
-    prisma.blogPost.findMany({ where:{ status:{ in:["PUBLISHED","SCHEDULED","DRAFT"] } }, orderBy:{ updatedAt:"desc" }, take:100, select:{ title:true, slug:true, excerpt:true, category:true, seoTitle:true, seoDescription:true, status:true } }),
+    prisma.blogSeries.findMany({ where: await getBlogOwnershipScope(workspaceId), orderBy:{ updatedAt:"desc" }, take:30, select:{ name:true, purpose:true, contentPillars:true, seoFocus:true } }),
+    prisma.blogPost.findMany({ where:{ AND: [await getBlogOwnershipScope(workspaceId)], status:{ in:["PUBLISHED","SCHEDULED","DRAFT"] } }, orderBy:{ updatedAt:"desc" }, take:100, select:{ title:true, slug:true, excerpt:true, category:true, seoTitle:true, seoDescription:true, status:true } }),
     prisma.callToAction.findMany({ where:{ published:true }, take:20, select:{ internalName:true, headline:true, primaryLabel:true, primaryValue:true } }),
   ]);
   return { settings, services, locations, projects, series, posts, callsToAction };

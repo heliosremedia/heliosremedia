@@ -62,3 +62,13 @@ Implemented nullable ownership fields with restrictive foreign keys and ownershi
 Migration tests exercise actual SQL with two companies: unchanged historical content, nullable old-app inserts, owned new inserts, invalid references, restricted workspace deletion and retained slug uniqueness. Added executable preview policy tests. See helios-studio-v2-blog-ownership.md for remaining conversion and deployment gates. No production data or scheduled execution changed.
 
 Verification: Prisma 7.8 generation passed with a loopback placeholder configuration (no database connection); full suite 397 passed, zero failed; non-incremental TypeScript and focused lint passed; diff check passed. This is development evidence, not hosted QA or release readiness.
+
+## 2026-09-11 Blog and Newsletter ownership paths
+
+Continued beyond the previous draft: scoped Blog admin mutations/revisions/list/media/settings/series selection; scoped Blog and Newsletter sources consumed by Social Studio without changing provider or publication code; quarantined foreign featured-media references. Expanded NewsletterSeries with nullable stored workspace ownership and recorded ownership on new series. Background generation and source selection use stored series context, not the creator's current account or request headers. Scoped Newsletter edition access and Blog/project gallery selections. Added temporary single-company Newsletter API containment while downstream workflows remain unfinished.
+
+Prepared a separate explicit per-record backfill script and isolated SQL rehearsal for BlogPost, BlogSeries and NewsletterSeries. It fails and rolls back incomplete mappings and relational mismatches, rejects ownership reassignment and is idempotent for a verified mapping. It is not in automatic deployment migrations and has not run on hosted or production data.
+
+See helios-studio-v2-content-ownership-paths.md for exact behavior, compatibility limits and remaining work. Next dependencies: Blog upload/image-generation ownership; Newsletter AI assets and immutable source snapshots; recipient/group and delivery ownership; complete model/route/job inventory; controlled migration gates and hosted QA access. Keep both marketing modules single-company and keep production release on hold for Jake's QA sequence.
+
+Verification for this combined milestone: 403 tests passed, zero failed; regenerated Prisma client; non-incremental TypeScript passed after correcting a test result type; focused lint and diff checks passed. Reviewed changed server-rendered pages using the React checklist and stripped extra featured-media ownership metadata from editor props. No hosted browser/HTTP test, production build, migration, external AI generation, message, campaign or publication was executed.

@@ -1,3 +1,4 @@
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -9,6 +10,10 @@ import { resolveEligibleNewsletterRecipients } from "./recipients";
 export async function requireNewsletterAdministrator() {
   const session = await getAdminSession();
   if (!session || (session.role !== "OWNER" && session.role !== "ADMIN")) return null;
+  // Other Newsletter workflows still contain legacy global data. Keep the
+  // module single-company until recipient, delivery and asset isolation pass.
+  const workspaces = await prisma.workspace.findMany({ take: 2, select: { id: true } });
+  if (workspaces.length !== 1 || workspaces[0].id !== session.workspaceId) return null;
   return session;
 }
 
@@ -155,7 +160,7 @@ export const editionInclude = {
 
 export async function getEditionForStudio(id: string, workspaceId: string) {
   return prisma.newsletterEdition.findFirst({
-    where: { id, series: { createdBy: { workspaceId } } },
+    where: { id, series: await getContentOwnershipScope(workspaceId) },
     include: editionInclude,
   });
 }

@@ -1,3 +1,4 @@
+import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import { getAdminSession } from "@/lib/auth/session";
 import { requireLegacyBlogAccess } from "@/lib/blog-access";
 import { revalidatePath } from "next/cache";
@@ -64,6 +65,7 @@ function data(body: Record<string, unknown>) {
 }
 function error(error: unknown) {
   const messages: Record<string, string> = {
+    INVALID_MEDIA: "Choose an image from this workspace.",
     INVALID_TEXT: "Complete the required fields and stay within their limits.",
     INVALID_URL: "Use a valid http or https URL.",
     INVALID_DATE: "Choose a valid schedule date and time.",
@@ -76,10 +78,14 @@ function error(error: unknown) {
 export async function POST(request: Request) {
   const accessError = await requireLegacyBlogAccess();
   if (accessError) return accessError;
+  const actor = await getAdminSession();
+  if (!actor) return NextResponse.json({ success: false }, { status: 403 });
   try {
     const session = await getAdminSession();
     if (!session) return NextResponse.json({ success: false }, { status: 403 });
-    const post = await prisma.blogPost.create({ data: { ...data(await request.json()), workspaceId: session.workspaceId } });
+    const next = data(await request.json());
+    if (next.featuredMediaId && !await prisma.media.findFirst({ where: { id: next.featuredMediaId, project: { workspaceId: actor.workspaceId } }, select: { id: true } })) throw new Error("INVALID_MEDIA");
+    const post = await prisma.blogPost.create({ data: { ...next, workspaceId: session.workspaceId } });
     refresh(post.slug);
     return NextResponse.json({ success: true, post }, { status: 201 });
   } catch (cause) {
@@ -92,13 +98,17 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const accessError = await requireLegacyBlogAccess();
   if (accessError) return accessError;
+  const actor = await getAdminSession();
+  if (!actor) return NextResponse.json({ success: false }, { status: 403 });
+  const ownership = await getBlogOwnershipScope(actor.workspaceId);
   try {
     const body = await request.json() as Record<string, unknown>;
     const postId = required(body.postId, 200);
-    const previous = await prisma.blogPost.findUniqueOrThrow({ where: { id: postId }, select: { slug: true } });
+    const previous = await prisma.blogPost.findUniqueOrThrow({ where: { id: postId, AND: [ownership] }, select: { slug: true } });
     const next = data(body);
+    if (next.featuredMediaId && !await prisma.media.findFirst({ where: { id: next.featuredMediaId, project: { workspaceId: actor.workspaceId } }, select: { id: true } })) throw new Error("INVALID_MEDIA");
     const post = await prisma.$transaction(async transaction => {
-      const current = await transaction.blogPost.findUniqueOrThrow({ where: { id: postId } });
+      const current = await transaction.blogPost.findUniqueOrThrow({ where: { id: postId, AND: [ownership] } });
       await transaction.blogPostRevision.create({
         data: {
           postId, title: current.title, excerpt: current.excerpt, content: current.content,
@@ -107,7 +117,7 @@ export async function PATCH(request: Request) {
         },
       });
       return transaction.blogPost.update({
-        where: { id: postId },
+        where: { id: postId, AND: [ownership] },
         data: { ...next, manualContent: next.content !== current.content || current.manualContent },
       });
     });
@@ -123,10 +133,13 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   const accessError = await requireLegacyBlogAccess();
   if (accessError) return accessError;
+  const actor = await getAdminSession();
+  if (!actor) return NextResponse.json({ success: false }, { status: 403 });
+  const ownership = await getBlogOwnershipScope(actor.workspaceId);
   try {
     const postId = new URL(request.url).searchParams.get("postId")?.trim();
     if (!postId) return NextResponse.json({ success: false, error: "An article ID is required." }, { status: 400 });
-    const post = await prisma.blogPost.delete({ where: { id: postId } });
+    const post = await prisma.blogPost.delete({ where: { id: postId, AND: [ownership] } });
     refresh(post.slug);
     return NextResponse.json({ success: true });
   } catch (cause) {

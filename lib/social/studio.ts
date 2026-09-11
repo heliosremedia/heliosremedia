@@ -1,3 +1,4 @@
+import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { contentEditState, SOCIAL_TIME_ZONE, type VariantState } from "./core";
@@ -51,7 +52,7 @@ export async function verifiedSourceFacts(sourceType: string, sourceRecordId: st
   if (sourceType === "PROJECT" || sourceType === "PORTFOLIO_ITEM") return verifiedProjectFacts(sourceRecordId, workspaceId);
   if (sourceType === "BLOG") {
     const post = await prisma.blogPost.findFirst({
-      where: { id: sourceRecordId, status: "PUBLISHED" },
+      where: { AND: [await getBlogOwnershipScope(workspaceId)], id: sourceRecordId, status: "PUBLISHED" },
       select: { id: true, title: true, slug: true, excerpt: true, content: true, author: true, category: true, publishedAt: true, canonicalUrl: true, socialCaption: true },
     });
     if (!post) throw new Error("The selected published blog no longer exists.");
@@ -64,7 +65,7 @@ export async function verifiedSourceFacts(sourceType: string, sourceRecordId: st
   }
   if (sourceType === "NEWSLETTER") {
     const edition = await prisma.newsletterEdition.findFirst({
-      where: { id: sourceRecordId, status: "SENT" },
+      where: { id: sourceRecordId, series: await getBlogOwnershipScope(workspaceId), status: "SENT" },
       select: { id: true, subject: true, previewText: true, intendedSendAt: true, sentAt: true, series: { select: { name: true, description: true } }, blocks: { orderBy: { position: "asc" }, select: { type: true, internalLabel: true, content: true } } },
     });
     if (!edition) throw new Error("The selected sent newsletter no longer exists.");

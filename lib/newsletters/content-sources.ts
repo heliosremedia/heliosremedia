@@ -1,3 +1,5 @@
+import { tenantContextEnabled } from "@/lib/workspace-context-core";
+import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
@@ -18,7 +20,7 @@ function candidate(input: NewsletterImageCandidate): NewsletterImageCandidate | 
   return { ...input, url, thumbnailUrl: safeNewsletterImageUrl(input.thumbnailUrl) || undefined };
 }
 
-export async function collectVerifiedNewsletterSources(selection: {
+export async function collectVerifiedNewsletterSources(workspaceId: string, selection: {
   blogPostIds?: string[];
   projectIds?: string[];
   serviceIds?: string[];
@@ -29,15 +31,15 @@ export async function collectVerifiedNewsletterSources(selection: {
   const serviceIds = [...new Set(selection.serviceIds ?? [])].slice(0, 30);
   const [posts, projects, services, settings] = await Promise.all([
     blogPostIds.length ? prisma.blogPost.findMany({
-      where: { id: { in: blogPostIds }, status: "PUBLISHED", publishedAt: { lte: new Date() } },
+      where: { AND: [await getBlogOwnershipScope(workspaceId)], id: { in: blogPostIds }, status: "PUBLISHED", publishedAt: { lte: new Date() } },
       select: {
         id: true, title: true, excerpt: true, content: true, slug: true, sourceLinks: true,
         featuredImageStorageKey: true, featuredImageUrl: true, featuredImageAlt: true,
-        featuredMedia: { select: { id: true, storageKey: true, altText: true, caption: true, width: true, height: true } },
+        featuredMedia: { select: { project: { select: { workspaceId: true } }, id: true, storageKey: true, altText: true, caption: true, width: true, height: true } },
       },
     }) : [],
     projectIds.length ? prisma.project.findMany({
-      where: { id: { in: projectIds }, status: "PUBLISHED" },
+      where: { workspaceId, id: { in: projectIds }, status: "PUBLISHED" },
       select: {
         id: true, title: true, slug: true, shortDescription: true, description: true,
         city: true, state: true, locationLabel: true, projectType: true, propertyType: true,
@@ -53,38 +55,39 @@ export async function collectVerifiedNewsletterSources(selection: {
       },
     }) : [],
     serviceIds.length ? prisma.service.findMany({
-      where: { id: { in: serviceIds }, active: true },
+      where: { workspaceId, id: { in: serviceIds }, active: true },
       select: {
         id: true, name: true, slug: true, description: true, heroImageStorageKey: true, heroImageAlt: true,
         projects: {
-          where: { project: { status: "PUBLISHED" } },
+          where: { project: { workspaceId, status: "PUBLISHED" } },
           take: 6,
           select: {
             project: {
               select: {
                 id: true, title: true, slug: true,
-                thumbnailMedia: { select: { id: true, storageKey: true, altText: true, width: true, height: true } },
+                thumbnailMedia: { select: { project: { select: { workspaceId: true } }, id: true, storageKey: true, altText: true, width: true, height: true } },
               },
             },
           },
         },
       },
     }) : [],
-    selection.includeWebsiteContent ? prisma.siteSettings.findUnique({
-      where: { id: "default" },
+    prisma.siteSettings.findUnique({
+      where: { workspaceId },
       select: {
         businessName: true, phoneDisplay: true, email: true, websiteUrl: true,
         serviceArea: true, serviceAreaDescription: true, footerDescription: true,
         standardBody: true, workBody: true, approachBody: true,
       },
-    }) : null,
+    }),
   ]);
-  const base = getSiteUrl();
+  if (tenantContextEnabled() && !settings?.websiteUrl) throw new Error("Workspace website URL is required.");
+  const base = settings?.websiteUrl ? new URL(settings.websiteUrl).origin : getSiteUrl();
   const sources: NewsletterSourceReference[] = [
     ...posts.map((post) => {
       const sourceId = `blog:${post.id}`;
       const destinationUrl = `${base}/blog/${post.slug}`;
-      const imageUrl = post.featuredMedia?.storageKey
+      const imageUrl = post.featuredMedia?.project.workspaceId === workspaceId && post.featuredMedia.storageKey
         ? getPublicAssetUrl(post.featuredMedia.storageKey)
         : post.featuredImageStorageKey ? getPublicAssetUrl(post.featuredImageStorageKey) : post.featuredImageUrl;
       const image = imageUrl ? candidate({
@@ -142,7 +145,7 @@ export async function collectVerifiedNewsletterSources(selection: {
         label: `${service.name} service image`, role: "SERVICE_IMAGE", priority: 10, destinationUrl,
       }) : null;
       const related = service.projects.flatMap(({ project }, index) => {
-        if (!project.thumbnailMedia?.storageKey) return [];
+        if (!project.thumbnailMedia?.storageKey || project.thumbnailMedia.project.workspaceId !== workspaceId) return [];
         const item = candidate({
           id: `${sourceId}:project:${project.id}`, sourceId, sourceKind: "SERVICE", sourceRecordId: service.id,
           url: getPublicAssetUrl(project.thumbnailMedia.storageKey),
@@ -161,7 +164,7 @@ export async function collectVerifiedNewsletterSources(selection: {
       };
     }),
   ];
-  if (settings) {
+  if (settings && selection.includeWebsiteContent) {
     sources.push({
       id: "website:site-settings", kind: "WEBSITE_CONTENT", label: settings.businessName,
       excerpt: excerpt([

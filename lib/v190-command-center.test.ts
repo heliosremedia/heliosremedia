@@ -66,7 +66,7 @@ test("dashboard and newsletter mutations are explicitly workspace scoped", () =>
   assert.match(dashboard, /createdBy: \{ workspaceId \}/);
   assert.match(dashboard, /campaign: \{ workspaceId \}/);
   assert.match(dashboard, /project\.count\(\{ where: \{ workspaceId \} \}\)/);
-  assert.match(newsletterApi, /series: \{ createdBy: \{ workspaceId \} \}/);
+  assert.match(newsletterApi, /series: await getContentOwnershipScope\(workspaceId\)/);
   assert.match(newsletterRoute, /getEditionForStudio\(editionId, session\.workspaceId\)/);
 });
 

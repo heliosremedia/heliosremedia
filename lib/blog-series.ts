@@ -1,3 +1,4 @@
+import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
@@ -8,10 +9,10 @@ function outputText(result: { output_text?: string; output?: Array<{ content?: A
   return result.output_text || result.output?.flatMap(item => item.content || []).map(item => item.text || "").join("") || "{}";
 }
 
-export async function generateSeriesDraft(seriesId: string) {
+export async function generateSeriesDraft(seriesId: string, expectedWorkspaceId?: string) {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) throw new Error("AI writing is not configured.");
-  const series = await prisma.blogSeries.findUniqueOrThrow({ where: { id: seriesId } });
+  const series = await prisma.blogSeries.findUniqueOrThrow({ where: { id: seriesId, ...(expectedWorkspaceId ? { AND: [await getBlogOwnershipScope(expectedWorkspaceId)] } : {}) } });
   const legacyWorkspaces = series.workspaceId ? [] : await prisma.workspace.findMany({ take: 2, select: { id: true } });
   const workspaceId = series.workspaceId || (legacyWorkspaces.length === 1 ? legacyWorkspaces[0].id : null);
   if (!workspaceId) throw new Error("Blog series ownership must be configured before generation.");
