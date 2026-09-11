@@ -26,15 +26,21 @@ export async function POST(request: Request) {
     const sourceProjectId = sourceType === "PROJECT" || sourceType === "PORTFOLIO_ITEM" ? sourceRecordId || null : null;
     const requestedProjectIds = Array.isArray(body.projectIds) ? body.projectIds.map((value) => clean(value, 100)).filter(Boolean).slice(0, 50) : [];
     const projectIds = [...new Set([...(sourceProjectId ? [sourceProjectId] : []), ...requestedProjectIds])];
-    const authorizedProjects = projectIds.length ? await prisma.project.findMany({ where: { id: { in: projectIds }, workspaceId }, select: { id: true } }) : [];
-    if (authorizedProjects.length !== projectIds.length) return NextResponse.json({ success: false, error: "One or more selected projects are unavailable to this workspace." }, { status: 403 });
-    const verifiedFacts = sourceRecordId ? await verifiedSourceFacts(sourceType, sourceRecordId, workspaceId) : {};
+    const linkedSource = ["PROJECT", "PORTFOLIO_ITEM", "BLOG", "NEWSLETTER"].includes(sourceType);
+    if (linkedSource !== Boolean(sourceRecordId)) return NextResponse.json({ success: false, error: linkedSource ? "Choose a source for this campaign." : "This source type does not accept a record ID." }, { status: 400 });
     const campaign = await prisma.$transaction(async (tx) => {
       await requireLockedWorkspaceEditor(tx, session);
+      const authorizedProjects = projectIds.length ? await tx.project.findMany({ where: { id: { in: projectIds }, workspaceId }, select: { id: true } }) : [];
+      if (authorizedProjects.length !== projectIds.length) throw new Error("INVALID_SOCIAL_SOURCE");
+      let verifiedFacts = {};
+      if (sourceRecordId) {
+        try { verifiedFacts = await verifiedSourceFacts(sourceType, sourceRecordId, workspaceId, tx); }
+        catch { throw new Error("INVALID_SOCIAL_SOURCE"); }
+      }
       return tx.socialCampaign.create({
       data: {
         internalName: clean(body.internalName, 180), description: clean(body.description), purpose: clean(body.purpose), sourceType: sourceType as SocialSourceType,
-        sourceRecordIds: body.sourceRecordId ? [clean(body.sourceRecordId, 100)] : [],
+        sourceRecordIds: sourceRecordId ? [sourceRecordId] : [],
         verifiedSourceFacts: verifiedFacts, sourceProjectId,
         targetAudience: clean(body.targetAudience, 1000), brandVoice: clean(body.tone, 1000), primaryMessage: clean(body.primaryMessage, 2000),
         objective: clean(body.objective, 160), desiredCallToAction: clean(body.callToAction, 1000),
@@ -63,6 +69,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, campaign });
   } catch (error) {
     if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Your workspace access changed. Sign in again." }, { status: 403 });
+    if (error instanceof Error && error.message === "INVALID_SOCIAL_SOURCE") return NextResponse.json({ success: false, error: "One or more selected sources are unavailable to this company." }, { status: 409 });
     console.error("Social campaign creation failed:", error);
     return NextResponse.json({ success: false, error: "The social campaign could not be created." }, { status: 500 });
   }
