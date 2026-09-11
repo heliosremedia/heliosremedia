@@ -1601,7 +1601,8 @@
         "campaignId"
       ],
       "sourceReferences": [
-        "lib/social/autopilot.ts"
+        "lib/social/autopilot.ts",
+        "lib/social/publishing.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     },
@@ -2336,6 +2337,7 @@
         "app/api/admin/social/campaigns/[campaignId]/route.ts",
         "app/api/admin/social/connections/route.ts",
         "app/api/admin/social/publishing-jobs/route.ts",
+        "lib/social/mutation-lock.ts",
         "lib/social/publishing.ts",
         "lib/social/studio.ts"
       ],

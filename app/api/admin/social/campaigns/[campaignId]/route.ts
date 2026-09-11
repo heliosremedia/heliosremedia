@@ -1,3 +1,4 @@
+import { lockEditableSocialVariant } from "@/lib/social/mutation-lock";
 import { requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
 import { NextResponse } from "next/server";
 import type { Prisma, SocialVariantStatus } from "@/app/generated/prisma/client";
@@ -41,9 +42,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
       });
       if (!changed.count) return NextResponse.json({ success: false, error: "Campaign not found." }, { status: 404 });
     } else if (action === "archive-campaign") {
-      const changed = await prisma.socialCampaign.updateMany({
-        where: { id: campaignId, workspaceId },
-        data: { status: "ARCHIVED", archivedAt: new Date(), lastEditedById: session.userId },
+      const changed = await prisma.$transaction(async (tx) => {
+        await requireLockedWorkspaceEditor(tx, session);
+        const variants = await tx.socialVariant.findMany({ where: { campaignId, campaign: { workspaceId } }, select: { id: true }, orderBy: { id: "asc" } });
+        for (const item of variants) await lockEditableSocialVariant(tx, item.id, workspaceId);
+        return tx.socialCampaign.updateMany({
+          where: { id: campaignId, workspaceId },
+          data: { status: "ARCHIVED", archivedAt: new Date(), lastEditedById: session.userId },
+        });
       });
       if (!changed.count) return NextResponse.json({ success: false, error: "Campaign not found." }, { status: 404 });
     } else if (action === "duplicate-campaign") {
@@ -96,6 +102,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
     } else if (action === "submit-review" && variant) {
       await prisma.$transaction(async (tx) => {
         await requireLockedWorkspaceEditor(tx, session);
+        await lockEditableSocialVariant(tx, variantId, workspaceId);
         return Promise.all([
         tx.socialVariant.update({ where: { id: variantId, campaign: { workspaceId }, contentVersion: variant.contentVersion, status: variant.status }, data: { status: "NEEDS_REVIEW", lastEditedById: session.userId } }),
         tx.socialApprovalEvent.create({ data: { variantId, actorId: session.userId, action: "SUBMITTED", contentVersion: variant.contentVersion } }),
@@ -111,6 +118,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
       });
       await prisma.$transaction(async (tx) => {
         await requireLockedWorkspaceEditor(tx, session);
+        await lockEditableSocialVariant(tx, variantId, workspaceId);
         return Promise.all([
         tx.socialVariant.update({ where: { id: variantId, campaign: { workspaceId }, contentVersion: variant.contentVersion, status: variant.status }, data: { status: "APPROVED", approvedAt: new Date(), approvalActorId: session.userId } }),
         tx.socialApprovalEvent.create({ data: { variantId, actorId: session.userId, action: "APPROVED", contentVersion: variant.contentVersion } }),
@@ -122,6 +130,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
       const reason = clean(body.reason, 2000);
       await prisma.$transaction(async (tx) => {
         await requireLockedWorkspaceEditor(tx, session);
+        await lockEditableSocialVariant(tx, variantId, workspaceId);
         return Promise.all([
         tx.socialVariant.update({ where: { id: variantId, campaign: { workspaceId }, contentVersion: variant.contentVersion, status: variant.status }, data: { status: "CHANGES_REQUESTED", approvedAt: null, approvalActorId: null } }),
         tx.socialApprovalEvent.create({ data: { variantId, actorId: session.userId, action: "CHANGES_REQUESTED", contentVersion: variant.contentVersion, reason } }),
@@ -135,6 +144,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
       const status = scheduleState(variant.status as never, scheduledAt) as SocialVariantStatus;
       await prisma.$transaction(async(tx)=>{
         await requireLockedWorkspaceEditor(tx, session);
+        await lockEditableSocialVariant(tx, variantId, workspaceId);
         if(variant.scheduledAt?.getTime()!==scheduledAt?.getTime()){
           await tx.socialPublishingSnapshot.updateMany({where:{variantId,invalidatedAt:null},data:{invalidatedAt:new Date()}});
           await tx.socialPublishingJob.updateMany({where:{variantId,status:{in:["SCHEDULED","VALIDATING","READY","DELAYED","RETRY_SCHEDULED"]}},data:{status:"CANCELLED",cancelledAt:new Date(),claimToken:null,lastErrorCategory:"CANCELLED",lastErrorMessage:"Schedule changed; create a new revision-locked publishing job."}});
@@ -146,15 +156,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
       });
     } else if (action === "enable-direct-publishing" && variant) {
       const connectionId=clean(body.connectionId,100);
-      const job=await createPublishingJob({variantId,connectionId});
+      const job=await createPublishingJob({variantId,connectionId,actor:session});
       return NextResponse.json({success:true,jobId:job.id});
     } else if (action === "send-now" && variant) {
       if(variant.status!=="APPROVED") return NextResponse.json({success:false,error:"Approve this exact revision before sending now."},{status:409});
       const connectionId=clean(body.connectionId,100);const connection=await prisma.socialConnection.findFirst({where:{id:connectionId,workspaceId,platform:variant.platform,state:"CONNECTED",directPublishingEnabled:true}});
       if(!connection) return NextResponse.json({success:false,error:"Select a verified, enabled destination for this platform."},{status:409});
       const scheduledAt=new Date();
-      await prisma.socialVariant.update({where:{id:variant.id,campaign:{workspaceId},contentVersion:variant.contentVersion,status:"APPROVED"},data:{status:"SCHEDULED",scheduledAt,scheduledTimeZone:"America/Denver",scheduleVersion:{increment:1}}});
-      const job=await createPublishingJob({variantId,connectionId});
+      await prisma.$transaction(async (tx) => {
+        await requireLockedWorkspaceEditor(tx, session);
+        await lockEditableSocialVariant(tx, variantId, workspaceId);
+        await tx.socialVariant.update({where:{id:variant.id,campaign:{workspaceId},contentVersion:variant.contentVersion,status:"APPROVED"},data:{status:"SCHEDULED",scheduledAt,scheduledTimeZone:"America/Denver",scheduleVersion:{increment:1}}});
+      });
+      const job=await createPublishingJob({variantId,connectionId,actor:session});
       return NextResponse.json({success:true,jobId:job.id,message:"The approved post entered the protected publishing queue."});
     } else if (action === "publish" && variant) {
       if (!["READY_TO_PUBLISH", "SCHEDULED"].includes(variant.status)) return NextResponse.json({ success: false, error: "Only scheduled or ready posts can be marked published." }, { status: 400 });
@@ -166,6 +180,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
       const linkedConnection = requestedConnectionId ? await prisma.socialConnection.findFirst({ where: { id: requestedConnectionId, workspaceId, platform: variant.platform }, select: { id: true } }) : null;
       await prisma.$transaction(async (tx) => {
         await requireLockedWorkspaceEditor(tx, session);
+        await lockEditableSocialVariant(tx, variantId, workspaceId);
         return Promise.all([
         tx.socialVariant.update({ where: { id: variantId, campaign: { workspaceId }, contentVersion: variant.contentVersion, status: variant.status }, data: { status: "PUBLISHED", publishedAt, publicUrl, publicationNotes: notes } }),
         tx.socialPublication.create({ data: { variantId, actorId: session.userId, publishedAt, publicUrl, notes, externalPostId, connectionId: linkedConnection?.id } }),
@@ -186,7 +201,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
     } else if (action === "set-ai-image" && variant) {
       await updateVariantContent({ variantId, workspaceId, actorId: session.userId, actorSessionVersion: session.sessionVersion, expectedContentVersion: variant.contentVersion, data: {}, change: { kind: "AI_IMAGE", assetId: clean(body.assetId, 100) } });
     } else if (action === "archive" && variant) {
-      await prisma.socialVariant.update({ where: { id: variantId, campaign: { workspaceId }, contentVersion: variant.contentVersion, status: variant.status }, data: { status: "ARCHIVED", archivedAt: new Date(), scheduledAt: null } });
+      await prisma.$transaction(async (tx) => {
+        await requireLockedWorkspaceEditor(tx, session);
+        await lockEditableSocialVariant(tx, variantId, workspaceId);
+        await tx.socialVariant.update({ where: { id: variantId, campaign: { workspaceId }, contentVersion: variant.contentVersion, status: variant.status }, data: { status: "ARCHIVED", archivedAt: new Date(), scheduledAt: null } });
+      });
     } else {
       return NextResponse.json({ success: false, error: "Unsupported Social Studio action." }, { status: 400 });
     }

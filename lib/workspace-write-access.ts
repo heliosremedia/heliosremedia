@@ -14,4 +14,5 @@ export async function requireLockedWorkspaceEditor(tx: Prisma.TransactionClient,
   if (!user || user.sessionVersion !== actor.sessionVersion) throw new Error("WORKSPACE_WRITE_FORBIDDEN");
   const access = await resolveMembershipAccess(user, enabled, (userId, workspaceId) => tx.workspaceMembership.findUnique({ where: { workspaceId_userId: { workspaceId, userId } } }));
   if (!access || !["OWNER", "ADMIN", "EDITOR"].includes(access.role)) throw new Error("WORKSPACE_WRITE_FORBIDDEN");
+  return access;
 }

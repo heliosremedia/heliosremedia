@@ -38,6 +38,8 @@ test("transaction editor authorization rechecks membership, session version and 
   user = { ...user, workspaceId: "a" }; enabled = false; await api.requireLockedWorkspaceEditor(tx, actor);
 });
 
+const mutationLock = load<typeof import("./social/mutation-lock")>("./social/mutation-lock.ts", {});
+
 function editingHarness() {
   const state = { own: true, forbidden: false, inFlight: false, status: "APPROVED", version: 3, mediaOwn: true, imageOwn: true, writes: 0, revoked: 0, snapshots: 0, cancelled: 0, assets: 0, selection: [] as string[], order: [] as string[] };
   const tx = {
@@ -68,7 +70,7 @@ function editingHarness() {
   const api = load<typeof import("./social/studio")>("./social/studio.ts", {
     "@/lib/workspace-write-access": { requireLockedWorkspaceEditor: async () => { state.order.push("access-lock"); if (state.forbidden) throw new Error("WORKSPACE_WRITE_FORBIDDEN"); } },
     "@/lib/blog-ownership": { getBlogOwnershipScope: async (workspaceId: string) => ({ workspaceId }) },
-    "@/lib/workspace-context-core": {}, "@/app/generated/prisma/client": {}, "./core": core,
+    "@/lib/workspace-context-core": {}, "@/app/generated/prisma/client": {}, "./core": core, "./mutation-lock": mutationLock,
     "@/lib/prisma": { prisma: { $transaction: (fn: (client: typeof tx) => Promise<unknown>) => fn(tx) } },
   });
   const input = { variantId: "variant", workspaceId: "a", actorId: "actor", actorSessionVersion: 1, expectedContentVersion: 3, data: {} };
@@ -116,6 +118,7 @@ test("social API keeps session ownership and version when changing media present
   let found = false;
   let edits = 0;
   const api = load<{ PATCH: (request: Request, context: { params: Promise<{ campaignId: string }> }) => Promise<Response> }>("../app/api/admin/social/campaigns/[campaignId]/route.ts", {
+    "@/lib/social/mutation-lock": { lockEditableSocialVariant: async () => {} },
     "next/server": { NextResponse: Response }, "@/lib/workspace-write-access": {},
     "@/lib/auth/session": { getAdminSession: async () => ({ role: "EDITOR", workspaceId: "a", userId: "actor", sessionVersion: 7 }) },
     "@/lib/social/core": core, "@/lib/client-communications/scheduling": {}, "@/lib/social/publishing": {},
@@ -138,6 +141,7 @@ test("social approval rechecks actor access and rejects an obsolete content revi
     } }, socialApprovalEvent: { create: async () => ({}) }, socialGeneratedAsset: { updateMany: async () => ({ count: 0 }) }, socialCampaign: { update: async () => ({}) },
   };
   const api = load<{ PATCH: (request: Request, context: { params: Promise<{ campaignId: string }> }) => Promise<Response> }>("../app/api/admin/social/campaigns/[campaignId]/route.ts", {
+    "@/lib/social/mutation-lock": { lockEditableSocialVariant: async () => {} },
     "next/server": { NextResponse: Response }, "@/lib/workspace-write-access": { requireLockedWorkspaceEditor: async () => { if (!access) throw new Error("WORKSPACE_WRITE_FORBIDDEN"); checked++; } },
     "@/lib/auth/session": { getAdminSession: async () => ({ role: "EDITOR", workspaceId: "a", userId: "actor", sessionVersion: 1 }) },
     "@/lib/social/core": core, "@/lib/client-communications/scheduling": {}, "@/lib/social/publishing": {}, "@/lib/social/studio": {},

@@ -526,6 +526,8 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
         });
       }
 
+      const assetId = resolvedMedia.databaseProvider === "CLOUDFLARE_STREAM"
+        ? await resolveStreamAssetForAttachment(session.workspaceId, resolvedMedia.externalId ?? "") : null;
       const displayOrderResult = await prisma.media.aggregate({
         where: {
           projectId,
@@ -537,6 +539,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
       const media = await prisma.media.create({
         data: {
           projectId,
+          assetId,
           sourceType: resolvedMedia.sourceType,
           provider: resolvedMedia.databaseProvider,
           mediaCategory: selectedCategory,
@@ -1003,6 +1006,11 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
         }
       }
 
+      const externalAssetId = resolvedExternalMedia && resolvedExternalMedia.externalUrl !== existingMedia.externalUrl
+        ? resolvedExternalMedia.databaseProvider === "CLOUDFLARE_STREAM"
+          ? await resolveStreamAssetForAttachment(session.workspaceId, resolvedExternalMedia.externalId ?? "") : null
+        : undefined;
+
       if (existingMedia.serviceId !== destinationService.id) {
         const displayOrderResult = await prisma.media.aggregate({
           where: {
@@ -1023,9 +1031,10 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
 
       const updatedMedia = await prisma.media.update({
         where: {
-          id: mediaId,
+          id: mediaId, projectId, project: { workspaceId: session.workspaceId },
         },
         data: {
+          ...(externalAssetId === undefined ? {} : { assetId: externalAssetId }),
           originalFilename,
           altText,
           caption,
@@ -1420,6 +1429,7 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
       },
     );
   } catch (error) {
+    if (error instanceof Error && error.message === "INVALID_STREAM_ASSET") return NextResponse.json({ success: false, error: "This video is not available to this company. Upload it again from this project." }, { status: 400 });
     if (error instanceof StaleMediaCollectionError) {
       return NextResponse.json(
         {

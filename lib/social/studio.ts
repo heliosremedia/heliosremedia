@@ -1,3 +1,4 @@
+import { lockEditableSocialVariant } from "./mutation-lock";
 import { tenantContextEnabled } from "@/lib/workspace-context-core";
 import { requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
 import { getBlogOwnershipScope } from "@/lib/blog-ownership";
@@ -104,19 +105,11 @@ export async function updateVariantContent(input: {
   const imageScope = input.change?.kind === "AI_IMAGE" ? await getBlogOwnershipScope(input.workspaceId) : null;
   const perform = async (tx: Prisma.TransactionClient) => {
     await requireLockedWorkspaceEditor(tx, { userId: input.actorId, workspaceId: input.workspaceId, sessionVersion: input.actorSessionVersion });
-    // Lock existing jobs before the variant, matching the publisher's completion
-    // order. A claimed/provider-submitted job must settle before content changes.
-    await tx.$queryRaw`SELECT j.id FROM "SocialPublishingJob" j JOIN "SocialVariant" v ON v.id=j."variantId" JOIN "SocialCampaign" c ON c.id=v."campaignId" WHERE v.id=${input.variantId} AND c."workspaceId"=${input.workspaceId} ORDER BY j.id FOR UPDATE OF j`;
-    const locked = await tx.$queryRaw<Array<{ id: string }>>`SELECT v.id FROM "SocialVariant" v JOIN "SocialCampaign" c ON c.id=v."campaignId" WHERE v.id=${input.variantId} AND c."workspaceId"=${input.workspaceId} FOR UPDATE OF v`;
-    if (!locked.length) throw new Error("SOCIAL_VARIANT_NOT_FOUND");
+    await lockEditableSocialVariant(tx, input.variantId, input.workspaceId);
     const where = { id: input.variantId, campaign: { workspaceId: input.workspaceId } };
     const current = await tx.socialVariant.findFirstOrThrow({ where, select: { id: true, campaignId: true, status: true, contentVersion: true } });
     if (current.contentVersion !== input.expectedContentVersion) throw new Error("SOCIAL_EDIT_CONFLICT");
     const status = contentEditState(current.status as VariantState);
-    const executing = await tx.socialPublishingJob.findFirst({
-      where: { variantId: input.variantId, variant: { campaign: { workspaceId: input.workspaceId } }, OR: [{ claimToken: { not: null } }, { status: { in: ["VALIDATING", "PUBLISHING", "PROVIDER_PROCESSING", "MANUAL_FALLBACK", "TRANSFERRED_AS_DRAFT", "REQUIRES_MANUAL_COMPLETION"] } }] }, select: { id: true },
-    });
-    if (executing) throw new Error("SOCIAL_PUBLICATION_IN_PROGRESS");
     const data = { ...input.data };
     if (input.change?.kind === "MEDIA_PRESENTATION") {
       const changed = await tx.socialVariantMedia.updateMany({
