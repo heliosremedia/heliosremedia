@@ -537,7 +537,7 @@ export async function getDashboardData(workspaceId: string, days = 30) {
         async () => {
           const [audit, inquiries, referrals, projects, newsletters] = await Promise.all([
             prisma.auditEvent.findMany({
-              where: { actor: { workspaceId } },
+              where: ownershipScope,
               take: 10,
               orderBy: { createdAt: "desc" },
               select: { id: true, action: true, summary: true, entityType: true, entityId: true, createdAt: true },

@@ -20,7 +20,7 @@ export async function PATCH(request: Request) {
       const project = existing.get(id)!;
       await transaction.project.update({ where: { id }, data: { featured: true, featuredStartedAt: project.featured ? project.featuredStartedAt : now, featuredExpiresAt: project.featured ? project.featuredExpiresAt : null } });
     }
-    await transaction.auditEvent.create({ data: { actorId: session.userId, actorEmail: session.email, action: "FEATURED_PROJECTS_FINALIZED", entityType: "Project", entityId: session.workspaceId, summary: `Finalized ${projectIds.length} featured projects.`, metadata: { projectIds } } });
+    await transaction.auditEvent.create({ data: { workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: "FEATURED_PROJECTS_FINALIZED", entityType: "Project", entityId: session.workspaceId, summary: `Finalized ${projectIds.length} featured projects.`, metadata: { projectIds } } });
   });
   revalidatePath("/portfolio"); revalidatePath("/admin/projects");
   return NextResponse.json({ success: true, projectIds });

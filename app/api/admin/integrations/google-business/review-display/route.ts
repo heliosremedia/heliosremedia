@@ -14,7 +14,7 @@ export async function PATCH(request: Request) {
   if (body.mode !== "FOUR_AND_FIVE" && body.mode !== "FIVE_ONLY" && body.mode !== "MANUAL_ONLY") return NextResponse.json({ success: false, error: "Select a valid public review setting." }, { status: 400 });
   const mode = normalizeGoogleReviewDisplayMode(body.mode);
   await prisma.siteSettings.upsert({ where: { id: "default" }, create: { id: "default", workspaceId: session.workspaceId, googleReviewDisplayMode: mode }, update: { workspaceId: session.workspaceId, googleReviewDisplayMode: mode } });
-  await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: "GOOGLE_REVIEW_DISPLAY_UPDATED", entityType: "SiteSettings", summary: `Public Google review display mode changed to ${mode}.` });
+  await recordAuditEvent({ workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: "GOOGLE_REVIEW_DISPLAY_UPDATED", entityType: "SiteSettings", summary: `Public Google review display mode changed to ${mode}.` });
   revalidatePath("/");
   revalidatePath("/reviews");
   revalidatePath("/admin/testimonials");

@@ -22,7 +22,7 @@ export async function PATCH(request: Request) {
     const selected = locations.find((location) => location.locationResourceName === body.locationResourceName);
     if (!selected) return NextResponse.json({ success: false, error: "Select a location returned by the connected Google account." }, { status: 400 });
     await prisma.googleBusinessConnection.update({ where: { workspaceId: session.workspaceId }, data: { ...selected, availableLocations: locations, status: "CONNECTED", connectedAt: new Date(), disconnectedAt: null, lastSyncError: null } });
-    await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: "GOOGLE_BUSINESS_LOCATION_SELECTED", entityType: "GoogleBusinessConnection", summary: `Google Business Profile location selected: ${selected.locationTitle}.` });
+    await recordAuditEvent({ workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: "GOOGLE_BUSINESS_LOCATION_SELECTED", entityType: "GoogleBusinessConnection", summary: `Google Business Profile location selected: ${selected.locationTitle}.` });
     revalidatePath("/admin/testimonials");
     return NextResponse.json({ success: true });
   } catch (error) { return NextResponse.json({ success: false, error: error instanceof Error ? error.message : "The Google location could not be saved." }, { status: 502 }); }
@@ -38,7 +38,7 @@ export async function DELETE() {
     await fetch("https://oauth2.googleapis.com/revoke", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ token: refreshToken }), cache: "no-store" });
   } catch { /* Local disconnection still removes stored credentials if Google is unavailable. */ }
   await prisma.googleBusinessConnection.delete({ where: { id: connection.id } });
-  await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: "GOOGLE_BUSINESS_DISCONNECTED", entityType: "GoogleBusinessConnection", summary: "Google Business Profile access disconnected and stored credentials removed." });
+  await recordAuditEvent({ workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: "GOOGLE_BUSINESS_DISCONNECTED", entityType: "GoogleBusinessConnection", summary: "Google Business Profile access disconnected and stored credentials removed." });
   revalidatePath("/admin/testimonials");
   return NextResponse.json({ success: true });
 }

@@ -21,6 +21,6 @@ export async function POST(request: Request) {
     return created;
   });
   if (!user) return NextResponse.json({ success: false, error: "This invitation is no longer available." }, { status: 409 });
-  await recordAuditEvent({ actorId: user.id, actorEmail: user.email, action: "USER_INVITATION_ACCEPTED", entityType: "AdminUser", entityId: user.id, summary: `${user.email} activated an admin account.` });
+  await recordAuditEvent({ workspaceId: user.workspaceId, actorId: user.id, actorEmail: user.email, action: "USER_INVITATION_ACCEPTED", entityType: "AdminUser", entityId: user.id, summary: `${user.email} activated an admin account.` });
   return NextResponse.json({ success: true });
 }

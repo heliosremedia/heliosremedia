@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     resubscribeMethod: resubscribing ? input.consentSource!.trim().slice(0, 200) : null,
   });
   await recordAuditEvent({
-    actorId: session.userId,
+    workspaceId: session.workspaceId, actorId: session.userId,
     actorEmail: session.email,
     action: resubscribing ? "MARKETING_EMAIL_RESUBSCRIBED" : "MARKETING_EMAIL_UNSUBSCRIBED",
     entityType: "CommunicationClient",

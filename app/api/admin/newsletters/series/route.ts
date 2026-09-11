@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   try {
     const series = await createSeries(await request.json(), session.userId);
     await recordAuditEvent({
-      actorId: session.userId,
+      workspaceId: session.workspaceId, actorId: session.userId,
       actorEmail: session.email,
       action: "NEWSLETTER_SERIES_CREATED",
       entityType: "NewsletterSeries",

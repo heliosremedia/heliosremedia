@@ -237,7 +237,7 @@ export async function POST(request: Request) {
       if (!editionId) throw new Error("Edition is required.");
       const result = await generateNewsletterEdition(editionId, session.userId);
       await recordAuditEvent({
-        actorId: session.userId, actorEmail: session.email,
+        workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email,
         action: "NEWSLETTER_GENERATED", entityType: "NewsletterEdition", entityId: editionId,
         summary: "Generated a newsletter draft for administrator review.",
       });
@@ -250,7 +250,7 @@ export async function POST(request: Request) {
         ? await pauseSeries(seriesId, session.workspaceId)
         : await resumeSeries(seriesId, session.workspaceId);
       await recordAuditEvent({
-        actorId: session.userId, actorEmail: session.email,
+        workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email,
         action: action === "pause-series" ? "NEWSLETTER_SERIES_PAUSED" : "NEWSLETTER_SERIES_RESUMED",
         entityType: "NewsletterSeries", entityId: series.id,
         summary: `${action === "pause-series" ? "Paused" : "Resumed"} newsletter series "${series.name}".`,

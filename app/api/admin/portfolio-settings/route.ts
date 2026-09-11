@@ -30,7 +30,7 @@ export async function PATCH(request: Request) {
     excludedProjectIds: requestedProjectIds,
     excludedMediaIds: requestedMediaIds,
   };
-  await prisma.auditEvent.create({ data: { actorId: session.userId, actorEmail: session.email, action: "PORTFOLIO_DISCOVERY_SETTINGS_UPDATED", entityType: "PortfolioDiscoverySettings", entityId: session.workspaceId, summary: "Updated Portfolio quick-browse settings.", metadata: data } });
+  await prisma.auditEvent.create({ data: { workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: "PORTFOLIO_DISCOVERY_SETTINGS_UPDATED", entityType: "PortfolioDiscoverySettings", entityId: session.workspaceId, summary: "Updated Portfolio quick-browse settings.", metadata: data } });
   revalidatePath("/portfolio"); revalidatePath("/portfolio/gallery"); revalidatePath("/portfolio/films"); revalidatePath("/admin/projects");
   return NextResponse.json({ success: true, settings: data });
 }

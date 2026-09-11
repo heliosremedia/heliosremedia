@@ -387,7 +387,7 @@ export async function POST(request: Request, context: { params: Promise<{ campai
         throw error;
       }
       await recordAuditEvent({
-        actorId: session.userId, actorEmail: session.email, action: "REFERRAL_TEST_SENT",
+        workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: "REFERRAL_TEST_SENT",
         entityType: "ReferralCampaign", entityId: campaignId, summary: `Referral invitation test sent to ${recipient}.`,
       });
       await prisma.referralAuditEvent.create({
