@@ -1,3 +1,4 @@
+import { membershipWritesEnabled } from "@/lib/workspace-membership-lifecycle";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashInvitationToken } from "@/lib/auth/invitations";
@@ -13,10 +14,13 @@ export async function POST(request: Request) {
   if (!invitation || invitation.acceptedAt || invitation.revokedAt || invitation.expiresAt <= new Date()) return NextResponse.json({ success: false, error: "This invitation is invalid or expired." }, { status: 400 });
   const passwordHash = await hashPassword(password);
   const user = await prisma.$transaction(async (tx) => {
+    const claimed = await tx.adminInvitation.updateMany({ where: { id: invitation.id, acceptedAt: null, revokedAt: null, expiresAt: { gt: new Date() } }, data: { acceptedAt: new Date() } });
+    if (claimed.count !== 1) return null;
     const created = await tx.adminUser.create({ data: { email: invitation.email, displayName: invitation.displayName, title: invitation.title, firstName: invitation.firstName, lastName: invitation.lastName, phone: invitation.phone, disciplines: invitation.disciplines, role: invitation.role, passwordHash, workspaceId: invitation.workspaceId } });
-    await tx.adminInvitation.update({ where: { id: invitation.id }, data: { acceptedAt: new Date() } });
+    if (membershipWritesEnabled()) await tx.workspaceMembership.create({ data: { userId: created.id, workspaceId: created.workspaceId, role: created.role, status: "ACTIVE" } });
     return created;
   });
+  if (!user) return NextResponse.json({ success: false, error: "This invitation is no longer available." }, { status: 409 });
   await recordAuditEvent({ actorId: user.id, actorEmail: user.email, action: "USER_INVITATION_ACCEPTED", entityType: "AdminUser", entityId: user.id, summary: `${user.email} activated an admin account.` });
   return NextResponse.json({ success: true });
 }
