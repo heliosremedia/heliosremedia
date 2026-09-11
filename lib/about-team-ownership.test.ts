@@ -39,7 +39,7 @@ test("tenant About defaults contain no Helios founder copy or fallback images", 
 });
 
 test("team portrait creation rejects foreign keys before storage and derives owned URLs", async () => {
-  for (const company of ["a", "b"]) {
+  for (const company of ["a", "b", "unregistered"]) {
     let writes = 0;
     let checks = 0;
     const loaded = load("../app/api/admin/team-members/route.ts", {
@@ -47,12 +47,12 @@ test("team portrait creation rejects foreign keys before storage and derives own
       "@/lib/blog-ownership": { getContentOwnershipScope: async () => ({ workspaceId: "a" }) },
       "@/lib/workspace-brand-storage": brandPolicy,
       "@/lib/r2-upload": { getPublicAssetUrl: (key: string) => `https://assets.example/${key}` },
-      "@/lib/content-image-storage": { verifyContentImage: async () => { checks++; } },
+      "@/lib/workspace-brand-assets": { verifyRegisteredBrandImage: async () => { if (company === "unregistered") throw new Error("INVALID_BRAND_IMAGE"); checks++; } },
       "@/lib/team-members": { teamMemberCategories: ["PRODUCTION"], teamMemberSelect: {} },
       "next/cache": { revalidatePath() {} }, "next/server": { NextResponse: { json: (body: unknown, init?: ResponseInit) => Response.json(body, init) } },
       "@/lib/prisma": { prisma: { teamMember: { aggregate: async () => ({ _max: { displayOrder: null } }), create: async ({ data }: { data: { workspaceId: string; portraitUrl: string } }) => { assert.equal(data.workspaceId, "a"); assert.equal(data.portraitUrl, "https://assets.example/workspaces/a/team/portrait.jpg"); writes++; return { id: "profile" }; } } } },
     });
-    const response = await loaded.POST(new Request("http://localhost", { method: "POST", body: JSON.stringify({ name: "Person", title: "Photographer", biography: "Biography", portraitStorageKey: `workspaces/${company}/team/portrait.jpg`, portraitUrl: "https://forged.example/image.jpg" }) })) as Response;
+    const response = await loaded.POST(new Request("http://localhost", { method: "POST", body: JSON.stringify({ name: "Person", title: "Photographer", biography: "Biography", portraitStorageKey: `workspaces/${company === "unregistered" ? "a" : company}/team/portrait.jpg`, portraitUrl: "https://forged.example/image.jpg" }) })) as Response;
     assert.equal(response.status, company === "a" ? 201 : 400); assert.equal(writes, company === "a" ? 1 : 0); assert.equal(checks, writes);
   }
 });
@@ -70,4 +70,19 @@ test("About/team expansion preserves old content and supports independent single
     await assert.rejects(db.exec(`INSERT INTO "AboutPageContent" VALUES ('duplicate','a')`));
     await assert.rejects(db.exec(`DELETE FROM "Workspace" WHERE id='a'`));
   } finally { await db.close(); }
+});
+
+test("About save refuses an unregistered owned-prefix image before writing content", async () => {
+  let verified = 0;
+  let writes = 0;
+  const loaded = load("../app/api/admin/about/route.ts", {
+    "@/lib/auth/session": { getAdminSession: async () => ({ role: "EDITOR", workspaceId: "a" }) },
+    "@/lib/workspace-singleton": { getWorkspaceSingletonTarget: async () => ({ where: { workspaceId: "a" } }) },
+    "@/lib/workspace-brand-storage": brandPolicy, "@/lib/workspace-context-core": { tenantContextEnabled: () => true },
+    "@/lib/r2-upload": { getPublicAssetUrl: (key: string) => `https://assets.test/${key}` },
+    "@/lib/workspace-brand-assets": { verifyRegisteredBrandImage: async (input: { workspaceId: string; kind: string; key: string }) => { assert.equal(input.workspaceId, "a"); assert.equal(input.kind, "about"); assert.equal(input.key, "workspaces/a/about/image.webp"); verified++; throw new Error("INVALID_BRAND_IMAGE"); } },
+    "next/server": { NextResponse: Response }, "@/lib/prisma": { prisma: { aboutPageContent: { findUnique: async () => null, upsert: async () => { writes++; } } } },
+  });
+  const response = await loaded.PATCH(new Request("https://example.test/api", { method: "PATCH", body: JSON.stringify({ heroImageStorageKey: "workspaces/a/about/image.webp", heroImageAlt: "Hero", founderImageAlt: "Founder", galleryOneAlt: "One", galleryTwoAlt: "Two", galleryThreeAlt: "Three" }) })) as Response;
+  assert.equal(response.status, 400); assert.equal(verified, 1); assert.equal(writes, 0);
 });

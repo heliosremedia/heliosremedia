@@ -1,3 +1,4 @@
+import { withBrandUploadAsset } from "@/lib/workspace-brand-assets";
 import { getAdminSession } from "@/lib/auth/session";
 import { NextResponse } from "next/server";
 
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Upload a JPG, PNG, WebP, or AVIF image under 25 MB." }, { status: 400 });
     }
     const key = createAboutPageImageKey(session.workspaceId, kind, fileType);
-    return NextResponse.json({ success: true, upload: { key, uploadUrl: await createPresignedUploadUrl(key, fileType), publicUrl: getPublicAssetUrl(key), contentType: fileType } });
+    return NextResponse.json({ success: true, upload: { key, uploadUrl: await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, kind: "about", key, byteSize: fileSize }, () => createPresignedUploadUrl(key, fileType)), publicUrl: getPublicAssetUrl(key), contentType: fileType } });
   } catch (error) {
     console.error("Unable to prepare About image upload:", error);
     return NextResponse.json({ success: false, error: "The About image upload could not be prepared." }, { status: 500 });

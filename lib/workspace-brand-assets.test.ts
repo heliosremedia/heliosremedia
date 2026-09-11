@@ -158,3 +158,24 @@ test("hero registry permits only explicit video and poster formats in the owned 
   owner = "b"; await assert.rejects(api.verifyRegisteredBrandImage({ workspaceId: "a", kind: "site-hero", key: "workspaces/a/site-hero/video-id.mp4" }), /INVALID_BRAND_IMAGE/);
   owner = "a"; status = "QUARANTINED"; await assert.rejects(api.verifyRegisteredBrandImage({ workspaceId: "a", kind: "site-hero", key: "workspaces/a/site-hero/video-id.mp4", existingKey: "workspaces/a/site-hero/video-id.mp4" }), /INVALID_BRAND_IMAGE/); assert.equal(checks, 4);
 });
+
+for (const [route, kind] of [["about", "about"], ["team-members", "team"]] as const) {
+  test(`${route} upload registers company ownership and withholds unsigned failures`, async () => {
+    let allow = true;
+    let registered = false;
+    let signed = 0;
+    const ownedKey = `workspaces/a/${kind}/image.webp`;
+    const keyFor = (workspaceId: string) => { assert.equal(workspaceId, "a"); return ownedKey; };
+    const api = load<{ POST: (request: Request) => Promise<Response> }>(`../app/api/admin/${route}/presign/route.ts`, {
+      "next/server": { NextResponse: Response }, "@/lib/auth/session": { getAdminSession: async () => ({ role: "EDITOR", userId: "actor", workspaceId: "a" }) },
+      "@/lib/r2-upload": { createAboutPageImageKey: keyFor, createTeamMemberPortraitKey: keyFor, getPublicAssetUrl: () => "https://assets.test/image.webp", createPresignedUploadUrl: async () => { assert.equal(registered, true); signed++; return "signed-url"; } },
+      "@/lib/workspace-brand-assets": { withBrandUploadAsset: async (input: { workspaceId: string; actorId: string; kind: string; key: string }, fn: () => Promise<string>) => {
+        assert.equal(input.workspaceId, "a"); assert.equal(input.actorId, "actor"); assert.equal(input.kind, kind); assert.equal(input.key, ownedKey);
+        if (!allow) throw new Error("INVALID_BRAND_IMAGE"); registered = true; return fn();
+      } },
+    }, { console: { error() {} } });
+    const call = () => api.POST(new Request("https://example.test/api", { method: "POST", body: JSON.stringify({ kind: "hero", fileType: "image/webp", fileSize: 100, workspaceId: "b" }) }));
+    assert.equal((await call()).status, 200); assert.equal(signed, 1); allow = false;
+    const response = await call(); assert.equal(response.status, 500); assert.equal((await response.json()).upload, undefined); assert.equal(signed, 1);
+  });
+}

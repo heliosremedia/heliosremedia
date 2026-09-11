@@ -9,7 +9,7 @@ import { NextResponse } from "next/server";
 
 import type { Prisma } from "@/app/generated/prisma/client";
 import type { AboutListItem } from "@/lib/about-page";
-import { verifyContentImage } from "@/lib/content-image-storage";
+import { verifyRegisteredBrandImage } from "@/lib/workspace-brand-assets";
 import { prisma } from "@/lib/prisma";
 
 const imageFields = [
@@ -71,7 +71,7 @@ export async function PATCH(request: Request) {
     for (const field of imageFields) {
       const storageKey = images[field.storage] as string | null;
       const previousKey = existing?.[field.storage] as string | null | undefined;
-      if (storageKey !== previousKey) await verifyContentImage(storageKey);
+      await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "about", key: storageKey, existingKey: previousKey });
     }
 
     const data = {
