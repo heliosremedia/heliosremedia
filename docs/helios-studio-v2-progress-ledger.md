@@ -154,3 +154,9 @@ Verification: 443 tests passed, zero failed; Prisma generation, non-incremental 
 Continued after draft #234. Added nullable About/team ownership, scoped reads and editor mutations, company asset namespaces and retained cleanup. Reused a generic singleton target while preserving the settings helper interface. Tenant About fallback is now explicitly empty, and the public page no longer substitutes Helios images when tenant content is absent.
 
 Verification: 447 tests passed, zero failed; Prisma generation, final non-incremental TypeScript process exited successfully, focused lint and diff checks passed. Corrected an initially invalid generated fallback type and nullable-image value identified by the new test. Tests remain local/mocked or PGlite; hosted browser and actual upload evidence are pending. Refreshed model inventory. No production data, image, deployment or protected integration change performed.
+
+## 2026-09-11 imported review curation integrity
+
+Continued after draft #235 and returned to the handoff's critical review item. Added scoped row locking before linkage reads, same-workspace existing-testimonial validation, conditional link updates and idempotent repeated curation. Added a read-only mismatch preflight. OAuth/token/sync/provider code is untouched; curation still creates unpublished drafts.
+
+Verification: 450 tests passed, zero failed; final non-incremental TypeScript, focused lint and diff checks passed. Corrected the nullable unique-field predicate to Prisma's general AND filter after TypeScript identified its unique-selector restriction. Concurrent-handler tests use a serializing mock; preflight runs on PGlite. Real Neon lock/contention and revocation races remain unverified. No production curation, migration or provider call performed.
