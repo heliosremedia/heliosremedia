@@ -31,6 +31,7 @@ for (const kind of ["testimonials", "trusted-logos"] as const) {
       "next/cache": { revalidatePath() {} },
       "next/server": { NextResponse: Response },
       "@/lib/auth/session": { getAdminSession: async () => ({ workspaceId: "company-a", role }) },
+      "@/lib/blog-ownership": { getContentOwnershipScope: async (workspaceId: string) => ({ workspaceId }) },
       "@/lib/prisma": { prisma: { testimonial: model, trustedLogo: model } },
       "@/lib/testimonials": { TESTIMONIAL_CHARACTER_LIMIT: 1000 },
       "@/lib/workspace-brand-storage": policy,

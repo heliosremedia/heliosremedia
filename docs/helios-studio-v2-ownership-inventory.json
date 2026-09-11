@@ -1,5 +1,5 @@
 {
-  "schemaSha256": "350e8fc896299876a1e15fcc55a67af6098e9fd2ec0ea5ab16bf8ea420fa840f",
+  "schemaSha256": "c8fde9cf0efa6db42387cdbb3b77a3f40df88ef8216f17a170e5d95806ee6729",
   "scope": "Static code inventory, not an authorization or tenant-isolation verdict. No database connection or environment values read.",
   "limitations": [
     "Nullable ownership requires verified mapping before activation.",
@@ -10,8 +10,8 @@
   ],
   "counts": {
     "models": 111,
-    "requiredWorkspace": 29,
-    "nullableWorkspace": 13,
+    "requiredWorkspace": 27,
+    "nullableWorkspace": 15,
     "withoutWorkspace": 69,
     "routeFiles": 138
   },
@@ -660,22 +660,23 @@
     },
     {
       "model": "Testimonial",
-      "workspaceField": "required",
+      "workspaceField": "nullable",
       "foreignKeys": [
         {
           "relation": "workspace",
           "model": "Workspace",
-          "optional": false,
+          "optional": true,
           "fields": [
             "workspaceId"
           ],
           "references": [
             "id"
           ],
-          "onDelete": "Cascade"
+          "onDelete": "Restrict"
         }
       ],
       "uniqueConstraints": [
+        "externalReviewId",
         "workspaceId, externalReviewId"
       ],
       "sourceReferences": [
@@ -688,19 +689,19 @@
     },
     {
       "model": "TrustedLogo",
-      "workspaceField": "required",
+      "workspaceField": "nullable",
       "foreignKeys": [
         {
           "relation": "workspace",
           "model": "Workspace",
-          "optional": false,
+          "optional": true,
           "fields": [
             "workspaceId"
           ],
           "references": [
             "id"
           ],
-          "onDelete": "Cascade"
+          "onDelete": "Restrict"
         }
       ],
       "uniqueConstraints": [],

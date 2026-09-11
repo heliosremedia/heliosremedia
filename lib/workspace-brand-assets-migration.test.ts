@@ -56,9 +56,15 @@ test("brand asset ownership migration preserves Helios data and honors an import
       db.exec(`INSERT INTO "TrustedLogo" ("id", "workspaceId", "published", "displayOrder") VALUES ('orphan', 'missing', false, 1)`),
       /foreign key/i,
     );
-    await db.exec(`INSERT INTO "Testimonial" ("id", "workspaceId", "published", "featured", "sourceProvider", "externalReviewId", "displayOrder") VALUES ('same-provider-id', 'company-b', false, false, 'MANUAL', 'shared-review', 2)`);
-    await db.exec(`DELETE FROM "Workspace" WHERE "id" = 'company-b'`);
-    assert.equal((await db.query(`SELECT * FROM "Testimonial" WHERE "id" = 'google-b'`)).rows.length, 0);
+    // Legacy unique lookups remain unambiguous throughout expansion.
+    await assert.rejects(db.exec(`INSERT INTO "Testimonial" ("id", "workspaceId", "published", "featured", "sourceProvider", "externalReviewId", "displayOrder") VALUES ('same-provider-id', 'company-b', false, false, 'MANUAL', 'shared-review', 2)`), /unique/i);
+    // Old application SQL can omit ownership during application overlap.
+    await db.exec(`INSERT INTO "TrustedLogo" ("id", "published", "displayOrder") VALUES ('old-writer', true, 3)`);
+    await db.exec(`INSERT INTO "Testimonial" ("id", "published", "featured", "sourceProvider", "displayOrder") VALUES ('old-review-writer', true, false, 'MANUAL', 3)`);
+    assert.deepEqual((await db.query(`SELECT "workspaceId" FROM "TrustedLogo" WHERE "id" = 'old-writer'`)).rows, [{ workspaceId: null }]);
+    assert.equal((await db.query(`SELECT "id" FROM "TrustedLogo" WHERE "workspaceId" = 'company-b'`)).rows.length, 0);
+    await assert.rejects(db.exec(`DELETE FROM "Workspace" WHERE "id" = 'company-b'`), /foreign key/i);
+    assert.equal((await db.query(`SELECT * FROM "Testimonial" WHERE "id" = 'google-b'`)).rows.length, 1);
   } finally {
     await db.close();
   }
@@ -69,8 +75,8 @@ test("brand asset pages and mutations require and apply workspace ownership", ()
   const testimonialRoute = readFileSync(new URL("../app/api/admin/testimonials/route.ts", import.meta.url), "utf8");
   const logoRoute = readFileSync(new URL("../app/api/admin/trusted-logos/route.ts", import.meta.url), "utf8");
 
-  assert.match(publicHome, /testimonial\.findMany\([\s\S]*workspaceId: publicWorkspaceId/);
-  assert.match(publicHome, /trustedLogo\.findMany\([\s\S]*workspaceId: publicWorkspaceId/);
+  assert.match(publicHome, /testimonial\.findMany\([\s\S]*\.\.\.brandScope/);
+  assert.match(publicHome, /trustedLogo\.findMany\([\s\S]*\.\.\.brandScope/);
   for (const route of [testimonialRoute, logoRoute]) {
     assert.match(route, /\["OWNER", "ADMIN", "EDITOR"\]\.includes\(session\.role\)/);
     assert.match(route, /workspaceId: session\.workspaceId/);

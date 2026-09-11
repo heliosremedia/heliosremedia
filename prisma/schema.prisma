@@ -1027,8 +1027,8 @@ model Faq {
 model Testimonial {
   id String @id @default(cuid())
 
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
 
   agentName   String
   jobTitle    String?
@@ -1040,7 +1040,7 @@ model Testimonial {
   photoAlt         String?
   sourceUrl        String?
   sourceProvider   String    @default("MANUAL")
-  externalReviewId String?
+  externalReviewId String? @unique
   reviewerPhotoUrl String?
   reviewedAt       DateTime?
 
@@ -1067,8 +1067,8 @@ model Testimonial {
 model TrustedLogo {
   id String @id @default(cuid())
 
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
 
   organizationName String
   logoStorageKey   String?
