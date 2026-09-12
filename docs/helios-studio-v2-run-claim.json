@@ -1,10 +1,10 @@
 {
   "status": "active",
   "runId": "atlas-20260912T2205",
-  "expiresAt": "2026-09-12T23:00:00Z",
+  "expiresAt": "2026-09-12T23:10:00Z",
   "branch": "codex/v2-analytics-reviewed-cancellation",
   "baseHead": "c8f9028792c7d7b6b1570dd96cea631a8c884550",
-  "outstandingChanges": false,
-  "scope": "Workspace-authorized analytics inspection and explicit audited cancellation; no retries, provider calls or publishing recovery",
+  "outstandingChanges": true,
+  "scope": "Analytics reviewed cancellation and transactional manual refresh authorization; final validation and draft publication",
   "production": "ON HOLD"
 }
