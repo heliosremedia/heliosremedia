@@ -30,8 +30,9 @@ test("publishing payload normalization preserves old digests despite JSONB key o
 });
 
 function workerHarness() {
-  const counters = { decrypts: 0, publications: 0, connections: 0, completions: 0 };
-  const control = { reserve: true };
+  const counters = { decrypts: 0, publications: 0, connections: 0, completions: 0, attempts: 0, records: 0, normalized: 0 };
+  const control = { reserve: true, responseLost: false, lostClaim: false, writeFailure: false, beforeSubmissionFailure: false, beforeSubmissionResponseLost: false,
+    changedAccount: false, backlog: false, postponed: false, outcome: 'PUBLISHED', providerError: null as null | { category: string; retryable: boolean; ambiguous: boolean } };
   const variant = {
     id: "variant", campaignId: "campaign", platform: "FACEBOOK", postType: "TEXT_POST", caption: "Approved copy", hashtags: [] as string[], destinationLink: null as string | null,
     contentVersion: 3, approvedAt: now as Date | null, approvalActorId: "actor" as string | null, scheduledAt: now as Date | null, status: "SCHEDULED",
@@ -44,16 +45,39 @@ function workerHarness() {
   const job = { id: "job", variantId: "variant", connectionId: "connection", snapshotId: "snapshot", variant, snapshot, connection, idempotencyKey: publishingCore.publishingIdempotencyKey("variant", "connection", 3, now), scheduledAt: now, nextAttemptAt: now, attempts: 0, maxAttempts: 5, status: "SCHEDULED", claimToken: null as string | null };
   const env = { SOCIAL_FACEBOOK_PUBLISHING_ENABLED: "true" };
   const tx = {
-    $queryRaw: async () => [{ id: "locked" }],
+    $queryRaw: async (parts: TemplateStringsArray) => {
+      const sql = parts.join('?');
+      if (sql.includes('FROM "SocialConnection"')) return control.changedAccount && counters.publications ? [] : [{ id: 'connection' }];
+      if (sql.includes('JOIN "SocialPublishingSnapshot"')) return job.claimToken === 'claim' && job.status === 'PUBLISHING' ? [{ id: 'job' }] : [];
+      return [{ id: 'locked' }];
+    },
     socialPublishingJob: {
       findFirst: async ({ where }: { where: { status: string; variant: { campaign: { workspaceId: string } } } }) => { assert.equal(where.status, "VALIDATING"); assert.equal(where.variant.campaign.workspaceId, "a"); return { ...job }; },
       updateMany: async ({ where, data }: { where: { claimToken: string; status: string }; data: Record<string, unknown> }) => { assert.equal(where.claimToken, "claim"); assert.equal(where.status, "VALIDATING"); if (data.status === "PUBLISHING" && !control.reserve) return { count: 0 }; Object.assign(job, data); return { count: 1 }; },
+      update: async ({ where, data }: { where: { claimToken: string; status: string }; data: Record<string, unknown> }) => {
+        assert.equal(where.claimToken, job.claimToken); assert.equal(where.status, job.status);
+        Object.assign(job, data); return job;
+      },
     },
+    socialConnection: { update: async () => { if (control.beforeSubmissionFailure) throw new Error('Private before-submission persistence error'); counters.connections++; return {}; } },
+    socialPublishingAttempt: { create: async () => { if (control.writeFailure) throw new Error('Private settlement failure'); counters.attempts++; return {}; } },
+    socialVariant: { update: async ({ data }: { data: Record<string, unknown> }) => { Object.assign(variant, data); counters.completions++; return variant; } },
+    socialPublication: { create: async () => { counters.records++; return {}; } },
   };
   const prisma = {
     socialPublishingJob: {
-      findMany: async () => [{ id: "job" }],
-      updateMany: async ({ data }: { data: Record<string, unknown> }) => { Object.assign(job, data); return { count: 1 }; },
+      findMany: async () => {
+        if (control.postponed) {
+          const later = new Date(now.getTime() + 60_000);
+          job.scheduledAt = later; variant.scheduledAt = later; snapshot.scheduledAt = later;
+          job.idempotencyKey = publishingCore.publishingIdempotencyKey(variant.id, connection.id, variant.contentVersion, later);
+        }
+        return [{ id: "job" }, ...(control.backlog ? [{ id: 'next-job' }] : [])];
+      },
+      updateMany: async ({ where, data }: { where: { scheduledAt?: { lte: Date } }; data: Record<string, unknown> }) => {
+        if (where.scheduledAt && job.scheduledAt > where.scheduledAt.lte) return { count: 0 };
+        Object.assign(job, data); return { count: 1 };
+      },
       findFirst: async () => ({ variant: { campaign: { workspaceId: "a" } } }),
       update: async ({ data }: { data: Record<string, unknown> }) => { Object.assign(job, data); return job; },
     },
@@ -61,18 +85,30 @@ function workerHarness() {
     socialPublishingAttempt: { create: async () => ({}) },
     socialVariant: { update: async ({ data }: { data: Record<string, unknown> }) => { Object.assign(variant, data); counters.completions++; return variant; } },
     socialPublication: { create: async () => ({}) },
-    $transaction: (operation: ((client: typeof tx) => Promise<unknown>) | Array<Promise<unknown>>) => typeof operation === "function" ? operation(tx) : Promise.all(operation),
+    $transaction: async (operation: ((client: typeof tx) => Promise<unknown>) | Array<Promise<unknown>>) => {
+      const before = { job: { ...job }, variant: { ...variant }, counters: { ...counters } };
+      let result;
+      try { result = typeof operation === "function" ? await operation(tx) : await Promise.all(operation); }
+      catch (error) { Object.assign(job, before.job); Object.assign(variant, before.variant); Object.assign(counters, before.counters); throw error; }
+      if (control.beforeSubmissionResponseLost && counters.connections && !counters.publications) throw new Error('Synthetic before-submission acknowledgement loss');
+      if (counters.attempts && control.responseLost) { control.responseLost = false; throw new Error("Synthetic committed response loss"); }
+      return result;
+    },
   };
+  const claimModule = load<typeof import('./social/publishing-claim')>('./social/publishing-claim.ts', { 'server-only': {}, '@/lib/prisma': { prisma } });
   const api = load<typeof import("./social/publishing")>("./social/publishing.ts", {
     "server-only": {}, "node:crypto": { randomUUID: () => "claim" }, "@/app/generated/prisma/client": {}, "@/lib/prisma": { prisma },
     "@/lib/r2-upload": { getPublicAssetUrl: (key: string) => `https://assets.example.test/${key}` },
     "@/lib/workspace-write-access": {}, "./mutation-lock": {}, "./publishing-payload": payloadPolicy,
     "./security": { contentDigest: digest, decryptSocialToken: () => { counters.decrypts++; return { accessToken: "fake-access" }; } },
     "./publishing-core": publishingCore,
-    "./providers": { normalizeProviderError: () => ({ category: "UNKNOWN", message: "Test failure", retryable: false, ambiguous: false }), providerAdapters: { FACEBOOK: {
+    "./publishing-claim": claimModule,
+    "./providers": { normalizeProviderError: () => { counters.normalized++; return { category: "UNKNOWN", message: "Test failure", retryable: false, ambiguous: false, ...control.providerError }; }, providerAdapters: { FACEBOOK: {
       validatePost: () => [], publish: async (value: unknown, token: string, destination: string, key: string) => {
         assert.equal(job.status, "PUBLISHING"); assert.equal(digest(value), snapshot.contentDigest); assert.equal(token, "fake-access"); assert.equal(destination, "test-destination"); assert.equal(key, job.idempotencyKey); counters.publications++;
-        return { outcome: "PUBLISHED", externalPostId: "fake-post", publicUrl: "https://example.test/fake-post" };
+        if (control.lostClaim) job.claimToken = "replacement-claim";
+        if (control.providerError) throw new Error('Synthetic provider failure');
+        return { outcome: control.outcome, externalPostId: "fake-post", publicUrl: "https://example.test/fake-post" };
       },
     } } },
   }, { process: { env } });
@@ -134,7 +170,7 @@ test("queue creation reads approval inside the authorized transaction and reject
   const api = load<typeof import("./social/publishing")>("./social/publishing.ts", {
     "server-only": {}, "node:crypto": {}, "@/app/generated/prisma/client": {}, "@/lib/prisma": { prisma: { $transaction: (fn: (client: typeof tx) => Promise<unknown>) => fn(tx) } },
     "@/lib/r2-upload": {}, "@/lib/workspace-write-access": { requireLockedWorkspaceEditor: async () => { authorized = true; } }, "./mutation-lock": { lockEditableSocialVariant: async () => { assert.equal(authorized, true); } }, "./publishing-payload": payloadPolicy,
-    "./security": { contentDigest: digest }, "./publishing-core": publishingCore, "./providers": { providerAdapters: { FACEBOOK: { validatePost: () => [] } } },
+    "./security": { contentDigest: digest }, "./publishing-core": publishingCore, "./publishing-claim": {}, "./providers": { providerAdapters: { FACEBOOK: { validatePost: () => [] } } },
   }, { process: { env: { SOCIAL_FACEBOOK_PUBLISHING_ENABLED: "true" } } });
   const input = { variantId: "variant", connectionId: "connection", actor: { userId: "actor", workspaceId: "a", sessionVersion: 1 } };
   await assert.rejects(api.createPublishingJob(input), /new approved revision/); assert.equal(jobs, 0);
@@ -200,4 +236,75 @@ test("a lost publication reservation cannot reach token decryption or the provid
   const h = workerHarness(); h.control.reserve = false;
   await h.api.processPublishingQueue(now);
   assert.equal(h.counters.decrypts, 0); assert.equal(h.counters.publications, 0); assert.equal(h.counters.completions, 0);
+});
+
+test("a committed publishing response loss cannot overwrite publication evidence with failure", async () => {
+  const h = workerHarness(); h.control.responseLost = true; h.control.backlog = true;
+  const result = await h.api.processPublishingQueue(now);
+  assert.equal(h.counters.publications, 1);
+  assert.equal(h.job.status, "PUBLISHED");
+  assert.equal(h.counters.normalized, 0); assert.equal(h.counters.attempts, 1); assert.equal(h.counters.records, 1);
+  assert.equal(result.requiresReview, true); assert.equal(result.claimed, 1);
+});
+
+test("a publishing worker cannot settle a replaced claim after provider response", async () => {
+  const h = workerHarness(); h.control.lostClaim = true;
+  await h.api.processPublishingQueue(now);
+  assert.equal(h.counters.publications, 1);
+  assert.equal(h.job.claimToken, "replacement-claim");
+  assert.equal(h.counters.completions, 0);
+});
+
+test('publishing persistence failures stop backlog without retry or fallback classification', async () => {
+  for (const mode of ['writeFailure', 'beforeSubmissionFailure', 'beforeSubmissionResponseLost', 'changedAccount'] as const) {
+    const h = workerHarness(); h.control[mode] = true; h.control.backlog = true;
+    const result = await h.api.processPublishingQueue(now);
+    assert.equal(h.counters.publications, mode.startsWith('beforeSubmission') ? 0 : 1);
+    assert.equal(h.job.status, 'PUBLISHING'); assert.equal(h.job.claimToken, 'claim');
+    assert.equal(h.counters.normalized, 0); assert.equal(h.counters.attempts, 0);
+    assert.equal(h.counters.records, 0); assert.equal(h.counters.completions, 0);
+    assert.equal(result.requiresReview, true); assert.equal(result.claimed, 1);
+    assert.equal(JSON.stringify(result).includes('Private'), false);
+  }
+});
+
+test('failure settlement uncertainty cannot schedule a second provider attempt or overwrite evidence', async () => {
+  for (const responseLost of [false, true]) {
+    const h = workerHarness(); h.control.backlog = true;
+    h.control.providerError = { category: 'TRANSIENT', retryable: true, ambiguous: false };
+    h.control.writeFailure = !responseLost; h.control.responseLost = responseLost;
+    const result = await h.api.processPublishingQueue(now);
+    assert.equal(h.counters.publications, 1); assert.equal(h.counters.normalized, 1);
+    assert.equal(result.claimed, 1); assert.equal(result.requiresReview, true);
+    assert.equal(h.job.status, responseLost ? 'RETRY_SCHEDULED' : 'PUBLISHING');
+    assert.equal(h.counters.attempts, responseLost ? 1 : 0);
+  }
+});
+
+test('a consistently rescheduled publication is not claimed from an earlier candidate list', async () => {
+  const h = workerHarness(); h.control.postponed = true;
+  const result = await h.api.processPublishingQueue(now);
+  assert.equal(result.claimed, 0); assert.equal(result.requiresReview, false);
+  assert.equal(h.counters.decrypts, 0); assert.equal(h.counters.publications, 0);
+  assert.equal(h.job.status, 'SCHEDULED'); assert.equal(h.job.claimToken, null);
+});
+
+test('provider retry, authentication, ambiguous and processing outcomes retain established semantics', async () => {
+  for (const [category, retryable, ambiguous, status] of [
+    ['TRANSIENT', true, false, 'RETRY_SCHEDULED'], ['AUTHENTICATION', false, false, 'REAUTHORIZATION_REQUIRED'],
+    ['UNKNOWN', true, true, 'MANUAL_FALLBACK'], ['VALIDATION', false, false, 'FAILED'],
+  ] as const) {
+    const h = workerHarness(); h.control.providerError = { category, retryable, ambiguous };
+    const result = await h.api.processPublishingQueue(now);
+    assert.equal(h.counters.publications, 1); assert.equal(h.counters.normalized, 1);
+    assert.equal(h.job.status, status); assert.equal(h.counters.attempts, 1);
+    assert.equal(h.counters.records, 0); assert.equal(result.requiresReview, false);
+  }
+  const processing = workerHarness(); processing.control.outcome = 'PROVIDER_PROCESSING';
+  assert.equal((await processing.api.processPublishingQueue(now)).requiresReview, false);
+  assert.equal(processing.job.status, 'PROVIDER_PROCESSING'); assert.equal(processing.counters.attempts, 1);
+  assert.equal(processing.counters.records, 0); assert.equal(processing.counters.completions, 0);
+  const stale = workerHarness(); stale.control.lostClaim = true; stale.control.providerError = { category: 'AUTHENTICATION', retryable: false, ambiguous: false };
+  assert.equal((await stale.api.processPublishingQueue(now)).requiresReview, true);
+  assert.equal(stale.job.claimToken, 'replacement-claim'); assert.equal(stale.counters.attempts, 0);
 });

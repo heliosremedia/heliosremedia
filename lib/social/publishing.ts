@@ -7,8 +7,9 @@ import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { contentDigest, decryptSocialToken } from "./security";
-import { normalizeProviderError, providerAdapters, type PublishPayload } from "./providers";
+import { normalizeProviderError, providerAdapters, type PublishPayload, type PublishResult } from "./providers";
 import { publishingIdempotencyKey, retryDelayMs } from "./publishing-core";
+import { commitPublishingClaim } from "./publishing-claim";
 
 export { publishingIdempotencyKey, retryDelayMs };
 
@@ -64,17 +65,20 @@ export async function processPublishingQueue(now = new Date()) {
     orderBy: { nextAttemptAt: "asc" }, take: 20, select: { id: true },
   });
   let claimed = 0;
+  let requiresReview = false;
   for (const candidate of candidates) {
     const claimToken = randomUUID();
     const claim = await prisma.socialPublishingJob.updateMany({
-      where: { id: candidate.id, status: { in: ["SCHEDULED","RETRY_SCHEDULED","DELAYED"] }, nextAttemptAt: { lte: now }, claimToken: null },
+      where: { id: candidate.id, status: { in: ["SCHEDULED","RETRY_SCHEDULED","DELAYED"] }, nextAttemptAt: { lte: now }, scheduledAt: { lte: now }, claimToken: null },
       data: { status: "VALIDATING", claimToken, claimedAt: now },
     });
     if (!claim.count) continue;
     claimed++;
-    await executeClaim(candidate.id, claimToken, now);
+    try { requiresReview = !(await executeClaim(candidate.id, claimToken, now)); }
+    catch { requiresReview = true; }
+    if (requiresReview) break;
   }
-  return { inspected: candidates.length, claimed };
+  return { inspected: candidates.length, claimed, requiresReview };
 }
 
 async function reserveApprovedClaim(jobId: string, claimToken: string, now: Date) {
@@ -129,10 +133,20 @@ async function reserveApprovedClaim(jobId: string, claimToken: string, now: Date
 
 async function executeClaim(jobId: string, claimToken: string, now: Date) {
   const reserved = await reserveApprovedClaim(jobId, claimToken, now);
-  if (!reserved) return;
+  if (!reserved) return true;
   const { job, payload } = reserved;
   const attemptNumber = job.attempts + 1;
   const started = Date.now();
+  const claim = { workspaceId: job.variant.campaign.workspaceId, jobId: job.id, claimToken,
+    connectionId: job.connectionId, platform: job.connection.platform, providerAccountId: job.connection.providerAccountId,
+    variantId: job.variantId, snapshotId: job.snapshotId, contentVersion: job.snapshot.contentVersion, attemptNumber };
+  // A persistence failure is not a provider failure. Do not publish unless the
+  // current claim and attempt evidence have been acknowledged before submission.
+  const recorded = await commitPublishingClaim(claim, async tx => {
+    await tx.socialConnection.update({ where: { id: job.connectionId, workspaceId: claim.workspaceId }, data: { lastPublishingAttemptAt: now } });
+  });
+  if (recorded !== 'CONFIRMED') return false;
+  let result: PublishResult;
   try {
     if (!job.connection.directPublishingEnabled || job.connection.state !== "CONNECTED" || !job.connection.encryptedTokenPayload) {
       throw Object.assign(new Error("Reconnect the account or move this post to the manual workflow."), { category: "AUTHENTICATION", retryable: false });
@@ -142,24 +156,29 @@ async function executeClaim(jobId: string, claimToken: string, now: Date) {
     if (!accessToken) throw Object.assign(new Error("The connected account has no usable authorization."), { category: "AUTHENTICATION", retryable: false });
     const blockers = providerAdapters[payload.platform].validatePost(payload).filter((issue) => issue.severity === "BLOCKING");
     if (blockers.length) throw Object.assign(new Error(blockers.map((issue) => issue.message).join(" ")), { category: "VALIDATION", retryable: false });
-    await prisma.socialConnection.update({where:{id:job.connectionId},data:{lastPublishingAttemptAt:now}});
-    const result = await providerAdapters[payload.platform].publish(payload, accessToken, job.connection.providerAccountId || "", job.idempotencyKey);
-    const status = result.outcome;
-    await prisma.$transaction([
-      prisma.socialPublishingJob.update({ where: { id: job.id }, data: { status, providerSubmissionId: result.providerSubmissionId, externalPostId: result.externalPostId, publicUrl: result.publicUrl, completedAt: status === "PUBLISHED" ? now : null, claimToken: null } }),
-      prisma.socialPublishingAttempt.create({ data: { jobId: job.id, attemptNumber, status, providerSubmissionId: result.providerSubmissionId, externalPostId: result.externalPostId, publicUrl: result.publicUrl, durationMs: Date.now() - started } }),
-      ...(status === "PUBLISHED" ? [prisma.socialVariant.update({ where: { id: job.variantId }, data: { status: "PUBLISHED", publishedAt: now, publicUrl: result.publicUrl } })] : []),
-      ...(status === "PUBLISHED" ? [prisma.socialPublication.create({ data: { variantId: job.variantId, actorId: job.snapshot.approvedById, connectionId: job.connectionId, externalPostId: result.externalPostId, publishedAt: now, publicUrl: result.publicUrl, notes: "Recorded by the official direct-publishing workflow." } })] : []),
-      ...(status === "PUBLISHED" ? [prisma.socialConnection.update({where:{id:job.connectionId},data:{lastSuccessfulPublicationAt:now,lastProviderErrorCode:null,lastProviderErrorMessage:null}})] : []),
-    ]);
+    result = await providerAdapters[payload.platform].publish(payload, accessToken, job.connection.providerAccountId || "", job.idempotencyKey);
   } catch (error) {
     const normalized = normalizeProviderError(error);
     const retry = normalized.retryable && !normalized.ambiguous && attemptNumber < job.maxAttempts;
     const status = normalized.ambiguous ? "MANUAL_FALLBACK" : normalized.category === "AUTHENTICATION" ? "REAUTHORIZATION_REQUIRED" : retry ? "RETRY_SCHEDULED" : "FAILED";
-    await prisma.$transaction([
-      prisma.socialPublishingJob.update({ where: { id: job.id }, data: { status, attempts: attemptNumber, claimToken: null, lastErrorCategory: normalized.category, lastErrorMessage: normalized.message, nextAttemptAt: retry ? new Date(now.getTime() + retryDelayMs(attemptNumber)) : job.nextAttemptAt } }),
-      prisma.socialPublishingAttempt.create({ data: { jobId: job.id, attemptNumber, status, errorCategory: normalized.category, sanitizedError: normalized.message, durationMs: Date.now() - started } }),
-      prisma.socialConnection.update({where:{id:job.connectionId},data:{lastProviderErrorCode:normalized.category,lastProviderErrorMessage:normalized.message,...(normalized.category==="AUTHENTICATION"?{state:"REAUTHORIZATION_REQUIRED",directPublishingEnabled:false}:{})}}),
-    ]);
+    const settled = await commitPublishingClaim(claim, async tx => {
+      await tx.socialPublishingJob.update({ where: { id: job.id, claimToken, status: "PUBLISHING" }, data: { status, attempts: attemptNumber, claimToken: null, lastErrorCategory: normalized.category, lastErrorMessage: normalized.message, nextAttemptAt: retry ? new Date(now.getTime() + retryDelayMs(attemptNumber)) : job.nextAttemptAt } });
+      await tx.socialPublishingAttempt.create({ data: { jobId: job.id, attemptNumber, status, errorCategory: normalized.category, sanitizedError: normalized.message, durationMs: Date.now() - started } });
+      await tx.socialConnection.update({where:{id:job.connectionId,workspaceId:claim.workspaceId},data:{lastProviderErrorCode:normalized.category,lastProviderErrorMessage:normalized.message,...(normalized.category==="AUTHENTICATION"?{state:"REAUTHORIZATION_REQUIRED",directPublishingEnabled:false}:{})}});
+    });
+    return settled === 'CONFIRMED';
   }
+  const status = result.outcome;
+  // Settlement is deliberately outside the provider catch. A lost commit
+  // acknowledgement must not retry publication or overwrite success as failure.
+  const settled = await commitPublishingClaim(claim, async tx => {
+    await tx.socialPublishingJob.update({ where: { id: job.id, claimToken, status: "PUBLISHING" }, data: { status, providerSubmissionId: result.providerSubmissionId, externalPostId: result.externalPostId, publicUrl: result.publicUrl, completedAt: status === "PUBLISHED" ? now : null, claimToken: null } });
+    await tx.socialPublishingAttempt.create({ data: { jobId: job.id, attemptNumber, status, providerSubmissionId: result.providerSubmissionId, externalPostId: result.externalPostId, publicUrl: result.publicUrl, durationMs: Date.now() - started } });
+    if (status === "PUBLISHED") {
+      await tx.socialVariant.update({ where: { id: job.variantId, contentVersion: claim.contentVersion }, data: { status: "PUBLISHED", publishedAt: now, publicUrl: result.publicUrl } });
+      await tx.socialPublication.create({ data: { variantId: job.variantId, actorId: job.snapshot.approvedById, connectionId: job.connectionId, externalPostId: result.externalPostId, publishedAt: now, publicUrl: result.publicUrl, notes: "Recorded by the official direct-publishing workflow." } });
+      await tx.socialConnection.update({where:{id:job.connectionId,workspaceId:claim.workspaceId},data:{lastSuccessfulPublicationAt:now,lastProviderErrorCode:null,lastProviderErrorMessage:null}});
+    }
+  });
+  return settled === 'CONFIRMED';
 }
