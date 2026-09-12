@@ -22,11 +22,18 @@ async function execute(id:string,claimToken:string,now:Date){
   const started=Date.now();const job=await prisma.socialAnalyticsJob.findFirstOrThrow({where:{id,claimToken},include:{connection:true}});
   try{
     const connection=job.connection;if(!connection.encryptedTokenPayload||!connection.providerAccountId)throw Object.assign(new Error("Analytics connection is not authorized."),{category:"AUTHENTICATION",retryable:false});
+    if (!connection.workspaceId) throw Object.assign(new Error("Analytics connection ownership must be configured."), { category: "OWNERSHIP", retryable: false });
     const granted=new Set(Array.isArray(connection.grantedScopes)?connection.grantedScopes.filter((x):x is string=>typeof x==="string"):[]);
     const adapter=analyticsAdapters[connection.platform];const missing=adapter.capability.scopes.filter(scope=>!granted.has(scope));
     if(missing.length)throw Object.assign(new Error(`Additional analytics permission is required: ${missing.join(", ")}.`),{category:"PERMISSION",retryable:false});
     const token=decryptSocialToken(connection.encryptedTokenPayload);const accessToken=typeof token.accessToken==="string"?token.accessToken:"";
-    const publications=await prisma.socialPublication.findMany({where:{variant:{platform:connection.platform},publishedAt:{gte:job.rangeStart,lte:job.rangeEnd},OR:[{connectionId:connection.id},{connectionId:null}]},select:{id:true,variantId:true,externalPostId:true},take:250});
+    // Legacy publications without a connection may be attributed only when the
+    // stored company has exactly one account for this platform.
+    const accounts = await prisma.socialConnection.findMany({
+      where: { workspaceId: connection.workspaceId, platform: connection.platform }, select: { id: true }, take: 2,
+    });
+    const legacyAllowed = accounts.length === 1 && accounts[0].id === connection.id;
+    const publications=await prisma.socialPublication.findMany({where:{variant:{platform:connection.platform,campaign:{workspaceId:connection.workspaceId}},publishedAt:{gte:job.rangeStart,lte:job.rangeEnd},OR:[{connectionId:connection.id},...(legacyAllowed?[{connectionId:null}]:[])]},select:{id:true,variantId:true,externalPostId:true},take:250});
     const posts=publications.flatMap(item=>item.externalPostId?[{externalPostId:item.externalPostId,variantId:item.variantId}]:[]);
     const metrics=await adapter.fetch({accessToken,accountId:connection.providerAccountId,posts,rangeStart:job.rangeStart,rangeEnd:job.rangeEnd});
     const publicationByExternal=new Map(publications.filter(item=>item.externalPostId).map(item=>[item.externalPostId!,item]));
