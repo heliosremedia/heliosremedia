@@ -1,7 +1,8 @@
 import { getNewsletterAnalytics } from "@/lib/newsletters/analytics";
+import type { WorkspaceWriteActor } from "@/lib/workspace-write-access";
 
-export default async function NewsletterAnalytics({ editionId }: { editionId: string }) {
-  const data = await getNewsletterAnalytics(editionId);
+export default async function NewsletterAnalytics({ editionId, actor }: { editionId: string; actor: WorkspaceWriteActor }) {
+  const data = await getNewsletterAnalytics(editionId, actor);
   if (!data) return null;
   const metrics = [
     ["Intended audience", data.intended], ["Sent", data.sent], ["Delivered", `${data.delivered} · ${data.deliveryRate}%`],
