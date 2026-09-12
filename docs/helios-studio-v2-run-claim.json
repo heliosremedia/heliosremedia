@@ -1,14 +1,17 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-20260912T2027",
-  "expiresAt": "2026-09-12T21:20:00Z",
+  "expiresAt": null,
   "branch": "codex/v2-social-publishing-settlement",
   "pr": 298,
   "head": "c8f9028792c7d7b6b1570dd96cea631a8c884550",
   "tree": "23b9267e05a703683c93f90ab8241ec1943f35c1",
   "verifiedImplementationHead": "ac26a8596739187c7946b8c2483c5342343d8f84",
   "verifiedImplementationRun": 34717610288,
+  "verifiedFinalHeadRun": 34717856709,
+  "verification": "662 tests passed locally and in implementation CI. Implementation and final documentation head passed Prisma generation, non-incremental TypeScript, Chromium synthetic workflow and whitespace. Final scoped lint passed. Actual worker regressions and isolated actual SQL atomic rollback/response-loss tests passed.",
   "outstandingChanges": false,
-  "verification": "662 tests, TypeScript, Prisma, Chromium synthetic workflow and whitespace green in implementation CI. Final documentation head CI pending.",
-  "production": "ON HOLD"
+  "ledger": "docs/helios-studio-v2-progress-ledger.md",
+  "nextDependency": "Explicit audited held social/analytics recovery and provider reconciliation; approval-reservation acknowledgement recovery; per-attempt/provider-health chronology; shared-job convergence. Preserve adapters/OAuth/approvals and prohibit blind retry of unknown publication. Hosted concurrency, lock ordering/latency, old/new worker overlap, restoration and Phase 1/2 exit gates remain open.",
+  "production": "ON HOLD for readiness and Jake QA/release decision. No real provider request, publication, migration, merge or deployment."
 }
