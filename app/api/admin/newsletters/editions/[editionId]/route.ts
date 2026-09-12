@@ -1,3 +1,4 @@
+import { requireLockedWorkspaceAdministrator, type WorkspaceWriteActor } from "@/lib/workspace-write-access";
 import { verifyNewsletterCustomImage } from "@/lib/newsletters/custom-image-ownership";
 import { verifyNewsletterSourceImageSelections } from "@/lib/newsletters/source-image-validation";
 import { newsletterImageReferenceMatches, safeNewsletterImageUrl } from "@/lib/newsletters/source-images";
@@ -125,7 +126,9 @@ function revisionSnapshot(editor: ReturnType<typeof parseEditorEdition>) {
   }));
 }
 
-async function saveEdition(editionId: string, value: unknown, actorId: string, workspaceId: string) {
+async function saveEdition(editionId: string, value: unknown, actor: WorkspaceWriteActor) {
+  actor = { userId: actor.userId, workspaceId: actor.workspaceId, sessionVersion: actor.sessionVersion };
+  const { userId: actorId, workspaceId } = actor;
   const editor = parseEditorEdition(value);
   if (!editor.subject) throw new Error("Subject is required.");
   const current = await prisma.newsletterEdition.findUnique({
@@ -225,6 +228,7 @@ async function saveEdition(editionId: string, value: unknown, actorId: string, w
   const revisionNumber = current.currentRevisionNumber + 1;
   const hash = contentHash({ subject: editor.subject, previewText: editor.previewText, blocks: snapshot });
   await prisma.$transaction(async (tx) => {
+    await requireLockedWorkspaceAdministrator(tx, actor);
     const claimed = await tx.newsletterEdition.updateMany({
       where: { id: editionId, rowVersion: current.rowVersion, series: await getBlogOwnershipScope(workspaceId),
         status: { notIn: ["SENT", "PARTIALLY_SENT", "CANCELLED", "GENERATING", "SENDING"] } },
@@ -306,7 +310,9 @@ async function saveEdition(editionId: string, value: unknown, actorId: string, w
   });
 }
 
-async function approveAndSchedule(editionId: string, actorId: string, workspaceId: string) {
+async function approveAndSchedule(editionId: string, actor: WorkspaceWriteActor) {
+  actor = { userId: actor.userId, workspaceId: actor.workspaceId, sessionVersion: actor.sessionVersion };
+  const { userId: actorId, workspaceId } = actor;
   const edition = await prisma.newsletterEdition.findUnique({
     where: { id: editionId, series: await getBlogOwnershipScope(workspaceId) },
     include: {
@@ -324,6 +330,7 @@ async function approveAndSchedule(editionId: string, actorId: string, workspaceI
   if (!audience.eligible.length) throw new Error("No eligible recipients are currently selected.");
   const revision = edition.revisions[0];
   await prisma.$transaction(async (tx) => {
+    await requireLockedWorkspaceAdministrator(tx, actor);
     const claimed = await tx.newsletterEdition.updateMany({
       where: { id: editionId, rowVersion: edition.rowVersion, status: "NEEDS_REVIEW", series: await getBlogOwnershipScope(workspaceId) },
       data: { rowVersion: { increment: 1 } },
@@ -382,7 +389,7 @@ export async function PATCH(request: Request, context: Context) {
     }
     const body = await request.json() as Record<string, unknown>;
     if (body.action !== "save") throw new Error("Unsupported edition update.");
-    await saveEdition(editionId, body.edition, session.userId, session.workspaceId);
+    await saveEdition(editionId, body.edition, session);
     const edition = await getEditionForStudio(editionId, session.workspaceId);
     await recordAuditEvent({
       workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email,
@@ -391,7 +398,7 @@ export async function PATCH(request: Request, context: Context) {
     });
     return NextResponse.json({ success: true, message: "Draft saved.", edition: edition && await serializeEdition(edition) });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : "Edition could not be saved." }, { status: 400 });
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : "Edition could not be saved." }, { status: error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN" ? 403 : 400 });
   }
 }
 
@@ -422,7 +429,7 @@ export async function POST(request: Request, context: Context) {
       });
       message = result.message;
     } else if (action === "approve") {
-      const audience = await approveAndSchedule(editionId, session.userId, session.workspaceId);
+      const audience = await approveAndSchedule(editionId, session);
       message = `Approved and scheduled for ${audience.eligible.length} currently eligible recipients.`;
     } else if (action === "revoke-approval") {
       await prisma.$transaction([
@@ -521,7 +528,7 @@ export async function POST(request: Request, context: Context) {
       );
       if (!isImmutableSnapshot) {
         try {
-          await saveEdition(editionId, body.edition, session.userId, session.workspaceId);
+          await saveEdition(editionId, body.edition, session);
         } catch (error) {
           console.error("[newsletter:test] edition save failed", {
             editionId,
@@ -531,7 +538,7 @@ export async function POST(request: Request, context: Context) {
             success: false,
             code: "NEWSLETTER_SAVE_FAILED",
             error: "Newsletter could not be saved. Your test was not sent.",
-          }, { status: 400 });
+          }, { status: error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN" ? 403 : 400 });
         }
       }
       const edition = await getEditionForStudio(editionId, session.workspaceId);
@@ -629,6 +636,6 @@ export async function POST(request: Request, context: Context) {
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : "The request could not be completed.",
-    }, { status: 400 });
+    }, { status: error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN" ? 403 : 400 });
   }
 }
