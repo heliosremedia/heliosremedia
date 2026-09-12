@@ -65,7 +65,20 @@ async function execute(id:string,claimToken:string,now:Date){
   if (!providerAccountId) return false;
   const result = await commitAnalyticsClaim(claim, async tx => {
     const publicationByExternal=new Map(publications.filter(item=>item.externalPostId).map(item=>[item.externalPostId!,item]));
-    for(const metric of metrics){const publication=metric.externalPostId?publicationByExternal.get(metric.externalPostId):undefined;const fingerprint=metricFingerprint({connectionId:connection.id,externalPostId:metric.externalPostId,providerName:metric.providerName,measuredAt:metric.measuredAt,periodStart:metric.periodStart,periodEnd:metric.periodEnd});await tx.socialMetricSnapshot.upsert({where:{sourceFingerprint:fingerprint},create:{connectionId:connection.id,variantId:publication?.variantId,publicationId:publication?.id,platform:connection.platform,externalAccountId:providerAccountId,externalPostId:metric.externalPostId,normalizedCategory:metric.category,providerMetricName:metric.providerName,metricDefinition:metric.definition,value:metric.value,periodType:metric.periodType,periodStart:metric.periodStart,periodEnd:metric.periodEnd,measuredAt:metric.measuredAt,availability:metric.availability,importSource:"OFFICIAL_API",providerApiVersion:metric.apiVersion,sourceFingerprint:fingerprint},update:{}});}
+    const snapshots = metrics.map(metric => {
+      const publication = metric.externalPostId ? publicationByExternal.get(metric.externalPostId) : undefined;
+      const fingerprint = metricFingerprint({ connectionId: connection.id, externalPostId: metric.externalPostId,
+        providerName: metric.providerName, measuredAt: metric.measuredAt, periodStart: metric.periodStart, periodEnd: metric.periodEnd });
+      return { connectionId: connection.id, variantId: publication?.variantId, publicationId: publication?.id,
+        platform: connection.platform, externalAccountId: providerAccountId, externalPostId: metric.externalPostId,
+        normalizedCategory: metric.category, providerMetricName: metric.providerName, metricDefinition: metric.definition,
+        value: metric.value, periodType: metric.periodType, periodStart: metric.periodStart, periodEnd: metric.periodEnd,
+        measuredAt: metric.measuredAt, availability: metric.availability, importSource: "OFFICIAL_API" as const,
+        providerApiVersion: metric.apiVersion, sourceFingerprint: fingerprint };
+    });
+    // Equivalent to the previous upsert(update: {}), without one round trip per
+    // metric while holding claim locks. Existing fingerprints remain unchanged.
+    if (snapshots.length) await tx.socialMetricSnapshot.createMany({ data: snapshots, skipDuplicates: true });
     await tx.socialAnalyticsJob.update({where:{id,claimToken,status:"RUNNING"},data:{status:"SUCCEEDED",claimToken:null,attempts:{increment:1},importedSnapshots:metrics.length,durationMs:Date.now()-started,completedAt:now}});
     await tx.socialConnection.update({where:{id:connection.id,workspaceId:connection.workspaceId},data:{analyticsPermissionState:"AVAILABLE",analyticsLastAttemptAt:now,analyticsLastSuccessfulAt:now,analyticsFailureCount:0,analyticsError:null}});
   });

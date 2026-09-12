@@ -4,11 +4,12 @@ import test from 'node:test';
 import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
 
-async function run(options: { accounts?: string[]; missingOwner?: boolean; lostClaim?: boolean; changedAccount?: boolean; responseLost?: boolean; writeFailure?: boolean; providerError?: boolean; backlog?: boolean } = {}) {
+async function run(options: { accounts?: string[]; missingOwner?: boolean; lostClaim?: boolean; changedAccount?: boolean; responseLost?: boolean; writeFailure?: boolean; providerError?: boolean; backlog?: boolean; metricCount?: number } = {}) {
   const posts: Array<{ externalPostId: string; variantId: string }> = [];
   const snapshots: Array<Record<string, unknown>> = [];
   const outcomes: Array<Record<string, unknown>> = [];
   let calls = 0, reads = 0, decrypts = 0;
+  let batches = 0;
   let currentClaim = 'synthetic-claim';
   const connection = { id: 'connection-a', workspaceId: options.missingOwner ? undefined : 'a', platform: 'FACEBOOK', encryptedTokenPayload: 'synthetic', providerAccountId: 'account-a', grantedScopes: ['read'] };
   const rows = [
@@ -42,7 +43,9 @@ async function run(options: { accounts?: string[]; missingOwner?: boolean; lostC
       return rows.filter(row => row.workspace === where.variant.campaign?.workspaceId && where.OR.some(clause => clause.connectionId === row.connectionId))
         .map(row => ({ id: row.id, externalPostId: `post-${row.id}`, variantId: `variant-${row.id}` }));
     } },
-    socialMetricSnapshot: { upsert: async ({ create }: { create: Record<string, unknown> }) => { snapshots.push(create); } },
+    socialMetricSnapshot: { createMany: async ({ data, skipDuplicates }: { data: Array<Record<string, unknown>>; skipDuplicates: boolean }) => {
+      assert.equal(skipDuplicates, true); batches++; snapshots.push(...data);
+    } },
     $transaction: async (operation: (tx: unknown) => Promise<unknown>): Promise<unknown> => {
       const beforeSnapshots = snapshots.slice(), beforeOutcomes = outcomes.slice();
       let result: unknown;
@@ -67,13 +70,14 @@ async function run(options: { accounts?: string[]; missingOwner?: boolean; lostC
   const modules: Record<string, unknown> = {
     'server-only': {}, 'node:crypto': { randomUUID: () => 'synthetic-claim' }, '@/lib/prisma': { prisma },
     './security': { decryptSocialToken: (value: string) => { decrypts++; assert.equal(value, 'synthetic'); return { accessToken: 'synthetic-token' }; } },
-    './analytics-core': { metricFingerprint: () => 'synthetic-fingerprint' },
+    './analytics-core': { metricFingerprint: (input: { providerName: string; externalPostId?: string }) => `${input.providerName}:${input.externalPostId ?? 'account'}` },
     './publishing-core': { sanitizeProviderMessage: (value: string) => value },
     './analytics-providers': { analyticsAdapters: { FACEBOOK: { capability: { scopes: ['read'] }, fetch: async (input: { accessToken: string; accountId: string; posts: typeof posts }) => {
       calls++; assert.equal(input.accessToken, 'synthetic-token'); assert.equal(input.accountId, 'account-a');
       posts.push(...input.posts);
       if (options.lostClaim) currentClaim = 'other-claim';
       if (options.providerError) throw Object.assign(new Error('Synthetic provider failure'), { category: 'TRANSIENT', retryable: true });
+      if (options.metricCount !== undefined) return Array.from({ length: options.metricCount }, (_, index) => ({ providerName: `metric-${index}`, value: index }));
       return [{ providerName: 'account_views', value: 7 }, ...input.posts.map(post => ({ externalPostId: post.externalPostId, providerName: 'post_views', value: 3 }))];
     } } } },
   };
@@ -87,7 +91,7 @@ async function run(options: { accounts?: string[]; missingOwner?: boolean; lostC
     exports, Date, Error, Map, Set, require: (id: string) => { assert.ok(id in modules, id); return modules[id]; },
   });
   const queue = await exports.processAnalyticsQueue!();
-  return { posts, snapshots, outcomes, calls, reads, decrypts, queue, currentClaim };
+  return { posts, snapshots, outcomes, calls, reads, decrypts, queue, currentClaim, batches };
 }
 
 test('social analytics selects only stored-company publications and preserves account/owned-post metrics', async () => {
@@ -140,4 +144,13 @@ test('genuine provider failures retain retry policy only while the original clai
   const stale = await run({ providerError: true, lostClaim: true, backlog: true });
   assert.equal(stale.calls, 1); assert.equal(stale.outcomes.length, 0); assert.equal(stale.queue.processed, 1);
   assert.equal(stale.queue.requiresReview, true);
+});
+
+test('analytics persistence batches metric inserts while retaining duplicate suppression and empty-result completion', async () => {
+  const large = await run({ metricCount: 1000 });
+  assert.equal(large.batches, 1); assert.equal(large.snapshots.length, 1000);
+  assert.equal(large.outcomes[0].importedSnapshots, 1000); assert.equal(large.queue.requiresReview, false);
+  const empty = await run({ metricCount: 0 });
+  assert.equal(empty.batches, 0); assert.equal(empty.snapshots.length, 0);
+  assert.equal(empty.outcomes[0].status, 'SUCCEEDED'); assert.equal(empty.outcomes[0].importedSnapshots, 0);
 });
