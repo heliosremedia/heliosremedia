@@ -9,11 +9,12 @@ test("Newsletter summary follows stored company ownership and denies access befo
   let queries = 0;
   const series = [{ workspaceId: "a", createdByWorkspaceId: "b", status: "ACTIVE" }, { workspaceId: "b", createdByWorkspaceId: "a", status: "ACTIVE" }];
   const editions = ["a", "b"].flatMap(workspaceId => ["NEEDS_REVIEW", "SCHEDULED", "SENT"].map(status => ({ series: { workspaceId }, createdByWorkspaceId: workspaceId === "a" ? "b" : "a", status })));
-  const exports: { default?: () => Promise<{ props: { summary: { props: { items: { value: number }[] } } } }> } = {};
+  const exports: { default?: () => Promise<{ props: { summary: { props: { children: Array<{ type: string; props: { items: { value: number }[] } }> } } } }> } = {};
   const modules: Record<string, unknown> = {
-    "react/jsx-runtime": { jsx: (type: unknown, props: unknown) => ({ type, props }) },
+    "react/jsx-runtime": { jsx: (type: unknown, props: unknown) => ({ type, props }), jsxs: (type: unknown, props: unknown) => ({ type, props }), Fragment: "Fragment" },
     "next/navigation": { redirect: (url: string) => { assert.equal(url, "/admin"); throw new Error("redirect"); } },
     "./components/NewsletterDashboard": { default: "Dashboard" }, "@/app/admin/components/AdminSummaryCards": { default: "Summary" },
+    "./components/NewsletterJobHealthPanel": { default: "JobHealth" },
     "@/lib/newsletters/api": { requireNewsletterAdministrator: async () => allowed ? { workspaceId: "a" } : null },
     "@/lib/blog-ownership": { getContentOwnershipScope: async (workspaceId: string) => ({ workspaceId }) },
     "@/lib/prisma": { prisma: {
@@ -25,7 +26,8 @@ test("Newsletter summary follows stored company ownership and denies access befo
     exports, Error, require: (id: string) => { assert.ok(id in modules, id); return modules[id]; },
   });
   const page = await exports.default!();
-  assert.deepEqual(Array.from(page.props.summary.props.items, item => item.value), [1, 1, 1, 1]);
+  assert.deepEqual(Array.from(page.props.summary.props.children[0].props.items, item => item.value), [1, 1, 1, 1]);
+  assert.equal(page.props.summary.props.children[1].type, "JobHealth");
   assert.equal(queries, 4);
   allowed = false;
   await assert.rejects(exports.default!(), /redirect/);
