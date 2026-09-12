@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireNewsletterAdministrator, forbiddenNewsletterResponse } from "@/lib/newsletters/api";
-import { getNewsletterDeliveryReview, repairNewsletterAcceptedRecords } from "@/lib/newsletters/delivery-review";
+import { getNewsletterDeliveryReview, repairNewsletterAcceptedRecords, reconcileNewsletterDeliveryTotals } from "@/lib/newsletters/delivery-review";
 
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store" };
@@ -25,11 +25,13 @@ export async function POST(request: Request, context: { params: Promise<{ editio
   if (!session) return forbiddenNewsletterResponse();
   try {
     const body = await request.json() as Record<string, unknown>;
-    if (body.confirmation !== "REPAIR_ACCEPTED_DELIVERY_RECORDS" || !Number.isSafeInteger(body.expectedVersion)) {
-      return NextResponse.json({ success: false, error: "Confirm the reviewed edition version before repairing accepted records." }, { status: 400, headers });
+    if (!["REPAIR_ACCEPTED_DELIVERY_RECORDS", "RECONCILE_DELIVERY_TOTALS"].includes(String(body.confirmation)) || !Number.isSafeInteger(body.expectedVersion)) {
+      return NextResponse.json({ success: false, error: "Confirm the reviewed edition version before reconciling delivery records." }, { status: 400, headers });
     }
     const { editionId } = await context.params;
-    const result = await repairNewsletterAcceptedRecords(editionId, body.expectedVersion as number, session);
+    const result = body.confirmation === "RECONCILE_DELIVERY_TOTALS"
+      ? await reconcileNewsletterDeliveryTotals(editionId, body.expectedVersion as number, session)
+      : await repairNewsletterAcceptedRecords(editionId, body.expectedVersion as number, session);
     return NextResponse.json({ success: true, ...result }, { headers });
   } catch (error) {
     if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return forbiddenNewsletterResponse();

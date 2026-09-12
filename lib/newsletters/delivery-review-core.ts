@@ -45,3 +45,16 @@ export function reviewNewsletterDelivery(input: { revisionId: string; recipients
   for (const recipient of recipients) counts[recipient.observation] = (counts[recipient.observation] ?? 0) + 1;
   return { automaticRetryAllowed: false as const, invalidAttempts, counts, recipients };
 }
+
+/** Counts of recorded recipient states, not proof of inbox delivery. */
+export function newsletterRecordedTotals(recipients: Array<{ status: string }>) {
+  const totals = { recipientCount: recipients.length, sentCount: 0, failedCount: 0, pendingCount: 0, skippedCount: 0 };
+  for (const recipient of recipients) {
+    if (recipient.status === "SENT") totals.sentCount++;
+    else if (recipient.status === "FAILED") totals.failedCount++;
+    else if (recipient.status === "PENDING") totals.pendingCount++;
+    else if (recipient.status === "SKIPPED") totals.skippedCount++;
+    else throw new Error("NEWSLETTER_DELIVERY_RECORDS_INVALID");
+  }
+  return totals;
+}
