@@ -1,17 +1,10 @@
 {
-  "status": "released",
-  "runId": "atlas-20260912T1940",
-  "expiresAt": null,
-  "branch": "codex/v2-social-analytics-observation-ordering",
-  "pr": 297,
-  "head": "fb5cf9ae8ab1413498391c310a395dd7eb1801ef",
-  "tree": "e0ef02a787a510cd13ef2cdc3e145e9fc3824611",
-  "verifiedImplementationHead": "5ed949f78b06ac9fb7f7ab008acecf52e46d3e53",
-  "verifiedImplementationRun": 34715541843,
-  "verifiedFinalHeadRun": 34715748969,
-  "verification": "655 tests passed locally and in implementation CI; Prisma generation, TypeScript, Chromium synthetic workflow and whitespace passed. Final documentation head CI also passed all steps. Executable stale-health and postponed-job regressions plus isolated actual health SQL ordering/rollback evidence passed. Scoped lint passed.",
+  "status": "active",
+  "runId": "atlas-20260912T2027",
+  "expiresAt": "2026-09-12T21:20:00Z",
+  "branch": "codex/v2-social-publishing-settlement",
+  "baseHead": "fb5cf9ae8ab1413498391c310a395dd7eb1801ef",
   "outstandingChanges": false,
-  "ledger": "docs/helios-studio-v2-progress-ledger.md",
-  "nextDependency": "Social publishing settlement isolated reproduction/review; explicit held analytics recovery; unique per-attempt chronology for equal queue timestamps; shared-job convergence. Preserve providers/OAuth/approvals. Hosted Prisma/Neon UTC integration, contention/latency, historical mapping and Phase 1/2 exit gates remain open.",
-  "production": "ON HOLD for readiness and Jake QA/release decision. No real provider request, publication, migration, merge or deployment."
+  "scope": "Isolated publishing settlement regression and internal claim fencing; no provider/OAuth/approval changes or live publication",
+  "production": "ON HOLD"
 }
