@@ -41,7 +41,7 @@ test("actual Newsletter picker filters foreign storage and derives AI URLs from 
 
 test("actual edition save rejects foreign storage even on company-scoped image rows", async () => {
   for (const source of ["AI", "PORTFOLIO", "BLOG"]) {
-    const exports: { saveEdition?: (id: string, input: unknown, actorId: string, workspaceId: string) => Promise<unknown> } = {};
+    const exports: { saveEdition?: (id: string, input: unknown, actor: { userId: string; workspaceId: string; sessionVersion: number }) => Promise<unknown> } = {};
     const key = "workspaces/foreign/blog/image.png";
     let writes = 0;
     const modules: Record<string, unknown> = {
@@ -64,14 +64,14 @@ test("actual edition save rejects foreign storage even on company-scoped image r
     });
     await assert.rejects(exports.saveEdition!("edition", {
       subject: "Subject", blocks: [{ type: "HERO", imageUrl: `https://assets.example/${key}`, imageSelection: { mode: source === "AI" ? "AI" : "GALLERY", assetSource: source, assetId: "asset" } }],
-    }, "user", "mine"), /image is no longer available/);
+    }, { userId: "user", workspaceId: "mine", sessionVersion: 1 }), /image is no longer available/);
     assert.equal(writes, 0);
   }
 });
 
 test("edition save cannot bypass custom or source checks by selecting AUTO", async () => {
   for (const mode of ["CUSTOM", "AUTO"]) {
-    const exports: { saveEdition?: (id: string, input: unknown, actorId: string, workspaceId: string) => Promise<unknown> } = {};
+    const exports: { saveEdition?: (id: string, input: unknown, actor: { userId: string; workspaceId: string; sessionVersion: number }) => Promise<unknown> } = {};
     let customChecks = 0;
     const modules: Record<string, unknown> = {
       "@/lib/newsletters/types": { NEWSLETTER_BLOCK_TYPES: ["HERO"] },
@@ -86,7 +86,7 @@ test("edition save cannot bypass custom or source checks by selecting AUTO", asy
     runInNewContext(ts.transpileModule(code, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, {
       exports, URL, Error, require: (id: string) => modules[id] ?? {},
     });
-    await assert.rejects(exports.saveEdition!("edition", { subject: "Subject", blocks: [{ type: "HERO", imageUrl: "https://assets.example/workspaces/b/image.png", imageSelection: { mode } }] }, "actor", "a"), /(?:custom image is not available|source image is no longer available)/);
+    await assert.rejects(exports.saveEdition!("edition", { subject: "Subject", blocks: [{ type: "HERO", imageUrl: "https://assets.example/workspaces/b/image.png", imageSelection: { mode } }] }, { userId: "actor", workspaceId: "a", sessionVersion: 1 }), /(?:custom image is not available|source image is no longer available)/);
     assert.equal(customChecks, mode === "CUSTOM" ? 1 : 0);
   }
 });

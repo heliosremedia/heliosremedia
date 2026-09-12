@@ -16,3 +16,10 @@ export async function requireLockedWorkspaceEditor(tx: Prisma.TransactionClient,
   if (!access || !["OWNER", "ADMIN", "EDITOR"].includes(access.role)) throw new Error("WORKSPACE_WRITE_FORBIDDEN");
   return access;
 }
+
+/** Administrator workflows must not inherit the lower editor threshold. */
+export async function requireLockedWorkspaceAdministrator(tx: Prisma.TransactionClient, actor: WorkspaceWriteActor) {
+  const access = await requireLockedWorkspaceEditor(tx, actor);
+  if (!["OWNER", "ADMIN"].includes(access.role)) throw new Error("WORKSPACE_WRITE_FORBIDDEN");
+  return access;
+}
