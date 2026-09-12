@@ -30,6 +30,7 @@ test("scheduler SQL preserves held sends and stale schedules while claiming elig
       ['future', 'a', 'SCHEDULED', 'CLAIMED', 'SEND', true, 'none'],
       ['active', 'a', 'SCHEDULED', 'CLAIMED', 'SEND', true, 'none'],
       ['generate', 'b', 'AWAITING_GENERATION', 'PENDING', 'GENERATE', false, 'none'],
+      ['notify-unsupported', 'a', 'NEEDS_REVIEW', 'PENDING', 'NOTIFY', false, 'none'],
       ['generate-held', 'a', 'GENERATING', 'CLAIMED', 'GENERATE', false, 'none'],
       ['generate-stale', 'a', 'NEEDS_REVIEW', 'PENDING', 'GENERATE', false, 'none'],
       ['generate-missing', 'b', 'NEEDS_REVIEW', 'PENDING', 'GENERATE', false, 'none'],
@@ -61,8 +62,8 @@ test("scheduler SQL preserves held sends and stale schedules while claiming elig
     for (const row of rows) { assert.equal(row.claimToken, `new-token:${row.id}`); assert.equal(row.attempts, 1); }
     const held = await db.query<{ claimToken: string; attempts: number }>(`SELECT "claimToken", attempts FROM "NewsletterJob" WHERE id = 'held'`);
     assert.equal(held.rows[0].claimToken, 'old-token'); assert.equal(held.rows[0].attempts, 0);
-    const untouched = await db.query<{ attempts: number; claimToken: string }>(`SELECT attempts, "claimToken" FROM "NewsletterJob" WHERE id IN ('generate-held', 'generate-stale', 'generate-missing', 'generate-future', 'missed-stale', 'missed-scheduled', 'missed-future')`);
-    assert.equal(untouched.rows.length, 7);
+    const untouched = await db.query<{ attempts: number; claimToken: string }>(`SELECT attempts, "claimToken" FROM "NewsletterJob" WHERE id IN ('generate-held', 'generate-stale', 'generate-missing', 'generate-future', 'missed-stale', 'missed-scheduled', 'missed-future', 'notify-unsupported')`);
+    assert.equal(untouched.rows.length, 8);
     for (const row of untouched.rows) { assert.equal(row.attempts, 0); assert.equal(row.claimToken, 'old-token'); }
     assert.equal((await exports.claimDueNewsletterJobs!({ now, limit: 100 })).length, 0);
   } finally { await db.close(); }

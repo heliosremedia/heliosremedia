@@ -4,7 +4,7 @@ import test from "node:test";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
 
-function harness(options: { duration?: number; enqueueDuration?: number; jobs?: number; fail?: boolean; type?: "GENERATE" | "SEND" } = {}) {
+function harness(options: { duration?: number; enqueueDuration?: number; jobs?: number; fail?: boolean; type?: "GENERATE" | "SEND" | "NOTIFY" } = {}) {
   let clock = 0, claims = 0, active = false, finished = 0, enqueues = 0;
   const notifications: string[] = [];
   const modules: Record<string, unknown> = {
@@ -63,4 +63,11 @@ test("an unavailable administrator notification does not reclassify completed de
   const result = await (await h.call()).json();
   assert.equal(result.results.length, 1); assert.equal(result.results[0].success, true);
   assert.deepEqual(h.notifications, ["SEND_COMPLETED"]); assert.equal(h.stats().finished, 1);
+});
+
+test("an unsupported job is not reported as successfully executed", async () => {
+  const h = harness({ type: "NOTIFY", jobs: 1 });
+  const result = await (await h.call()).json();
+  assert.equal(result.results.length, 1); assert.equal(result.results[0].success, false);
+  assert.deepEqual(h.notifications, []); assert.equal(h.stats().finished, 1);
 });

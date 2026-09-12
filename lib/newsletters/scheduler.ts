@@ -239,6 +239,7 @@ export async function claimDueNewsletterJobs(input?: { now?: Date; limit?: numbe
         OR (job."status" = 'CLAIMED' AND job."leaseExpiresAt" < ${now})
       )
       AND series."status" = 'ACTIVE'
+      AND job."type" IN ('GENERATE', 'SEND', 'MISSED_APPROVAL')
       AND (
         job."type" <> 'SEND'
         OR (

@@ -13,7 +13,7 @@
     "requiredWorkspace": 29,
     "nullableWorkspace": 19,
     "withoutWorkspace": 65,
-    "routeFiles": 140
+    "routeFiles": 141
   },
   "models": [
     {
@@ -3433,6 +3433,7 @@
         "lib/newsletters/edition-transitions.ts",
         "lib/newsletters/generation-access.ts",
         "lib/newsletters/generation-recovery.ts",
+        "lib/newsletters/job-health.ts",
         "lib/newsletters/missed-approval.ts",
         "lib/newsletters/scheduler.ts",
         "lib/newsletters/series-write-lock.ts",
@@ -4743,6 +4744,13 @@
     },
     {
       "path": "app/api/admin/newsletters/images/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/newsletters/jobs/health/route.ts",
       "methods": [
         "GET"
       ],
