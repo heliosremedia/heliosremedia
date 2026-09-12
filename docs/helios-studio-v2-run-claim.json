@@ -1,9 +1,17 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-20260912T1917",
-  "expiresAt": "2026-09-12T21:00:00Z",
+  "expiresAt": null,
   "branch": "codex/v2-social-analytics-claim-fencing",
   "pr": 296,
-  "head": "5765369170bb41e155ee37d67a6600f09620247a",
-  "purpose": "Verifying claim fencing and batched atomic analytics persistence; preserve current run ownership."
+  "head": "9aa3c6847acdc489cb5dff9a3a3aa5a4a96772f1",
+  "tree": "3874c0e091d5715fccd639f865260f4302071cde",
+  "verifiedImplementationHead": "5765369170bb41e155ee37d67a6600f09620247a",
+  "verifiedImplementationRun": 34714309188,
+  "verification": "652 local and CI tests passed. Implementation CI passed TypeScript, Prisma generation, Chromium synthetic workflow and whitespace. Actual stale-claim regression and isolated PGlite atomicity/acknowledgement-loss checks passed.",
+  "finalHeadNote": "Documentation-only follow-up published after verified implementation. Its automatic CI has not been verified in this run; reconcile before advancing.",
+  "outstandingChanges": false,
+  "ledger": "docs/helios-studio-v2-progress-ledger.md",
+  "nextDependency": "Social publishing settlement isolated reproduction/review, connection-health observation ordering across analytics jobs, deliberate held-job recovery, and shared-job convergence. Preserve provider adapters/OAuth/publication. Hosted batch size/latency, multi-connection concurrency, historical mapping and Phase 1/2 exit gates remain open.",
+  "production": "ON HOLD for readiness and Jake QA/release decision. No real provider request, publication, migration, merge or deployment."
 }
