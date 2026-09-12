@@ -5,10 +5,9 @@ import { generateNewsletterEdition } from "@/lib/newsletters/generation";
 import { notifyNewsletterEdition } from "@/lib/newsletters/notification-context";
 import {
   claimDueNewsletterJobs,
-  completeNewsletterJob,
   enqueueDueNewsletterJobs,
-  failNewsletterJob,
 } from "@/lib/newsletters/scheduler";
+import { settleNewsletterJob, type NewsletterJobExecution, type NewsletterJobResult } from "@/lib/newsletters/job-settlement";
 import { markNewsletterApprovalMissed } from "@/lib/newsletters/missed-approval";
 import { shouldExecuteNewsletterJob } from "@/lib/newsletters/presentation";
 
@@ -30,11 +29,19 @@ export async function GET(request: Request) {
   const claimDeadline = performance.now() + claimWindowMs;
   const enqueued = await enqueueDueNewsletterJobs();
   let claimed = 0;
-  const results: Array<{ id: string; type: string; success: boolean }> = [];
+  const results: NewsletterJobResult[] = [];
   while (claimed < maxJobsPerInvocation && performance.now() < claimDeadline) {
     const [job] = await claimDueNewsletterJobs({ limit: 1, leaseSeconds: 300 });
     if (!job) break;
     claimed++;
+    if (performance.now() >= claimDeadline) {
+      // A slow claim query can consume admission time. Return only this unstarted
+      // claim to the queue; never enter domain execution with a depleted budget.
+      results.push(await settleNewsletterJob(job, "DEFERRED"));
+      break;
+    }
+    let execution: NewsletterJobExecution = "SUCCEEDED";
+    let executionError: unknown;
     try {
       if (!["GENERATE", "SEND", "MISSED_APPROVAL"].includes(job.type)) throw new Error("Unsupported newsletter job type requires review.");
       const edition = await prisma.newsletterEdition.findUnique({
@@ -46,12 +53,8 @@ export async function GET(request: Request) {
       });
       if (!edition) throw new Error("Newsletter edition no longer exists.");
       if (!shouldExecuteNewsletterJob(edition.series.status)) {
-        await completeNewsletterJob(job);
-        results.push({ id: job.id, type: job.type, success: true });
-        continue;
-      }
-
-      if (job.type === "GENERATE") {
+        execution = "SKIPPED";
+      } else if (job.type === "GENERATE") {
         await generateNewsletterEdition(edition.id, { kind: "BACKGROUND", jobId: job.id, claimToken: job.claimToken });
         await notifyNewsletterEdition({
           kind: "DRAFT_READY",
@@ -84,12 +87,15 @@ export async function GET(request: Request) {
           });
         }
       }
-      await completeNewsletterJob(job);
-      results.push({ id: job.id, type: job.type, success: true });
     } catch (error) {
-      await failNewsletterJob(job, error);
-      results.push({ id: job.id, type: job.type, success: false });
+      execution = "FAILED";
+      executionError = error;
     }
+    const result = await settleNewsletterJob(job, execution, executionError);
+    results.push(result);
+    // Ownership loss or unavailable persistence requires reconciliation. Avoid
+    // increasing uncertain work by claiming more jobs in this invocation.
+    if (result.settlement === "CLAIM_CHANGED" || result.settlement === "UNAVAILABLE") break;
   }
   return NextResponse.json({ success: true, enqueued, claimed, results });
 }
