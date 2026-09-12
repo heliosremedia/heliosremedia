@@ -4,12 +4,13 @@ import test from 'node:test';
 import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
 
-async function run(options: { accounts?: string[]; missingOwner?: boolean; lostClaim?: boolean; changedAccount?: boolean; responseLost?: boolean; writeFailure?: boolean; providerError?: boolean; backlog?: boolean; metricCount?: number; newerHealth?: boolean } = {}) {
+async function run(options: { accounts?: string[]; missingOwner?: boolean; lostClaim?: boolean; changedAccount?: boolean; responseLost?: boolean; writeFailure?: boolean; providerError?: boolean; backlog?: boolean; metricCount?: number; newerHealth?: boolean; postponed?: boolean } = {}) {
   const posts: Array<{ externalPostId: string; variantId: string }> = [];
   const snapshots: Array<Record<string, unknown>> = [];
   const outcomes: Array<Record<string, unknown>> = [];
   let calls = 0, reads = 0, decrypts = 0;
   let batches = 0;
+  let discoveryCutoff: Date;
   let currentClaim = 'synthetic-claim';
   const health: Record<string, unknown> = { analyticsPermissionState: 'PERMISSION_REQUIRED', analyticsLastAttemptAt: new Date('2099-01-01'), analyticsFailureCount: 2, analyticsError: 'Newer observation' };
   const connection = { id: 'connection-a', workspaceId: options.missingOwner ? undefined : 'a', platform: 'FACEBOOK', encryptedTokenPayload: 'synthetic', providerAccountId: 'account-a', grantedScopes: ['read'] };
@@ -22,7 +23,16 @@ async function run(options: { accounts?: string[]; missingOwner?: boolean; lostC
   ];
   const prisma = {
     socialAnalyticsJob: {
-      findMany: async () => [{ id: 'job' }, ...(options.backlog ? [{ id: 'later-job' }] : [])], updateMany: async () => ({ count: 1 }),
+      findMany: async ({ where }: { where: { nextAttemptAt: { lte: Date } } }) => {
+        discoveryCutoff = where.nextAttemptAt.lte;
+        return [{ id: 'job' }, ...(options.backlog ? [{ id: 'later-job' }] : [])];
+      },
+      updateMany: async ({ where }: { where: { nextAttemptAt?: { lte: Date } } }) => {
+        assert.equal(where.nextAttemptAt?.lte.getTime(), discoveryCutoff.getTime());
+        const dueAt = new Date(discoveryCutoff.getTime() + (options.postponed ? 60_000 : -60_000));
+        if (where.nextAttemptAt && dueAt > where.nextAttemptAt.lte) return { count: 0 };
+        return { count: 1 };
+      },
       findFirstOrThrow: async ({ where }: { where: { id: string; claimToken: string; status: string } }) => {
         assert.equal(where.status, 'RUNNING'); assert.equal(where.claimToken, currentClaim);
         return { id: 'job', connectionId: connection.id, connection, attempts: 0, rangeStart: new Date('2026-09-01'), rangeEnd: new Date('2026-09-12') };
@@ -183,4 +193,11 @@ test('older analytics outcomes complete their own job without replacing newer co
     assert.equal(result.outcomes[0].status, providerError ? 'RETRY_SCHEDULED' : 'SUCCEEDED');
     assert.equal(result.queue.requiresReview, false);
   }
+});
+
+test('a job postponed after discovery is not claimed from a stale analytics candidate list', async () => {
+  const result = await run({ postponed: true });
+  assert.equal(result.queue.processed, 0); assert.equal(result.queue.requiresReview, false);
+  assert.equal(result.calls, 0); assert.equal(result.decrypts, 0);
+  assert.equal(result.outcomes.length, 0); assert.equal(result.snapshots.length, 0);
 });

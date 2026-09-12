@@ -21,6 +21,8 @@ Protected boundary: no provider adapter, OAuth, token, destination, publication,
 
 Adjacent review reconfirmed social publishing settlement still performs ID-only terminal writes inside the provider catch. That code remains unchanged pending a separately scoped isolated regression and parity review. Deliberate held-job recovery, unique per-attempt chronology for equal queue timestamps, historical ownership mapping, hosted contention/latency and shared-job convergence remain open. Phase 1 and Phase 2 exit gates are not satisfied. Full local suite, TypeScript and draft CI results will be recorded after completion.
 
+Published draft [#297](https://github.com/heliosremedia/heliosremedia/pull/297), initial remote code `6c572147099c7fad02b28a646377ea8b3b92f15c`, tree `b9e09154cda17398b9f98b68b93eecfb5db131b9`, matching local `b6982e162d784cc869ae4864f4cdb5262657fdb3`. Local 654/654 tests, non-incremental TypeScript, focused ESLint and whitespace passed. Continued with adjacent queue admission: a second executable regression reproduced a job postponed after candidate discovery still being claimed and reaching the synthetic provider. Conditional claiming now rechecks `nextAttemptAt <= now` together with status and absent token. Postponed candidates skip cleanly before decryption/provider work. This is an actual worker test with a synthetic database predicate, not a hosted concurrent rescheduling test. Follow-up combined verification pending.
+
 ## 2026-09-11 checkpoint recovery and migration preflight
 
 Stage: Phase 1, not production-ready. Phase 0 inventory remains incomplete.

@@ -20,7 +20,7 @@ export async function processAnalyticsQueue(now=new Date()){
   let requiresReview = false;
   for(const item of jobs){
     const claimToken=randomUUID();
-    const claim=await prisma.socialAnalyticsJob.updateMany({where:{id:item.id,status:{in:["PENDING","RETRY_SCHEDULED"]},claimToken:null},data:{status:"RUNNING",claimToken,claimedAt:now}});
+    const claim=await prisma.socialAnalyticsJob.updateMany({where:{id:item.id,status:{in:["PENDING","RETRY_SCHEDULED"]},nextAttemptAt:{lte:now},claimToken:null},data:{status:"RUNNING",claimToken,claimedAt:now}});
     if(!claim.count)continue;
     processed++;
     try { requiresReview = !(await execute(item.id,claimToken,now)); }
