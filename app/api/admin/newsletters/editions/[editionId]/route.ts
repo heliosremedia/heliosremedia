@@ -1,3 +1,5 @@
+import { newsletterImageReferenceMatches, safeNewsletterImageUrl } from "@/lib/newsletters/source-images";
+import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { resolveNewsletterWorkspace } from "@/lib/newsletters/ownership";
 import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import { NextResponse } from "next/server";
@@ -164,7 +166,7 @@ async function saveEdition(editionId: string, value: unknown, actorId: string, w
   const [mediaAssets, blogAssets] = await Promise.all([
     mediaAssetIds.length ? prisma.media.findMany({
       where: { project: { workspaceId }, id: { in: mediaAssetIds }, visibility: "VISIBLE" },
-      select: { id: true, storageKey: true, externalUrl: true },
+      select: { id: true, projectId: true, storageKey: true, externalUrl: true },
     }) : [],
     blogAssetIds.length ? prisma.blogPost.findMany({
       where: { AND: [await getBlogOwnershipScope(workspaceId)], id: { in: blogAssetIds } },
@@ -181,18 +183,17 @@ async function saveEdition(editionId: string, value: unknown, actorId: string, w
       throw new Error("The selected gallery image is invalid.");
     }
     if (selection.mode === "AI" && !aiAssets.some((asset) =>
-      asset.id === selection.assetId && asset.publicUrl === block.content.imageUrl
+      asset.id === selection.assetId && newsletterImageReferenceMatches(workspaceId, asset.storageKey)
+      && safeNewsletterImageUrl(getPublicAssetUrl(asset.storageKey)) === block.content.imageUrl
     )) throw new Error("The selected AI image is no longer available.");
     if (selection.assetSource === "PORTFOLIO" && !mediaAssets.some((asset) => {
-      const url = asset.storageKey
-        ? `${process.env.R2_PUBLIC_URL?.replace(/\/+$/, "")}/${asset.storageKey}`
-        : asset.externalUrl;
+      if (!newsletterImageReferenceMatches(workspaceId, asset.storageKey || asset.externalUrl, asset.projectId)) return false;
+      const url = safeNewsletterImageUrl(asset.storageKey ? getPublicAssetUrl(asset.storageKey) : asset.externalUrl);
       return asset.id === selection.assetId && url === block.content.imageUrl;
     })) throw new Error("The selected portfolio image is no longer available.");
     if (selection.assetSource === "BLOG" && !blogAssets.some((asset) => {
-      const url = asset.featuredImageStorageKey
-        ? `${process.env.R2_PUBLIC_URL?.replace(/\/+$/, "")}/${asset.featuredImageStorageKey}`
-        : asset.featuredImageUrl;
+      if (!newsletterImageReferenceMatches(workspaceId, asset.featuredImageStorageKey || asset.featuredImageUrl)) return false;
+      const url = safeNewsletterImageUrl(asset.featuredImageStorageKey ? getPublicAssetUrl(asset.featuredImageStorageKey) : asset.featuredImageUrl);
       return asset.id === selection.assetId && url === block.content.imageUrl;
     })) throw new Error("The selected blog image is no longer available.");
   }

@@ -12,7 +12,7 @@ import {
   forbiddenNewsletterResponse,
   requireNewsletterAdministrator,
 } from "@/lib/newsletters/api";
-import { safeNewsletterImageUrl } from "@/lib/newsletters/source-images";
+import { newsletterImageReferenceMatches, safeNewsletterImageUrl } from "@/lib/newsletters/source-images";
 
 export async function GET(request: Request) {
   try {
@@ -162,12 +162,18 @@ async function getNewsletterImages(request: Request) {
     ? orderProjectMedia(media.slice(0, NEWSLETTER_PROJECT_PAGE_SIZE), selectedProject?.thumbnailMediaId)
     : media.slice(0, NEWSLETTER_PROJECT_PAGE_SIZE);
   const items = [
-    ...generated.map(item => ({
-      id: `ai:${item.id}`, assetId: item.id, source: "AI", url: item.publicUrl,
-      thumbnailUrl: item.publicUrl, label: item.altText, altText: item.altText,
-      attribution: item.attribution, width: item.width, height: item.height,
-    })),
+    ...generated.flatMap(item => {
+      if (!newsletterImageReferenceMatches(session.workspaceId, item.storageKey)) return [];
+      const url = safeNewsletterImageUrl(getPublicAssetUrl(item.storageKey));
+      if (!url) return [];
+      return [{
+        id: `ai:${item.id}`, assetId: item.id, source: "AI", url,
+        thumbnailUrl: url, label: item.altText, altText: item.altText,
+        attribution: item.attribution, width: item.width, height: item.height,
+      }];
+    }),
     ...visibleMedia.flatMap(item => {
+      if (!newsletterImageReferenceMatches(session.workspaceId, item.storageKey || item.externalUrl, item.projectId)) return [];
       const url = safeNewsletterImageUrl(item.storageKey ? getPublicAssetUrl(item.storageKey) : item.externalUrl);
       if (!url) return [];
       return [{
@@ -180,6 +186,7 @@ async function getNewsletterImages(request: Request) {
       }];
     }),
     ...posts.flatMap(item => {
+      if (!newsletterImageReferenceMatches(session.workspaceId, item.featuredImageStorageKey || item.featuredImageUrl)) return [];
       const url = safeNewsletterImageUrl(item.featuredImageStorageKey
         ? getPublicAssetUrl(item.featuredImageStorageKey) : item.featuredImageUrl);
       if (!url) return [];

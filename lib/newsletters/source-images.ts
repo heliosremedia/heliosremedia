@@ -69,3 +69,25 @@ export function preserveManualImage(
   }
   return replacement;
 }
+
+// This rejects known foreign namespaces; legacy keys still require scoped database ownership.
+// It does not attest an object's bytes, upload completion, or historical provenance.
+export function newsletterImageReferenceMatches(
+  workspaceId: string,
+  reference: string | null | undefined,
+  projectId?: string,
+) {
+  if (!reference) return true;
+  if (!workspaceId || /[\\\s]/.test(reference) || /%(?:25|2f|2e|5c)/i.test(reference)) return false;
+  const segments = reference.split("/");
+  if (segments.some((part) => part === "." || part === "..")) return false;
+  let key = reference;
+  if (/^https?:\/\//.test(reference)) {
+    try { key = new URL(reference).pathname.replace(/^\//, ""); } catch { return false; }
+  }
+  if (/[?#]/.test(key)) return false;
+  const owner = key.match(/^workspaces\/([^/]+)\//)?.[1]
+    ?? key.match(/^email\/newsletters\/([^/]+)\//)?.[1];
+  const project = key.match(/^projects\/([^/]+)\//)?.[1];
+  return (!owner || owner === workspaceId) && (!project || project === projectId);
+}
