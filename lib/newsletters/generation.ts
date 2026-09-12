@@ -53,7 +53,11 @@ export async function generateNewsletterEdition(editionId: string, context: News
     const run = await tx.newsletterGenerationRun.create({
       data: {
         editionId, status: "RUNNING", promptVersion: "newsletter-v1.5.0",
-        instructionsSnapshot: { workspaceId, seriesId: edition.seriesId, contentNotes: edition.contentNotes },
+        instructionsSnapshot: { workspaceId, seriesId: edition.seriesId, contentNotes: edition.contentNotes,
+          execution: context.kind === "BACKGROUND"
+            ? { kind: "BACKGROUND", jobId: context.jobId, editionVersion: edition.rowVersion }
+            : { kind: "ADMIN", actorId: context.actor.userId, editionVersion: edition.rowVersion },
+        },
         sourceManifest: [], attempt, startedAt: new Date(),
       },
     });
@@ -212,8 +216,8 @@ export async function generateNewsletterEdition(editionId: string, context: News
   } catch (error) {
     const message = error instanceof Error ? error.message.slice(0, 500) : "Newsletter generation failed.";
     await prisma.$transaction([
-      prisma.newsletterGenerationRun.update({
-        where: { id: run.id },
+      prisma.newsletterGenerationRun.updateMany({
+        where: { id: run.id, editionId, status: "RUNNING" },
         data: { status: "FAILED", errorCode: "GENERATION_FAILED", errorMessage: message, completedAt: new Date() },
       }),
       prisma.newsletterEdition.updateMany({
