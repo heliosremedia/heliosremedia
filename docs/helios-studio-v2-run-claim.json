@@ -4,7 +4,7 @@
   "expiresAt": "2026-09-13T00:15:00Z",
   "branch": "codex/v2-publishing-review-containment",
   "baseHead": "01383c03018412873b01934d6588b3402c68182d",
-  "outstandingChanges": false,
-  "scope": "Read-only held publishing evidence and queue ownership hardening; no recovery mutations, provider requests or integration changes",
+  "outstandingChanges": true,
+  "scope": "Queue joint ownership and safe DTOs, read-only publishing review API/UI, PGlite and synthetic browser verification; publishing draft",
   "production": "ON HOLD"
 }
