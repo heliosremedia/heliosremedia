@@ -1,6 +1,7 @@
 {
-  "status": "released",
-  "runId": null,
-  "expiresAt": null,
-  "branch": null
+  "status": "active",
+  "runId": "atlas-20260912T1650",
+  "expiresAt": "2026-09-12T18:55:00Z",
+  "branch": "codex/v2-newsletter-job-observability",
+  "baseHead": "d8b99945e99cfe99ef85f14485669e815dffd0ea"
 }
