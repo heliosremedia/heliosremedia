@@ -484,3 +484,9 @@ Continued directly after publishing #283, remote head `23ae3a5a623fcc144d5d92b25
 Expanded actual access-service tests cover missing/changed generation dates and the due-date predicate while preserving current-claim and administrator tests. Hosted schedule/claim races, heartbeats and recovery of abandoned generation runs remain unverified. No schema migration, actual generation, live mutation, real send, merge or production deployment occurred.
 
 Verification: 615 automated tests passed, zero failed; non-incremental TypeScript, scoped ESLint and diff checks passed. Existing tests were expanded, so the test count is unchanged from #283. Production remains held for readiness and Jake's QA.
+
+## Automated regression workflow foundation
+
+Continued after #284 to address a release-evidence gap: the draft tree had no GitHub Actions workflows. Added V2 regression checks on main/codex branch pushes, pull requests to main and manual dispatch. The job uses read-only repository permissions, disables persisted checkout credentials, pins checkout/setup-node actions to verified commit SHAs, installs locked dependencies without lifecycle scripts, and runs Prisma generation, isolated tests, TypeScript and patch whitespace checks. Database URLs are deliberately unusable loopback placeholders. There is no deployment, database migration or provider credential access.
+
+Validation: workflow YAML parsed and event/permission/step structure checked locally; the exact application code previously passed 615 tests and non-incremental TypeScript. Action pins were resolved from the official actions/checkout and actions/setup-node v6 refs. No new full application run was needed for YAML/docs-only changes. GitHub execution and required-check enforcement still need verification. A configured workflow is not itself proof that CI ran or that branch protection enforces it. Hosted integration, browser, migration, restoration and production gates remain open.

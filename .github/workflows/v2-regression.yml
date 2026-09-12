@@ -1,0 +1,45 @@
+name: V2 regression
+
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v2-regression-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    name: Tests and TypeScript
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DIRECT_URL: postgresql://unused:unused@127.0.0.1:1/unused
+      DATABASE_URL: postgresql://unused:unused@127.0.0.1:1/unused
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - name: Checkout reviewed code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+      - name: Generate Prisma client without migrating a database
+        run: ./node_modules/.bin/prisma generate
+      - name: Run isolated regression tests
+        run: npm test
+      - name: Check TypeScript
+        run: ./node_modules/.bin/tsc --noEmit --incremental false
+      - name: Check patch whitespace
+        run: git show --format= --check HEAD
