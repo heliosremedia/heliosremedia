@@ -453,11 +453,7 @@ export async function POST(request: Request, context: Context) {
       if (body.confirmation !== "REPLACE_SCHEDULE_AND_SEND_NOW") {
         throw new Error("Final send confirmation is required.");
       }
-      await prisma.newsletterJob.updateMany({
-        where: { editionId, type: "SEND", status: "PENDING" },
-        data: { status: "CANCELLED", completedAt: new Date() },
-      });
-      const delivery = await deliverApprovedNewsletter(editionId);
+      const delivery = await deliverApprovedNewsletter(editionId, { kind: "ADMIN", actor: session });
       if (delivery.status === "SEND_FAILED") {
         return NextResponse.json({
           success: false,

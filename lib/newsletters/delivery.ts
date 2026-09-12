@@ -1,3 +1,4 @@
+import { requireNewsletterDeliveryAccess, type NewsletterDeliveryContext } from "./delivery-access";
 import { assertNewsletterApprovalReferences, assertNewsletterDeliveryBinding } from "./delivery-approval";
 import { resolveCampaignWorkspace } from "@/lib/client-communications/campaign-ownership";
 import { newsletterRecipientIdentity } from "./recipient-identity";
@@ -49,7 +50,10 @@ function parseBlocks(value: unknown): SnapshotBlock[] {
   return blocks.filter((block): block is SnapshotBlock => Boolean(block && typeof block === "object" && !Array.isArray(block)));
 }
 
-export async function deliverApprovedNewsletter(editionId: string) {
+export async function deliverApprovedNewsletter(editionId: string, execution: NewsletterDeliveryContext) {
+  if (!execution || !["ADMIN", "BACKGROUND"].includes(execution.kind)) throw new Error("WORKSPACE_WRITE_FORBIDDEN");
+  const context: NewsletterDeliveryContext = execution.kind === "ADMIN"
+    ? { kind: "ADMIN", actor: { ...execution.actor } } : { ...execution };
   const edition = await prisma.newsletterEdition.findUnique({
     where: { id: editionId },
     include: {
@@ -61,7 +65,7 @@ export async function deliverApprovedNewsletter(editionId: string) {
   });
   if (!edition || !edition.approvedRevision || !edition.approvals[0]) throw new Error("Newsletter approval is missing.");
   if (edition.series.status !== "ACTIVE") throw new Error("This newsletter series is paused.");
-  if (!["SCHEDULED", "SENDING", "SEND_FAILED", "PARTIALLY_SENT"].includes(edition.status)) {
+  if (!["SCHEDULED", "SEND_FAILED", "PARTIALLY_SENT"].includes(edition.status)) {
     throw new Error("Only a scheduled or safely retryable newsletter can be sent.");
   }
   const approval = edition.approvals[0];
@@ -71,7 +75,6 @@ export async function deliverApprovedNewsletter(editionId: string) {
     revision: edition.approvedRevision, approval,
   });
   const selection = parseSelection(approval.recipientSelectionSnapshot);
-  // Eligibility is deliberately resolved again immediately before campaign creation.
   const workspaceId = await requireNewsletterApprovalWorkspace(approval.recipientSelectionSnapshot, edition.series.workspaceId);
   if (edition.delivery && await resolveCampaignWorkspace(edition.delivery.campaign.workspaceId) !== workspaceId) throw new Error("Newsletter delivery campaign belongs to another workspace.");
   const approvedBlocks = parseBlocks(edition.approvedRevision.blocksSnapshot);
@@ -89,6 +92,8 @@ export async function deliverApprovedNewsletter(editionId: string) {
     subject: edition.approvedRevision.subject, previewText: edition.approvedRevision.previewText,
     verifiedHashes: [contentHash, edition.approvedRevision.contentHash], delivery: edition.delivery,
   });
+  if (edition.status !== "SCHEDULED" && !edition.delivery) throw new Error("Retryable delivery campaign is missing.");
+  await prisma.$transaction(tx => requireNewsletterDeliveryAccess(tx, edition.id, workspaceId, edition.intendedSendAt, context));
   const resolvedRecipients = await resolveEligibleNewsletterRecipients(workspaceId, selection);
   const eligible = resolvedRecipients.eligible;
   if (!eligible.length && !edition.delivery) throw new Error("No eligible newsletter recipients remain.");
@@ -105,20 +110,24 @@ export async function deliverApprovedNewsletter(editionId: string) {
     linkUrl: block.linkUrl ?? block.link,
   }));
 
-  let campaign = edition.delivery?.campaign;
-  if (!campaign) {
-    const created = await prisma.$transaction(async (transaction) => {
+  const campaign = await prisma.$transaction(async (transaction) => {
+      await requireNewsletterDeliveryAccess(transaction, edition.id, workspaceId, edition.intendedSendAt, context);
       const claimed = await transaction.newsletterEdition.updateMany({
         where: {
           id: edition.id, rowVersion: edition.rowVersion, intendedSendAt: edition.intendedSendAt,
-          status: "SCHEDULED",
+          status: edition.status,
           approvedRevisionId: edition.approvedRevision!.id,
           series: { status: "ACTIVE", workspaceId: edition.series.workspaceId },
           approvals: { some: { id: approval.id, revokedAt: null, revisionId: edition.approvedRevision!.id, approvedSendAt: edition.intendedSendAt } },
         },
-        data: { status: "SENDING" },
+        data: { status: "SENDING", rowVersion: { increment: 1 } },
       });
       if (claimed.count !== 1) throw new Error("Newsletter delivery was already claimed.");
+      if (context.kind === "ADMIN") await transaction.newsletterJob.updateMany({
+        where: { editionId: edition.id, type: "SEND", status: "PENDING" },
+        data: { status: "CANCELLED", completedAt: new Date(), lastErrorCode: "MANUAL_SEND_CLAIMED" },
+      });
+      if (edition.delivery) return edition.delivery.campaign;
       const nextCampaign = await transaction.emailCampaign.create({
         data: {
           workspaceId,
@@ -153,9 +162,7 @@ export async function deliverApprovedNewsletter(editionId: string) {
         },
       });
       return nextCampaign;
-    });
-    campaign = created;
-  }
+  });
 
   const currentlyEligible = new Set(eligible.map((recipient) => newsletterRecipientIdentity(recipient.id, recipient.normalizedEmail)));
   const newlyIneligible = campaign.recipients.filter((recipient) =>
@@ -173,6 +180,15 @@ export async function deliverApprovedNewsletter(editionId: string) {
   let sent = campaign.recipients.filter((recipient) => recipient.status === "SENT").length;
   let failed = 0;
   for (let index = 0; index < pending.length; index += 100) {
+    // Do not resume an expired worker or revoked administrator between batches.
+    await prisma.$transaction(async tx => {
+      await requireNewsletterDeliveryAccess(tx, edition.id, workspaceId, edition.intendedSendAt, context);
+      const active = await tx.newsletterEdition.findFirst({
+        where: { id: edition.id, rowVersion: edition.rowVersion + 1, status: "SENDING", approvedRevisionId: edition.approvedRevision!.id, series: { workspaceId: edition.series.workspaceId, status: "ACTIVE" } },
+        select: { id: true },
+      });
+      if (!active) throw new Error("NEWSLETTER_DELIVERY_CLAIM_EXPIRED");
+    });
     const batch = pending.slice(index, index + 100);
     try {
       const tokens = await Promise.all(batch.map(recipient =>
@@ -215,19 +231,21 @@ export async function deliverApprovedNewsletter(editionId: string) {
   const campaignStatus = sent && failed ? "PARTIAL" : sent ? "SENT" : "FAILED";
   const editionStatus = sent && failed ? "PARTIALLY_SENT" : sent ? "SENT" : "SEND_FAILED";
   const completedAt = new Date();
-  await prisma.$transaction([
-    prisma.emailCampaign.update({
-      where: { id: campaign.id },
+  await prisma.$transaction(async tx => {
+    // Record the captured execution's outcome even if its actor was revoked after provider acceptance.
+    const finished = await tx.newsletterEdition.updateMany({
+      where: { id: edition.id, rowVersion: edition.rowVersion + 1, status: "SENDING", approvedRevisionId: edition.approvedRevision!.id, series: { workspaceId: edition.series.workspaceId } },
+      data: { status: editionStatus, sentAt: sent ? completedAt : null, rowVersion: { increment: 1 } },
+    });
+    if (finished.count !== 1) throw new Error("NEWSLETTER_DELIVERY_CLAIM_EXPIRED");
+    await tx.emailCampaign.update({
+      where: { id: campaign.id, workspaceId: campaign.workspaceId },
       data: { status: campaignStatus, sentCount: sent, failedCount: failed, sentAt: sent ? completedAt : null },
-    }),
-    prisma.newsletterEdition.update({
-      where: { id: edition.id },
-      data: { status: editionStatus, sentAt: sent ? completedAt : null },
-    }),
-    prisma.newsletterDelivery.update({
-      where: { editionId: edition.id },
+    });
+    await tx.newsletterDelivery.update({
+      where: { editionId: edition.id, campaignId: campaign.id, revisionId: edition.approvedRevision!.id },
       data: { completedAt },
-    }),
-  ]);
+    });
+  });
   return { campaignId: campaign.id, sent, failed, status: editionStatus };
 }

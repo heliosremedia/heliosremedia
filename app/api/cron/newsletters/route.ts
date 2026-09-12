@@ -55,7 +55,7 @@ export async function GET(request: Request) {
         });
       } else if (job.type === "SEND") {
         try {
-          const delivery = await deliverApprovedNewsletter(edition.id);
+          const delivery = await deliverApprovedNewsletter(edition.id, { kind: "BACKGROUND", jobId: job.id, claimToken: job.claimToken });
           await sendNewsletterAdminNotification({
             kind: delivery.failed ? "SEND_FAILED" : "SEND_COMPLETED",
             editionLabel: label,
