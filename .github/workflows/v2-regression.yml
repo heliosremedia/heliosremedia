@@ -42,5 +42,9 @@ jobs:
         run: npm test
       - name: Check TypeScript
         run: ./node_modules/.bin/tsc --noEmit --incremental false
+      - name: Install Chromium for synthetic workflow checks
+        run: ./node_modules/.bin/playwright install --with-deps chromium
+      - name: Check generation recovery in a browser
+        run: npm run test:recovery-browser
       - name: Check patch whitespace
         run: git show --format= --check HEAD
