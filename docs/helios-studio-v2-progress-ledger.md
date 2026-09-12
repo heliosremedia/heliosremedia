@@ -390,3 +390,17 @@ Recovery publication was reconstructed from the verified #272 GitHub files and t
 Protected workflow reason: an existing retry campaign previously skipped the initial delivery claim, allowing concurrent executions and lacking fresh actor/job authorization. Resend adapter/configuration, tokens, recipient-selection rules, provider payloads and idempotency format remain unchanged. No real email, notification, job, migration, merge or deployment occurred.
 
 Release gates: interrupted SENDING executions now require explicit reconciliation; automatic takeover is intentionally absent until provider acceptance and durable recovery evidence can prevent duplicates. Complete retry recovery/leases, between-batch eligibility refresh, final authorization-to-provider races, hosted concurrency/deadlock tests, historical reconciliation and actual browser/test-send QA before release. Single-company containment remains. Production is held for full readiness and Jake's QA.
+
+## Recovery verification of draft #273
+
+The development environment is available again. The recovered checkout was clean at remote commit `3a8cfc8b7563420b0b21b6f881367b6dbcb3e573`, tree `1375cf86d13deaded3cb3ff3bb517ab22fc83cb7`, matching the published recovery checkpoint. On this recovered tree, the full automated suite passed 587 tests with zero failures and non-incremental TypeScript exited successfully. This closes the interrupted local verification gap for the published checkpoint; it does not establish equivalence to any inaccessible pre-disconnection edits or hosted workflow correctness.
+
+Delivery recovery, between-batch recipient eligibility, hosted concurrency, browser QA and the remaining roadmap are still outstanding. No merge, production migration, deployment or real send was performed.
+
+## Newsletter batch eligibility and uncertain acceptance containment
+
+Continued after draft #273 and successful recovery verification. Delivery refreshes existing company-scoped recipient eligibility before each batch, skips removed recipients before tokens/provider effects and scopes skip writes by campaign and pending/failed state. Provider success followed by persistence failure, incomplete receipts or uncertain provider errors now holds the edition for reconciliation instead of making the batch retryable. Explicit preflight configuration failures remain retryable. The API reports held/expired/busy delivery conflicts.
+
+Verification: 591 automated tests passed, zero failed; final non-incremental TypeScript, focused ESLint and diff checks passed. A test-only TypeScript parameter property incompatible with Node's strip-types mode was replaced with a normal field/constructor before final verification. Actual-orchestration tests use fake providers and mocked transactions. Provider adapters, configuration, payload construction, preference tokens and idempotency format are unchanged. No real send, migration, merge or deployment occurred.
+
+This prevents unsafe automatic re-entry but does not implement delivery recovery. Durable batch attempts, immutable receipts, reconciliation of uncertain acceptance, lease recovery, hosted races, final consent-check timing and browser QA remain gates. See the delivery reconciliation document. Production remains held for readiness and Jake's QA.
