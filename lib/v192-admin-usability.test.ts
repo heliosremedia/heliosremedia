@@ -62,7 +62,9 @@ test("workspace-owned operational records drive dashboard and newsletter counts"
   const sync = read("app/api/admin/clients/sync/route.ts");
   assert.match(dashboard, /clientSyncRun\.findFirst/);
   assert.match(dashboard, /workspaceId/);
-  assert.match(newsletter, /createdBy: \{ workspaceId: session\.workspaceId \}/);
+  assert.match(newsletter, /getContentOwnershipScope\(session\.workspaceId\)/);
+  assert.match(newsletter, /series: ownershipScope/);
+  assert.doesNotMatch(newsletter, /createdBy:/);
   assert.match(sync, /clientSyncRun\.create/);
   assert.match(sync, /workspaceId: session\.workspaceId/);
 });
