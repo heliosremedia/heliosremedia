@@ -4,18 +4,19 @@ import test from "node:test";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
 
-function harness(options: { duration?: number; enqueueDuration?: number; jobs?: number; fail?: boolean } = {}) {
+function harness(options: { duration?: number; enqueueDuration?: number; jobs?: number; fail?: boolean; type?: "GENERATE" | "SEND" } = {}) {
   let clock = 0, claims = 0, active = false, finished = 0, enqueues = 0;
+  const notifications: string[] = [];
   const modules: Record<string, unknown> = {
     "next/server": { NextResponse: Response },
     "@/lib/prisma": { prisma: { newsletterEdition: { findUnique: async () => ({ id: "edition", subject: "Synthetic", series: { name: "Series", status: "ACTIVE" } }) } } },
     "@/lib/site": { getSiteUrl: () => "https://synthetic.invalid" },
-    "@/lib/newsletters/delivery": { deliverApprovedNewsletter: async () => { throw new Error("Unexpected send"); } },
+    "@/lib/newsletters/delivery": { deliverApprovedNewsletter: async () => { assert.equal(options.type, "SEND"); return { sent: 3, failed: 0 }; } },
     "@/lib/newsletters/generation": { generateNewsletterEdition: async (_id: string, actor: { kind: string; jobId: string; claimToken: string }) => {
       assert.equal(actor.kind, "BACKGROUND"); assert.equal(actor.jobId, `job-${claims}`); assert.equal(actor.claimToken, `token-${claims}`);
       clock += options.duration ?? 0; if (options.fail) throw new Error("Synthetic failure");
     } },
-    "@/lib/newsletters/notifications": { sendNewsletterAdminNotification: async () => ({ delivered: false }) },
+    "@/lib/newsletters/notification-context": { notifyNewsletterEdition: async (input: { editionId: string; kind: string }) => { assert.equal(input.editionId, "edition"); notifications.push(input.kind); return { delivered: false }; } },
     "@/lib/newsletters/missed-approval": { markNewsletterApprovalMissed: async () => { throw new Error("Unexpected approval mutation"); } },
     "@/lib/newsletters/presentation": { shouldExecuteNewsletterJob: () => true },
     "@/lib/newsletters/scheduler": {
@@ -24,7 +25,7 @@ function harness(options: { duration?: number; enqueueDuration?: number; jobs?: 
         assert.equal(active, false, "must settle the current job before claiming another");
         assert.equal(input.limit, 1); assert.equal(input.leaseSeconds, 300); claims++;
         if (claims > (options.jobs ?? 20)) return [];
-        active = true; return [{ id: `job-${claims}`, editionId: "edition", type: "GENERATE", claimToken: `token-${claims}` }];
+        active = true; return [{ id: `job-${claims}`, editionId: "edition", type: options.type ?? "GENERATE", claimToken: `token-${claims}` }];
       },
       completeNewsletterJob: async () => { active = false; finished++; },
       failNewsletterJob: async () => { active = false; finished++; },
@@ -35,7 +36,7 @@ function harness(options: { duration?: number; enqueueDuration?: number; jobs?: 
     exports, Error, Date, performance: { now: () => clock }, process: { env: { CRON_SECRET: "synthetic-secret" } },
     require: (id: string) => { assert.ok(id in modules, id); return modules[id]; },
   });
-  return { call: (authorized = true) => exports.GET!(new Request("https://synthetic.invalid", { headers: authorized ? { Authorization: "Bearer synthetic-secret" } : {} })), stats: () => ({ claims, finished, enqueues }) };
+  return { call: (authorized = true) => exports.GET!(new Request("https://synthetic.invalid", { headers: authorized ? { Authorization: "Bearer synthetic-secret" } : {} })), notifications, stats: () => ({ claims, finished, enqueues }) };
 }
 
 test("worker claims one job at a time, stops at its cap and leaves later work unclaimed", async () => {
@@ -54,4 +55,12 @@ test("worker admission window includes enqueue time and stops after slow success
 test("worker exits on an empty queue and unauthorized requests have no scheduling effects", async () => {
   const empty = harness({ jobs: 0 }); assert.equal((await (await empty.call()).json()).claimed, 0); assert.equal(empty.stats().claims, 1);
   const denied = harness(); assert.equal((await denied.call(false)).status, 401); assert.deepEqual(denied.stats(), { claims: 0, finished: 0, enqueues: 0 });
+});
+
+
+test("an unavailable administrator notification does not reclassify completed delivery as a failed send", async () => {
+  const h = harness({ type: "SEND", jobs: 1 });
+  const result = await (await h.call()).json();
+  assert.equal(result.results.length, 1); assert.equal(result.results[0].success, true);
+  assert.deepEqual(h.notifications, ["SEND_COMPLETED"]); assert.equal(h.stats().finished, 1);
 });

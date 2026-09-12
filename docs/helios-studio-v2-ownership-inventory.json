@@ -1201,6 +1201,7 @@
         "lib/inquiry-ownership.ts",
         "lib/newsletters/api.ts",
         "lib/newsletters/custom-image-ownership.ts",
+        "lib/newsletters/notification-context.ts",
         "lib/newsletters/ownership.ts",
         "lib/photo-comparison.ts",
         "lib/project-preview-url.ts",
@@ -3108,6 +3109,7 @@
         "lib/newsletters/generation-recovery.ts",
         "lib/newsletters/generation.ts",
         "lib/newsletters/missed-approval.ts",
+        "lib/newsletters/notification-context.ts",
         "lib/newsletters/scheduler.ts",
         "lib/newsletters/series-write-lock.ts",
         "lib/newsletters/studio.ts"
