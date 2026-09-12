@@ -3,11 +3,34 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import GenerationRecoveryPanel from "../../app/admin/newsletter-studio/components/GenerationRecoveryPanel";
 import NewsletterJobHealthPanel from "../../app/admin/newsletter-studio/components/NewsletterJobHealthPanel";
+import AnalyticsRecoveryPanel from "../../app/admin/social-studio/analytics/AnalyticsRecoveryPanel";
 
 let recovered = false;
 window.recoveryFixture = { calls: [], mode: "eligible" };
 window.jobHealthFixture = { calls: [], mode: "healthy" };
+window.analyticsRecoveryFixture = { calls: [], mode: "eligible", cancelled: false };
 window.fetch = async (url, options = {}) => {
+  if (url.startsWith('/api/admin/social/analytics/jobs')) {
+    const fixture = window.analyticsRecoveryFixture;
+    fixture.calls.push({ url, method: options.method, body: options.body });
+    await new Promise(resolve => setTimeout(resolve, 80));
+    if (fixture.mode === 'forbidden') return Response.json({ success: false }, { status: 403 });
+    if (url === '/api/admin/social/analytics/jobs') {
+      if (fixture.mode === 'list-fails') return Response.json({ success: false }, { status: 503 });
+      return Response.json({ success: true, observedAt: '2026-09-12T12:00:00Z', truncated: false,
+        jobs: fixture.cancelled ? [] : [{ jobId: 'analytics/job-a', platform: 'FACEBOOK', attempts: 1, claimedAt: '2026-09-01T12:00:00Z', status: 'RUNNING' }] });
+    }
+    if (options.method === 'POST') {
+      if (fixture.mode === 'stale') return Response.json({ success: false }, { status: 409 });
+      fixture.cancelled = true;
+      if (fixture.mode === 'ack-lost') throw new Error('Synthetic committed response loss');
+      return Response.json({ success: true, result: { jobId: 'analytics/job-a', status: 'CANCELLED' } });
+    }
+    if (fixture.mode === 'malformed') return Response.json({ success: true, review: { jobId: 'foreign-job', eligible: true } });
+    return Response.json({ success: true, review: { jobId: 'analytics/job-a', platform: 'FACEBOOK', status: fixture.cancelled ? 'CANCELLED' : 'RUNNING',
+      reviewVersion: 'a'.repeat(64), eligible: !fixture.cancelled && fixture.mode !== 'blocked', cancellationEnabled: fixture.mode !== 'disabled',
+      claimedAt: '2026-09-01T12:00:00Z', attempts: 1, observedAt: '2026-09-12T12:00:00Z', automaticRetryAllowed: false } });
+  }
   if (url === "/api/admin/newsletters/jobs/health") {
     window.jobHealthFixture.calls.push({ url, method: options.method });
     await new Promise(resolve => setTimeout(resolve, 80));
@@ -33,4 +56,4 @@ window.fetch = async (url, options = {}) => {
     eligible: !recovered && fixture.mode !== "blocked", automaticRetryAllowed: false,
   } });
 };
-createRoot(document.getElementById("root")).render(<><label>Unsaved edition notes<textarea defaultValue="Keep my changes" /></label><GenerationRecoveryPanel editionId="synthetic-edition" /><NewsletterJobHealthPanel /></>);
+createRoot(document.getElementById("root")).render(<><label>Unsaved edition notes<textarea defaultValue="Keep my changes" /></label><GenerationRecoveryPanel editionId="synthetic-edition" /><NewsletterJobHealthPanel /><AnalyticsRecoveryPanel /></>);

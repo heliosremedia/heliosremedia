@@ -183,3 +183,38 @@ test('analytics queue creation uses the supplied transaction without changing it
   assert.equal(writes[0].create.rangeStart.getTime(), end.getTime() - 90 * 86_400_000);
   assert.equal(writes[0].create.rangeEnd, end); assert.equal(Object.keys(writes[0].update).length, 0);
 });
+
+test('analytics discovery is bounded, freshly authorized and excludes private fields', async () => {
+  let allowed = false, reads = 0;
+  const api = load<typeof import('./analytics-recovery')>('./analytics-recovery.ts', {
+    'server-only': {}, 'node:crypto': { createHash },
+    '@/lib/workspace-write-access': { requireLockedWorkspaceAdministrator: async () => { if (!allowed) throw new Error('WORKSPACE_WRITE_FORBIDDEN'); } },
+    '@/lib/prisma': { prisma: { $transaction: (read: (tx: unknown) => unknown) => read({ socialAnalyticsJob: { findMany: async (query: Record<string, unknown>) => {
+      reads++; assert.deepEqual(JSON.parse(JSON.stringify(query.where)), { connection: { workspaceId: 'a' }, status: 'RUNNING' });
+      assert.equal(query.take, 51); assert.doesNotMatch(JSON.stringify(query.select), /claimToken|providerAccountId|error|payload/);
+      return Array.from({ length: 51 }, (_, i) => ({ id: `job-${i}`, status: 'RUNNING', claimedAt: null, attempts: 0, connection: { platform: 'FACEBOOK' } }));
+    } } }) } },
+  });
+  const actor = { userId: 'actor', workspaceId: 'a', sessionVersion: 1 };
+  await assert.rejects(api.listAnalyticsRecovery(actor), /FORBIDDEN/); assert.equal(reads, 0);
+  allowed = true; const result = await api.listAnalyticsRecovery(actor);
+  assert.equal(result.truncated, true); assert.equal(result.jobs.length, 50); assert.equal(result.jobs[0].claimedAt, null);
+});
+
+test('analytics discovery handler blocks anonymous requests without accessing the service and contains failures', async () => {
+  let session: { userId: string; workspaceId: string; sessionVersion: number } | null = null;
+  let calls = 0, error = '';
+  const api = load<{ GET: () => Promise<Response> }>('../../app/api/admin/social/analytics/jobs/route.ts', {
+    'next/server': { NextResponse: Response }, '@/lib/auth/session': { getAdminSession: async () => session },
+    '@/lib/social/analytics-recovery': { listAnalyticsRecovery: async (actor: unknown) => {
+      calls++; assert.deepEqual(JSON.parse(JSON.stringify(actor)), session); if (error) throw new Error(error); return { jobs: [] };
+    } },
+  });
+  assert.equal((await api.GET()).status, 401); assert.equal(calls, 0);
+  session = { userId: 'actor', workspaceId: 'a', sessionVersion: 1 };
+  assert.equal((await api.GET()).status, 200);
+  for (const [failure, status] of [['WORKSPACE_WRITE_FORBIDDEN', 403], ['Private database error', 500]] as const) {
+    error = failure; const response = await api.GET(); assert.equal(response.status, status);
+    assert.equal(response.headers.get('cache-control'), 'no-store'); assert.doesNotMatch(await response.text(), /Private/);
+  }
+});

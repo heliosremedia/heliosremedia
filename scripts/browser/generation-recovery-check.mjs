@@ -76,6 +76,56 @@ try {
   await page.getByRole("status").filter({ hasText: "Job status is unavailable" }).waitFor();
   assert.equal(await page.getByText("Synthetic interrupted edition", { exact: true }).count(), 0);
   assert.equal(await page.evaluate(() => window.jobHealthFixture.calls.every(call => call.method === "GET")), true);
+  const analytics = page.getByRole('region', { name: 'Analytics job review', exact: true });
+  const analyticsPosts = () => page.evaluate(() => window.analyticsRecoveryFixture.calls.filter(call => call.method === 'POST'));
+  async function loadAnalytics(mode = 'eligible') {
+    await page.goto(base);
+    await analytics.waitFor();
+    assert.equal(await page.evaluate(() => window.analyticsRecoveryFixture.calls.length), 0);
+    await page.evaluate(mode => { window.analyticsRecoveryFixture.mode = mode; }, mode);
+    await button('Load analytics jobs').evaluate(node => { node.click(); node.click(); });
+    await analytics.getByRole('button', { name: 'Review analytics job analytics/job-a', exact: true }).click();
+    assert.equal((await analyticsPosts()).length, 0);
+  }
+  async function cancelAnalytics() {
+    assert.equal(await button('Confirm analytics cancellation').isDisabled(), true);
+    await analytics.getByRole('checkbox').check();
+    await button('Confirm analytics cancellation').evaluate(node => { node.click(); node.click(); });
+  }
+  await loadAnalytics();
+  await analytics.getByRole('heading', { name: 'Review analytics/job-a: RUNNING', exact: true }).waitFor();
+  assert.equal(await analytics.getByRole('heading', { name: 'Review analytics/job-a: RUNNING', exact: true }).evaluate(node => node === document.activeElement), true);
+  assert.equal(await page.evaluate(() => window.analyticsRecoveryFixture.calls.filter(call => call.url === '/api/admin/social/analytics/jobs').length), 1);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await cancelAnalytics();
+  await analytics.getByRole('status').filter({ hasText: 'Analytics cancellation recorded.' }).waitFor();
+  assert.equal((await analyticsPosts()).length, 1);
+  assert.deepEqual(JSON.parse((await analyticsPosts())[0].body), { action: 'cancel', confirmed: true, reviewVersion: 'a'.repeat(64) });
+  assert.equal((await analyticsPosts())[0].url, '/api/admin/social/analytics/jobs/analytics%2Fjob-a/recovery');
+  assert.equal(await button('Confirm analytics cancellation').count(), 0);
+  for (const mode of ['stale', 'ack-lost']) {
+    await loadAnalytics(mode); await cancelAnalytics();
+    await analytics.getByRole('status').filter({ hasText: 'Cancellation could not be confirmed.' }).waitFor();
+    assert.equal((await analyticsPosts()).length, 1);
+    assert.equal(await button('Confirm analytics cancellation').count(), 0);
+    if (mode === 'ack-lost') {
+      await analytics.getByRole('button', { name: 'Review analytics job analytics/job-a', exact: true }).click();
+      await analytics.getByRole('heading', { name: 'Review analytics/job-a: CANCELLED', exact: true }).waitFor();
+      assert.equal((await analyticsPosts()).length, 1);
+    }
+  }
+  for (const [mode, text] of [['disabled', 'Cancellation is disabled'], ['blocked', 'This job is not eligible'], ['malformed', 'Analytics job state is unavailable']]) {
+    await loadAnalytics(mode); await analytics.getByText(text, { exact: false }).waitFor();
+    assert.equal(await button('Confirm analytics cancellation').count(), 0); assert.equal((await analyticsPosts()).length, 0);
+  }
+  await loadAnalytics();
+  await page.evaluate(() => { window.analyticsRecoveryFixture.mode = 'forbidden'; });
+  await button('Load analytics jobs').click();
+  await analytics.getByRole('status').filter({ hasText: 'Administrator access is required.' }).waitFor();
+  assert.equal(await analytics.getByRole('checkbox').count(), 0);
+  assert.equal(await analytics.getByRole('button', { name: 'Review analytics job analytics/job-a', exact: true }).count(), 0);
+  assert.equal((await analyticsPosts()).length, 0);
   assert.deepEqual(errors, []);
   console.log("PASS: confirmation, keyboard focus, duplicate prevention, unsaved notes, stale/access/blocked states, failed refresh, mobile overflow, runtime errors, read-only job health and review links");
+  console.log('PASS: analytics discovery, encoded review links, fresh confirmation, duplicate prevention, disabled/access/changed claims, committed-response loss, no automatic retry, mobile layout and runtime errors');
 } finally { await browser.close(); }

@@ -5,6 +5,22 @@ import { prisma } from '@/lib/prisma';
 import { requireLockedWorkspaceAdministrator, type WorkspaceWriteActor } from '@/lib/workspace-write-access';
 
 const REVIEW_AGE_MS = 30 * 60_000;
+
+/** Read-only, bounded discovery. Each cancellation still requires a fresh per-job review. */
+export async function listAnalyticsRecovery(inputActor: WorkspaceWriteActor) {
+  const actor = { ...inputActor };
+  return prisma.$transaction(async tx => {
+    await requireLockedWorkspaceAdministrator(tx, actor);
+    const jobs = await tx.socialAnalyticsJob.findMany({
+      where: { connection: { workspaceId: actor.workspaceId }, status: 'RUNNING' },
+      orderBy: [{ claimedAt: 'asc' }, { id: 'asc' }], take: 51,
+      select: { id: true, status: true, claimedAt: true, attempts: true, connection: { select: { platform: true } } },
+    });
+    return { observedAt: new Date().toISOString(), truncated: jobs.length > 50,
+      jobs: jobs.slice(0, 50).map(job => ({ jobId: job.id, status: job.status, claimedAt: job.claimedAt?.toISOString() ?? null,
+        attempts: job.attempts, platform: job.connection.platform })) };
+  });
+}
 type ReviewRow = { id: string; connectionId: string; status: string; claimToken: string | null;
   claimedAt: Date | null; attempts: number; updatedAt: Date; platform: string; providerAccountId: string | null };
 
