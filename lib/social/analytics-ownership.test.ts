@@ -4,13 +4,14 @@ import test from 'node:test';
 import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
 
-async function run(options: { accounts?: string[]; missingOwner?: boolean; lostClaim?: boolean; changedAccount?: boolean; responseLost?: boolean; writeFailure?: boolean; providerError?: boolean; backlog?: boolean; metricCount?: number } = {}) {
+async function run(options: { accounts?: string[]; missingOwner?: boolean; lostClaim?: boolean; changedAccount?: boolean; responseLost?: boolean; writeFailure?: boolean; providerError?: boolean; backlog?: boolean; metricCount?: number; newerHealth?: boolean } = {}) {
   const posts: Array<{ externalPostId: string; variantId: string }> = [];
   const snapshots: Array<Record<string, unknown>> = [];
   const outcomes: Array<Record<string, unknown>> = [];
   let calls = 0, reads = 0, decrypts = 0;
   let batches = 0;
   let currentClaim = 'synthetic-claim';
+  const health: Record<string, unknown> = { analyticsPermissionState: 'PERMISSION_REQUIRED', analyticsLastAttemptAt: new Date('2099-01-01'), analyticsFailureCount: 2, analyticsError: 'Newer observation' };
   const connection = { id: 'connection-a', workspaceId: options.missingOwner ? undefined : 'a', platform: 'FACEBOOK', encryptedTokenPayload: 'synthetic', providerAccountId: 'account-a', grantedScopes: ['read'] };
   const rows = [
     { id: 'owned', workspace: 'a', connectionId: 'connection-a' },
@@ -35,7 +36,7 @@ async function run(options: { accounts?: string[]; missingOwner?: boolean; lostC
       findMany: async ({ where, take }: { where: { workspaceId: string; platform: string }; take: number }) => {
         assert.equal(where.workspaceId, 'a'); assert.equal(where.platform, 'FACEBOOK'); assert.equal(take, 2);
         return (options.accounts ?? ['connection-a']).map(id => ({ id }));
-      }, update: async () => { if (options.writeFailure) throw new Error('Private write failure'); },
+      },
     },
     socialPublication: { findMany: async ({ where }: { where: { variant: { platform: string; campaign: { workspaceId: string } }; OR: Array<{ connectionId: string | null }> } }) => {
       reads++;
@@ -55,7 +56,20 @@ async function run(options: { accounts?: string[]; missingOwner?: boolean; lostC
       return result;
     },
   };
-  const tx = { ...prisma, $queryRaw: async (parts: TemplateStringsArray, ...values: unknown[]) => {
+  const tx = { ...prisma, $executeRaw: async (parts: TemplateStringsArray, ...values: unknown[]) => {
+    if (options.writeFailure) throw new Error('Private write failure');
+    const sql = parts.join('?');
+    if (sql.includes('"analyticsPermissionState"')) {
+      assert.match(sql, /"analyticsLastAttemptAt" < /);
+      const [state, at, success, message, id, workspace] = values;
+      assert.equal(id, 'connection-a'); assert.equal(workspace, 'a');
+      if (!options.newerHealth) Object.assign(health, { analyticsPermissionState: state, analyticsLastAttemptAt: at, analyticsError: message, analyticsFailureCount: success ? 0 : 3 });
+    } else {
+      assert.match(sql, /"analyticsLastSuccessfulAt" < /);
+      assert.equal(values[1], 'connection-a'); assert.equal(values[2], 'a');
+    }
+    return 1;
+  }, $queryRaw: async (parts: TemplateStringsArray, ...values: unknown[]) => {
     const sql = parts.join('?'); assert.match(sql, /FOR UPDATE/);
     if (sql.includes('"SocialAnalyticsJob"')) {
       assert.match(sql, /status = 'RUNNING'/); assert.deepEqual(values, ['job', 'connection-a', 'synthetic-claim']);
@@ -86,12 +100,17 @@ async function run(options: { accounts?: string[]; missingOwner?: boolean; lostC
     exports: claimExports, require: (id: string) => { assert.ok(id in modules, id); return modules[id]; },
   });
   modules['./analytics-claim'] = claimExports;
+  const healthExports = {};
+  runInNewContext(ts.transpileModule(readFileSync(new URL('./analytics-health.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, {
+    exports: healthExports, require: (id: string) => { assert.ok(id in modules, id); return modules[id]; },
+  });
+  modules['./analytics-health'] = healthExports;
   const exports: { processAnalyticsQueue?: () => Promise<{ requiresReview: boolean; processed: number }> } = {};
   runInNewContext(ts.transpileModule(readFileSync(new URL('./analytics.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, {
     exports, Date, Error, Map, Set, require: (id: string) => { assert.ok(id in modules, id); return modules[id]; },
   });
   const queue = await exports.processAnalyticsQueue!();
-  return { posts, snapshots, outcomes, calls, reads, decrypts, queue, currentClaim, batches };
+  return { posts, snapshots, outcomes, calls, reads, decrypts, queue, currentClaim, batches, health };
 }
 
 test('social analytics selects only stored-company publications and preserves account/owned-post metrics', async () => {
@@ -153,4 +172,15 @@ test('analytics persistence batches metric inserts while retaining duplicate sup
   const empty = await run({ metricCount: 0 });
   assert.equal(empty.batches, 0); assert.equal(empty.snapshots.length, 0);
   assert.equal(empty.outcomes[0].status, 'SUCCEEDED'); assert.equal(empty.outcomes[0].importedSnapshots, 0);
+});
+
+test('older analytics outcomes complete their own job without replacing newer connection health', async () => {
+  for (const providerError of [false, true]) {
+    const result = await run({ newerHealth: true, providerError });
+    assert.equal(result.health.analyticsPermissionState, 'PERMISSION_REQUIRED');
+    assert.equal(result.health.analyticsError, 'Newer observation');
+    assert.equal(result.health.analyticsFailureCount, 2);
+    assert.equal(result.outcomes[0].status, providerError ? 'RETRY_SCHEDULED' : 'SUCCEEDED');
+    assert.equal(result.queue.requiresReview, false);
+  }
 });
