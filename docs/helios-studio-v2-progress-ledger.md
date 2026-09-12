@@ -460,3 +460,13 @@ Continued into shared job reliability while keeping incomplete Phase 1 gates ope
 Verification: 609 automated tests passed, zero failed. The new test executes the actual scheduler SQL in isolated PGlite with two companies and checks eligible work, held evidence, stale schedules, paused series, active leases and repeated claims. This is not hosted concurrency evidence. The delivery-attempt migration remains a deployment dependency; no new migration was added or executed. Full lease heartbeat/recovery, tenant job ownership review, fairness, operational visibility and hosted/browser QA remain outstanding. No provider call, real send, live reconciliation, merge or production deployment occurred.
 
 Final non-incremental TypeScript, Prisma generation, scoped ESLint and diff checks passed for this checkpoint. Production remains held for complete readiness and Jake's QA.
+
+## Phase 2 dependency: claim newsletter work immediately before execution
+
+Continued after draft #281 on `codex/v2-newsletter-worker-admission`. Verified the remote parent remains `3d69569935868026a7f4d3c3692d1baae9b479e7` and main remains `72dab34568cb6885f3e93b5ed9db38edca156835`. No merge or deployment was attempted.
+
+The cron previously claimed ten jobs before sequential execution, so later jobs could spend their leases waiting behind slow work. It now claims one at a time, settles each before another claim, preserves the ten-job cap, and stops admitting work after a 30-second monotonic window including enqueue time. Execution context, delivery guards, provider adapters, notification recipients and cron frequency are unchanged. Jobs not yet admitted remain available to later invocations.
+
+Actual handler tests with synthetic modules and a controlled clock cover sequential claims, the cap, slow success/failure, enqueue budget exhaustion, empty queues and unauthorized requests. No providers or recipients are contacted. This is admission control, not heartbeat, hard cancellation or proof that a single job finishes within the hosting limit. Hosted overlap, throughput, provider timeout alignment and durable generation recovery remain gates.
+
+Verification: 612 automated tests passed, zero failed; non-incremental TypeScript, scoped ESLint and diff checks passed. No schema changed. Production remains held for complete readiness and Jake's QA.

@@ -14,6 +14,9 @@ import { shouldExecuteNewsletterJob } from "@/lib/newsletters/presentation";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
+// Reserve most of the invocation for executing an admitted job, not claiming a backlog.
+const claimWindowMs = 30_000;
+const maxJobsPerInvocation = 10;
 
 function authorized(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -24,10 +27,14 @@ export async function GET(request: Request) {
   if (!authorized(request)) {
     return NextResponse.json({ success: false }, { status: 401 });
   }
+  const claimDeadline = performance.now() + claimWindowMs;
   const enqueued = await enqueueDueNewsletterJobs();
-  const jobs = await claimDueNewsletterJobs({ limit: 10, leaseSeconds: 300 });
+  let claimed = 0;
   const results: Array<{ id: string; type: string; success: boolean }> = [];
-  for (const job of jobs) {
+  while (claimed < maxJobsPerInvocation && performance.now() < claimDeadline) {
+    const [job] = await claimDueNewsletterJobs({ limit: 1, leaseSeconds: 300 });
+    if (!job) break;
+    claimed++;
     try {
       const edition = await prisma.newsletterEdition.findUnique({
         where: { id: job.editionId },
@@ -102,5 +109,5 @@ export async function GET(request: Request) {
       results.push({ id: job.id, type: job.type, success: false });
     }
   }
-  return NextResponse.json({ success: true, enqueued, claimed: jobs.length, results });
+  return NextResponse.json({ success: true, enqueued, claimed, results });
 }
