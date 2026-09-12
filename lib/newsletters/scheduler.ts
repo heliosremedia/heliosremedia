@@ -323,6 +323,15 @@ export async function completeNewsletterJob(job: Pick<ClaimedNewsletterJob, "id"
   return result.count === 1;
 }
 
+/** Only for a claim whose executor has not been entered in this invocation. */
+export async function deferUnstartedNewsletterJob(job: Pick<ClaimedNewsletterJob, "id" | "claimToken">) {
+  const result = await prisma.newsletterJob.updateMany({
+    where: { id: job.id, claimToken: job.claimToken, status: "CLAIMED" },
+    data: { status: "PENDING", claimToken: null, claimedAt: null, leaseExpiresAt: null },
+  });
+  return result.count === 1;
+}
+
 export async function failNewsletterJob(
   job: Pick<ClaimedNewsletterJob, "id" | "claimToken">,
   error: unknown,
