@@ -8,7 +8,7 @@ import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { tryResolveExternalMedia } from "@/lib/external-media";
 import type { NewsletterSourceReference } from "@/lib/newsletters/ai";
 import type { NewsletterImageCandidate } from "./types";
-import { safeNewsletterImageUrl } from "./source-images";
+import { newsletterImageReferenceMatches, safeNewsletterImageUrl } from "./source-images";
 
 function excerpt(value: string | null | undefined, max = 4_000) {
   return (value ?? "").trim().slice(0, max);
@@ -35,11 +35,11 @@ export async function collectVerifiedNewsletterSources(workspaceId: string, sele
       select: {
         id: true, title: true, excerpt: true, content: true, slug: true, sourceLinks: true,
         featuredImageStorageKey: true, featuredImageUrl: true, featuredImageAlt: true,
-        featuredMedia: { select: { project: { select: { workspaceId: true } }, id: true, storageKey: true, altText: true, caption: true, width: true, height: true } },
+        featuredMedia: { select: { project: { select: { workspaceId: true, status: true, archivedAt: true } }, projectId: true, visibility: true, id: true, storageKey: true, altText: true, caption: true, width: true, height: true } },
       },
     }) : [],
     projectIds.length ? prisma.project.findMany({
-      where: { workspaceId, id: { in: projectIds }, status: "PUBLISHED" },
+      where: { workspaceId, id: { in: projectIds }, status: "PUBLISHED", archivedAt: null },
       select: {
         id: true, title: true, slug: true, shortDescription: true, description: true,
         city: true, state: true, locationLabel: true, projectType: true, propertyType: true,
@@ -59,13 +59,13 @@ export async function collectVerifiedNewsletterSources(workspaceId: string, sele
       select: {
         id: true, name: true, slug: true, description: true, heroImageStorageKey: true, heroImageAlt: true,
         projects: {
-          where: { project: { workspaceId, status: "PUBLISHED" } },
+          where: { project: { workspaceId, status: "PUBLISHED", archivedAt: null } },
           take: 6,
           select: {
             project: {
               select: {
                 id: true, title: true, slug: true,
-                thumbnailMedia: { select: { project: { select: { workspaceId: true } }, id: true, storageKey: true, altText: true, width: true, height: true } },
+                thumbnailMedia: { select: { project: { select: { workspaceId: true, status: true, archivedAt: true } }, projectId: true, visibility: true, id: true, storageKey: true, altText: true, width: true, height: true } },
               },
             },
           },
@@ -87,14 +87,20 @@ export async function collectVerifiedNewsletterSources(workspaceId: string, sele
     ...posts.map((post) => {
       const sourceId = `blog:${post.id}`;
       const destinationUrl = `${base}/blog/${post.slug}`;
-      const imageUrl = post.featuredMedia?.project.workspaceId === workspaceId && post.featuredMedia.storageKey
-        ? getPublicAssetUrl(post.featuredMedia.storageKey)
-        : post.featuredImageStorageKey ? getPublicAssetUrl(post.featuredImageStorageKey) : post.featuredImageUrl;
+      const media = post.featuredMedia;
+      const readableMedia = media?.project.workspaceId === workspaceId
+        && media.project.status === "PUBLISHED" && !media.project.archivedAt
+        && media.visibility === "VISIBLE" && media.storageKey
+        && newsletterImageReferenceMatches(workspaceId, media.storageKey, media.projectId) ? media : null;
+      const imageUrl = readableMedia?.storageKey ? getPublicAssetUrl(readableMedia.storageKey)
+        : newsletterImageReferenceMatches(workspaceId, post.featuredImageStorageKey || post.featuredImageUrl)
+          ? post.featuredImageStorageKey ? getPublicAssetUrl(post.featuredImageStorageKey) : post.featuredImageUrl
+          : null;
       const image = imageUrl ? candidate({
         id: `${sourceId}:featured`, sourceId, sourceKind: "BLOG_POST", sourceRecordId: post.id,
-        url: imageUrl, altText: post.featuredImageAlt || post.featuredMedia?.altText || undefined,
+        url: imageUrl, altText: post.featuredImageAlt || readableMedia?.altText || undefined,
         label: "Published article featured image", role: "FEATURED_IMAGE", priority: 10,
-        width: post.featuredMedia?.width || undefined, height: post.featuredMedia?.height || undefined,
+        width: readableMedia?.width || undefined, height: readableMedia?.height || undefined,
         destinationUrl,
       }) : null;
       return {
@@ -107,6 +113,7 @@ export async function collectVerifiedNewsletterSources(workspaceId: string, sele
       const sourceId = `project:${project.id}`;
       const destinationUrl = `${base}/portfolio/${project.slug}`;
       const images = project.media.flatMap((media) => {
+        if (!newsletterImageReferenceMatches(workspaceId, media.storageKey || media.externalUrl, project.id)) return [];
         const uploaded = media.storageKey ? getPublicAssetUrl(media.storageKey) : null;
         const external = media.externalUrl ? tryResolveExternalMedia(media.externalUrl) : null;
         const imageUrl = uploaded || external?.thumbnailUrl;
@@ -139,18 +146,21 @@ export async function collectVerifiedNewsletterSources(workspaceId: string, sele
     ...services.map((service) => {
       const sourceId = `service:${service.id}`;
       const destinationUrl = `${base}/services/${service.slug}`;
-      const image = service.heroImageStorageKey ? candidate({
+      const image = service.heroImageStorageKey && newsletterImageReferenceMatches(workspaceId, service.heroImageStorageKey) ? candidate({
         id: `${sourceId}:featured`, sourceId, sourceKind: "SERVICE", sourceRecordId: service.id,
         url: getPublicAssetUrl(service.heroImageStorageKey), altText: service.heroImageAlt || undefined,
         label: `${service.name} service image`, role: "SERVICE_IMAGE", priority: 10, destinationUrl,
       }) : null;
       const related = service.projects.flatMap(({ project }, index) => {
-        if (!project.thumbnailMedia?.storageKey || project.thumbnailMedia.project.workspaceId !== workspaceId) return [];
+        if (!project.thumbnailMedia?.storageKey || project.thumbnailMedia.project.workspaceId !== workspaceId
+          || project.thumbnailMedia.projectId !== project.id || project.thumbnailMedia.visibility !== "VISIBLE"
+          || project.thumbnailMedia.project.status !== "PUBLISHED" || project.thumbnailMedia.project.archivedAt
+          || !newsletterImageReferenceMatches(workspaceId, project.thumbnailMedia.storageKey, project.id)) return [];
         const item = candidate({
           id: `${sourceId}:project:${project.id}`, sourceId, sourceKind: "SERVICE", sourceRecordId: service.id,
           url: getPublicAssetUrl(project.thumbnailMedia.storageKey),
           altText: project.thumbnailMedia.altText || undefined,
-          label: `${service.name} work — ${project.title}`, role: "RELATED_PORTFOLIO_IMAGE",
+          label: `${service.name} work: ${project.title}`, role: "RELATED_PORTFOLIO_IMAGE",
           priority: 20 + index, width: project.thumbnailMedia.width || undefined,
           height: project.thumbnailMedia.height || undefined,
           destinationUrl: `${base}/portfolio/${project.slug}`,

@@ -1,3 +1,4 @@
+import { verifyNewsletterSourceImageSelections } from "@/lib/newsletters/source-image-validation";
 import { newsletterImageReferenceMatches, safeNewsletterImageUrl } from "@/lib/newsletters/source-images";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { resolveNewsletterWorkspace } from "@/lib/newsletters/ownership";
@@ -145,6 +146,13 @@ async function saveEdition(editionId: string, value: unknown, actorId: string, w
     );
     if (!selected) throw new Error("The selected source image is no longer available.");
   }
+  await verifyNewsletterSourceImageSelections(workspaceId, editor.blocks
+    .filter(block => block.content.imageSelection.mode === "SOURCE")
+    .map(block => ({
+      candidateId: block.content.imageSelection.candidateId,
+      url: block.content.imageUrl,
+      sources: current.blocks.find(item => item.id === block.id)?.sources ?? [],
+    })));
   const managedSelections = editor.blocks.filter((block) =>
     block.content.imageSelection.mode === "AI" || block.content.imageSelection.mode === "GALLERY"
   );

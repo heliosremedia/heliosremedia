@@ -94,6 +94,7 @@ test("approval rejects an edition changed after review before creating approval 
   } }, newsletterApproval: { create: async () => { writes++; } }, newsletterJob: { createMany: async () => { writes++; } } };
   const loaded = load(new URL("../../app/api/admin/newsletters/editions/[editionId]/route.ts", import.meta.url), {
     "next/server": { NextResponse: { json: (body: unknown, init?: ResponseInit) => Response.json(body, init) } },
+    "@/lib/newsletters/source-image-validation": {},
     "@/lib/newsletters/source-images": {}, "@/lib/r2-upload": {},
     "@/lib/newsletters/ownership": { resolveNewsletterWorkspace: async () => "a" },
     "@/lib/blog-ownership": { getBlogOwnershipScope: async () => ({ workspaceId: "a" }) },
