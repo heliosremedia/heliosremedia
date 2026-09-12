@@ -1,5 +1,5 @@
 {
-  "schemaSha256": "ddf47f8abbd8380cb7a094be6af87acc73e83f165a0f2e2f1d892c0bf0334164",
+  "schemaSha256": "136bc01de79817658e52174f348f37f29d1ec030c9251408c58cc6d26189375a",
   "scope": "Static code inventory, not an authorization or tenant-isolation verdict. No database connection or environment values read.",
   "limitations": [
     "Nullable ownership requires verified mapping before activation.",
@@ -9,8 +9,8 @@
     "Caches, storage objects, integration configuration, running jobs and hosted behavior require separate evidence."
   ],
   "counts": {
-    "models": 112,
-    "requiredWorkspace": 28,
+    "models": 113,
+    "requiredWorkspace": 29,
     "nullableWorkspace": 19,
     "withoutWorkspace": 65,
     "routeFiles": 138
@@ -309,13 +309,13 @@
         "app/admin/social-studio/campaigns/[campaignId]/page.tsx",
         "app/api/admin/blog/route.ts",
         "app/api/admin/homepage-work-cards/route.ts",
-        "app/api/admin/newsletters/editions/[editionId]/route.ts",
         "app/api/admin/newsletters/images/route.ts",
         "app/api/admin/portfolio-settings/route.ts",
         "app/api/admin/projects/[projectId]/film-comparison/route.ts",
         "app/api/admin/projects/[projectId]/media/route.ts",
         "app/portfolio/page.tsx",
         "lib/dashboard.ts",
+        "lib/newsletters/image-validation.ts",
         "lib/portfolio-discovery.ts",
         "lib/social/studio.ts"
       ],
@@ -885,14 +885,14 @@
         "app/api/admin/blog/revisions/route.ts",
         "app/api/admin/blog/route.ts",
         "app/api/admin/blog/series/assistant/route.ts",
-        "app/api/admin/newsletters/editions/[editionId]/route.ts",
         "app/api/admin/newsletters/images/route.ts",
         "app/blog/[slug]/page.tsx",
         "app/blog/page.tsx",
         "app/sitemap.ts",
         "lib/blog-series.ts",
         "lib/newsletters/content-sources.ts",
-        "lib/newsletters/generation.ts"
+        "lib/newsletters/generation.ts",
+        "lib/newsletters/image-validation.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     },
@@ -1200,6 +1200,7 @@
         "lib/client-portal/ownership.ts",
         "lib/inquiry-ownership.ts",
         "lib/newsletters/api.ts",
+        "lib/newsletters/custom-image-ownership.ts",
         "lib/newsletters/ownership.ts",
         "lib/photo-comparison.ts",
         "lib/project-preview-url.ts",
@@ -2970,6 +2971,7 @@
         "app/api/admin/newsletters/series/[seriesId]/route.ts",
         "lib/dashboard.ts",
         "lib/newsletters/scheduler.ts",
+        "lib/newsletters/series-write-lock.ts",
         "lib/newsletters/studio.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
@@ -3098,8 +3100,11 @@
         "lib/dashboard.ts",
         "lib/newsletters/api.ts",
         "lib/newsletters/delivery.ts",
+        "lib/newsletters/edition-duplication.ts",
+        "lib/newsletters/edition-transitions.ts",
         "lib/newsletters/generation.ts",
         "lib/newsletters/scheduler.ts",
+        "lib/newsletters/series-write-lock.ts",
         "lib/newsletters/studio.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
@@ -3148,7 +3153,9 @@
         }
       ],
       "uniqueConstraints": [],
-      "sourceReferences": [],
+      "sourceReferences": [
+        "lib/newsletters/generation.ts"
+      ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     },
     {
@@ -3185,9 +3192,9 @@
       ],
       "sourceReferences": [
         "app/api/admin/blog/route.ts",
-        "app/api/admin/newsletters/editions/[editionId]/route.ts",
         "app/api/admin/newsletters/images/route.ts",
         "lib/newsletters/image-assets.ts",
+        "lib/newsletters/image-validation.ts",
         "lib/social/studio.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
@@ -3300,6 +3307,7 @@
       "sourceReferences": [
         "app/api/admin/newsletters/editions/[editionId]/route.ts",
         "app/api/cron/newsletters/route.ts",
+        "lib/newsletters/edition-transitions.ts",
         "lib/newsletters/generation.ts",
         "lib/newsletters/studio.ts"
       ],
@@ -3345,6 +3353,43 @@
       "reviewStatus": "Requires semantic ownership and execution-path review"
     },
     {
+      "model": "NewsletterDeliveryAttempt",
+      "workspaceField": "required",
+      "foreignKeys": [
+        {
+          "relation": "workspace",
+          "model": "Workspace",
+          "optional": false,
+          "fields": [
+            "workspaceId"
+          ],
+          "references": [
+            "id"
+          ],
+          "onDelete": "Restrict"
+        },
+        {
+          "relation": "delivery",
+          "model": "NewsletterDelivery",
+          "optional": false,
+          "fields": [
+            "editionId"
+          ],
+          "references": [
+            "editionId"
+          ],
+          "onDelete": "Restrict"
+        }
+      ],
+      "uniqueConstraints": [
+        "editionId, executionVersion, batchNumber"
+      ],
+      "sourceReferences": [
+        "lib/newsletters/delivery.ts"
+      ],
+      "reviewStatus": "Requires semantic ownership and execution-path review"
+    },
+    {
       "model": "NewsletterJob",
       "workspaceField": "absent",
       "foreignKeys": [
@@ -3370,7 +3415,12 @@
         "app/api/admin/newsletters/editions/[editionId]/route.ts",
         "app/api/admin/newsletters/route.ts",
         "lib/dashboard.ts",
+        "lib/newsletters/delivery-access.ts",
+        "lib/newsletters/delivery.ts",
+        "lib/newsletters/edition-transitions.ts",
+        "lib/newsletters/generation-access.ts",
         "lib/newsletters/scheduler.ts",
+        "lib/newsletters/series-write-lock.ts",
         "lib/newsletters/studio.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
@@ -4281,6 +4331,7 @@
         "provider, providerNamespace, providerKey"
       ],
       "sourceReferences": [
+        "lib/newsletters/custom-image-ownership.ts",
         "lib/workspace-assets.ts",
         "lib/workspace-brand-assets.ts"
       ],

@@ -250,6 +250,13 @@ enum NewsletterJobType {
   NOTIFY
 }
 
+enum NewsletterDeliveryAttemptStatus {
+  PREPARED
+  ACCEPTED
+  UNCERTAIN
+  REJECTED
+}
+
 enum NewsletterJobStatus {
   PENDING
   CLAIMED
@@ -1708,6 +1715,7 @@ model Workspace {
   clientPortals             ClientPortal[]
   referralCampaigns         ReferralCampaign[]
   assets                    WorkspaceAsset[]
+  newsletterDeliveryAttempts NewsletterDeliveryAttempt[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3099,6 +3107,7 @@ model NewsletterDelivery {
   campaignId        String            @unique
   campaign          EmailCampaign     @relation(fields: [campaignId], references: [id], onDelete: Restrict)
   revisionId        String
+  attempts          NewsletterDeliveryAttempt[]
   recipientSnapshot Json
   eligibleCount     Int
   excludedCount     Int
@@ -3108,6 +3117,30 @@ model NewsletterDelivery {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model NewsletterDeliveryAttempt {
+  id String @id @default(cuid())
+
+  workspaceId        String
+  workspace          Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  editionId          String
+  delivery           NewsletterDelivery @relation(fields: [editionId], references: [editionId], onDelete: Restrict)
+  revisionId         String
+  executionVersion   Int
+  batchNumber        Int
+  providerOperationId String
+  providerIdempotencyKey String
+  recipientIds       Json
+  payloadHash        String
+  status             NewsletterDeliveryAttemptStatus @default(PREPARED)
+  providerReceiptIds Json?
+  errorCode          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([editionId, executionVersion, batchNumber], map: "NewsletterDeliveryAttempt_execution_batch_key")
+  @@index([workspaceId, status, createdAt])
 }
 
 model NewsletterJob {

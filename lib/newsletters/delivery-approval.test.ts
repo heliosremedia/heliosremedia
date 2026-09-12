@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import * as crypto from "node:crypto";
+import * as providerCore from "../client-communications/providers/resend-core.ts";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { runInNewContext } from "node:vm";
@@ -53,7 +54,7 @@ class FakeEmailDeliveryError extends Error {
   constructor(code: string) { super(code); this.code = code; }
 }
 
-function deliveryHarness(row: ReturnType<typeof fixture>, claim = true, denyAt = 0, excludeAt = 0, persistenceFails = false, incompleteReceipt = false, providerError?: Error) {
+function deliveryHarness(row: ReturnType<typeof fixture>, claim = true, denyAt = 0, excludeAt = 0, persistenceFails = false, incompleteReceipt = false, providerError?: Error, prepareFails = false, receiptFails = false) {
   let recipients = 0;
   let providerCalls = 0;
   let tokens = 0;
@@ -61,6 +62,7 @@ function deliveryHarness(row: ReturnType<typeof fixture>, claim = true, denyAt =
   let checks = 0;
   const skipped: string[] = [];
   let markedFailed = 0;
+  const attempts: string[] = [];
   const actor = { workspaceId: "a", userId: "actor", sessionVersion: 1 };
   const exports: { deliverApprovedNewsletter?: (id: string, context: unknown) => Promise<{ status: string; sent: number }> } = {};
   const tx = {
@@ -68,11 +70,17 @@ function deliveryHarness(row: ReturnType<typeof fixture>, claim = true, denyAt =
       if (where.rowVersion === 5) return { count: 1 };
       assert.equal(where.rowVersion, 4); assert.equal(where.intendedSendAt.getTime(), row.intendedSendAt.getTime()); assert.equal(where.series.workspaceId, "a"); assert.equal(where.approvals.some.id, "approval"); assert.equal(where.approvals.some.revisionId, "revision"); assert.equal(where.approvals.some.revokedAt, null); return { count: claim ? 1 : 0 };
     }, findFirst: async () => ({ id: row.id }) },
+    newsletterDeliveryAttempt: { create: async ({ data }: { data: { workspaceId: string; executionVersion: number; payloadHash: string; providerIdempotencyKey: string } }) => {
+      assert.equal(data.workspaceId, "a"); assert.equal(data.executionVersion, 5); assert.match(data.payloadHash, /^[a-f0-9]{64}$/); assert.match(data.providerIdempotencyKey, /^helios\//);
+      if (prepareFails) throw new Error("Attempt persistence unavailable");
+      attempts.push("PREPARED"); return { id: "attempt" };
+    } },
     newsletterJob: { updateMany: async () => ({ count: 1 }) },
     emailCampaign: { update: async () => ({}), create: async () => { creations++; return row.retry.campaign; } },
     newsletterDelivery: { update: async () => ({}), create: async () => ({ id: "delivery" }) },
   };
   const modules: Record<string, unknown> = {
+    "@/lib/client-communications/providers/resend-core": providerCore,
     "./delivery-access": { requireNewsletterDeliveryAccess: async (_tx: unknown, id: string, workspaceId: string, date: Date, context: { actor: typeof actor }) => {
       checks++; assert.equal(id, "edition"); assert.equal(workspaceId, "a"); assert.equal(context.actor.workspaceId, "a"); assert.equal(date.getTime(), row.intendedSendAt.getTime());
       actor.workspaceId = "changed-after-start";
@@ -93,6 +101,11 @@ function deliveryHarness(row: ReturnType<typeof fixture>, claim = true, denyAt =
       $transaction: async (operation: unknown) => typeof operation === "function" ? operation(tx) : Promise.all(operation as Promise<unknown>[]),
       newsletterEdition: { findUnique: async () => row, update: async () => ({}) },
       emailCampaign: { update: async () => ({}) }, newsletterDelivery: { update: async () => ({}) },
+      newsletterDeliveryAttempt: { updateMany: async ({ data }: { data: { status: string } }) => {
+        if (receiptFails) throw new Error("Receipt persistence unavailable");
+        if (attempts[attempts.length - 1] !== "PREPARED") return { count: 0 };
+        attempts.push(data.status); return { count: 1 };
+      } },
       campaignRecipient: { update: async () => { if (persistenceFails) throw new Error("Database unavailable after acceptance"); return {}; }, updateMany: async ({ where, data }: { where: { campaignId: string; id: { in: string[] }; status: { in: string[] } }; data: { status: string } }) => {
         if (data.status === "FAILED") markedFailed++;
         if (data.status === "SKIPPED") { assert.equal(where.campaignId, "campaign"); assert.deepEqual(Array.from(where.status.in), ["PENDING", "FAILED"]); skipped.push(...where.id.in); }
@@ -103,7 +116,7 @@ function deliveryHarness(row: ReturnType<typeof fixture>, claim = true, denyAt =
   runInNewContext(ts.transpileModule(readFileSync(new URL("./delivery.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, {
     exports, Date, Error, console, require: (id: string) => { assert.ok(id in modules, id); return modules[id]; },
   });
-  return { send: () => exports.deliverApprovedNewsletter!("edition", { kind: "ADMIN", actor }), skipped: () => skipped, markedFailed: () => markedFailed, counts: () => ({ recipients, providerCalls, tokens, creations }) };
+  return { send: () => exports.deliverApprovedNewsletter!("edition", { kind: "ADMIN", actor }), attempts: () => attempts, skipped: () => skipped, markedFailed: () => markedFailed, counts: () => ({ recipients, providerCalls, tokens, creations }) };
 }
 
 test("actual delivery rejects invalid approval/retry links before recipients or provider effects", async () => {
@@ -177,15 +190,29 @@ test("provider acceptance with failed persistence or incomplete receipts require
     const h = deliveryHarness(fixture(), true, 0, 0, !incompleteReceipt, incompleteReceipt);
     await assert.rejects(h.send(), /RECONCILIATION_REQUIRED/);
     assert.equal(h.counts().providerCalls, 1); assert.equal(h.markedFailed(), 0);
+    assert.deepEqual(h.attempts(), ["PREPARED", incompleteReceipt ? "UNCERTAIN" : "ACCEPTED"]);
   }
 });
 
 
 test("uncertain provider errors remain held while configuration failures are retryable without provider acceptance", async () => {
   const unknown = deliveryHarness(fixture(), true, 0, 0, false, false, new Error("Request timed out"));
-  await assert.rejects(unknown.send(), /RECONCILIATION_REQUIRED/); assert.equal(unknown.markedFailed(), 0);
+  await assert.rejects(unknown.send(), /RECONCILIATION_REQUIRED/); assert.equal(unknown.markedFailed(), 0); assert.deepEqual(unknown.attempts(), ["PREPARED", "UNCERTAIN"]);
   for (const code of ["EMAIL_PROVIDER_NOT_CONFIGURED", "EMAIL_PROVIDER_SENDER"]) {
     const h = deliveryHarness(fixture(), true, 0, 0, false, false, new FakeEmailDeliveryError(code));
-    assert.equal((await h.send()).status, "SEND_FAILED"); assert.equal(h.markedFailed(), 1);
+    assert.equal((await h.send()).status, "SEND_FAILED"); assert.equal(h.markedFailed(), 1); assert.deepEqual(h.attempts(), ["PREPARED", "REJECTED"]);
   }
+});
+
+
+test("delivery never calls the provider without a durable prepared attempt", async () => {
+  const h = deliveryHarness(fixture(), true, 0, 0, false, false, undefined, true);
+  await assert.rejects(h.send(), /RECONCILIATION_REQUIRED/);
+  assert.equal(h.counts().providerCalls, 0); assert.equal(h.markedFailed(), 0); assert.deepEqual(h.attempts(), []);
+});
+
+test("failed receipt persistence preserves prepared evidence and holds the edition", async () => {
+  const h = deliveryHarness(fixture(), true, 0, 0, false, false, undefined, false, true);
+  await assert.rejects(h.send(), /RECONCILIATION_REQUIRED/);
+  assert.equal(h.counts().providerCalls, 1); assert.equal(h.markedFailed(), 0); assert.deepEqual(h.attempts(), ["PREPARED"]);
 });

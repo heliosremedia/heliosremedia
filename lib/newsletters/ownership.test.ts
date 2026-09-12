@@ -90,6 +90,7 @@ test("actual delivery aborts a foreign approval before recipients, tokens or pro
   const exports: { deliverApprovedNewsletter?: (id: string, context: unknown) => Promise<unknown> } = {};
   let providerCalls = 0;
   const modules: Record<string, unknown> = {
+    "@/lib/client-communications/providers/resend-core": {},
     "./delivery-approval": deliveryApproval, "./delivery-access": {},
     "server-only": {}, "node:crypto": {}, "./recipient-identity": {}, "@/lib/client-communications/campaign-ownership": {},
     "@/lib/newsletters/ownership": { requireNewsletterApprovalWorkspace: async () => { throw new Error("Foreign approval"); } },
