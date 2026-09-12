@@ -28,6 +28,7 @@ test("pause and resume handlers scope the series before touching jobs", async ()
       "@/lib/audit": {},
       "@/lib/prisma": { prisma: { $transaction: async (callback: (db: typeof tx) => unknown) => callback(tx) } },
       "@/lib/newsletters/api": { requireNewsletterAdministrator: async () => ({ userId: "admin", workspaceId: "a" }) },
+      "@/lib/newsletters/series-write-lock": { lockNewsletterSeriesIdentity: async () => {} },
       "@/lib/newsletters/generation": {}, "@/lib/newsletters/recurrence": {},
     });
     const response = await loaded.POST(new Request("http://localhost", { method: "POST", body: JSON.stringify({ action, seriesId: "foreign" }) })) as Response;

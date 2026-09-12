@@ -3,8 +3,8 @@ import type { Prisma } from "@/app/generated/prisma/client";
 import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { requireLockedWorkspaceAdministrator, type WorkspaceWriteActor } from "@/lib/workspace-write-access";
 
-/** Settings changes cannot rewrite the configuration of an active or retryable delivery. */
-export async function lockNewsletterSeriesSettings(tx: Prisma.TransactionClient, seriesId: string, actor: WorkspaceWriteActor) {
+/** Use the workspace/account/series lock order for administrator series mutations. */
+export async function lockNewsletterSeriesIdentity(tx: Prisma.TransactionClient, seriesId: string, actor: WorkspaceWriteActor) {
   await requireLockedWorkspaceAdministrator(tx, actor);
   const scope = await getContentOwnershipScope(actor.workspaceId);
   const legacyAllowed = "OR" in scope;
@@ -14,6 +14,12 @@ export async function lockNewsletterSeriesSettings(tx: Prisma.TransactionClient,
     FOR UPDATE
   `;
   if (!rows.length) throw new Error("Newsletter series was not found.");
+  return scope;
+}
+
+/** Settings changes cannot rewrite the configuration of an active or retryable delivery. */
+export async function lockNewsletterSeriesSettings(tx: Prisma.TransactionClient, seriesId: string, actor: WorkspaceWriteActor) {
+  const scope = await lockNewsletterSeriesIdentity(tx, seriesId, actor);
   await tx.$queryRaw`
     SELECT id FROM "NewsletterEdition" WHERE "seriesId" = ${seriesId} AND status NOT IN ('SENT', 'CANCELLED') ORDER BY id FOR UPDATE
   `;
