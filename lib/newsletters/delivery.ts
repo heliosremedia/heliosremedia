@@ -1,3 +1,4 @@
+import { assertNewsletterApprovalReferences, assertNewsletterDeliveryBinding } from "./delivery-approval";
 import { resolveCampaignWorkspace } from "@/lib/client-communications/campaign-ownership";
 import { newsletterRecipientIdentity } from "./recipient-identity";
 import { requireNewsletterApprovalWorkspace } from "@/lib/newsletters/ownership";
@@ -63,16 +64,16 @@ export async function deliverApprovedNewsletter(editionId: string) {
   if (!["SCHEDULED", "SENDING", "SEND_FAILED", "PARTIALLY_SENT"].includes(edition.status)) {
     throw new Error("Only a scheduled or safely retryable newsletter can be sent.");
   }
-  if (edition.approvedRevision.id !== edition.approvedRevisionId) throw new Error("The approved newsletter revision no longer matches.");
-
   const approval = edition.approvals[0];
+  assertNewsletterApprovalReferences({
+    editionId: edition.id, currentRevisionNumber: edition.currentRevisionNumber,
+    intendedSendAt: edition.intendedSendAt, approvedRevisionId: edition.approvedRevisionId!,
+    revision: edition.approvedRevision, approval,
+  });
   const selection = parseSelection(approval.recipientSelectionSnapshot);
   // Eligibility is deliberately resolved again immediately before campaign creation.
   const workspaceId = await requireNewsletterApprovalWorkspace(approval.recipientSelectionSnapshot, edition.series.workspaceId);
   if (edition.delivery && await resolveCampaignWorkspace(edition.delivery.campaign.workspaceId) !== workspaceId) throw new Error("Newsletter delivery campaign belongs to another workspace.");
-  const resolvedRecipients = await resolveEligibleNewsletterRecipients(workspaceId, selection);
-  const eligible = resolvedRecipients.eligible;
-  if (!eligible.length && !edition.delivery) throw new Error("No eligible newsletter recipients remain.");
   const approvedBlocks = parseBlocks(edition.approvedRevision.blocksSnapshot);
   const integrity = verifyNewsletterRevisionIntegrity({
     subject: edition.approvedRevision.subject,
@@ -83,6 +84,14 @@ export async function deliverApprovedNewsletter(editionId: string) {
     throw new Error("Approved newsletter content failed its integrity check.");
   }
   const contentHash = integrity.canonicalHash;
+  if (edition.delivery) assertNewsletterDeliveryBinding({
+    editionId: edition.id, revisionId: edition.approvedRevision.id,
+    subject: edition.approvedRevision.subject, previewText: edition.approvedRevision.previewText,
+    verifiedHashes: [contentHash, edition.approvedRevision.contentHash], delivery: edition.delivery,
+  });
+  const resolvedRecipients = await resolveEligibleNewsletterRecipients(workspaceId, selection);
+  const eligible = resolvedRecipients.eligible;
+  if (!eligible.length && !edition.delivery) throw new Error("No eligible newsletter recipients remain.");
   if (integrity.format !== "CANONICAL") {
     console.info("[newsletter-delivery] legacy_integrity_verified", {
       editionId: edition.id,
@@ -101,10 +110,11 @@ export async function deliverApprovedNewsletter(editionId: string) {
     const created = await prisma.$transaction(async (transaction) => {
       const claimed = await transaction.newsletterEdition.updateMany({
         where: {
-          id: edition.id,
+          id: edition.id, rowVersion: edition.rowVersion, intendedSendAt: edition.intendedSendAt,
           status: "SCHEDULED",
           approvedRevisionId: edition.approvedRevision!.id,
-          series: { status: "ACTIVE" },
+          series: { status: "ACTIVE", workspaceId: edition.series.workspaceId },
+          approvals: { some: { id: approval.id, revokedAt: null, revisionId: edition.approvedRevision!.id, approvedSendAt: edition.intendedSendAt } },
         },
         data: { status: "SENDING" },
       });

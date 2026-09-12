@@ -1,3 +1,4 @@
+import * as deliveryApproval from "./delivery-approval.ts";
 import * as sourceImages from "./source-images.ts";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -89,9 +90,10 @@ test("actual delivery aborts a foreign approval before recipients, tokens or pro
   const exports: { deliverApprovedNewsletter?: (id: string) => Promise<unknown> } = {};
   let providerCalls = 0;
   const modules: Record<string, unknown> = {
+    "./delivery-approval": deliveryApproval,
     "server-only": {}, "node:crypto": {}, "./recipient-identity": {}, "@/lib/client-communications/campaign-ownership": {},
     "@/lib/newsletters/ownership": { requireNewsletterApprovalWorkspace: async () => { throw new Error("Foreign approval"); } },
-    "@/lib/prisma": { prisma: { newsletterEdition: { findUnique: async () => ({ status: "SCHEDULED", series: { status: "ACTIVE", workspaceId: "a" }, approvedRevision: { id: "revision" }, approvedRevisionId: "revision", approvals: [{ recipientSelectionSnapshot: { mode: "ALL", workspaceId: "b" } }] }) } } },
+    "@/lib/prisma": { prisma: { newsletterEdition: { findUnique: async () => ({ id: "edition", currentRevisionNumber: 1, intendedSendAt: new Date("2027-01-01"), status: "SCHEDULED", series: { status: "ACTIVE", workspaceId: "a" }, approvedRevision: { id: "revision", editionId: "edition", revisionNumber: 1 }, approvedRevisionId: "revision", approvals: [{ editionId: "edition", revisionId: "revision", approvedSendAt: new Date("2027-01-01"), revokedAt: null, recipientSelectionSnapshot: { mode: "ALL", workspaceId: "b" } }] }) } } },
     "@/lib/client-communications/email": { sendCampaignBatch: async () => { providerCalls++; } },
     "@/lib/newsletters/email-renderer": {}, "@/lib/newsletters/recipients": {},
     "@/lib/client-communications/preferences": {}, "@/lib/site": {}, "@/lib/newsletters/integrity": {},
