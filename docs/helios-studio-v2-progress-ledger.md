@@ -420,3 +420,11 @@ Continued after draft #275. Added a read-only administrator API and transaction-
 Verification: 598 automated tests passed, zero failed; non-incremental TypeScript, focused ESLint and diff checks passed. Actual classifier, service and route tests exercise invalid receipts, multiple acceptance IDs, uncertain overlap, moved actor context, stale authorization, foreign relationships and bounded HTTP responses. Inventory refreshed to 139 routes; this is not a hosted authorization verdict.
 
 This endpoint neither repairs records nor authorizes retries. Browser presentation, provider lookup, reconciliation audit history, version-checked repair, lease recovery and hosted transaction verification remain gates. No actual recipient mutation, send, migration, merge or deployment occurred.
+
+## Audited repair of missing newsletter acceptance records
+
+Continued after draft #276. An explicit confirmed administrator action now repairs recipient records backed by unambiguous stored acceptance receipts. It rechecks access, locks the scoped reviewed edition version, validates ownership/evidence and conditionally updates only PENDING/FAILED records without provider IDs, sent timestamps or delivery/webhook events. Conflicts, uncertain evidence, SKIPPED and historical send records are preserved. A mandatory same-transaction audit records repaired recipient and attempt identities. Repeating a completed repair is a no-op.
+
+Verification: 600 automated tests passed, zero failed; non-incremental TypeScript, focused ESLint and diff checks passed. Actual service and route tests cover authorization, stale versions, conditional-write conflicts, idempotency, mandatory audit errors and explicit confirmation. The shared review also suppresses suggestions for records carrying provider or webhook facts. Mock transactions do not prove hosted rollback or concurrent webhook behavior.
+
+No live repair, provider call, migration, merge or deployment occurred. The action does not resume jobs, change edition state, rebuild aggregates, alter consent or authorize retry. Browser controls, provider reconciliation, aggregate reconciliation, lease recovery and hosted verification remain gates.
