@@ -1,3 +1,4 @@
+import { transitionNewsletterEdition } from "@/lib/newsletters/edition-transitions";
 import { requireLockedWorkspaceAdministrator, type WorkspaceWriteActor } from "@/lib/workspace-write-access";
 import { verifyNewsletterCustomImage } from "@/lib/newsletters/custom-image-ownership";
 import { verifyNewsletterSourceImageSelections } from "@/lib/newsletters/source-image-validation";
@@ -431,58 +432,14 @@ export async function POST(request: Request, context: Context) {
     } else if (action === "approve") {
       const audience = await approveAndSchedule(editionId, session);
       message = `Approved and scheduled for ${audience.eligible.length} currently eligible recipients.`;
-    } else if (action === "revoke-approval") {
-      await prisma.$transaction([
-        prisma.newsletterApproval.updateMany({
-          where: { editionId, revokedAt: null },
-          data: { revokedAt: new Date(), revocationReason: "Administrator revoked approval." },
-        }),
-        prisma.newsletterEdition.update({
-          where: { id: editionId },
-          data: { status: "NEEDS_REVIEW", approvedRevisionId: null, rowVersion: { increment: 1 } },
-        }),
-        prisma.newsletterJob.updateMany({
-          where: { editionId, type: "SEND", status: { in: ["PENDING", "CLAIMED"] } },
-          data: { status: "CANCELLED", completedAt: new Date() },
-        }),
-      ]);
-      message = "Approval revoked. Review is required before scheduling again.";
-    } else if (action === "cancel") {
-      const result = await prisma.newsletterEdition.updateMany({
-        where: { id: editionId, status: { in: ["SCHEDULED", "NEEDS_REVIEW", "APPROVED"] } },
-        data: { status: "CANCELLED", cancelledAt: new Date(), approvedRevisionId: null },
+    } else if (action === "revoke-approval" || action === "cancel" || action === "reschedule") {
+      await transitionNewsletterEdition({
+        actor: session, editionId, expectedVersion: authorizedEdition.rowVersion, action,
+        ...(action === "reschedule" ? { intendedSendAt: new Date(clean(body.intendedSendAt, 100)) } : {}),
       });
-      if (result.count !== 1) throw new Error("This edition cannot be cancelled.");
-      await prisma.newsletterJob.updateMany({
-        where: { editionId, status: { in: ["PENDING", "CLAIMED"] } },
-        data: { status: "CANCELLED", completedAt: new Date() },
-      });
-      message = "Scheduled edition cancelled.";
-    } else if (action === "reschedule") {
-      const intendedSendAt = new Date(clean(body.intendedSendAt, 100));
-      if (!Number.isFinite(intendedSendAt.getTime()) || intendedSendAt.getTime() <= Date.now()) {
-        throw new Error("Choose a future send date.");
-      }
-      await prisma.$transaction([
-        prisma.newsletterApproval.updateMany({
-          where: { editionId, revokedAt: null },
-          data: { revokedAt: new Date(), revocationReason: "The intended send schedule changed." },
-        }),
-        prisma.newsletterEdition.update({
-          where: { id: editionId },
-          data: {
-            intendedSendAt,
-            status: "NEEDS_REVIEW",
-            approvedRevisionId: null,
-            rowVersion: { increment: 1 },
-          },
-        }),
-        prisma.newsletterJob.updateMany({
-          where: { editionId, type: "SEND", status: { in: ["PENDING", "CLAIMED"] } },
-          data: { status: "CANCELLED", completedAt: new Date() },
-        }),
-      ]);
-      message = "Send date changed. Approval is required again.";
+      message = action === "cancel" ? "Scheduled edition cancelled."
+        : action === "reschedule" ? "Send date changed. Approval is required again."
+          : "Approval revoked. Review is required before scheduling again.";
     } else if (action === "duplicate") {
       const source = await prisma.newsletterEdition.findUnique({
         where: { id: editionId }, include: { blocks: { include: { sources: true } } },
@@ -635,7 +592,10 @@ export async function POST(request: Request, context: Context) {
   } catch (error) {
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : "The request could not be completed.",
-    }, { status: error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN" ? 403 : 400 });
+      error: error instanceof Error && error.message === "NEWSLETTER_EDITION_BUSY" ? "This edition has work in progress. Retry after it finishes."
+        : error instanceof Error && error.message === "NEWSLETTER_EDITION_CHANGED" ? "This edition changed or cannot be updated in its current state. Reopen it and retry."
+          : error instanceof Error ? error.message : "The request could not be completed.",
+    }, { status: error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN" ? 403
+      : error instanceof Error && ["NEWSLETTER_EDITION_BUSY", "NEWSLETTER_EDITION_CHANGED"].includes(error.message) ? 409 : 400 });
   }
 }
