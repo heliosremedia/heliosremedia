@@ -4,15 +4,17 @@
   "expiresAt": "2026-09-12T23:15:00Z",
   "branch": "codex/v2-analytics-reviewed-cancellation",
   "pr": 299,
-  "head": "1bc153ad1071553d1f44c6541b7703f7381259f8",
-  "tree": "b36e92898dd62412117ef83312940fa54b736ebe",
+  "head": "01383c03018412873b01934d6588b3402c68182d",
+  "tree": "1b3d47b32c322fdc279aae1fad940547436e736c",
+  "implementationHead": "062f29751b46950bd4de53aa7be5472ceb3f24de",
   "ci": {
-    "run": 34722455176,
-    "job": 103630698949,
+    "run": 34722874083,
+    "job": 103631818260,
     "status": "success",
-    "tests": 666
+    "tests": 668,
+    "browser": "Actual Chromium synthetic analytics and generation recovery interactions"
   },
-  "outstandingChanges": true,
-  "scope": "Continuing adjacent Studio analytics discovery/review UI and synthetic browser checks; cancellation disabled by default",
+  "outstandingChanges": false,
+  "scope": "Implementation and ledger published; verifying documentation head CI before release",
   "production": "ON HOLD"
 }
