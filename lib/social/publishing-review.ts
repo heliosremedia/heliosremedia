@@ -19,7 +19,7 @@ export async function getPublishingQueue(inputActor: WorkspaceWriteActor) {
     await requireLockedWorkspaceEditor(tx, actor);
     const rows = await tx.$queryRaw<QueueRow[]>`
       SELECT j.id, c."internalName" AS campaign, c.id AS "campaignId", v.id AS "variantId", x.platform::text,
-        COALESCE(x."providerUsername", x."intendedAccountName") AS account, v."postType"::text,
+        COALESCE(NULLIF(x."providerUsername", ''), x."intendedAccountName") AS account, v."postType"::text,
         j.status::text, j."scheduledAt", j.attempts, j."maxAttempts", j."lastErrorCategory"::text AS "errorCategory",
         j."publicUrl", j."claimToken" IS NOT NULL AS "hasClaim"
       FROM "SocialPublishingJob" j

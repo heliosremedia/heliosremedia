@@ -10,7 +10,8 @@ function load<T>(path: string, modules: Record<string, unknown>) {
   const exports = {};
   runInNewContext(ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
-  }).outputText, { exports, Date, URL, Error, require: (id: string) => { assert.ok(id in modules, id); return modules[id]; } });
+  }).outputText, { exports, Date, URL, Error, AbortController, setTimeout, clearTimeout, fetch: modules.fetch,
+    require: (id: string) => { assert.ok(id in modules, id); return modules[id]; } });
   return exports as T;
 }
 
@@ -88,6 +89,8 @@ test('publishing review runs real authorization and relational SQL without leaki
     }
     await db.exec(`UPDATE "SocialPublishingJob" SET "publicUrl"='https://example.test/post' WHERE id='job-a'`);
     assert.equal((await api.getPublishingQueue(actor))[0].publicUrl, 'https://example.test/post');
+    await db.exec(`UPDATE "SocialConnection" SET "providerUsername"='', "intendedAccountName"='Intended account' WHERE id='connection-a'`);
+    assert.equal((await api.getPublishingQueue(actor))[0].account, 'Intended account');
     await db.exec(`UPDATE "SocialConnection" SET platform='INSTAGRAM' WHERE id='connection-a'`);
     assert.equal((await api.getPublishingQueue(actor)).length, 0); await assert.rejects(api.inspectPublishingReview('job-a', actor), /NOT_FOUND/);
   } finally { await db.close(); }
@@ -129,4 +132,48 @@ test('queue page passes only the authorized service DTO and redirects denied acc
   const page = await api.default();
   assert.equal(page.props.children.find(child => child.type === 'Queue')?.props.initialJobs, jobs);
   denied = true; await assert.rejects(api.default(), /REDIRECT:\/admin/); assert.equal(calls, 2);
+});
+
+test('queue actions suppress synchronous duplicates and invalidate stale action controls after an unknown response', async () => {
+  type Node = { type: unknown; props: { children?: unknown; onClick?: () => Promise<void> } };
+  for (const mode of ['network', 'bad-json', 'forbidden', 'wrong-status', 'confirmed']) {
+  const states: unknown[] = [];
+  const element = (type: unknown, props: Node['props']) => ({ type, props });
+  let calls = 0;
+  const api = load<{ default: (input: unknown) => Node }>('../../app/admin/social-studio/queue/PublishingQueue.tsx', {
+    'react/jsx-runtime': { jsx: element, jsxs: element }, 'next/link': { default: 'Link' }, './PublishingReviewPanel': { default: 'Review' },
+    react: { useMemo: (read: () => unknown) => read(), useRef: (value: unknown) => ({ current: value }), useEffect: () => {},
+      useState: (initial: unknown) => { const index = states.length; states.push(initial); return [initial, (value: unknown) => {
+        states[index] = typeof value === 'function' ? value(states[index]) : value;
+      }]; } },
+    fetch: async (_url: string, options: { method: string; body: string }) => {
+      calls++; assert.equal(options.method, 'PATCH'); assert.deepEqual(JSON.parse(options.body), { jobId: 'job-a', action: 'retry' });
+      await Promise.resolve();
+      if (mode === 'network') throw new Error('Synthetic acknowledgement loss');
+      if (mode === 'bad-json') return new Response('not-json');
+      if (mode === 'forbidden') return Response.json({ success: false }, { status: 403 });
+      return Response.json({ success: true, status: mode === 'confirmed' ? 'RETRY_SCHEDULED' : 'PUBLISHED' });
+    },
+  });
+  const tree = api.default({ initialJobs: [{ id: 'job-a', campaign: 'Campaign', campaignId: 'campaign-a', variantId: 'variant-a', platform: 'FACEBOOK', postType: 'IMAGE', status: 'FAILED', scheduledAt: '2026-09-12T23:00:00Z', attempts: 1, maxAttempts: 5, error: '', publicUrl: '', account: 'Account', hasClaim: false }] });
+  function find(value: unknown): Node | undefined {
+    if (Array.isArray(value)) { for (const item of value) { const result = find(item); if (result) return result; } }
+    else if (value && typeof value === 'object' && 'props' in value) {
+      const node = value as Node;
+      if (node.type === 'button' && node.props.children === 'Retry') return node;
+      return find(node.props.children);
+    }
+  }
+  const button = find(tree); assert.ok(button?.props.onClick);
+  const results = await Promise.allSettled([button.props.onClick(), button.props.onClick()]);
+  assert.equal(calls, 1); assert.equal(results.every(result => result.status === 'fulfilled'), true);
+  assert.equal(states[3], '');
+  if (mode === 'confirmed') {
+    assert.equal((states[0] as Array<{ status: string }>)[0].status, 'RETRY_SCHEDULED');
+    assert.equal((states[5] as Set<string>).size, 0); assert.match(String(states[4]), /retry completed/);
+  } else {
+    assert.match(String(states[4]), /Reload the queue/);
+    assert.equal((states[5] as Set<string>).has('job-a'), true);
+  }
+  }
 });
