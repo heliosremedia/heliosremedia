@@ -4,21 +4,17 @@
   "expiresAt": "2026-09-13T00:15:00Z",
   "branch": "codex/v2-publishing-review-containment",
   "pr": 300,
-  "head": "4c6643ba6d69bcc3686ac2d427cef740ed252b4b",
-  "tree": "e0174f5243df52f03a6404eec8651b0dfdbc506b",
-  "outstandingChanges": false,
-  "previousCi": {
-    "run": 34725356285,
-    "job": 103638415172,
-    "status": "success",
-    "tests": 672
-  },
-  "currentCi": {
+  "head": "0dc294c5243b44bb0114f97a76ad903e9b7260a9",
+  "tree": "2b08d261c89f5777bab54567baf34dd1b4458863",
+  "implementationHead": "4c6643ba6d69bcc3686ac2d427cef740ed252b4b",
+  "ci": {
     "run": 34725535579,
     "job": 103638887502,
-    "status": "in_progress"
+    "status": "success",
+    "tests": 672,
+    "browser": "Actual Chromium read-only publishing evidence and existing analytics/generation interactions; no authenticated full-stack verification"
   },
-  "localCombinedTests": 672,
-  "scope": "All implementation published and locally checked; final CI and ledger checkpoint pending",
+  "outstandingChanges": false,
+  "scope": "Implementation and ledger published; verifying documentation-head CI before releasing claim",
   "production": "ON HOLD"
 }
