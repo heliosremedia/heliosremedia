@@ -412,3 +412,11 @@ Continued after draft #274. A required-company NewsletterDeliveryAttempt record 
 Verification: 594 tests passed, zero failed; non-incremental TypeScript, Prisma client generation, focused ESLint and diff checks passed. PGlite exercised the real migration and constraints; fake-provider orchestration tests cover failed preparation, accepted receipts surviving later failures, and uncertain outcomes. The static ownership inventory was refreshed; its counts are not semantic verification. No production migration, actual send, merge or deployment occurred.
 
 Provider lookup/reconciliation, controlled lease recovery, hosted migration and lock rehearsal, legacy campaign mapping and browser QA remain release gates. Old writers remain schema-compatible but cannot safely dispatch around new attempt evidence during rollback. Production remains held for readiness and Jake's QA.
+
+## Newsletter delivery evidence review
+
+Continued after draft #275. Added a read-only administrator API and transaction-scoped service for reviewing delivery evidence. Fresh access precedes stored-company reads; mismatched campaign/revision/attempt ownership fails closed. The report distinguishes accepted, uncertain, conflicting, rejected-only and historical observations without treating missing attempts as proof of non-delivery. Repair suggestions are suppressed when evidence conflicts. Responses omit recipient emails and provider credentials/receipt IDs and disable caching.
+
+Verification: 598 automated tests passed, zero failed; non-incremental TypeScript, focused ESLint and diff checks passed. Actual classifier, service and route tests exercise invalid receipts, multiple acceptance IDs, uncertain overlap, moved actor context, stale authorization, foreign relationships and bounded HTTP responses. Inventory refreshed to 139 routes; this is not a hosted authorization verdict.
+
+This endpoint neither repairs records nor authorizes retries. Browser presentation, provider lookup, reconciliation audit history, version-checked repair, lease recovery and hosted transaction verification remain gates. No actual recipient mutation, send, migration, merge or deployment occurred.
