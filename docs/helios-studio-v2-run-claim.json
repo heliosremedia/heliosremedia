@@ -1,8 +1,11 @@
 {
-  "baseHead": "d8b99945e99cfe99ef85f14485669e815dffd0ea",
-  "branch": "codex/v2-newsletter-recurrence-serialization",
-  "expiresAt": "2026-09-12T18:55:00Z",
-  "previousDraft": 292,
+  "status": "active",
   "runId": "atlas-20260912T1650",
-  "status": "active"
+  "expiresAt": "2026-09-12T18:55:00Z",
+  "branch": "codex/v2-newsletter-recurrence-serialization",
+  "head": "632ed0889c36ce4e32877b973156a149d748362e",
+  "pr": 293,
+  "verifiedImplementationHead": "6a68fa585fafcd481de2c90437a4092d2d54e55b",
+  "verifiedImplementationRun": 34707861194,
+  "purpose": "Verifying documentation follow-up after three implementation drafts; do not start competing writes."
 }
