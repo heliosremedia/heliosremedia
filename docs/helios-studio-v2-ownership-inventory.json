@@ -2659,6 +2659,7 @@
         "app/api/webhooks/resend/route.ts",
         "lib/client-communications/bounces.ts",
         "lib/client-communications/campaign-delivery.ts",
+        "lib/newsletters/delivery-review.ts",
         "lib/newsletters/delivery.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
@@ -4309,6 +4310,7 @@
         "app/api/admin/projects/featured/route.ts",
         "lib/audit.ts",
         "lib/dashboard.ts",
+        "lib/newsletters/delivery-review.ts",
         "lib/portfolio-discovery-settings.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
@@ -4690,7 +4692,8 @@
     {
       "path": "app/api/admin/newsletters/editions/[editionId]/delivery-review/route.ts",
       "methods": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "reviewStatus": "Unverified by this inventory"
     },

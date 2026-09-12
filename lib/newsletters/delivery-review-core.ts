@@ -1,4 +1,4 @@
-type Recipient = { id: string; status: string; providerMessageId: string | null };
+type Recipient = { id: string; status: string; providerMessageId: string | null; sentAt: Date | null; _count: { events: number; resendWebhookEvents: number } };
 type Attempt = { revisionId: string; status: string; recipientIds: unknown; providerReceiptIds: unknown };
 
 function identities(value: unknown): string[] | null {
@@ -36,7 +36,8 @@ export function reviewNewsletterDelivery(input: { revisionId: string; recipients
           : item.rejected ? "REJECTED_ONLY" : "NO_RECORDED_ATTEMPT";
     return { recipientId: recipient.id, observation, recipientStatus: recipient.status,
       acceptedEvidence: item.accepted.size > 0,
-      needsRecipientRecordRepair: Boolean(receipt && !conflict && !item.uncertain && !invalidAttempts
+      needsRecipientRecordRepair: Boolean(["PENDING", "FAILED"].includes(recipient.status) && !recipient.providerMessageId && !recipient.sentAt
+        && recipient._count.events === 0 && recipient._count.resendWebhookEvents === 0 && receipt && !conflict && !item.uncertain && !invalidAttempts
         && (recipient.providerMessageId !== receipt || recipient.status !== "SENT")),
     };
   });
