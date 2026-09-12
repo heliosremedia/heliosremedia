@@ -1,7 +1,8 @@
 {
-  "status": "active",
-  "runId": "atlas-20260912T1650",
+  "baseHead": "d8b99945e99cfe99ef85f14485669e815dffd0ea",
+  "branch": "codex/v2-newsletter-analytics-isolation",
   "expiresAt": "2026-09-12T18:55:00Z",
-  "branch": "codex/v2-newsletter-job-observability",
-  "baseHead": "d8b99945e99cfe99ef85f14485669e815dffd0ea"
+  "runId": "atlas-20260912T1650",
+  "status": "active",
+  "previousDraft": 291
 }
