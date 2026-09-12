@@ -3,8 +3,9 @@
   "runId": "atlas-20260912T1940",
   "expiresAt": "2026-09-12T20:35:00Z",
   "branch": "codex/v2-social-analytics-observation-ordering",
-  "baseHead": "9aa3c6847acdc489cb5dff9a3a3aa5a4a96772f1",
-  "outstandingChanges": false,
-  "production": "ON HOLD",
-  "scope": "Reconcile CI, preserve connection health chronology, isolated regression evidence"
+  "pr": 297,
+  "head": "6c572147099c7fad02b28a646377ea8b3b92f15c",
+  "outstandingChanges": true,
+  "scope": "Observation ordering published; adjacent due-time recheck implementation under verification",
+  "production": "ON HOLD"
 }
