@@ -1,17 +1,8 @@
 {
-  "status": "released",
-  "runId": "atlas-20260912T1832",
-  "expiresAt": null,
-  "branch": "codex/v2-social-analytics-publication-ownership",
-  "pr": 295,
-  "head": "41cfbe49c5c9a7c831647e06a4f1b7fd5468db71",
-  "tree": "57d5afbeed8a07c029c1c3ef4d3f282a2c20f7f3",
-  "verifiedImplementationHead": "1ba1e27d6f96963a2930d96d22f12db34fd5e9c6",
-  "verifiedImplementationRun": 34711653257,
-  "verification": "647 local and CI tests passed; implementation CI passed TypeScript, Prisma generation, Chromium synthetic workflow and whitespace.",
-  "finalHeadNote": "Documentation-only follow-up published after verified code. Its automatic CI has not been verified in this run; reconcile before advancing.",
-  "outstandingChanges": false,
-  "ledger": "docs/helios-studio-v2-progress-ledger.md",
-  "nextDependency": "Social publishing/analytics stale-claim and acknowledgement-loss isolated reproduction and claim-fenced persistence review. Provider adapters/OAuth/publication must remain protected. Legacy analytics connection mapping/provisioning races and Phase 1/2 hosted gates remain open.",
-  "production": "ON HOLD for readiness and Jake QA/release decision. No real provider request, publication, migration, merge or deployment."
+  "status": "active",
+  "runId": "atlas-20260912T1917",
+  "expiresAt": "2026-09-12T21:00:00Z",
+  "branch": "codex/v2-social-analytics-claim-fencing",
+  "baseHead": "41cfbe49c5c9a7c831647e06a4f1b7fd5468db71",
+  "previousDraft": 295
 }
