@@ -45,6 +45,7 @@ test("actual edition save rejects foreign storage even on company-scoped image r
     const key = "workspaces/foreign/blog/image.png";
     let writes = 0;
     const modules: Record<string, unknown> = {
+      "@/lib/newsletters/source-image-validation": { verifyNewsletterSourceImageSelections: async () => {} },
       "@/lib/newsletters/source-images": images,
       "@/lib/r2-upload": { getPublicAssetUrl: (value: string) => `https://assets.example/${value}` },
       "@/lib/blog-ownership": { getBlogOwnershipScope: async (workspaceId: string) => ({ workspaceId }) },

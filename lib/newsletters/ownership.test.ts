@@ -1,3 +1,4 @@
+import * as sourceImages from "./source-images.ts";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
@@ -44,7 +45,7 @@ test("actual source collector scopes requested IDs and derives company links", a
     "@/lib/site": { getSiteUrl: () => { throw new Error("Global site fallback forbidden"); } },
     "@/lib/r2-upload": { getPublicAssetUrl: (key: string) => `https://assets.example/${key}` },
     "@/lib/external-media": { tryResolveExternalMedia: () => null },
-    "./source-images": { safeNewsletterImageUrl: (value: string) => value },
+    "./source-images": sourceImages,
     "@/lib/prisma": { prisma: {
       blogPost: { findMany: async ({ where }: { where: { AND: Array<{ workspaceId: string }>; id: { in: string[] } } }) => records.filter(row => row.workspaceId === where.AND[0].workspaceId && where.id.in.includes(row.id)) },
       project: { findMany: async ({ where }: { where: { workspaceId: string } }) => { assert.equal(where.workspaceId, "a"); return []; } },
