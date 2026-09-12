@@ -1,6 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/app/generated/prisma/client";
 import { decryptSocialToken } from "./security";
 import { metricFingerprint } from "./analytics-core";
 import { analyticsAdapters, type ProviderMetric } from "./analytics-providers";
@@ -9,10 +10,10 @@ import { commitAnalyticsClaim } from "./analytics-claim";
 import { recordAnalyticsHealth } from "./analytics-health";
 
 const DAY=86_400_000;
-export async function queueAnalyticsRefresh(connectionId:string,rangeStart:Date,rangeEnd:Date){
+export async function queueAnalyticsRefresh(connectionId:string,rangeStart:Date,rangeEnd:Date,client:Pick<Prisma.TransactionClient,'socialAnalyticsJob'>=prisma){
   const boundedStart=new Date(Math.max(rangeStart.getTime(),rangeEnd.getTime()-90*DAY));
   const bucket=new Date().toISOString().slice(0,13);
-  return prisma.socialAnalyticsJob.upsert({where:{idempotencyKey:`${connectionId}:${boundedStart.toISOString().slice(0,10)}:${rangeEnd.toISOString().slice(0,10)}:${bucket}`},create:{connectionId,rangeStart:boundedStart,rangeEnd,idempotencyKey:`${connectionId}:${boundedStart.toISOString().slice(0,10)}:${rangeEnd.toISOString().slice(0,10)}:${bucket}`,nextAttemptAt:new Date()},update:{}});
+  return client.socialAnalyticsJob.upsert({where:{idempotencyKey:`${connectionId}:${boundedStart.toISOString().slice(0,10)}:${rangeEnd.toISOString().slice(0,10)}:${bucket}`},create:{connectionId,rangeStart:boundedStart,rangeEnd,idempotencyKey:`${connectionId}:${boundedStart.toISOString().slice(0,10)}:${rangeEnd.toISOString().slice(0,10)}:${bucket}`,nextAttemptAt:new Date()},update:{}});
 }
 export async function processAnalyticsQueue(now=new Date()){
   const jobs=await prisma.socialAnalyticsJob.findMany({where:{status:{in:["PENDING","RETRY_SCHEDULED"]},nextAttemptAt:{lte:now}},take:4,orderBy:{nextAttemptAt:"asc"},select:{id:true}});

@@ -1,0 +1,15 @@
+# Reviewed analytics cancellation
+
+Draft API/service foundation. No Studio controls or hosted verification yet. Production remains held.
+
+`GET /api/admin/social/analytics/jobs/[jobId]/recovery` returns a minimal review of one workspace-owned analytics job. `POST` to the same path accepts only `action: "cancel"`, `confirmed: true` and the current `reviewVersion`. Authority comes from the server session and freshly locked administrator membership, never request ownership fields. All responses are uncached and do not expose claim tokens, provider accounts, credentials or raw database errors.
+
+Cancellation is disabled unless `STUDIO_V2_ANALYTICS_RECOVERY_ENABLED=true`. Enable only after old unfenced analytics workers are retired and recovery QA passes. Eligible jobs are RUNNING, have a nonempty claim token and recorded claim time at least 30 minutes old. This age threshold permits deliberate review; it does not prove that a remote request stopped or that a lease expired. Missing claim evidence and recent jobs remain blocked.
+
+An opaque review version binds workspace, job, connection/account, status, token, claim time, update time and attempts. Inside one authorized transaction the service rechecks eligibility/version, conditionally changes only status/token/completion time and writes a required audit. Audit failure rolls back cancellation. If acknowledgement is lost, re-inspect before doing anything else; do not blindly retry. Duplicate/stale submissions conflict. Previously imported metrics, prior error details, range/idempotency history and connection configuration remain intact. A still-running claim-fenced worker cannot commit after cancellation. No provider request is aborted, repeated or started by this API.
+
+The existing manual refresh API also now reauthorizes inside the same transaction as connection selection and job creation. Its queue helper accepts that transaction while preserving cron compatibility, range bounds and idempotency. A stale session role cannot grant new refresh authority.
+
+Verification executes real service/authentication policy and lock SQL against isolated PGlite with a narrow Prisma-shaped adapter for model delegates. It covers revoked/editor/stale-session denial, foreign jobs, changed claims with unchanged timestamps, invalid states, recent/missing claim times, audit rollback, committed-response loss, duplicate cancellation and late worker rejection. Real route handlers run with synthetic sessions/services. This is not authenticated hosted HTTP, full generated-Prisma integration, browser cancellation or multi-connection Neon concurrency evidence.
+
+Next: an administrator-facing job list/review/confirmation flow, actual synthetic browser interaction, hosted old/new-worker overlap and concurrency checks. Publishing-job recovery remains separately blocked on explicit reconciliation of external outcomes. No automatic analytics retry or publishing recovery is implemented here. Rollback keeps the cancellation flag off and retains claim-fenced workers until all reviewed jobs are reconciled. No schema migration or provider adapter/OAuth changes.
