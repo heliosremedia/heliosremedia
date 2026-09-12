@@ -4,8 +4,11 @@
   "expiresAt": "2026-09-12T20:35:00Z",
   "branch": "codex/v2-social-analytics-observation-ordering",
   "pr": 297,
-  "head": "6c572147099c7fad02b28a646377ea8b3b92f15c",
-  "outstandingChanges": true,
-  "scope": "Observation ordering published; adjacent due-time recheck implementation under verification",
+  "head": "fb5cf9ae8ab1413498391c310a395dd7eb1801ef",
+  "tree": "e0ef02a787a510cd13ef2cdc3e145e9fc3824611",
+  "verifiedImplementationHead": "5ed949f78b06ac9fb7f7ab008acecf52e46d3e53",
+  "verifiedImplementationRun": 34715541843,
+  "outstandingChanges": false,
+  "scope": "655 tests and complete implementation CI green; final documentation follow-up CI pending",
   "production": "ON HOLD"
 }
