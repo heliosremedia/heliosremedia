@@ -3,6 +3,7 @@
   "runId": "atlas-20260912T1917",
   "expiresAt": "2026-09-12T21:00:00Z",
   "branch": "codex/v2-social-analytics-claim-fencing",
-  "baseHead": "41cfbe49c5c9a7c831647e06a4f1b7fd5468db71",
-  "previousDraft": 295
+  "pr": 296,
+  "head": "5765369170bb41e155ee37d67a6600f09620247a",
+  "purpose": "Verifying claim fencing and batched atomic analytics persistence; preserve current run ownership."
 }
