@@ -51,3 +51,9 @@ This is an admission limit, not a hard execution deadline, heartbeat or cancella
 The cron delegates missed-approval state changes to a transaction-scoped service. It captures the job identity, resolves stored company ownership, locks company/series/edition/job records, and validates the current MISSED_APPROVAL claim, unexpired lease and exact elapsed schedule. Inactive series and already scheduled, sent or otherwise ineligible editions remain unchanged. A conditional edition version write, approval revocation and mandatory audit commit together. Notifications remain outside the transaction and retain the existing adapter.
 
 Executable service tests use synthetic transactions to verify ownership and claim predicates, captured context, ineligible states, version conflicts, and failure propagation from approval/audit writes. Mock rollback is not hosted rollback evidence. Hosted lock ordering, recovery after function termination and notification isolation remain gates.
+
+## Generation schedule identity
+
+Background generation authorization now requires the GENERATE job to be due and its stored due date to equal the edition's current generation date. Missing or changed generation dates fail closed before claiming an edition and again before saving generated content. The existing token, type, ownership and unexpired-lease checks remain in place; administrator generation remains explicit and independent of a background schedule. The existing edition version predicates continue to protect changes occurring after this check.
+
+Service tests verify rejection of missing or mismatched generation dates and the elapsed-date query predicate. These tests use synthetic database results, not hosted races. This does not recover a GENERATING edition abandoned by an expired process or add heartbeats.

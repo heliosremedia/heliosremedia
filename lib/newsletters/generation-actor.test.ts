@@ -15,11 +15,14 @@ function load<T>(file: string, modules: Record<string, unknown>) {
 test("background generation requires the owned edition's current unexpired GENERATE claim", async () => {
   let valid = true;
   let adminChecks = 0;
+  const dueAt = new Date("2026-01-01T00:00:00Z");
+  let generationDueAt: Date | null = dueAt;
   const tx = {
     $queryRaw: async () => [],
-    newsletterJob: { findFirst: async ({ where }: { where: { id: string; editionId: string; claimToken: string; type: string; status: string; leaseExpiresAt: { gt: Date }; edition: { series: { workspaceId: string } } } }) => {
+    newsletterJob: { findFirst: async ({ where }: { where: { id: string; editionId: string; claimToken: string; type: string; status: string; dueAt: { lte: Date }; leaseExpiresAt: { gt: Date }; edition: { series: { workspaceId: string } } } }) => {
       assert.equal(where.id, "job"); assert.equal(where.editionId, "edition"); assert.equal(where.claimToken, "claim"); assert.equal(where.type, "GENERATE"); assert.equal(where.status, "CLAIMED"); assert.ok(where.leaseExpiresAt.gt instanceof Date); assert.equal(where.edition.series.workspaceId, "a");
-      return valid ? { id: "job" } : null;
+      assert.equal(where.dueAt.lte.getTime(), where.leaseExpiresAt.gt.getTime());
+      return valid ? { id: "job", dueAt, edition: { generationDueAt } } : null;
     } },
   };
   const api = load<{ requireNewsletterGenerationAccess: (tx: unknown, editionId: string, workspaceId: string, context: unknown) => Promise<void> }>("./generation-access.ts", {
@@ -28,6 +31,11 @@ test("background generation requires the owned edition's current unexpired GENER
   });
   const background = { kind: "BACKGROUND", jobId: "job", claimToken: "claim" };
   await api.requireNewsletterGenerationAccess(tx, "edition", "a", background);
+  for (const stale of [null, new Date(dueAt.getTime() + 60_000)]) {
+    generationDueAt = stale;
+    await assert.rejects(api.requireNewsletterGenerationAccess(tx, "edition", "a", background), /CLAIM_EXPIRED/);
+  }
+  generationDueAt = dueAt;
   valid = false; await assert.rejects(api.requireNewsletterGenerationAccess(tx, "edition", "a", background), /CLAIM_EXPIRED/);
   await assert.rejects(api.requireNewsletterGenerationAccess(tx, "edition", "a", { kind: "ADMIN", actor: { workspaceId: "b" } }), /FORBIDDEN/);
   assert.equal(adminChecks, 0);
