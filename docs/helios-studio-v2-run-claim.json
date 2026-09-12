@@ -1,12 +1,15 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-20260912T2205",
-  "expiresAt": "2026-09-12T23:15:00Z",
+  "releasedAt": "2026-09-12T22:37:54Z",
+  "expiresAt": "2026-09-12T22:37:54Z",
   "branch": "codex/v2-analytics-reviewed-cancellation",
   "pr": 299,
   "head": "01383c03018412873b01934d6588b3402c68182d",
   "tree": "1b3d47b32c322fdc279aae1fad940547436e736c",
   "implementationHead": "062f29751b46950bd4de53aa7be5472ceb3f24de",
+  "localHead": "f0f1fcd82ed48d9ed6ff76ddafbea0a8066c5887",
+  "scratchCheckout": "/tmp/helios-v2-recovery",
   "ci": {
     "run": 34722874083,
     "job": 103631818260,
@@ -14,7 +17,18 @@
     "tests": 668,
     "browser": "Actual Chromium synthetic analytics and generation recovery interactions"
   },
+  "finalHeadCi": {
+    "run": 34723106110,
+    "job": 103632433795,
+    "status": "success",
+    "allStepsPassed": true
+  },
   "outstandingChanges": false,
-  "scope": "Implementation and ledger published; verifying documentation head CI before release",
-  "production": "ON HOLD"
+  "nextDependencies": [
+    "Explicit external-outcome reconciliation for held publishing jobs without automatic provider retries",
+    "Approval-reservation acknowledgement recovery",
+    "Per-attempt/provider-health chronology and shared-job convergence",
+    "Hosted concurrency, old/new worker overlap and authenticated full-stack isolation gates"
+  ],
+  "production": "ON HOLD; cancellation flag remains disabled by default; no production merge, migration, provider call or deployment"
 }
