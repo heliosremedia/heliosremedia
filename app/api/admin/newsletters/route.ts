@@ -1,3 +1,6 @@
+import type { Prisma } from "@/app/generated/prisma/client";
+import type { WorkspaceWriteActor } from "@/lib/workspace-write-access";
+import { lockNewsletterSeriesIdentity } from "@/lib/newsletters/series-write-lock";
 import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { NextResponse } from "next/server";
 import { recordAuditEvent } from "@/lib/audit";
@@ -81,8 +84,11 @@ function generationFromSeries(series: {
   return { mode: "RECURRENCE", recurrence } satisfies GenerationRule;
 }
 
-async function pauseSeries(seriesId: string, workspaceId: string) {
+async function pauseSeries(seriesId: string, actor: WorkspaceWriteActor) {
+  actor = { ...actor };
+  const { workspaceId } = actor;
   return prisma.$transaction(async tx => {
+    await lockNewsletterSeriesIdentity(tx, seriesId, actor);
     const series = await tx.newsletterSeries.update({
       where: { id: seriesId, AND: [await getContentOwnershipScope(workspaceId)] },
       data: { status: "PAUSED" },
@@ -90,44 +96,63 @@ async function pauseSeries(seriesId: string, workspaceId: string) {
     await tx.newsletterJob.updateMany({
       where: {
         edition: { seriesId },
-        status: { in: ["PENDING", "CLAIMED"] },
+        status: "PENDING",
       },
       data: {
         status: "CANCELLED",
         completedAt: new Date(),
         leaseExpiresAt: null,
+        lastErrorCode: "SERIES_PAUSED",
+        lastErrorMessage: "Series paused before execution.",
       },
     });
     return series;
   });
 }
 
-async function resumeSeries(seriesId: string, workspaceId: string) {
+async function resumeSeries(seriesId: string, actor: WorkspaceWriteActor) {
+  actor = { ...actor };
+  const { workspaceId } = actor;
   const now = new Date();
   return prisma.$transaction(async tx => {
+    await lockNewsletterSeriesIdentity(tx, seriesId, actor);
     const series = await tx.newsletterSeries.findUnique({ where: { id: seriesId, AND: [await getContentOwnershipScope(workspaceId)] } });
     if (!series) throw new Error("Newsletter series was not found.");
+    if (series.status === "ACTIVE") return series;
     const upcoming = await tx.newsletterEdition.findFirst({
       where: {
         seriesId,
         intendedSendAt: { gt: now },
-        status: { notIn: ["SENT", "PARTIALLY_SENT", "CANCELLED"] },
+        status: { in: ["AWAITING_GENERATION", "DRAFT_GENERATED", "NEEDS_REVIEW", "APPROVED", "SCHEDULED", "PAUSED", "MISSED_APPROVAL", "GENERATION_FAILED"] },
       },
+      include: { approvals: { where: { revokedAt: null }, select: { revisionId: true, approvedSendAt: true } } },
       orderBy: { intendedSendAt: "asc" },
     });
     if (upcoming) {
-      await tx.newsletterJob.updateMany({
+      const resumedStatus = upcoming.status === "PAUSED" ? "AWAITING_GENERATION" : upcoming.status;
+      if (upcoming.status === "PAUSED") {
+        const changed = await tx.newsletterEdition.updateMany({
+          where: { id: upcoming.id, seriesId, status: "PAUSED" },
+          data: { status: "AWAITING_GENERATION", rowVersion: { increment: 1 } },
+        });
+        if (changed.count !== 1) throw new Error("Edition changed while resuming. Reopen and retry.");
+      }
+      const resumable: Prisma.NewsletterJobWhereInput[] = [];
+      if (upcoming.generationDueAt && ["AWAITING_GENERATION", "DRAFT_GENERATED", "NEEDS_REVIEW", "GENERATION_FAILED"].includes(resumedStatus)) {
+        resumable.push({ type: "GENERATE", dueAt: upcoming.generationDueAt });
+      }
+      const approved = resumedStatus === "SCHEDULED" && upcoming.approvedRevisionId
+        && upcoming.approvals.some(approval => approval.revisionId === upcoming.approvedRevisionId
+          && approval.approvedSendAt.getTime() === upcoming.intendedSendAt.getTime());
+      if (approved) resumable.push({ type: "SEND", dueAt: upcoming.intendedSendAt });
+      if (resumedStatus !== "SCHEDULED") resumable.push({ type: "MISSED_APPROVAL", dueAt: upcoming.intendedSendAt });
+      if (resumable.length) await tx.newsletterJob.updateMany({
         where: {
-          editionId: upcoming.id,
-          status: "CANCELLED",
-          dueAt: { gt: now },
+          editionId: upcoming.id, status: "CANCELLED", lastErrorCode: "SERIES_PAUSED", OR: resumable,
         },
         data: {
-          status: "PENDING",
-          completedAt: null,
-          claimToken: null,
-          claimedAt: null,
-          leaseExpiresAt: null,
+          status: "PENDING", completedAt: null, claimToken: null, claimedAt: null, leaseExpiresAt: null,
+          lastErrorCode: null, lastErrorMessage: null,
         },
       });
       return tx.newsletterSeries.update({
@@ -247,8 +272,8 @@ export async function POST(request: Request) {
       const seriesId = typeof body.seriesId === "string" ? body.seriesId : "";
       if (!seriesId) throw new Error("Newsletter series is required.");
       const series = action === "pause-series"
-        ? await pauseSeries(seriesId, session.workspaceId)
-        : await resumeSeries(seriesId, session.workspaceId);
+        ? await pauseSeries(seriesId, session)
+        : await resumeSeries(seriesId, session);
       await recordAuditEvent({
         workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email,
         action: action === "pause-series" ? "NEWSLETTER_SERIES_PAUSED" : "NEWSLETTER_SERIES_RESUMED",
