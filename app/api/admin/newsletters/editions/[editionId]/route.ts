@@ -136,7 +136,7 @@ async function saveEdition(editionId: string, value: unknown, actor: WorkspaceWr
     where: { id: editionId, series: await getBlogOwnershipScope(workspaceId) },
     include: { blocks: { include: { sources: true } }, approvals: { where: { revokedAt: null } } },
   });
-  if (!current || ["SENT", "PARTIALLY_SENT", "CANCELLED"].includes(current.status)) {
+  if (!current || ["SENT", "PARTIALLY_SENT", "CANCELLED", "SENDING", "GENERATING", "SEND_FAILED"].includes(current.status)) {
     throw new Error("This edition can no longer be edited.");
   }
   for (const block of editor.blocks) {
@@ -232,7 +232,7 @@ async function saveEdition(editionId: string, value: unknown, actor: WorkspaceWr
     await requireLockedWorkspaceAdministrator(tx, actor);
     const claimed = await tx.newsletterEdition.updateMany({
       where: { id: editionId, rowVersion: current.rowVersion, series: await getBlogOwnershipScope(workspaceId),
-        status: { notIn: ["SENT", "PARTIALLY_SENT", "CANCELLED", "GENERATING", "SENDING"] } },
+        status: { notIn: ["SENT", "PARTIALLY_SENT", "CANCELLED", "GENERATING", "SENDING", "SEND_FAILED"] } },
       data: { rowVersion: { increment: 1 } },
     });
     if (claimed.count !== 1) throw new Error("Edition changed while saving. Reopen and retry.");
@@ -416,7 +416,7 @@ export async function POST(request: Request, context: Context) {
     const action = clean(body.action, 80);
     let message = "Edition updated.";
     if (["generate", "regenerate"].includes(action)) {
-      const result = await generateNewsletterEdition(editionId, session.userId);
+      const result = await generateNewsletterEdition(editionId, { kind: "ADMIN", actor: session });
       message = result.message;
     } else if (["regenerate-block", "rewrite-block", "shorten-block", "expand-block"].includes(action)) {
       const blockId = clean(body.blockId, 100);
@@ -426,7 +426,7 @@ export async function POST(request: Request, context: Context) {
         blockId,
         action: action as "regenerate-block" | "rewrite-block" | "shorten-block" | "expand-block",
         instruction: clean(body.instruction, 1_000),
-        actorId: session.userId,
+        actor: session,
       });
       message = result.message;
     } else if (action === "approve") {

@@ -1,4 +1,5 @@
-import { requireWorkspaceId } from "@/lib/workspaces";
+import { requireLockedWorkspaceAdministrator, type WorkspaceWriteActor } from "@/lib/workspace-write-access";
+import { requireNewsletterGenerationAccess, type NewsletterGenerationContext } from "./generation-access";
 import { resolveNewsletterWorkspace } from "./ownership";
 import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import "server-only";
@@ -19,42 +20,43 @@ function notes(value: unknown) {
   return value && typeof value === "object" ? value as Record<string, unknown> : {};
 }
 
-export async function generateNewsletterEdition(editionId: string, actorId?: string) {
-  const actorWorkspaceId = actorId ? await requireWorkspaceId(actorId) : null;
-  const owner = await prisma.newsletterEdition.findUnique({ where: { id: editionId, ...(actorWorkspaceId ? { series: await getBlogOwnershipScope(actorWorkspaceId) } : {}) }, select: { series: { select: { workspaceId: true } } } });
+export async function generateNewsletterEdition(editionId: string, context: NewsletterGenerationContext) {
+  context = context.kind === "ADMIN" ? { kind: "ADMIN", actor: { ...context.actor } } : { ...context };
+  const actorId = context.kind === "ADMIN" ? context.actor.userId : undefined;
+  const actorWorkspaceId = context.kind === "ADMIN" ? context.actor.workspaceId : null;
+  const owner = await prisma.newsletterEdition.findUnique({ where: { id: editionId, ...(actorWorkspaceId ? { series: await getBlogOwnershipScope(actorWorkspaceId) } : {}) }, select: { rowVersion: true, series: { select: { workspaceId: true } } } });
   if (!owner) throw new Error("Edition was not found.");
   const workspaceId = await resolveNewsletterWorkspace(owner.series.workspaceId);
   if (actorWorkspaceId && actorWorkspaceId !== workspaceId) throw new Error("Edition was not found.");
-  const claimed = await prisma.newsletterEdition.updateMany({
-    where: {
-      id: editionId,
-      status: { in: ["AWAITING_GENERATION", "NEEDS_REVIEW", "GENERATION_FAILED", "DRAFT_GENERATED"] },
-      series: { status: "ACTIVE", workspaceId: owner.series.workspaceId },
-    },
-    data: { status: "GENERATING", rowVersion: { increment: 1 } },
-  });
-  if (claimed.count !== 1) throw new Error("This edition is not available for generation.");
-
-  const edition = await prisma.newsletterEdition.findUnique({
-    where: { id: editionId },
-    include: {
-      series: true,
-      blocks: { orderBy: { position: "asc" }, include: { sources: true } },
-      generationRuns: { select: { attempt: true }, orderBy: { attempt: "desc" }, take: 1 },
-    },
-  });
-  if (!edition) throw new Error("Edition was not found.");
-  const attempt = (edition.generationRuns[0]?.attempt ?? 0) + 1;
-  const run = await prisma.newsletterGenerationRun.create({
-    data: {
-      editionId,
-      status: "RUNNING",
-      promptVersion: "newsletter-v1.5.0",
-      instructionsSnapshot: { workspaceId, seriesId: edition.seriesId, contentNotes: edition.contentNotes },
-      sourceManifest: [],
-      attempt,
-      startedAt: new Date(),
-    },
+  const { edition, run, attempt } = await prisma.$transaction(async tx => {
+    await requireNewsletterGenerationAccess(tx, editionId, workspaceId, context);
+    const claimed = await tx.newsletterEdition.updateMany({
+      where: {
+        id: editionId, rowVersion: owner.rowVersion,
+        status: { in: ["AWAITING_GENERATION", "NEEDS_REVIEW", "GENERATION_FAILED", "DRAFT_GENERATED"] },
+        series: { status: "ACTIVE", workspaceId: owner.series.workspaceId },
+      },
+      data: { status: "GENERATING", rowVersion: { increment: 1 } },
+    });
+    if (claimed.count !== 1) throw new Error("This edition is not available for generation.");
+    const edition = await tx.newsletterEdition.findUnique({
+      where: { id: editionId, status: "GENERATING", series: { workspaceId: owner.series.workspaceId } },
+      include: {
+        series: true,
+        blocks: { orderBy: { position: "asc" }, include: { sources: true } },
+        generationRuns: { select: { attempt: true }, orderBy: { attempt: "desc" }, take: 1 },
+      },
+    });
+    if (!edition) throw new Error("Edition was not found.");
+    const attempt = (edition.generationRuns[0]?.attempt ?? 0) + 1;
+    const run = await tx.newsletterGenerationRun.create({
+      data: {
+        editionId, status: "RUNNING", promptVersion: "newsletter-v1.5.0",
+        instructionsSnapshot: { workspaceId, seriesId: edition.seriesId, contentNotes: edition.contentNotes },
+        sourceManifest: [], attempt, startedAt: new Date(),
+      },
+    });
+    return { edition, run, attempt };
   });
 
   try {
@@ -129,6 +131,7 @@ export async function generateNewsletterEdition(editionId: string, actorId?: str
     const hash = contentHash({ subject: draft.subject, previewText: draft.previewText, blocks: blockSnapshot });
 
     await prisma.$transaction(async (tx) => {
+      await requireNewsletterGenerationAccess(tx, editionId, workspaceId, context);
       const current = await tx.newsletterEdition.updateMany({
         where: { id: editionId, status: "GENERATING", rowVersion: edition.rowVersion,
           series: { status: "ACTIVE", workspaceId: edition.series.workspaceId } },
@@ -226,9 +229,11 @@ export async function regenerateNewsletterBlock(input: {
   blockId: string;
   action: "regenerate-block" | "rewrite-block" | "shorten-block" | "expand-block";
   instruction?: string;
-  actorId: string;
+  actor: WorkspaceWriteActor;
 }) {
-  const actorWorkspaceId = await requireWorkspaceId(input.actorId);
+  input = { ...input, actor: { ...input.actor } };
+  const actorWorkspaceId = input.actor.workspaceId;
+  await prisma.$transaction(tx => requireLockedWorkspaceAdministrator(tx, input.actor));
   const block = await prisma.newsletterBlock.findFirst({
     where: { id: input.blockId, editionId: input.editionId, edition: { series: await getBlogOwnershipScope(actorWorkspaceId) } },
     include: {
@@ -252,7 +257,7 @@ export async function regenerateNewsletterBlock(input: {
       throw new Error("Newsletter source ownership must be verified before rewriting.");
     }
   }
-  if (["SENT", "PARTIALLY_SENT", "CANCELLED"].includes(block.edition.status)) {
+  if (["SENT", "PARTIALLY_SENT", "CANCELLED", "GENERATING", "SENDING", "SEND_FAILED"].includes(block.edition.status)) {
     throw new Error("This edition can no longer be edited.");
   }
   const sources = block.sources.map((source) => {
@@ -340,10 +345,11 @@ export async function regenerateNewsletterBlock(input: {
     blocks: updatedBlocks,
   });
   await prisma.$transaction(async (tx) => {
+    await requireLockedWorkspaceAdministrator(tx, input.actor);
     const claimed = await tx.newsletterEdition.updateMany({
       where: { id: input.editionId, rowVersion: block.edition.rowVersion,
         series: { workspaceId: block.edition.series.workspaceId },
-        status: { notIn: ["SENT", "PARTIALLY_SENT", "CANCELLED", "GENERATING", "SENDING"] } },
+        status: { notIn: ["SENT", "PARTIALLY_SENT", "CANCELLED", "GENERATING", "SENDING", "SEND_FAILED"] } },
       data: { rowVersion: { increment: 1 } },
     });
     if (claimed.count !== 1) throw new Error("Edition changed during rewriting. Reopen and retry.");
@@ -367,7 +373,7 @@ export async function regenerateNewsletterBlock(input: {
         blocksSnapshot: updatedBlocks,
         contentHash: hash,
         changeSummary: `AI ${input.action}`,
-        createdById: input.actorId,
+        createdById: input.actor.userId,
       },
     });
     await tx.newsletterApproval.updateMany({

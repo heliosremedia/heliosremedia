@@ -46,7 +46,7 @@ export async function GET(request: Request) {
       const reviewUrl = `${getSiteUrl()}/admin/newsletter-studio/editions/${edition.id}`;
 
       if (job.type === "GENERATE") {
-        await generateNewsletterEdition(edition.id);
+        await generateNewsletterEdition(edition.id, { kind: "BACKGROUND", jobId: job.id, claimToken: job.claimToken });
         await sendNewsletterAdminNotification({
           kind: "DRAFT_READY",
           editionLabel: label,

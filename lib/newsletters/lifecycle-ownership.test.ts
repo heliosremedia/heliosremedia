@@ -40,7 +40,7 @@ test("manual generation checks actor ownership before claiming or invoking AI", 
   let claims = 0;
   const loaded = load(new URL("./generation.ts", import.meta.url), {
     "server-only": {},
-    "@/lib/workspaces": { requireWorkspaceId: async (actor: string) => { assert.equal(actor, "actor"); return "a"; } },
+    "@/lib/workspace-write-access": {}, "./generation-access": {},
     "./ownership": { resolveNewsletterWorkspace: async () => "b" },
     "@/lib/blog-ownership": { getBlogOwnershipScope: async (workspaceId: string) => ({ workspaceId }) },
     "@/lib/prisma": { prisma: { newsletterEdition: {
@@ -49,12 +49,13 @@ test("manual generation checks actor ownership before claiming or invoking AI", 
     } } },
     "@/lib/site-settings": {}, "./ai": {}, "./content-sources": {}, "./studio": {}, "./source-images": {},
   });
-  await assert.rejects(loaded.generateNewsletterEdition("foreign", "actor"), /not found/);
+  await assert.rejects(loaded.generateNewsletterEdition("foreign", { kind: "ADMIN", actor: { userId: "actor", workspaceId: "a", sessionVersion: 1 } }), /not found/);
   assert.equal(claims, 0);
 });
 
 test("block rewriting rejects foreign snapshots and stale editions before content writes", async () => {
-  for (const scenario of ["foreign-source", "stale", "valid"]) {
+  for (const scenario of ["foreign-source", "denied", "revoked", "stale", "valid"]) {
+    let allowed = scenario !== "denied";
     let aiCalls = 0;
     let contentWrites = 0;
     let revisions = 0;
@@ -67,19 +68,19 @@ test("block rewriting rejects foreign snapshots and stale editions before conten
       newsletterApproval: { updateMany: async () => { revocations++; } },
     };
     const loaded = load(new URL("./generation.ts", import.meta.url), {
-      "server-only": {}, "@/lib/workspaces": { requireWorkspaceId: async () => "a" },
+      "server-only": {}, "@/lib/workspace-write-access": { requireLockedWorkspaceAdministrator: async () => { if (!allowed) throw new Error("WORKSPACE_WRITE_FORBIDDEN"); } }, "./generation-access": {},
       "./ownership": { resolveNewsletterWorkspace: async (value: string | null) => { if (!value) throw new Error("Legacy ownership unavailable"); return value; } },
       "@/lib/blog-ownership": { getBlogOwnershipScope: async (workspaceId: string) => ({ workspaceId }) },
       "@/lib/prisma": { prisma: { newsletterBlock: { findFirst: async ({ where }: { where: { edition: { series: { workspaceId: string } } } }) => { assert.equal(where.edition.series.workspaceId, "a"); return block; } }, $transaction: async (callback: (db: typeof tx) => unknown) => callback(tx) } },
       "@/lib/site-settings": { getSiteSettings: async (workspaceId: string) => { assert.equal(workspaceId, "a"); return { businessName: "Company A" }; } },
-      "./ai": { generateNewsletterDraft: async () => { aiCalls++; return { blocks: [{ type: "TEXT", sourceIds: [] }], warnings: [] }; } },
+      "./ai": { generateNewsletterDraft: async () => { aiCalls++; if (scenario === "revoked") allowed = false; return { blocks: [{ type: "TEXT", sourceIds: [] }], warnings: [] }; } },
       "./content-sources": {}, "./studio": { contentHash: () => "hash" },
       "./source-images": { validateCandidateId: () => null, suggestedCandidate: () => null, preserveManualImage: (_current: unknown, next: unknown) => next },
     });
-    const operation = loaded.regenerateNewsletterBlock({ editionId: "edition", blockId: "block", actorId: "actor", action: "rewrite-block" });
+    const operation = loaded.regenerateNewsletterBlock({ editionId: "edition", blockId: "block", actor: { userId: "actor", workspaceId: "a", sessionVersion: 1 }, action: "rewrite-block" });
     if (scenario === "valid") await operation;
-    else await assert.rejects(operation, scenario === "foreign-source" ? /source ownership/ : /changed during rewriting/);
-    assert.equal(aiCalls, scenario === "foreign-source" ? 0 : 1);
+    else await assert.rejects(operation, scenario === "foreign-source" ? /source ownership/ : ["denied", "revoked"].includes(scenario) ? /WORKSPACE_WRITE_FORBIDDEN/ : /changed during rewriting/);
+    assert.equal(aiCalls, ["foreign-source", "denied"].includes(scenario) ? 0 : 1);
     assert.equal(contentWrites, scenario === "valid" ? 1 : 0);
     assert.equal(revisions, contentWrites);
     assert.equal(revocations, contentWrites);
