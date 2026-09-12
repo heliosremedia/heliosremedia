@@ -476,3 +476,11 @@ Verification: 612 automated tests passed, zero failed; non-incremental TypeScrip
 Continued after #282. Missed-approval jobs now resolve stored ownership and revalidate their current token, type, lease and exact elapsed schedule under locks. Edition status, approval revocation and a mandatory company audit commit in one transaction. Inactive series and ineligible edition states remain unchanged. The cron notifies only after the transition service returns a change. Provider adapters and notification routing are untouched.
 
 Verification: 615 automated tests passed, zero failed; non-incremental TypeScript, scoped ESLint and diff checks passed. Service tests use synthetic transactions and cover captured job identity, owner/claim rejection, conditional versions, state preservation and approval/audit failure propagation. They do not prove hosted rollback or lock ordering. No migration, actual send, live mutation, merge or deployment occurred. Generation schedule validation is the next adjacent execution gap. Hosted concurrency, notification isolation and recovery remain gates.
+
+## Background generation schedule validation
+
+Continued directly after publishing #283, remote head `23ae3a5a623fcc144d5d92b25dbda6380a26e7b7`, tree `ae1c12ae8bce6d3cb5b00f545b59dd6f14ec9479`. Background generation previously validated ownership and lease but not the job's schedule identity. It now requires an elapsed job due date matching the edition's current non-null generation date, both before edition claim and before content persistence. Explicit administrator generation remains independent of scheduled jobs. No AI/provider adapter changed.
+
+Expanded actual access-service tests cover missing/changed generation dates and the due-date predicate while preserving current-claim and administrator tests. Hosted schedule/claim races, heartbeats and recovery of abandoned generation runs remain unverified. No schema migration, actual generation, live mutation, real send, merge or production deployment occurred.
+
+Verification: 615 automated tests passed, zero failed; non-incremental TypeScript, scoped ESLint and diff checks passed. Existing tests were expanded, so the test count is unchanged from #283. Production remains held for readiness and Jake's QA.

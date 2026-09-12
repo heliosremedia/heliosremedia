@@ -18,11 +18,14 @@ export async function requireNewsletterGenerationAccess(
   if (context.kind !== "BACKGROUND" || !context.jobId || !context.claimToken) throw new Error("WORKSPACE_WRITE_FORBIDDEN");
   await tx.$queryRaw`SELECT id FROM "Workspace" WHERE id = ${workspaceId} FOR UPDATE`;
   await tx.$queryRaw`SELECT id FROM "NewsletterJob" WHERE id = ${context.jobId} AND "editionId" = ${editionId} FOR UPDATE`;
+  const now = new Date();
   const job = await tx.newsletterJob.findFirst({
     where: {
       id: context.jobId, editionId, claimToken: context.claimToken, type: "GENERATE", status: "CLAIMED",
-      leaseExpiresAt: { gt: new Date() }, edition: { series: await getBlogOwnershipScope(workspaceId) },
-    }, select: { id: true },
+      dueAt: { lte: now }, leaseExpiresAt: { gt: now }, edition: { series: await getBlogOwnershipScope(workspaceId) },
+    }, select: { id: true, dueAt: true, edition: { select: { generationDueAt: true } } },
   });
-  if (!job) throw new Error("NEWSLETTER_GENERATION_CLAIM_EXPIRED");
+  if (!job?.edition.generationDueAt || job.dueAt.getTime() !== job.edition.generationDueAt.getTime()) {
+    throw new Error("NEWSLETTER_GENERATION_CLAIM_EXPIRED");
+  }
 }
