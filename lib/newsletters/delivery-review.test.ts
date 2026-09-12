@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
-import { newsletterRecordedTotals, reviewNewsletterDelivery } from "./delivery-review-core.ts";
+import { newsletterAcceptedCompletion, newsletterRecordedTotals, reviewNewsletterDelivery } from "./delivery-review-core.ts";
 
 const recipient = { id: "recipient", status: "FAILED", providerMessageId: null as string | null, sentAt: null as Date | null, _count: { events: 0, resendWebhookEvents: 0 } };
 const accepted = { revisionId: "revision", status: "ACCEPTED", recipientIds: ["recipient"], providerReceiptIds: ["receipt"] };
@@ -65,7 +65,7 @@ test("delivery review authorizes before scoped reads and rejects mismatched camp
     newsletterDeliveryAttempt: { count: async () => foreign },
   };
   const api = load<{ getNewsletterDeliveryReview: (id: string, actor: unknown) => Promise<unknown> }>("./delivery-review.ts", {
-    "server-only": {}, "./delivery-review-core": { newsletterRecordedTotals, reviewNewsletterDelivery },
+    "server-only": {}, "./delivery-review-core": { newsletterAcceptedCompletion, newsletterRecordedTotals, reviewNewsletterDelivery },
     "@/lib/blog-ownership": { getContentOwnershipScope: async (workspaceId: string) => ({ workspaceId }) },
     "@/lib/workspace-write-access": { requireLockedWorkspaceAdministrator: async (_tx: unknown, captured: typeof actor) => {
       assert.equal(captured.workspaceId, "a"); actor.workspaceId = "changed"; if (!permitted) throw new Error("WORKSPACE_WRITE_FORBIDDEN");
@@ -126,7 +126,7 @@ test("accepted-record repair uses fresh access, scoped version locks, conditiona
     } },
   };
   const api = load<{ repairNewsletterAcceptedRecords: (id: string, version: number, actor: unknown) => Promise<{ repaired: number; editionStatus: string; automaticRetryAllowed: boolean }> }>("./delivery-review.ts", {
-    "server-only": {}, "./delivery-review-core": { newsletterRecordedTotals, reviewNewsletterDelivery },
+    "server-only": {}, "./delivery-review-core": { newsletterAcceptedCompletion, newsletterRecordedTotals, reviewNewsletterDelivery },
     "@/lib/blog-ownership": { getContentOwnershipScope: async () => ({ workspaceId: "a" }) },
     "@/lib/workspace-write-access": { requireLockedWorkspaceAdministrator: async () => { if (!allowed) throw new Error("WORKSPACE_WRITE_FORBIDDEN"); } },
     "@/lib/prisma": { prisma: { $transaction: async (callback: (tx: unknown) => Promise<unknown>) => callback(tx) } },
@@ -204,7 +204,7 @@ test("totals reconciliation requires owned locked evidence, no claimed work, con
     } },
   };
   const api = load<{ reconcileNewsletterDeliveryTotals: (id: string, version: number, actor: unknown) => Promise<{ changed: boolean; editionStatus: string; automaticRetryAllowed: boolean }> }>("./delivery-review.ts", {
-    "server-only": {}, "./delivery-review-core": { newsletterRecordedTotals, reviewNewsletterDelivery },
+    "server-only": {}, "./delivery-review-core": { newsletterAcceptedCompletion, newsletterRecordedTotals, reviewNewsletterDelivery },
     "@/lib/blog-ownership": { getContentOwnershipScope: async () => ({ workspaceId: "a" }) },
     "@/lib/workspace-write-access": { requireLockedWorkspaceAdministrator: async () => { if (!allowed) throw new Error("WORKSPACE_WRITE_FORBIDDEN"); } },
     "@/lib/prisma": { prisma: { $transaction: async (callback: (tx: unknown) => Promise<unknown>) => callback(tx) } },
@@ -233,4 +233,94 @@ test("totals POST uses trusted actor and reviewed version while ignoring submitt
   });
   const response = await api.POST(new Request("https://studio.example", { method: "POST", body: JSON.stringify({ confirmation: "RECONCILE_DELIVERY_TOTALS", expectedVersion: 5, workspaceId: "b", sentCount: 999 }) }), { params: Promise.resolve({ editionId: "edition" }) });
   assert.equal(response.status, 200); assert.equal(calls, 1); assert.equal((await response.json()).automaticRetryAllowed, false);
+});
+
+test("accepted completion requires complete unique matching receipts and preserves the latest recorded send time", () => {
+  const sent = { ...recipient, status: "SENT", providerMessageId: "receipt", sentAt: new Date("2026-09-12T00:00:00Z") };
+  const complete = (recipients = [sent], attempts = [accepted]) => newsletterAcceptedCompletion({ revisionId: "revision", recipients, attempts });
+  assert.equal(complete().sentAt.getTime(), sent.sentAt.getTime());
+  assert.equal(complete().recipientCount, 1);
+  for (const status of ["PENDING", "FAILED", "SKIPPED"]) assert.throws(() => complete([{ ...sent, status }]), /RECONCILIATION_REQUIRED/);
+  assert.throws(() => complete([]), /RECONCILIATION_REQUIRED/);
+  assert.throws(() => complete([sent], []), /RECONCILIATION_REQUIRED/);
+  assert.throws(() => complete([{ ...sent, sentAt: new Date(NaN) }]), /RECONCILIATION_REQUIRED/);
+  assert.throws(() => complete([{ ...sent, providerMessageId: "other" }]), /RECONCILIATION_REQUIRED/);
+  for (const status of ["PREPARED", "UNCERTAIN"]) assert.throws(() => complete([sent], [accepted, { ...accepted, status }]), /RECONCILIATION_REQUIRED/);
+  assert.throws(() => complete([sent, { ...sent, id: "second" }], [accepted, { ...accepted, recipientIds: ["second"] }]), /RECONCILIATION_REQUIRED/);
+  const later = { ...sent, id: "second", providerMessageId: "second-receipt", sentAt: new Date("2026-09-12T01:00:00Z") };
+  assert.equal(complete([sent, later], [accepted, { ...accepted, recipientIds: ["second"], providerReceiptIds: ["second-receipt"] }]).sentAt.getTime(), later.sentAt.getTime());
+});
+
+test("accepted finalization fences expired send claims, requires fresh access and versioned writes, and fails with its audit", async () => {
+  let allowed = true, locked = true, busy = false, editionChanged = false, campaignChanged = false, auditFails = false;
+  let writes = 0, audits = 0;
+  const sentAt = new Date("2026-09-12T00:00:00Z");
+  const edition = { id: "edition", rowVersion: 5, status: "SENDING", approvedRevisionId: "revision", delivery: {
+    campaignId: "campaign", revisionId: "revision", campaign: { workspaceId: "a", rowVersion: 3, recipients: [{ ...recipient, status: "SENT", providerMessageId: "receipt", sentAt }] },
+    attempts: [{ ...accepted, id: "attempt" }],
+  } };
+  const tx = {
+    $queryRaw: async (sql: TemplateStringsArray, ...values: unknown[]) => {
+      const query = sql.join("?"); assert.match(query, /FOR UPDATE/);
+      if (query.includes("SELECT edition.id")) { assert.deepEqual(values, ["edition", 5, "a", false]); return locked ? [{ id: "edition" }] : []; }
+      if (query.includes('"EmailCampaign"')) assert.deepEqual(values, ["campaign", "a"]);
+      else assert.deepEqual(values, [query.includes('"NewsletterJob"') ? "edition" : "campaign"]);
+      return [{ id: "row" }];
+    },
+    newsletterEdition: { findFirst: async () => edition, updateMany: async ({ where, data }: { where: { rowVersion: number; status: string; approvedRevisionId: string; series: { workspaceId: string } }; data: { sentAt: Date; rowVersion: { increment: number }; status: string } }) => {
+      writes++; assert.equal(where.rowVersion, 5); assert.equal(where.status, "SENDING"); assert.equal(where.approvedRevisionId, "revision"); assert.equal(where.series.workspaceId, "a");
+      assert.equal(data.status, "SENT"); assert.equal(data.rowVersion.increment, 1); assert.equal(data.sentAt.getTime(), sentAt.getTime()); return { count: editionChanged ? 0 : 1 };
+    } },
+    newsletterRevision: { findFirst: async () => ({ id: "revision" }) }, newsletterDeliveryAttempt: { count: async () => 0 },
+    emailCampaign: { updateMany: async ({ where, data }: { where: { id: string; workspaceId: string; rowVersion: number }; data: { status: string; sentCount: number; failedCount: number } }) => {
+      assert.equal(where.id, "campaign"); assert.equal(where.workspaceId, "a"); assert.equal(where.rowVersion, 3); assert.equal(data.status, "SENT"); assert.equal(data.sentCount, 1); assert.equal(data.failedCount, 0); return { count: campaignChanged ? 0 : 1 };
+    } },
+    newsletterDelivery: { update: async ({ where }: { where: { editionId: string; campaignId: string; revisionId: string } }) => { assert.equal(where.editionId, "edition"); assert.equal(where.campaignId, "campaign"); assert.equal(where.revisionId, "revision"); } },
+    newsletterJob: {
+      findFirst: async ({ where }: { where: { editionId: string; status: string; OR: Array<unknown> } }) => {
+        assert.equal(where.editionId, "edition"); assert.equal(where.status, "CLAIMED");
+        const conditions = JSON.parse(JSON.stringify(where.OR)); assert.deepEqual(conditions.slice(0, 2), [{ type: { not: "SEND" } }, { leaseExpiresAt: null }]); assert.ok(conditions[2].leaseExpiresAt.gt);
+        return busy ? { id: "job" } : null;
+      },
+      updateMany: async ({ where, data }: { where: { editionId: string; type: string; status: string; leaseExpiresAt?: { lte: Date } }; data: { status: string; claimToken?: null; leaseExpiresAt?: null } }) => {
+        assert.equal(where.editionId, "edition"); assert.equal(where.type, "SEND");
+        if (where.status === "CLAIMED") { assert.ok(where.leaseExpiresAt?.lte); assert.equal(data.status, "COMPLETED"); assert.equal(data.claimToken, null); assert.equal(data.leaseExpiresAt, null); }
+        else { assert.equal(where.status, "PENDING"); assert.equal(data.status, "CANCELLED"); }
+      },
+    },
+    auditEvent: { create: async ({ data }: { data: { workspaceId: string; metadata: { providerCalled: boolean } } }) => { audits++; assert.equal(data.workspaceId, "a"); assert.equal(data.metadata.providerCalled, false); if (auditFails) throw new Error("Audit unavailable"); } },
+  };
+  const api = load<{ finalizeNewsletterAcceptedDelivery: (id: string, version: number, actor: unknown) => Promise<{ editionStatus: string; automaticRetryAllowed: boolean }> }>("./delivery-review.ts", {
+    "server-only": {}, "./delivery-review-core": { newsletterAcceptedCompletion, newsletterRecordedTotals, reviewNewsletterDelivery },
+    "@/lib/blog-ownership": { getContentOwnershipScope: async () => ({ workspaceId: "a" }) },
+    "@/lib/workspace-write-access": { requireLockedWorkspaceAdministrator: async () => { if (!allowed) throw new Error("WORKSPACE_WRITE_FORBIDDEN"); } },
+    "@/lib/prisma": { prisma: { $transaction: async (callback: (tx: unknown) => Promise<unknown>, options: { isolationLevel: string }) => { assert.equal(options.isolationLevel, "RepeatableRead"); return callback(tx); } } },
+  });
+  const finalize = () => api.finalizeNewsletterAcceptedDelivery("edition", 5, { workspaceId: "a", userId: "actor", sessionVersion: 1 });
+  allowed = false; await assert.rejects(finalize(), /FORBIDDEN/); allowed = true;
+  locked = false; await assert.rejects(finalize(), /REVIEW_CHANGED/); locked = true;
+  busy = true; await assert.rejects(finalize(), /BUSY/); busy = false;
+  edition.approvedRevisionId = "other"; await assert.rejects(finalize(), /REVIEW_CHANGED/); edition.approvedRevisionId = "revision";
+  edition.delivery.attempts[0].status = "UNCERTAIN"; await assert.rejects(finalize(), /RECONCILIATION_REQUIRED/); edition.delivery.attempts[0].status = "ACCEPTED";
+  assert.equal(writes, 0);
+  const result = await finalize(); assert.equal(result.editionStatus, "SENT"); assert.equal(result.automaticRetryAllowed, false); assert.equal(audits, 1);
+  editionChanged = true; await assert.rejects(finalize(), /REVIEW_CHANGED/); editionChanged = false;
+  campaignChanged = true; await assert.rejects(finalize(), /REVIEW_CHANGED/); campaignChanged = false; assert.equal(audits, 1);
+  auditFails = true; await assert.rejects(finalize(), /Audit unavailable/);
+});
+
+test("accepted finalization POST uses explicit confirmation and session ownership without trusting submitted evidence", async () => {
+  let allowed = true, calls = 0;
+  const api = load<{ POST: (request: Request, context: unknown) => Promise<Response> }>("../../app/api/admin/newsletters/editions/[editionId]/delivery-review/route.ts", {
+    "next/server": { NextResponse: Response },
+    "@/lib/newsletters/api": { requireNewsletterAdministrator: async () => allowed ? { workspaceId: "a" } : null, forbiddenNewsletterResponse: () => Response.json({}, { status: 403 }) },
+    "@/lib/newsletters/delivery-review": { finalizeNewsletterAcceptedDelivery: async (id: string, version: number, actor: { workspaceId: string }) => {
+      calls++; assert.equal(id, "edition"); assert.equal(version, 5); assert.equal(actor.workspaceId, "a"); return { editionStatus: "SENT", automaticRetryAllowed: false };
+    } },
+  });
+  const post = (confirmation: string, expectedVersion: unknown = 5) => api.POST(new Request("https://studio.example", { method: "POST", body: JSON.stringify({ confirmation, expectedVersion, workspaceId: "b", providerMessageId: "forged", sentCount: 999 }) }), { params: Promise.resolve({ editionId: "edition" }) });
+  assert.equal((await post("wrong")).status, 400);
+  assert.equal((await post("FINALIZE_ACCEPTED_DELIVERY", "5")).status, 400); assert.equal(calls, 0);
+  const response = await post("FINALIZE_ACCEPTED_DELIVERY"); assert.equal(response.status, 200); assert.equal(response.headers.get("Cache-Control"), "private, no-store"); assert.equal(calls, 1);
+  allowed = false; assert.equal((await post("FINALIZE_ACCEPTED_DELIVERY")).status, 403); assert.equal(calls, 1);
 });

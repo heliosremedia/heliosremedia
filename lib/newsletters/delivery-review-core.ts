@@ -58,3 +58,15 @@ export function newsletterRecordedTotals(recipients: Array<{ status: string }>) 
   }
   return totals;
 }
+
+/** Finalize recorded acceptance only when every recipient has matching durable evidence. */
+export function newsletterAcceptedCompletion(input: { revisionId: string; recipients: Recipient[]; attempts: Attempt[] }) {
+  const review = reviewNewsletterDelivery(input);
+  if (!input.recipients.length || review.invalidAttempts
+    || review.recipients.some(item => item.observation !== "ACCEPTED_EVIDENCE")
+    || input.recipients.some(item => item.status !== "SENT" || !item.providerMessageId || !item.sentAt || !Number.isFinite(item.sentAt.getTime()))
+    || new Set(input.recipients.map(item => item.providerMessageId)).size !== input.recipients.length) {
+    throw new Error("NEWSLETTER_DELIVERY_RECONCILIATION_REQUIRED");
+  }
+  return { recipientCount: input.recipients.length, sentAt: new Date(Math.max(...input.recipients.map(item => item.sentAt!.getTime()))) };
+}
