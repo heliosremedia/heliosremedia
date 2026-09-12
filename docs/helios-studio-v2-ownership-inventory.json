@@ -13,7 +13,7 @@
     "requiredWorkspace": 29,
     "nullableWorkspace": 19,
     "withoutWorkspace": 65,
-    "routeFiles": 138
+    "routeFiles": 139
   },
   "models": [
     {
@@ -3099,6 +3099,7 @@
         "app/api/cron/newsletters/route.ts",
         "lib/dashboard.ts",
         "lib/newsletters/api.ts",
+        "lib/newsletters/delivery-review.ts",
         "lib/newsletters/delivery.ts",
         "lib/newsletters/edition-duplication.ts",
         "lib/newsletters/edition-transitions.ts",
@@ -3233,6 +3234,7 @@
       ],
       "sourceReferences": [
         "app/api/admin/newsletters/editions/[editionId]/route.ts",
+        "lib/newsletters/delivery-review.ts",
         "lib/newsletters/generation.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
@@ -3385,6 +3387,7 @@
         "editionId, executionVersion, batchNumber"
       ],
       "sourceReferences": [
+        "lib/newsletters/delivery-review.ts",
         "lib/newsletters/delivery.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
@@ -4681,6 +4684,13 @@
       "path": "app/api/admin/navigation-favorites/route.ts",
       "methods": [
         "PATCH"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/newsletters/editions/[editionId]/delivery-review/route.ts",
+      "methods": [
+        "GET"
       ],
       "reviewStatus": "Unverified by this inventory"
     },
