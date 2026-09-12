@@ -4,7 +4,7 @@
   "expiresAt": "2026-09-13T00:45:00Z",
   "branch": "codex/v2-admin-settings-context",
   "baseHead": "0dc294c5243b44bb0114f97a76ad903e9b7260a9",
-  "outstandingChanges": false,
-  "scope": "Authenticated admin settings and AI context audit/isolation; preserve public host context and protected provider adapters",
+  "outstandingChanges": true,
+  "scope": "Authenticated settings and AI context isolation; adjacent featured-film settings, registered storage and non-destructive replacement; no protected provider changes",
   "production": "ON HOLD"
 }
