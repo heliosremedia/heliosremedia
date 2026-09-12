@@ -1,35 +1,23 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getPublishingQueue } from "@/lib/social/publishing-review";
 import PublishingQueue from "./PublishingQueue";
 import { getAdminSession } from "@/lib/auth/session";
-import { requireWorkspaceId } from "@/lib/workspaces";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function PublishingQueuePage() {
-  const session=await getAdminSession();if(!session)redirect("/login");const workspaceId=await requireWorkspaceId(session.userId);
-  const jobs = await prisma.socialPublishingJob.findMany({
-    where: { connection: { workspaceId } },
-    orderBy: [{ scheduledAt: "asc" }, { createdAt: "desc" }],
-    take: 200,
-    include: {
-      connection: { select: { platform: true, intendedAccountName: true, providerUsername: true } },
-      variant: { select: { id: true, campaignId: true, postType: true, campaign: { select: { internalName: true } } } },
-    },
-  });
+  const session=await getAdminSession();if(!session)redirect("/login");
+  let jobs: Awaited<ReturnType<typeof getPublishingQueue>>;
+  try { jobs = await getPublishingQueue(session); }
+  catch (error) { if (error instanceof Error && error.message === 'WORKSPACE_WRITE_FORBIDDEN') redirect('/admin'); throw error; }
   return <div className="space-y-7 pb-10">
     <section className="border-b border-white/[.08] pb-7">
       <Link href="/admin/social-studio" className="text-xs text-white/35">← Social Studio</Link>
       <p className="eyebrow mt-5 text-[var(--helios-orange)]">Publishing operations</p>
       <h1 className="mt-3 text-3xl font-light text-white sm:text-4xl">Publishing queue</h1>
-      <p className="mt-3 max-w-2xl text-sm leading-6 text-white/40">Every automated submission is revision-locked, idempotent, and independently recoverable. No account is enabled by default.</p>
+      <p className="mt-3 max-w-2xl text-sm leading-6 text-white/40">Inspect recorded submissions and approval revisions. Uncertain outcomes require reconciliation before any retry. No account is enabled by default.</p>
     </section>
-    <PublishingQueue initialJobs={jobs.map((job) => ({
-      id: job.id, campaign: job.variant.campaign.internalName, campaignId: job.variant.campaignId, variantId: job.variant.id,
-      platform: job.connection.platform, account: job.connection.providerUsername || job.connection.intendedAccountName || "Unconfigured account",
-      postType: job.variant.postType, status: job.status, scheduledAt: job.scheduledAt.toISOString(),
-      attempts: job.attempts, maxAttempts: job.maxAttempts, error: job.lastErrorMessage || "", publicUrl: job.publicUrl || "",
-    }))}/>
+    <PublishingQueue initialJobs={jobs}/>
   </div>;
 }
