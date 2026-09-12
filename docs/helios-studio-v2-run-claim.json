@@ -1,10 +1,18 @@
 {
   "status": "active",
   "runId": "atlas-20260912T2205",
-  "expiresAt": "2026-09-12T23:10:00Z",
+  "expiresAt": "2026-09-12T23:15:00Z",
   "branch": "codex/v2-analytics-reviewed-cancellation",
-  "baseHead": "c8f9028792c7d7b6b1570dd96cea631a8c884550",
+  "pr": 299,
+  "head": "1bc153ad1071553d1f44c6541b7703f7381259f8",
+  "tree": "b36e92898dd62412117ef83312940fa54b736ebe",
+  "ci": {
+    "run": 34722455176,
+    "job": 103630698949,
+    "status": "success",
+    "tests": 666
+  },
   "outstandingChanges": true,
-  "scope": "Analytics reviewed cancellation and transactional manual refresh authorization; final validation and draft publication",
+  "scope": "Continuing adjacent Studio analytics discovery/review UI and synthetic browser checks; cancellation disabled by default",
   "production": "ON HOLD"
 }
