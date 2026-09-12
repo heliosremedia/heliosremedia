@@ -1,20 +1,34 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-20260912T2305",
-  "expiresAt": "2026-09-13T00:15:00Z",
+  "releasedAt": "2026-09-12T23:38:12Z",
+  "expiresAt": "2026-09-12T23:38:12Z",
   "branch": "codex/v2-publishing-review-containment",
   "pr": 300,
   "head": "0dc294c5243b44bb0114f97a76ad903e9b7260a9",
   "tree": "2b08d261c89f5777bab54567baf34dd1b4458863",
   "implementationHead": "4c6643ba6d69bcc3686ac2d427cef740ed252b4b",
+  "localHead": "5dd66db5977c09b77018c181684158ca056e52c9",
+  "scratchCheckout": "/tmp/helios-v2-recovery",
   "ci": {
     "run": 34725535579,
     "job": 103638887502,
     "status": "success",
     "tests": 672,
-    "browser": "Actual Chromium read-only publishing evidence and existing analytics/generation interactions; no authenticated full-stack verification"
+    "browser": "Actual Chromium read-only publishing evidence plus analytics/generation synthetic interactions"
+  },
+  "finalHeadCi": {
+    "run": 34725762759,
+    "job": 103639475215,
+    "status": "success",
+    "allStepsPassed": true
   },
   "outstandingChanges": false,
-  "scope": "Implementation and ledger published; verifying documentation-head CI before releasing claim",
-  "production": "ON HOLD"
+  "nextDependencies": [
+    "Explicit external-outcome reconciliation for held publications; inspection is not recovery authority",
+    "Approval-reservation acknowledgement recovery",
+    "Per-attempt provider identity/health chronology and shared-job convergence",
+    "Hosted concurrency, worker overlap, role-parity QA and full-stack tenant isolation"
+  ],
+  "production": "ON HOLD; no production merge, migration, deployment, provider request or server publishing mutation"
 }
