@@ -293,7 +293,7 @@ export async function GET(_request: Request, context: Context) {
   return NextResponse.json({
     success: true,
     edition: await serializeEdition(edition),
-    analytics: await getNewsletterAnalytics(editionId),
+    analytics: await getNewsletterAnalytics(editionId, session),
     defaultTestRecipient: session.email,
   });
 }
