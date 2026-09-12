@@ -1,17 +1,8 @@
 {
-  "status": "released",
-  "runId": "atlas-20260912T1802",
-  "expiresAt": null,
-  "branch": "codex/v2-newsletter-settlement-evidence",
-  "pr": 294,
-  "head": "a148666ca0f47ca3d86d4a1fcc8c9aa9bb9db51e",
-  "tree": "2553b44e48e8ee06e429b70fe79449a0a68a9e7f",
-  "verifiedImplementationHead": "a89d8c34bacffdc8c09f4ae01447ba24bf9c1a3b",
-  "verifiedImplementationRun": 34710322956,
-  "verifiedFinalHeadRun": 34710517897,
-  "verification": "644 local and CI tests passed. Final-head CI passed Prisma generation, TypeScript, Chromium synthetic workflow and whitespace. Clean local tree.",
-  "outstandingChanges": false,
-  "ledger": "docs/helios-studio-v2-progress-ledger.md",
-  "nextDependency": "Prepare isolated social publishing/analytics stale-claim and acknowledgement-loss evidence before protected-layer changes; review analytics publication selection ownership (connectionId null branch lacks campaign workspace predicate). Continue shared-job convergence and Phase 1 negative ownership coverage. Provider/OAuth/production behavior must remain protected.",
-  "production": "ON HOLD for implementation readiness and Jake QA/release decision. No live execution, provider call, migration, merge or deployment."
+  "status": "active",
+  "runId": "atlas-20260912T1832",
+  "expiresAt": "2026-09-12T20:00:00Z",
+  "branch": "codex/v2-social-analytics-publication-ownership",
+  "baseHead": "a148666ca0f47ca3d86d4a1fcc8c9aa9bb9db51e",
+  "previousDraft": 294
 }
