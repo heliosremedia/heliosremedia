@@ -3,8 +3,10 @@
   "runId": "atlas-20260912T2027",
   "expiresAt": "2026-09-12T21:20:00Z",
   "branch": "codex/v2-social-publishing-settlement",
-  "baseHead": "fb5cf9ae8ab1413498391c310a395dd7eb1801ef",
+  "pr": 298,
+  "head": "ac26a8596739187c7946b8c2483c5342343d8f84",
+  "tree": "18c19676d47f6e4b24c33c8a37f886ac7df1127d",
   "outstandingChanges": false,
-  "scope": "Isolated publishing settlement regression and internal claim fencing; no provider/OAuth/approval changes or live publication",
+  "scope": "662 local tests passed; implementation draft CI pending. Internal claim/settlement only; protected adapters/OAuth/approval code unchanged",
   "production": "ON HOLD"
 }
