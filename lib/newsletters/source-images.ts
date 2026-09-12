@@ -82,10 +82,10 @@ export function newsletterImageReferenceMatches(
   const segments = reference.split("/");
   if (segments.some((part) => part === "." || part === "..")) return false;
   let key = reference;
-  if (/^https?:\/\//.test(reference)) {
+  if (/^https?:\/\//i.test(reference)) {
     try { key = new URL(reference).pathname.replace(/^\//, ""); } catch { return false; }
   }
-  if (/[?#]/.test(key)) return false;
+  if (key.startsWith("/") || /[?#]/.test(key)) return false;
   const owner = key.match(/^workspaces\/([^/]+)\//)?.[1]
     ?? key.match(/^email\/newsletters\/([^/]+)\//)?.[1];
   const project = key.match(/^projects\/([^/]+)\//)?.[1];

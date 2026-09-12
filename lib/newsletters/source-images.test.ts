@@ -97,6 +97,7 @@ test("delivered email renders a responsive linked image with stable alt text", (
 test("image references reject foreign company/project namespaces and traversal", () => {
   for (const reference of [
     "workspaces/b/blog/image.png", "email/newsletters/b/image.png", "projects/foreign/image.png",
+    "HTTPS://assets.example/workspaces/b/blog/image.png", "/workspaces/b/blog/image.png",
     "https://assets.example/workspaces/b/blog/image.png", "workspaces/a/../b/image.png",
     "workspaces/a/%2e%2e/b/image.png", "workspaces%252fb/image.png", "workspaces/a/\\image.png",
   ]) assert.equal(newsletterImageReferenceMatches("a", reference, "mine"), false, reference);

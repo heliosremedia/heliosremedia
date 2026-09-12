@@ -1,3 +1,4 @@
+import { verifyNewsletterCustomImage } from "@/lib/newsletters/custom-image-ownership";
 import { verifyNewsletterSourceImageSelections } from "@/lib/newsletters/source-image-validation";
 import { newsletterImageReferenceMatches, safeNewsletterImageUrl } from "@/lib/newsletters/source-images";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
@@ -135,7 +136,8 @@ async function saveEdition(editionId: string, value: unknown, actorId: string, w
     throw new Error("This edition can no longer be edited.");
   }
   for (const block of editor.blocks) {
-    if (block.content.imageSelection.mode !== "SOURCE") continue;
+    if (block.content.imageSelection.mode !== "SOURCE"
+      && !(block.content.imageSelection.mode === "AUTO" && block.content.imageUrl)) continue;
     const persisted = current.blocks.find((item) => item.id === block.id)?.content;
     const persistedCandidates = persisted && typeof persisted === "object" &&
       Array.isArray((persisted as Record<string, unknown>).imageCandidates)
@@ -146,8 +148,16 @@ async function saveEdition(editionId: string, value: unknown, actorId: string, w
     );
     if (!selected) throw new Error("The selected source image is no longer available.");
   }
+  for (const block of editor.blocks) {
+    if (block.content.imageSelection.mode !== "CUSTOM") continue;
+    const persisted = current.blocks.find(item => item.id === block.id)?.content;
+    const existingUrl = persisted && typeof persisted === "object" && "imageUrl" in persisted
+      && typeof persisted.imageUrl === "string" ? persisted.imageUrl : undefined;
+    await verifyNewsletterCustomImage({ workspaceId, url: block.content.imageUrl, existingUrl });
+  }
   await verifyNewsletterSourceImageSelections(workspaceId, editor.blocks
-    .filter(block => block.content.imageSelection.mode === "SOURCE")
+    .filter(block => block.content.imageSelection.mode === "SOURCE"
+      || (block.content.imageSelection.mode === "AUTO" && Boolean(block.content.imageUrl)))
     .map(block => ({
       candidateId: block.content.imageSelection.candidateId,
       url: block.content.imageUrl,
