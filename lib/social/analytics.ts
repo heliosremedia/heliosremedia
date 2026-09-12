@@ -6,6 +6,7 @@ import { metricFingerprint } from "./analytics-core";
 import { analyticsAdapters, type ProviderMetric } from "./analytics-providers";
 import { sanitizeProviderMessage } from "./publishing-core";
 import { commitAnalyticsClaim } from "./analytics-claim";
+import { recordAnalyticsHealth } from "./analytics-health";
 
 const DAY=86_400_000;
 export async function queueAnalyticsRefresh(connectionId:string,rangeStart:Date,rangeEnd:Date){
@@ -19,7 +20,7 @@ export async function processAnalyticsQueue(now=new Date()){
   let requiresReview = false;
   for(const item of jobs){
     const claimToken=randomUUID();
-    const claim=await prisma.socialAnalyticsJob.updateMany({where:{id:item.id,status:{in:["PENDING","RETRY_SCHEDULED"]},claimToken:null},data:{status:"RUNNING",claimToken,claimedAt:now}});
+    const claim=await prisma.socialAnalyticsJob.updateMany({where:{id:item.id,status:{in:["PENDING","RETRY_SCHEDULED"]},nextAttemptAt:{lte:now},claimToken:null},data:{status:"RUNNING",claimToken,claimedAt:now}});
     if(!claim.count)continue;
     processed++;
     try { requiresReview = !(await execute(item.id,claimToken,now)); }
@@ -57,7 +58,7 @@ async function execute(id:string,claimToken:string,now:Date){
     const attempts=job.attempts+1;const retry=retryable&&attempts<4;
     const result = await commitAnalyticsClaim(claim, async tx => {
       await tx.socialAnalyticsJob.update({where:{id,claimToken,status:"RUNNING"},data:{status:retry?"RETRY_SCHEDULED":"FAILED",claimToken:null,attempts,lastErrorCategory:category,lastErrorMessage:message,nextAttemptAt:retry?new Date(now.getTime()+Math.min(6*60*60*1000,15*60*1000*2**attempts)):job.nextAttemptAt,durationMs:Date.now()-started}});
-      await tx.socialConnection.update({where:{id:job.connectionId,workspaceId:connection.workspaceId},data:{analyticsPermissionState:category==="PERMISSION"?"PERMISSION_REQUIRED":category==="AUTHENTICATION"?"CONNECTION_REQUIRED":"REFRESH_FAILED",analyticsLastAttemptAt:now,analyticsFailureCount:{increment:1},analyticsError:message}});
+      await recordAnalyticsHealth(tx, { connectionId: job.connectionId, workspaceId: connection.workspaceId, attemptedAt: now, succeeded: false, category, message });
     });
     return result === 'CONFIRMED';
   }
@@ -80,7 +81,7 @@ async function execute(id:string,claimToken:string,now:Date){
     // metric while holding claim locks. Existing fingerprints remain unchanged.
     if (snapshots.length) await tx.socialMetricSnapshot.createMany({ data: snapshots, skipDuplicates: true });
     await tx.socialAnalyticsJob.update({where:{id,claimToken,status:"RUNNING"},data:{status:"SUCCEEDED",claimToken:null,attempts:{increment:1},importedSnapshots:metrics.length,durationMs:Date.now()-started,completedAt:now}});
-    await tx.socialConnection.update({where:{id:connection.id,workspaceId:connection.workspaceId},data:{analyticsPermissionState:"AVAILABLE",analyticsLastAttemptAt:now,analyticsLastSuccessfulAt:now,analyticsFailureCount:0,analyticsError:null}});
+    await recordAnalyticsHealth(tx, { connectionId: connection.id, workspaceId: connection.workspaceId, attemptedAt: now, succeeded: true });
   });
   return result === 'CONFIRMED';
 }
