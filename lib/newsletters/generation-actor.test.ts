@@ -57,7 +57,11 @@ test("generation claims before AI, captures its actor and rechecks access before
         findUnique: async () => edition,
         update: async ({ data }: { data: { status: string; approvedRevisionId: unknown } }) => { assert.equal(data.status, "NEEDS_REVIEW"); assert.equal(data.approvedRevisionId, null); drafts++; },
       },
-      newsletterGenerationRun: { create: async () => ({ id: "run" }), update: async () => {} },
+      newsletterGenerationRun: { create: async ({ data }: { data: { instructionsSnapshot: { workspaceId: string; execution: { kind: string; actorId: string; editionVersion: number } } } }) => {
+        assert.equal(data.instructionsSnapshot.workspaceId, "a");
+        assert.deepEqual(JSON.parse(JSON.stringify(data.instructionsSnapshot.execution)), { kind: "ADMIN", actorId: "actor", editionVersion: 6 });
+        return { id: "run" };
+      }, update: async () => {} },
       newsletterApproval: { updateMany: async () => {} }, newsletterBlock: { deleteMany: async () => {}, create: async () => {} },
       newsletterRevision: { create: async ({ data }: { data: { createdById: string } }) => { assert.equal(data.createdById, "actor"); } },
     };
@@ -76,7 +80,9 @@ test("generation claims before AI, captures its actor and rechecks access before
       "@/lib/prisma": { prisma: {
         $transaction: async (operation: unknown) => typeof operation === "function" ? operation(tx) : Promise.all(operation as Promise<unknown>[]),
         newsletterEdition: { findUnique: async () => ({ rowVersion: 5, series: { workspaceId: "a" } }), updateMany: async ({ where }: { where: { rowVersion: number; status: string; series: { workspaceId: string } } }) => { assert.equal(where.rowVersion, 6); assert.equal(where.status, "GENERATING"); assert.equal(where.series.workspaceId, "a"); return { count: 1 }; } },
-        newsletterGenerationRun: { update: async () => {} },
+        newsletterGenerationRun: { updateMany: async ({ where }: { where: { id: string; editionId: string; status: string } }) => {
+          assert.equal(where.id, "run"); assert.equal(where.editionId, "edition"); assert.equal(where.status, "RUNNING"); return { count: 1 };
+        } },
         blogPost: { findMany: async () => [] }, project: { findMany: async () => [] }, service: { findMany: async () => [] },
       } },
     });
@@ -86,5 +92,49 @@ test("generation claims before AI, captures its actor and rechecks access before
     assert.equal(events.includes("model"), scenario !== "denied");
     assert.equal(events[0], "authorize");
     if (scenario !== "denied") assert.deepEqual(events.slice(0, 4), ["authorize", "claim", "model", "authorize"]);
+  }
+});
+
+test("background runs record execution identity without claim tokens and late errors preserve settled observations", async () => {
+  for (const settledStatus of ["RUNNING", "FAILED", "SUCCEEDED"]) {
+    const context = { kind: "BACKGROUND", jobId: "job", claimToken: "private-claim-token" };
+    const run = { status: settledStatus, errorCode: "PREVIOUS_OBSERVATION" };
+    const edition = { id: "edition", rowVersion: 6, seriesId: "series", series: { workspaceId: "a", status: "ACTIVE" }, blocks: [], generationRuns: [], currentRevisionNumber: 0, contentNotes: {} };
+    let recorded = false;
+    const tx = {
+      newsletterEdition: { updateMany: async () => ({ count: 1 }), findUnique: async () => edition },
+      newsletterGenerationRun: { create: async ({ data }: { data: { instructionsSnapshot: { execution: unknown } } }) => {
+        assert.deepEqual(JSON.parse(JSON.stringify(data.instructionsSnapshot.execution)), { kind: "BACKGROUND", jobId: "job", editionVersion: 6 });
+        assert.equal(JSON.stringify(data).includes("private-claim-token"), false); recorded = true; return { id: "run" };
+      } },
+    };
+    const api = load<{ generateNewsletterEdition: (id: string, context: unknown) => Promise<unknown> }>("./generation.ts", {
+      "./block-source-context": {}, "server-only": {}, "@/lib/workspace-write-access": {},
+      "./generation-access": { requireNewsletterGenerationAccess: async (_tx: unknown, _id: string, workspace: string, captured: typeof context) => {
+        assert.equal(workspace, "a"); assert.equal(captured.jobId, "job"); assert.equal(captured.claimToken, "private-claim-token"); context.jobId = "changed";
+      } },
+      "./ownership": { resolveNewsletterWorkspace: async () => "a" }, "@/lib/blog-ownership": { getBlogOwnershipScope: async () => ({ workspaceId: "a" }) },
+      "@/lib/site-settings": { getSiteSettings: async () => ({ businessName: "Company A" }) },
+      "./ai": { generateNewsletterDraft: async () => { throw new Error("Synthetic model failure"); } },
+      "./content-sources": { collectVerifiedNewsletterSources: async () => [] }, "./studio": {}, "./source-images": {},
+      "@/lib/prisma": { prisma: {
+        $transaction: async (operation: unknown) => typeof operation === "function" ? operation(tx) : Promise.all(operation as Promise<unknown>[]),
+        newsletterEdition: {
+          findUnique: async () => ({ rowVersion: 5, series: { workspaceId: "a" } }),
+          updateMany: async ({ where }: { where: { rowVersion: number; status: string; series: { workspaceId: string } } }) => {
+            assert.equal(where.rowVersion, 6); assert.equal(where.status, "GENERATING"); assert.equal(where.series.workspaceId, "a"); return { count: 0 };
+          },
+        },
+        newsletterGenerationRun: { updateMany: async ({ where, data }: { where: { id: string; editionId: string; status: string }; data: { status: string; errorCode: string } }) => {
+          assert.equal(where.id, "run"); assert.equal(where.editionId, "edition"); assert.equal(where.status, "RUNNING");
+          if (run.status !== where.status) return { count: 0 }; Object.assign(run, data); return { count: 1 };
+        } },
+        blogPost: { findMany: async () => [] }, project: { findMany: async () => [] }, service: { findMany: async () => [] },
+      } },
+    });
+    await assert.rejects(api.generateNewsletterEdition("edition", context), /Synthetic model failure/);
+    assert.equal(recorded, true);
+    assert.equal(run.status, settledStatus === "RUNNING" ? "FAILED" : settledStatus);
+    assert.equal(run.errorCode, settledStatus === "RUNNING" ? "GENERATION_FAILED" : "PREVIOUS_OBSERVATION");
   }
 });
