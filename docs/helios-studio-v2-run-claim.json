@@ -3,8 +3,17 @@
   "runId": "atlas-20260912T2305",
   "expiresAt": "2026-09-13T00:15:00Z",
   "branch": "codex/v2-publishing-review-containment",
-  "baseHead": "01383c03018412873b01934d6588b3402c68182d",
-  "outstandingChanges": true,
-  "scope": "Queue joint ownership and safe DTOs, read-only publishing review API/UI, PGlite and synthetic browser verification; publishing draft",
+  "pr": 300,
+  "head": "e213da68adb595e6a93c8f525953f25acbc13f4c",
+  "tree": "395c4b1d9b2c5b5cf5c532e2211ad74579a58a01",
+  "outstandingChanges": false,
+  "initialCi": {
+    "run": 34725075519,
+    "job": 103637684208,
+    "status": "success",
+    "tests": 671
+  },
+  "localCombinedTests": 672,
+  "scope": "Combined read-only publishing evidence, queue ownership and duplicate/unknown action containment published; checking CI",
   "production": "ON HOLD"
 }
