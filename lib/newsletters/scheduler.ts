@@ -239,6 +239,20 @@ export async function claimDueNewsletterJobs(input?: { now?: Date; limit?: numbe
         OR (job."status" = 'CLAIMED' AND job."leaseExpiresAt" < ${now})
       )
       AND series."status" = 'ACTIVE'
+      AND (
+        job."type" <> 'SEND'
+        OR (
+          edition."status" IN ('SCHEDULED', 'SEND_FAILED', 'PARTIALLY_SENT')
+          AND edition."approvedRevisionId" IS NOT NULL
+          AND job."dueAt" = edition."intendedSendAt"
+          AND job."dueAt" <= ${now}
+          AND NOT EXISTS (
+            SELECT 1 FROM "NewsletterDeliveryAttempt" AS attempt
+            WHERE attempt."editionId" = edition."id"
+              AND attempt."status" IN ('PREPARED', 'UNCERTAIN')
+          )
+        )
+      )
       ORDER BY job."dueAt" ASC
       LIMIT ${limit}
       FOR UPDATE SKIP LOCKED
