@@ -43,6 +43,7 @@ test("actual edition save and approval authorize inside the transaction before a
       newsletterApproval: { create: write }, newsletterJob: { createMany: write },
     };
     const api = load<{ PATCH: (r: Request, context: unknown) => Promise<Response>; POST: (r: Request, context: unknown) => Promise<Response> }>("../../app/api/admin/newsletters/editions/[editionId]/route.ts", {
+      "@/lib/newsletters/image-validation": { verifyNewsletterBlockImages: async (_workspaceId: string, blocks: unknown[]) => { assert.equal(blocks.length, 0); } },
       "next/server": { NextResponse: Response },
       "@/lib/workspace-write-access": { requireLockedWorkspaceAdministrator: async (db: unknown, actor: { userId: string; workspaceId: string; sessionVersion: number }) => {
         assert.equal(db, tx); assert.deepEqual(JSON.parse(JSON.stringify(actor)), { userId: "actor", workspaceId: "a", sessionVersion: 7 });

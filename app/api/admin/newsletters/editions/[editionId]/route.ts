@@ -1,9 +1,7 @@
+import { duplicateNewsletterEdition } from "@/lib/newsletters/edition-duplication";
+import { verifyNewsletterBlockImages } from "@/lib/newsletters/image-validation";
 import { transitionNewsletterEdition } from "@/lib/newsletters/edition-transitions";
 import { requireLockedWorkspaceAdministrator, type WorkspaceWriteActor } from "@/lib/workspace-write-access";
-import { verifyNewsletterCustomImage } from "@/lib/newsletters/custom-image-ownership";
-import { verifyNewsletterSourceImageSelections } from "@/lib/newsletters/source-image-validation";
-import { newsletterImageReferenceMatches, safeNewsletterImageUrl } from "@/lib/newsletters/source-images";
-import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { resolveNewsletterWorkspace } from "@/lib/newsletters/ownership";
 import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import { NextResponse } from "next/server";
@@ -139,86 +137,7 @@ async function saveEdition(editionId: string, value: unknown, actor: WorkspaceWr
   if (!current || ["SENT", "PARTIALLY_SENT", "CANCELLED", "SENDING", "GENERATING", "SEND_FAILED"].includes(current.status)) {
     throw new Error("This edition can no longer be edited.");
   }
-  for (const block of editor.blocks) {
-    if (block.content.imageSelection.mode !== "SOURCE"
-      && !(block.content.imageSelection.mode === "AUTO" && block.content.imageUrl)) continue;
-    const persisted = current.blocks.find((item) => item.id === block.id)?.content;
-    const persistedCandidates = persisted && typeof persisted === "object" &&
-      Array.isArray((persisted as Record<string, unknown>).imageCandidates)
-      ? (persisted as Record<string, unknown>).imageCandidates as Array<Record<string, unknown>> : [];
-    const selected = persistedCandidates.find((candidate) =>
-      candidate.id === block.content.imageSelection.candidateId &&
-      candidate.url === block.content.imageUrl
-    );
-    if (!selected) throw new Error("The selected source image is no longer available.");
-  }
-  for (const block of editor.blocks) {
-    if (block.content.imageSelection.mode !== "CUSTOM") continue;
-    const persisted = current.blocks.find(item => item.id === block.id)?.content;
-    const existingUrl = persisted && typeof persisted === "object" && "imageUrl" in persisted
-      && typeof persisted.imageUrl === "string" ? persisted.imageUrl : undefined;
-    await verifyNewsletterCustomImage({ workspaceId, url: block.content.imageUrl, existingUrl });
-  }
-  await verifyNewsletterSourceImageSelections(workspaceId, editor.blocks
-    .filter(block => block.content.imageSelection.mode === "SOURCE"
-      || (block.content.imageSelection.mode === "AUTO" && Boolean(block.content.imageUrl)))
-    .map(block => ({
-      candidateId: block.content.imageSelection.candidateId,
-      url: block.content.imageUrl,
-      sources: current.blocks.find(item => item.id === block.id)?.sources ?? [],
-    })));
-  const managedSelections = editor.blocks.filter((block) =>
-    block.content.imageSelection.mode === "AI" || block.content.imageSelection.mode === "GALLERY"
-  );
-  const aiAssetIds = managedSelections
-    .filter((block) => block.content.imageSelection.mode === "AI")
-    .map((block) => block.content.imageSelection.assetId)
-    .filter((value): value is string => Boolean(value));
-  const aiAssets = aiAssetIds.length
-    ? await prisma.newsletterImageAsset.findMany({ where: { AND: [await getBlogOwnershipScope(workspaceId)], id: { in: aiAssetIds } } })
-    : [];
-  const mediaAssetIds = managedSelections
-    .filter((block) => block.content.imageSelection.assetSource === "PORTFOLIO")
-    .map((block) => block.content.imageSelection.assetId)
-    .filter((value): value is string => Boolean(value));
-  const blogAssetIds = managedSelections
-    .filter((block) => block.content.imageSelection.assetSource === "BLOG")
-    .map((block) => block.content.imageSelection.assetId)
-    .filter((value): value is string => Boolean(value));
-  const [mediaAssets, blogAssets] = await Promise.all([
-    mediaAssetIds.length ? prisma.media.findMany({
-      where: { project: { workspaceId }, id: { in: mediaAssetIds }, visibility: "VISIBLE" },
-      select: { id: true, projectId: true, storageKey: true, externalUrl: true },
-    }) : [],
-    blogAssetIds.length ? prisma.blogPost.findMany({
-      where: { AND: [await getBlogOwnershipScope(workspaceId)], id: { in: blogAssetIds } },
-      select: { id: true, featuredImageStorageKey: true, featuredImageUrl: true },
-    }) : [],
-  ]);
-  for (const block of managedSelections) {
-    const selection = block.content.imageSelection;
-    if (!selection.assetId) throw new Error("The selected gallery image is invalid.");
-    if (selection.mode === "AI" && selection.assetSource !== "AI") {
-      throw new Error("The selected AI image is invalid.");
-    }
-    if (selection.mode === "GALLERY" && !["PORTFOLIO", "BLOG"].includes(selection.assetSource || "")) {
-      throw new Error("The selected gallery image is invalid.");
-    }
-    if (selection.mode === "AI" && !aiAssets.some((asset) =>
-      asset.id === selection.assetId && newsletterImageReferenceMatches(workspaceId, asset.storageKey)
-      && safeNewsletterImageUrl(getPublicAssetUrl(asset.storageKey)) === block.content.imageUrl
-    )) throw new Error("The selected AI image is no longer available.");
-    if (selection.assetSource === "PORTFOLIO" && !mediaAssets.some((asset) => {
-      if (!newsletterImageReferenceMatches(workspaceId, asset.storageKey || asset.externalUrl, asset.projectId)) return false;
-      const url = safeNewsletterImageUrl(asset.storageKey ? getPublicAssetUrl(asset.storageKey) : asset.externalUrl);
-      return asset.id === selection.assetId && url === block.content.imageUrl;
-    })) throw new Error("The selected portfolio image is no longer available.");
-    if (selection.assetSource === "BLOG" && !blogAssets.some((asset) => {
-      if (!newsletterImageReferenceMatches(workspaceId, asset.featuredImageStorageKey || asset.featuredImageUrl)) return false;
-      const url = safeNewsletterImageUrl(asset.featuredImageStorageKey ? getPublicAssetUrl(asset.featuredImageStorageKey) : asset.featuredImageUrl);
-      return asset.id === selection.assetId && url === block.content.imageUrl;
-    })) throw new Error("The selected blog image is no longer available.");
-  }
+  await verifyNewsletterBlockImages(workspaceId, editor.blocks, current.blocks);
   const existingIds = new Set(current.blocks.map((block) => block.id));
   const retainedIds = editor.blocks.filter((block) => existingIds.has(block.id)).map((block) => block.id);
   const snapshot = revisionSnapshot(editor).map((block, index) => ({
@@ -441,35 +360,7 @@ export async function POST(request: Request, context: Context) {
         : action === "reschedule" ? "Send date changed. Approval is required again."
           : "Approval revoked. Review is required before scheduling again.";
     } else if (action === "duplicate") {
-      const source = await prisma.newsletterEdition.findUnique({
-        where: { id: editionId }, include: { blocks: { include: { sources: true } } },
-      });
-      if (!source) throw new Error("Edition not found.");
-      const duplicate = await prisma.newsletterEdition.create({
-        data: {
-          seriesId: source.seriesId,
-          cycleKey: `${source.cycleKey}-copy-${Date.now()}`,
-          status: "NEEDS_REVIEW",
-          subject: source.subject ? `${source.subject} (Copy)` : null,
-          previewText: source.previewText,
-          contentNotes: source.contentNotes ?? undefined,
-          internalNotes: source.internalNotes,
-          intendedSendAt: new Date(Math.max(Date.now() + 86_400_000, source.intendedSendAt.getTime())),
-          createdById: session.userId,
-          blocks: {
-            create: source.blocks.map((block) => ({
-              type: block.type, position: block.position, internalLabel: block.internalLabel,
-              content: JSON.parse(JSON.stringify(block.content)), aiGenerated: block.aiGenerated, manuallyEdited: true,
-              sources: { create: block.sources.map((item) => ({
-                sourceType: item.sourceType, sourceId: item.sourceId, sourceTitle: item.sourceTitle,
-                sourceUrl: item.sourceUrl,
-                sourceSnapshot: item.sourceSnapshot == null
-                  ? undefined : JSON.parse(JSON.stringify(item.sourceSnapshot)),
-              })) },
-            })),
-          },
-        },
-      });
+      const duplicate = await duplicateNewsletterEdition(editionId, session);
       message = `Edition duplicated (${duplicate.id}).`;
     } else if (action === "test") {
       const recipient = clean(body.recipient, 320).toLowerCase();

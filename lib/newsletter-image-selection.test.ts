@@ -6,6 +6,19 @@ import ts from "typescript";
 import * as images from "./newsletters/source-images.ts";
 import * as gallery from "./newsletters/gallery-projects.ts";
 
+function attachImageValidation(modules: Record<string, unknown>) {
+  const exports = {};
+  const aliases: Record<string, string> = {
+    "./source-images": "@/lib/newsletters/source-images",
+    "./custom-image-ownership": "@/lib/newsletters/custom-image-ownership",
+    "./source-image-validation": "@/lib/newsletters/source-image-validation",
+  };
+  runInNewContext(ts.transpileModule(readFileSync(new URL("./newsletters/image-validation.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, {
+    exports, URL, Error, require: (id: string) => modules[aliases[id] ?? id] ?? {},
+  });
+  modules["@/lib/newsletters/image-validation"] = exports;
+}
+
 test("actual Newsletter picker filters foreign storage and derives AI URLs from keys", async () => {
   const exports: { GET?: (request: Request) => Promise<Response> } = {};
   const media = ["mine", "foreign"].map((owner) => ({ id: owner, projectId: "p", storageKey: `workspaces/${owner}/image.png`, project: { title: "Project", slug: "project" } }));
@@ -58,6 +71,7 @@ test("actual edition save rejects foreign storage even on company-scoped image r
         $transaction: async () => { writes++; throw new Error("Unexpected write"); },
       } },
     };
+    attachImageValidation(modules);
     const code = readFileSync(new URL("../app/api/admin/newsletters/editions/[editionId]/route.ts", import.meta.url), "utf8") + "\nexport { saveEdition };";
     runInNewContext(ts.transpileModule(code, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, {
       exports, URL, Date, Error, process: { env: {} }, require: (id: string) => modules[id] ?? {},
@@ -82,6 +96,7 @@ test("edition save cannot bypass custom or source checks by selecting AUTO", asy
       } },
       "@/lib/prisma": { prisma: { newsletterEdition: { findUnique: async () => ({ status: "NEEDS_REVIEW", blocks: [], approvals: [] }) } } },
     };
+    attachImageValidation(modules);
     const code = readFileSync(new URL("../app/api/admin/newsletters/editions/[editionId]/route.ts", import.meta.url), "utf8") + "\nexport { saveEdition };";
     runInNewContext(ts.transpileModule(code, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, {
       exports, URL, Error, require: (id: string) => modules[id] ?? {},
