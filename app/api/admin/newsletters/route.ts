@@ -235,7 +235,7 @@ export async function POST(request: Request) {
     if (action === "generate") {
       const editionId = typeof body.editionId === "string" ? body.editionId : "";
       if (!editionId) throw new Error("Edition is required.");
-      const result = await generateNewsletterEdition(editionId, session.userId);
+      const result = await generateNewsletterEdition(editionId, { kind: "ADMIN", actor: session });
       await recordAuditEvent({
         workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email,
         action: "NEWSLETTER_GENERATED", entityType: "NewsletterEdition", entityId: editionId,
@@ -262,6 +262,6 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : "The request could not be completed.",
-    }, { status: 400 });
+    }, { status: error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN" ? 403 : 400 });
   }
 }

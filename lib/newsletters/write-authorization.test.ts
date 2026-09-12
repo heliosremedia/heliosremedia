@@ -64,5 +64,8 @@ test("actual edition save and approval authorize inside the transaction before a
     allowed = true;
     assert.equal((await call()).status, 200);
     assert.equal(events[0], "authorize"); assert.ok(events.includes("write")); assert.equal(events.at(-1), "audit");
+    events.length = 0; edition.status = "SEND_FAILED";
+    assert.equal((await call()).status, 400);
+    assert.deepEqual(events, []);
   }
 });
