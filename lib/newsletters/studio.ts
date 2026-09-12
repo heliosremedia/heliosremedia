@@ -1,7 +1,8 @@
 import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { resolveNewsletterWorkspace } from "@/lib/newsletters/ownership";
-import { requireWorkspaceId } from "@/lib/workspaces";
+import { requireLockedWorkspaceAdministrator, type WorkspaceWriteActor } from "@/lib/workspace-write-access";
+import { lockNewsletterSeriesSettings } from "./series-write-lock";
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
@@ -111,11 +112,13 @@ async function validateSeriesAudience(tx: Prisma.TransactionClient, workspaceId:
   }
 }
 
-export async function createSeries(inputValue: unknown, createdById: string) {
-  const workspaceId = await requireWorkspaceId(createdById);
+export async function createSeries(inputValue: unknown, actor: WorkspaceWriteActor) {
+  actor = { ...actor };
+  const { workspaceId, userId: createdById } = actor;
   const input = parseSeriesInput(inputValue);
   const schedule = scheduleFor(input);
   return prisma.$transaction(async (tx) => {
+    await requireLockedWorkspaceAdministrator(tx, actor);
     await validateSeriesAudience(tx, workspaceId, input);
     const series = await tx.newsletterSeries.create({
       data: {
@@ -182,12 +185,13 @@ export async function createSeries(inputValue: unknown, createdById: string) {
   });
 }
 
-export async function updateSeries(seriesId: string, inputValue: unknown, workspaceId: string) {
+export async function updateSeries(seriesId: string, inputValue: unknown, actor: WorkspaceWriteActor) {
+  actor = { ...actor };
+  const { workspaceId } = actor;
   const input = parseSeriesInput(inputValue);
   const schedule = scheduleFor(input);
   return prisma.$transaction(async (tx) => {
-    const existing = await tx.newsletterSeries.findUnique({ where: { id: seriesId, AND: [await getContentOwnershipScope(workspaceId)] } });
-    if (!existing) throw new Error("Newsletter series was not found.");
+    await lockNewsletterSeriesSettings(tx, seriesId, actor);
     await validateSeriesAudience(tx, workspaceId, input);
     const affected = await tx.newsletterEdition.findMany({
       where: { seriesId, status: { in: ["APPROVED", "SCHEDULED"] } },
@@ -203,18 +207,18 @@ export async function updateSeries(seriesId: string, inputValue: unknown, worksp
         },
       });
       await tx.newsletterEdition.updateMany({
-        where: { id: { in: affectedIds } },
+        where: { id: { in: affectedIds }, seriesId, status: { in: ["APPROVED", "SCHEDULED"] } },
         data: { status: "NEEDS_REVIEW", approvedRevisionId: null, rowVersion: { increment: 1 } },
       });
       await tx.newsletterJob.updateMany({
-        where: { editionId: { in: affectedIds }, type: "SEND", status: { in: ["PENDING", "CLAIMED"] } },
+        where: { editionId: { in: affectedIds }, type: "SEND", status: "PENDING" },
         data: { status: "CANCELLED", completedAt: new Date() },
       });
     }
     await tx.newsletterSeriesGroup.deleteMany({ where: { seriesId } });
     await tx.newsletterSeriesRecipient.deleteMany({ where: { seriesId } });
     return tx.newsletterSeries.update({
-      where: { id: seriesId },
+      where: { id: seriesId, AND: [await getContentOwnershipScope(workspaceId)] },
       data: {
         name: input.name,
         description: input.description,

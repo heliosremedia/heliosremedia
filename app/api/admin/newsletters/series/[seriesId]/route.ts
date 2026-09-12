@@ -41,7 +41,7 @@ export async function PATCH(request: Request, context: Context) {
   if (!session) return forbiddenNewsletterResponse();
   try {
     const { seriesId } = await context.params;
-    const series = await updateSeries(seriesId, await request.json(), session.workspaceId);
+    const series = await updateSeries(seriesId, await request.json(), session);
     await recordAuditEvent({
       workspaceId: session.workspaceId, actorId: session.userId,
       actorEmail: session.email,
@@ -54,7 +54,10 @@ export async function PATCH(request: Request, context: Context) {
   } catch (error) {
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : "Series could not be updated.",
-    }, { status: 400 });
+      error: error instanceof Error && error.message === "NEWSLETTER_SERIES_BUSY"
+        ? "This series has generation, delivery or delivery recovery in progress. Resolve it before changing settings."
+        : error instanceof Error ? error.message : "Series could not be updated.",
+    }, { status: error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN" ? 403
+      : error instanceof Error && error.message === "NEWSLETTER_SERIES_BUSY" ? 409 : 400 });
   }
 }
