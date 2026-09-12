@@ -3,13 +3,13 @@ import type { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { requireLockedWorkspaceAdministrator, type WorkspaceWriteActor } from "@/lib/workspace-write-access";
-import { reviewNewsletterDelivery } from "./delivery-review-core";
+import { newsletterRecordedTotals, reviewNewsletterDelivery } from "./delivery-review-core";
 
 async function readDeliveryEvidence(tx: Prisma.TransactionClient, editionId: string, workspaceId: string) {
     const edition = await tx.newsletterEdition.findFirst({
       where: { id: editionId, series: await getContentOwnershipScope(workspaceId) },
       select: { id: true, status: true, rowVersion: true, delivery: {
-        select: { campaignId: true, revisionId: true, campaign: { select: { workspaceId: true, recipients: {
+        select: { campaignId: true, revisionId: true, campaign: { select: { workspaceId: true, rowVersion: true, recipientCount: true, sentCount: true, failedCount: true, recipients: {
           take: 5001, orderBy: { id: "asc" }, select: { id: true, status: true, providerMessageId: true, sentAt: true, _count: { select: { events: true, resendWebhookEvents: true } } },
         } } }, attempts: {
           where: { workspaceId: workspaceId }, take: 5001, orderBy: { createdAt: "asc" },
@@ -35,7 +35,12 @@ export async function getNewsletterDeliveryReview(editionId: string, inputActor:
     if (!edition) return null;
     const delivery = edition.delivery;
     return { editionId: edition.id, editionStatus: edition.status, rowVersion: edition.rowVersion,
-      delivery: delivery ? reviewNewsletterDelivery({ revisionId: delivery.revisionId, recipients: delivery.campaign.recipients, attempts: delivery.attempts }) : null,
+      delivery: delivery ? {
+        ...reviewNewsletterDelivery({ revisionId: delivery.revisionId, recipients: delivery.campaign.recipients, attempts: delivery.attempts }),
+        totals: { recorded: newsletterRecordedTotals(delivery.campaign.recipients), stored: {
+          recipientCount: delivery.campaign.recipientCount, sentCount: delivery.campaign.sentCount, failedCount: delivery.campaign.failedCount,
+        } },
+      } : null,
     };
   }, { isolationLevel: "RepeatableRead" });
 }
@@ -83,5 +88,52 @@ export async function repairNewsletterAcceptedRecords(editionId: string, expecte
       },
     });
     return { repaired: repaired.length, editionStatus: edition.status, automaticRetryAllowed: false as const };
+  }, { isolationLevel: "RepeatableRead" });
+}
+
+
+/** Reconcile aggregate record counts without changing any publication or delivery state. */
+export async function reconcileNewsletterDeliveryTotals(editionId: string, expectedVersion: number, inputActor: WorkspaceWriteActor) {
+  const actor = { ...inputActor };
+  if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 0) throw new Error("NEWSLETTER_DELIVERY_REVIEW_CHANGED");
+  return prisma.$transaction(async tx => {
+    await requireLockedWorkspaceAdministrator(tx, actor);
+    const scope = await getContentOwnershipScope(actor.workspaceId);
+    const legacyAllowed = "OR" in scope;
+    const locked = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT edition.id FROM "NewsletterEdition" edition JOIN "NewsletterSeries" series ON series.id = edition."seriesId"
+      WHERE edition.id = ${editionId} AND edition."rowVersion" = ${expectedVersion}
+        AND (series."workspaceId" = ${actor.workspaceId} OR (series."workspaceId" IS NULL AND ${legacyAllowed}))
+      FOR UPDATE OF edition
+    `;
+    if (!locked.length) throw new Error("NEWSLETTER_DELIVERY_REVIEW_CHANGED");
+    const edition = await readDeliveryEvidence(tx, editionId, actor.workspaceId);
+    if (!edition?.delivery || edition.rowVersion !== expectedVersion) throw new Error("NEWSLETTER_DELIVERY_REVIEW_CHANGED");
+    const delivery = edition.delivery;
+    await tx.$queryRaw`SELECT id FROM "EmailCampaign" WHERE id = ${delivery.campaignId} AND "workspaceId" = ${actor.workspaceId} FOR UPDATE`;
+    await tx.$queryRaw`SELECT id FROM "CampaignRecipient" WHERE "campaignId" = ${delivery.campaignId} ORDER BY id FOR UPDATE`;
+    if (await tx.newsletterJob.findFirst({ where: { editionId, status: "CLAIMED" }, select: { id: true } })) throw new Error("NEWSLETTER_DELIVERY_BUSY");
+    const review = reviewNewsletterDelivery({ revisionId: delivery.revisionId, recipients: delivery.campaign.recipients, attempts: delivery.attempts });
+    if (review.invalidAttempts || review.recipients.some(item => item.needsRecipientRecordRepair || ["UNCERTAIN", "RECEIPT_CONFLICT"].includes(item.observation))) {
+      throw new Error("NEWSLETTER_DELIVERY_RECONCILIATION_REQUIRED");
+    }
+    const { recipientCount, sentCount, failedCount } = newsletterRecordedTotals(delivery.campaign.recipients);
+    const previous = { recipientCount: delivery.campaign.recipientCount, sentCount: delivery.campaign.sentCount, failedCount: delivery.campaign.failedCount };
+    const totals = { recipientCount, sentCount, failedCount };
+    const changed = recipientCount !== previous.recipientCount || sentCount !== previous.sentCount || failedCount !== previous.failedCount;
+    if (changed) {
+      const updated = await tx.emailCampaign.updateMany({
+        where: { id: delivery.campaignId, workspaceId: actor.workspaceId, rowVersion: delivery.campaign.rowVersion, ...previous },
+        data: { ...totals, rowVersion: { increment: 1 } },
+      });
+      if (updated.count !== 1) throw new Error("NEWSLETTER_DELIVERY_REVIEW_CHANGED");
+      await tx.auditEvent.create({ data: {
+        workspaceId: actor.workspaceId, actorId: actor.userId, action: "NEWSLETTER_DELIVERY_TOTALS_RECONCILED",
+        entityType: "NewsletterEdition", entityId: edition.id,
+        summary: "Reconciled campaign totals against recorded recipient states. No email was sent.",
+        metadata: { expectedVersion, campaignId: delivery.campaignId, previous, totals, providerCalled: false },
+      } });
+    }
+    return { changed, totals, editionStatus: edition.status, automaticRetryAllowed: false as const };
   }, { isolationLevel: "RepeatableRead" });
 }
