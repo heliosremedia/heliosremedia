@@ -11,4 +11,6 @@ The runner bundles the actual generation recovery panel and shared dialog with a
 
 Checks cover explicit confirmation, initial focus, reverse-tab focus wrapping, Escape and focus restoration, duplicate confirmation clicks, preserved unsaved notes, version/run submission, stale review invalidation, denied access, unavailable recovery, success followed by a failed refresh, mobile horizontal overflow and runtime errors. Client/service/database tests provide separate evidence for authorization and atomicity. This fixture does not prove deployed authentication, actual Prisma behavior, live concurrency or production parity.
 
+The fixture also mounts the actual Newsletter jobs panel. Its checks verify on-demand read-only loading, duplicate request prevention, encoded links to edition review, mobile overflow and removal of stale evidence after a failed refresh. All job data is synthetic.
+
 GitHub's V2 regression workflow runs this command on every matching branch push. A passing browser step is necessary regression evidence, not authorization to deploy.

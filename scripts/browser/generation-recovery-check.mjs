@@ -64,6 +64,18 @@ try {
   await page.getByRole("dialog").waitFor();
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await page.screenshot({ path: process.env.RECOVERY_SCREENSHOT || "/tmp/helios-recovery-browser/mobile-confirmation.png", fullPage: true });
+  await page.keyboard.press("Escape");
+  assert.equal(await page.evaluate(() => window.jobHealthFixture.calls.length), 0);
+  await button("Refresh job status").evaluate(node => { node.click(); node.click(); });
+  await page.getByText("Synthetic interrupted edition", { exact: true }).waitFor();
+  assert.equal(await page.evaluate(() => window.jobHealthFixture.calls.length), 1);
+  assert.equal(await page.getByRole("link", { name: "Open edition review for Synthetic interrupted edition" }).getAttribute("href"), "/admin/newsletter-studio/editions/edition%2Fa#generation-recovery-title");
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.evaluate(() => { window.jobHealthFixture.mode = "unavailable"; });
+  await button("Refresh job status").click();
+  await page.getByRole("status").filter({ hasText: "Job status is unavailable" }).waitFor();
+  assert.equal(await page.getByText("Synthetic interrupted edition", { exact: true }).count(), 0);
+  assert.equal(await page.evaluate(() => window.jobHealthFixture.calls.every(call => call.method === "GET")), true);
   assert.deepEqual(errors, []);
-  console.log("PASS: confirmation, keyboard focus, duplicate prevention, unsaved notes, stale/access/blocked states, failed refresh, mobile overflow, runtime errors");
+  console.log("PASS: confirmation, keyboard focus, duplicate prevention, unsaved notes, stale/access/blocked states, failed refresh, mobile overflow, runtime errors, read-only job health and review links");
 } finally { await browser.close(); }

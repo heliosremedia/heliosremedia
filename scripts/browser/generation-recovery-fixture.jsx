@@ -2,10 +2,21 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import GenerationRecoveryPanel from "../../app/admin/newsletter-studio/components/GenerationRecoveryPanel";
+import NewsletterJobHealthPanel from "../../app/admin/newsletter-studio/components/NewsletterJobHealthPanel";
 
 let recovered = false;
 window.recoveryFixture = { calls: [], mode: "eligible" };
+window.jobHealthFixture = { calls: [], mode: "healthy" };
 window.fetch = async (url, options = {}) => {
+  if (url === "/api/admin/newsletters/jobs/health") {
+    window.jobHealthFixture.calls.push({ url, method: options.method });
+    await new Promise(resolve => setTimeout(resolve, 80));
+    if (window.jobHealthFixture.mode === "unavailable") return Response.json({ success: false }, { status: 503 });
+    return Response.json({ success: true, health: {
+      observedAt: "2026-09-12T12:00:00Z", counts: { pending: 3, active: 1, review: 1, failed: 2 }, truncated: false, automaticRetryAllowed: false,
+      jobs: [{ id: "job-a", editionId: "edition/a", type: "GENERATE", state: "REVIEW", dueAt: "2026-09-12T11:00:00Z", attempts: 1, editionLabel: "Synthetic interrupted edition", editionStatus: "GENERATING", seriesStatus: "ACTIVE" }],
+    } });
+  }
   const fixture = window.recoveryFixture;
   fixture.calls.push({ url, method: options.method, body: options.body });
   await new Promise(resolve => setTimeout(resolve, 80));
@@ -22,4 +33,4 @@ window.fetch = async (url, options = {}) => {
     eligible: !recovered && fixture.mode !== "blocked", automaticRetryAllowed: false,
   } });
 };
-createRoot(document.getElementById("root")).render(<><label>Unsaved edition notes<textarea defaultValue="Keep my changes" /></label><GenerationRecoveryPanel editionId="synthetic-edition" /></>);
+createRoot(document.getElementById("root")).render(<><label>Unsaved edition notes<textarea defaultValue="Keep my changes" /></label><GenerationRecoveryPanel editionId="synthetic-edition" /><NewsletterJobHealthPanel /></>);

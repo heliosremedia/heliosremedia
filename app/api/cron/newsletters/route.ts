@@ -36,6 +36,7 @@ export async function GET(request: Request) {
     if (!job) break;
     claimed++;
     try {
+      if (!["GENERATE", "SEND", "MISSED_APPROVAL"].includes(job.type)) throw new Error("Unsupported newsletter job type requires review.");
       const edition = await prisma.newsletterEdition.findUnique({
         where: { id: job.editionId },
         select: {
