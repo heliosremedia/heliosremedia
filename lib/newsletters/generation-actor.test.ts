@@ -54,6 +54,7 @@ test("generation claims before AI, captures its actor and rechecks access before
       newsletterRevision: { create: async ({ data }: { data: { createdById: string } }) => { assert.equal(data.createdById, "actor"); } },
     };
     const api = load<{ generateNewsletterEdition: (id: string, context: unknown) => Promise<unknown> }>("./generation.ts", {
+      "./block-source-context": {},
       "server-only": {}, "@/lib/workspace-write-access": {},
       "./generation-access": { requireNewsletterGenerationAccess: async (_tx: unknown, id: string, workspaceId: string, context: { actor: { workspaceId: string } }) => {
         checks++; events.push("authorize"); assert.equal(id, "edition"); assert.equal(workspaceId, "a"); assert.equal(context.actor.workspaceId, "a"); if (!allowed) throw new Error("WORKSPACE_WRITE_FORBIDDEN");

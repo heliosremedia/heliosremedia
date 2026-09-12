@@ -39,6 +39,7 @@ test("pause and resume handlers scope the series before touching jobs", async ()
 test("manual generation checks actor ownership before claiming or invoking AI", async () => {
   let claims = 0;
   const loaded = load(new URL("./generation.ts", import.meta.url), {
+    "./block-source-context": {},
     "server-only": {},
     "@/lib/workspace-write-access": {}, "./generation-access": {},
     "./ownership": { resolveNewsletterWorkspace: async () => "b" },
@@ -60,20 +61,22 @@ test("block rewriting rejects foreign snapshots and stale editions before conten
     let contentWrites = 0;
     let revisions = 0;
     let revocations = 0;
-    const block = { id: "block", type: "TEXT", content: {}, internalLabel: "Text", sources: [{ id: "source", sourceId: "blog:post", sourceType: "BLOG_POST", sourceTitle: "Post", sourceSnapshot: { workspaceId: scenario === "foreign-source" ? "b" : "a", excerpt: "Verified copy" } }], edition: { rowVersion: 2, status: "NEEDS_REVIEW", series: { workspaceId: "a" }, blocks: [] as unknown[], currentRevisionNumber: 1, subject: "Subject" } };
+    const block = { id: "block", type: "TEXT", content: { body: "Owned copy", imageCandidates: [{ label: "Cached foreign title" }] }, internalLabel: "Text", sources: [{ id: "source", sourceId: "blog:post", sourceType: "BLOG_POST", sourceTitle: "Post", sourceSnapshot: { workspaceId: scenario === "foreign-source" ? "b" : "a", excerpt: "Verified copy" } }], edition: { rowVersion: 2, status: "NEEDS_REVIEW", series: { workspaceId: "a" }, blocks: [] as unknown[], currentRevisionNumber: 1, subject: "Subject" } };
     const tx = {
       newsletterEdition: { updateMany: async ({ where }: { where: { rowVersion: number } }) => { assert.equal(where.rowVersion, 2); return { count: scenario === "stale" ? 0 : 1 }; }, update: async () => {} },
       newsletterBlock: { update: async () => { contentWrites++; } },
+      newsletterBlockSource: { update: async ({ where, data }: { where: { id: string; blockId: string }; data: { sourceTitle: string; sourceSnapshot: { workspaceId: string; excerpt: string } } }) => { assert.equal(where.id, "source"); assert.equal(where.blockId, "block"); assert.equal(data.sourceTitle, "Current post"); assert.equal(data.sourceSnapshot.workspaceId, "a"); assert.equal(data.sourceSnapshot.excerpt, "Current copy"); } },
       newsletterRevision: { create: async () => { revisions++; } },
       newsletterApproval: { updateMany: async () => { revocations++; } },
     };
     const loaded = load(new URL("./generation.ts", import.meta.url), {
+      "./block-source-context": { refreshNewsletterBlockSources: async () => [{ id: "blog:post", kind: "BLOG_POST", label: "Current post", excerpt: "Current copy" }], newsletterBlockAuthoringContext: () => ({ body: "Owned copy" }) },
       "server-only": {}, "@/lib/workspace-write-access": { requireLockedWorkspaceAdministrator: async () => { if (!allowed) throw new Error("WORKSPACE_WRITE_FORBIDDEN"); } }, "./generation-access": {},
       "./ownership": { resolveNewsletterWorkspace: async (value: string | null) => { if (!value) throw new Error("Legacy ownership unavailable"); return value; } },
       "@/lib/blog-ownership": { getBlogOwnershipScope: async (workspaceId: string) => ({ workspaceId }) },
       "@/lib/prisma": { prisma: { newsletterBlock: { findFirst: async ({ where }: { where: { edition: { series: { workspaceId: string } } } }) => { assert.equal(where.edition.series.workspaceId, "a"); return block; } }, $transaction: async (callback: (db: typeof tx) => unknown) => callback(tx) } },
       "@/lib/site-settings": { getSiteSettings: async (workspaceId: string) => { assert.equal(workspaceId, "a"); return { businessName: "Company A" }; } },
-      "./ai": { generateNewsletterDraft: async () => { aiCalls++; if (scenario === "revoked") allowed = false; return { blocks: [{ type: "TEXT", sourceIds: [] }], warnings: [] }; } },
+      "./ai": { generateNewsletterDraft: async (input: { contentNotes: string; sources: Array<{ excerpt: string }> }) => { assert.deepEqual(JSON.parse(input.contentNotes).currentBlock, { body: "Owned copy" }); assert.equal(input.sources[0].excerpt, "Current copy"); aiCalls++; if (scenario === "revoked") allowed = false; return { blocks: [{ type: "TEXT", sourceIds: [] }], warnings: [] }; } },
       "./content-sources": {}, "./studio": { contentHash: () => "hash" },
       "./source-images": { validateCandidateId: () => null, suggestedCandidate: () => null, preserveManualImage: (_current: unknown, next: unknown) => next },
     });

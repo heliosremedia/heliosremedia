@@ -1,3 +1,4 @@
+import { newsletterBlockAuthoringContext, refreshNewsletterBlockSources } from "./block-source-context";
 import { requireLockedWorkspaceAdministrator, type WorkspaceWriteActor } from "@/lib/workspace-write-access";
 import { requireNewsletterGenerationAccess, type NewsletterGenerationContext } from "./generation-access";
 import { resolveNewsletterWorkspace } from "./ownership";
@@ -260,21 +261,9 @@ export async function regenerateNewsletterBlock(input: {
   if (["SENT", "PARTIALLY_SENT", "CANCELLED", "GENERATING", "SENDING", "SEND_FAILED"].includes(block.edition.status)) {
     throw new Error("This edition can no longer be edited.");
   }
-  const sources = block.sources.map((source) => {
-    const snapshot = source.sourceSnapshot && typeof source.sourceSnapshot === "object"
-      ? source.sourceSnapshot as Record<string, unknown> : {};
-    return {
-      id: source.sourceId || `block-source:${source.id}`,
-      kind: source.sourceType,
-      label: source.sourceTitle,
-      excerpt: typeof snapshot.excerpt === "string"
-        ? snapshot.excerpt
-        : JSON.stringify(snapshot).slice(0, 4_000),
-      url: source.sourceUrl,
-      imageCandidates: Array.isArray(snapshot.imageCandidates)
-        ? snapshot.imageCandidates as NonNullable<import("./ai").NewsletterSourceReference["imageCandidates"]> : [],
-    };
-  });
+  const current = block.content && typeof block.content === "object"
+    ? block.content as Record<string, unknown> : {};
+  const sources = await refreshNewsletterBlockSources(workspaceId, block.sources, current);
   if (!sources.length) throw new Error("Attach verified source material before using block AI.");
   const settings = await getSiteSettings(workspaceId);
   const actionGuidance = {
@@ -283,8 +272,6 @@ export async function regenerateNewsletterBlock(input: {
     "shorten-block": "Shorten this one block by about 30 percent without dropping verified facts.",
     "expand-block": "Expand this one block with useful framing, using only the supplied verified facts.",
   }[input.action];
-  const current = block.content && typeof block.content === "object"
-    ? block.content as Record<string, unknown> : {};
   const draft = await generateNewsletterDraft({
     brand: {
       businessName: settings.businessName,
@@ -294,7 +281,7 @@ export async function regenerateNewsletterBlock(input: {
     },
     goals: `${actionGuidance} Return exactly one ${block.type} block.`,
     contentNotes: JSON.stringify({
-      currentBlock: current,
+      currentBlock: newsletterBlockAuthoringContext(current),
       internalLabel: block.internalLabel,
       requiredBlockType: block.type,
     }),
@@ -363,6 +350,17 @@ export async function regenerateNewsletterBlock(input: {
         contentVersion: { increment: 1 },
       },
     });
+
+    for (const [index, source] of block.sources.entries()) {
+      const reference = sources[index];
+      await tx.newsletterBlockSource.update({
+        where: { id: source.id, blockId: block.id },
+        data: {
+          sourceTitle: reference.label, sourceUrl: reference.url ?? null,
+          sourceSnapshot: { workspaceId, excerpt: reference.excerpt, imageCandidates: reference.imageCandidates ?? [] },
+        },
+      });
+    }
 
     await tx.newsletterRevision.create({
       data: {
