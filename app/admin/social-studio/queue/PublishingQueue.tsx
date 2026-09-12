@@ -8,11 +8,12 @@ type Job = Awaited<ReturnType<typeof getPublishingQueue>>[number];
 export default function PublishingQueue({ initialJobs }: { initialJobs: Job[] }) {
   const [jobs, setJobs] = useState(initialJobs); const [platform, setPlatform] = useState("ALL"); const [status, setStatus] = useState("ALL"); const [busy, setBusy] = useState(""); const [message, setMessage] = useState("");
   const [blocked, setBlocked] = useState(new Set<string>());
+  const blockedActions = useRef(new Set<string>());
   const pending = useRef<AbortController | null>(null);
   useEffect(() => () => { const controller = pending.current; pending.current = null; controller?.abort(); }, []);
   const filtered = useMemo(() => jobs.filter((job) => (platform === "ALL" || job.platform === platform) && (status === "ALL" || job.status === status)), [jobs,platform,status]);
   async function action(jobId:string, actionName:string) {
-    if (pending.current || blocked.has(jobId)) return;
+    if (pending.current || blockedActions.current.has(jobId)) return;
     const controller = new AbortController(); pending.current = controller;
     const timer = setTimeout(() => controller.abort(), 20_000);
     setBusy(jobId+actionName); setMessage("");
@@ -25,6 +26,7 @@ export default function PublishingQueue({ initialJobs }: { initialJobs: Job[] })
       setJobs((all) => all.map((job) => job.id === jobId ? {...job,status:data.status} : job)); setMessage(`${actionName.replaceAll("-"," ")} completed.`);
     } catch {
       if (pending.current === controller) {
+        blockedActions.current.add(jobId);
         setBlocked(current => new Set(current).add(jobId));
         setMessage('The queue action could not be confirmed. Reload the queue before taking another action on this job. Do not blindly retry.');
       }

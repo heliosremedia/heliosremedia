@@ -174,6 +174,8 @@ test('queue actions suppress synchronous duplicates and invalidate stale action 
   } else {
     assert.match(String(states[4]), /Reload the queue/);
     assert.equal((states[5] as Set<string>).has('job-a'), true);
+    // Even the old callback cannot resubmit before React commits a rerender.
+    await button.props.onClick(); assert.equal(calls, 1);
   }
   }
 });
