@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSiteUrl } from "@/lib/site";
 import { deliverApprovedNewsletter } from "@/lib/newsletters/delivery";
 import { generateNewsletterEdition } from "@/lib/newsletters/generation";
-import { sendNewsletterAdminNotification } from "@/lib/newsletters/notifications";
+import { notifyNewsletterEdition } from "@/lib/newsletters/notification-context";
 import {
   claimDueNewsletterJobs,
   completeNewsletterJob,
@@ -40,8 +39,8 @@ export async function GET(request: Request) {
       const edition = await prisma.newsletterEdition.findUnique({
         where: { id: job.editionId },
         select: {
-          id: true, subject: true, cycleKey: true, status: true, intendedSendAt: true,
-          series: { select: { name: true, status: true } },
+          id: true, status: true,
+          series: { select: { status: true } },
         },
       });
       if (!edition) throw new Error("Newsletter edition no longer exists.");
@@ -50,43 +49,37 @@ export async function GET(request: Request) {
         results.push({ id: job.id, type: job.type, success: true });
         continue;
       }
-      const label = edition.subject || `${edition.series.name} · ${edition.cycleKey}`;
-      const reviewUrl = `${getSiteUrl()}/admin/newsletter-studio/editions/${edition.id}`;
 
       if (job.type === "GENERATE") {
         await generateNewsletterEdition(edition.id, { kind: "BACKGROUND", jobId: job.id, claimToken: job.claimToken });
-        await sendNewsletterAdminNotification({
+        await notifyNewsletterEdition({
           kind: "DRAFT_READY",
-          editionLabel: label,
+          editionId: edition.id,
           detail: "The AI-assisted draft is ready. It will not be scheduled or sent until an administrator approves it.",
-          reviewUrl,
         });
       } else if (job.type === "SEND") {
         try {
           const delivery = await deliverApprovedNewsletter(edition.id, { kind: "BACKGROUND", jobId: job.id, claimToken: job.claimToken });
-          await sendNewsletterAdminNotification({
+          await notifyNewsletterEdition({
             kind: delivery.failed ? "SEND_FAILED" : "SEND_COMPLETED",
-            editionLabel: label,
+            editionId: edition.id,
             detail: `${delivery.sent} delivered${delivery.failed ? `; ${delivery.failed} failed` : ""}.`,
-            reviewUrl,
           });
         } catch (error) {
-          await sendNewsletterAdminNotification({
+          await notifyNewsletterEdition({
             kind: "SEND_FAILED",
-            editionLabel: label,
+            editionId: edition.id,
             detail: "The scheduled send failed safely. No unapproved retry will occur.",
-            reviewUrl,
           });
           throw error;
         }
       } else if (job.type === "MISSED_APPROVAL") {
         const missed = await markNewsletterApprovalMissed(job);
         if (missed.changed) {
-          await sendNewsletterAdminNotification({
+          await notifyNewsletterEdition({
             kind: "MISSED_APPROVAL",
-            editionLabel: label,
+            editionId: edition.id,
             detail: "The intended send time passed without approval. The edition was not sent and requires a deliberate new schedule.",
-            reviewUrl,
           });
         }
       }
