@@ -47,20 +47,29 @@ test("retry binding rejects foreign campaigns, altered subjects and hashes while
   row.retry.campaign.body = JSON.stringify({ newsletterEditionId: "foreign", revisionId: "revision" }); assert.throws(check, /no longer matches/);
 });
 
-function deliveryHarness(row: ReturnType<typeof fixture>, claim = true) {
+function deliveryHarness(row: ReturnType<typeof fixture>, claim = true, denyAt = 0) {
   let recipients = 0;
   let providerCalls = 0;
   let tokens = 0;
   let creations = 0;
-  const exports: { deliverApprovedNewsletter?: (id: string) => Promise<{ status: string; sent: number }> } = {};
+  let checks = 0;
+  const actor = { workspaceId: "a", userId: "actor", sessionVersion: 1 };
+  const exports: { deliverApprovedNewsletter?: (id: string, context: unknown) => Promise<{ status: string; sent: number }> } = {};
   const tx = {
     newsletterEdition: { updateMany: async ({ where }: { where: { rowVersion: number; intendedSendAt: Date; series: { workspaceId: string }; approvals: { some: { id: string; revisionId: string; revokedAt: null } } } }) => {
+      if (where.rowVersion === 5) return { count: 1 };
       assert.equal(where.rowVersion, 4); assert.equal(where.intendedSendAt.getTime(), row.intendedSendAt.getTime()); assert.equal(where.series.workspaceId, "a"); assert.equal(where.approvals.some.id, "approval"); assert.equal(where.approvals.some.revisionId, "revision"); assert.equal(where.approvals.some.revokedAt, null); return { count: claim ? 1 : 0 };
-    } },
-    emailCampaign: { create: async () => { creations++; return row.retry.campaign; } },
-    newsletterDelivery: { create: async () => ({ id: "delivery" }) },
+    }, findFirst: async () => ({ id: row.id }) },
+    newsletterJob: { updateMany: async () => ({ count: 1 }) },
+    emailCampaign: { update: async () => ({}), create: async () => { creations++; return row.retry.campaign; } },
+    newsletterDelivery: { update: async () => ({}), create: async () => ({ id: "delivery" }) },
   };
   const modules: Record<string, unknown> = {
+    "./delivery-access": { requireNewsletterDeliveryAccess: async (_tx: unknown, id: string, workspaceId: string, date: Date, context: { actor: typeof actor }) => {
+      checks++; assert.equal(id, "edition"); assert.equal(workspaceId, "a"); assert.equal(context.actor.workspaceId, "a"); assert.equal(date.getTime(), row.intendedSendAt.getTime());
+      actor.workspaceId = "changed-after-start";
+      if (checks === denyAt) throw new Error("WORKSPACE_WRITE_FORBIDDEN");
+    } },
     "server-only": {}, "node:crypto": crypto, "./delivery-approval": guards, "./recipient-identity": recipientIdentity,
     "@/lib/client-communications/campaign-ownership": { resolveCampaignWorkspace: async () => "a" },
     "@/lib/newsletters/ownership": { requireNewsletterApprovalWorkspace: async () => "a" },
@@ -82,7 +91,7 @@ function deliveryHarness(row: ReturnType<typeof fixture>, claim = true) {
   runInNewContext(ts.transpileModule(readFileSync(new URL("./delivery.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, {
     exports, Date, Error, console, require: (id: string) => { assert.ok(id in modules, id); return modules[id]; },
   });
-  return { send: () => exports.deliverApprovedNewsletter!("edition"), counts: () => ({ recipients, providerCalls, tokens, creations }) };
+  return { send: () => exports.deliverApprovedNewsletter!("edition", { kind: "ADMIN", actor }), counts: () => ({ recipients, providerCalls, tokens, creations }) };
 }
 
 test("actual delivery rejects invalid approval/retry links before recipients or provider effects", async () => {
@@ -109,4 +118,25 @@ test("approved first delivery and retry retain payloads and idempotency with a f
     assert.equal(result.status, "SENT"); assert.equal(result.sent, 1);
     assert.deepEqual(h.counts(), { recipients: 1, providerCalls: 1, tokens: 1, creations: retry ? 0 : 1 });
   }
+});
+
+
+test("delivery authorization is fresh before eligibility, claim and provider execution", async () => {
+  for (const retry of [false, true]) for (const denyAt of [1, 2, 3]) {
+    const row = fixture(); if (retry) { row.delivery = row.retry; row.status = "SEND_FAILED"; }
+    const h = deliveryHarness(row, true, denyAt);
+    await assert.rejects(h.send(), /FORBIDDEN/);
+    assert.equal(h.counts().providerCalls, 0); assert.equal(h.counts().tokens, 0);
+    assert.equal(h.counts().recipients, denyAt === 1 ? 0 : 1);
+    assert.equal(h.counts().creations, !retry && denyAt === 3 ? 1 : 0);
+  }
+});
+
+test("active sends cannot be retried and a lost retry claim never calls the provider", async () => {
+  const row = fixture(); row.delivery = row.retry; row.status = "SENDING";
+  const active = deliveryHarness(row);
+  await assert.rejects(active.send(), /safely retryable/); assert.equal(active.counts().providerCalls, 0);
+  row.status = "SEND_FAILED";
+  const lost = deliveryHarness(row, false);
+  await assert.rejects(lost.send(), /already claimed/); assert.equal(lost.counts().providerCalls, 0); assert.equal(lost.counts().creations, 0);
 });

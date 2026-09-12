@@ -87,10 +87,10 @@ test("Newsletter admin guard keeps unfinished workflows unavailable to a second 
 });
 
 test("actual delivery aborts a foreign approval before recipients, tokens or provider calls", async () => {
-  const exports: { deliverApprovedNewsletter?: (id: string) => Promise<unknown> } = {};
+  const exports: { deliverApprovedNewsletter?: (id: string, context: unknown) => Promise<unknown> } = {};
   let providerCalls = 0;
   const modules: Record<string, unknown> = {
-    "./delivery-approval": deliveryApproval,
+    "./delivery-approval": deliveryApproval, "./delivery-access": {},
     "server-only": {}, "node:crypto": {}, "./recipient-identity": {}, "@/lib/client-communications/campaign-ownership": {},
     "@/lib/newsletters/ownership": { requireNewsletterApprovalWorkspace: async () => { throw new Error("Foreign approval"); } },
     "@/lib/prisma": { prisma: { newsletterEdition: { findUnique: async () => ({ id: "edition", currentRevisionNumber: 1, intendedSendAt: new Date("2027-01-01"), status: "SCHEDULED", series: { status: "ACTIVE", workspaceId: "a" }, approvedRevision: { id: "revision", editionId: "edition", revisionNumber: 1 }, approvedRevisionId: "revision", approvals: [{ editionId: "edition", revisionId: "revision", approvedSendAt: new Date("2027-01-01"), revokedAt: null, recipientSelectionSnapshot: { mode: "ALL", workspaceId: "b" } }] }) } } },
@@ -102,6 +102,6 @@ test("actual delivery aborts a foreign approval before recipients, tokens or pro
     if (!(id in modules)) throw new Error(`Unexpected dependency ${id}`);
     return modules[id];
   } });
-  await assert.rejects(exports.deliverApprovedNewsletter!("edition"), /Foreign approval/);
+  await assert.rejects(exports.deliverApprovedNewsletter!("edition", { kind: "ADMIN", actor: { workspaceId: "a", userId: "actor", sessionVersion: 1 } }), /Foreign approval/);
   assert.equal(providerCalls, 0);
 });
