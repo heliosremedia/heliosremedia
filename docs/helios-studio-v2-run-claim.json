@@ -1,11 +1,23 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-20260912T1650",
-  "expiresAt": "2026-09-12T18:55:00Z",
+  "expiresAt": null,
+  "completedAt": "2026-09-12T17:25:45Z",
   "branch": "codex/v2-newsletter-recurrence-serialization",
-  "head": "632ed0889c36ce4e32877b973156a149d748362e",
   "pr": 293,
+  "head": "632ed0889c36ce4e32877b973156a149d748362e",
+  "tree": "1a1f3fddf4c3e55688365ee6589cbe5b72e9ccf6",
   "verifiedImplementationHead": "6a68fa585fafcd481de2c90437a4092d2d54e55b",
   "verifiedImplementationRun": 34707861194,
-  "purpose": "Verifying documentation follow-up after three implementation drafts; do not start competing writes."
+  "verifiedFinalHeadRun": 34708069120,
+  "verification": "639 local and CI tests passed. Final-head CI passed Prisma generation, TypeScript, Chromium synthetic interactions and whitespace.",
+  "ledger": "docs/helios-studio-v2-progress-ledger.md",
+  "completedDrafts": [
+    291,
+    292,
+    293
+  ],
+  "outstandingChanges": false,
+  "nextDependency": "Bounded generation execution/lease semantics and shared-job convergence; retain token/version fencing, explicit recovery and single-company containment. Phase 1/2 exit and hosted/full-stack gates remain open.",
+  "production": "ON HOLD for implementation readiness and Jake QA/release decision; no merge, migration, provider execution or deployment."
 }
