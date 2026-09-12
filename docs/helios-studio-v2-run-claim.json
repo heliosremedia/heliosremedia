@@ -1,8 +1,8 @@
 {
   "baseHead": "d8b99945e99cfe99ef85f14485669e815dffd0ea",
-  "branch": "codex/v2-newsletter-analytics-isolation",
+  "branch": "codex/v2-newsletter-recurrence-serialization",
   "expiresAt": "2026-09-12T18:55:00Z",
+  "previousDraft": 292,
   "runId": "atlas-20260912T1650",
-  "status": "active",
-  "previousDraft": 291
+  "status": "active"
 }
