@@ -285,9 +285,7 @@ export function createNewsletterImageKey(workspaceId: string, mimeType: string) 
     .replace(/[-:]/g, "")
     .replace(/\..+/, "")
     .replace("T", "-");
-  const safeWorkspace = workspaceId.replace(/[^a-zA-Z0-9_-]/g, "");
-
-  return `email/newsletters/${safeWorkspace}/${timestamp}-${randomUUID().slice(0, 8)}.${extensionFromMime(mimeType)}`;
+  return `${brandAssetPrefix(workspaceId, "newsletter")}${timestamp}-${randomUUID().slice(0, 8)}.${extensionFromMime(mimeType)}`;
 }
 
 export function createTeamMemberPortraitKey(workspaceId: string, mimeType: string) {

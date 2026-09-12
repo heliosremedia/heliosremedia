@@ -1,3 +1,4 @@
+import { withBrandUploadAsset } from "@/lib/workspace-brand-assets";
 import { NextResponse } from "next/server";
 
 import {
@@ -29,7 +30,9 @@ export async function POST(request: Request) {
       success: true,
       upload: {
         key,
-        uploadUrl: await createPresignedUploadUrl(key, file.type),
+        uploadUrl: await withBrandUploadAsset({
+          workspaceId: session.workspaceId, actorId: session.userId, kind: "newsletter", key, byteSize: file.size,
+        }, () => createPresignedUploadUrl(key, file.type)),
         publicUrl: getPublicAssetUrl(key),
         contentType: file.type,
       },

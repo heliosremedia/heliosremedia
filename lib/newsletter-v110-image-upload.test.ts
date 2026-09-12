@@ -16,7 +16,7 @@ test("Newsletter Studio exposes a protected direct image upload", () => {
   assert.match(panel, /mode: "CUSTOM", sourceLabel: "Uploaded by administrator"/);
   assert.match(presign, /requireNewsletterAdministrator\(\)/);
   assert.match(presign, /validateImageUpload\(file\)/);
-  assert.match(storage, /email\/newsletters\/\$\{safeWorkspace\}/);
+  assert.match(storage, /brandAssetPrefix\(workspaceId, "newsletter"\)/);
 });
 
 test("uploaded images reuse the existing newsletter image state", () => {
