@@ -253,6 +253,22 @@ export async function claimDueNewsletterJobs(input?: { now?: Date; limit?: numbe
           )
         )
       )
+      AND (
+        job."type" <> 'GENERATE'
+        OR (
+          edition."status" IN ('AWAITING_GENERATION', 'NEEDS_REVIEW', 'GENERATION_FAILED', 'DRAFT_GENERATED')
+          AND job."dueAt" = edition."generationDueAt"
+          AND job."dueAt" <= ${now}
+        )
+      )
+      AND (
+        job."type" <> 'MISSED_APPROVAL'
+        OR (
+          edition."status" IN ('AWAITING_GENERATION', 'GENERATING', 'DRAFT_GENERATED', 'NEEDS_REVIEW', 'APPROVED', 'GENERATION_FAILED')
+          AND job."dueAt" = edition."intendedSendAt"
+          AND job."dueAt" <= ${now}
+        )
+      )
       ORDER BY job."dueAt" ASC
       LIMIT ${limit}
       FOR UPDATE SKIP LOCKED

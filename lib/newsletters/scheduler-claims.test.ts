@@ -11,7 +11,7 @@ test("scheduler SQL preserves held sends and stale schedules while claiming elig
   try {
     await db.exec(`
       CREATE TABLE "NewsletterSeries" (id TEXT PRIMARY KEY, status TEXT, "workspaceId" TEXT);
-      CREATE TABLE "NewsletterEdition" (id TEXT PRIMARY KEY, "seriesId" TEXT, status TEXT, "approvedRevisionId" TEXT, "intendedSendAt" TIMESTAMPTZ);
+      CREATE TABLE "NewsletterEdition" (id TEXT PRIMARY KEY, "seriesId" TEXT, status TEXT, "approvedRevisionId" TEXT, "intendedSendAt" TIMESTAMPTZ, "generationDueAt" TIMESTAMPTZ);
       CREATE TABLE "NewsletterJob" (id TEXT PRIMARY KEY, "editionId" TEXT, type TEXT, status TEXT, "dueAt" TIMESTAMPTZ, "leaseExpiresAt" TIMESTAMPTZ, "claimToken" TEXT, "claimedAt" TIMESTAMPTZ, attempts INT DEFAULT 0, "updatedAt" TIMESTAMPTZ);
       CREATE TABLE "NewsletterDeliveryAttempt" (id TEXT PRIMARY KEY, "editionId" TEXT, status TEXT);
       INSERT INTO "NewsletterSeries" VALUES ('a', 'ACTIVE', 'company-a'), ('b', 'ACTIVE', 'company-b'), ('paused', 'PAUSED', 'company-a');
@@ -30,10 +30,18 @@ test("scheduler SQL preserves held sends and stale schedules while claiming elig
       ['future', 'a', 'SCHEDULED', 'CLAIMED', 'SEND', true, 'none'],
       ['active', 'a', 'SCHEDULED', 'CLAIMED', 'SEND', true, 'none'],
       ['generate', 'b', 'AWAITING_GENERATION', 'PENDING', 'GENERATE', false, 'none'],
+      ['generate-held', 'a', 'GENERATING', 'CLAIMED', 'GENERATE', false, 'none'],
+      ['generate-stale', 'a', 'NEEDS_REVIEW', 'PENDING', 'GENERATE', false, 'none'],
+      ['generate-missing', 'b', 'NEEDS_REVIEW', 'PENDING', 'GENERATE', false, 'none'],
+      ['generate-future', 'a', 'NEEDS_REVIEW', 'CLAIMED', 'GENERATE', false, 'none'],
+      ['missed-valid', 'b', 'NEEDS_REVIEW', 'PENDING', 'MISSED_APPROVAL', false, 'none'],
+      ['missed-stale', 'a', 'NEEDS_REVIEW', 'CLAIMED', 'MISSED_APPROVAL', false, 'none'],
+      ['missed-scheduled', 'a', 'SCHEDULED', 'PENDING', 'MISSED_APPROVAL', true, 'none'],
+      ['missed-future', 'b', 'NEEDS_REVIEW', 'CLAIMED', 'MISSED_APPROVAL', false, 'none'],
     ] as const;
     for (const [id, series, status, jobStatus, type, approved, observation] of examples) {
-      const due = new Date(now.getTime() + (id === 'future' ? 60_000 : -60_000));
-      await db.query(`INSERT INTO "NewsletterEdition" VALUES ($1, $2, $3, $4, $5)`, [id, series, status, approved ? 'revision' : null, id === 'stale' ? now : due]);
+      const due = new Date(now.getTime() + (id.endsWith('future') ? 60_000 : -60_000));
+      await db.query(`INSERT INTO "NewsletterEdition" VALUES ($1, $2, $3, $4, $5, $6)`, [id, series, status, approved ? 'revision' : null, id === 'stale' || id === 'missed-stale' ? now : due, id === 'generate-missing' ? null : id === 'generate-stale' ? now : due]);
       await db.query(`INSERT INTO "NewsletterJob" (id, "editionId", type, status, "dueAt", "leaseExpiresAt", "claimToken") VALUES ($1, $1, $2, $3, $4, $5, 'old-token')`, [id, type, jobStatus, due, new Date(now.getTime() + (id === 'active' ? 60_000 : -60_000))]);
       if (observation !== 'none') await db.query(`INSERT INTO "NewsletterDeliveryAttempt" VALUES ($1, $1, $2)`, [id, observation]);
     }
@@ -49,10 +57,13 @@ test("scheduler SQL preserves held sends and stale schedules while claiming elig
       exports, Date, require: (id: string) => { assert.ok(id in modules, id); return modules[id]; },
     });
     const rows = await exports.claimDueNewsletterJobs!({ now, limit: 100, leaseSeconds: 300 });
-    assert.deepEqual(rows.map(row => row.id).sort(), ['generate', 'partial', 'valid-a', 'valid-b']);
+    assert.deepEqual(rows.map(row => row.id).sort(), ['generate', 'missed-valid', 'partial', 'valid-a', 'valid-b']);
     for (const row of rows) { assert.equal(row.claimToken, `new-token:${row.id}`); assert.equal(row.attempts, 1); }
     const held = await db.query<{ claimToken: string; attempts: number }>(`SELECT "claimToken", attempts FROM "NewsletterJob" WHERE id = 'held'`);
     assert.equal(held.rows[0].claimToken, 'old-token'); assert.equal(held.rows[0].attempts, 0);
+    const untouched = await db.query<{ attempts: number; claimToken: string }>(`SELECT attempts, "claimToken" FROM "NewsletterJob" WHERE id IN ('generate-held', 'generate-stale', 'generate-missing', 'generate-future', 'missed-stale', 'missed-scheduled', 'missed-future')`);
+    assert.equal(untouched.rows.length, 7);
+    for (const row of untouched.rows) { assert.equal(row.attempts, 0); assert.equal(row.claimToken, 'old-token'); }
     assert.equal((await exports.claimDueNewsletterJobs!({ now, limit: 100 })).length, 0);
   } finally { await db.close(); }
 });
