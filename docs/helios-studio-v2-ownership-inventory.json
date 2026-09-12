@@ -13,7 +13,7 @@
     "requiredWorkspace": 29,
     "nullableWorkspace": 19,
     "withoutWorkspace": 65,
-    "routeFiles": 139
+    "routeFiles": 140
   },
   "models": [
     {
@@ -3105,7 +3105,9 @@
         "lib/newsletters/delivery.ts",
         "lib/newsletters/edition-duplication.ts",
         "lib/newsletters/edition-transitions.ts",
+        "lib/newsletters/generation-recovery.ts",
         "lib/newsletters/generation.ts",
+        "lib/newsletters/missed-approval.ts",
         "lib/newsletters/scheduler.ts",
         "lib/newsletters/series-write-lock.ts",
         "lib/newsletters/studio.ts"
@@ -3262,6 +3264,7 @@
         "editionId, attempt"
       ],
       "sourceReferences": [
+        "lib/newsletters/generation-recovery.ts",
         "lib/newsletters/generation.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
@@ -3310,9 +3313,10 @@
       "uniqueConstraints": [],
       "sourceReferences": [
         "app/api/admin/newsletters/editions/[editionId]/route.ts",
-        "app/api/cron/newsletters/route.ts",
         "lib/newsletters/edition-transitions.ts",
+        "lib/newsletters/generation-recovery.ts",
         "lib/newsletters/generation.ts",
+        "lib/newsletters/missed-approval.ts",
         "lib/newsletters/studio.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
@@ -3352,6 +3356,7 @@
       ],
       "sourceReferences": [
         "lib/newsletters/analytics.ts",
+        "lib/newsletters/delivery-review.ts",
         "lib/newsletters/delivery.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
@@ -3425,6 +3430,8 @@
         "lib/newsletters/delivery.ts",
         "lib/newsletters/edition-transitions.ts",
         "lib/newsletters/generation-access.ts",
+        "lib/newsletters/generation-recovery.ts",
+        "lib/newsletters/missed-approval.ts",
         "lib/newsletters/scheduler.ts",
         "lib/newsletters/series-write-lock.ts",
         "lib/newsletters/studio.ts"
@@ -4313,6 +4320,8 @@
         "lib/audit.ts",
         "lib/dashboard.ts",
         "lib/newsletters/delivery-review.ts",
+        "lib/newsletters/generation-recovery.ts",
+        "lib/newsletters/missed-approval.ts",
         "lib/portfolio-discovery-settings.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
@@ -4693,6 +4702,14 @@
     },
     {
       "path": "app/api/admin/newsletters/editions/[editionId]/delivery-review/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/newsletters/editions/[editionId]/generation-recovery/route.ts",
       "methods": [
         "GET",
         "POST"
