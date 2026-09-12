@@ -479,10 +479,13 @@ export async function POST(request: Request, context: Context) {
   } catch (error) {
     return NextResponse.json({
       success: false,
-      error: error instanceof Error && error.message === "NEWSLETTER_EDITION_BUSY" ? "This edition has work in progress. Retry after it finishes."
+      error: error instanceof Error && error.message === "NEWSLETTER_DELIVERY_RECONCILIATION_REQUIRED" ? "The provider may have accepted this delivery, but its records need reconciliation. Do not resend it."
+        : error instanceof Error && error.message === "NEWSLETTER_DELIVERY_BUSY" ? "This delivery is already claimed. Wait for it to finish before retrying."
+        : error instanceof Error && error.message === "NEWSLETTER_DELIVERY_CLAIM_EXPIRED" ? "Delivery stopped because its execution claim is no longer valid. Review its delivery status before retrying."
+        : error instanceof Error && error.message === "NEWSLETTER_EDITION_BUSY" ? "This edition has work in progress. Retry after it finishes."
         : error instanceof Error && error.message === "NEWSLETTER_EDITION_CHANGED" ? "This edition changed or cannot be updated in its current state. Reopen it and retry."
           : error instanceof Error ? error.message : "The request could not be completed.",
     }, { status: error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN" ? 403
-      : error instanceof Error && ["NEWSLETTER_EDITION_BUSY", "NEWSLETTER_EDITION_CHANGED"].includes(error.message) ? 409 : 400 });
+      : error instanceof Error && ["NEWSLETTER_EDITION_BUSY", "NEWSLETTER_EDITION_CHANGED", "NEWSLETTER_DELIVERY_BUSY", "NEWSLETTER_DELIVERY_CLAIM_EXPIRED", "NEWSLETTER_DELIVERY_RECONCILIATION_REQUIRED"].includes(error.message) ? 409 : 400 });
   }
 }
