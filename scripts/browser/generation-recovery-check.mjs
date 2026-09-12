@@ -125,7 +125,32 @@ try {
   assert.equal(await analytics.getByRole('checkbox').count(), 0);
   assert.equal(await analytics.getByRole('button', { name: 'Review analytics job analytics/job-a', exact: true }).count(), 0);
   assert.equal((await analyticsPosts()).length, 0);
+  const publication = page.getByRole('region', { name: 'Publication evidence publish/job-a', exact: true });
+  const inspectPublication = () => publication.getByRole('button', { name: 'Inspect publication evidence publish/job-a', exact: true }).evaluate(node => { node.click(); node.click(); });
+  await page.goto(base); await publication.waitFor();
+  assert.equal(await page.evaluate(() => window.publishingReviewFixture.calls.length), 0);
+  await inspectPublication();
+  const publicationTitle = publication.getByRole('heading', { name: 'Recorded publication: PUBLISHING', exact: true });
+  await publicationTitle.waitFor();
+  assert.equal(await publicationTitle.evaluate(node => node === document.activeElement), true);
+  assert.equal(await page.evaluate(() => window.publishingReviewFixture.calls.length), 1);
+  await publication.getByText('No settled attempt is recorded. Absence of a record does not prove that the provider was never called.', { exact: true }).waitFor();
+  assert.equal(await publication.getByRole('button').count(), 1);
+  for (const [mode, text] of [['validating', 'Validation is recorded as unfinished.'], ['processing', 'This is not a confirmed publication'], ['published', 'has not verified the current provider state.'], ['invalidated', 'Approval revision changed']]) {
+    await page.evaluate(mode => { window.publishingReviewFixture.mode = mode; }, mode);
+    await inspectPublication(); await publication.getByText(text, { exact: false }).waitFor();
+    assert.equal(await publication.getByRole('button').count(), 1);
+  }
+  for (const [mode, text] of [['forbidden', 'Administrator access is required'], ['not-found', 'was not found in this workspace'], ['malformed', 'Publication evidence is unavailable'], ['unavailable', 'Publication evidence is unavailable']]) {
+    await page.evaluate(mode => { window.publishingReviewFixture.mode = mode; }, mode);
+    await inspectPublication(); await publication.getByRole('status').filter({ hasText: text }).waitFor();
+    assert.equal(await publication.getByRole('heading').count(), 0);
+    assert.equal((await publication.textContent()).includes('PRIVATE'), false);
+  }
+  assert.equal(await page.evaluate(() => window.publishingReviewFixture.calls.every(call => call.method === 'GET' && call.url === '/api/admin/social/publishing-jobs/publish%2Fjob-a/review')), true);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   assert.deepEqual(errors, []);
   console.log("PASS: confirmation, keyboard focus, duplicate prevention, unsaved notes, stale/access/blocked states, failed refresh, mobile overflow, runtime errors, read-only job health and review links");
   console.log('PASS: analytics discovery, encoded review links, fresh confirmation, duplicate prevention, disabled/access/changed claims, committed-response loss, no automatic retry, mobile layout and runtime errors');
+  console.log('PASS: read-only publishing evidence, duplicate GET guard, keyboard focus, unknown/validation/processing/local-publication distinctions, stale/access/error containment, no mutation requests and mobile layout');
 } finally { await browser.close(); }
