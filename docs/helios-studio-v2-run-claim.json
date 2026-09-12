@@ -4,9 +4,11 @@
   "expiresAt": "2026-09-12T21:20:00Z",
   "branch": "codex/v2-social-publishing-settlement",
   "pr": 298,
-  "head": "ac26a8596739187c7946b8c2483c5342343d8f84",
-  "tree": "18c19676d47f6e4b24c33c8a37f886ac7df1127d",
+  "head": "c8f9028792c7d7b6b1570dd96cea631a8c884550",
+  "tree": "23b9267e05a703683c93f90ab8241ec1943f35c1",
+  "verifiedImplementationHead": "ac26a8596739187c7946b8c2483c5342343d8f84",
+  "verifiedImplementationRun": 34717610288,
   "outstandingChanges": false,
-  "scope": "662 local tests passed; implementation draft CI pending. Internal claim/settlement only; protected adapters/OAuth/approval code unchanged",
+  "verification": "662 tests, TypeScript, Prisma, Chromium synthetic workflow and whitespace green in implementation CI. Final documentation head CI pending.",
   "production": "ON HOLD"
 }
