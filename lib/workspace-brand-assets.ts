@@ -5,7 +5,7 @@ import { verifyContentImage } from "@/lib/content-image-storage";
 import { brandAssetPrefix, type BrandAssetKind } from "@/lib/workspace-brand-storage";
 import { tenantContextEnabled } from "@/lib/workspace-context-core";
 
-type RegisteredBrandKind = Extract<BrandAssetKind, "testimonials" | "trusted-logos" | "photo-comparison" | "site-brand" | "site-homepage" | "site-hero" | "about" | "team" | "blog" | "newsletter">;
+type RegisteredBrandKind = Extract<BrandAssetKind, "testimonials" | "trusted-logos" | "photo-comparison" | "site-brand" | "site-homepage" | "site-hero" | "site-featured-film" | "about" | "team" | "blog" | "newsletter">;
 
 function namespace() {
   if (!r2Config.accountId || !r2Config.bucketName) throw new Error("INVALID_BRAND_IMAGE");
@@ -13,7 +13,7 @@ function namespace() {
 }
 function assertKey(workspaceId: string, kind: RegisteredBrandKind, key: string) {
   const prefix = brandAssetPrefix(workspaceId, kind);
-  const filename = kind === "site-hero" ? /^(?:video-[a-zA-Z0-9_-]+\.(?:mp4|webm)|poster-[a-zA-Z0-9_-]+\.(?:jpg|png|webp|avif))$/ : /^[a-zA-Z0-9_-]+\.(jpg|png|webp|avif)$/;
+  const filename = kind === "site-hero" || kind === "site-featured-film" ? /^(?:video-[a-zA-Z0-9_-]+\.(?:mp4|webm)|poster-[a-zA-Z0-9_-]+\.(?:jpg|png|webp|avif))$/ : /^[a-zA-Z0-9_-]+\.(jpg|png|webp|avif)$/;
   if (!key.startsWith(prefix) || !filename.test(key.slice(prefix.length))) throw new Error("INVALID_BRAND_IMAGE");
 }
 
