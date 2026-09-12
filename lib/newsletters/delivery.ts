@@ -1,3 +1,4 @@
+import { batchIdempotencyKey, deliveryContentHash } from "@/lib/client-communications/providers/resend-core";
 import { requireNewsletterDeliveryAccess, type NewsletterDeliveryContext } from "./delivery-access";
 import { assertNewsletterApprovalReferences, assertNewsletterDeliveryBinding } from "./delivery-approval";
 import { resolveCampaignWorkspace } from "@/lib/client-communications/campaign-ownership";
@@ -202,6 +203,8 @@ export async function deliverApprovedNewsletter(editionId: string, execution: Ne
     if (!batch.length) continue;
     let providerAccepted = false;
     let providerAttempted = false;
+    let preparingAttempt = false;
+    let attemptId: string | null = null;
     try {
       const tokens = await Promise.all(batch.map(recipient =>
         createPreferenceToken({ clientId: recipient.clientId, campaignId: campaign!.id })));
@@ -209,10 +212,9 @@ export async function deliverApprovedNewsletter(editionId: string, execution: Ne
         .update(batch.map((recipient) => recipient.id).sort().join(":"))
         .digest("hex")
         .slice(0, 24);
-      providerAttempted = true;
-      const result = await sendCampaignBatch({
+      const request = {
         campaignId: `${campaign.id}:newsletter:${batchKey}`,
-        source: "newsletter",
+        source: "newsletter" as const,
         revisionKey: edition.approvedRevision.id,
         messages: batch.map((recipient, offset) => ({
           to: recipient.email,
@@ -225,13 +227,39 @@ export async function deliverApprovedNewsletter(editionId: string, execution: Ne
           }),
           unsubscribeUrl: `${getSiteUrl()}/api/unsubscribe?token=${encodeURIComponent(tokens[offset])}`,
         })),
+      };
+      preparingAttempt = true;
+      const attempt = await prisma.$transaction(async tx => {
+        await requireNewsletterDeliveryAccess(tx, edition.id, workspaceId, edition.intendedSendAt, context);
+        const active = await tx.newsletterEdition.findFirst({
+          where: { id: edition.id, rowVersion: edition.rowVersion + 1, status: "SENDING", approvedRevisionId: edition.approvedRevision!.id, series: { workspaceId: edition.series.workspaceId, status: "ACTIVE" } },
+          select: { id: true },
+        });
+        if (!active) throw new Error("NEWSLETTER_DELIVERY_CLAIM_EXPIRED");
+        return tx.newsletterDeliveryAttempt.create({
+          data: {
+            workspaceId, editionId: edition.id, revisionId: edition.approvedRevision!.id,
+            executionVersion: edition.rowVersion + 1, batchNumber: index / 100,
+            providerOperationId: request.campaignId,
+            providerIdempotencyKey: batchIdempotencyKey({ campaignId: request.campaignId, revisionKey: request.revisionKey, batchNumber: 0, messages: request.messages }),
+            recipientIds: batch.map(recipient => recipient.id), payloadHash: deliveryContentHash(request.messages),
+          }, select: { id: true },
+        });
       });
+      attemptId = attempt.id;
+      providerAttempted = true;
+      const result = await sendCampaignBatch(request);
       providerAccepted = true;
       if (result.length !== batch.length || result.some(message => !message?.id)) {
         throw new Error("Provider acceptance returned incomplete recipient identifiers.");
       }
+      const receipt = await prisma.newsletterDeliveryAttempt.updateMany({
+        where: { id: attemptId, workspaceId, status: "PREPARED" },
+        data: { status: "ACCEPTED", providerReceiptIds: result.map(message => message.id) },
+      });
+      if (receipt.count !== 1) throw new Error("Delivery receipt could not be recorded.");
       await prisma.$transaction(batch.map((recipient, offset) => prisma.campaignRecipient.update({
-        where: { id: recipient.id },
+        where: { id: recipient.id, campaignId: campaign.id },
         data: { status: "SENT", sentAt: new Date(), providerMessageId: result[offset]?.id ?? null, error: null },
       })));
       sent += batch.length;
@@ -239,12 +267,21 @@ export async function deliverApprovedNewsletter(editionId: string, execution: Ne
       // A provider success followed by a persistence failure is not a safely retryable rejection.
       const configurationRejected = error instanceof EmailDeliveryError && error.provider === null
         && ["EMAIL_PROVIDER_NOT_CONFIGURED", "EMAIL_PROVIDER_SENDER"].includes(error.code);
+      if (preparingAttempt && !attemptId) throw new Error("NEWSLETTER_DELIVERY_RECONCILIATION_REQUIRED", { cause: error });
       if (providerAccepted || (providerAttempted && !configurationRejected)) {
+        if (attemptId) await prisma.newsletterDeliveryAttempt.updateMany({
+          where: { id: attemptId, workspaceId, status: "PREPARED" },
+          data: { status: "UNCERTAIN", errorCode: "PROVIDER_OUTCOME_UNCERTAIN" },
+        }).catch(() => undefined); // PREPARED also requires reconciliation if this write fails.
         throw new Error("NEWSLETTER_DELIVERY_RECONCILIATION_REQUIRED", { cause: error });
       }
+      if (attemptId) await prisma.newsletterDeliveryAttempt.updateMany({
+        where: { id: attemptId, workspaceId, status: "PREPARED" },
+        data: { status: "REJECTED", errorCode: "PROVIDER_CONFIGURATION_REJECTED" },
+      });
       const message = error instanceof Error ? error.message.slice(0, 500) : "Unknown delivery error";
       await prisma.campaignRecipient.updateMany({
-        where: { id: { in: batch.map((recipient) => recipient.id) }, status: { in: ["PENDING", "FAILED"] } },
+        where: { campaignId: campaign.id, id: { in: batch.map((recipient) => recipient.id) }, status: { in: ["PENDING", "FAILED"] } },
         data: { status: "FAILED", error: message },
       });
       failed += batch.length;
