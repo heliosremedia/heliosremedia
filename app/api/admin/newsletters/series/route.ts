@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   const session = await requireNewsletterAdministrator();
   if (!session) return forbiddenNewsletterResponse();
   try {
-    const series = await createSeries(await request.json(), session.userId);
+    const series = await createSeries(await request.json(), session);
     await recordAuditEvent({
       workspaceId: session.workspaceId, actorId: session.userId,
       actorEmail: session.email,
@@ -24,6 +24,6 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : "Series could not be created.",
-    }, { status: 400 });
+    }, { status: error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN" ? 403 : 400 });
   }
 }

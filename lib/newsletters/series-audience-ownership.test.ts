@@ -7,7 +7,7 @@ import ts from "typescript";
 test("series updates reject foreign series or audiences before approval and schedule mutations", async () => {
   for (const scenario of ["series", "group", "client"]) {
     let mutations = 0;
-    const exports: { updateSeries?: (id: string, input: unknown, workspaceId: string) => Promise<unknown> } = {};
+    const exports: { updateSeries?: (id: string, input: unknown, actor: { userId: string; workspaceId: string; sessionVersion: number }) => Promise<unknown> } = {};
     const tx = {
       newsletterSeries: { findUnique: async ({ where }: { where: { AND: Array<{ workspaceId: string }> } }) => {
         assert.equal(where.AND[0].workspaceId, "a");
@@ -24,13 +24,14 @@ test("series updates reject foreign series or audiences before approval and sche
     const modules: Record<string, unknown> = {
       "server-only": {},
       "@/lib/blog-ownership": { getContentOwnershipScope: async (workspaceId: string) => ({ workspaceId }) },
-      "@/lib/newsletters/ownership": {}, "@/lib/workspaces": {},
+      "@/lib/newsletters/ownership": {}, "@/lib/workspace-write-access": {},
+      "./series-write-lock": { lockNewsletterSeriesSettings: async () => { const row = await tx.newsletterSeries.findUnique({ where: { AND: [{ workspaceId: "a" }] } }); if (!row) throw new Error("Newsletter series was not found."); return row; } },
       "@/lib/prisma": { prisma: { $transaction: async (callback: (db: typeof tx) => unknown) => callback(tx) } },
       "./recurrence": { nextOccurrence: () => new Date("2026-10-01"), generationDateForSend: () => null },
       "./recipients": {}, "./content-hash": {},
     };
     runInNewContext(ts.transpileModule(readFileSync(new URL("./studio.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, require: (id: string) => modules[id], Intl, Date });
-    await assert.rejects(exports.updateSeries!("series", { name: "Test", groupIds: ["group"], individualRecipientIds: ["client"], sendRule: "SECOND_THURSDAY_09:00", generationRule: "MANUAL" }, "a"), scenario === "series" ? /not found/ : /audience is unavailable/);
+    await assert.rejects(exports.updateSeries!("series", { name: "Test", groupIds: ["group"], individualRecipientIds: ["client"], sendRule: "SECOND_THURSDAY_09:00", generationRule: "MANUAL" }, { userId: "actor", workspaceId: "a", sessionVersion: 1 }), scenario === "series" ? /not found/ : /audience is unavailable/);
     assert.equal(mutations, 0);
   }
 });
