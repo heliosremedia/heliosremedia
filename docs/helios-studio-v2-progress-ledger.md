@@ -470,3 +470,9 @@ The cron previously claimed ten jobs before sequential execution, so later jobs 
 Actual handler tests with synthetic modules and a controlled clock cover sequential claims, the cap, slow success/failure, enqueue budget exhaustion, empty queues and unauthorized requests. No providers or recipients are contacted. This is admission control, not heartbeat, hard cancellation or proof that a single job finishes within the hosting limit. Hosted overlap, throughput, provider timeout alignment and durable generation recovery remain gates.
 
 Verification: 612 automated tests passed, zero failed; non-incremental TypeScript, scoped ESLint and diff checks passed. No schema changed. Production remains held for complete readiness and Jake's QA.
+
+## Atomic missed-approval processing
+
+Continued after #282. Missed-approval jobs now resolve stored ownership and revalidate their current token, type, lease and exact elapsed schedule under locks. Edition status, approval revocation and a mandatory company audit commit in one transaction. Inactive series and ineligible edition states remain unchanged. The cron notifies only after the transition service returns a change. Provider adapters and notification routing are untouched.
+
+Verification: 615 automated tests passed, zero failed; non-incremental TypeScript, scoped ESLint and diff checks passed. Service tests use synthetic transactions and cover captured job identity, owner/claim rejection, conditional versions, state preservation and approval/audit failure propagation. They do not prove hosted rollback or lock ordering. No migration, actual send, live mutation, merge or deployment occurred. Generation schedule validation is the next adjacent execution gap. Hosted concurrency, notification isolation and recovery remain gates.

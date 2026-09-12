@@ -45,3 +45,9 @@ This preserves the existing eligible SCHEDULED, SEND_FAILED and PARTIALLY_SENT p
 The newsletter cron now claims one job immediately before executing it, then settles that job before claiming another. It retains the ten-job invocation cap and 300-second lease, but stops requesting new claims after a 30-second monotonic admission window measured before enqueue work. This avoids reserving a backlog of leased jobs behind a slow generation or delivery. Empty queues exit immediately; slow successes and failures leave subsequent jobs unclaimed for a later invocation.
 
 This is an admission limit, not a hard execution deadline, heartbeat or cancellation mechanism. A slow claim query or a single long-running job can still exceed the function budget. Provider timeout alignment, durable generation recovery, hosted overlapping invocation tests and queue throughput measurements remain release gates. The cron schedule, approval logic, notification recipients, provider adapters and delivery execution context are unchanged.
+
+## Missed approval transition integrity
+
+The cron delegates missed-approval state changes to a transaction-scoped service. It captures the job identity, resolves stored company ownership, locks company/series/edition/job records, and validates the current MISSED_APPROVAL claim, unexpired lease and exact elapsed schedule. Inactive series and already scheduled, sent or otherwise ineligible editions remain unchanged. A conditional edition version write, approval revocation and mandatory audit commit together. Notifications remain outside the transaction and retain the existing adapter.
+
+Executable service tests use synthetic transactions to verify ownership and claim predicates, captured context, ineligible states, version conflicts, and failure propagation from approval/audit writes. Mock rollback is not hosted rollback evidence. Hosted lock ordering, recovery after function termination and notification isolation remain gates.

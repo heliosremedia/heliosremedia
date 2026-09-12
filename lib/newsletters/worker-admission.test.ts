@@ -16,6 +16,7 @@ function harness(options: { duration?: number; enqueueDuration?: number; jobs?: 
       clock += options.duration ?? 0; if (options.fail) throw new Error("Synthetic failure");
     } },
     "@/lib/newsletters/notifications": { sendNewsletterAdminNotification: async () => ({ delivered: false }) },
+    "@/lib/newsletters/missed-approval": { markNewsletterApprovalMissed: async () => { throw new Error("Unexpected approval mutation"); } },
     "@/lib/newsletters/presentation": { shouldExecuteNewsletterJob: () => true },
     "@/lib/newsletters/scheduler": {
       enqueueDueNewsletterJobs: async () => { enqueues++; clock += options.enqueueDuration ?? 0; return {}; },

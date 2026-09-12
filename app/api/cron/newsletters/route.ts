@@ -10,6 +10,7 @@ import {
   enqueueDueNewsletterJobs,
   failNewsletterJob,
 } from "@/lib/newsletters/scheduler";
+import { markNewsletterApprovalMissed } from "@/lib/newsletters/missed-approval";
 import { shouldExecuteNewsletterJob } from "@/lib/newsletters/presentation";
 
 export const dynamic = "force-dynamic";
@@ -79,21 +80,8 @@ export async function GET(request: Request) {
           throw error;
         }
       } else if (job.type === "MISSED_APPROVAL") {
-        const missed = await prisma.newsletterEdition.updateMany({
-          where: {
-            id: edition.id,
-            status: {
-              in: ["AWAITING_GENERATION", "GENERATING", "DRAFT_GENERATED", "NEEDS_REVIEW", "APPROVED", "GENERATION_FAILED"],
-            },
-            intendedSendAt: { lte: new Date() },
-          },
-          data: { status: "MISSED_APPROVAL", approvedRevisionId: null, rowVersion: { increment: 1 } },
-        });
-        if (missed.count) {
-          await prisma.newsletterApproval.updateMany({
-            where: { editionId: edition.id, revokedAt: null },
-            data: { revokedAt: new Date(), revocationReason: "The intended send time passed without scheduling approval." },
-          });
+        const missed = await markNewsletterApprovalMissed(job);
+        if (missed.changed) {
           await sendNewsletterAdminNotification({
             kind: "MISSED_APPROVAL",
             editionLabel: label,
