@@ -2,6 +2,8 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
+import { resolveNewsletterWorkspace } from "./ownership";
 import { generationDateForSend, nextOccurrence } from "./recurrence";
 import type { GenerationRule, RecurrenceRule } from "./types";
 
@@ -79,30 +81,47 @@ function cycleKey(date: Date, timeZone: string) {
 export async function ensureUpcomingNewsletterEditions(now = new Date()) {
   const activeSeries = await prisma.newsletterSeries.findMany({
     where: { status: "ACTIVE" },
-    select: {
-      id: true,
-      createdById: true,
-      timeZone: true,
-      nextSendAt: true,
-      nextGenerationAt: true,
-      sendRecurrenceKind: true,
-      sendDayOfMonth: true,
-      sendWeekOrdinal: true,
-      sendWeekday: true,
-      sendLocalTime: true,
-      generationMode: true,
-      generationRecurrenceKind: true,
-      generationDayOfMonth: true,
-      generationWeekOrdinal: true,
-      generationWeekday: true,
-      generationLocalTime: true,
-      generationDaysBeforeSend: true,
-    },
+    select: { id: true, workspaceId: true },
   });
   let created = 0;
 
-  for (const series of activeSeries) {
-    await prisma.$transaction(async (tx) => {
+  for (const candidate of activeSeries) {
+    const workspaceId = await resolveNewsletterWorkspace(candidate.workspaceId);
+    const added = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Workspace" WHERE id = ${workspaceId} FOR UPDATE`;
+      const scope = await getContentOwnershipScope(workspaceId);
+      const legacyAllowed = "OR" in scope;
+      const locked = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT id FROM "NewsletterSeries"
+        WHERE id = ${candidate.id} AND ("workspaceId" = ${workspaceId} OR ("workspaceId" IS NULL AND ${legacyAllowed}))
+        FOR UPDATE
+      `;
+      if (!locked.length) return 0;
+      // Re-read after the shared workspace/series locks. Discovery is not authority
+      // to prepare work using a configuration that was changed or paused meanwhile.
+      const series = await tx.newsletterSeries.findFirst({
+        where: { id: candidate.id, status: "ACTIVE", AND: [scope] },
+        select: {
+          id: true,
+          createdById: true,
+          timeZone: true,
+          nextSendAt: true,
+          nextGenerationAt: true,
+          sendRecurrenceKind: true,
+          sendDayOfMonth: true,
+          sendWeekOrdinal: true,
+          sendWeekday: true,
+          sendLocalTime: true,
+          generationMode: true,
+          generationRecurrenceKind: true,
+          generationDayOfMonth: true,
+          generationWeekOrdinal: true,
+          generationWeekday: true,
+          generationLocalTime: true,
+          generationDaysBeforeSend: true,
+        },
+      });
+      if (!series) return 0;
       const persistedSendAt = series.nextSendAt && series.nextSendAt > now
         ? series.nextSendAt
         : null;
@@ -118,7 +137,7 @@ export async function ensureUpcomingNewsletterEditions(now = new Date()) {
       let key = cycleKey(nextSendAt, series.timeZone);
       let existing = await tx.newsletterEdition.findUnique({
         where: { seriesId_cycleKey: { seriesId: series.id, cycleKey: key } },
-        select: { id: true, status: true },
+        select: { id: true, status: true, intendedSendAt: true, generationDueAt: true },
       });
       if (existing && ["SENT", "PARTIALLY_SENT", "CANCELLED"].includes(existing.status)) {
         nextSendAt = nextOccurrence(
@@ -134,8 +153,14 @@ export async function ensureUpcomingNewsletterEditions(now = new Date()) {
         key = cycleKey(nextSendAt, series.timeZone);
         existing = await tx.newsletterEdition.findUnique({
           where: { seriesId_cycleKey: { seriesId: series.id, cycleKey: key } },
-          select: { id: true, status: true },
+          select: { id: true, status: true, intendedSendAt: true, generationDueAt: true },
         });
+      }
+      if (existing) {
+        // A previously prepared or deliberately rescheduled edition keeps its
+        // stored schedule. Do not attach jobs using a recomputed series date.
+        nextSendAt = existing.intendedSendAt;
+        nextGenerationAt = existing.generationDueAt;
       }
       const edition = await tx.newsletterEdition.upsert({
         where: { seriesId_cycleKey: { seriesId: series.id, cycleKey: key } },
@@ -150,7 +175,6 @@ export async function ensureUpcomingNewsletterEditions(now = new Date()) {
         },
         select: { id: true },
       });
-      if (!existing) created += 1;
 
       await tx.newsletterJob.createMany({
         skipDuplicates: true,
@@ -170,10 +194,12 @@ export async function ensureUpcomingNewsletterEditions(now = new Date()) {
         ],
       });
       await tx.newsletterSeries.update({
-        where: { id: series.id },
+        where: { id: series.id, AND: [scope] },
         data: { nextSendAt, nextGenerationAt },
       });
+      return existing ? 0 : 1;
     });
+    created += added;
   }
   return created;
 }
