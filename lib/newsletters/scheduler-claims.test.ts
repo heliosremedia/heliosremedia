@@ -49,6 +49,7 @@ test("scheduler SQL preserves held sends and stale schedules while claiming elig
     const exports: { claimDueNewsletterJobs?: (input: unknown) => Promise<Array<{ id: string; claimToken: string; attempts: number }>> } = {};
     const modules: Record<string, unknown> = {
       'server-only': {}, 'node:crypto': { randomUUID: () => 'new-token' }, './recurrence': {},
+      '@/lib/blog-ownership': {}, './ownership': {},
       '@/lib/prisma': { prisma: { $queryRaw: async (parts: TemplateStringsArray, ...values: unknown[]) => {
         const sql = parts.reduce((query, part, index) => query + (index ? `$${index}` : '') + part, '');
         return (await db.query(sql, values)).rows;
