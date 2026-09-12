@@ -3,6 +3,9 @@
   "runId": "atlas-20260912T1802",
   "expiresAt": "2026-09-12T19:30:00Z",
   "branch": "codex/v2-newsletter-settlement-evidence",
-  "baseHead": "632ed0889c36ce4e32877b973156a149d748362e",
-  "previousDraft": 293
+  "pr": 294,
+  "head": "a148666ca0f47ca3d86d4a1fcc8c9aa9bb9db51e",
+  "verifiedImplementationHead": "a89d8c34bacffdc8c09f4ae01447ba24bf9c1a3b",
+  "verifiedImplementationRun": 34710322956,
+  "purpose": "Verify final documentation publication after implementation, then release claim."
 }
