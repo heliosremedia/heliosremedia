@@ -4,7 +4,13 @@
   "expiresAt": "2026-09-13T00:45:00Z",
   "branch": "codex/v2-admin-settings-context",
   "baseHead": "0dc294c5243b44bb0114f97a76ad903e9b7260a9",
-  "outstandingChanges": true,
-  "scope": "Authenticated settings and AI context isolation; adjacent featured-film settings, registered storage and non-destructive replacement; no protected provider changes",
+  "outstandingChanges": false,
+  "pullRequest": 301,
+  "publishedHead": "78a4e5da5379728c45155f2082f4dc835adb53af",
+  "tree": "18352aae7977ba9a2c84b10ba62b57b513e96ebc",
+  "implementationHead": "1b3c2ed102f8071485620971cbc2fcb804a18bc2",
+  "verifiedImplementationRun": 34726985267,
+  "tests": 684,
+  "scope": "Final documentation-head CI verification; settings/AI context, featured-film ownership and Google admin read-policy isolation; protected OAuth/providers unchanged",
   "production": "ON HOLD"
 }
