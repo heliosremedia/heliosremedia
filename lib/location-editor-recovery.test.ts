@@ -102,3 +102,19 @@ test('slow location image upload preserves intervening draft text and ignores co
   await tick();
   assert.equal(render().filter(item => item.props.role === 'dialog').length, 0);
 });
+
+test('location AI drafts cannot cross editor contexts or duplicate admission', async () => {
+  let calls = 0; let finish!: (response: Response) => void;
+  const { button, render } = fixture(async () => { calls++; return new Promise<Response>(resolve => { finish = resolve; }); });
+  await invoke(button('Edit')); await invoke(button('Open assistant'));
+  const generate = button('Auto generate');
+  const first = invoke(generate); const duplicate = invoke(generate);
+  assert.equal(calls, 1);
+  await invoke(button('Close editor'));
+  const otherEdit = render().filter(item => item.type === 'button' && item.props.children === 'Edit')[1];
+  await invoke(otherEdit); await invoke(button('Open assistant'));
+  finish(Response.json({ success: true, draft: { heroLead: 'Draft prepared for the old editor' } }));
+  await first; await duplicate;
+  assert.equal(button('Apply complete draft'), undefined);
+  assert.ok(render().some(item => item.props.value === 'Original lead'));
+});

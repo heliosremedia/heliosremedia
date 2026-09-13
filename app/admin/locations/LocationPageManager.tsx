@@ -114,6 +114,7 @@ export default function LocationPageManager({ initialLocations }: { initialLocat
   const reorderPending = useRef(false);
   const reorderHeld = useRef(false);
   const uploadPending = useRef(false);
+  const aiPending = useRef(false);
   const editorEpoch = useRef(0);
   const mutationBlocked = busy || reorderNeedsReview;
 
@@ -179,15 +180,18 @@ export default function LocationPageManager({ initialLocations }: { initialLocat
   }
 
   async function generateDraft() {
-    if (!editing || !draft || aiBusy) return;
+    if (!editing || !draft || aiBusy || aiPending.current) return;
+    aiPending.current = true;
+    const epoch = editorEpoch.current;
     setAiBusy(true); setAiMessage("Generating a locally specific draft…"); setAiDraft(null);
     try {
       const response = await fetch("/api/admin/locations/ai", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ locationId: editing.id, city: draft.city, customDirection }) });
       const data = await response.json();
+      if (epoch !== editorEpoch.current) return;
       if (!response.ok || !data.success) throw new Error(data.error || "The assistant could not generate a draft.");
       setAiDraft(data.draft); setAiMessage("Draft ready. Apply only the fields you want, then use Save draft.");
-    } catch (caught) { setAiMessage(caught instanceof Error ? caught.message : "The assistant could not generate a draft."); }
-    finally { setAiBusy(false); }
+    } catch (caught) { if (epoch === editorEpoch.current) setAiMessage(caught instanceof Error ? caught.message : "The assistant could not generate a draft."); }
+    finally { aiPending.current = false; setAiBusy(false); }
   }
 
   function applyAiField(field: EditableLocationField) {

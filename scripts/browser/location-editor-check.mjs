@@ -78,7 +78,23 @@ export async function checkLocationEditor(base) {
     assert.equal(await page.getByRole("textbox", { name: /^Hero introduction/ }).inputValue(), "Other page draft");
     assert.equal(await page.getByRole("textbox", { name: /^Feature image alt text/ }).count(), 0, "Late upload must not attach to another editor");
     assert.equal((await calls()).filter(call => call.url === "/api/admin/locations").length, 0, "Uploading does not save or publish content");
+
+    await setup("success"); await button("Edit").first().click(); await button("Open assistant").click();
+    await button("Auto generate").evaluate(node => { node.click(); node.click(); });
+    await page.waitForFunction(() => !!window.locationFixture.ai);
+    assert.equal((await calls()).length, 1);
+    await button("Close editor").click(); await button("Edit").nth(1).click(); await button("Open assistant").click();
+    await page.evaluate(() => window.locationFixture.ai());
+    await button("Auto generate").waitFor();
+    assert.equal(await button("Apply complete draft").count(), 0, "Late AI draft cannot enter another editor");
+    assert.equal(await page.getByRole("textbox", { name: /^Hero introduction/ }).inputValue(), "Original lead");
+    await button("Auto generate").click(); await page.waitForFunction(() => !!window.locationFixture.ai);
+    await page.evaluate(() => window.locationFixture.ai()); await button("Apply complete draft").waitFor();
+    assert.equal(await page.getByRole("textbox", { name: /^Hero introduction/ }).inputValue(), "Original lead", "AI output requires explicit application");
+    await button("Apply complete draft").click();
+    assert.equal(await page.getByRole("textbox", { name: /^Hero introduction/ }).inputValue(), "Synthetic draft for the original page");
+    assert.equal((await calls()).filter(call => call.url === "/api/admin/locations").length, 0, "AI draft application does not save or publish");
     assert.deepEqual(errors, []); assert.deepEqual(external, []); assert.deepEqual(actualMutations, []);
-    console.log("PASS: actual Chromium location component duplicate reorder, four uncertain responses, explicit reload, mobile layout, slow upload and editor-context recovery; synthetic fetch only");
+    console.log("PASS: actual Chromium location component duplicate reorder, four uncertain responses, explicit reload, mobile layout, slow upload and AI/editor-context recovery; synthetic fetch only");
   } finally { await browser.close(); }
 }

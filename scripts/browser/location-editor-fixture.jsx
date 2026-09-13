@@ -7,7 +7,7 @@ const row = { slug: "town", state: "State", county: "County", heroLead: "Origina
   seoTitle: "Title", seoDescription: "Description", localDetails: ["Detail"], serviceArea: "Area", ctaHeadline: null,
   featureImageStorageKey: null, featureImageUrl: null, featureImageAlt: null, featureImageFocalX: 0.5, featureImageFocalY: 0.5,
   published: false, createdAt: "2026-09-13T00:00:00.000Z", updatedAt: "2026-09-13T00:00:00.000Z" };
-const fixture = window.locationFixture = { calls: [], mode: "success", pending: null, upload: null };
+const fixture = window.locationFixture = { calls: [], mode: "success", pending: null, upload: null, ai: null };
 window.fetch = async (url, options = {}) => {
   fixture.calls.push({ url, method: options.method, body: options.method === "PUT" ? "synthetic-file" : options.body });
   if (url === "/api/admin/locations" && options.method === "PATCH" && JSON.parse(options.body).action === "reorder") {
@@ -24,6 +24,10 @@ window.fetch = async (url, options = {}) => {
   if (url === "/synthetic-upload" && options.method === "PUT") {
     await new Promise(resolve => { fixture.upload = resolve; }); fixture.upload = null;
     return new Response(null, { status: 200 });
+  }
+  if (url === "/api/admin/locations/ai" && options.method === "POST") {
+    await new Promise(resolve => { fixture.ai = resolve; }); fixture.ai = null;
+    return Response.json({ success: true, draft: { heroLead: "Synthetic draft for the original page" } });
   }
   throw new Error(`Unexpected synthetic request: ${options.method} ${url}`);
 };
