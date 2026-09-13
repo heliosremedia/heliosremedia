@@ -35,9 +35,9 @@ test("About Team retains the shared summary card when collapsed", () => {
 
 test("social metadata uses configured domain, revisioned default image, and page precedence", () => {
   const seo = read("lib/seo.ts");
-  const layout = read("app/layout.tsx");
-  const project = read("app/portfolio/[slug]/page.tsx");
-  const blog = read("app/blog/[slug]/page.tsx");
+  const layout = read("app/(public)/layout.tsx");
+  const project = read("app/(public)/portfolio/[slug]/page.tsx");
+  const blog = read("app/(public)/blog/[slug]/page.tsx");
   assert.match(seo, /image \|\| configuredDefault \|\| "\/work\/modern-retreat\.jpg"/);
   assert.match(seo, /defaultSocialImageVersion/);
   assert.match(seo, /secureUrl/);
@@ -50,8 +50,8 @@ test("social metadata uses configured domain, revisioned default image, and page
 });
 
 test("Client Portal provides an accessible reduced-motion scroll cue", () => {
-  const indicator = read("app/client-portal/PortalScrollIndicator.tsx");
-  const page = read("app/client-portal/page.tsx");
+  const indicator = read("app/(public)/client-portal/PortalScrollIndicator.tsx");
+  const page = read("app/(public)/client-portal/page.tsx");
   assert.match(indicator, /Choose Your Portal/);
   assert.match(indicator, /aria-label="View portal options"/);
   assert.match(indicator, /prefers-reduced-motion/);

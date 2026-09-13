@@ -5,7 +5,7 @@ import test from "node:test";
 const read = (path: string) => readFileSync(path, "utf8");
 
 test("V1.9.6 publishes the exact OAuth application identity and review-before-publish explanation", () => {
-  const page = read("app/google-business-integration/page.tsx");
+  const page = read("app/(public)/google-business-integration/page.tsx");
   assert.match(page, /Helios Studio[\s\S]*Google Reviews/);
   assert.match(page, /not automatically published/i);
   assert.match(page, /\/privacy/);
@@ -63,7 +63,7 @@ test("Google review source records can be collapsed above manual testimonials", 
 });
 
 test("homepage shows the newest 20 uncurated Google reviews and links to the full library", () => {
-  const homepage = read("app/page.tsx");
+  const homepage = read("app/(public)/page.tsx");
   const words = read("app/components/InTheirWords.tsx");
   assert.match(homepage, /googleBusinessReview\.findMany/);
   assert.match(homepage, /testimonialId: null/);
@@ -78,7 +78,7 @@ test("homepage shows the newest 20 uncurated Google reviews and links to the ful
 });
 
 test("public reviews page lists current Google reviews and is included in the sitemap", () => {
-  const page = read("app/reviews/page.tsx");
+  const page = read("app/(public)/reviews/page.tsx");
   const sitemap = read("app/sitemap.ts");
   assert.match(page, /syncStatus: "CURRENT"/);
   assert.match(page, /googleBusinessReview\.findMany/);

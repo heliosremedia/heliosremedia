@@ -49,7 +49,7 @@ test("active application source contains no former-domain production defaults", 
 });
 
 test("public service-card alt fallbacks do not expose filenames", () => {
-  for (const file of ["app/services/page.tsx", "app/services/[slug]/page.tsx"]) {
+  for (const file of ["app/(public)/services/page.tsx", "app/(public)/services/[slug]/page.tsx"]) {
     const source = read(file);
     const imageAltExpressions = source.match(/alt=\{[\s\S]{0,260}?\}/g) || [];
     assert.ok(imageAltExpressions.every((expression) => !expression.includes("originalFilename")));

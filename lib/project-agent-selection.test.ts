@@ -6,7 +6,7 @@ const schema = readFileSync("prisma/schema.prisma", "utf8");
 const migration = readFileSync("prisma/migrations/20260803120000_add_project_agent_selection/migration.sql", "utf8");
 const editor = readFileSync("app/admin/projects/[projectId]/ProjectDetailsEditor.tsx", "utf8");
 const route = readFileSync("app/api/admin/projects/[projectId]/details/route.ts", "utf8");
-const portfolio = readFileSync("app/portfolio/[slug]/page.tsx", "utf8");
+const portfolio = readFileSync("app/(public)/portfolio/[slug]/page.tsx", "utf8");
 
 test("project agents use ordered snapshots and optional stable client identity", () => {
   assert.match(schema, /model ProjectAgent[\s\S]*clientId\s+String\?[\s\S]*displayNameSnapshot\s+String[\s\S]*brokerageSnapshot\s+String\?[\s\S]*displayOrder\s+Int/);

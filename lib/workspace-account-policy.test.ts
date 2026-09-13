@@ -96,7 +96,7 @@ test("invitation and public credits keep professional identity separate from acc
     "utf8",
   );
   const portfolio = readFileSync(
-    new URL("../app/portfolio/[slug]/page.tsx", import.meta.url),
+    new URL("../app/(public)/portfolio/[slug]/page.tsx", import.meta.url),
     "utf8",
   );
   assert.match(manager, /displayName: name, title, email, role/);

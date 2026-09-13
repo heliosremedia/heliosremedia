@@ -14,6 +14,8 @@ import { getCanonicalAbsoluteUrl } from "@/lib/site";
 import { getSiteSettings } from "@/lib/site-settings";
 import { splitParagraphs } from "@/lib/location-page-content";
 import { prisma } from "@/lib/prisma";
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
+import { tenantContextEnabled } from "@/lib/workspace-context-core";
 
 type LocationPageProps = {
   params: Promise<{ city: string }>;
@@ -23,13 +25,14 @@ export async function generateMetadata({
   params,
 }: LocationPageProps): Promise<Metadata> {
   const { city } = await params;
-  const location = await getLocationPage(city);
+  const workspaceId = tenantContextEnabled() ? await getPublicWorkspaceId() : undefined;
+  const location = await getLocationPage(city, workspaceId);
 
   if (!location) {
     notFound();
   }
 
-  const settings = await getSiteSettings();
+  const settings = await getSiteSettings(workspaceId);
 
   return buildPageMetadata({
     title: location.seoTitle,
@@ -43,15 +46,16 @@ export default async function LocationLandingPage({
   params,
 }: LocationPageProps) {
   const { city } = await params;
-  const location = await getLocationPage(city);
+  const workspaceId = tenantContextEnabled() ? await getPublicWorkspaceId() : undefined;
+  const location = await getLocationPage(city, workspaceId);
 
   if (!location) {
     notFound();
   }
 
   const [settings, locations, featuredServices] = await Promise.all([
-    getSiteSettings(),
-    getPublishedLocationPages(),
+    getSiteSettings(workspaceId),
+    getPublishedLocationPages(workspaceId),
     prisma.service.findMany({ where: { ...(location.workspaceId ? { workspaceId: location.workspaceId } : {}), active: true, archivedAt: null }, orderBy: { displayOrder: "asc" }, take: 4, select: { name: true, slug: true, description: true } }),
   ]);
   const bookingHref = "/book";

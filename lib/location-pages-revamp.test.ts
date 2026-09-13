@@ -47,7 +47,7 @@ test("Location Page revamp preserves review, image, tenant, and SEO boundaries",
   const manager = read("app/admin/locations/LocationPageManager.tsx");
   const ai = read("app/api/admin/locations/ai/route.ts");
   const route = read("app/api/admin/locations/route.ts");
-  const page = read("app/locations/[city]/page.tsx");
+  const page = read("app/(public)/locations/[city]/page.tsx");
   const migration = read("prisma/migrations/20260804153000_revamp_location_pages/migration.sql");
   assert.match(manager, /collapsed|Open assistant/i);
   assert.match(manager, /Apply complete draft/);

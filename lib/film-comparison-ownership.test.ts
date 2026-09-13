@@ -85,7 +85,7 @@ test("offering changes require an editor and retain ownership in the mutation pr
 test("public film examples require placement and media project ownership", async () => {
   const jsx = (_type: unknown, props: unknown) => props;
   let reads = 0;
-  const api = load<{ default: () => Promise<unknown> }>("../app/films/page.tsx", {
+  const api = load<{ default: () => Promise<unknown> }>("../app/(public)/films/page.tsx", {
     "@/lib/film-poster": { filmPosterMatchesWorkspace },
     "react/jsx-runtime": { jsx, jsxs: jsx }, "next/link": {}, "@/app/components/Footer": {}, "@/app/components/Navbar": {},
     "@/lib/external-media": {}, "@/lib/seo": {}, "@/lib/site-settings": {}, "./FilmOfferingCard": {},

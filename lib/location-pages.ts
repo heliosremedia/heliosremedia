@@ -2,6 +2,8 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
+import { getPublicWorkspaceId } from "@/lib/public-workspace";
+import { tenantContextEnabled } from "@/lib/workspace-context-core";
 
 export type LocationPage = {
   id?: string;
@@ -217,15 +219,26 @@ function normalizeLocationPage(location: {
   };
 }
 
-export async function getPublishedLocationPages(): Promise<LocationPage[]> {
+async function publicLocationScope(workspaceId?: string) {
+  if (tenantContextEnabled()) {
+    const resolved = workspaceId ?? await getPublicWorkspaceId();
+    if (!resolved.trim()) throw new Error("A location workspace is required.");
+    return { workspaceId: resolved };
+  }
+  const settings = await prisma.siteSettings.findUnique({ where: { id: "default" }, select: { workspaceId: true } });
+  return settings?.workspaceId ? { workspaceId: settings.workspaceId } : {};
+}
+
+export async function getPublishedLocationPages(workspaceId?: string): Promise<LocationPage[]> {
   try {
-    const settings = await prisma.siteSettings.findUnique({ where: { id: "default" }, select: { workspaceId: true } });
+    const scope = await publicLocationScope(workspaceId);
     const locations = await prisma.locationPage.findMany({
-      where: { published: true, ...(settings?.workspaceId ? { workspaceId: settings.workspaceId } : {}) },
+      where: { published: true, ...scope },
       orderBy: [{ displayOrder: "asc" }, { city: "asc" }],
     });
     return locations.map(normalizeLocationPage);
   } catch (error) {
+    if (tenantContextEnabled()) throw error;
     if (process.env.NODE_ENV !== "production") {
       console.warn("Using bundled location pages because the database is unavailable.", error);
     }
@@ -233,14 +246,15 @@ export async function getPublishedLocationPages(): Promise<LocationPage[]> {
   }
 }
 
-export async function getLocationPage(slug: string): Promise<LocationPage | undefined> {
+export async function getLocationPage(slug: string, workspaceId?: string): Promise<LocationPage | undefined> {
   try {
-    const settings = await prisma.siteSettings.findUnique({ where: { id: "default" }, select: { workspaceId: true } });
+    const scope = await publicLocationScope(workspaceId);
     const location = await prisma.locationPage.findFirst({
-      where: { slug, published: true, ...(settings?.workspaceId ? { workspaceId: settings.workspaceId } : {}) },
+      where: { slug, published: true, ...scope },
     });
     return location ? normalizeLocationPage(location) : undefined;
   } catch (error) {
+    if (tenantContextEnabled()) throw error;
     if (process.env.NODE_ENV !== "production") {
       console.warn("Using a bundled location page because the database is unavailable.", error);
     }

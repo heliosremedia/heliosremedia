@@ -22,7 +22,7 @@ test("homepage mutation and upload routes require editor access and scope every 
 });
 
 test("homepage reads use the requested workspace and reject a foreign featured-media relationship", () => {
-  const publicHome = read("../app/page.tsx");
+  const publicHome = read("../app/(public)/page.tsx");
   const adminHome = read("../app/admin/homepage/page.tsx");
 
   assert.match(publicHome, /getSiteSettings\(publicWorkspaceId\)/);

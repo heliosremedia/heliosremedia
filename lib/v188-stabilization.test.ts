@@ -58,7 +58,7 @@ test("experience refinements preserve explicit user context", () => {
 
 test("public navigation uses controlled SVG controls", () => {
   const navbar = read("app/components/Navbar.tsx");
-  const gallery = read("app/portfolio/[slug]/PortfolioGallery.tsx");
+  const gallery = read("app/(public)/portfolio/[slug]/PortfolioGallery.tsx");
   assert.doesNotMatch(navbar, /↗/);
   assert.match(gallery, /aria-label="Previous image"/);
   assert.match(gallery, /aria-label="Next image"/);
