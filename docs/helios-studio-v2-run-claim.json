@@ -3,6 +3,10 @@
   "runId": "atlas-20260913T0402",
   "expiresAt": "2026-09-13T05:30:00Z",
   "branch": "codex/v2-legal-editor-recovery",
-  "baseHead": "d84f9bcc2e45dd36fcffebc36e22776bf6a9dfb9",
+  "pr": 308,
+  "head": "5be21d5c855555fb690f58f9ff7d3ebf6beab9a9",
+  "tree": "5de23200dbcbdd173388fe506926b7c6985c990d",
+  "ci": 34737570082,
+  "outstandingChanges": "Post-commit invalidation isolated SQL regression, ledger follow-up",
   "production": "ON HOLD"
 }
