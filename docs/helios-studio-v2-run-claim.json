@@ -1,20 +1,31 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-20260913T0255",
-  "expiresAt": "2026-09-13T04:15:00Z",
+  "expiresAt": null,
   "branch": "codex/v2-site-settings-write-revalidation",
   "pr": 306,
-  "head": "e7deddcc930df409a75e21a4bdc4056cf7e36375",
-  "tree": "ece7b545c1c58f8dd3f9174a4b9193b7b76a73f6",
-  "localHead": "62a3c8aec50c7480e3c1b1d1ce007c4615722bb4",
-  "initialCI": {
-    "runId": 34734782933,
-    "jobId": 103664149439,
-    "tests": 711,
-    "status": "passed"
+  "head": "7b94fbf74f62b11dd900b6b4105ad7c107de914a",
+  "tree": "53676a16aef2c073cb1d91e312523692c9053307",
+  "localHead": "0f3aad4f1cf7936c681bb7dc69d7a7832ee4533e",
+  "codeHead": "e7deddcc930df409a75e21a4bdc4056cf7e36375",
+  "codeCI": {
+    "runId": 34734956830,
+    "jobId": 103664601095,
+    "tests": 712,
+    "status": "passed",
+    "allSteps": "passed"
   },
-  "localTests": 712,
-  "production": "ON HOLD",
+  "finalHeadCI": {
+    "runId": 34735215789,
+    "jobId": 103665315051,
+    "status": "passed",
+    "allSteps": "passed"
+  },
   "outstandingChanges": false,
-  "nextDependency": "Complete combined CI, then legal document scoped uniqueness and fresh atomic authorization"
+  "nextDependency": "Legal document scoped uniqueness, verified historical mapping/old-writer compatibility and fresh atomic document/settings authorization; then settings browser revision/recovery",
+  "protectedReview": "Google Business review-display still assigns the default settings row. Separately scope reason/approval and regression evidence; do not alter OAuth/tokens/adapters.",
+  "production": "ON HOLD",
+  "releasedAt": "2026-09-13T03:24:39.346Z",
+  "phase": "Phase 1 exit open alongside Phase 2; later phases incomplete",
+  "releaseGate": "Production ON HOLD until implementation readiness and Jake QA/release decision"
 }
