@@ -4,12 +4,19 @@
   "expiresAt": "2026-09-13T03:00:00Z",
   "branch": "codex/v2-location-browser-revisions",
   "pr": 305,
-  "head": "1dc8283f900658a5bd4172c5cdfb76e47e77260f",
-  "tree": "99dedfff78aff550d8d6472f74863e0060ec14cd",
-  "localHead": "cd61ea4063e5dcc9961204bbd6c0ceabb1b4b018",
-  "localVerification": "706 tests, TypeScript, scoped lint, fixture bundling; latest SQL tie-group case passed",
-  "CI": "pending",
+  "head": "ec83cf570e577d5c5a9bc528a4ee34f93277f869",
+  "tree": "cef46e93507faa393329b4922ee34f1c108bfbe0",
+  "localHead": "2c543cb64f8a32943bf64f6ed7420cb52cc6a0fe",
+  "codeHead": "1dc8283f900658a5bd4172c5cdfb76e47e77260f",
+  "codeCI": {
+    "runId": 34731793549,
+    "jobId": 103655805114,
+    "tests": 706,
+    "status": "passed",
+    "allSteps": "passed"
+  },
+  "finalHeadCI": "pending",
   "outstandingChanges": false,
-  "scope": "Final revision/ordering and held-save browser verification; production held",
+  "nextDependency": "Site-settings mutation fresh transactional administrator revalidation, with protected URL/booking/brand compatibility preserved",
   "production": "ON HOLD"
 }
