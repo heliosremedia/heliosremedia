@@ -1,5 +1,13 @@
 # Helios Studio V2 progress ledger
 
+## 2026-09-13 legal editor recovery, implementation in progress
+
+Recovered clean #307 final tree `62962bef8976621df2d3f2c52058a315b7c5f5a2`, rechecked latest draft/main and every successful final-head CI step in run 34736608431. Main remains `72dab34568cb6885f3e93b5ed9db38edca156835`. Acquired the canonical expected-SHA claim for `codex/v2-legal-editor-recovery`. Read AGENTS, roadmap, charter, architecture, audit, ledger, Next.js skill and installed data-security guidance. Reproduced all 717 baseline tests.
+
+Actual-component tests first failed with two saves instead of one and unsafe retry/confirmation behavior. Added single-flight and stale-callback fences, frozen input, strict versioned identity/revision/intent acknowledgement, bounded fetch/JSON settlement, saved-state publication badges and explicit retained-copy recovery. Both document drafts are preserved after uncertainty, including the unsaved second document. No automatic retry or browser persistent storage. Existing legal scoped transaction/HTML sanitization remain intact; additive protocol checks are covered by the actual-route isolated SQL tests. Details and limits: `docs/helios-studio-v2-legal-editor-recovery.md`.
+
+Local intermediate 720 tests, TypeScript and scoped lint passed before timeout/local-validation follow-ups. Final combined regression and fresh Chromium CI are pending. Added a real-component synthetic Chromium fixture for publication, creation, eight held responses, keyboard copy/reload, timeout/late-response and mobile/desktop checks. Local Chromium is unavailable; fixture bundling is not browser evidence. No production migration, deployment, merge, legal text decision or protected integration change. Phase 1/2 exits and later roadmap/QA gates remain open.
+
 ## Latest verified checkpoint: September 13, 2026, #307
 
 - Draft [#307](https://github.com/heliosremedia/heliosremedia/pull/307), `codex/v2-legal-write-isolation`, remote code `9ff5112260545cb1c96db7516099c395a0211eef`, tree `0848133dc11e428e1c8d3777cb944ce9bb17e0d7`, identical to local `a2c4165e8094d6fa6972232f4b237c86974e5272`. Depends on #306 final `7b94fbf74f62b11dd900b6b4105ad7c107de914a`. The canonical claim records final documentation head/CI.

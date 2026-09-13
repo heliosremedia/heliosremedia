@@ -220,7 +220,9 @@ test('legal route isolates same-type documents, fences old writes and rolls docu
     const originalA = (await db.query('SELECT * FROM "LegalDocument" WHERE "workspaceId"=$1 ORDER BY id',['a'])).rows;
     const response = await f.route.PATCH(request({ ...input, workspaceId: 'a', content: '<p>Own reviewed draft</p><script>unsafe()</script>' }));
     assert.equal(response.status,200);
-    const document = (await response.json()).document;
+    const acknowledgement = await response.json();
+    assert.equal(acknowledgement.revisionProtocol, 1);
+    const document = acknowledgement.document;
     assert.equal(document.content,'<p>Own reviewed draft</p>'); assert.equal(Object.keys(document).length,6);
     await assert.rejects(db.transaction(async tx => {
       await tx.query("SELECT set_config('helios.legal_workspace','b',true)");
@@ -235,7 +237,9 @@ test('legal route isolates same-type documents, fences old writes and rolls docu
     f.state.failSettings = false; f.state.failReadback = true;
     assert.equal((await f.route.PATCH(request({ ...input, title: 'Readback rollback' }))).status,500);
     assert.deepEqual(await snapshot(),before); f.state.failReadback = false;
-    const published = await f.route.PATCH(request({ ...input, content: `<p>${'Reviewed text '.repeat(12)}</p>`,published:true,updatedAt:document.updatedAt }));
+    const publishRequest = request({ ...input, content: `<p>${'Reviewed text '.repeat(12)}</p>`,published:true,updatedAt:document.updatedAt });
+    publishRequest.headers.set('x-helios-legal-revision','1');
+    const published = await f.route.PATCH(publishRequest);
     assert.equal(published.status,200);
     assert.equal((await db.query<{ privacyPolicyPublished: boolean }>('SELECT "privacyPolicyPublished" FROM "SiteSettings" WHERE "workspaceId"=$1',['b'])).rows[0].privacyPolicyPublished,true);
     const ownPublic = await f.readers.getPublishedLegalDocument('PRIVACY_POLICY');
@@ -300,6 +304,10 @@ test('legal writes recheck database membership and both document/settings snapsh
     f.state.beforeTransaction = async () => {};
     for (const invalid of [null, [], { ...input,type:'unknown' },{ ...input,updatedAt:'invalid' },{ ...input,published:true,content:'short' }]) {
       assert.equal((await f.route.PATCH(request(invalid))).status,400);
+    }
+    for (const protocol of ['1','2']) {
+      const invalidProtocol = request(); invalidProtocol.headers.set('x-helios-legal-revision',protocol);
+      assert.equal((await f.route.PATCH(invalidProtocol)).status,400);
     }
     assert.equal(f.state.invalidations,0);
     f.state.role='EDITOR'; assert.equal((await f.route.PATCH(request())).status,403);

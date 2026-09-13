@@ -50,6 +50,8 @@ jobs:
         run: npm run test:recovery-browser
       - name: Check synthetic location editor recovery in Chromium
         run: npm run test:location-browser
+      - name: Check synthetic legal editor recovery in Chromium
+        run: npm run test:legal-browser
       - name: Check isolated Studio layout with real Next.js HTTP and Chromium
         run: npm run test:studio-layout
       - name: Check patch whitespace
