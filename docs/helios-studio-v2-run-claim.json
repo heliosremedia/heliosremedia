@@ -1,7 +1,7 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-20260913T0143",
-  "expiresAt": "2026-09-13T03:00:00Z",
+  "expiresAt": null,
   "branch": "codex/v2-location-browser-revisions",
   "pr": 305,
   "head": "ec83cf570e577d5c5a9bc528a4ee34f93277f869",
@@ -15,8 +15,16 @@
     "status": "passed",
     "allSteps": "passed"
   },
-  "finalHeadCI": "pending",
+  "finalHeadCI": {
+    "runId": 34732065901,
+    "jobId": 103656560374,
+    "status": "passed",
+    "allSteps": "passed"
+  },
   "outstandingChanges": false,
   "nextDependency": "Site-settings mutation fresh transactional administrator revalidation, with protected URL/booking/brand compatibility preserved",
-  "production": "ON HOLD"
+  "production": "ON HOLD",
+  "releasedAt": "2026-09-13T02:06:20Z",
+  "phase": "Phase 1 exit open alongside Phase 2; later phases incomplete",
+  "releaseGate": "Production ON HOLD until implementation readiness and Jake QA/release decision"
 }
