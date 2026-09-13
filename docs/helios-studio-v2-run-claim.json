@@ -1,10 +1,10 @@
 {
   "status": "active",
   "runId": "atlas-20260913T0012",
-  "expiresAt": "2026-09-13T01:20:00Z",
+  "expiresAt": "2026-09-13T01:30:00Z",
   "branch": "codex/v2-public-studio-layout-boundary",
   "baseHead": "78a4e5da5379728c45155f2082f4dc835adb53af",
-  "outstandingChanges": false,
-  "scope": "Separate root public and Studio settings and metadata with route layout boundaries; preserve URLs and public SEO; isolated tests and draft CI only",
+  "outstandingChanges": true,
+  "scope": "Public/Studio route layouts, tenant location scope and actual isolated Next.js HTTP/Chromium checks; 688 local tests passed; serial type generation verification in progress",
   "production": "ON HOLD"
 }
