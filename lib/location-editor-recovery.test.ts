@@ -70,7 +70,9 @@ test('location reorder requires an affirmative acknowledgement and only then cha
     assert.equal((render().find(item => item.type === 'h2')!.props.children as unknown[])[0], 'One');
     assert.ok(button('Reload saved pages'));
   }
-  const { button, render } = fixture(async () => Response.json({ success: true }));
+  const { button, render } = fixture(async () => Response.json({ success: true, revisionProtocol: 1, order: [
+    { id: 'two', displayOrder: 0, updatedAt: '2026-09-13T01:00:00.000Z' }, { id: 'one', displayOrder: 1, updatedAt: '2026-09-13T01:00:00.000Z' },
+  ] }));
   await invoke(button('Move One down'));
   assert.equal((render().find(item => item.type === 'h2')!.props.children as unknown[])[0], 'Two');
   assert.equal(button('Move One up').props.disabled, false);
@@ -117,4 +119,42 @@ test('location AI drafts cannot cross editor contexts or duplicate admission', a
   await first; await duplicate;
   assert.equal(button('Apply complete draft'), undefined);
   assert.ok(render().some(item => item.props.value === 'Original lead'));
+});
+
+test('location save submits the open revision, retains uncertain drafts and fences duplicate/stale callbacks', async () => {
+  let calls = 0; let finish!: (response: Response) => void; let submitted = {} as Record<string, unknown>;
+  const { button, render } = fixture(async (_url, options) => {
+    calls++; submitted = JSON.parse(String(options?.body));
+    assert.equal(new Headers(options?.headers).get('x-helios-location-revision'), '1');
+    return new Promise<Response>(resolve => { finish = resolve; });
+  });
+  await invoke(button('Edit'));
+  const lead = render().find(item => item.props.value === 'Original lead')!;
+  (lead.props.onChange as (value: string) => void)('Keep this unsaved copy');
+  const save = button('Save draft'), close = button('Close editor');
+  const first = invoke(save); await invoke(save); await invoke(close);
+  assert.equal(calls, 1); assert.equal(submitted.expectedUpdatedAt, '2026-09-13T00:00:00.000Z');
+  assert.equal(submitted.heroLead, 'Keep this unsaved copy');
+  assert.equal(render().find(item => item.type === 'fieldset')!.props.disabled, true);
+  assert.equal(render().filter(item => item.props.role === 'dialog').length, 1);
+  finish(Response.json({ success: false }, { status: 409 })); await first; await invoke(save);
+  assert.equal(calls, 1); assert.ok(render().some(item => item.props.value === 'Keep this unsaved copy'));
+  assert.equal(button('Save draft').props.disabled, true);
+  await invoke(button('Cancel')); assert.ok(button('Reload saved pages'));
+});
+
+test('location reorder uses authoritative revisions and refuses legacy, foreign or duplicate response rows', async () => {
+  const good = [{ id: 'one', displayOrder: 8, updatedAt: '2026-09-13T02:00:00.000Z' }, { id: 'two', displayOrder: 9, updatedAt: '2026-09-13T02:00:00.000Z' }];
+  for (const result of [{ success: true }, { success: true, revisionProtocol: 1, order: [good[0], good[0]] },
+    { success: true, revisionProtocol: 1, order: [good[0], { ...good[1], id: 'foreign' }] }]) {
+    const { button } = fixture(async () => Response.json(result));
+    await invoke(button('Move One down')); assert.ok(button('Reload saved pages'));
+  }
+  const requests: Record<string, unknown>[] = [];
+  const { button, render } = fixture(async (_url, options) => { requests.push(JSON.parse(String(options?.body))); return Response.json({ success: true, revisionProtocol: 1, order: good }); });
+  await invoke(button('Move One down'));
+  assert.equal((render().find(item => item.type === 'h2')!.props.children as unknown[])[0], 'One', 'server order is used even if it differs from the guessed swap');
+  await invoke(button('Move One down'));
+  assert.equal(requests[1].expectedUpdatedAt, good[0].updatedAt);
+  assert.deepEqual(requests[1].expectedOrder, good.map(({ id, updatedAt }) => ({ id, updatedAt })));
 });

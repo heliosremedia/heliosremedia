@@ -12,6 +12,43 @@ import { prisma } from "@/lib/prisma";
 
 type LocationBody = Record<string, unknown>;
 
+// Additive wire contract. Legacy writers remain a documented overlap gate.
+function revisionRequired(request: Request) {
+  const protocol = request.headers.get("x-helios-location-revision");
+  if (protocol !== null && protocol !== "1") throw new Error("INVALID_INPUT");
+  return protocol === "1";
+}
+
+function revision(value: unknown): string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)
+    || !Number.isFinite(Date.parse(value)) || new Date(value).toISOString() !== value) throw new Error("INVALID_INPUT");
+  return value;
+}
+
+function checkRevision(value: unknown, current: Date, required: boolean) {
+  if (value === undefined && !required) return;
+  if (revision(value) !== current.toISOString()) throw new Error("LOCATION_CHANGED");
+}
+
+function nextRevision(current: Date) {
+  // Two accepted writes within one clock millisecond still need distinct tokens.
+  return new Date(Math.max(Date.now(), current.getTime() + 1));
+}
+
+function checkOrder(value: unknown, current: Array<{ id: string; updatedAt: Date }>, required: boolean) {
+  if (value === undefined && !required) return;
+  if (!Array.isArray(value) || value.length > 2000) throw new Error("INVALID_INPUT");
+  const seen = new Set<string>();
+  const submitted = value.map(item => {
+    if (!item || typeof item !== "object" || Array.isArray(item) || typeof item.id !== "string"
+      || !item.id || item.id.length > 100 || seen.has(item.id)) throw new Error("INVALID_INPUT");
+    seen.add(item.id);
+    return { id: item.id, updatedAt: revision(item.updatedAt) };
+  });
+  if (submitted.length !== current.length || current.some((item, index) => item.id !== submitted[index].id
+    || item.updatedAt.toISOString() !== submitted[index].updatedAt)) throw new Error("LOCATION_CHANGED");
+}
+
 async function requestBody(request: Request): Promise<LocationBody> {
   const body: unknown = await request.json().catch(() => null);
   if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("INVALID_INPUT");
@@ -243,27 +280,41 @@ export async function PATCH(request: Request) {
     const body = await requestBody(request);
     const locationId = text(body.locationId, 100);
     const action = text(body.action, 40);
+    const required = revisionRequired(request);
     if (!locationId) return NextResponse.json({ success: false, error: "Location page ID required." }, { status: 400 });
     const existing = await prisma.locationPage.findFirst({ where: { id: locationId, workspaceId: session.workspaceId }, select: { slug: true, city: true, updatedAt: true, featureImageStorageKey: true, featureImageUrl: true } });
     if (!existing) return NextResponse.json({ success: false, error: "Local page not found." }, { status: 404 });
+    checkRevision(body.expectedUpdatedAt, existing.updatedAt, required);
     const where = { id: locationId, workspaceId: session.workspaceId, updatedAt: existing.updatedAt };
 
     if (action === "reorder") {
       const direction = body.direction === "up" ? -1 : body.direction === "down" ? 1 : 0;
       if (!direction) return NextResponse.json({ success: false, error: "Valid reorder direction required." }, { status: 400 });
-      await prisma.$transaction(async tx => {
+      const order = await prisma.$transaction(async tx => {
         await requireLockedWorkspaceEditor(tx, session);
         if (!await tx.locationPage.findFirst({ where, select: { id: true } })) throw new Error("LOCATION_CHANGED");
-        const ordered = await tx.locationPage.findMany({ where: { workspaceId: session.workspaceId }, orderBy: [{ displayOrder: "asc" }, { city: "asc" }], select: { id: true, updatedAt: true } });
+        const ordered = await tx.locationPage.findMany({ where: { workspaceId: session.workspaceId }, orderBy: [{ displayOrder: "asc" }, { city: "asc" }, { id: "asc" }], select: { id: true, updatedAt: true, displayOrder: true } });
+        checkOrder(body.expectedOrder, ordered, required);
         const index = ordered.findIndex((item) => item.id === locationId);
         const target = index + direction;
         if (index >= 0 && target >= 0 && target < ordered.length) {
-          await tx.locationPage.update({ where: { id: ordered[index].id, workspaceId: session.workspaceId, updatedAt: ordered[index].updatedAt }, data: { displayOrder: target } });
-          await tx.locationPage.update({ where: { id: ordered[target].id, workspaceId: session.workspaceId, updatedAt: ordered[target].updatedAt }, data: { displayOrder: index } });
+          if (new Set(ordered.map(item => item.displayOrder)).size === ordered.length) {
+            await tx.locationPage.update({ where: { id: ordered[index].id, workspaceId: session.workspaceId, updatedAt: ordered[index].updatedAt }, data: { displayOrder: ordered[target].displayOrder, updatedAt: nextRevision(ordered[index].updatedAt) } });
+            await tx.locationPage.update({ where: { id: ordered[target].id, workspaceId: session.workspaceId, updatedAt: ordered[target].updatedAt }, data: { displayOrder: ordered[index].displayOrder, updatedAt: nextRevision(ordered[target].updatedAt) } });
+          } else {
+            // Equal legacy positions cannot be swapped numerically. Normalize
+            // the requested order in the same transaction, with every row fenced.
+            if (ordered.length > 2000) throw new Error("INVALID_INPUT");
+            const next = [...ordered]; [next[index], next[target]] = [next[target], next[index]];
+            for (const [position, item] of next.entries()) {
+              if (item.displayOrder !== position) await tx.locationPage.update({ where: { id: item.id, workspaceId: session.workspaceId, updatedAt: item.updatedAt }, data: { displayOrder: position, updatedAt: nextRevision(item.updatedAt) } });
+            }
+          }
         }
+        return tx.locationPage.findMany({ where: { workspaceId: session.workspaceId }, orderBy: [{ displayOrder: "asc" }, { city: "asc" }, { id: "asc" }], select: { id: true, updatedAt: true, displayOrder: true } });
       });
       revalidateLocations();
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, revisionProtocol: 1, order });
     }
 
     if (action === "publish") {
@@ -277,7 +328,7 @@ export async function PATCH(request: Request) {
         await requireLockedWorkspaceEditor(tx, session);
         return tx.locationPage.update({
           where,
-          data: { published: body.published === true },
+          data: { published: body.published === true, updatedAt: nextRevision(existing.updatedAt) },
           select: selectLocation(),
         });
       });
@@ -290,7 +341,7 @@ export async function PATCH(request: Request) {
         summary: `${location.city} local page ${location.published ? "published" : "unpublished"}.`,
       });
       revalidateLocations([existing.slug]);
-      return NextResponse.json({ success: true, location });
+      return NextResponse.json({ success: true, revisionProtocol: 1, location });
     }
 
     const data = payload(body);
@@ -304,7 +355,7 @@ export async function PATCH(request: Request) {
       await requireLockedWorkspaceEditor(tx, session);
       return tx.locationPage.update({
         where,
-        data: { ...data, slug, localDetails: data.localDetails },
+        data: { ...data, slug, localDetails: data.localDetails, updatedAt: nextRevision(existing.updatedAt) },
         select: selectLocation(),
       });
     });
@@ -318,7 +369,7 @@ export async function PATCH(request: Request) {
       summary: `${location.city} local page updated.`,
     });
     revalidateLocations([existing.slug, slug]);
-    return NextResponse.json({ success: true, location });
+    return NextResponse.json({ success: true, revisionProtocol: 1, location });
   } catch (error) {
     const failure = mutationError(error); if (failure) return failure;
     if (error instanceof Error && error.message === "FIELD_TOO_LONG") {
@@ -335,9 +386,11 @@ export async function DELETE(request: Request) {
   if (!["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
   try {
     const locationId = new URL(request.url).searchParams.get("locationId")?.trim();
+    const required = revisionRequired(request);
     if (!locationId) return NextResponse.json({ success: false, error: "Location page ID required." }, { status: 400 });
     const existing = await prisma.locationPage.findFirst({ where: { id: locationId, workspaceId: session.workspaceId }, select: { id: true, updatedAt: true } });
     if (!existing) return NextResponse.json({ success: false, error: "Local page not found." }, { status: 404 });
+    checkRevision(request.headers.get("x-helios-location-updated-at") ?? undefined, existing.updatedAt, required);
     const location = await prisma.$transaction(async tx => {
       await requireLockedWorkspaceEditor(tx, session);
       return tx.locationPage.delete({ where: { id: locationId, workspaceId: session.workspaceId, updatedAt: existing.updatedAt }, select: { id: true, city: true, slug: true } });
@@ -352,7 +405,7 @@ export async function DELETE(request: Request) {
       summary: `${location.city} local page deleted.`,
     });
     revalidateLocations([location.slug]);
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, revisionProtocol: 1, locationId: location.id });
   } catch (error) {
     const failure = mutationError(error); if (failure) return failure;
     console.error("Unable to delete location page", { category: "request_failed" });

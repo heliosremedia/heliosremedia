@@ -24,6 +24,10 @@ export async function checkLocationEditor(base) {
     await button("Move One down").evaluate(node => { node.click(); node.click(); });
     await page.waitForFunction(() => !!window.locationFixture.pending);
     assert.equal((await calls()).length, 1, "Rapid duplicate admission must be contained");
+    const submitted = (await calls())[0];
+    assert.equal(submitted.headers['x-helios-location-revision'], '1');
+    assert.equal(JSON.parse(submitted.body).expectedUpdatedAt, '2026-09-13T00:00:00.000Z');
+    assert.deepEqual(JSON.parse(submitted.body).expectedOrder, ['one', 'two'].map(id => ({ id, updatedAt: '2026-09-13T00:00:00.000Z' })));
     assert.deepEqual(await order(), ["One, State", "Two, State"], "No optimistic reorder while acknowledgement is pending");
     assert.equal(await button("Build a local page").isDisabled(), true);
     assert.equal(await button("Edit").first().isDisabled(), true);
@@ -34,7 +38,7 @@ export async function checkLocationEditor(base) {
     await page.waitForFunction(() => document.querySelector("article h2")?.textContent === "Two, State");
     assert.equal(await button("Move One up").isEnabled(), true);
 
-    for (const mode of ["lost-ack", "conflict", "non-json", "negative"]) {
+    for (const mode of ["lost-ack", "conflict", "non-json", "negative", "legacy-order", "foreign-order"]) {
       await setup(mode); await startReorder();
       await page.evaluate(() => window.locationFixture.pending());
       await button("Reload saved pages").waitFor();
@@ -53,6 +57,38 @@ export async function checkLocationEditor(base) {
       assert.equal(await button("Move One down").isEnabled(), true);
       assert.equal((await calls()).length, 0, "Explicit reload reads the fixture again without replaying the write");
     }
+
+    for (const mode of ["save-conflict", "save-lost-ack", "save-legacy"]) {
+      await setup(mode); await button("Edit").first().click();
+      await page.getByRole("textbox", { name: /^Hero introduction/ }).fill("Keep my unsaved changes");
+      await button("Save draft").evaluate(node => { node.click(); node.click(); });
+      await page.waitForFunction(() => !!window.locationFixture.pending);
+      assert.equal((await calls()).length, 1);
+      assert.equal(JSON.parse((await calls())[0].body).expectedUpdatedAt, "2026-09-13T00:00:00.000Z");
+      assert.equal(await page.getByRole("textbox", { name: /^Hero introduction/ }).isDisabled(), true, "Typing cannot race an acknowledged save");
+      assert.equal(await button("Close editor").isDisabled(), true);
+      await page.evaluate(() => window.locationFixture.pending());
+      await page.getByRole("dialog").getByText(/Your draft is still here/).waitFor();
+      assert.equal(await page.getByRole("textbox", { name: /^Hero introduction/ }).inputValue(), "Keep my unsaved changes");
+      assert.equal(await button("Save draft").isDisabled(), true);
+      assert.equal(await button("Reload saved pages").count(), 0, "No reload action while an unsaved draft is open");
+      assert.equal((await calls()).length, 1);
+      await button("Cancel").click(); await button("Reload saved pages").waitFor();
+    }
+
+    // A reorder refreshes row revisions; later saves submit the returned revision.
+    await setup("success"); await startReorder();
+    await page.evaluate(() => window.locationFixture.pending());
+    await page.waitForFunction(() => document.querySelector("article h2")?.textContent === "Two, State");
+    await button("Edit").nth(1).click();
+    await page.getByRole("textbox", { name: /^Hero introduction/ }).fill("Saved after reorder");
+    await button("Save draft").click(); await page.waitForFunction(() => !!window.locationFixture.pending);
+    assert.equal(JSON.parse((await calls())[1].body).expectedUpdatedAt, "2026-09-13T01:00:00.000Z");
+    await page.evaluate(() => window.locationFixture.pending());
+    await page.getByRole("dialog").waitFor({ state: "detached" });
+    await button("Edit").nth(1).click();
+    assert.equal(await page.getByRole("textbox", { name: /^Hero introduction/ }).inputValue(), "Saved after reorder");
+    await button("Cancel").click();
 
     await setup("success"); await button("Edit").first().click();
     const file = { name: "synthetic.png", mimeType: "image/png", buffer: Buffer.from("synthetic fixture bytes") };
@@ -95,6 +131,6 @@ export async function checkLocationEditor(base) {
     assert.equal(await page.getByRole("textbox", { name: /^Hero introduction/ }).inputValue(), "Synthetic draft for the original page");
     assert.equal((await calls()).filter(call => call.url === "/api/admin/locations").length, 0, "AI draft application does not save or publish");
     assert.deepEqual(errors, []); assert.deepEqual(external, []); assert.deepEqual(actualMutations, []);
-    console.log("PASS: actual Chromium location component duplicate reorder, four uncertain responses, explicit reload, mobile layout, slow upload and AI/editor-context recovery; synthetic fetch only");
+    console.log("PASS: actual Chromium location component revision submissions, authoritative order, duplicate requests, six uncertain reorder responses, three held-save responses, save/reopen, mobile, upload and AI recovery; synthetic fetch only");
   } finally { await browser.close(); }
 }

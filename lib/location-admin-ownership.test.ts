@@ -103,6 +103,51 @@ test('location mutations, signing and AI reject a current viewer before content/
   }
 });
 
+test('location mutations reject stale submitted browser revisions before writing and preserve legacy compatibility', async () => {
+  for (const action of ['update', 'publish']) {
+    const { state, route } = fixture();
+    const response = await route.PATCH(request('PATCH', { ...body, action, published: false, expectedUpdatedAt: new Date(0).toISOString() }));
+    assert.equal(response.status, 409); assert.equal(state.writes, 0);
+  }
+  const { state, route } = fixture();
+  const response = await route.DELETE(new Request('https://example.test/api/admin/locations?locationId=location-b', {
+    method: 'DELETE', headers: { 'x-helios-location-revision': '1', 'x-helios-location-updated-at': new Date(0).toISOString() },
+  }));
+  assert.equal(response.status, 409); assert.equal(state.writes, 0);
+  assert.equal((await route.PATCH(request('PATCH', { ...body, action: 'update', expectedUpdatedAt: new Date(1).toISOString() }))).status, 200);
+  assert.equal((await fixture().route.PATCH(request('PATCH'))).status, 200, 'old clients retain the explicit compatibility path');
+});
+
+test('revision-aware location requests reject missing, malformed and foreign order snapshots', async () => {
+  for (const value of [undefined, null, '', 'yesterday', '2026-02-30T00:00:00.000Z', 1]) {
+    const { state, route } = fixture();
+    const req = request('PATCH', { ...body, expectedUpdatedAt: value }); req.headers.set('x-helios-location-revision', '1');
+    assert.equal((await route.PATCH(req)).status, 400); assert.equal(state.writes, 0);
+  }
+  const snapshot = [{ id: 'location-b', updatedAt: new Date(1).toISOString() }, { id: 'neighbor-b', updatedAt: new Date(1).toISOString() }];
+  for (const [value, status] of [[undefined, 400], [null, 400], [[snapshot[0], snapshot[0]], 400],
+    [[snapshot[1], snapshot[0]], 409], [[snapshot[0]], 409], [[snapshot[0], { ...snapshot[1], id: 'foreign-a' }], 409],
+    [[snapshot[0], { ...snapshot[1], updatedAt: new Date(0).toISOString() }], 409]] as const) {
+    const { state, route } = fixture();
+    const req = request('PATCH', { action: 'reorder', locationId: 'location-b', direction: 'down', expectedUpdatedAt: new Date(1).toISOString(), expectedOrder: value });
+    req.headers.set('x-helios-location-revision', '1');
+    assert.equal((await route.PATCH(req)).status, status); assert.equal(state.writes, 0);
+  }
+  const { state, route } = fixture();
+  const req = request('PATCH'); req.headers.set('x-helios-location-revision', '2');
+  assert.equal((await route.PATCH(req)).status, 400); assert.equal(state.writes, 0);
+});
+
+test('accepted location edits advance the revision even when the stored timestamp is ahead of the clock', async () => {
+  for (const action of ['update', 'publish']) {
+    const { state, route } = fixture();
+    state.revision = Date.now() + 60_000;
+    const response = await route.PATCH(request('PATCH', { ...body, action, published: false, expectedUpdatedAt: new Date(state.revision).toISOString() }));
+    assert.equal(response.status, 200);
+    assert.equal((state.result.updatedAt as Date).getTime(), state.revision + 1);
+  }
+});
+
 test('location image compatibility retains owned legacy assets but rejects corrupt foreign references and traversal', () => {
   const policy = load('./workspace-brand-storage.ts', {});
   const { resolveLocationImage, readableLocationImage } = load<typeof import('./location-image-ownership')>('./location-image-ownership.ts', { './workspace-brand-storage': policy });
@@ -179,12 +224,12 @@ test('actual location reorder transaction rolls back partial order changes and f
     const delegate = (sql: SQL) => ({
       findFirst: async ({ where }: { where: Where }) => (await sql.query('SELECT * FROM locations WHERE id=$1 AND "workspaceId"=$2 AND ($3::timestamptz IS NULL OR "updatedAt"=$3)',
         [where.id, where.workspaceId, where.updatedAt?.toISOString() ?? null])).rows[0] ?? null,
-      findMany: async ({ where }: { where: Where }) => (await sql.query('SELECT * FROM locations WHERE "workspaceId"=$1 ORDER BY "displayOrder", city', [where.workspaceId])).rows,
-      update: async ({ where, data }: { where: Where; data: { displayOrder?: number; published?: boolean } }) => {
+      findMany: async ({ where }: { where: Where }) => (await sql.query('SELECT id,"updatedAt","displayOrder" FROM locations WHERE "workspaceId"=$1 ORDER BY "displayOrder", city, id', [where.workspaceId])).rows,
+      update: async ({ where, data }: { where: Where; data: { displayOrder?: number; published?: boolean; updatedAt: Date } }) => {
         updateCalls++;
         if (failSecond && updateCalls === 2) throw new Error('Synthetic second update failure');
-        const rows = (await sql.query('UPDATE locations SET "displayOrder"=COALESCE($4,"displayOrder"), published=COALESCE($5,published) WHERE id=$1 AND "workspaceId"=$2 AND "updatedAt"=$3 RETURNING *',
-          [where.id, where.workspaceId, where.updatedAt?.toISOString(), data.displayOrder ?? null, data.published ?? null])).rows;
+        const rows = (await sql.query('UPDATE locations SET "updatedAt"=$6, "displayOrder"=COALESCE($4,"displayOrder"), published=COALESCE($5,published) WHERE id=$1 AND "workspaceId"=$2 AND "updatedAt"=$3 RETURNING *',
+          [where.id, where.workspaceId, where.updatedAt?.toISOString(), data.displayOrder ?? null, data.published ?? null, data.updatedAt.toISOString()])).rows;
         if (!rows.length) throw Object.assign(new Error('Changed'), { code: 'P2025' });
         return rows[0];
       },
@@ -213,6 +258,54 @@ test('actual location reorder transaction rolls back partial order changes and f
     failSecond = false; updateCalls = 0;
     assert.equal((await route.PATCH(request('PATCH', { locationId: 'location-b', action: 'reorder', direction: 'down' }))).status, 200);
     assert.deepEqual(await ordering(), [{ id: 'foreign-a', displayOrder: 0 }, { id: 'location-b', displayOrder: 1 }, { id: 'neighbor-b', displayOrder: 0 }]);
+
+    const snapshot = async () => (await db.query<{ id: string; updatedAt: Date; displayOrder: number }>('SELECT id,"updatedAt","displayOrder" FROM locations WHERE "workspaceId"=$1 ORDER BY "displayOrder", city, id', ['b'])).rows;
+    const snapshotRequest = (rows: Awaited<ReturnType<typeof snapshot>>) => {
+      const req = request('PATCH', { action: 'reorder', locationId: 'location-b', direction: 'up',
+        expectedUpdatedAt: rows.find(row => row.id === 'location-b')!.updatedAt.toISOString(),
+        expectedOrder: rows.map(row => ({ id: row.id, updatedAt: row.updatedAt.toISOString() })) });
+      req.headers.set('x-helios-location-revision', '1'); return req;
+    };
+    const stale = await snapshot();
+    const committed = await route.PATCH(snapshotRequest(stale));
+    assert.equal(committed.status, 200);
+    const committedData = await committed.json();
+    assert.equal(committedData.revisionProtocol, 1);
+    assert.deepEqual(committedData.order, JSON.parse(JSON.stringify(await snapshot())));
+    assert.ok(committedData.order.every((row: Record<string, unknown>) => Object.keys(row).sort().join(',') === 'displayOrder,id,updatedAt'));
+    const afterFirstClient = await ordering();
+    assert.equal((await route.PATCH(snapshotRequest(stale))).status, 409, 'second browser cannot replay a stale order');
+    assert.deepEqual(await ordering(), afterFirstClient);
+
+    const beforeNeighborEdit = await snapshot();
+    beforeTransaction = async () => { await db.query('UPDATE locations SET "updatedAt"="updatedAt" + interval \'1 millisecond\' WHERE id=$1', ['neighbor-b']); };
+    assert.equal((await route.PATCH(snapshotRequest(beforeNeighborEdit))).status, 409, 'neighbor changes after request pre-read are rejected inside transaction');
+    assert.deepEqual(await ordering(), afterFirstClient);
+    beforeTransaction = async () => {};
+
+    // Sparse positions must be swapped by their stored values, not array indices.
+    await db.query('UPDATE locations SET "displayOrder"=CASE id WHEN \'location-b\' THEN 20 ELSE 10 END WHERE "workspaceId"=$1', ['b']);
+    assert.equal((await route.PATCH(snapshotRequest(await snapshot()))).status, 200);
+    assert.deepEqual(await ordering(), [{ id: 'foreign-a', displayOrder: 0 }, { id: 'location-b', displayOrder: 10 }, { id: 'neighbor-b', displayOrder: 20 }]);
+    // Equal legacy positions require an atomic deterministic normalization.
+    await db.query('UPDATE locations SET "displayOrder"=7 WHERE "workspaceId"=$1', ['b']);
+    const tied = await snapshot();
+    const tiedRequest = snapshotRequest(tied);
+    const tiedBody = await tiedRequest.json(); tiedBody.direction = 'down';
+    const tiedResponse = await route.PATCH(new Request(tiedRequest.url, { method: 'PATCH', headers: tiedRequest.headers, body: JSON.stringify(tiedBody) }));
+    assert.equal(tiedResponse.status, 200);
+    assert.deepEqual((await snapshot()).map(row => row.id), ['neighbor-b', 'location-b']);
+
+    await db.query('UPDATE locations SET "displayOrder"=1 WHERE "workspaceId"=$1', ['b']);
+    await db.query('INSERT INTO locations VALUES ($1,$2,$3,$4,$5,2,false)', ['third-b', 'b', 'third', 'AAA town', new Date(1).toISOString()]);
+    const group = await snapshot();
+    const groupRequest = request('PATCH', { action: 'reorder', locationId: 'third-b', direction: 'up', expectedUpdatedAt: new Date(1).toISOString(),
+      expectedOrder: group.map(row => ({ id: row.id, updatedAt: row.updatedAt.toISOString() })) });
+    groupRequest.headers.set('x-helios-location-revision', '1');
+    assert.equal((await route.PATCH(groupRequest)).status, 200);
+    assert.deepEqual((await snapshot()).map(row => row.id), ['location-b', 'third-b', 'neighbor-b'], 'moving into a tied group must not jump over an extra neighbor');
+    await db.query('DELETE FROM locations WHERE id=$1', ['third-b']);
+
     beforeTransaction = async () => { await db.query('UPDATE locations SET "workspaceId"=$1 WHERE id=$2', ['a', 'location-b']); };
     assert.equal((await route.PATCH(request('PATCH', { locationId: 'location-b', action: 'publish', published: true }))).status, 409);
     assert.equal((await db.query<{ published: boolean }>('SELECT published FROM locations WHERE id=$1', ['location-b'])).rows[0].published, false);
