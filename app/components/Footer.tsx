@@ -206,7 +206,7 @@ export default function Footer() {
         <div className="mt-20 border-t border-white/[0.08] pt-7 sm:mt-24">
           <div className="grid gap-6 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center">
             <div>
-              <Link
+              <a
                 href="/login"
                 aria-label="Admin sign in"
                 title="Admin sign in"
@@ -235,7 +235,7 @@ export default function Footer() {
                     />
                   )}
                 </span>
-              </Link>
+              </a>
             </div>
 
             <nav

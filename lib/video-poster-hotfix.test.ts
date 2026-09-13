@@ -43,7 +43,7 @@ test("the image optimizer permits only the shared video-poster paths", () => {
 });
 
 test("the cinematic film library routes thumbnails through the shared optimizer", () => {
-  const library = read("app/portfolio/PortfolioFilmLibrary.tsx");
+  const library = read("app/(public)/portfolio/PortfolioFilmLibrary.tsx");
 
   assert.match(library, /import Image from "next\/image"/);
   assert.match(library, /<Image[\s\S]*src=\{media\.thumbnailUrl\}/);

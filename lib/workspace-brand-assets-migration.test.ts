@@ -71,7 +71,7 @@ test("brand asset ownership migration preserves Helios data and honors an import
 });
 
 test("brand asset pages and mutations require and apply workspace ownership", () => {
-  const publicHome = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const publicHome = readFileSync(new URL("../app/(public)/page.tsx", import.meta.url), "utf8");
   const testimonialRoute = readFileSync(new URL("../app/api/admin/testimonials/route.ts", import.meta.url), "utf8");
   const logoRoute = readFileSync(new URL("../app/api/admin/trusted-logos/route.ts", import.meta.url), "utf8");
 

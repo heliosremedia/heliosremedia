@@ -13,7 +13,8 @@ import { getPortfolioDiscoverySettings } from "@/lib/portfolio-discovery-setting
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [workspaceId, settings] = await Promise.all([getPublicWorkspaceId(), getSiteSettings()]);
+  const workspaceId = await getPublicWorkspaceId();
+  const settings = await getSiteSettings(workspaceId);
   const discoverySettings = await getPortfolioDiscoverySettings(workspaceId);
   const absolute = (path: string) => getCanonicalAbsoluteUrl(path, settings.websiteUrl);
   const [projects, services, legalDocuments, locations, blogPosts] = await Promise.all([
@@ -31,7 +32,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }),
     prisma.service.findMany({ where: { workspaceId, active: true, archivedAt: null }, select: { slug: true, updatedAt: true } }),
     prisma.legalDocument.findMany({ where: { AND: [await getContentOwnershipScope(workspaceId)], published: true }, select: { type: true, updatedAt: true } }),
-    getPublishedLocationPages(),
+    getPublishedLocationPages(workspaceId),
     prisma.blogPost.findMany({ where: { ...(tenantContextEnabled() ? { workspaceId } : {}), OR: [{ status: "PUBLISHED", publishedAt: { lte: new Date() } }, { status: "SCHEDULED", scheduledAt: { lte: new Date() } }] }, select: { slug: true, updatedAt: true } }),
   ]);
 

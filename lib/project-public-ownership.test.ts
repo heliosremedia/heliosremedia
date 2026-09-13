@@ -16,7 +16,7 @@ test("public project query binds slug and preview to the resolved company and fi
       return rows.find(row => row.workspaceId === query.where.workspaceId && row.slug === query.where.slug && (!query.where.id || row.id === query.where.id)) ?? null;
     } } } },
   };
-  const source = readFileSync(new URL("../app/portfolio/[slug]/page.tsx", import.meta.url), "utf8") + "\nexport { getProject as testGetProject };";
+  const source = readFileSync(new URL("../app/(public)/portfolio/[slug]/page.tsx", import.meta.url), "utf8") + "\nexport { getProject as testGetProject };";
   runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText, { exports, require: (id: string) => modules[id] ?? {} });
   assert.ok(await exports.testGetProject!("home"));
   assert.equal(await exports.testGetProject!("foreign"), null);

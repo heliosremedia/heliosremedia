@@ -14,8 +14,8 @@ test("V1.9.5 stores offerings and classifications as tenant-aware relationships"
 });
 
 test("public comparison remains curated, scoped, playable, and discoverable", () => {
-  const page = read("app/films/page.tsx");
-  const player = read("app/films/FilmOfferingCard.tsx");
+  const page = read("app/(public)/films/page.tsx");
+  const player = read("app/(public)/films/FilmOfferingCard.tsx");
   const styles = read("app/globals.css");
   const sitemap = read("app/sitemap.ts");
   assert.match(page, /workspaceId, status: "PUBLISHED"/);

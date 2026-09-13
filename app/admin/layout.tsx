@@ -7,6 +7,7 @@ import { getSiteSettings } from "@/lib/site-settings";
 export const metadata: Metadata = {
   title: "Helios Admin",
   description: "Portfolio management for Helios Real Estate Media.",
+  robots: { index: false, follow: false },
 };
 
 export default async function AdminLayout({

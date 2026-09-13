@@ -41,10 +41,14 @@ jobs:
       - name: Run isolated regression tests
         run: npm test
       - name: Check TypeScript
-        run: ./node_modules/.bin/tsc --noEmit --incremental false
+        run: |
+          ./node_modules/.bin/next typegen
+          ./node_modules/.bin/tsc --noEmit --incremental false
       - name: Install Chromium for synthetic workflow checks
         run: ./node_modules/.bin/playwright install --with-deps chromium
       - name: Check generation recovery in a browser
         run: npm run test:recovery-browser
+      - name: Check isolated Studio layout with real Next.js HTTP and Chromium
+        run: npm run test:studio-layout
       - name: Check patch whitespace
         run: git show --format= --check HEAD

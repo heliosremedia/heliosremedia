@@ -5,7 +5,7 @@ import test from "node:test";
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 
 test("project gallery uses a tightly aligned responsive grid while preserving other views and lightbox behavior", () => {
-  const gallery = read("../app/portfolio/[slug]/PortfolioGallery.tsx");
+  const gallery = read("../app/(public)/portfolio/[slug]/PortfolioGallery.tsx");
   assert.match(gallery, /title="Grid Gallery"/);
   assert.match(gallery, /grid grid-cols-2 gap-1 md:grid-cols-3 md:gap-2 xl:grid-cols-4/);
   assert.match(gallery, /galleryView === "gallery" \? "aspect-\[4\/3\]"/);
@@ -20,9 +20,9 @@ test("quick browse is independently configurable, progressive, and tenant isolat
   const settings = read("portfolio-discovery-settings.ts");
   const settingsEndpoint = read("../app/api/admin/portfolio-settings/route.ts");
   const query = read("portfolio-discovery.ts");
-  const portfolio = read("../app/portfolio/page.tsx");
-  const photos = read("../app/portfolio/gallery/PhotographyBrowser.tsx");
-  const films = read("../app/portfolio/films/FilmsBrowser.tsx");
+  const portfolio = read("../app/(public)/portfolio/page.tsx");
+  const photos = read("../app/(public)/portfolio/gallery/PhotographyBrowser.tsx");
+  const films = read("../app/(public)/portfolio/films/FilmsBrowser.tsx");
   assert.match(settings, /photoEnabled: boolean/);
   assert.match(settings, /filmEnabled: boolean/);
   assert.match(query, /workspaceId: options\.workspaceId, status: "PUBLISHED"/);
@@ -39,11 +39,11 @@ test("quick browse is independently configurable, progressive, and tenant isolat
   assert.match(photos, /sizes="\(max-width: 767px\) 50vw/);
   assert.doesNotMatch(photos, /max-h-\[78svh\]/);
   assert.match(films, /\/api\/portfolio\/films\?offset=/);
-  assert.doesNotMatch(read("../app/page.tsx"), /PhotographyBrowser|FilmsBrowser|Quick Browse/);
+  assert.doesNotMatch(read("../app/(public)/page.tsx"), /PhotographyBrowser|FilmsBrowser|Quick Browse/);
 });
 
 test("featured projects enforce six, require replacement confirmation, and never delete projects", () => {
-  const portfolio = read("../app/portfolio/page.tsx");
+  const portfolio = read("../app/(public)/portfolio/page.tsx");
   const manager = read("../app/admin/projects/FeaturedProjectsManager.tsx");
   const endpoint = read("../app/api/admin/projects/featured/route.ts");
   const workflow = read("../app/api/admin/projects/[projectId]/workflow/route.ts");
@@ -62,9 +62,9 @@ test("featured projects enforce six, require replacement confirmation, and never
 });
 
 test("media intent uses durable anchors, focus placement, reduced motion, and fallback", () => {
-  const portfolio = read("../app/portfolio/page.tsx");
-  const project = read("../app/portfolio/[slug]/page.tsx");
-  const navigator = read("../app/portfolio/[slug]/MediaIntentNavigator.tsx");
+  const portfolio = read("../app/(public)/portfolio/page.tsx");
+  const project = read("../app/(public)/portfolio/[slug]/page.tsx");
+  const navigator = read("../app/(public)/portfolio/[slug]/MediaIntentNavigator.tsx");
   assert.match(portfolio, /\?from=\$\{encodeURIComponent\(selectedService\.slug\)\}#/);
   assert.match(project, /id=\{collection\.anchor\}/);
   assert.match(project, /View the Complete Project/);
@@ -75,10 +75,10 @@ test("media intent uses durable anchors, focus placement, reduced motion, and fa
 });
 
 test("gallery routes provide unique metadata and defer media resources", () => {
-  assert.match(read("../app/portfolio/gallery/page.tsx"), /Real Estate Photography Gallery/);
-  assert.match(read("../app/portfolio/films/page.tsx"), /Real Estate Film Gallery/);
+  assert.match(read("../app/(public)/portfolio/gallery/page.tsx"), /Real Estate Photography Gallery/);
+  assert.match(read("../app/(public)/portfolio/films/page.tsx"), /Real Estate Film Gallery/);
   assert.match(read("../app/sitemap.ts"), /discoverySettings\.photoEnabled/);
   assert.match(read("../app/sitemap.ts"), /discoverySettings\.filmEnabled/);
-  assert.match(read("../app/portfolio/films/FilmsBrowser.tsx"), /preload="metadata"/);
-  assert.doesNotMatch(read("../app/portfolio/films/FilmsBrowser.tsx"), /autoPlay/);
+  assert.match(read("../app/(public)/portfolio/films/FilmsBrowser.tsx"), /preload="metadata"/);
+  assert.doesNotMatch(read("../app/(public)/portfolio/films/FilmsBrowser.tsx"), /autoPlay/);
 });

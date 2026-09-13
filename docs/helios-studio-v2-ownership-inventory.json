@@ -13,7 +13,7 @@
     "requiredWorkspace": 29,
     "nullableWorkspace": 19,
     "withoutWorkspace": 65,
-    "routeFiles": 141
+    "routeFiles": 144
   },
   "models": [
     {
@@ -101,6 +101,8 @@
         "socialImageMediaId"
       ],
       "sourceReferences": [
+        "app/(public)/portfolio/[slug]/page.tsx",
+        "app/(public)/portfolio/page.tsx",
         "app/admin/homepage/page.tsx",
         "app/admin/media/page.tsx",
         "app/admin/portfolio-intelligence/[projectId]/page.tsx",
@@ -127,8 +129,6 @@
         "app/api/admin/r2/presign/route.ts",
         "app/api/admin/social/campaigns/route.ts",
         "app/api/portfolio-analytics/route.ts",
-        "app/portfolio/[slug]/page.tsx",
-        "app/portfolio/page.tsx",
         "app/sitemap.ts",
         "lib/dashboard.ts",
         "lib/newsletters/content-sources.ts",
@@ -302,6 +302,7 @@
       ],
       "uniqueConstraints": [],
       "sourceReferences": [
+        "app/(public)/portfolio/page.tsx",
         "app/admin/blog/page.tsx",
         "app/admin/homepage/page.tsx",
         "app/admin/media/page.tsx",
@@ -313,7 +314,6 @@
         "app/api/admin/portfolio-settings/route.ts",
         "app/api/admin/projects/[projectId]/film-comparison/route.ts",
         "app/api/admin/projects/[projectId]/media/route.ts",
-        "app/portfolio/page.tsx",
         "lib/dashboard.ts",
         "lib/newsletters/image-validation.ts",
         "lib/portfolio-discovery.ts",
@@ -342,10 +342,10 @@
         "workspaceId, publicName"
       ],
       "sourceReferences": [
+        "app/(public)/films/page.tsx",
         "app/admin/video-offerings/page.tsx",
         "app/api/admin/projects/[projectId]/film-comparison/route.ts",
-        "app/api/admin/video-offerings/route.ts",
-        "app/films/page.tsx"
+        "app/api/admin/video-offerings/route.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     },
@@ -517,6 +517,11 @@
         "workspaceId, slug"
       ],
       "sourceReferences": [
+        "app/(public)/inquire/page.tsx",
+        "app/(public)/locations/[city]/page.tsx",
+        "app/(public)/portfolio/page.tsx",
+        "app/(public)/services/[slug]/page.tsx",
+        "app/(public)/services/page.tsx",
         "app/admin/homepage/page.tsx",
         "app/admin/projects/[projectId]/page.tsx",
         "app/admin/services/page.tsx",
@@ -529,11 +534,6 @@
         "app/api/admin/referrals/ai/route.ts",
         "app/api/admin/services/route.ts",
         "app/api/inquiries/route.ts",
-        "app/inquire/page.tsx",
-        "app/locations/[city]/page.tsx",
-        "app/portfolio/page.tsx",
-        "app/services/[slug]/page.tsx",
-        "app/services/page.tsx",
         "app/sitemap.ts",
         "lib/newsletters/content-sources.ts",
         "lib/newsletters/generation.ts"
@@ -640,10 +640,10 @@
         "slug"
       ],
       "sourceReferences": [
+        "app/(public)/faq/page.tsx",
         "app/admin/faqs/page.tsx",
         "app/api/admin/faq-categories/route.ts",
-        "app/api/admin/faqs/route.ts",
-        "app/faq/page.tsx"
+        "app/api/admin/faqs/route.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     },
@@ -692,10 +692,10 @@
         "workspaceId, externalReviewId"
       ],
       "sourceReferences": [
+        "app/(public)/page.tsx",
         "app/admin/testimonials/page.tsx",
         "app/api/admin/integrations/google-business/reviews/[reviewId]/curate/route.ts",
-        "app/api/admin/testimonials/route.ts",
-        "app/page.tsx"
+        "app/api/admin/testimonials/route.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     },
@@ -718,9 +718,9 @@
       ],
       "uniqueConstraints": [],
       "sourceReferences": [
+        "app/(public)/page.tsx",
         "app/admin/trusted-logos/page.tsx",
-        "app/api/admin/trusted-logos/route.ts",
-        "app/page.tsx"
+        "app/api/admin/trusted-logos/route.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     },
@@ -745,9 +745,9 @@
         "projectId"
       ],
       "sourceReferences": [
+        "app/(public)/page.tsx",
         "app/admin/homepage/page.tsx",
-        "app/api/admin/homepage-projects/route.ts",
-        "app/page.tsx"
+        "app/api/admin/homepage-projects/route.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     },
@@ -784,10 +784,10 @@
         "serviceId"
       ],
       "sourceReferences": [
+        "app/(public)/page.tsx",
         "app/admin/homepage/page.tsx",
         "app/api/admin/homepage-work-cards/presign/route.ts",
-        "app/api/admin/homepage-work-cards/route.ts",
-        "app/page.tsx"
+        "app/api/admin/homepage-work-cards/route.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     },
@@ -879,6 +879,8 @@
         "slug"
       ],
       "sourceReferences": [
+        "app/(public)/blog/[slug]/page.tsx",
+        "app/(public)/blog/page.tsx",
         "app/admin/blog/page.tsx",
         "app/admin/social-studio/page.tsx",
         "app/api/admin/blog/[postId]/email-draft/route.ts",
@@ -886,8 +888,6 @@
         "app/api/admin/blog/route.ts",
         "app/api/admin/blog/series/assistant/route.ts",
         "app/api/admin/newsletters/images/route.ts",
-        "app/blog/[slug]/page.tsx",
-        "app/blog/page.tsx",
         "app/sitemap.ts",
         "lib/blog-series.ts",
         "lib/newsletters/content-sources.ts",
@@ -999,13 +999,13 @@
         "slug"
       ],
       "sourceReferences": [
+        "app/(public)/client-portal/[slug]/complete-registration/page.tsx",
+        "app/(public)/client-portal/[slug]/page.tsx",
+        "app/(public)/client-portal/page.tsx",
         "app/admin/client-portals/page.tsx",
         "app/api/admin/client-portals/route.ts",
         "app/api/client-portal/challenge/route.ts",
-        "app/api/client-portal/register/route.ts",
-        "app/client-portal/[slug]/complete-registration/page.tsx",
-        "app/client-portal/[slug]/page.tsx",
-        "app/client-portal/page.tsx"
+        "app/api/client-portal/register/route.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     },
@@ -1383,10 +1383,10 @@
         "connectionId, googleReviewId"
       ],
       "sourceReferences": [
+        "app/(public)/page.tsx",
+        "app/(public)/reviews/page.tsx",
         "app/api/admin/integrations/google-business/reviews/[reviewId]/curate/route.ts",
         "app/api/admin/integrations/google-business/reviews/[reviewId]/visibility/route.ts",
-        "app/page.tsx",
-        "app/reviews/page.tsx",
         "lib/google-business-admin.ts",
         "lib/google-business-reviews.ts"
       ],
@@ -2334,7 +2334,6 @@
         "idempotencyKey"
       ],
       "sourceReferences": [
-        "app/admin/social-studio/queue/page.tsx",
         "app/api/admin/social/campaigns/[campaignId]/route.ts",
         "app/api/admin/social/connections/route.ts",
         "app/api/admin/social/publishing-jobs/route.ts",
@@ -2441,6 +2440,7 @@
         "idempotencyKey"
       ],
       "sourceReferences": [
+        "lib/social/analytics-recovery.ts",
         "lib/social/analytics.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
@@ -4325,7 +4325,8 @@
         "lib/newsletters/delivery-review.ts",
         "lib/newsletters/generation-recovery.ts",
         "lib/newsletters/missed-approval.ts",
-        "lib/portfolio-discovery-settings.ts"
+        "lib/portfolio-discovery-settings.ts",
+        "lib/social/analytics-recovery.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     },
@@ -5035,6 +5036,21 @@
       "reviewStatus": "Unverified by this inventory"
     },
     {
+      "path": "app/api/admin/social/analytics/jobs/[jobId]/recovery/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/social/analytics/jobs/route.ts",
+      "methods": [
+        "GET"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
       "path": "app/api/admin/social/analytics/route.ts",
       "methods": [
         "POST"
@@ -5117,6 +5133,13 @@
       "methods": [
         "GET",
         "POST"
+      ],
+      "reviewStatus": "Unverified by this inventory"
+    },
+    {
+      "path": "app/api/admin/social/publishing-jobs/[jobId]/review/route.ts",
+      "methods": [
+        "GET"
       ],
       "reviewStatus": "Unverified by this inventory"
     },

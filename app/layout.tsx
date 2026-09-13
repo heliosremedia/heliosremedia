@@ -1,12 +1,5 @@
-import type { Metadata, Viewport } from "next";
+import type { Viewport } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
-import Script from "next/script";
-
-import { getCanonicalAbsoluteUrl, getCanonicalSiteUrl, getVerifiedSocialProfiles } from "@/lib/site";
-import { getSiteSettings } from "@/lib/site-settings";
-import { buildPageMetadata } from "@/lib/seo";
-import { SiteSettingsProvider } from "@/app/components/SiteSettingsProvider";
-import { getPublishedLocationPages } from "@/lib/location-pages";
 
 import "./globals.css";
 
@@ -26,67 +19,8 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-export async function generateMetadata(): Promise<Metadata> {
-  const settings = await getSiteSettings();
-  const favicon = settings.faviconUrl
-    ? `${settings.faviconUrl}${settings.faviconUrl.includes("?") ? "&" : "?"}v=${settings.faviconVersion}`
-    : undefined;
-  const siteUrl = getCanonicalSiteUrl(settings.websiteUrl);
-  const base = buildPageMetadata({
-    title: settings.defaultSeoTitle,
-    description: settings.defaultSeoDescription,
-    path: "/",
-    settings,
-  });
-  return { ...base, metadataBase: new URL(siteUrl), icons: favicon ? { icon: [{ url: favicon, type: "image/png" }], shortcut: favicon, apple: favicon } : undefined };
-}
-
-export default async function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  const [settings, locations] = await Promise.all([
-    getSiteSettings(),
-    getPublishedLocationPages(),
-  ]);
-  const analyticsId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim();
-  const sameAs = getVerifiedSocialProfiles([settings.instagramUrl, settings.facebookUrl, settings.youtubeUrl, settings.linkedinUrl]);
-  const absolute = (path: string) => getCanonicalAbsoluteUrl(path, settings.websiteUrl);
-  const businessId = absolute("/#business");
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": ["LocalBusiness", "ProfessionalService"],
-        "@id": businessId,
-        name: settings.businessName,
-        url: absolute("/"),
-        telephone: settings.phoneE164,
-        email: settings.email || undefined,
-        description: settings.defaultSeoDescription,
-        image: settings.heroPosterUrl ? absolute(settings.heroPosterUrl) : undefined,
-        logo: settings.brandLogoUrl ? absolute(settings.brandLogoUrl) : undefined,
-        areaServed: { "@type": "AdministrativeArea", name: settings.serviceArea },
-        sameAs: sameAs.length ? sameAs : undefined,
-      },
-      {
-        "@type": "WebSite",
-        "@id": absolute("/#website"),
-        url: absolute("/"),
-        name: settings.businessName,
-        publisher: { "@id": businessId },
-        inLanguage: "en-US",
-      },
-    ],
-  };
-  return (
-    <html lang="en">
-      <body className={`${cormorant.variable} ${inter.variable}`}>
-        <SiteSettingsProvider settings={settings} locations={locations}>{children}</SiteSettingsProvider>
-        <Script id="helios-structured-data" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} />
-        {analyticsId ? <><Script src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(analyticsId)}`} strategy="afterInteractive" /><Script id="google-analytics" strategy="afterInteractive">{`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${analyticsId.replace(/[^A-Za-z0-9_-]/g, "")}');`}</Script></> : null}
-      </body>
-    </html>
-  );
+// Shared document structure only. Public host data belongs to (public), while
+// Studio resolves its current membership in its own layout and endpoints.
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  return <html lang="en"><body className={`${cormorant.variable} ${inter.variable}`}>{children}</body></html>;
 }
