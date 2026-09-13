@@ -3,7 +3,18 @@
   "runId": "atlas-20260913T0255",
   "expiresAt": "2026-09-13T04:15:00Z",
   "branch": "codex/v2-site-settings-write-revalidation",
-  "baseHead": "ec83cf570e577d5c5a9bc528a4ee34f93277f869",
+  "pr": 306,
+  "head": "e7deddcc930df409a75e21a4bdc4056cf7e36375",
+  "tree": "ece7b545c1c58f8dd3f9174a4b9193b7b76a73f6",
+  "localHead": "62a3c8aec50c7480e3c1b1d1ce007c4615722bb4",
+  "initialCI": {
+    "runId": 34734782933,
+    "jobId": 103664149439,
+    "tests": 711,
+    "status": "passed"
+  },
+  "localTests": 712,
   "production": "ON HOLD",
-  "nextDependency": "Site-settings transactional administrator revalidation"
+  "outstandingChanges": false,
+  "nextDependency": "Complete combined CI, then legal document scoped uniqueness and fresh atomic authorization"
 }
