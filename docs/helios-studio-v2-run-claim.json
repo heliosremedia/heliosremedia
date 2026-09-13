@@ -1,18 +1,16 @@
 {
   "status": "active",
   "runId": "atlas-20260913T0109",
-  "continuedFromRun": "atlas-20260913T0044",
   "expiresAt": "2026-09-13T02:20:00Z",
   "branch": "codex/v2-location-editor-recovery",
   "baseHead": "555cb4c2f8c03428479b34624b95d1c0346494f0",
   "baseTree": "3f2602633b0dabcc44460efca744219bc654eb7c",
-  "baseCodeCI": {
-    "runId": 34729659785,
-    "tests": 697,
+  "baseFinalCI": {
+    "runId": 34729887255,
+    "jobId": 103650598858,
     "status": "passed"
   },
-  "baseFinalCI": "pending",
-  "outstandingChanges": false,
-  "scope": "Location editor request/revision recovery, preserving draft edits through asynchronous uploads and preventing automatic retries after uncertain mutation responses; isolated browser/API tests only",
+  "outstandingChanges": true,
+  "scope": "Location editor duplicate reorder and async upload draft recovery with isolated synthetic component/browser tests; submitted browser revision contract remains open",
   "production": "ON HOLD"
 }
