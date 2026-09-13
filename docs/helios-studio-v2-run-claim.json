@@ -6,16 +6,12 @@
   "branch": "codex/v2-location-admin-ownership",
   "baseHead": "9feae23ca1b7aeb4cbd1e76a5e13b97743ef4cf3",
   "baseTree": "5978b74500b61753b918d85749511b641ece2e57",
-  "baseCodeCI": {
-    "runId": 34728677915,
+  "baseFinalCI": {
+    "runId": 34728920423,
     "tests": 689,
     "status": "passed"
   },
-  "baseFinalCI": {
-    "runId": 34728920423,
-    "status": "pending"
-  },
-  "outstandingChanges": false,
-  "scope": "Location administration fresh editor authorization, owned registered image attachment, transaction ownership predicates and retained assets; isolated tests and draft CI only",
+  "outstandingChanges": true,
+  "scope": "Location admin/editor and registered image ownership, fresh transactional writes, retained objects and read DTO filtering; initial 695 local tests passed, expanded final verification running",
   "production": "ON HOLD"
 }
