@@ -1,17 +1,18 @@
 {
   "status": "active",
-  "runId": "atlas-20260913T0044",
-  "continuedFromRun": "atlas-20260913T0012",
-  "expiresAt": "2026-09-13T02:00:00Z",
-  "branch": "codex/v2-location-admin-ownership",
-  "baseHead": "9feae23ca1b7aeb4cbd1e76a5e13b97743ef4cf3",
-  "baseTree": "5978b74500b61753b918d85749511b641ece2e57",
-  "baseFinalCI": {
-    "runId": 34728920423,
-    "tests": 689,
+  "runId": "atlas-20260913T0109",
+  "continuedFromRun": "atlas-20260913T0044",
+  "expiresAt": "2026-09-13T02:20:00Z",
+  "branch": "codex/v2-location-editor-recovery",
+  "baseHead": "555cb4c2f8c03428479b34624b95d1c0346494f0",
+  "baseTree": "3f2602633b0dabcc44460efca744219bc654eb7c",
+  "baseCodeCI": {
+    "runId": 34729659785,
+    "tests": 697,
     "status": "passed"
   },
-  "outstandingChanges": true,
-  "scope": "Location admin/editor and registered image ownership, fresh transactional writes, retained objects and read DTO filtering; initial 695 local tests passed, expanded final verification running",
+  "baseFinalCI": "pending",
+  "outstandingChanges": false,
+  "scope": "Location editor request/revision recovery, preserving draft edits through asynchronous uploads and preventing automatic retries after uncertain mutation responses; isolated browser/API tests only",
   "production": "ON HOLD"
 }
