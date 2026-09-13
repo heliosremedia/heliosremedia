@@ -115,6 +115,7 @@ export default function LocationPageManager({ initialLocations }: { initialLocat
   const reorderHeld = useRef(false);
   const uploadPending = useRef(false);
   const aiPending = useRef(false);
+  const writePending = useRef(false);
   const editorEpoch = useRef(0);
   const mutationBlocked = busy || reorderNeedsReview;
 
@@ -133,8 +134,14 @@ export default function LocationPageManager({ initialLocations }: { initialLocat
     setLocations((current) => current.map((item) => item.id === location.id ? location : item));
   }
 
+  function holdMutations(message: string) {
+    reorderHeld.current = true;
+    setReorderNeedsReview(true);
+    setError(message);
+  }
+
   async function buildPage() {
-    if (mutationBlocked || reorderPending.current || reorderHeld.current) return;
+    if (mutationBlocked || writePending.current || reorderPending.current || reorderHeld.current) return;
     if (!builder.city.trim() || !builder.county.trim()) {
       setError("Enter the city and county so the page can be built accurately.");
       return;
@@ -159,24 +166,25 @@ export default function LocationPageManager({ initialLocations }: { initialLocat
   }
 
   async function savePage() {
-    if (mutationBlocked || reorderPending.current || reorderHeld.current || uploadPending.current) return;
+    if (mutationBlocked || writePending.current || reorderPending.current || reorderHeld.current || uploadPending.current) return;
     if (!editing || !draft) return;
     const lengthErrors = Object.entries(LOCATION_FIELD_LIMITS).filter(([key, limit]) => key in draft && typeof draft[key as keyof Draft] === "string" && String(draft[key as keyof Draft] || "").length > limit);
     if (lengthErrors.length) { setError("One or more fields exceed their character limit. Shorten the highlighted fields before saving."); return; }
+    writePending.current = true;
     setBusy(true); setError(null);
     try {
       const response = await fetch("/api/admin/locations", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "update", locationId: editing.id, ...draft }),
+        headers: { "Content-Type": "application/json", "x-helios-location-revision": "1" },
+        body: JSON.stringify({ action: "update", locationId: editing.id, ...draft, expectedUpdatedAt: editing.updatedAt }),
       });
       const data = await response.json();
-      if (!response.ok || !data.success || !data.location) throw new Error(data.error || "The page could not be saved.");
+      if (!response.ok || data.success !== true || data.revisionProtocol !== 1 || data.location?.id !== editing.id || typeof data.location.updatedAt !== "string") throw new Error("SAVE_NOT_CONFIRMED");
       replaceLocation(data.location);
       closeEditor();
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The page could not be saved.");
-    } finally { setBusy(false); }
+    } catch {
+      holdMutations("The save could not be confirmed. Your draft is still here. Copy your changes before closing, then reload saved pages to review.");
+    } finally { writePending.current = false; setBusy(false); }
   }
 
   async function generateDraft() {
@@ -206,7 +214,7 @@ export default function LocationPageManager({ initialLocations }: { initialLocat
   }
 
   async function uploadFeatureImage(file: File) {
-    if (!editing || !draft || uploadPending.current || mutationBlocked) return;
+    if (!editing || !draft || writePending.current || uploadPending.current || mutationBlocked) return;
     uploadPending.current = true;
     const epoch = editorEpoch.current;
     setUploadBusy(true); setError(null);
@@ -226,46 +234,52 @@ export default function LocationPageManager({ initialLocations }: { initialLocat
   }
 
   async function togglePublished(location: AdminLocationPage) {
-    if (mutationBlocked || reorderPending.current || reorderHeld.current) return;
+    if (mutationBlocked || writePending.current || reorderPending.current || reorderHeld.current) return;
+    writePending.current = true;
     setBusy(true); setError(null);
     try {
       const response = await fetch("/api/admin/locations", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "publish", locationId: location.id, published: !location.published }),
+        headers: { "Content-Type": "application/json", "x-helios-location-revision": "1" },
+        body: JSON.stringify({ action: "publish", locationId: location.id, published: !location.published, expectedUpdatedAt: location.updatedAt }),
       });
       const data = await response.json();
-      if (!response.ok || !data.success || !data.location) throw new Error(data.error || "The page status could not be changed.");
+      if (!response.ok || data.success !== true || data.revisionProtocol !== 1 || data.location?.id !== location.id || data.location.published !== !location.published || typeof data.location.updatedAt !== "string") throw new Error("PUBLICATION_NOT_CONFIRMED");
       replaceLocation(data.location);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The page status could not be changed.");
-    } finally { setBusy(false); }
+    } catch {
+      holdMutations("The page status could not be confirmed. Reload saved pages before making more changes.");
+    } finally { writePending.current = false; setBusy(false); }
   }
 
   async function reorder(location: AdminLocationPage, direction: "up" | "down") {
-    if (mutationBlocked || reorderPending.current || reorderHeld.current || editing || showBuilder) return;
+    if (mutationBlocked || writePending.current || reorderPending.current || reorderHeld.current || editing || showBuilder) return;
     const index = locations.findIndex((item) => item.id === location.id);
     const target = direction === "up" ? index - 1 : index + 1;
     if (index < 0 || target < 0 || target >= locations.length) return;
     reorderPending.current = true;
     setBusy(true); setError(null);
-    const next = [...locations];
-    [next[index], next[target]] = [next[target], next[index]];
     try {
       const response = await fetch("/api/admin/locations", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "reorder", locationId: location.id, direction }),
+        headers: { "Content-Type": "application/json", "x-helios-location-revision": "1" },
+        body: JSON.stringify({ action: "reorder", locationId: location.id, direction, expectedUpdatedAt: location.updatedAt,
+          expectedOrder: locations.map(item => ({ id: item.id, updatedAt: item.updatedAt })) }),
       });
       const data = await response.json().catch(() => null);
-      if (!response.ok || data?.success !== true) throw new Error("ORDER_NOT_CONFIRMED");
+      if (!response.ok || data?.success !== true || data.revisionProtocol !== 1 || !Array.isArray(data.order) || data.order.length !== locations.length) throw new Error("ORDER_NOT_CONFIRMED");
+      const byId = new Map(locations.map(item => [item.id, item]));
+      const next = data.order.map((item: { id?: unknown; updatedAt?: unknown; displayOrder?: unknown }) => {
+        if (!item || typeof item.id !== "string" || typeof item.updatedAt !== "string" || !Number.isFinite(Date.parse(item.updatedAt)) || !Number.isInteger(item.displayOrder)) throw new Error("ORDER_NOT_CONFIRMED");
+        const current = byId.get(item.id);
+        if (!current) throw new Error("ORDER_NOT_CONFIRMED");
+        byId.delete(item.id);
+        return { ...current, updatedAt: item.updatedAt, displayOrder: item.displayOrder as number };
+      });
       setLocations(next);
     } catch {
       // A missing acknowledgement is not proof of rollback. Do not replay the
       // mutation or replace the saved server order with another optimistic write.
-      reorderHeld.current = true;
-      setReorderNeedsReview(true);
-      setError("The page order could not be confirmed. Reload saved pages before making more changes.");
+      holdMutations("The page order could not be confirmed. Reload saved pages before making more changes.");
     } finally {
       reorderPending.current = false;
       setBusy(false);
@@ -273,17 +287,19 @@ export default function LocationPageManager({ initialLocations }: { initialLocat
   }
 
   async function remove(location: AdminLocationPage) {
-    if (mutationBlocked || reorderPending.current || reorderHeld.current) return;
+    if (mutationBlocked || writePending.current || reorderPending.current || reorderHeld.current) return;
     if (!window.confirm(`Permanently delete the ${location.city} local page? This cannot be undone.`)) return;
+    writePending.current = true;
     setBusy(true); setError(null);
     try {
-      const response = await fetch(`/api/admin/locations?locationId=${encodeURIComponent(location.id)}`, { method: "DELETE" });
+      const response = await fetch(`/api/admin/locations?locationId=${encodeURIComponent(location.id)}`, { method: "DELETE",
+        headers: { "x-helios-location-revision": "1", "x-helios-location-updated-at": location.updatedAt } });
       const data = await response.json();
-      if (!response.ok || !data.success) throw new Error(data.error || "The page could not be deleted.");
+      if (!response.ok || data.success !== true || data.revisionProtocol !== 1 || data.locationId !== location.id) throw new Error("DELETE_NOT_CONFIRMED");
       setLocations((current) => current.filter((item) => item.id !== location.id));
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The page could not be deleted.");
-    } finally { setBusy(false); }
+    } catch {
+      holdMutations("Deletion could not be confirmed. Reload saved pages before making more changes.");
+    } finally { writePending.current = false; setBusy(false); }
   }
 
   return (
@@ -294,7 +310,7 @@ export default function LocationPageManager({ initialLocations }: { initialLocat
             <p className="text-lg text-white">{locations.length} local {locations.length === 1 ? "page" : "pages"}</p>
             <p className="mt-1 text-xs text-white/30">{locations.filter((item) => item.published).length} published · {locations.filter((item) => !item.published).length} drafts</p>
           </div>
-          <button type="button" disabled={mutationBlocked} onClick={() => { if (mutationBlocked || reorderPending.current || reorderHeld.current) return; setShowBuilder(true); setError(null); }} className="admin-btn-primary">
+          <button type="button" disabled={mutationBlocked} onClick={() => { if (mutationBlocked || writePending.current || reorderPending.current || reorderHeld.current) return; setShowBuilder(true); setError(null); }} className="admin-btn-primary">
             Build a local page
           </button>
         </div>
@@ -319,7 +335,7 @@ export default function LocationPageManager({ initialLocations }: { initialLocat
             </div>
             <div className="flex flex-wrap gap-2 sm:justify-end">
               {location.published ? <Link href={`/locations/${location.slug}`} target="_blank" className="admin-btn-secondary">View</Link> : null}
-              <button type="button" disabled={mutationBlocked} onClick={() => { if (!mutationBlocked && !reorderPending.current && !reorderHeld.current) openEditor(location); }} className="admin-btn-secondary">Edit</button>
+              <button type="button" disabled={mutationBlocked} onClick={() => { if (!mutationBlocked && !writePending.current && !reorderPending.current && !reorderHeld.current) openEditor(location); }} className="admin-btn-secondary">Edit</button>
               <button type="button" disabled={mutationBlocked} onClick={() => togglePublished(location)} className="admin-btn-primary">{location.published ? "Unpublish" : "Publish"}</button>
               <button type="button" disabled={mutationBlocked} onClick={() => remove(location)} className="px-3 text-[0.58rem] font-semibold uppercase tracking-[0.14em] text-red-200/35 transition hover:text-red-200">Delete</button>
             </div>
@@ -352,8 +368,9 @@ export default function LocationPageManager({ initialLocations }: { initialLocat
           <div role="dialog" aria-modal="true" aria-labelledby="editor-title" className="mx-auto max-w-4xl rounded-2xl border border-white/10 bg-[#111113] p-6 shadow-2xl sm:p-8">
             <div className="flex items-start justify-between gap-6">
               <div><p className="eyebrow text-[var(--helios-orange)]">Local page editor</p><h2 id="editor-title" className="mt-3 text-3xl font-light text-white">{editing.city}</h2></div>
-              <button type="button" onClick={closeEditor} className="text-2xl text-white/35 hover:text-white" aria-label="Close editor">×</button>
+              <button type="button" disabled={busy} onClick={() => { if (!writePending.current) closeEditor(); }} className="text-2xl text-white/35 hover:text-white" aria-label="Close editor">×</button>
             </div>
+            <fieldset disabled={busy} className="min-w-0 border-0 p-0" aria-label="Location draft fields">
             <section className="mt-8 rounded-2xl border border-[var(--helios-orange)]/20 bg-[var(--helios-orange)]/[0.035] p-5 sm:p-6" aria-labelledby="location-assistant-title">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div><p className="eyebrow text-[var(--helios-orange)]">Write with AI</p><h3 id="location-assistant-title" className="mt-2 text-2xl font-light text-white">Location Page Assistant</h3><p className="mt-2 max-w-2xl text-sm leading-6 text-white/40">Create a locally specific draft using this location, your company services, and any direction you provide. Review every field before saving or publishing.</p></div>
@@ -392,9 +409,10 @@ export default function LocationPageManager({ initialLocations }: { initialLocat
             </div>
             {error ? <p className="mt-6 rounded-xl border border-red-300/15 bg-red-300/[0.05] px-4 py-3 text-sm text-red-200/75">{error}</p> : null}
             <div className="mt-8 flex flex-wrap justify-end gap-3">
-              <button type="button" disabled={busy} onClick={closeEditor} className="admin-btn-secondary">Cancel</button>
+              <button type="button" disabled={busy} onClick={() => { if (!writePending.current) closeEditor(); }} className="admin-btn-secondary">Cancel</button>
               <button type="button" disabled={mutationBlocked || uploadBusy} onClick={savePage} className="admin-btn-primary">{busy ? "Saving…" : "Save draft"}</button>
             </div>
+            </fieldset>
           </div>
         </div>
       ) : null}

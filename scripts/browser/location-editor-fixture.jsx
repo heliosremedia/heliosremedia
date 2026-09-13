@@ -9,7 +9,7 @@ const row = { slug: "town", state: "State", county: "County", heroLead: "Origina
   published: false, createdAt: "2026-09-13T00:00:00.000Z", updatedAt: "2026-09-13T00:00:00.000Z" };
 const fixture = window.locationFixture = { calls: [], mode: "success", pending: null, upload: null, ai: null };
 window.fetch = async (url, options = {}) => {
-  fixture.calls.push({ url, method: options.method, body: options.method === "PUT" ? "synthetic-file" : options.body });
+  fixture.calls.push({ url, method: options.method, headers: options.headers, body: options.method === "PUT" ? "synthetic-file" : options.body });
   if (url === "/api/admin/locations" && options.method === "PATCH" && JSON.parse(options.body).action === "reorder") {
     await new Promise(resolve => { fixture.pending = resolve; });
     fixture.pending = null;
@@ -17,7 +17,23 @@ window.fetch = async (url, options = {}) => {
     if (fixture.mode === "conflict") return Response.json({ success: false, error: "PRIVATE synthetic conflict" }, { status: 409 });
     if (fixture.mode === "non-json") return new Response("Synthetic invalid response", { status: 200 });
     if (fixture.mode === "negative") return Response.json({ success: false });
-    return Response.json({ success: true });
+    if (fixture.mode === "legacy-order") return Response.json({ success: true });
+    if (fixture.mode === "foreign-order") return Response.json({ success: true, revisionProtocol: 1, order: [
+      { id: "foreign", displayOrder: 0, updatedAt: row.updatedAt }, { id: "one", displayOrder: 1, updatedAt: row.updatedAt },
+    ] });
+    return Response.json({ success: true, revisionProtocol: 1, order: [
+      { id: "two", displayOrder: 0, updatedAt: "2026-09-13T01:00:00.000Z" }, { id: "one", displayOrder: 1, updatedAt: "2026-09-13T01:00:00.000Z" },
+    ] });
+  }
+  if (url === "/api/admin/locations" && options.method === "PATCH") {
+    const body = JSON.parse(options.body);
+    if (!["update", "publish"].includes(body.action)) throw new Error("Unexpected synthetic mutation");
+    await new Promise(resolve => { fixture.pending = resolve; }); fixture.pending = null;
+    if (fixture.mode === "save-conflict") return Response.json({ success: false, error: "PRIVATE conflict" }, { status: 409 });
+    if (fixture.mode === "save-lost-ack") throw new Error("Synthetic lost save acknowledgement");
+    const location = { ...row, id: body.locationId, city: body.locationId === "one" ? "One" : "Two", displayOrder: 0, ...body, updatedAt: "2026-09-13T02:00:00.000Z" };
+    if (fixture.mode === "save-legacy") return Response.json({ success: true, location });
+    return Response.json({ success: true, revisionProtocol: 1, location });
   }
   if (url === "/api/admin/locations/presign" && options.method === "POST") return Response.json({ success: true,
     upload: { key: "workspaces/synthetic/locations/one.png", publicUrl: "/synthetic-image", uploadUrl: "/synthetic-upload", contentType: "image/png" } });

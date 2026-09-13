@@ -11,7 +11,7 @@ export default async function LocalPagesAdminPage() {
   const session = await requireAdminSession();
   const locations = await prisma.locationPage.findMany({
     where: { workspaceId: session.workspaceId },
-    orderBy: [{ displayOrder: "asc" }, { city: "asc" }],
+    orderBy: [{ displayOrder: "asc" }, { city: "asc" }, { id: "asc" }],
   });
 
   const serialized: AdminLocationPage[] = locations.map((location) => {
