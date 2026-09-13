@@ -28,7 +28,7 @@ type Route = { PATCH(request: Request): Promise<Response> };
 function fixture() {
   const actor = { userId: 'operator', workspaceId: 'b', sessionVersion: 7, role: 'EDITOR' };
   const state = { session: actor as typeof actor | null, tenant: true, companies: [{ id: 'a' }, { id: 'b' }],
-    exists: true, revision: 1, writes: 0, headChecks: 0, freshRole: 'EDITOR', membershipStatus: 'ACTIVE',
+    exists: true, owner: 'b', revision: 1, writes: 0, headChecks: 0, freshRole: 'EDITOR', membershipStatus: 'ACTIVE',
     assetOwner: 'b', assetStatus: 'UPLOAD_PROVISIONED', registered: true,
     beforeWrite: () => {}, events: [] as string[], result: {} as Record<string, unknown>, logs: [] as unknown[],
     current: { featuredFilmVideoStorageKey: legacy.key, featuredFilmVideoUrl: legacy.url, featuredFilmPosterStorageKey: null as string | null, featuredFilmPosterUrl: null as string | null } };
@@ -48,7 +48,7 @@ function fixture() {
     workspace: { findMany: async () => state.companies },
     siteSettings: { findUnique: async ({ where }: { where: { workspaceId: string } }) => {
       assert.equal(where.workspaceId, 'b'); state.events.push('read-owned');
-      return state.exists ? { id: 'settings-b', updatedAt: new Date(state.revision), ...state.current } : null;
+      return state.exists ? { id: 'settings-b', workspaceId: state.owner, updatedAt: new Date(state.revision), ...state.current } : null;
     } },
     workspaceAsset: { findUnique: async ({ where }: { where: { provider_providerNamespace_providerKey: { providerKey: string } } }) => {
       const key = where.provider_providerNamespace_providerKey.providerKey;
@@ -58,13 +58,15 @@ function fixture() {
     $transaction: async (fn: (tx: unknown) => Promise<void>) => {
       state.beforeWrite();
       const tx = {
+        workspace: { findMany: async () => state.companies },
         $queryRaw: async () => { state.events.push('lock'); return []; },
         adminUser: { findFirst: async () => ({ id: actor.userId, active: true, workspaceId: 'b', role: 'OWNER', sessionVersion: 7 }) },
         workspaceMembership: { findUnique: async () => ({ userId: actor.userId, workspaceId: 'b', status: state.membershipStatus, role: state.freshRole }) },
         siteSettings: {
-          updateMany: async ({ where, data }: { where: { AND: [{ workspaceId: string }, { id: string; updatedAt: Date }] }; data: Record<string, unknown> }) => {
+          updateMany: async ({ where, data }: { where: { AND: [{ workspaceId: string }, { id: string; workspaceId?: string; updatedAt: Date }] }; data: Record<string, unknown> }) => {
             assert.equal(where.AND[0].workspaceId, 'b'); assert.equal(where.AND[1].id, 'settings-b');
             if (where.AND[1].updatedAt.getTime() !== state.revision) return { count: 0 };
+            if (where.AND[1].workspaceId !== undefined && where.AND[1].workspaceId !== state.owner) return { count: 0 };
             state.writes++; state.result = data; return { count: 1 };
           },
           create: async ({ data }: { data: Record<string, unknown> }) => {
@@ -145,6 +147,20 @@ test('featured-film mutation preserves exact legacy references, creates scoped i
   assert.equal((await f.route.PATCH(request())).status, 500);
   assert.equal(f.state.writes, writes);
   assert.doesNotMatch(JSON.stringify(f.state.logs), /Legacy settings require|workspace:b/);
+});
+
+test('featured-film revalidates singleton mode and advances its settings revision', async () => {
+  const mode = fixture(); mode.state.companies = [{ id: 'b' }];
+  mode.state.beforeWrite = () => { mode.state.tenant = false; };
+  assert.equal((await mode.route.PATCH(request())).status, 409);
+  assert.equal(mode.state.writes, 0);
+  const owned = fixture(); owned.state.beforeWrite = () => { owned.state.owner = 'a'; };
+  assert.equal((await owned.route.PATCH(request())).status, 409); assert.equal(owned.state.writes, 0);
+  const revision = fixture(); revision.state.revision = Date.now() + 60000;
+  const response = await revision.route.PATCH(request());
+  assert.equal(response.status, 200);
+  assert.equal((revision.state.result.updatedAt as Date).getTime(), revision.state.revision + 1);
+  assert.equal(Object.keys((await response.json()).settings).length, 6, 'internal revision does not expand film DTO');
 });
 
 test('featured-film presign registers workspace identity before signing and validates kind, size and local role', async () => {

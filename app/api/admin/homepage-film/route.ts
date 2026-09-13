@@ -20,7 +20,7 @@ export async function PATCH(request: Request) {
     const body = input as Record<string, unknown>;
     const target = await getSiteSettingsWriteTarget(session.workspaceId);
     const existing = await prisma.siteSettings.findUnique({ where: target.where, select: {
-      id: true, updatedAt: true, featuredFilmVideoStorageKey: true, featuredFilmVideoUrl: true,
+      id: true, workspaceId: true, updatedAt: true, featuredFilmVideoStorageKey: true, featuredFilmVideoUrl: true,
       featuredFilmPosterStorageKey: true, featuredFilmPosterUrl: true,
     } });
     const video = resolveFeaturedFilmAsset(session.workspaceId, "video", { key: value(body.featuredFilmVideoStorageKey), url: value(body.featuredFilmVideoUrl) },
@@ -40,11 +40,15 @@ export async function PATCH(request: Request) {
     await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "site-featured-film", key: poster.key, existingKey: existing?.featuredFilmPosterStorageKey });
     await prisma.$transaction(async tx => {
       await requireLockedWorkspaceEditor(tx, session);
+      const currentTarget = await getSiteSettingsWriteTarget(session.workspaceId, tx);
+      if (JSON.stringify(currentTarget) !== JSON.stringify(target)) throw new Error("FILM_SETTINGS_CHANGED");
       if (existing) {
-        const changed = await tx.siteSettings.updateMany({ where: { AND: [target.where, { id: existing.id, updatedAt: existing.updatedAt }] }, data });
+        const changed = await tx.siteSettings.updateMany({ where: { AND: [currentTarget.where, { id: existing.id, workspaceId: existing.workspaceId, updatedAt: existing.updatedAt }] }, data: {
+          ...data, updatedAt: new Date(Math.max(Date.now(), existing.updatedAt.getTime() + 1)),
+        } });
         if (changed.count !== 1) throw new Error("FILM_SETTINGS_CHANGED");
       } else {
-        await tx.siteSettings.create({ data: { ...target.createIdentity, ...data }, select: { id: true } });
+        await tx.siteSettings.create({ data: { ...currentTarget.createIdentity, ...data }, select: { id: true } });
       }
     });
     // Retain replaced/shared objects until registry usage and retention prove deletion safe.
@@ -52,7 +56,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ success: true, settings: data });
   } catch (error) {
     if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
-    if (error instanceof Error && error.message === "FILM_SETTINGS_CHANGED") return NextResponse.json({ success: false, error: "Settings changed while this film was checked. Reload before saving again." }, { status: 409 });
+    if ((error instanceof Error && error.message === "FILM_SETTINGS_CHANGED") || (typeof error === "object" && error !== null && "code" in error && error.code === "P2002")) return NextResponse.json({ success: false, error: "Settings changed while this film was checked. Reload before saving again." }, { status: 409 });
     if (error instanceof Error && ["INVALID_VALUE", "INVALID_BRAND_IMAGE"].includes(error.message)) return NextResponse.json({ success: false, error: "One or more featured-film values are invalid." }, { status: 400 });
     console.error("Unable to update homepage featured film", { category: "request_failed" });
     return NextResponse.json({ success: false, error: "The featured film settings could not be saved." }, { status: 500 });

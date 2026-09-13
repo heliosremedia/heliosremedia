@@ -26,6 +26,8 @@ test("settings targets never reassign a foreign default and allocate distinct te
   assert.equal(legacy.where.id, "default"); assert.equal(legacy.where.OR[0].workspaceId, "a"); assert.equal(legacy.where.OR[1].workspaceId, null);
   rows = [{ id: "a" }, { id: "b" }]; await assert.rejects(loaded.getWorkspaceSingletonTarget("a"));
   rows = [{ id: "b" }]; await assert.rejects(loaded.getWorkspaceSingletonTarget("a"));
+  const transactional = await loaded.getWorkspaceSingletonTarget("a", { workspace: { findMany: async () => [{ id: "a" }] } }) as typeof legacy;
+  assert.equal(transactional.where.id, "default", "transaction resolution uses its provided client, not the global delegate");
   await assert.rejects(loaded.getWorkspaceSingletonTarget(""));
 });
 
@@ -49,6 +51,7 @@ test("full settings save rejects foreign keys before storage access and derives 
     const loaded = load("../app/api/admin/site-settings/route.ts", {
       "next/cache": { revalidatePath() {} }, "next/server": { NextResponse: { json: (body: unknown, init?: ResponseInit) => Response.json(body, init) } },
       "@/lib/auth/session": { getAdminSession: async () => ({ role: "ADMIN", workspaceId: "a" }) },
+      "@/lib/workspace-write-access": { requireLockedWorkspaceAdministrator: async () => {} },
       "@/lib/site-settings-ownership": { getSiteSettingsWriteTarget: async () => ({ where: { workspaceId: "a" }, createIdentity: { id: "workspace:a", workspaceId: "a" } }) },
       "@/lib/workspace-context-core": { tenantContextEnabled: () => true },
       "@/lib/workspace-brand-storage": brandPolicy,
@@ -56,11 +59,12 @@ test("full settings save rejects foreign keys before storage access and derives 
       "@/lib/r2-upload": { getPublicAssetUrl: (key: string) => `https://assets.example/${key}` },
       "@/lib/workspace-brand-assets": { verifyRegisteredBrandImage: async (input: { key: string | null }) => { if (input.key && company === "unregistered") throw new Error("INVALID_BRAND_IMAGE"); if (input.key) checks++; } },
       "@/lib/content-image-storage": { verifyContentImage: async (key: string | null) => { if (key) checks++; }, deleteContentImage: async () => { throw new Error("Deletion is forbidden"); } },
-      "@/lib/prisma": { prisma: { siteSettings: {
-        findUnique: async ({ where }: { where: { workspaceId: string } }) => { assert.equal(where.workspaceId, "a"); return null; },
-        upsert: async ({ where, update }: { where: { workspaceId: string }; update: { brandLogoUrl: string; workspaceId?: string } }) => {
-          assert.equal(where.workspaceId, "a"); assert.equal(update.workspaceId, undefined); assert.equal(update.brandLogoUrl, "https://assets.example/workspaces/a/site-brand/logo.png"); writes++; return {};
+      "@/lib/prisma": { prisma: { $transaction: async (fn: (tx: unknown) => Promise<unknown>) => fn({ siteSettings: {
+        create: async ({ data }: { data: { workspaceId: string; brandLogoUrl: string } }) => {
+          assert.equal(data.workspaceId, "a"); assert.equal(data.brandLogoUrl, "https://assets.example/workspaces/a/site-brand/logo.png"); writes++; return {};
         },
+      } }), siteSettings: {
+        findUnique: async ({ where }: { where: { workspaceId: string } }) => { assert.equal(where.workspaceId, "a"); return null; },
       } } },
     });
     const body = { businessName: "Company A", phoneDisplay: "+15555555555", phoneE164: "+15555555555", bookingMode: "ONLINE", locationLabel: "City", serviceArea: "Area", defaultSeoTitle: "Company A", defaultSeoDescription: "Description", standardPrinciples: [], approachCards: [], headerNavigation: [], footerNavigation: [], brandLogoStorageKey: `workspaces/${company === "unregistered" ? "a" : company}/site-brand/logo.png`, brandLogoUrl: "https://forged.example/logo.png" };
