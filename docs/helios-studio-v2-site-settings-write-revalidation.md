@@ -30,7 +30,7 @@ Legacy tests cover nullable identity preservation, a second company appearing be
 
 The isolated PGlite test executes the real route and membership lock SQL through narrow query adapters. It proves rollback after update/readback failure, all three successful scopes, a competing revision, editor demotion, revocation, and preservation of the second company's row. It is not generated Prisma, simultaneous hosted concurrency, authenticated HTTP/browser, Neon or a real provider test.
 
-The initial expanded local suite passed 711/711. The combined suite adds one featured-film regression; final TypeScript, scoped lint, whitespace and fresh draft CI are recorded in the progress ledger and canonical claim when complete. Existing CI browser checks cover recovery/location and anonymous Next.js entry, not this authenticated settings workflow.
+The initial expanded suite passed 711/711 locally and in run 34734782933. Combined code `e7deddcc930df409a75e21a4bdc4056cf7e36375` passed 712/712 locally and in [run 34734956830](https://github.com/heliosremedia/heliosremedia/actions/runs/34734956830), job 103664601095. Prisma generation, route generation/non-incremental TypeScript, recovery/location Chromium, anonymous Next.js HTTP/Chromium and whitespace all passed. Scoped lint passed locally. These existing CI browser checks do not verify this authenticated settings workflow. Final documentation head/CI are recorded in the canonical claim.
 
 ## Rollback and open gates
 
