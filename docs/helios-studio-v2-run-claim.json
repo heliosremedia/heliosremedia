@@ -3,14 +3,18 @@
   "runId": "atlas-20260913T0109",
   "expiresAt": "2026-09-13T02:20:00Z",
   "branch": "codex/v2-location-editor-recovery",
-  "baseHead": "555cb4c2f8c03428479b34624b95d1c0346494f0",
-  "baseTree": "3f2602633b0dabcc44460efca744219bc654eb7c",
-  "baseFinalCI": {
-    "runId": 34729887255,
-    "jobId": 103650598858,
-    "status": "passed"
+  "pr": 304,
+  "head": "375aaa02889836520264d7b51c5bcf475ebc8f83",
+  "tree": "ac0b4ed5962152128b02e3c3278090c530fb1524",
+  "localHead": "841a6ed7861731bad79c8b40ddcf9aa28e9d11e9",
+  "initialCI": {
+    "runId": 34730609709,
+    "tests": 700,
+    "status": "passed",
+    "chromium": "passed"
   },
-  "outstandingChanges": true,
-  "scope": "Location editor duplicate reorder and async upload draft recovery with isolated synthetic component/browser tests; submitted browser revision contract remains open",
+  "finalCI": "pending",
+  "outstandingChanges": false,
+  "scope": "Final combined 701-test AI/upload/reorder editor recovery verification; no submitted browser revision implementation",
   "production": "ON HOLD"
 }
