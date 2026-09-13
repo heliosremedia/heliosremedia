@@ -1,20 +1,29 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-20260913T0109",
-  "expiresAt": "2026-09-13T02:20:00Z",
+  "releasedAt": "2026-09-13T01:42:00Z",
+  "expiresAt": null,
   "branch": "codex/v2-location-editor-recovery",
   "pr": 304,
-  "head": "375aaa02889836520264d7b51c5bcf475ebc8f83",
-  "tree": "ac0b4ed5962152128b02e3c3278090c530fb1524",
-  "localHead": "841a6ed7861731bad79c8b40ddcf9aa28e9d11e9",
-  "initialCI": {
-    "runId": 34730609709,
-    "tests": 700,
+  "head": "c36b1b7e7eaeddc9c33577b96cf55db0f2ccddcd",
+  "tree": "c65edfe3c4845d3c4fe14a74b2cbc2cc7b879aef",
+  "localHead": "0ec551a92c076074d6d914800937ef676ab6c128",
+  "codeHead": "375aaa02889836520264d7b51c5bcf475ebc8f83",
+  "codeCI": {
+    "runId": 34730772115,
+    "jobId": 103653026224,
+    "tests": 701,
     "status": "passed",
     "chromium": "passed"
   },
-  "finalCI": "pending",
+  "finalHeadCI": {
+    "runId": 34731024722,
+    "jobId": 103653709549,
+    "status": "passed",
+    "allSteps": "passed"
+  },
   "outstandingChanges": false,
-  "scope": "Final combined 701-test AI/upload/reorder editor recovery verification; no submitted browser revision implementation",
-  "production": "ON HOLD"
+  "nextDependency": "Location browser revision and authoritative reorder response contract, with two-client conflicts, compatibility, uncertain acknowledgement and unsaved-draft preservation; registry lifecycle and hosted full-stack gates remain open",
+  "phase": "Phase 1 exit open alongside Phase 2; later phases incomplete",
+  "production": "ON HOLD until readiness and Jake QA/release decision"
 }
