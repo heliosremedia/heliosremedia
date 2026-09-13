@@ -3,8 +3,16 @@
   "runId": "atlas-20260913T0012",
   "expiresAt": "2026-09-13T01:30:00Z",
   "branch": "codex/v2-public-studio-layout-boundary",
-  "baseHead": "78a4e5da5379728c45155f2082f4dc835adb53af",
-  "outstandingChanges": true,
-  "scope": "Public/Studio route layouts, tenant location scope and actual isolated Next.js HTTP/Chromium checks; 688 local tests passed; serial type generation verification in progress",
+  "pr": 302,
+  "head": "9feae23ca1b7aeb4cbd1e76a5e13b97743ef4cf3",
+  "tree": "5978b74500b61753b918d85749511b641ece2e57",
+  "codeHead": "4bef128f1dc6c828e5f7e259b205c815bdbbd717",
+  "codeCI": {
+    "runId": 34728677915,
+    "tests": 689,
+    "status": "passed"
+  },
+  "outstandingChanges": false,
+  "scope": "Final documentation-head CI verification; next location administration ownership and retained media",
   "production": "ON HOLD"
 }
