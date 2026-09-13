@@ -1,29 +1,15 @@
 {
-  "status": "released",
-  "runId": "atlas-20260913T0109",
-  "releasedAt": "2026-09-13T01:42:00Z",
-  "expiresAt": null,
-  "branch": "codex/v2-location-editor-recovery",
-  "pr": 304,
-  "head": "c36b1b7e7eaeddc9c33577b96cf55db0f2ccddcd",
-  "tree": "c65edfe3c4845d3c4fe14a74b2cbc2cc7b879aef",
-  "localHead": "0ec551a92c076074d6d914800937ef676ab6c128",
-  "codeHead": "375aaa02889836520264d7b51c5bcf475ebc8f83",
-  "codeCI": {
-    "runId": 34730772115,
-    "jobId": 103653026224,
-    "tests": 701,
-    "status": "passed",
-    "chromium": "passed"
-  },
-  "finalHeadCI": {
+  "status": "active",
+  "runId": "atlas-20260913T0143",
+  "expiresAt": "2026-09-13T03:00:00Z",
+  "branch": "codex/v2-location-browser-revisions",
+  "baseHead": "c36b1b7e7eaeddc9c33577b96cf55db0f2ccddcd",
+  "baseTree": "c65edfe3c4845d3c4fe14a74b2cbc2cc7b879aef",
+  "baseFinalCI": {
     "runId": 34731024722,
-    "jobId": 103653709549,
-    "status": "passed",
-    "allSteps": "passed"
+    "status": "passed"
   },
   "outstandingChanges": false,
-  "nextDependency": "Location browser revision and authoritative reorder response contract, with two-client conflicts, compatibility, uncertain acknowledgement and unsaved-draft preservation; registry lifecycle and hosted full-stack gates remain open",
-  "phase": "Phase 1 exit open alongside Phase 2; later phases incomplete",
-  "production": "ON HOLD until readiness and Jake QA/release decision"
+  "scope": "Submitted location browser revisions and authoritative reorder responses, isolated conflict and UI recovery verification",
+  "production": "ON HOLD"
 }
