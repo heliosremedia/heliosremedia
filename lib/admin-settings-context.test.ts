@@ -228,3 +228,39 @@ test('Referral AI retains singleton containment and scopes allowed source select
     assert.doesNotMatch(JSON.stringify(f.state.logs), /PRIVATE/);
   } finally { await f.db.close(); }
 });
+
+test('Google review admin display policy cannot select another company default in tenant mode', async () => {
+  const f = await fixture();
+  try {
+    await f.db.exec(`ALTER TABLE "SiteSettings" ADD COLUMN "googleReviewDisplayMode" TEXT;
+      UPDATE "SiteSettings" SET "googleReviewDisplayMode" = CASE WHEN "workspaceId" = 'a' THEN 'FOUR_AND_FIVE' ELSE 'FIVE_ONLY' END`);
+    const assertWorkspace = ({ where }: { where: { workspaceId: string } }) => { assert.equal(where.workspaceId, 'b'); };
+    let configurationReads = 0;
+    const state = load<{ getGoogleBusinessAdminState(session: unknown): Promise<{ googleReviewDisplayMode: string; reviews: Array<{ shownPublicly: boolean }>; authorized: boolean }> }>('./google-business-admin.ts', {
+      ...f.modules,
+      '@/lib/google-business-reviews': { googleOAuthConfiguration: () => { configurationReads++; return { configured: true }; } },
+      '@/lib/google-business-public': load('./google-business-public.ts', {}),
+      '@/lib/prisma': { prisma: {
+        googleBusinessConnection: { findUnique: async (input: { where: { workspaceId: string } }) => { assertWorkspace(input); return { status: 'CONNECTED' }; } },
+        googleBusinessReview: {
+          findMany: async (input: { where: { workspaceId: string } }) => { assertWorkspace(input); return [{ starRating: 4, syncStatus: 'CURRENT', reviewText: 'Company B review', publicVisibilityOverride: null }]; },
+          count: async (input: { where: { workspaceId: string } }) => { assertWorkspace(input); return 1; },
+        },
+        siteSettings: { findFirst: async ({ where }: { where: { workspaceId?: string; OR?: Array<{ workspaceId?: string; id?: string }> } }) => {
+          const workspaceId = where.workspaceId ?? where.OR?.find(item => item.workspaceId)?.workspaceId;
+          return (await f.db.query('SELECT "googleReviewDisplayMode" FROM "SiteSettings" WHERE "workspaceId" = $1 OR id = $2 ORDER BY id LIMIT 1', [workspaceId, where.OR ? 'default' : null])).rows[0] ?? null;
+        } },
+      } },
+    });
+    const actor = { workspaceId: 'b', role: 'EDITOR' };
+    const result = await state.getGoogleBusinessAdminState(actor);
+    assert.equal(result.googleReviewDisplayMode, 'FIVE_ONLY');
+    assert.equal(result.reviews[0].shownPublicly, false);
+    assert.equal(result.authorized, false, 'existing administrator-only integration management is preserved');
+    await f.db.exec(`DELETE FROM "SiteSettings" WHERE "workspaceId" = 'b'`);
+    await assert.rejects(state.getGoogleBusinessAdminState(actor), /Workspace review display settings are not configured/);
+    f.state.tenant = false;
+    assert.equal((await state.getGoogleBusinessAdminState(actor)).reviews[0].shownPublicly, true, 'legacy policy fallback unchanged');
+    assert.equal(configurationReads, 3);
+  } finally { await f.db.close(); }
+});

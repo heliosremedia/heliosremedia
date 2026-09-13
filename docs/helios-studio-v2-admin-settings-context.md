@@ -8,6 +8,8 @@ The admin layout and Email AI endpoint resolved settings through the public host
 
 Referral AI now passes the session workspace to settings and filters active services by that workspace. Its existing tenant-mode prohibition and single-workspace containment remain intact. This does not enable multi-company referrals. Both AI endpoints validate object-shaped JSON before context reads and avoid logging or returning arbitrary provider/database errors. Existing model selection, draft/format schemas, provider protocol and Email AI retry limits remain unchanged. No model was called during verification.
 
+The Google review admin read model also allowed the global default row to override a company's review-display policy. An executable isolated regression reproduced `FOUR_AND_FIVE` for a company configured as `FIVE_ONLY`. Tenant-mode reads now select only the session workspace and fail closed on missing settings; legacy fallback stays unchanged. This changes only admin display-policy selection. OAuth configuration inspection, callback/start routes, administrator permission rules, credentials, tokens, import/sync, public review selection and provider adapters are untouched. No Google request occurred.
+
 The adjacent direct-settings audit found a legacy featured-film mutation and presign with no local session check. Replaying the old handlers with synthetic dependencies and no session produced HTTP 200, a settings write and a signed URL. This is an endpoint-local authorization gap, not evidence of anonymous access through a deployed proxy.
 
 ## Featured-film contract
@@ -28,12 +30,12 @@ The adjacent direct-settings audit found a legacy featured-film mutation and pre
 
 No schema or production configuration changed. The asset registry migration from the draft stack is still a prerequisite. Existing public URLs and attached legacy files are preserved; newly issued legacy uploads from old application instances must be re-uploaded through the new endpoint. After new namespaced films are saved, the old featured-film writer rejects their prefixes. Do not roll that writer back blindly: retain the scoped writer or temporarily suspend film edits while preserving public reads and stored assets. No deletion or key rewriting is part of rollback.
 
-Before rollout, verify hosted old/new overlap, registry migration, authenticated cross-company HTTP/browser flows, actual upload/save/reopen/playback, role changes, retries and ambiguous commit acknowledgements. Cleanup requires usage/retention evidence and remains disabled.
+Before rollout, verify hosted old/new overlap, registry migration, authenticated cross-company HTTP/browser flows, actual upload/save/reopen/playback, role changes, retries and ambiguous commit acknowledgements. Registry state is verified before the settings transaction; coordination with concurrent asset retirement/quarantine remains a shared-registry lifecycle gate. Cleanup requires usage/retention evidence and remains disabled.
 
 ## Remaining context audit
 
 1. `app/layout.tsx` still resolves public settings/location data and emits public metadata, structured data and global analytics around Studio routes. The nested admin fix does not remove that root dependency or make an unregistered central Studio host work. Separate public/Studio layout context without trusting client-supplied routing headers, preserving public URLs/SEO and integration behavior, is the next dependency.
-2. `lib/google-business-admin.ts` still has an unscoped `id: "default"` alternative for its review-display policy. This is a read-model policy gap. Do not touch OAuth, tokens, review import or provider adapters while isolating that read.
+2. Google review admin policy selection is isolated in tenant mode by this draft. Full integration inventory, public/admin policy parity in hosted QA and historical review ownership still require verification. OAuth, tokens, review import and provider adapters must remain protected.
 3. Tenant-null field defaults, platform brand strings, cache/analytics ownership and the wider settings/model inventory still need work. A call-site search is not a completed integration audit. Phase 1/2 exits and phases 3 through 7 remain open.
 
 Next.js skill and installed data-security/route-handler guidance informed endpoint-local authorization, explicit execution-context arguments and minimal mutation DTOs. No proxy/header-based authorization shortcut was introduced.
