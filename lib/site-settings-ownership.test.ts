@@ -26,6 +26,8 @@ test("settings targets never reassign a foreign default and allocate distinct te
   assert.equal(legacy.where.id, "default"); assert.equal(legacy.where.OR[0].workspaceId, "a"); assert.equal(legacy.where.OR[1].workspaceId, null);
   rows = [{ id: "a" }, { id: "b" }]; await assert.rejects(loaded.getWorkspaceSingletonTarget("a"));
   rows = [{ id: "b" }]; await assert.rejects(loaded.getWorkspaceSingletonTarget("a"));
+  const transactional = await loaded.getWorkspaceSingletonTarget("a", { workspace: { findMany: async () => [{ id: "a" }] } }) as typeof legacy;
+  assert.equal(transactional.where.id, "default", "transaction resolution uses its provided client, not the global delegate");
   await assert.rejects(loaded.getWorkspaceSingletonTarget(""));
 });
 

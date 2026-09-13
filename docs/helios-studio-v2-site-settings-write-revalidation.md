@@ -10,6 +10,8 @@ The route pre-reads the scoped row used for image and field validation. Inside t
 
 The scoped readback stays inside the transaction, so readback failure rolls back the write. Existing response fields remain available for the current settings and homepage forms. Malformed JSON/object/card/navigation/scope/booking/date values receive safe validation errors. Unexpected logs contain only a fixed category.
 
+Adjacent review applied the same transactional singleton recheck, stored ownership fence, monotonic timestamp and create-conflict containment to the featured-film writer. Its existing editor threshold, provider preflight and six-field response stay unchanged. An actual-route test first reproduced a changed singleton mode returning 200 instead of 409, then verified rejection and timestamp progression.
+
 ## Preserved behavior
 
 - Explicit URL casing, paths, queries and fragments are unchanged.
@@ -28,7 +30,7 @@ Legacy tests cover nullable identity preservation, a second company appearing be
 
 The isolated PGlite test executes the real route and membership lock SQL through narrow query adapters. It proves rollback after update/readback failure, all three successful scopes, a competing revision, editor demotion, revocation, and preservation of the second company's row. It is not generated Prisma, simultaneous hosted concurrency, authenticated HTTP/browser, Neon or a real provider test.
 
-The expanded local suite passed 711/711. Final TypeScript, scoped lint, whitespace and fresh draft CI are recorded in the progress ledger and canonical claim when complete. Existing CI browser checks cover recovery/location and anonymous Next.js entry, not this authenticated settings workflow.
+The initial expanded local suite passed 711/711. The combined suite adds one featured-film regression; final TypeScript, scoped lint, whitespace and fresh draft CI are recorded in the progress ledger and canonical claim when complete. Existing CI browser checks cover recovery/location and anonymous Next.js entry, not this authenticated settings workflow.
 
 ## Rollback and open gates
 
@@ -37,3 +39,5 @@ This is an application-only change, with no migration to reverse. Restoring an o
 Request-time CAS does not protect an older browser tab whose revision was already stale before the request began. Submitted browser revisions, single-flight save admission, late upload/editor changes, held acknowledgement recovery and save/reopen browser QA remain next dependencies. Current forms retain drafts on ordinary API rejection, but full synthetic component/real authenticated QA is not claimed.
 
 Registry status can still change after preflight verification; shared attachment/retirement synchronization, signed URL lifetime and media usage lifecycle remain Phase 2 gates. Legacy singleton provisioning needs a controlled tenant-mode cutover; the recheck is not a serializable platform-wide provisioning lock. Other settings writers, full-response DTO minimization, cache invalidation failure after commit, audit atomicity, hosted Prisma concurrency, overlap/restoration and protected-integration parity remain open. Phase 1/2 exits and later phases are incomplete.
+
+Remaining-writer inspection found legal editing still uses global document-type uniqueness and an array transaction without fresh locked authorization. Its settings flag update must stay atomic with document mutation; correcting ownership/uniqueness requires a separate additive migration and overlap rehearsal, not rewriting legal copy. Google Business review-display still targets and assigns the global default settings row. That protected integration route needs a separately scoped reason/approval and regression evidence before change; no OAuth/token/provider or review-display implementation was modified here.

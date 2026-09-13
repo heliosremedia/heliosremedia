@@ -1,6 +1,6 @@
 # Helios Studio V2 progress ledger
 
-## 2026-09-13 site-settings write boundary, publication pending
+## 2026-09-13 site-settings write boundary, draft #306
 
 Recovered fresh #305 final head `ec83cf570e577d5c5a9bc528a4ee34f93277f869` after the previous checkout was absent. Rechecked latest draft/main and every successful step in final-head CI run 34732065901. Main remains `72dab34568cb6885f3e93b5ed9db38edca156835`. Acquired the canonical expected-SHA claim for `codex/v2-site-settings-write-revalidation` before edits. Read AGENTS, roadmap, charter, architecture, audit, ledger and installed Next.js data-security documentation. Reproduced 706 tests, Prisma generation and non-incremental TypeScript.
 
@@ -9,6 +9,12 @@ An actual-route failing test reproduced a settings save returning 200 after revo
 Five new executable tests cover revocation/demotion/session invalidation, all scopes, two-company/changed-row predicates, singleton ambiguity, creation races and malformed inputs. PGlite executes the actual route and lock SQL through narrow adapters, proving rollback and foreign-row preservation, not hosted Prisma or authenticated HTTP/browser parity. Local suite passed 711/711; final TypeScript/scoped lint and draft CI follow. Scope, rollback and limitations: `docs/helios-studio-v2-site-settings-write-revalidation.md`.
 
 Next adjacent dependency: browser revision and acknowledgement recovery for settings/structure forms. Current request-time CAS does not reject an already-stale open browser. Media registry lifecycle/attachment races, other settings writers, cache invalidation after commit, audit atomicity, legacy provisioning cutover and hosted overlap remain gates. No merge, migration, production/provider write or protected integration change. Phase 1/2 and later exits remain open.
+
+Published draft [#306](https://github.com/heliosremedia/heliosremedia/pull/306), initial remote code `ee3579f390dc1d6e69732344e6f190555cbc4ef4`, tree `963a34d8dbc8b60b6ec9bee53c5ee18df5c0d1cf`, identical to local `c174b5ce81c342221139eda022bd75e9f47588ec`. Local 711 tests, Prisma generation, non-incremental TypeScript, scoped lint and whitespace passed. Initial CI run 34734782933 is in progress.
+
+Continued the adjacent featured-film settings writer while CI ran. A failing actual-route test reproduced a singleton-mode switch succeeding. Added transactional target revalidation, exact stored ownership, monotonic timestamp and safe create conflict response, preserving editor permission and the six-field DTO. Focused tests passed; combined full verification follows.
+
+Read-only review identified the next Phase 1 prerequisite before UI polish: legal document type remains globally unique; the editor uses an array transaction and lacks fresh locked authorization. Plan scoped uniqueness/compatibility and atomic document/settings predicates with isolated migration/rollback tests, without changing legal text or commitments. Google Business review-display still assigns a global default settings row; treat it as a protected-layer review/approval item, not authorization to alter OAuth or review behavior. No protected integration was changed.
 
 ## Latest checkpoint: September 13, 2026
 
