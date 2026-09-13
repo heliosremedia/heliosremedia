@@ -1,6 +1,6 @@
 # Public and Studio layout boundary
 
-Status: draft implementation, production held. Depends on #301. Phase 1 isolation and Phase 2 reliability exit gates remain open.
+Status: draft #302, production held. Depends on #301. Phase 1 isolation and Phase 2 reliability exit gates remain open.
 
 ## Boundary and compatibility
 
@@ -10,14 +10,16 @@ The existing public footer sign-in entry uses a document navigation so that entr
 
 Tenant-mode public layout and location pages pass one authoritative workspace ID to related data reads. Location list/detail queries now require that workspace and do not use the global default or bundled Helios locations on missing content, unknown hosts or database failures. Legacy flag-off default/bundled fallback is preserved. Sitemap passes its resolved workspace into settings and location selection. Location slugs, storage references, administrative writes and all remaining global/default settings consumers still require broader review.
 
+Robots denies crawling in non-production before requesting settings. In production, unresolved tenant settings return deny-all without a foreign sitemap; known public settings retain the existing rules and canonical sitemap. Robots is explicitly request-time to avoid cross-host reuse. This is crawler policy, not authorization or proof of search-engine removal.
+
 No schema, migration, provider, OAuth, token, customer record or production configuration changes. Route moves preserve public component contents except homepage import paths and the location context changes described above. The five paths changed by main commits after `a657aef` through `72dab34568cb6885f3e93b5ed9db38edca156835` were already identical in the V2 base before moving files. Featured-project ordering and recent portfolio spacing/gallery hotfixes are retained. Path-level comparison is not full draft-stack ancestry or merge verification.
 
 ## Verification
 
-- Local full suite: 688 passed, 0 failed. Four new checks exercise actual layout/metadata helpers, URL inventory and isolated PGlite-backed location selection with narrow SQL adapters.
+- Initial full suite: 688 passed locally and in run 34728437760. Combined robots follow-up: 689 passed locally, 0 failed; fresh combined CI is required. Five new checks exercise actual layout/metadata/robots helpers, URL inventory and isolated PGlite-backed location selection with narrow SQL adapters.
 - Actual Next.js development-server HTTP check passed with deliberately unreachable loopback database URLs and synthetic configuration: unregistered-host sign-in and invitation render, public canonical/JSON-LD/tracking are absent, an invalid session redirects from Studio, and the unauthenticated featured-film API returns 401. Spoofed forwarded-host/workspace headers do not make sign-in load public data.
 - `next typegen` and non-incremental TypeScript passed serially; scoped ESLint and whitespace passed. Running TypeScript concurrently with Next development generation initially exposed malformed generated `.next/dev/types` output. Only that generated output was moved aside and regenerated, without changing source or excluding types. CI keeps type generation/checking and server verification sequential.
-- CI adds the same actual HTTP check plus Playwright Chromium sign-in navigation, focus, mobile overflow, no external requests and no mutations. Fresh CI browser results must be recorded in the ledger before this check is counted as passed. The existing recovery browser fixtures remain separate synthetic UI evidence.
+- Run 34728437760 passed the actual HTTP check plus Playwright Chromium sign-in navigation, focus, mobile overflow, no external requests and no mutations. The added local robots HTTP check also passed; final combined CI is recorded separately in the ledger. Existing recovery browser fixtures remain separate synthetic UI evidence.
 
 The isolated runner refuses runtime environment files, supplies only synthetic server configuration, blocks browser mutations/external requests, and terminates its own server. It never submits login, accepts an invitation, contacts providers or uses a production database. It is not authenticated full-stack tenant QA, generated-Prisma/Neon integration, deployed public SEO parity, real uploads or production-build verification.
 

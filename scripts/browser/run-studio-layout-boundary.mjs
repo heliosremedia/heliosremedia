@@ -64,6 +64,9 @@ try {
   const protectedApi = await fetch(`${origin}/api/admin/homepage-film`, { headers, signal: AbortSignal.timeout(90_000) });
   assert.equal(protectedApi.status, 401);
   assert.equal((await protectedApi.json()).success, false);
+  const robots = await fetch(`${origin}/robots.txt`, { headers, signal: AbortSignal.timeout(90_000) });
+  assert.equal(robots.status, 200);
+  assert.match(await robots.text(), /^User-Agent: \*\s+Disallow: \/\s*$/);
   console.log('PASS: actual Next.js HTTP sign-in and invitation rendering on an unregistered host, no public metadata/tracking, invalid-session redirect and unauthenticated API denial, without a reachable database');
 
   if (!process.argv.includes('--http-only')) {

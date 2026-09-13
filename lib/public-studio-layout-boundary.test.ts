@@ -171,3 +171,38 @@ test('location list and detail reads isolate company ownership and never use bun
     assert.deepEqual(JSON.parse(JSON.stringify((await locations.getPublishedLocationPages()).map(row => row.slug))), ['fort-collins']);
   } finally { await db.close(); }
 });
+
+test('robots avoids preview database reads and contains unresolved production tenants without cross-host caching', async () => {
+  let production = false;
+  let enabled = true;
+  let unavailable = true;
+  let reads = 0;
+  let host = 'b';
+  const site = load<Record<string, unknown>>('./site.ts', {}, { process: { env: {} } });
+  const route = load<{ dynamic: string; default(): Promise<{ rules: { allow?: string; disallow: string | string[] }; sitemap?: string }> }>('../app/robots.ts', {
+    '@/lib/site': { ...site, isProductionIndexable: () => production },
+    '@/lib/workspace-context-core': { tenantContextEnabled: () => enabled },
+    '@/lib/site-settings': { getSiteSettings: async () => {
+      reads++;
+      if (unavailable) throw new Error('Unknown host or unavailable settings');
+      return { websiteUrl: `https://company-${host}.example.test` };
+    } },
+  });
+  assert.equal(route.dynamic, 'force-dynamic');
+  assert.equal((await route.default()).rules.disallow, '/');
+  assert.equal(reads, 0, 'preview/non-production denial has no database dependency');
+  production = true;
+  const denied = await route.default();
+  assert.equal(denied.rules.disallow, '/');
+  assert.equal(denied.rules.allow, undefined);
+  assert.equal(denied.sitemap, undefined);
+  unavailable = false;
+  for (host of ['a', 'b']) {
+    const result = await route.default();
+    assert.equal(result.sitemap, `https://company-${host}.example.test/sitemap.xml`);
+    assert.equal(result.rules.allow, '/');
+    assert.deepEqual(JSON.parse(JSON.stringify(result.rules.disallow)), ['/admin/', '/api/', '/login', '/accept-invite', '/client-portal/']);
+  }
+  enabled = false; unavailable = true;
+  await assert.rejects(route.default(), /unavailable settings/);
+});
