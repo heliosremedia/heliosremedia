@@ -1,5 +1,5 @@
 /** Pure policy shared by the server upload and mutation paths. */
-export type BrandAssetKind = "testimonials" | "trusted-logos" | "newsletter" | "blog" | "newsletter-ai" | "site-brand" | "site-homepage" | "site-hero" | "site-featured-film" | "about" | "team" | "photo-comparison";
+export type BrandAssetKind = "testimonials" | "trusted-logos" | "newsletter" | "blog" | "newsletter-ai" | "site-brand" | "site-homepage" | "site-hero" | "site-featured-film" | "about" | "team" | "photo-comparison" | "locations";
 
 export function brandAssetPrefix(workspaceId: string, kind: BrandAssetKind) {
   // Reject invalid IDs rather than normalizing two identities into one namespace.
