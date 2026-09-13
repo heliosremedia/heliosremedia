@@ -16,10 +16,10 @@ No schema, migration, provider, OAuth, token, customer record or production conf
 
 ## Verification
 
-- Initial full suite: 688 passed locally and in run 34728437760. Combined robots follow-up: 689 passed locally, 0 failed; fresh combined CI is required. Five new checks exercise actual layout/metadata/robots helpers, URL inventory and isolated PGlite-backed location selection with narrow SQL adapters.
+- Initial full suite: 688 passed locally and in run 34728437760. Combined robots follow-up: 689 passed locally and in run 34728677915, 0 failed. Five new checks exercise actual layout/metadata/robots helpers, URL inventory and isolated PGlite-backed location selection with narrow SQL adapters.
 - Actual Next.js development-server HTTP check passed with deliberately unreachable loopback database URLs and synthetic configuration: unregistered-host sign-in and invitation render, public canonical/JSON-LD/tracking are absent, an invalid session redirects from Studio, and the unauthenticated featured-film API returns 401. Spoofed forwarded-host/workspace headers do not make sign-in load public data.
 - `next typegen` and non-incremental TypeScript passed serially; scoped ESLint and whitespace passed. Running TypeScript concurrently with Next development generation initially exposed malformed generated `.next/dev/types` output. Only that generated output was moved aside and regenerated, without changing source or excluding types. CI keeps type generation/checking and server verification sequential.
-- Run 34728437760 passed the actual HTTP check plus Playwright Chromium sign-in navigation, focus, mobile overflow, no external requests and no mutations. The added local robots HTTP check also passed; final combined CI is recorded separately in the ledger. Existing recovery browser fixtures remain separate synthetic UI evidence.
+- Runs 34728437760 and 34728677915 passed actual HTTP plus Playwright Chromium sign-in navigation, focus, mobile overflow, no external requests and no mutations. The latter also includes the robots HTTP assertion. Existing recovery browser fixtures remain separate synthetic UI evidence.
 
 The isolated runner refuses runtime environment files, supplies only synthetic server configuration, blocks browser mutations/external requests, and terminates its own server. It never submits login, accepts an invitation, contacts providers or uses a production database. It is not authenticated full-stack tenant QA, generated-Prisma/Neon integration, deployed public SEO parity, real uploads or production-build verification.
 
