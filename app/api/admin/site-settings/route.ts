@@ -8,6 +8,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyRegisteredBrandImage } from "@/lib/workspace-brand-assets";
 import { getAdminSession } from "@/lib/auth/session";
+import { requireLockedWorkspaceAdministrator } from "@/lib/workspace-write-access";
+import type { Prisma } from "@/app/generated/prisma/client";
 
 function text(value: unknown, max: number, required = false) { const result = typeof value === "string" ? value.trim() : ""; if ((required && !result) || result.length > max) throw new Error("INVALID_TEXT"); return result || null; }
 type UrlKind = "website" | "instagram" | "facebook" | "youtube" | "linkedin";
@@ -43,11 +45,12 @@ function url(value: unknown, kind: UrlKind = "website") {
 function assetUrl(value: unknown) { const result = text(value, 1000); if (!result) return null; if (result.startsWith("/") && !result.startsWith("//")) return result; return url(result); }
 function cards(value: unknown, max = 8) {
   if (!Array.isArray(value) || value.length > max) throw new Error("INVALID_CARDS");
-  return value.map((item, index) => { const entry = item as Record<string, unknown>; return { number: text(entry.number, 12) || String(index + 1).padStart(2, "0"), title: text(entry.title, 100, true)!, description: text(entry.description, 500, true)!, published: entry.published !== false }; });
+  return value.map((item, index) => { if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("INVALID_CARDS"); const entry = item as Record<string, unknown>; return { number: text(entry.number, 12) || String(index + 1).padStart(2, "0"), title: text(entry.title, 100, true)!, description: text(entry.description, 500, true)!, published: entry.published !== false }; });
 }
 function navigation(value: unknown) {
   if (!Array.isArray(value) || value.length > 20) throw new Error("INVALID_NAVIGATION");
   return value.map((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("INVALID_NAVIGATION");
     const entry = item as Record<string, unknown>;
     return {
       label: text(entry.label, 80, true)!,
@@ -74,28 +77,45 @@ export async function PATCH(request: Request) {
   const session = await getAdminSession();
   if (!session || (session.role !== "OWNER" && session.role !== "ADMIN")) return NextResponse.json({ success: false, error: "Owner or administrator access is required." }, { status: 403 });
   try {
+    const input: unknown = await request.json().catch(() => null);
+    if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("INVALID_BODY");
+    const body = input as Record<string, unknown>;
+    if (body.updateScope !== undefined && !["homepage-navigation", "homepage-structure"].includes(String(body.updateScope))) throw new Error("INVALID_BODY");
     const target = await getSiteSettingsWriteTarget(session.workspaceId);
-    const body = (await request.json()) as Record<string, unknown>;
+    const existing = await prisma.siteSettings.findUnique({ where: target.where });
+    // Provider verification stays outside the transaction. Fence the exact row
+    // used for validation and revalidate current authority at the write boundary.
+    const persist = (data: Omit<Prisma.SiteSettingsUncheckedCreateInput, "id" | "workspaceId">, allowCreate = false) => prisma.$transaction(async tx => {
+      await requireLockedWorkspaceAdministrator(tx, session);
+      const currentTarget = await getSiteSettingsWriteTarget(session.workspaceId, tx);
+      if (JSON.stringify(currentTarget) !== JSON.stringify(target)) throw new Error("SETTINGS_CHANGED");
+      if (!existing) {
+        if (!allowCreate) throw new Error("SETTINGS_CHANGED");
+        return tx.siteSettings.create({ data: { ...currentTarget.createIdentity, ...data } });
+      }
+      const where = { AND: [currentTarget.where, { id: existing.id, workspaceId: existing.workspaceId, updatedAt: existing.updatedAt }] };
+      const changed = await tx.siteSettings.updateMany({ where, data: {
+        ...data, updatedAt: new Date(Math.max(Date.now(), existing.updatedAt.getTime() + 1)),
+      } });
+      if (changed.count !== 1) throw new Error("SETTINGS_CHANGED");
+      const saved = await tx.siteSettings.findUnique({ where: { ...currentTarget.where, id: existing.id } });
+      if (!saved) throw new Error("SETTINGS_CHANGED");
+      return saved;
+    });
     if (body.updateScope === "homepage-navigation") {
       const items = navigation(body.navigation);
-      const settings = await prisma.siteSettings.update({
-        where: target.where,
-        data: {
-          headerNavigation: items,
-          footerNavigation: items,
-        },
+      const settings = await persist({
+        headerNavigation: items,
+        footerNavigation: items,
       });
       revalidatePath("/", "layout");
       revalidatePath("/admin/homepage");
       return NextResponse.json({ success: true, settings });
     }
     if (body.updateScope === "homepage-structure") {
-      const settings = await prisma.siteSettings.update({
-        where: target.where,
-        data: {
-          standardPrinciples: cards(body.standardPrinciples, 6),
-          approachCards: cards(body.approachCards, 6),
-        },
+      const settings = await persist({
+        standardPrinciples: cards(body.standardPrinciples, 6),
+        approachCards: cards(body.approachCards, 6),
       });
       revalidatePath("/", "layout");
       revalidatePath("/admin/homepage");
@@ -111,7 +131,6 @@ export async function PATCH(request: Request) {
     const defaultSocialImageStorageKey = text(body.defaultSocialImageStorageKey, 1000);
     const heliosStandardImageStorageKey = text(body.heliosStandardImageStorageKey, 1000);
     const primaryConversionImageStorageKey = text(body.primaryConversionImageStorageKey, 1000);
-    const existing = await prisma.siteSettings.findUnique({ where: target.where });
     const brandLogo = resolveBrandImage(session.workspaceId, "site-brand", { key: brandLogoStorageKey, url: assetUrl(body.brandLogoUrl) }, existing ? { key: existing.brandLogoStorageKey, url: existing.brandLogoUrl } : null, getPublicAssetUrl);
     const brandMonogram = resolveBrandImage(session.workspaceId, "site-brand", { key: brandMonogramStorageKey, url: assetUrl(body.brandMonogramUrl) }, existing ? { key: existing.brandMonogramStorageKey, url: existing.brandMonogramUrl } : null, getPublicAssetUrl);
     const favicon = resolveBrandImage(session.workspaceId, "site-brand", { key: faviconStorageKey, url: assetUrl(body.faviconUrl) }, existing ? { key: existing.faviconStorageKey, url: existing.faviconUrl } : null, getPublicAssetUrl);
@@ -168,7 +187,7 @@ export async function PATCH(request: Request) {
       brandVoice: text(body.brandVoice, 1000), brandAudience: text(body.brandAudience, 1000), brandWritingGuidance: text(body.brandWritingGuidance, 2000), defaultBlogAuthor: text(body.defaultBlogAuthor, 160),
       defaultSeoTitle: text(body.defaultSeoTitle, 160, true)!, defaultSeoDescription: text(body.defaultSeoDescription, 320, true)!,
     };
-    const settings = await prisma.siteSettings.upsert({ where: target.where, create: { ...target.createIdentity, ...data }, update: data });
+    const settings = await persist(data, true);
     revalidatePath("/", "layout"); revalidatePath("/admin/settings"); revalidatePath("/admin/homepage");
     const cleanupPending = [
       [existing?.brandLogoStorageKey, brandLogoStorageKey],
@@ -180,8 +199,11 @@ export async function PATCH(request: Request) {
     ].some(([previous, current]) => Boolean(previous && previous !== current));
     return NextResponse.json({ success: true, settings, cleanupPending });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Owner or administrator access is required." }, { status: 403 });
+    if ((error instanceof Error && error.message === "SETTINGS_CHANGED") || (typeof error === "object" && error !== null && "code" in error && error.code === "P2002")) return NextResponse.json({ success: false, error: "Settings changed while this request was checked. Keep your draft and reload before saving again." }, { status: 409 });
+    if (error instanceof Error && ["INVALID_BODY", "INVALID_BOOKING_MODE", "INVALID_DATE"].includes(error.message)) return NextResponse.json({ success: false, error: "One or more settings values are invalid." }, { status: 400 });
     const messages: Record<string, string> = { INVALID_BRAND_IMAGE: "Upload a company-owned image or keep the current image unchanged.", INVALID_HERO_MEDIA: "Upload company-owned hero media or keep the current media unchanged.", INVALID_CARDS: "Homepage cards need a title and description.", INVALID_NAVIGATION: "Navigation items need a valid label and destination.", INVALID_TEXT: "Complete every required field and stay within the displayed limits.", INVALID_URL: "One or more links are not valid web addresses.", INVALID_PHONE: "Enter the phone number in international format, such as +19706825533.", INVALID_EMAIL: "Enter a valid email address.", INVALID_LOGO_KEY: "The brand logo storage location is invalid.", INVALID_MONOGRAM_KEY: "The brand monogram storage location is invalid.", INVALID_FAVICON_KEY: "The favicon storage location is invalid.", INVALID_SOCIAL_IMAGE_KEY: "The default social share image storage location is invalid.", INVALID_HOMEPAGE_IMAGE_KEY: "The homepage image storage location is invalid." };
     if (error instanceof Error && messages[error.message]) return NextResponse.json({ success: false, error: messages[error.message] }, { status: 400 });
-    console.error("Unable to update site settings:", error); return NextResponse.json({ success: false, error: "Global site settings could not be saved." }, { status: 500 });
+    console.error("Unable to update site settings", { category: "request_failed" }); return NextResponse.json({ success: false, error: "Site settings could not be saved." }, { status: 500 });
   }
 }
