@@ -40,7 +40,7 @@ The adapter explicitly parses PostgreSQL timestamp-without-zone as UTC, matching
 
 ## Release and rollback gates
 
-Local final verification: 717 tests, Prisma generation, route generation/non-incremental TypeScript, scoped ESLint and whitespace passed. Draft CI evidence is recorded in the progress ledger and canonical claim after publication.
+Local final verification: 717 tests, Prisma generation, route generation/non-incremental TypeScript, scoped ESLint and whitespace passed. Draft [#307](https://github.com/heliosremedia/heliosremedia/pull/307), code `9ff5112260545cb1c96db7516099c395a0211eef`, passed 717 tests and every Prisma/type-generation/TypeScript/recovery-Chromium/location-Chromium/anonymous-Next.js-HTTP/whitespace step in [run 34736405070](https://github.com/heliosremedia/heliosremedia/actions/runs/34736405070), job 103668515014. Final documentation head/CI are recorded in the canonical claim.
 
 - Rehearse the exact generated Prisma/Neon client and UTC timestamp behavior, old/new server overlap, all public/admin/sitemap readers and tenant-mode cutover on a hosted isolated database.
 - Verify historical mapping and publication flags without authoring or overwriting approved legal copy. Preserve a restorable backup with counts and content/state hashes.
