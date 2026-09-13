@@ -1,5 +1,19 @@
 # Helios Studio V2 progress ledger
 
+## 2026-09-13 legal document identity and atomic write isolation, publication pending
+
+Recovered clean #306 local tree `53676a16aef2c073cb1d91e312523692c9053307`, identical to remote `7b94fbf74f62b11dd900b6b4105ad7c107de914a`; rechecked current main at `72dab34568cb6885f3e93b5ed9db38edca156835` and every successful step in #306 final run 34735215789. Acquired the canonical expected-SHA claim for `codex/v2-legal-write-isolation` before edits. Re-read AGENTS, roadmap/charter/architecture/audit/ledger and installed Next.js security guidance. Reproduced the 712-test baseline.
+
+Actual-route regression first returned 200 instead of 403 after revocation. Replaced the global-type legal upsert with owned pre-read/conditional writes, fresh locked administrator authorization and one atomic document/settings transaction. Submitted canonical revisions are checked, timestamps advance, DTOs are minimal and diagnostics are sanitized. Existing legal HTML sanitization, URLs and approved copy remain unchanged.
+
+Added staged company/type uniqueness while retaining a renamed global compatibility guard. Separate operator scripts require explicit verified historical mapping, publication-flag reconciliation and cutover evidence before enforcing immutable scoped legal writes and enabling duplicate types. Isolated tests exercise expansion reversal/reapplication, cutover, old-writer denial and refusal of a destructive global rollback. These are not production migrations or hosted restoration evidence. Details: `docs/helios-studio-v2-legal-write-isolation.md`.
+
+PGlite actual-route tests cover two-company same-type documents, sanitized publication, scoped reads, membership revocation/demotion/session invalidation, stale browser and request-time revisions, and rollback on readback/settings failures. Narrow adapter timestamp parsing was corrected to match installed Prisma UTC normalization rather than the runner's local +08 timezone. Focused checks pass; full suite/TypeScript/scoped lint and fresh draft CI follow.
+
+Next dependencies: legal/settings browser acknowledgement and unsaved-edit recovery, full authenticated/hosted Prisma overlap and migration evidence, then remaining global content slugs/uniqueness and platform boundaries. Old-reader retirement is a hard cutover gate. No protected integration, production data, provider, merge or deployment was changed. Production remains ON HOLD; Phase 1/2 and later exits are incomplete.
+
+Final local suite passed 717/717 after adding missing-settings reconstruction that preserves the other published legal flag and rolls back failed settings creation. Prisma generation, route generation/non-incremental TypeScript, scoped ESLint and whitespace passed. Static ownership inventory remains 113 models and 144 routes; the legal uniqueness entry is updated, and lexical references no longer detect two transaction-client delegates. Counts are not isolation evidence. Reviewed the full application/schema/operator-script diff; draft publication and fresh CI follow.
+
 ## Latest verified checkpoint: September 13, 2026, #306
 
 - Draft [#306](https://github.com/heliosremedia/heliosremedia/pull/306), `codex/v2-site-settings-write-revalidation`, remote code `e7deddcc930df409a75e21a4bdc4056cf7e36375`, tree `ece7b545c1c58f8dd3f9174a4b9193b7b76a73f6`, identical to local `62a3c8aec50c7480e3c1b1d1ce007c4615722bb4`. Depends on #305 final `ec83cf570e577d5c5a9bc528a4ee34f93277f869`. Final documentation head/CI are recorded in the canonical claim.

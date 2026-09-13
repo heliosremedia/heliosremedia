@@ -1,5 +1,5 @@
 {
-  "schemaSha256": "136bc01de79817658e52174f348f37f29d1ec030c9251408c58cc6d26189375a",
+  "schemaSha256": "ede3650c4b65f8704a125672ed32f7b7110a78a83cdacf14744e6419d02a0892",
   "scope": "Static code inventory, not an authorization or tenant-isolation verdict. No database connection or environment values read.",
   "limitations": [
     "Nullable ownership requires verified mapping before activation.",
@@ -1080,7 +1080,7 @@
         }
       ],
       "uniqueConstraints": [
-        "type"
+        "workspaceId, type"
       ],
       "sourceReferences": [
         "app/api/admin/legal-documents/route.ts",
@@ -1194,7 +1194,6 @@
         "app/api/admin/blog/series/assistant/route.ts",
         "app/api/admin/social/ai/route.ts",
         "lib/blog-access.ts",
-        "lib/blog-ownership.ts",
         "lib/blog-series.ts",
         "lib/client-communications/campaign-ownership.ts",
         "lib/client-portal/ownership.ts",
@@ -1210,8 +1209,7 @@
         "lib/referrals/ownership.ts",
         "lib/social/studio.ts",
         "lib/workspace-assets.ts",
-        "lib/workspace-brand-assets.ts",
-        "lib/workspace-singleton.ts"
+        "lib/workspace-brand-assets.ts"
       ],
       "reviewStatus": "Requires semantic ownership and execution-path review"
     },
