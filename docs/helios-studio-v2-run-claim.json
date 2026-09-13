@@ -1,13 +1,32 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-20260913T0327",
-  "expiresAt": "2026-09-13T05:00:00Z",
+  "expiresAt": null,
   "branch": "codex/v2-legal-write-isolation",
-  "head": "9ff5112260545cb1c96db7516099c395a0211eef",
-  "tree": "0848133dc11e428e1c8d3777cb944ce9bb17e0d7",
-  "localHead": "a2c4165e8094d6fa6972232f4b237c86974e5272",
-  "localTests": 717,
-  "production": "ON HOLD",
+  "pr": 307,
+  "head": "d84f9bcc2e45dd36fcffebc36e22776bf6a9dfb9",
+  "tree": "62962bef8976621df2d3f2c52058a315b7c5f5a2",
+  "localHead": "654606afb177de88eae52d5e5de322248f5a21e0",
+  "codeHead": "9ff5112260545cb1c96db7516099c395a0211eef",
+  "codeCI": {
+    "runId": 34736405070,
+    "jobId": 103668515014,
+    "tests": 717,
+    "status": "passed",
+    "allSteps": "passed"
+  },
+  "finalHeadCI": {
+    "runId": 34736608431,
+    "jobId": 103669047873,
+    "status": "passed",
+    "allSteps": "passed"
+  },
   "outstandingChanges": false,
-  "nextDependency": "Verify draft CI and continue legal/settings browser acknowledgement recovery"
+  "nextDependency": "Legal/settings editor single-flight, acknowledgement identity/revision validation, input freezing and unsaved-copy recovery with actual component/browser tests",
+  "migrationGate": "Expansion retains global legal type guard. Operator-only verified mapping/contract/forward-containment scripts rehearsed in PGlite; no hosted/production execution. Retire old readers/writers and verify backup/flags/tenant context before contract. Never automatically remove database compatibility controls.",
+  "protectedReview": "Google Business review-display default-row writer remains a separately scoped protected-layer review/approval item. OAuth/tokens/adapters unchanged.",
+  "production": "ON HOLD",
+  "releasedAt": "2026-09-13T03:58:06.905Z",
+  "phase": "Phase 1 exit open alongside Phase 2; later phases incomplete",
+  "releaseGate": "Production ON HOLD until implementation readiness and Jake QA/release decision"
 }
