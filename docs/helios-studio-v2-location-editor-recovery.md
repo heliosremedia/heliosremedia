@@ -18,7 +18,7 @@ The executable VM tests transpile the actual manager with synthetic React hooks 
 
 `npm run test:location-browser` bundles the actual React manager and project CSS and runs Chromium against an ephemeral loopback fixture. Only Next Link/Image presentation is stubbed. Fetch is entirely synthetic; unexpected browser destinations or real mutation requests are rejected. Checks cover mobile width, keyboard reload, duplicate admission, success, lost acknowledgement, conflict, invalid JSON, negative acknowledgement, upload/save interaction, preserved text and late upload/AI completion after switching to a different editor. AI application remains explicit and does not save or publish. It does not authenticate, execute the API, exercise real R2 uploads, verify Next image optimization or prove database/browser revision parity. `--bundle-only` checks compilation only and is never browser evidence.
 
-Local browser installation was unavailable due to a download timeout; fresh CI Chromium evidence must be recorded before calling this browser-verified. Local full suite passed 700 tests. Final TypeScript, lint and CI are recorded in the progress ledger.
+Local browser installation was unavailable due to a download timeout. Fresh [CI run 34730772115](https://github.com/heliosremedia/heliosremedia/actions/runs/34730772115) passed all 701 tests, Prisma generation, route generation/TypeScript, existing recovery Chromium, the new location Chromium fixture, actual Next.js anonymous entry HTTP/Chromium and whitespace. Logs explicitly confirm the new location checks. Local final suite also passed 701 tests, non-incremental TypeScript, scoped lint and fixture bundling. This is targeted synthetic browser evidence, not authenticated or hosted parity.
 
 ## Open dependencies
 
