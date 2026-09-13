@@ -15,7 +15,7 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }>) {
   const session = await requireAdminSession();
-  const settings = await getSiteSettings();
+  const settings = await getSiteSettings(session.workspaceId);
   return (
     <AdminShell
       session={session}

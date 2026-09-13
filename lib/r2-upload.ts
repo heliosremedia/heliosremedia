@@ -227,12 +227,12 @@ export function createDefaultSocialImageKey(workspaceId: string, mimeType: strin
   return `${brandAssetPrefix(workspaceId, "site-brand")}social-${timestamp}-${randomUUID().slice(0, 8)}.${extensionFromMime(mimeType)}`;
 }
 
-export function createFeaturedFilmKey(kind: "video" | "poster", mimeType: string) {
+export function createFeaturedFilmKey(workspaceId: string, kind: "video" | "poster", mimeType: string) {
   const timestamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "-");
   const id = randomUUID().slice(0, 8);
   const extension = mimeType === "video/mp4" ? "mp4" : mimeType === "video/webm" ? "webm" : extensionFromMime(mimeType);
 
-  return `site/homepage/featured-film/${kind}-${timestamp}-${id}.${extension}`;
+  return `${brandAssetPrefix(workspaceId, "site-featured-film")}${kind}-${timestamp}-${id}.${extension}`;
 }
 
 export function createHomepageWorkCardKey(

@@ -33,8 +33,11 @@ const formatSchema = {
 export async function POST(request: Request) {
   const session = await getAdminSession();
   if (!session) return NextResponse.json({ success: false, error: "Authentication is required." }, { status: 401 });
+  if (!["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
   try {
-    const body = await request.json() as Record<string, unknown>;
+    const input: unknown = await request.json().catch(() => null);
+    if (!input || typeof input !== "object" || Array.isArray(input)) return NextResponse.json({ success: false, error: "Provide a valid writing request." }, { status: 400 });
+    const body = input as Record<string, unknown>;
     const action = body.action === "format" ? "format" : "draft";
     const existingBody = typeof body.body === "string" ? body.body.trim().slice(0, 20_000) : "";
     const templateKey = normalizeEmailTemplateKey(body.templateKey);
@@ -45,7 +48,7 @@ export async function POST(request: Request) {
     if (action === "format" && existingBody.length < 12) return NextResponse.json({ success: false, error: "Add a message before asking AI to format it." }, { status: 400 });
     const apiKey = process.env.OPENAI_API_KEY?.trim();
     if (!apiKey) return NextResponse.json({ success: false, error: "AI writing is not configured yet." }, { status: 503 });
-    const settings = await getSiteSettings();
+    const settings = await getSiteSettings(session.workspaceId);
     const model = process.env.OPENAI_EMAIL_MODEL?.trim() || process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-5-mini";
     const requestBody = {
         model,
@@ -81,7 +84,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: "The writing service returned an incomplete response. Please try again." }, { status: 502 });
   } catch (error) {
     const timedOut = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
-    console.error("Email Studio AI request failed", { category: error instanceof Error ? error.message : "unknown" });
+    console.error("Email Studio AI request failed", { category: timedOut ? "timeout" : "request_failed" });
     return NextResponse.json({ success: false, error: timedOut ? "The writing service took too long to respond. Please try again." : "The writing service returned an invalid response. Your email was preserved." }, { status: timedOut ? 504 : 502 });
   }
 }
