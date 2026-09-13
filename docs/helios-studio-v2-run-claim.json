@@ -1,20 +1,10 @@
 {
-  "status": "released",
-  "runId": "atlas-20260912T2338",
-  "releasedAt": "2026-09-13T00:12:51.064Z",
-  "expiresAt": null,
-  "branch": "codex/v2-admin-settings-context",
+  "status": "active",
+  "runId": "atlas-20260913T0012",
+  "expiresAt": "2026-09-13T01:20:00Z",
+  "branch": "codex/v2-public-studio-layout-boundary",
+  "baseHead": "78a4e5da5379728c45155f2082f4dc835adb53af",
   "outstandingChanges": false,
-  "pullRequest": 301,
-  "publishedHead": "78a4e5da5379728c45155f2082f4dc835adb53af",
-  "tree": "18352aae7977ba9a2c84b10ba62b57b513e96ebc",
-  "localHead": "69d0ff3bf5b9853b93d4316b6c58f1decd0f2a2e",
-  "implementationHead": "1b3c2ed102f8071485620971cbc2fcb804a18bc2",
-  "verifiedImplementationRun": 34726985267,
-  "verifiedFinalRun": 34727217123,
-  "verifiedFinalJob": 103643361796,
-  "tests": 684,
-  "phase": "Phase 1 exit open alongside Phase 2 reliability",
-  "nextDependency": "Separate root public and Studio settings/metadata context while preserving public URLs and SEO; finish settings/default/cache/analytics ownership audit",
-  "production": "ON HOLD until readiness and Jake QA/release decision"
+  "scope": "Separate root public and Studio settings and metadata with route layout boundaries; preserve URLs and public SEO; isolated tests and draft CI only",
+  "production": "ON HOLD"
 }
