@@ -3,7 +3,11 @@
   "runId": "atlas-20260913T0327",
   "expiresAt": "2026-09-13T05:00:00Z",
   "branch": "codex/v2-legal-write-isolation",
-  "baseHead": "7b94fbf74f62b11dd900b6b4105ad7c107de914a",
+  "head": "9ff5112260545cb1c96db7516099c395a0211eef",
+  "tree": "0848133dc11e428e1c8d3777cb944ce9bb17e0d7",
+  "localHead": "a2c4165e8094d6fa6972232f4b237c86974e5272",
+  "localTests": 717,
   "production": "ON HOLD",
-  "nextDependency": "Legal document scoped uniqueness and fresh atomic authorization with isolated compatibility rehearsal"
+  "outstandingChanges": false,
+  "nextDependency": "Verify draft CI and continue legal/settings browser acknowledgement recovery"
 }
