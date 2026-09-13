@@ -2,6 +2,12 @@
 
 ## Latest checkpoint: September 13, 2026
 
+- Active implementation: `codex/v2-location-editor-recovery`, based on #303 final documentation head `555cb4c2f8c03428479b34624b95d1c0346494f0`, matching local tree `3f2602633b0dabcc44460efca744219bc654eb7c`. Base final-head [run 34729887255](https://github.com/heliosremedia/heliosremedia/actions/runs/34729887255), job 103650598858, passed every step. Canonical expected-SHA claim refreshed before edits; main remains `72dab34568cb6885f3e93b5ed9db38edca156835`.
+- Reproduced and fixed duplicate/uncertain reorder requests and slow-upload loss of intervening draft text. Added editor-epoch attachment containment, explicit saved-page reload and real-component synthetic Chromium fixtures. Full local suite passed 700/700; publication/fresh Chromium CI remains pending. Read installed Next.js route guidance and React/verification guidance. No provider/API/schema/migration/production change.
+- Next dependencies remain submitted browser revisions, other mutation acknowledgement recovery, AI result context, registry lifecycle and hosted full-stack parity. Phase 1/2 and later exits remain open. See `docs/helios-studio-v2-location-editor-recovery.md` for exact tested boundaries and rollback.
+
+## Previous verified implementation: location administration
+
 - Latest implementation: draft [#303](https://github.com/heliosremedia/heliosremedia/pull/303), `codex/v2-location-admin-ownership`, remote code `aae142fbd7888e6dd6ff1fa7874048f4639ad926`, tree `a64d9c0ccc181ad208af41286acba184469ae66b`, matching local `9ce0226ad9e1d437f03207403b98e8cdc43446e6`. Depends on #302. Location admin authorization, registered attachments, transaction predicates, retained media and corrupt-pointer DTO filtering passed implementation CI. Canonical claim records the final documentation head.
 - Verification: 697/697 tests passed locally and in [run 34729659785](https://github.com/heliosremedia/heliosremedia/actions/runs/34729659785), job 103649985708. Prisma generation, route generation/non-incremental TypeScript, existing synthetic recovery Chromium, actual Next.js anonymous entry HTTP/Chromium and whitespace passed. Scoped lint passed locally. These checks are not authenticated location UI/real R2/hosted Prisma concurrency evidence. Phase 1/2 and later exits remain open; production is held.
 
