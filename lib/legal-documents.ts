@@ -16,22 +16,23 @@ const defaults: ManagedLegalDocument[] = [
   { id: "legal-privacy-policy", type: "PRIVACY_POLICY", title: "Privacy Policy", content: "", published: false, updatedAt: new Date(0) },
   { id: "legal-terms-of-service", type: "TERMS_OF_SERVICE", title: "Terms of Service", content: "", published: false, updatedAt: new Date(0) },
 ];
+const documentFields = { id: true, type: true, title: true, content: true, published: true, updatedAt: true } as const;
 
 export async function getLegalDocuments(workspaceId: string) {
   try {
-    const documents = await prisma.legalDocument.findMany({ where: await getContentOwnershipScope(workspaceId), orderBy: { type: "asc" } });
+    const documents = await prisma.legalDocument.findMany({ where: await getContentOwnershipScope(workspaceId), orderBy: { type: "asc" }, select: documentFields });
     return defaults.map((fallback) => documents.find(({ type }) => type === fallback.type) ?? fallback);
-  } catch (error) {
-    if (process.env.NODE_ENV !== "production") console.warn("Using unpublished legal-document defaults because the database is unavailable.", error);
+  } catch {
+    if (process.env.NODE_ENV !== "production") console.warn("Using unpublished legal-document defaults", { category: "read_failed" });
     return defaults;
   }
 }
 
 export async function getPublishedLegalDocument(type: ManagedLegalDocument["type"]) {
   try {
-    return await prisma.legalDocument.findFirst({ where: { type, AND: [await getContentOwnershipScope(await getPublicWorkspaceId())], published: true } });
-  } catch (error) {
-    if (process.env.NODE_ENV !== "production") console.warn("Unable to load the published legal document.", error);
+    return await prisma.legalDocument.findFirst({ where: { type, AND: [await getContentOwnershipScope(await getPublicWorkspaceId())], published: true }, select: documentFields });
+  } catch {
+    if (process.env.NODE_ENV !== "production") console.warn("Unable to load the published legal document", { category: "read_failed" });
     return null;
   }
 }

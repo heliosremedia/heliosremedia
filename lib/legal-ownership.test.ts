@@ -14,10 +14,15 @@ test("legal editing requires administrator access and binds document/settings mu
       "@/lib/blog-ownership": { getContentOwnershipScope: async () => ({ workspaceId: "a" }) },
       "@/lib/site-settings-ownership": { getSiteSettingsWriteTarget: async () => ({ where: { workspaceId: "a" }, createIdentity: { id: "workspace:a", workspaceId: "a" } }) },
       "@/lib/legal-html": { sanitizeLegalHtml: (html: string) => html },
+      "@/lib/workspace-write-access": { requireLockedWorkspaceAdministrator: async () => {} },
       "@/lib/prisma": { prisma: {
-        legalDocument: { upsert: async ({ where, create }: { where: { AND: Array<{ workspaceId: string }> }; create: { workspaceId: string } }) => { assert.equal(where.AND[0].workspaceId, "a"); assert.equal(create.workspaceId, "a"); writes++; return { id: "legal" }; } },
-        siteSettings: { upsert: async ({ where, create }: { where: { workspaceId: string }; create: { workspaceId: string } }) => { assert.equal(where.workspaceId, "a"); assert.equal(create.workspaceId, "a"); writes++; } },
-        $transaction: async (operations: Promise<unknown>[]) => Promise.all(operations),
+        legalDocument: { findFirst: async ({ where }: { where: { AND: Array<{ workspaceId: string }> } }) => { assert.equal(where.AND[0].workspaceId, "a"); return null; } },
+        siteSettings: { findUnique: async ({ where }: { where: { workspaceId: string } }) => { assert.equal(where.workspaceId, "a"); return null; } },
+        $transaction: async (fn: (tx: unknown) => Promise<unknown>) => fn({
+          $queryRaw: async () => [],
+          legalDocument: { findMany: async () => [], create: async ({ data }: { data: { workspaceId: string } }) => { assert.equal(data.workspaceId, "a"); writes++; return { id: "legal" }; } },
+          siteSettings: { create: async ({ data }: { data: { workspaceId: string } }) => { assert.equal(data.workspaceId, "a"); writes++; } },
+        }),
       } },
     };
     runInNewContext(ts.transpileModule(readFileSync(new URL("../app/api/admin/legal-documents/route.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { exports, console, require: (id: string) => modules[id] });

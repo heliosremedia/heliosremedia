@@ -1536,7 +1536,7 @@ model LegalDocument {
   @@index([workspaceId])
 
   id        String            @id @default(cuid())
-  type      LegalDocumentType @unique
+  type      LegalDocumentType
   title     String
   content   String
   published Boolean           @default(false)
@@ -1545,6 +1545,7 @@ model LegalDocument {
   updatedAt DateTime @updatedAt
 
   @@index([published])
+  @@unique([workspaceId, type])
 }
 
 model CallToAction {
