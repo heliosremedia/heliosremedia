@@ -3,11 +3,30 @@ import { NextResponse } from "next/server";
 
 import { getAdminSession } from "@/lib/auth/session";
 import { recordAuditEvent } from "@/lib/audit";
-import { deleteContentImage, verifyContentImage } from "@/lib/content-image-storage";
+import { verifyRegisteredBrandImage } from "@/lib/workspace-brand-assets";
+import { resolveLocationImage } from "@/lib/location-image-ownership";
+import { requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
+import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { LOCATION_FIELD_LIMITS as LIMITS } from "@/lib/location-page-content";
 import { prisma } from "@/lib/prisma";
 
 type LocationBody = Record<string, unknown>;
+
+async function requestBody(request: Request): Promise<LocationBody> {
+  const body: unknown = await request.json().catch(() => null);
+  if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("INVALID_INPUT");
+  return body as LocationBody;
+}
+
+function mutationError(error: unknown) {
+  const message = error instanceof Error ? error.message : "";
+  if (message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
+  if (["INVALID_INPUT", "INVALID_BRAND_IMAGE"].includes(message)) return NextResponse.json({ success: false, error: "Provide valid location information and an owned image." }, { status: 400 });
+  if (message === "LOCATION_CHANGED" || (error && typeof error === "object" && "code" in error && ["P2025", "P2002"].includes(String(error.code)))) {
+    return NextResponse.json({ success: false, error: "The location changed. Reload before trying again." }, { status: 409 });
+  }
+  return null;
+}
 
 function text(value: unknown, limit: number, strict = false) {
   const result = typeof value === "string" ? value.trim() : "";
@@ -168,26 +187,33 @@ function revalidateLocations(slugs: string[] = []) {
 export async function POST(request: Request) {
   const session = await getAdminSession();
   if (!session) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+  if (!["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
   try {
-    const body = (await request.json()) as LocationBody;
+    const body = await requestBody(request);
     const settings = await prisma.siteSettings.findFirst({ where: { workspaceId: session.workspaceId }, select: { businessName: true } });
     const generated = body.action === "generate" ? starterContent(body, settings?.businessName || "Your company") : payload(body);
     const data = payload(generated);
     if (!valid(data)) {
       return NextResponse.json({ success: false, error: "City, county, page copy, local details, and service area are required." }, { status: 400 });
     }
+    const image = resolveLocationImage(session.workspaceId, null, { key: data.featureImageStorageKey, url: data.featureImageUrl }, null, getPublicAssetUrl);
+    data.featureImageStorageKey = image.key; data.featureImageUrl = image.url;
+    await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "locations", key: image.key });
     const slug = await uniqueSlug(session.workspaceId, text(body.slug, LIMITS.slug, true) || data.city);
     const order = await prisma.locationPage.aggregate({ where: { workspaceId: session.workspaceId }, _max: { displayOrder: true } });
-    const location = await prisma.locationPage.create({
-      data: {
-        ...data,
-        workspaceId: session.workspaceId,
-        slug,
-        localDetails: data.localDetails,
-        published: false,
-        displayOrder: (order._max.displayOrder ?? -1) + 1,
-      },
-      select: selectLocation(),
+    const location = await prisma.$transaction(async tx => {
+      await requireLockedWorkspaceEditor(tx, session);
+      return tx.locationPage.create({
+        data: {
+          ...data,
+          workspaceId: session.workspaceId,
+          slug,
+          localDetails: data.localDetails,
+          published: false,
+          displayOrder: (order._max.displayOrder ?? -1) + 1,
+        },
+        select: selectLocation(),
+      });
     });
     await recordAuditEvent({
       workspaceId: session.workspaceId, actorId: session.userId,
@@ -200,10 +226,11 @@ export async function POST(request: Request) {
     revalidateLocations([slug]);
     return NextResponse.json({ success: true, location }, { status: 201 });
   } catch (error) {
+    const failure = mutationError(error); if (failure) return failure;
     if (error instanceof Error && error.message === "FIELD_TOO_LONG") {
       return NextResponse.json({ success: false, error: "One or more fields exceed their character limit." }, { status: 400 });
     }
-    console.error("Unable to create location page:", error);
+    console.error("Unable to create location page", { category: "request_failed" });
     return NextResponse.json({ success: false, error: "The local page could not be created." }, { status: 500 });
   }
 }
@@ -211,35 +238,48 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const session = await getAdminSession();
   if (!session) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+  if (!["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
   try {
-    const body = (await request.json()) as LocationBody;
+    const body = await requestBody(request);
     const locationId = text(body.locationId, 100);
     const action = text(body.action, 40);
     if (!locationId) return NextResponse.json({ success: false, error: "Location page ID required." }, { status: 400 });
-    const existing = await prisma.locationPage.findFirst({ where: { id: locationId, workspaceId: session.workspaceId }, select: { slug: true, city: true, featureImageStorageKey: true } });
+    const existing = await prisma.locationPage.findFirst({ where: { id: locationId, workspaceId: session.workspaceId }, select: { slug: true, city: true, updatedAt: true, featureImageStorageKey: true, featureImageUrl: true } });
     if (!existing) return NextResponse.json({ success: false, error: "Local page not found." }, { status: 404 });
+    const where = { id: locationId, workspaceId: session.workspaceId, updatedAt: existing.updatedAt };
 
     if (action === "reorder") {
       const direction = body.direction === "up" ? -1 : body.direction === "down" ? 1 : 0;
       if (!direction) return NextResponse.json({ success: false, error: "Valid reorder direction required." }, { status: 400 });
-      const ordered = await prisma.locationPage.findMany({ where: { workspaceId: session.workspaceId }, orderBy: [{ displayOrder: "asc" }, { city: "asc" }], select: { id: true } });
-      const index = ordered.findIndex((item) => item.id === locationId);
-      const target = index + direction;
-      if (index >= 0 && target >= 0 && target < ordered.length) {
-        await prisma.$transaction([
-          prisma.locationPage.update({ where: { id: ordered[index].id }, data: { displayOrder: target } }),
-          prisma.locationPage.update({ where: { id: ordered[target].id }, data: { displayOrder: index } }),
-        ]);
-      }
+      await prisma.$transaction(async tx => {
+        await requireLockedWorkspaceEditor(tx, session);
+        if (!await tx.locationPage.findFirst({ where, select: { id: true } })) throw new Error("LOCATION_CHANGED");
+        const ordered = await tx.locationPage.findMany({ where: { workspaceId: session.workspaceId }, orderBy: [{ displayOrder: "asc" }, { city: "asc" }], select: { id: true, updatedAt: true } });
+        const index = ordered.findIndex((item) => item.id === locationId);
+        const target = index + direction;
+        if (index >= 0 && target >= 0 && target < ordered.length) {
+          await tx.locationPage.update({ where: { id: ordered[index].id, workspaceId: session.workspaceId, updatedAt: ordered[index].updatedAt }, data: { displayOrder: target } });
+          await tx.locationPage.update({ where: { id: ordered[target].id, workspaceId: session.workspaceId, updatedAt: ordered[target].updatedAt }, data: { displayOrder: index } });
+        }
+      });
       revalidateLocations();
       return NextResponse.json({ success: true });
     }
 
     if (action === "publish") {
-      const location = await prisma.locationPage.update({
-        where: { id: locationId },
-        data: { published: Boolean(body.published) },
-        select: selectLocation(),
+      if (typeof body.published !== "boolean") throw new Error("INVALID_INPUT");
+      if (body.published) {
+        const current = { key: existing.featureImageStorageKey ?? null, url: existing.featureImageUrl ?? null };
+        const image = resolveLocationImage(session.workspaceId, locationId, current, current, getPublicAssetUrl);
+        await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "locations", key: image.key, existingKey: existing.featureImageStorageKey });
+      }
+      const location = await prisma.$transaction(async tx => {
+        await requireLockedWorkspaceEditor(tx, session);
+        return tx.locationPage.update({
+          where,
+          data: { published: body.published === true },
+          select: selectLocation(),
+        });
       });
       await recordAuditEvent({
         workspaceId: session.workspaceId, actorId: session.userId,
@@ -255,17 +295,20 @@ export async function PATCH(request: Request) {
 
     const data = payload(body);
     if (!valid(data)) return NextResponse.json({ success: false, error: "Complete every required page field before saving." }, { status: 400 });
-    if (data.featureImageStorageKey && !data.featureImageStorageKey.startsWith(`site/locations/${session.workspaceId}/${locationId}/`)) {
-      return NextResponse.json({ success: false, error: "The selected location image is invalid." }, { status: 400 });
-    }
-    if (data.featureImageStorageKey !== existing.featureImageStorageKey) await verifyContentImage(data.featureImageStorageKey);
+    const image = resolveLocationImage(session.workspaceId, locationId, { key: data.featureImageStorageKey, url: data.featureImageUrl },
+      { key: existing.featureImageStorageKey, url: existing.featureImageUrl }, getPublicAssetUrl);
+    data.featureImageStorageKey = image.key; data.featureImageUrl = image.url;
+    await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "locations", key: image.key, existingKey: existing.featureImageStorageKey });
     const slug = await uniqueSlug(session.workspaceId, text(body.slug, LIMITS.slug, true) || data.city, locationId);
-    const location = await prisma.locationPage.update({
-      where: { id: locationId },
-      data: { ...data, slug, localDetails: data.localDetails },
-      select: selectLocation(),
+    const location = await prisma.$transaction(async tx => {
+      await requireLockedWorkspaceEditor(tx, session);
+      return tx.locationPage.update({
+        where,
+        data: { ...data, slug, localDetails: data.localDetails },
+        select: selectLocation(),
+      });
     });
-    if (data.featureImageStorageKey !== existing.featureImageStorageKey) await deleteContentImage(existing.featureImageStorageKey);
+    // Retain old/shared images until usage and retention evidence permits cleanup.
     await recordAuditEvent({
       workspaceId: session.workspaceId, actorId: session.userId,
       actorEmail: session.email,
@@ -277,10 +320,11 @@ export async function PATCH(request: Request) {
     revalidateLocations([existing.slug, slug]);
     return NextResponse.json({ success: true, location });
   } catch (error) {
+    const failure = mutationError(error); if (failure) return failure;
     if (error instanceof Error && error.message === "FIELD_TOO_LONG") {
       return NextResponse.json({ success: false, error: "One or more fields exceed their character limit." }, { status: 400 });
     }
-    console.error("Unable to update location page:", error);
+    console.error("Unable to update location page", { category: "request_failed" });
     return NextResponse.json({ success: false, error: "The local page could not be updated." }, { status: 500 });
   }
 }
@@ -288,13 +332,17 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   const session = await getAdminSession();
   if (!session) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+  if (!["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
   try {
     const locationId = new URL(request.url).searchParams.get("locationId")?.trim();
     if (!locationId) return NextResponse.json({ success: false, error: "Location page ID required." }, { status: 400 });
-    const existing = await prisma.locationPage.findFirst({ where: { id: locationId, workspaceId: session.workspaceId }, select: { id: true, featureImageStorageKey: true } });
+    const existing = await prisma.locationPage.findFirst({ where: { id: locationId, workspaceId: session.workspaceId }, select: { id: true, updatedAt: true } });
     if (!existing) return NextResponse.json({ success: false, error: "Local page not found." }, { status: 404 });
-    const location = await prisma.locationPage.delete({ where: { id: locationId }, select: { id: true, city: true, slug: true } });
-    await deleteContentImage(existing.featureImageStorageKey);
+    const location = await prisma.$transaction(async tx => {
+      await requireLockedWorkspaceEditor(tx, session);
+      return tx.locationPage.delete({ where: { id: locationId, workspaceId: session.workspaceId, updatedAt: existing.updatedAt }, select: { id: true, city: true, slug: true } });
+    });
+    // Deleting a page never authorizes deletion of its stored media object.
     await recordAuditEvent({
       workspaceId: session.workspaceId, actorId: session.userId,
       actorEmail: session.email,
@@ -306,7 +354,8 @@ export async function DELETE(request: Request) {
     revalidateLocations([location.slug]);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Unable to delete location page:", error);
+    const failure = mutationError(error); if (failure) return failure;
+    console.error("Unable to delete location page", { category: "request_failed" });
     return NextResponse.json({ success: false, error: "The local page could not be deleted." }, { status: 500 });
   }
 }

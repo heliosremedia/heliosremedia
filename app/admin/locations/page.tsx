@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/auth/session";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
+import { readableLocationImage } from "@/lib/location-image-ownership";
 
 import LocationPageManager, { type AdminLocationPage } from "./LocationPageManager";
 
@@ -13,17 +14,24 @@ export default async function LocalPagesAdminPage() {
     orderBy: [{ displayOrder: "asc" }, { city: "asc" }],
   });
 
-  const serialized: AdminLocationPage[] = locations.map((location) => ({
-    ...location,
-    featureImageUrl: location.featureImageStorageKey ? getPublicAssetUrl(location.featureImageStorageKey) : location.featureImageUrl,
-    localDetails: Array.isArray(location.localDetails)
-      ? location.localDetails.filter(
-          (detail): detail is string => typeof detail === "string",
-        )
-      : [],
-    createdAt: location.createdAt.toISOString(),
-    updatedAt: location.updatedAt.toISOString(),
-  }));
+  const serialized: AdminLocationPage[] = locations.map((location) => {
+    const image = readableLocationImage(session.workspaceId, location.id,
+      { key: location.featureImageStorageKey, url: location.featureImageUrl }, getPublicAssetUrl);
+    return {
+      ...location,
+      featureImageStorageKey: image.key,
+      featureImageUrl: image.url,
+      localDetails: Array.isArray(location.localDetails)
+        ? location.localDetails.filter(
+            (detail): detail is string => typeof detail === "string",
+          )
+        : [],
+      createdAt: location.createdAt.toISOString(),
+      updatedAt: location.updatedAt.toISOString(),
+    };
+  });
+  const withheldImages = serialized.filter((location, index) => locations[index].featureImageStorageKey && !location.featureImageStorageKey
+    || locations[index].featureImageUrl && !location.featureImageUrl).length;
 
   return (
     <div className="space-y-7">
@@ -45,6 +53,7 @@ export default async function LocalPagesAdminPage() {
         </p>
       </section>
 
+      {withheldImages > 0 && <p role="status" className="text-sm text-amber-200">Some stored image references could not be verified for this company. Replace those images before publishing. Stored objects have not been deleted.</p>}
       <LocationPageManager initialLocations={serialized} />
     </div>
   );

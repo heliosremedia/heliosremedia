@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { getPublicWorkspaceId } from "@/lib/public-workspace";
 import { tenantContextEnabled } from "@/lib/workspace-context-core";
+import { readableLocationImage } from "@/lib/location-image-ownership";
 
 export type LocationPage = {
   id?: string;
@@ -206,11 +207,12 @@ function normalizeLocationPage(location: {
   createdAt: Date;
   updatedAt: Date;
 }): LocationPage {
+  const image = readableLocationImage(location.workspaceId, location.id,
+    { key: location.featureImageStorageKey ?? null, url: location.featureImageUrl ?? null }, getPublicAssetUrl);
   return {
     ...location,
-    featureImageUrl: location.featureImageStorageKey
-      ? getPublicAssetUrl(location.featureImageStorageKey)
-      : location.featureImageUrl,
+    featureImageStorageKey: image.key,
+    featureImageUrl: image.url,
     localDetails: Array.isArray(location.localDetails)
       ? location.localDetails.filter(
           (detail): detail is string => typeof detail === "string",

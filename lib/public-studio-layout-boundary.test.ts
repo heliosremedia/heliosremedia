@@ -134,9 +134,10 @@ test('location list and detail reads isolate company ownership and never use bun
       if (failure) throw new Error('Synthetic database unavailable');
       return (await db.query('SELECT * FROM locations WHERE published AND ($1::text IS NULL OR "workspaceId" = $1) AND ($2::text IS NULL OR slug = $2) ORDER BY "displayOrder", city', [where.workspaceId ?? null, where.slug ?? null])).rows;
     };
-    const locations = load<{ getPublishedLocationPages(workspaceId?: string): Promise<Array<{ slug: string; localDetails: string[] }>>;
+    const locations = load<{ getPublishedLocationPages(workspaceId?: string): Promise<Array<{ slug: string; localDetails: string[]; featureImageUrl: string | null }>>;
       getLocationPage(slug: string, workspaceId?: string): Promise<{ slug: string } | undefined> }>('./location-pages.ts', {
       'server-only': {}, '@/lib/r2-upload': { getPublicAssetUrl: () => { throw new Error('No storage request allowed'); } },
+      '@/lib/location-image-ownership': load('./location-image-ownership.ts', { './workspace-brand-storage': load('./workspace-brand-storage.ts', {}) }),
       '@/lib/workspace-context-core': { tenantContextEnabled: () => enabled },
       '@/lib/public-workspace': { getPublicWorkspaceId: async () => { hostReads++; if (host === 'unknown') throw new Error('Unknown host'); return host; } },
       '@/lib/prisma': { prisma: {
@@ -148,6 +149,11 @@ test('location list and detail reads isolate company ownership and never use bun
     const own = await locations.getPublishedLocationPages();
     assert.deepEqual(JSON.parse(JSON.stringify(own.map(row => row.slug))), ['b-town']);
     assert.deepEqual(JSON.parse(JSON.stringify(own[0].localDetails)), ['Local fact']);
+    await db.exec(`ALTER TABLE locations ADD COLUMN "featureImageStorageKey" TEXT;
+      UPDATE locations SET "featureImageStorageKey"='workspaces/a/locations/foreign.webp' WHERE id='b'`);
+    assert.equal((await locations.getPublishedLocationPages())[0].featureImageUrl, null, 'public DTO withholds a corrupt foreign image pointer');
+    assert.equal((await db.query<{ featureImageStorageKey: string }>('SELECT "featureImageStorageKey" FROM locations WHERE id=$1', ['b'])).rows[0].featureImageStorageKey,
+      'workspaces/a/locations/foreign.webp', 'read filtering does not rewrite stored evidence');
     assert.equal((await locations.getLocationPage('b-town'))?.slug, 'b-town');
     assert.equal(await locations.getLocationPage('fort-collins'), undefined);
     assert.equal(await locations.getLocationPage('draft'), undefined);

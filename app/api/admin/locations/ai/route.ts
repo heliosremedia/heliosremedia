@@ -106,6 +106,7 @@ async function logProviderRejection(response: Response, model: string) {
 export async function POST(request: Request) {
   const session = await getAdminSession();
   if (!session) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+  if (!["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
 
   try {
     const body = await request.json() as Record<string, unknown>;
