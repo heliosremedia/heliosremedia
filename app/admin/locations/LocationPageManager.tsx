@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AI_LOCATION_FIELDS, LOCATION_FIELD_LIMITS, type EditableLocationField } from "@/lib/location-page-content";
 
 export type AdminLocationPage = {
@@ -110,12 +110,31 @@ export default function LocationPageManager({ initialLocations }: { initialLocat
   const [aiDraft, setAiDraft] = useState<Partial<Record<EditableLocationField, string>> | null>(null);
   const [aiMessage, setAiMessage] = useState<string | null>(null);
   const [uploadBusy, setUploadBusy] = useState(false);
+  const [reorderNeedsReview, setReorderNeedsReview] = useState(false);
+  const reorderPending = useRef(false);
+  const reorderHeld = useRef(false);
+  const uploadPending = useRef(false);
+  const aiPending = useRef(false);
+  const editorEpoch = useRef(0);
+  const mutationBlocked = busy || reorderNeedsReview;
+
+  function openEditor(location: AdminLocationPage) {
+    editorEpoch.current++;
+    setEditing(location); setDraft(toDraft(location)); setError(null);
+    setAssistantOpen(false); setAiDraft(null); setAiMessage(null); setCustomDirection("");
+  }
+
+  function closeEditor() {
+    editorEpoch.current++;
+    setEditing(null); setDraft(null); setAiDraft(null);
+  }
 
   function replaceLocation(location: AdminLocationPage) {
     setLocations((current) => current.map((item) => item.id === location.id ? location : item));
   }
 
   async function buildPage() {
+    if (mutationBlocked || reorderPending.current || reorderHeld.current) return;
     if (!builder.city.trim() || !builder.county.trim()) {
       setError("Enter the city and county so the page can be built accurately.");
       return;
@@ -133,14 +152,14 @@ export default function LocationPageManager({ initialLocations }: { initialLocat
       setLocations((current) => [...current, location]);
       setBuilder(emptyBuilder);
       setShowBuilder(false);
-      setEditing(location);
-      setDraft(toDraft(location));
+      openEditor(location);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The page could not be built.");
     } finally { setBusy(false); }
   }
 
   async function savePage() {
+    if (mutationBlocked || reorderPending.current || reorderHeld.current || uploadPending.current) return;
     if (!editing || !draft) return;
     const lengthErrors = Object.entries(LOCATION_FIELD_LIMITS).filter(([key, limit]) => key in draft && typeof draft[key as keyof Draft] === "string" && String(draft[key as keyof Draft] || "").length > limit);
     if (lengthErrors.length) { setError("One or more fields exceed their character limit. Shorten the highlighted fields before saving."); return; }
@@ -154,22 +173,25 @@ export default function LocationPageManager({ initialLocations }: { initialLocat
       const data = await response.json();
       if (!response.ok || !data.success || !data.location) throw new Error(data.error || "The page could not be saved.");
       replaceLocation(data.location);
-      setEditing(null); setDraft(null);
+      closeEditor();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The page could not be saved.");
     } finally { setBusy(false); }
   }
 
   async function generateDraft() {
-    if (!editing || !draft || aiBusy) return;
+    if (!editing || !draft || aiBusy || aiPending.current) return;
+    aiPending.current = true;
+    const epoch = editorEpoch.current;
     setAiBusy(true); setAiMessage("Generating a locally specific draft…"); setAiDraft(null);
     try {
       const response = await fetch("/api/admin/locations/ai", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ locationId: editing.id, city: draft.city, customDirection }) });
       const data = await response.json();
+      if (epoch !== editorEpoch.current) return;
       if (!response.ok || !data.success) throw new Error(data.error || "The assistant could not generate a draft.");
       setAiDraft(data.draft); setAiMessage("Draft ready. Apply only the fields you want, then use Save draft.");
-    } catch (caught) { setAiMessage(caught instanceof Error ? caught.message : "The assistant could not generate a draft."); }
-    finally { setAiBusy(false); }
+    } catch (caught) { if (epoch === editorEpoch.current) setAiMessage(caught instanceof Error ? caught.message : "The assistant could not generate a draft."); }
+    finally { aiPending.current = false; setAiBusy(false); }
   }
 
   function applyAiField(field: EditableLocationField) {
@@ -184,7 +206,9 @@ export default function LocationPageManager({ initialLocations }: { initialLocat
   }
 
   async function uploadFeatureImage(file: File) {
-    if (!editing || !draft) return;
+    if (!editing || !draft || uploadPending.current || mutationBlocked) return;
+    uploadPending.current = true;
+    const epoch = editorEpoch.current;
     setUploadBusy(true); setError(null);
     try {
       const prepared = await fetch("/api/admin/locations/presign", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ locationId: editing.id, fileName: file.name, fileType: file.type, fileSize: file.size }) });
@@ -192,12 +216,17 @@ export default function LocationPageManager({ initialLocations }: { initialLocat
       if (!prepared.ok || !data.success) throw new Error(data.error || "The image upload could not be prepared.");
       const uploaded = await fetch(data.upload.uploadUrl, { method: "PUT", headers: { "Content-Type": data.upload.contentType }, body: file });
       if (!uploaded.ok) throw new Error("The image could not be uploaded.");
-      setDraft({ ...draft, featureImageStorageKey: data.upload.key, featureImageUrl: data.upload.publicUrl });
-    } catch (caught) { setError(caught instanceof Error ? caught.message : "The image could not be uploaded."); }
-    finally { setUploadBusy(false); }
+      setDraft((current) => epoch === editorEpoch.current && current
+        ? { ...current, featureImageStorageKey: data.upload.key, featureImageUrl: data.upload.publicUrl }
+        : current);
+    } catch (caught) {
+      if (epoch === editorEpoch.current) setError(caught instanceof Error ? caught.message : "The image could not be uploaded.");
+    }
+    finally { uploadPending.current = false; setUploadBusy(false); }
   }
 
   async function togglePublished(location: AdminLocationPage) {
+    if (mutationBlocked || reorderPending.current || reorderHeld.current) return;
     setBusy(true); setError(null);
     try {
       const response = await fetch("/api/admin/locations", {
@@ -214,25 +243,37 @@ export default function LocationPageManager({ initialLocations }: { initialLocat
   }
 
   async function reorder(location: AdminLocationPage, direction: "up" | "down") {
+    if (mutationBlocked || reorderPending.current || reorderHeld.current || editing || showBuilder) return;
     const index = locations.findIndex((item) => item.id === location.id);
     const target = direction === "up" ? index - 1 : index + 1;
-    if (target < 0 || target >= locations.length) return;
+    if (index < 0 || target < 0 || target >= locations.length) return;
+    reorderPending.current = true;
+    setBusy(true); setError(null);
     const next = [...locations];
     [next[index], next[target]] = [next[target], next[index]];
-    setLocations(next);
-    const response = await fetch("/api/admin/locations", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "reorder", locationId: location.id, direction }),
-    });
-    if (!response.ok) {
-      setLocations(locations);
-      const data = await response.json();
-      setError(data.error || "The page order could not be saved.");
+    try {
+      const response = await fetch("/api/admin/locations", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reorder", locationId: location.id, direction }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || data?.success !== true) throw new Error("ORDER_NOT_CONFIRMED");
+      setLocations(next);
+    } catch {
+      // A missing acknowledgement is not proof of rollback. Do not replay the
+      // mutation or replace the saved server order with another optimistic write.
+      reorderHeld.current = true;
+      setReorderNeedsReview(true);
+      setError("The page order could not be confirmed. Reload saved pages before making more changes.");
+    } finally {
+      reorderPending.current = false;
+      setBusy(false);
     }
   }
 
   async function remove(location: AdminLocationPage) {
+    if (mutationBlocked || reorderPending.current || reorderHeld.current) return;
     if (!window.confirm(`Permanently delete the ${location.city} local page? This cannot be undone.`)) return;
     setBusy(true); setError(null);
     try {
@@ -253,19 +294,20 @@ export default function LocationPageManager({ initialLocations }: { initialLocat
             <p className="text-lg text-white">{locations.length} local {locations.length === 1 ? "page" : "pages"}</p>
             <p className="mt-1 text-xs text-white/30">{locations.filter((item) => item.published).length} published · {locations.filter((item) => !item.published).length} drafts</p>
           </div>
-          <button type="button" onClick={() => { setShowBuilder(true); setError(null); }} className="admin-btn-primary">
+          <button type="button" disabled={mutationBlocked} onClick={() => { if (mutationBlocked || reorderPending.current || reorderHeld.current) return; setShowBuilder(true); setError(null); }} className="admin-btn-primary">
             Build a local page
           </button>
         </div>
-        {error ? <p className="mt-5 rounded-xl border border-red-300/15 bg-red-300/[0.05] px-4 py-3 text-sm text-red-200/75">{error}</p> : null}
+        {error ? <p role="alert" className="mt-5 rounded-xl border border-red-300/15 bg-red-300/[0.05] px-4 py-3 text-sm text-red-200/75">{error}</p> : null}
+        {reorderNeedsReview && !editing && !showBuilder ? <button type="button" onClick={() => window.location.reload()} className="admin-btn-secondary mt-3">Reload saved pages</button> : null}
       </section>
 
       <div className="space-y-3">
         {locations.map((location, index) => (
           <article key={location.id} className="grid gap-5 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:p-6">
             <div className="flex gap-2">
-              <button type="button" disabled={index === 0 || busy} onClick={() => reorder(location, "up")} aria-label={`Move ${location.city} up`} className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white/35 disabled:opacity-20">↑</button>
-              <button type="button" disabled={index === locations.length - 1 || busy} onClick={() => reorder(location, "down")} aria-label={`Move ${location.city} down`} className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white/35 disabled:opacity-20">↓</button>
+              <button type="button" disabled={index === 0 || mutationBlocked} onClick={() => reorder(location, "up")} aria-label={`Move ${location.city} up`} className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white/35 disabled:opacity-20">↑</button>
+              <button type="button" disabled={index === locations.length - 1 || mutationBlocked} onClick={() => reorder(location, "down")} aria-label={`Move ${location.city} down`} className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white/35 disabled:opacity-20">↓</button>
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2.5">
@@ -277,9 +319,9 @@ export default function LocationPageManager({ initialLocations }: { initialLocat
             </div>
             <div className="flex flex-wrap gap-2 sm:justify-end">
               {location.published ? <Link href={`/locations/${location.slug}`} target="_blank" className="admin-btn-secondary">View</Link> : null}
-              <button type="button" disabled={busy} onClick={() => { setEditing(location); setDraft(toDraft(location)); setError(null); setAssistantOpen(false); setAiDraft(null); setAiMessage(null); setCustomDirection(""); }} className="admin-btn-secondary">Edit</button>
-              <button type="button" disabled={busy} onClick={() => togglePublished(location)} className="admin-btn-primary">{location.published ? "Unpublish" : "Publish"}</button>
-              <button type="button" disabled={busy} onClick={() => remove(location)} className="px-3 text-[0.58rem] font-semibold uppercase tracking-[0.14em] text-red-200/35 transition hover:text-red-200">Delete</button>
+              <button type="button" disabled={mutationBlocked} onClick={() => { if (!mutationBlocked && !reorderPending.current && !reorderHeld.current) openEditor(location); }} className="admin-btn-secondary">Edit</button>
+              <button type="button" disabled={mutationBlocked} onClick={() => togglePublished(location)} className="admin-btn-primary">{location.published ? "Unpublish" : "Publish"}</button>
+              <button type="button" disabled={mutationBlocked} onClick={() => remove(location)} className="px-3 text-[0.58rem] font-semibold uppercase tracking-[0.14em] text-red-200/35 transition hover:text-red-200">Delete</button>
             </div>
           </article>
         ))}
@@ -310,7 +352,7 @@ export default function LocationPageManager({ initialLocations }: { initialLocat
           <div role="dialog" aria-modal="true" aria-labelledby="editor-title" className="mx-auto max-w-4xl rounded-2xl border border-white/10 bg-[#111113] p-6 shadow-2xl sm:p-8">
             <div className="flex items-start justify-between gap-6">
               <div><p className="eyebrow text-[var(--helios-orange)]">Local page editor</p><h2 id="editor-title" className="mt-3 text-3xl font-light text-white">{editing.city}</h2></div>
-              <button type="button" onClick={() => { setEditing(null); setDraft(null); setAiDraft(null); }} className="text-2xl text-white/35 hover:text-white" aria-label="Close editor">×</button>
+              <button type="button" onClick={closeEditor} className="text-2xl text-white/35 hover:text-white" aria-label="Close editor">×</button>
             </div>
             <section className="mt-8 rounded-2xl border border-[var(--helios-orange)]/20 bg-[var(--helios-orange)]/[0.035] p-5 sm:p-6" aria-labelledby="location-assistant-title">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -350,8 +392,8 @@ export default function LocationPageManager({ initialLocations }: { initialLocat
             </div>
             {error ? <p className="mt-6 rounded-xl border border-red-300/15 bg-red-300/[0.05] px-4 py-3 text-sm text-red-200/75">{error}</p> : null}
             <div className="mt-8 flex flex-wrap justify-end gap-3">
-              <button type="button" disabled={busy} onClick={() => { setEditing(null); setDraft(null); setAiDraft(null); }} className="admin-btn-secondary">Cancel</button>
-              <button type="button" disabled={busy} onClick={savePage} className="admin-btn-primary">{busy ? "Saving…" : "Save draft"}</button>
+              <button type="button" disabled={busy} onClick={closeEditor} className="admin-btn-secondary">Cancel</button>
+              <button type="button" disabled={mutationBlocked || uploadBusy} onClick={savePage} className="admin-btn-primary">{busy ? "Saving…" : "Save draft"}</button>
             </div>
           </div>
         </div>

@@ -10,7 +10,8 @@
     "test": "node --experimental-strip-types --test lib/*.test.ts lib/client-communications/*.test.ts lib/newsletters/*.test.ts lib/referrals/*.test.ts lib/social/*.test.ts",
     "auth:hash-password": "node scripts/hash-admin-password.mjs",
     "test:recovery-browser": "node scripts/browser/run-generation-recovery.mjs",
-    "test:studio-layout": "node scripts/browser/run-studio-layout-boundary.mjs"
+    "test:studio-layout": "node scripts/browser/run-studio-layout-boundary.mjs",
+    "test:location-browser": "node scripts/browser/run-location-editor.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1089.0",

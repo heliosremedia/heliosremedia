@@ -48,6 +48,8 @@ jobs:
         run: ./node_modules/.bin/playwright install --with-deps chromium
       - name: Check generation recovery in a browser
         run: npm run test:recovery-browser
+      - name: Check synthetic location editor recovery in Chromium
+        run: npm run test:location-browser
       - name: Check isolated Studio layout with real Next.js HTTP and Chromium
         run: npm run test:studio-layout
       - name: Check patch whitespace
