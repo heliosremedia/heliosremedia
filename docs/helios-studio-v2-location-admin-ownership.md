@@ -1,6 +1,6 @@
 # Location administration ownership
 
-Status: draft implementation based on #302. Production remains held for readiness and Jake's QA/release decision.
+Status: draft #303 based on #302. Production remains held for readiness and Jake's QA/release decision.
 
 ## Changes and compatibility
 
@@ -18,7 +18,7 @@ Before implementation, an executable actual-route test with a synthetic current 
 
 A separate case in that suite executes the real route and authorization lock SQL through narrow adapters in isolated PGlite transactions. Failure on the second reorder update rolls back the first; successful reorder preserves Company A; ownership changes prevent publication; revocation prevents deletion; an authorized page deletion leaves other records untouched. This proves isolated SQL transaction/predicate behavior, not hosted Prisma/Neon multi-connection races. The prior public layout test now checks a corrupt image pointer is withheld without changing its stored key.
 
-Initial combined local suite passed 697 tests, with non-incremental TypeScript and scoped lint passing. Final local/CI evidence, heads and links are recorded in the progress ledger. Existing Chromium recovery fixtures and actual Next.js anonymous sign-in HTTP/Chromium checks are regression coverage, not a browser test of authenticated location uploads, edits or AI. No real provider, R2 upload, AI generation, invitation, publication or customer mutation was performed.
+Final local suite and CI run 34729659785 passed 697 tests, Prisma generation, route generation/non-incremental TypeScript and existing Chromium checks. Scoped lint passed locally. Heads and links are recorded in the progress ledger. Existing Chromium recovery fixtures and actual Next.js anonymous sign-in HTTP/Chromium checks are regression coverage, not a browser test of authenticated location uploads, edits or AI. No real provider, R2 upload, AI generation, invitation, publication or customer mutation was performed.
 
 ## Rollback and open gates
 
