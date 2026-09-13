@@ -11,7 +11,8 @@
     "auth:hash-password": "node scripts/hash-admin-password.mjs",
     "test:recovery-browser": "node scripts/browser/run-generation-recovery.mjs",
     "test:studio-layout": "node scripts/browser/run-studio-layout-boundary.mjs",
-    "test:location-browser": "node scripts/browser/run-location-editor.mjs"
+    "test:location-browser": "node scripts/browser/run-location-editor.mjs",
+    "test:legal-browser": "node scripts/browser/run-legal-editor.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1089.0",
