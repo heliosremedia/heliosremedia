@@ -6,9 +6,10 @@
   "base": "codex/v2-featured-film-browser-recovery",
   "baseHead": "b617a4312671996381115b6fba91511edecd20d7",
   "pr": 311,
-  "head": "afb088e2fbbda8d279b3ea032d0112cc111df7ce",
-  "tree": "5a378ae04a7c8e1914e6b8a679cdc9930065d154",
-  "scope": "Packet 4 only; local 785 tests passed; exact-head CI/Chromium pending; stop after verified draft",
+  "head": "3725dc4d95827a3a7aa7cc8db762941098b586a6",
+  "tree": "b338cb180f0cd00643ef271ac9307b3b1221b05c",
+  "ci": 35281342479,
+  "scope": "Packet 4 only; active-only draft merge and fixture build constants fixed; exact-head CI/Chromium pending; stop after verified draft",
   "production": "ON HOLD",
   "automation": "paused"
 }
