@@ -5,12 +5,22 @@
   "branch": "codex/v2-featured-film-browser-recovery",
   "base": "codex/v2-site-settings-browser-recovery",
   "pr": 310,
-  "head": "e5a6728e3e8106fdffe85aa830e043e25e12387a",
-  "tree": "c4abc7b66ea3c635cf1cd94e037c615a6c2c5717",
-  "localHead": "1992277f3b29975f20068423ec469e841a3aa392",
-  "localTests": 752,
-  "runIdCI": 35276721981,
-  "verification": "Full CI suite/types/generation and existing generation/location/legal browsers passed; settings/film/Studio checks pending",
+  "head": "b617a4312671996381115b6fba91511edecd20d7",
+  "tree": "a19c58be0a7c3a63f4c27e55136f944a7325a464",
+  "localHead": "40573243badc63bdb3836f17a8e5cb05b826e126",
+  "codeHead": "e5a6728e3e8106fdffe85aa830e043e25e12387a",
+  "codeCI": {
+    "runId": 35276721981,
+    "jobId": 105389064682,
+    "tests": 752,
+    "allSteps": "passed",
+    "chromium": "featured film 390/1440px passed"
+  },
+  "finalHeadCI": {
+    "runId": 35277486519,
+    "jobId": 105391479431,
+    "status": "in_progress"
+  },
   "scope": "Packet 3 only, stop at verified completion",
   "production": "ON HOLD",
   "automation": "broad task remains paused"
