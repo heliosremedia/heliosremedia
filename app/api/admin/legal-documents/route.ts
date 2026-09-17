@@ -21,6 +21,8 @@ export async function PATCH(request: Request) {
     const value: unknown = await request.json().catch(() => null);
     if (!value || typeof value !== "object" || Array.isArray(value)) return NextResponse.json({ success: false, error: "Enter a valid legal document." }, { status: 400 });
     const body = value as Record<string, unknown>;
+    const revisionProtocol = request.headers.get("x-helios-legal-revision");
+    if (revisionProtocol !== null && (revisionProtocol !== "1" || body.updatedAt === undefined)) return NextResponse.json({ success: false, error: "Reload the legal editor before saving." }, { status: 400 });
     const type = body.type === "PRIVACY_POLICY" || body.type === "TERMS_OF_SERVICE" ? body.type : null;
     const title = typeof body.title === "string" ? body.title.trim() : "";
     const rawContent = typeof body.content === "string" ? body.content.trim() : "";
@@ -79,7 +81,7 @@ export async function PATCH(request: Request) {
     revalidatePath("/", "layout");
     revalidatePath("/admin/settings");
     revalidatePath(type === "PRIVACY_POLICY" ? "/privacy" : "/terms");
-    return NextResponse.json({ success: true, document });
+    return NextResponse.json({ success: true, revisionProtocol: 1, document });
   } catch (error) {
     if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Owner or administrator access is required." }, { status: 403 });
     if ((error instanceof Error && error.message === "LEGAL_CHANGED") || (typeof error === "object" && error !== null && "code" in error && error.code === "P2002")) return NextResponse.json({ success: false, error: "The document or settings changed, or this document type is unavailable. Keep your draft and reload before saving again." }, { status: 409 });
