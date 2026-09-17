@@ -1,15 +1,31 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-work-card-upload-ownership",
-  "updatedAt": "2026-09-17T22:53:37.177Z",
-  "expiresAt": "2026-09-18T00:53:37.177Z",
+  "releasedAt": "2026-09-17T23:06:52.555Z",
+  "expiresAt": null,
   "branch": "codex/v2-work-card-upload-ownership",
   "base": "codex/v2-homepage-curation-recovery",
   "baseHead": "c1aeadac9f1442ea6369b683aa1cd124fbf5e5bd",
   "pr": 312,
-  "head": "5e9efa0e25774bf3b30d0dc2aeba061e24bde94a",
-  "tree": "f9467575f0df53f14eee0619cb63dfa07f9a6214",
-  "ci": 35284178005,
-  "scope": "Packet 5 only; verifying CI/Chromium. No subsequent packet.",
-  "production": "ON HOLD"
+  "head": "26bd99d98e1b86d7c65eec9b353064e3e109fd91",
+  "tree": "d08dd714b3e573aafb2cd238e9601b8e9e5a2a01",
+  "ci": 35284844542,
+  "job": 105414791459,
+  "conclusion": "success",
+  "tests": {
+    "passed": 819,
+    "failed": 0
+  },
+  "chromium": {
+    "widths": [
+      390,
+      1440
+    ],
+    "evidence": "Actual components, synthetic fetch/XHR/images; 2026-09-17T23:05:29Z and 23:05:36Z"
+  },
+  "verifiedCodeHead": "5e9efa0e25774bf3b30d0dc2aeba061e24bde94a",
+  "verifiedCodeCI": 35284178005,
+  "scope": "Packet 5 complete. STOP; no subsequent packet authorized.",
+  "production": "ON HOLD",
+  "nextRecommendation": "Homepage parent-ownership transfer race inventory and executable baseline; not implemented"
 }
