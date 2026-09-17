@@ -1,24 +1,26 @@
 {
   "status": "active",
   "runId": "atlas-site-settings-browser-recovery",
-  "expiresAt": "2026-09-17T21:42:29.460Z",
+  "expiresAt": "2026-09-17T21:51:07.532Z",
   "branch": "codex/v2-site-settings-browser-recovery",
   "pr": 309,
-  "head": "0be573964ba3c65951e787a66623c0b0e6400c47",
-  "tree": "0089e48b738270192063ac9f83cf196afbe95414",
-  "localHead": "7549118a410a5213e839edabfbfb6df24415de49",
-  "base": "codex/v2-legal-editor-recovery",
-  "baseHead": "7845eb09befa21248711252fba20f8b3306e4df3",
-  "scope": "Site-settings browser revision and acknowledgement recovery ONLY. Stop after final verification; no next packet.",
-  "initialCI": {
-    "head": "f2898760475722b293b99216f615e93c6a6cf817",
-    "runId": 35265573423,
-    "jobId": 105352065789,
-    "tests": 737,
-    "status": "all steps passed",
-    "chromium": "all four modes 390px/1440px passed"
+  "head": "aeb654ec5d6553a66f8d32a6cfb793da2bee9da8",
+  "tree": "4f0039c1d0cead6241c620ee02c995eda2a9a54c",
+  "localHead": "9335d98b5ac576b6b9ea3698cd13285fb3c1d4a8",
+  "codeHead": "0be573964ba3c65951e787a66623c0b0e6400c47",
+  "codeCI": {
+    "runId": 35266409889,
+    "jobId": 105354602130,
+    "tests": 738,
+    "status": "every step passed",
+    "chromium": "Actual settings global/homepage/navigation/structure at 390px/1440px, held responses, copy/reload, sibling drafts, six upload preparations, unknown upload acknowledgements and remount containment passed."
   },
-  "refinement": "Owned-control disabling preserves independent legal/favicon tools. Additional six-upload component test and browser addon/upload acknowledgement/console checks pending fresh CI.",
+  "finalHeadCI": {
+    "runId": 35267291934,
+    "status": "pending"
+  },
   "outstandingChanges": false,
-  "production": "ON HOLD"
+  "scope": "STOP after final documentation-head CI verification for PR 309. Do not begin another roadmap packet.",
+  "production": "ON HOLD",
+  "limitations": "Synthetic fetch/XHR and narrow isolated PGlite adapters. No authenticated hosted, generated-Prisma/Neon concurrency, real provider or production evidence. Manual copies are not durable browser storage."
 }
