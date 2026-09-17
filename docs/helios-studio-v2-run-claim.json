@@ -1,10 +1,16 @@
 {
   "status": "active",
   "runId": "atlas-site-settings-browser-recovery",
-  "expiresAt": "2026-09-17T21:09:47.732Z",
+  "expiresAt": "2026-09-17T21:33:44.582Z",
   "branch": "codex/v2-site-settings-browser-recovery",
+  "pr": 309,
+  "head": "f2898760475722b293b99216f615e93c6a6cf817",
+  "tree": "ca79ec679f6bd28017f582a6f6e8ed0ae314d142",
+  "localHead": "40724f2c9abd751288d9a6bb3c7d5222411bdae7",
   "base": "codex/v2-legal-editor-recovery",
   "baseHead": "7845eb09befa21248711252fba20f8b3306e4df3",
-  "scope": "User authorized site-settings browser revision and acknowledgement recovery only. Stop after packet verification. Production ON HOLD.",
+  "scope": "Site-settings browser revision and acknowledgement recovery ONLY. Stop after final verification; do not start another packet.",
+  "verification": "Focused tests, Prisma generation, non-incremental TypeScript, scoped lint and fixture bundle passed. CI/Chromium pending. Full local run 736/737 before correcting moved beforeunload/held source contract; targeted corrected test passed.",
+  "production": "ON HOLD",
   "outstandingChanges": false
 }
