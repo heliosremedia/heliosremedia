@@ -1,3 +1,4 @@
+import { curationRevision } from "@/lib/homepage-curation-write";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { getAdminSiteSettings } from "@/lib/admin-site-settings";
@@ -16,9 +17,9 @@ export const dynamic = "force-dynamic";
 export default async function HomepageCurationPage() {
   const session = await requireAdminSession();
   const [placements, projects, workCards, services, films, settingsSnapshot, user] = await Promise.all([
-    prisma.homepageProject.findMany({ where: { project: { workspaceId: session.workspaceId } }, orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }], select: { id: true, projectId: true, titleOverride: true, displayOrder: true, active: true, project: { select: { title: true, slug: true, status: true, locationLabel: true, heroMedia: { where: { project: { workspaceId: session.workspaceId }, visibility: "VISIBLE" }, select: { storageKey: true, altText: true } } } } } }),
+    prisma.homepageProject.findMany({ where: { project: { workspaceId: session.workspaceId } }, orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }], select: { id: true, updatedAt: true, projectId: true, titleOverride: true, displayOrder: true, active: true, project: { select: { title: true, slug: true, status: true, locationLabel: true, heroMedia: { where: { project: { workspaceId: session.workspaceId }, visibility: "VISIBLE" }, select: { storageKey: true, altText: true } } } } } }),
     prisma.project.findMany({ where: { workspaceId: session.workspaceId, status: "PUBLISHED" }, orderBy: { title: "asc" }, select: { id: true, title: true, slug: true } }),
-    prisma.homepageWorkCard.findMany({ where: { service: { workspaceId: session.workspaceId }, OR: [{ featuredMediaId: null }, { featuredMedia: { project: { workspaceId: session.workspaceId } } }] }, orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }], select: { id: true, serviceId: true, titleOverride: true, destinationOverride: true, displayOrder: true, active: true, imageStorageKey: true, imageUrl: true, imageAlt: true, mediaMode: true, featuredMediaId: true, videoStorageKey: true, videoUrl: true, service: { select: { id: true, name: true, slug: true, active: true } }, featuredMedia: { select: { id: true, caption: true, originalFilename: true, provider: true, externalId: true, externalUrl: true, sourceType: true, project: { select: { title: true } } } } } }),
+    prisma.homepageWorkCard.findMany({ where: { service: { workspaceId: session.workspaceId }, OR: [{ featuredMediaId: null }, { featuredMedia: { project: { workspaceId: session.workspaceId } } }] }, orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }], select: { id: true, updatedAt: true, serviceId: true, titleOverride: true, destinationOverride: true, displayOrder: true, active: true, imageStorageKey: true, imageUrl: true, imageAlt: true, mediaMode: true, featuredMediaId: true, videoStorageKey: true, videoUrl: true, service: { select: { id: true, name: true, slug: true, active: true } }, featuredMedia: { select: { id: true, caption: true, originalFilename: true, provider: true, externalId: true, externalUrl: true, sourceType: true, project: { select: { title: true } } } } } }),
     prisma.service.findMany({ where: { workspaceId: session.workspaceId, active: true, archivedAt: null }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }], select: { id: true, name: true, slug: true } }),
     prisma.media.findMany({ where: { visibility: "VISIBLE", sourceType: { in: ["UPLOADED_VIDEO", "VIDEO_EMBED"] }, project: { workspaceId: session.workspaceId, status: "PUBLISHED" } }, orderBy: [{ project: { title: "asc" } }, { displayOrder: "asc" }], select: { id: true, caption: true, originalFilename: true, provider: true, project: { select: { title: true } } } }),
     getAdminSiteSettings(session.workspaceId),
@@ -56,14 +57,14 @@ export default async function HomepageCurationPage() {
           title: "Featured Project",
           description: "Select one published project to lead the section. The five service cards remain visible beneath it.",
           summary: placements.length ? "Featured Project configured" : "No Featured Project selected",
-          content: <HomepageProjectManager initialPlacements={serialized} projects={projects as ProjectOption[]} />,
+          content: <HomepageProjectManager key={`projects:${session.workspaceId}`} workspaceId={session.workspaceId} initialRevision={curationRevision(session.workspaceId, "projects", placements)} initialPlacements={serialized} projects={projects as ProjectOption[]} />,
         },
         {
           id: "our-work",
           title: "Our Work",
           description: "Choose the five service cards, imagery, destinations, and card media used in the public Our Work collection.",
           summary: `${workCards.length}/5 cards configured`,
-          content: <HomepageWorkCardManager initialCards={workCards as WorkCard[]} services={services as ServiceOption[]} films={filmOptions} />,
+          content: <HomepageWorkCardManager key={`cards:${session.workspaceId}`} workspaceId={session.workspaceId} initialRevision={curationRevision(session.workspaceId, "work-cards", workCards)} initialCards={workCards as WorkCard[]} services={services as ServiceOption[]} films={filmOptions} />,
         },
         {
           id: "homepage-structure",

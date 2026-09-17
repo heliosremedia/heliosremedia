@@ -1,5 +1,9 @@
 # Helios Studio V2 progress ledger
 
+## Packet 4 active: homepage curation executable inventory and recovery
+
+Fresh base #310 `b617a4312671996381115b6fba91511edecd20d7`; main unchanged at `72dab34568cb6885f3e93b5ed9db38edca156835`. Branch `codex/v2-homepage-curation-recovery`, canonical claim `atlas-homepage-curation-recovery`. Read instructions, installed Next.js route documentation, roadmap/charter/architecture/audit and dependent PRs. Full inventory was written before application changes. Actual-component baseline: four failures, one passing no-automatic-retry control. Actual-route baseline: three failures. Removal storage check reproduced immediate deletion. See `docs/helios-studio-v2-homepage-curation-recovery.md` for exact DTOs, ownership, ordering, public precedence, fixes, and separated gates. Local combined suite passed 785/785; all 26 actual-component checks passed after the final upload merge refinement. Prisma generation without migration, non-incremental TypeScript, scoped lint, fixture bundle and whitespace passed. Local Chromium download failed; exact-head CI/Chromium are pending publication. Production ON HOLD, broad automation paused, stop after this packet.
+
 ## Latest verified packet: September 17, 2026, #310 (Packet 3)
 
 - Draft [#310](https://github.com/heliosremedia/heliosremedia/pull/310), branch `codex/v2-featured-film-browser-recovery`, base completed #309 `codex/v2-site-settings-browser-recovery` at `aeb654ec5d6553a66f8d32a6cfb793da2bee9da8`. Verified code `e5a6728e3e8106fdffe85aa830e043e25e12387a`, tree `c4abc7b66ea3c635cf1cd94e037c615a6c2c5717`, identical to local `1992277f3b29975f20068423ec469e841a3aa392`. Final documentation head/CI are recorded in the canonical claim and PR metadata.
