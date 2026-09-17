@@ -25,11 +25,65 @@ const request = (body: unknown) => new Request('https://foreign.example/api/admi
   method: 'PATCH', headers: { 'content-type': 'application/json', 'x-workspace-id': 'a' }, body: JSON.stringify(body),
 });
 
+test('settings rejects an already-stale open browser revision before writing every scope', async () => {
+  for (const input of scopes) {
+    const f = fixture();
+    const req = request({ ...input, requestId: 'operation-one', editorRevision: {
+      id: 'workspace:b', workspaceId: 'b', storedWorkspaceId: 'b', updatedAt: new Date(999).toISOString(),
+    } });
+    req.headers.set('x-helios-settings-revision', '1');
+    assert.equal((await f.route.PATCH(req)).status, 409);
+    assert.equal(f.state.writes, 0);
+  }
+});
+
+const versioned = (body: unknown) => {
+  const req = request(body); req.headers.set('x-helios-settings-revision', '1'); return req;
+};
+test('settings versioned acknowledgements bind request, scope, identity and exact before/after revisions', async () => {
+  for (const input of scopes) for (const legacy of [false, true]) {
+    const f = fixture();
+    if (legacy) { f.state.tenant = false; f.state.companies = [{ id: 'b' }]; f.state.owner = null; }
+    const prior = { id: legacy ? 'default' : 'workspace:b', workspaceId: 'b', storedWorkspaceId: legacy ? null : 'b', updatedAt: new Date(1000).toISOString() };
+    const response = await f.route.PATCH(versioned({ ...input, requestId: 'operation-one', editorRevision: prior }));
+    assert.equal(response.status, 200);
+    const result = await response.json();
+    assert.deepEqual(result.acknowledgement.previousRevision, prior);
+    assert.equal(result.acknowledgement.requestId, 'operation-one');
+    assert.equal(result.acknowledgement.protocol, 1);
+    assert.equal(result.acknowledgement.scope, 'updateScope' in input ? input.updateScope : 'full');
+    assert.deepEqual(result.acknowledgement.revision, { ...prior, updatedAt: result.settings.updatedAt });
+    assert.ok(Date.parse(result.settings.updatedAt) > 1000);
+    const stale = await f.route.PATCH(versioned({ ...input, requestId: 'operation-two', editorRevision: prior }));
+    assert.equal(stale.status, 409); assert.equal(f.state.writes, 1);
+  }
+});
+
+test('settings protocol rejects missing, malformed and foreign revision metadata without changing legacy writes', async () => {
+  const prior = { id: 'workspace:b', workspaceId: 'b', storedWorkspaceId: 'b', updatedAt: new Date(1000).toISOString() };
+  for (const patch of [{ editorRevision: undefined }, { editorRevision: [] }, { requestId: '' }, { requestId: {} }, { editorRevision: { ...prior, updatedAt: 'bad' } }]) {
+    const f = fixture();
+    assert.equal((await f.route.PATCH(versioned({ ...full, requestId: 'operation-one', editorRevision: prior, ...patch }))).status, 400);
+    assert.equal(f.state.writes, 0);
+  }
+  for (const patch of [{ id: 'foreign' }, { workspaceId: 'a' }, { storedWorkspaceId: 'a' }, { updatedAt: null }]) {
+    const f = fixture();
+    assert.equal((await f.route.PATCH(versioned({ ...full, requestId: 'operation-one', editorRevision: { ...prior, ...patch } }))).status, 409);
+    assert.equal(f.state.writes, 0);
+  }
+  const f = fixture(); const unsupported = versioned(full); unsupported.headers.set('x-helios-settings-revision', '2');
+  assert.equal((await f.route.PATCH(unsupported)).status, 400);
+  assert.equal((await f.route.PATCH(request(full))).status, 200);
+  const create = fixture(); create.state.exists = false;
+  const result = await create.route.PATCH(versioned({ ...full, requestId: 'create-one', editorRevision: { ...prior, updatedAt: null } }));
+  assert.equal(result.status, 200); assert.equal((await result.json()).acknowledgement.revision.id, prior.id);
+});
+
 function fixture() {
   const actor = { userId: 'operator', workspaceId: 'b', sessionVersion: 7, role: 'ADMIN' };
   const state = { session: actor as typeof actor | null, role: 'ADMIN', status: 'ACTIVE', active: true, version: 7,
     tenant: true, companies: [{ id: 'a' }, { id: 'b' }], owner: 'b' as string | null, exists: true,
-    revision: 1000, writes: 0, locks: 0, invalidations: 0, beforeWrite: () => {}, result: {} as Record<string, unknown> };
+    revision: 1000, writes: 0, locks: 0, invalidations: 0, failInvalidation: false, beforeWrite: () => {}, result: {} as Record<string, unknown> };
   const row = (): Record<string, unknown> & { id: string; workspaceId: string | null; updatedAt: Date } => ({ id: state.tenant ? 'workspace:b' : 'default', workspaceId: state.owner, updatedAt: new Date(state.revision), ...state.result });
   const matches = (where: Record<string, unknown>): boolean => {
     if (Array.isArray(where.AND)) return where.AND.every(matches);
@@ -62,7 +116,7 @@ function fixture() {
     workspaceMembership: { findUnique: async () => ({ userId: actor.userId, workspaceId: 'b', role: state.role, status: state.status }) } };
   const prisma = { ...tx, $transaction: async (fn: (client: typeof tx) => Promise<unknown>) => { state.beforeWrite(); return fn(tx); } };
   const modules: Record<string, unknown> = {
-    'server-only': {}, 'next/server': { NextResponse: Response }, 'next/cache': { revalidatePath() { state.invalidations++; } },
+    'server-only': {}, 'next/server': { NextResponse: Response }, 'next/cache': { revalidatePath() { state.invalidations++; if (state.failInvalidation) throw new Error('PRIVATE invalidation failure'); } },
     '@/lib/prisma': { prisma }, '@/lib/auth/session': { getAdminSession: async () => state.session },
     '@/lib/workspace-context-core': { tenantContextEnabled: () => state.tenant },
     './workspace-context-core.ts': { tenantContextEnabled: () => state.tenant },
@@ -220,6 +274,16 @@ test('actual settings route executes locked authorization and scoped CAS with is
     assert.deepEqual((await snapshot())[0], initial[0], 'other company remains byte-for-byte unchanged');
     const saved = await f.prisma.siteSettings.findUnique({ where: { workspaceId: 'b' } });
     assert.equal(saved?.websiteUrl, full.websiteUrl); assert.equal(saved?.bookingHandoffEnabled, false);
+    const prior = { id: 'workspace:b', workspaceId: 'b', storedWorkspaceId: 'b', updatedAt: saved!.updatedAt.toISOString() };
+    f.state.failInvalidation = true;
+    const uncertain = await f.route.PATCH(versioned({ ...full, businessName: 'Committed without acknowledgement', requestId: 'sql-one', editorRevision: prior }));
+    assert.equal(uncertain.status, 500); assert.doesNotMatch(await uncertain.text(), /PRIVATE/);
+    f.state.failInvalidation = false;
+    const committed = await f.prisma.siteSettings.findUnique({ where: { workspaceId: 'b' } });
+    assert.equal(committed?.businessName, 'Committed without acknowledgement');
+    assert.ok(committed!.updatedAt.getTime() > Date.parse(prior.updatedAt));
+    assert.equal((await f.route.PATCH(versioned({ ...full, requestId: 'sql-stale', editorRevision: prior }))).status, 409);
+    assert.deepEqual((await snapshot())[0], initial[0]);
     beforeTransaction = async () => { await db.query('UPDATE settings SET "updatedAt"="updatedAt" + interval \'1 millisecond\' WHERE "workspaceId"=$1', ['b']); };
     assert.equal((await f.route.PATCH(request(scopes[1]))).status, 409);
     beforeTransaction = async () => { await db.query('UPDATE "WorkspaceMembership" SET role=$1 WHERE "workspaceId"=$2', ['EDITOR', 'b']); };

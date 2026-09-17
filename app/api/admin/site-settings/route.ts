@@ -83,6 +83,23 @@ export async function PATCH(request: Request) {
     if (body.updateScope !== undefined && !["homepage-navigation", "homepage-structure"].includes(String(body.updateScope))) throw new Error("INVALID_BODY");
     const target = await getSiteSettingsWriteTarget(session.workspaceId);
     const existing = await prisma.siteSettings.findUnique({ where: target.where });
+    const protocol = request.headers.get("x-helios-settings-revision");
+    const scope = body.updateScope ?? "full";
+    const revision = body.editorRevision as Record<string, unknown> | undefined;
+    if (protocol !== null) {
+      if (protocol !== "1" || !revision || typeof revision !== "object" || Array.isArray(revision)
+        || typeof body.requestId !== "string" || !/^[a-zA-Z0-9-]{1,80}$/.test(body.requestId)
+        || typeof revision.id !== "string" || typeof revision.workspaceId !== "string"
+        || !(revision.storedWorkspaceId === null || typeof revision.storedWorkspaceId === "string")
+        || !(revision.updatedAt === null || (typeof revision.updatedAt === "string" && Number.isFinite(Date.parse(revision.updatedAt)) && new Date(revision.updatedAt).toISOString() === revision.updatedAt))) throw new Error("INVALID_BODY");
+      if (revision.id !== (existing?.id ?? target.createIdentity.id) || revision.workspaceId !== session.workspaceId
+        || revision.storedWorkspaceId !== (existing ? existing.workspaceId : target.createIdentity.workspaceId)
+        || revision.updatedAt !== (existing?.updatedAt.toISOString() ?? null)) throw new Error("SETTINGS_CHANGED");
+    }
+    const acknowledgement = (saved: { id: string; workspaceId: string | null; updatedAt: Date }) => protocol === "1" ? {
+      acknowledgement: { protocol: 1, requestId: body.requestId, scope, previousRevision: revision,
+        revision: { id: saved.id, workspaceId: session.workspaceId, storedWorkspaceId: saved.workspaceId, updatedAt: saved.updatedAt.toISOString() } },
+    } : {};
     // Provider verification stays outside the transaction. Fence the exact row
     // used for validation and revalidate current authority at the write boundary.
     const persist = (data: Omit<Prisma.SiteSettingsUncheckedCreateInput, "id" | "workspaceId">, allowCreate = false) => prisma.$transaction(async tx => {
@@ -110,7 +127,7 @@ export async function PATCH(request: Request) {
       });
       revalidatePath("/", "layout");
       revalidatePath("/admin/homepage");
-      return NextResponse.json({ success: true, settings });
+      return NextResponse.json({ success: true, settings, ...acknowledgement(settings) });
     }
     if (body.updateScope === "homepage-structure") {
       const settings = await persist({
@@ -119,7 +136,7 @@ export async function PATCH(request: Request) {
       });
       revalidatePath("/", "layout");
       revalidatePath("/admin/homepage");
-      return NextResponse.json({ success: true, settings });
+      return NextResponse.json({ success: true, settings, ...acknowledgement(settings) });
     }
     const phoneE164 = text(body.phoneE164, 30, true)!;
     if (!/^\+[1-9]\d{7,14}$/.test(phoneE164)) throw new Error("INVALID_PHONE");
@@ -197,7 +214,7 @@ export async function PATCH(request: Request) {
       [existing?.heliosStandardImageStorageKey, heliosStandardImageStorageKey],
       [existing?.primaryConversionImageStorageKey, primaryConversionImageStorageKey],
     ].some(([previous, current]) => Boolean(previous && previous !== current));
-    return NextResponse.json({ success: true, settings, cleanupPending });
+    return NextResponse.json({ success: true, settings, cleanupPending, ...acknowledgement(settings) });
   } catch (error) {
     if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Owner or administrator access is required." }, { status: 403 });
     if ((error instanceof Error && error.message === "SETTINGS_CHANGED") || (typeof error === "object" && error !== null && "code" in error && error.code === "P2002")) return NextResponse.json({ success: false, error: "Settings changed while this request was checked. Keep your draft and reload before saving again." }, { status: 409 });

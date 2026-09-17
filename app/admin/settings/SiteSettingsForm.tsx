@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSettingsRecovery } from "@/app/admin/settings/useSettingsRecovery";
+import type { SettingsRevision } from "@/lib/site-settings-editor";
 import type { ReactNode } from "react";
 import type { PublicSiteSettings } from "@/lib/site-settings";
 import { AdminCardToggle } from "@/app/admin/components/AdminCardControls";
@@ -66,9 +68,14 @@ function uploadToR2(
   uploadUrl: string,
   contentType: string,
   onProgress: (progress: number) => void,
+  signal: AbortSignal,
 ) {
   return new Promise<void>((resolve, reject) => {
     const request = new XMLHttpRequest();
+    const abort = () => { request.abort(); reject(new Error("Upload interrupted.")); };
+    signal.addEventListener("abort", abort, { once: true });
+    request.addEventListener("loadend", () => signal.removeEventListener("abort", abort), { once: true });
+    if (signal.aborted) { abort(); return; }
 
     request.upload.addEventListener("progress", (event) => {
       if (event.lengthComputable) {
@@ -97,20 +104,19 @@ function uploadToR2(
 
 export default function SiteSettingsForm({
   initialSettings,
+  initialRevision,
   mode = "global",
   brandIdentityAddon,
   legalAddon,
 }: {
   initialSettings: PublicSiteSettings;
+  initialRevision: SettingsRevision;
   mode?: "global" | "homepage";
   brandIdentityAddon?: ReactNode;
   legalAddon?: ReactNode;
 }) {
-  const [settings, setSettings] = useState(initialSettings);
-  const [savedSettings, setSavedSettings] = useState(initialSettings);
-  const [saving, setSaving] = useState(false);
+  const { settings, setSettings, savedSettings, saving, held, dirty, message, setMessage, persist, recovery } = useSettingsRecovery(initialSettings, initialRevision, "full");
   const [uploading, setUploading] = useState<UploadState>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [voiceExpanded, setVoiceExpanded] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<"video" | "poster" | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -124,13 +130,6 @@ export default function SiteSettingsForm({
   });
   const voiceCloseRef = useRef<HTMLButtonElement>(null);
   const previewTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const dirty = JSON.stringify(settings) !== JSON.stringify(savedSettings);
-  useEffect(() => {
-    if (!dirty) return;
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
   useEffect(() => {
     if (!mediaPreview) return;
     const close = (event: KeyboardEvent) => {
@@ -170,246 +169,184 @@ export default function SiteSettingsForm({
     }
   }
 
-  async function persist(
-    nextSettings: PublicSiteSettings,
-    successMessage = "Global settings saved.",
-  ) {
-    setSaving(true);
-    setMessage(null);
-
-    try {
-      const response = await fetch("/api/admin/site-settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(nextSettings),
-      });
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Unable to save settings.");
-      }
-
-      setSettings(data.settings);
-      setSavedSettings(data.settings);
-      setMessage(successMessage);
-      return data.settings as PublicSiteSettings;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unable to save settings.";
-      setMessage(errorMessage);
-      throw error;
-    } finally {
-      setSaving(false);
-    }
-  }
-
   async function uploadHeroMedia(kind: "video" | "poster", file: File) {
-    setUploading({ kind, progress: 0 });
-    setMessage(
-      kind === "video"
-        ? "Preparing homepage hero video…"
-        : "Preparing homepage poster…",
-    );
-
-    try {
-      const response = await fetch("/api/admin/site-settings/hero-media/presign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kind,
-          fileName: file.name,
-          fileType: file.type,
-          fileSize: file.size,
-        }),
-      });
-      const data = (await response.json()) as PresignResponse;
-
-      if (!response.ok || !data.success || !data.upload) {
-        throw new Error(data.error || "Unable to prepare this upload.");
-      }
-
-      await uploadToR2(
-        file,
-        data.upload.uploadUrl,
-        data.upload.contentType,
-        (progress) => setUploading({ kind, progress }),
-      );
-
-      const key = kind === "video" ? "heroVideoUrl" : "heroPosterUrl";
-      const nextSettings = {
-        ...settings,
-        [key]: data.upload.publicUrl,
-      };
-
-      await persist(
-        nextSettings,
-        kind === "video"
-          ? "Homepage hero video uploaded and published."
-          : "Homepage poster uploaded and published.",
-      );
-    } catch (error) {
+    await persist(settings, kind === "video" ? "Homepage hero video uploaded and published." : "Homepage poster uploaded and published.", async (signal) => {
+      setUploading({ kind, progress: 0 });
       setMessage(
-        error instanceof Error
-          ? error.message
-          : "The homepage media could not be uploaded.",
+        kind === "video"
+          ? "Preparing homepage hero video…"
+          : "Preparing homepage poster…",
       );
-    } finally {
-      setUploading(null);
-    }
+
+      try {
+        const response = await fetch("/api/admin/site-settings/hero-media/presign", {
+          method: "POST",
+          signal,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            kind,
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+          }),
+        });
+        const data = (await response.json()) as PresignResponse;
+
+        if (!response.ok || !data.success || !data.upload) {
+          throw new Error(data.error || "Unable to prepare this upload.");
+        }
+
+        signal.throwIfAborted();
+        await uploadToR2(
+          file,
+          data.upload.uploadUrl,
+          data.upload.contentType,
+          (progress) => { if (!signal.aborted) setUploading({ kind, progress }); },
+          signal,
+        );
+
+        const key = kind === "video" ? "heroVideoUrl" : "heroPosterUrl";
+        const nextSettings = {
+          ...settings,
+          [key]: data.upload.publicUrl,
+        };
+
+        return nextSettings;
+      } finally {
+        if (!signal.aborted) setUploading(null);
+      }
+    });
   }
 
   async function uploadBrandLogo(file: File) {
-    setUploading({ kind: "logo", progress: 0 });
-    setMessage("Preparing managed brand logo…");
+    await persist(settings, "Brand logo uploaded and published across the website.", async (signal) => {
+      setUploading({ kind: "logo", progress: 0 });
+      setMessage("Preparing managed brand logo…");
 
-    try {
-      const response = await fetch("/api/admin/site-settings/brand-logo/presign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileName: file.name, fileType: file.type, fileSize: file.size }),
-      });
-      const data = (await response.json()) as PresignResponse & { upload?: PresignResponse["upload"] & { key: string } };
+      try {
+        const response = await fetch("/api/admin/site-settings/brand-logo/presign", {
+          method: "POST",
+          signal,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileName: file.name, fileType: file.type, fileSize: file.size }),
+        });
+        const data = (await response.json()) as PresignResponse & { upload?: PresignResponse["upload"] & { key: string } };
 
-      if (!response.ok || !data.success || !data.upload) {
-        throw new Error(data.error || "Unable to prepare this logo upload.");
+        if (!response.ok || !data.success || !data.upload) {
+          throw new Error(data.error || "Unable to prepare this logo upload.");
+        }
+
+        signal.throwIfAborted();
+        await uploadToR2(file, data.upload.uploadUrl, data.upload.contentType, (progress) =>
+          { if (!signal.aborted) setUploading({ kind: "logo", progress }); }, signal,
+        );
+
+        return {
+            ...settings,
+            brandLogoStorageKey: data.upload.key,
+            brandLogoUrl: data.upload.publicUrl,
+            brandLogoAlt: settings.brandLogoAlt || settings.businessName,
+          };
+      } finally {
+        if (!signal.aborted) setUploading(null);
       }
-
-      await uploadToR2(file, data.upload.uploadUrl, data.upload.contentType, (progress) =>
-        setUploading({ kind: "logo", progress }),
-      );
-
-      await persist(
-        {
-          ...settings,
-          brandLogoStorageKey: data.upload.key,
-          brandLogoUrl: data.upload.publicUrl,
-          brandLogoAlt: settings.brandLogoAlt || settings.businessName,
-        },
-        "Brand logo uploaded and published across the website.",
-      );
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "The brand logo could not be uploaded.");
-    } finally {
-      setUploading(null);
-    }
+    });
   }
 
   async function clearBrandLogo() {
-    const previous = settings;
     const nextSettings = { ...settings, brandLogoStorageKey: null, brandLogoUrl: null };
-    setSettings(nextSettings);
 
-    try {
-      await persist(nextSettings, "Using the default Helios logo.");
-    } catch {
-      setSettings(previous);
-    }
+    await persist(nextSettings, "Using the default Helios logo.");
   }
 
   async function uploadBrandMonogram(file: File) {
-    setUploading({ kind: "monogram", progress: 0 });
-    setMessage("Preparing managed brand monogram…");
+    await persist(settings, "Brand monogram uploaded and connected to the admin access shortcut.", async (signal) => {
+      setUploading({ kind: "monogram", progress: 0 });
+      setMessage("Preparing managed brand monogram…");
 
-    try {
-      const response = await fetch("/api/admin/site-settings/brand-monogram/presign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileName: file.name, fileType: file.type, fileSize: file.size }),
-      });
-      const data = (await response.json()) as PresignResponse & { upload?: PresignResponse["upload"] & { key: string } };
+      try {
+        const response = await fetch("/api/admin/site-settings/brand-monogram/presign", {
+          method: "POST",
+          signal,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileName: file.name, fileType: file.type, fileSize: file.size }),
+        });
+        const data = (await response.json()) as PresignResponse & { upload?: PresignResponse["upload"] & { key: string } };
 
-      if (!response.ok || !data.success || !data.upload) {
-        throw new Error(data.error || "Unable to prepare this monogram upload.");
+        if (!response.ok || !data.success || !data.upload) {
+          throw new Error(data.error || "Unable to prepare this monogram upload.");
+        }
+
+        signal.throwIfAborted();
+        await uploadToR2(file, data.upload.uploadUrl, data.upload.contentType, (progress) =>
+          { if (!signal.aborted) setUploading({ kind: "monogram", progress }); }, signal,
+        );
+
+        return {
+            ...settings,
+            brandMonogramStorageKey: data.upload.key,
+            brandMonogramUrl: data.upload.publicUrl,
+          };
+      } finally {
+        if (!signal.aborted) setUploading(null);
       }
-
-      await uploadToR2(file, data.upload.uploadUrl, data.upload.contentType, (progress) =>
-        setUploading({ kind: "monogram", progress }),
-      );
-
-      await persist(
-        {
-          ...settings,
-          brandMonogramStorageKey: data.upload.key,
-          brandMonogramUrl: data.upload.publicUrl,
-        },
-        "Brand monogram uploaded and connected to the admin access shortcut.",
-      );
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "The brand monogram could not be uploaded.");
-    } finally {
-      setUploading(null);
-    }
+    });
   }
 
   async function clearBrandMonogram() {
-    const previous = settings;
     const nextSettings = { ...settings, brandMonogramStorageKey: null, brandMonogramUrl: null };
-    setSettings(nextSettings);
 
-    try {
-      await persist(nextSettings, "Using the primary-logo fallback for admin access.");
-    } catch {
-      setSettings(previous);
-    }
+    await persist(nextSettings, "Using the primary-logo fallback for admin access.");
   }
 
   async function clearHeroVideo() {
     const nextSettings = { ...settings, heroVideoUrl: null };
-    setSettings(nextSettings);
 
-    try {
-      await persist(nextSettings, "Homepage hero video disconnected.");
-    } catch {
-      setSettings(settings);
-    }
+    await persist(nextSettings, "Homepage hero video disconnected.");
   }
 
   async function uploadHomepageImage(kind: "standard" | "conversion", file: File) {
-    setUploading({ kind, progress: 0 });
-    setMessage("Preparing homepage section image…");
+    await persist(settings, kind === "standard" ? "Helios Standard image published." : "Homepage call-to-action image published.", async (signal) => {
+      setUploading({ kind, progress: 0 });
+      setMessage("Preparing homepage section image…");
 
-    try {
-      const response = await fetch("/api/admin/site-settings/homepage-images/presign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kind: kind === "standard" ? "helios-standard" : "primary-conversion",
-          fileName: file.name,
-          fileType: file.type,
-          fileSize: file.size,
-        }),
-      });
-      const data = (await response.json()) as PresignResponse;
-      if (!response.ok || !data.success || !data.upload?.key) {
-        throw new Error(data.error || "Unable to prepare this image upload.");
+      try {
+        const response = await fetch("/api/admin/site-settings/homepage-images/presign", {
+          method: "POST",
+          signal,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            kind: kind === "standard" ? "helios-standard" : "primary-conversion",
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+          }),
+        });
+        const data = (await response.json()) as PresignResponse;
+        if (!response.ok || !data.success || !data.upload?.key) {
+          throw new Error(data.error || "Unable to prepare this image upload.");
+        }
+
+        signal.throwIfAborted();
+        await uploadToR2(file, data.upload.uploadUrl, data.upload.contentType, (progress) =>
+          { if (!signal.aborted) setUploading({ kind, progress }); }, signal,
+        );
+
+        const nextSettings = kind === "standard"
+          ? { ...settings, heliosStandardImageStorageKey: data.upload.key, heliosStandardImageUrl: data.upload.publicUrl }
+          : { ...settings, primaryConversionImageStorageKey: data.upload.key, primaryConversionImageUrl: data.upload.publicUrl };
+        return nextSettings;
+      } finally {
+        if (!signal.aborted) setUploading(null);
       }
-
-      await uploadToR2(file, data.upload.uploadUrl, data.upload.contentType, (progress) =>
-        setUploading({ kind, progress }),
-      );
-
-      const nextSettings = kind === "standard"
-        ? { ...settings, heliosStandardImageStorageKey: data.upload.key, heliosStandardImageUrl: data.upload.publicUrl }
-        : { ...settings, primaryConversionImageStorageKey: data.upload.key, primaryConversionImageUrl: data.upload.publicUrl };
-      await persist(nextSettings, kind === "standard" ? "Helios Standard image published." : "Homepage call-to-action image published.");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "The homepage image could not be uploaded.");
-    } finally {
-      setUploading(null);
-    }
+    });
   }
 
   async function clearHomepageImage(kind: "standard" | "conversion") {
-    const previous = settings;
     const nextSettings = kind === "standard"
       ? { ...settings, heliosStandardImageStorageKey: null, heliosStandardImageUrl: null }
       : { ...settings, primaryConversionImageStorageKey: null, primaryConversionImageUrl: null };
-    setSettings(nextSettings);
-    try {
-      await persist(nextSettings, "Using the original homepage image.");
-    } catch {
-      setSettings(previous);
-    }
+    await persist(nextSettings, "Using the original homepage image.");
   }
 
   const groups = [
@@ -447,7 +384,7 @@ export default function SiteSettingsForm({
     },
   ] as const;
 
-  const uploadBusy = uploading !== null || saving;
+  const uploadBusy = uploading !== null || saving || held;
   const bookingDirty = dirty;
   const bookingOnline = settings.bookingMode === "ONLINE";
   const bookingPill = settings.bookingMode === "ONLINE"
@@ -488,9 +425,9 @@ export default function SiteSettingsForm({
             <label key={key} className={`block text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35 ${["bookingUrl", "footerDescription", "serviceAreaDescription"].includes(key) ? "sm:col-span-2" : ""}`}>
               {label}
               {["footerDescription", "serviceAreaDescription"].includes(key) ? (
-                <textarea rows={3} value={settings[key] ?? ""} onChange={(event) => update(key, event.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case leading-6 tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" />
+                <textarea disabled={saving || held} rows={3} value={settings[key] ?? ""} onChange={(event) => update(key, event.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case leading-6 tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" />
               ) : (
-                <input value={settings[key] ?? ""} onChange={(event) => update(key, event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" />
+                <input disabled={saving || held} value={settings[key] ?? ""} onChange={(event) => update(key, event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" />
               )}
             </label>
           ))}
@@ -520,7 +457,8 @@ export default function SiteSettingsForm({
   </div>;
 
   return (
-    <div onInvalid={revealInvalidParent}>
+    <div onInvalid={revealInvalidParent} aria-busy={saving}>
+      {recovery}
       {mode === "homepage" ? (
         <>
       <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111] p-6 lg:p-8">
@@ -649,9 +587,9 @@ export default function SiteSettingsForm({
       <section className="mt-6 rounded-2xl border border-white/[0.08] bg-[#111] p-6 lg:p-8">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div><p className="text-[0.54rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">Availability message</p><h2 className="mt-3 text-2xl font-light text-white">Public availability</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-white/40">Shown as the homepage availability signal. Global booking availability remains the authoritative control for whether booking actions are online.</p></div>
-          <label className="inline-flex min-h-11 items-center gap-3 text-xs uppercase tracking-[0.14em] text-white/55"><input type="checkbox" checked={settings.availabilityEnabled} onChange={(event) => setSettings((current) => ({ ...current, availabilityEnabled: event.target.checked }))} /> Enabled</label>
+          <label className="inline-flex min-h-11 items-center gap-3 text-xs uppercase tracking-[0.14em] text-white/55"><input disabled={saving || held} type="checkbox" checked={settings.availabilityEnabled} onChange={(event) => setSettings((current) => ({ ...current, availabilityEnabled: event.target.checked }))} /> Enabled</label>
         </div>
-        <div className="mt-6 grid gap-4 md:grid-cols-3"><label className="text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Status<select value={settings.availabilityStatus} onChange={(event) => setSettings((current) => ({ ...current, availabilityStatus: event.target.value as PublicSiteSettings["availabilityStatus"] }))} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]"><option value="AVAILABLE">Available · green</option><option value="ADVISORY">Advisory · amber</option><option value="CRITICAL">Critical · red</option></select></label><label className="text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Label<input value={settings.availabilityLabel ?? ""} onChange={(event) => update("availabilityLabel", event.target.value)} placeholder="Now booking" className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label><label className="text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Message or month<input value={settings.availabilityMessage ?? ""} onChange={(event) => update("availabilityMessage", event.target.value)} placeholder="August" className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label></div>
+        <div className="mt-6 grid gap-4 md:grid-cols-3"><label className="text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Status<select disabled={saving || held} value={settings.availabilityStatus} onChange={(event) => setSettings((current) => ({ ...current, availabilityStatus: event.target.value as PublicSiteSettings["availabilityStatus"] }))} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]"><option value="AVAILABLE">Available · green</option><option value="ADVISORY">Advisory · amber</option><option value="CRITICAL">Critical · red</option></select></label><label className="text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Label<input disabled={saving || held} value={settings.availabilityLabel ?? ""} onChange={(event) => update("availabilityLabel", event.target.value)} placeholder="Now booking" className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label><label className="text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Message or month<input disabled={saving || held} value={settings.availabilityMessage ?? ""} onChange={(event) => update("availabilityMessage", event.target.value)} placeholder="August" className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label></div>
         <div className="mt-5 rounded-xl border border-white/[0.08] bg-black/25 p-4" role="status"><p className="text-[0.52rem] uppercase tracking-[0.15em] text-white/30">Public preview</p><p className="mt-2 text-sm text-white/65">{settings.availabilityEnabled && settings.availabilityMessage ? `${settings.availabilityLabel ? `${settings.availabilityLabel}: ` : ""}${settings.availabilityMessage}` : "Hidden"}</p></div>
       </section>
 
@@ -669,7 +607,7 @@ export default function SiteSettingsForm({
               ["Our Work", [["workEyebrow","Eyebrow"],["workHeading","Headline"],["workHeadingAccent","Accent"],["workBody","Body copy"],["workButtonLabel","Button label"],["workButtonDestination","Button destination"],["featuredProjectEyebrow","Featured project label"],["portfolioEyebrow","Portfolio kicker"],["portfolioHeading","Portfolio heading"],["portfolioButtonLabel","Portfolio button"],["portfolioButtonDestination","Portfolio destination"]]],
               ["Our Approach", [["approachEyebrow","Eyebrow"],["approachHeading","Headline"],["approachHeadingAccent","Accent"],["approachBody","Body copy"],["approachTagline","Tagline"],["approachButtonLabel","Button label"],["approachButtonDestination","Button destination"]]],
               ["Pre-footer image", [["conversionImageCaption","Image caption"]]],
-            ] as const).map(([title, fields]) => <div key={title} className="rounded-2xl border border-white/[0.08] bg-black/25 p-5"><h3 className="text-lg font-light text-white">{title}</h3><div className="mt-4 grid gap-4 sm:grid-cols-2">{fields.map(([key,label]) => <label key={key} className="text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">{label}{key.toLowerCase().includes("body") ? <textarea rows={3} value={settings[key] ?? ""} onChange={(event) => update(key, event.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case leading-6 tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /> : <input value={settings[key] ?? ""} onChange={(event) => update(key, event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" />}</label>)}</div></div>)}
+            ] as const).map(([title, fields]) => <div key={title} className="rounded-2xl border border-white/[0.08] bg-black/25 p-5"><h3 className="text-lg font-light text-white">{title}</h3><div className="mt-4 grid gap-4 sm:grid-cols-2">{fields.map(([key,label]) => <label key={key} className="text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">{label}{key.toLowerCase().includes("body") ? <textarea disabled={saving || held} rows={3} value={settings[key] ?? ""} onChange={(event) => update(key, event.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case leading-6 tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /> : <input disabled={saving || held} value={settings[key] ?? ""} onChange={(event) => update(key, event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" />}</label>)}</div></div>)}
           </div>
         </div>
       </section>
@@ -693,7 +631,7 @@ export default function SiteSettingsForm({
                   <img src={item.src} alt="" className="h-full w-full object-cover" />
                 </div>
                 <label className="mt-4 block text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Image alt text
-                  <input value={settings[item.altKey] ?? ""} onChange={(event) => update(item.altKey, event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" />
+                  <input disabled={saving || held} value={settings[item.altKey] ?? ""} onChange={(event) => update(item.altKey, event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" />
                 </label>
                 {uploading?.kind === item.kind ? <div className="mt-4"><div className="h-1 overflow-hidden rounded-full bg-white/10"><div className="h-full bg-[var(--helios-orange)] transition-[width]" style={{ width: `${uploading.progress}%` }} /></div><p className="mt-2 text-xs text-white/40">Uploading {uploading.progress}%</p></div> : null}
                 <div className="mt-5 flex flex-wrap gap-3">
@@ -754,7 +692,7 @@ export default function SiteSettingsForm({
               </div>
             </div>
 
-            <label className="mt-5 block text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Logo alt text<input value={settings.brandLogoAlt ?? ""} onChange={(event) => update("brandLogoAlt", event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label>
+            <label className="mt-5 block text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Logo alt text<input disabled={saving || held} value={settings.brandLogoAlt ?? ""} onChange={(event) => update("brandLogoAlt", event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label>
 
             <div className="mt-5 flex flex-wrap gap-3">
               <label className={`admin-btn-primary cursor-pointer ${uploadBusy ? "pointer-events-none opacity-40" : ""}`}>{settings.brandLogoUrl ? "Replace logo" : "Upload logo"}<input type="file" accept="image/png,image/webp,image/avif" className="sr-only" disabled={uploadBusy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadBrandLogo(file); event.target.value = ""; }} /></label>
@@ -803,16 +741,16 @@ export default function SiteSettingsForm({
           <AdminCardToggle expanded={expandedSections["booking-experience"]} label="Booking Experience" controls="booking-experience-content" onClick={() => toggleSettingsSection("booking-experience")} />
         </div>
         <div id="booking-experience-content" hidden={!expandedSections["booking-experience"]}>
-        <label className="mt-6 flex min-h-11 w-fit items-center gap-3 rounded-xl border border-white/10 bg-black/20 px-4 text-sm text-white/55"><input type="checkbox" checked={settings.bookingHandoffEnabled} onChange={e=>setSettings(current=>({...current,bookingHandoffEnabled:e.target.checked}))}/>Enable handoff page</label>
+        <label className="mt-6 flex min-h-11 w-fit items-center gap-3 rounded-xl border border-white/10 bg-black/20 px-4 text-sm text-white/55"><input disabled={saving || held} type="checkbox" checked={settings.bookingHandoffEnabled} onChange={e=>setSettings(current=>({...current,bookingHandoffEnabled:e.target.checked}))}/>Enable handoff page</label>
         {!settings.bookingHandoffEnabled ? <p className="mt-6 rounded-xl border border-amber-300/15 bg-amber-300/[0.04] p-4 text-sm leading-6 text-amber-100/65">The public handoff page is inactive. All configuration remains saved and available below.</p> : null}
         <div className={`mt-6 grid gap-5 sm:grid-cols-2 ${settings.bookingHandoffEnabled ? "" : "opacity-60"}`}>
-          <label className="text-xs uppercase tracking-[.14em] text-white/35">Eyebrow<input value={settings.bookingEyebrow||""} onChange={e=>update("bookingEyebrow",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label>
-          <label className="text-xs uppercase tracking-[.14em] text-white/35">Provider name <span className="normal-case tracking-normal text-white/25">(external service)</span><input value={settings.bookingProviderName||""} onChange={e=>update("bookingProviderName",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label>
-          <label className="text-xs uppercase tracking-[.14em] text-white/35 sm:col-span-2">Handoff headline<input value={settings.bookingHandoffHeadline||""} onChange={e=>update("bookingHandoffHeadline",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label>
-          <label className="text-xs uppercase tracking-[.14em] text-white/35 sm:col-span-2">Handoff explanation<textarea rows={3} value={settings.bookingHandoffExplanation||""} onChange={e=>update("bookingHandoffExplanation",e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 p-4 text-sm normal-case leading-6 tracking-normal text-white"/></label>
-          <label className="text-xs uppercase tracking-[.14em] text-white/35 sm:col-span-2">Primary button label<input value={settings.bookingPrimaryLabel||""} onChange={e=>update("bookingPrimaryLabel",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label>
-          <fieldset className="rounded-xl border border-white/[0.08] bg-black/20 p-4"><legend className="px-2 text-xs uppercase tracking-[.14em] text-white/35">Phone action</legend><label className="block text-xs uppercase tracking-[.14em] text-white/35">Call button label<input value={settings.bookingCallLabel||""} onChange={e=>update("bookingCallLabel",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label><label className="mt-4 flex items-center gap-3 text-sm text-white/50"><input type="checkbox" checked={settings.bookingPhoneVisible} onChange={e=>setSettings(current=>({...current,bookingPhoneVisible:e.target.checked}))}/>Show phone action</label></fieldset>
-          <fieldset className="rounded-xl border border-white/[0.08] bg-black/20 p-4"><legend className="px-2 text-xs uppercase tracking-[.14em] text-white/35">Email action</legend><label className="block text-xs uppercase tracking-[.14em] text-white/35">Email button label<input value={settings.bookingEmailLabel||""} onChange={e=>update("bookingEmailLabel",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label><label className="mt-4 flex items-center gap-3 text-sm text-white/50"><input type="checkbox" checked={settings.bookingEmailVisible} onChange={e=>setSettings(current=>({...current,bookingEmailVisible:e.target.checked}))}/>Show email action</label></fieldset>
+          <label className="text-xs uppercase tracking-[.14em] text-white/35">Eyebrow<input disabled={saving || held} value={settings.bookingEyebrow||""} onChange={e=>update("bookingEyebrow",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label>
+          <label className="text-xs uppercase tracking-[.14em] text-white/35">Provider name <span className="normal-case tracking-normal text-white/25">(external service)</span><input disabled={saving || held} value={settings.bookingProviderName||""} onChange={e=>update("bookingProviderName",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label>
+          <label className="text-xs uppercase tracking-[.14em] text-white/35 sm:col-span-2">Handoff headline<input disabled={saving || held} value={settings.bookingHandoffHeadline||""} onChange={e=>update("bookingHandoffHeadline",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label>
+          <label className="text-xs uppercase tracking-[.14em] text-white/35 sm:col-span-2">Handoff explanation<textarea disabled={saving || held} rows={3} value={settings.bookingHandoffExplanation||""} onChange={e=>update("bookingHandoffExplanation",e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 p-4 text-sm normal-case leading-6 tracking-normal text-white"/></label>
+          <label className="text-xs uppercase tracking-[.14em] text-white/35 sm:col-span-2">Primary button label<input disabled={saving || held} value={settings.bookingPrimaryLabel||""} onChange={e=>update("bookingPrimaryLabel",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label>
+          <fieldset className="rounded-xl border border-white/[0.08] bg-black/20 p-4"><legend className="px-2 text-xs uppercase tracking-[.14em] text-white/35">Phone action</legend><label className="block text-xs uppercase tracking-[.14em] text-white/35">Call button label<input disabled={saving || held} value={settings.bookingCallLabel||""} onChange={e=>update("bookingCallLabel",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label><label className="mt-4 flex items-center gap-3 text-sm text-white/50"><input disabled={saving || held} type="checkbox" checked={settings.bookingPhoneVisible} onChange={e=>setSettings(current=>({...current,bookingPhoneVisible:e.target.checked}))}/>Show phone action</label></fieldset>
+          <fieldset className="rounded-xl border border-white/[0.08] bg-black/20 p-4"><legend className="px-2 text-xs uppercase tracking-[.14em] text-white/35">Email action</legend><label className="block text-xs uppercase tracking-[.14em] text-white/35">Email button label<input disabled={saving || held} value={settings.bookingEmailLabel||""} onChange={e=>update("bookingEmailLabel",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white"/></label><label className="mt-4 flex items-center gap-3 text-sm text-white/50"><input disabled={saving || held} type="checkbox" checked={settings.bookingEmailVisible} onChange={e=>setSettings(current=>({...current,bookingEmailVisible:e.target.checked}))}/>Show email action</label></fieldset>
         </div>
         </div>
       </section>
@@ -821,13 +759,13 @@ export default function SiteSettingsForm({
         <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Global Controls</p><h2 className="mt-2 text-2xl font-light text-white">Booking availability</h2><p className="mt-2 text-sm text-white/38">Every public booking action follows the saved workspace configuration.</p></div><div className="flex items-start gap-3"><div className="flex flex-col items-end gap-2"><span className={`rounded-full border px-3 py-1.5 text-xs uppercase tracking-[.12em] ${bookingPill}`}>{bookingLabel}</span>{bookingDirty&&<span className="text-xs text-amber-200">Unsaved changes</span>}</div><AdminCardToggle expanded={expandedSections["global-controls"]} label="Global Controls" controls="global-controls-content" onClick={() => toggleSettingsSection("global-controls")} /></div></div>
         <div id="global-controls-content" hidden={!expandedSections["global-controls"]}>
         {bookingOnline&&<p className="mt-5 rounded-xl border border-white/[0.07] bg-black/20 p-4 text-sm text-white/35">Outage messaging remains saved but only becomes publicly active when booking is Temporarily Unavailable or Paused.</p>}
-        <div className="mt-6 grid gap-5 sm:grid-cols-2"><label className="text-xs uppercase tracking-[.14em] text-white/35">Booking mode<select value={settings.bookingMode} onChange={(event) => setSettings(current => ({ ...current, bookingMode: event.target.value as PublicSiteSettings["bookingMode"] }))} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-[#111] px-4 text-sm normal-case tracking-normal text-white"><option value="ONLINE">Online</option><option value="UNAVAILABLE">Temporarily Unavailable</option><option value="PAUSED">Booking Paused</option></select></label><label className="text-xs uppercase tracking-[.14em] text-white/35">External booking destination<input value={settings.bookingUrl ?? ""} onChange={(e) => update("bookingUrl", e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white" /></label><label className="text-xs uppercase tracking-[.14em] text-white/35">Public headline<input value={settings.bookingHeadline ?? ""} onChange={(e) => update("bookingHeadline", e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white" /></label><label className="text-xs uppercase tracking-[.14em] text-white/35">Estimated restoration<input type="datetime-local" value={settings.bookingEstimatedRestoreAt ? new Date(settings.bookingEstimatedRestoreAt).toISOString().slice(0,16) : ""} onChange={(e) => setSettings(current => ({ ...current, bookingEstimatedRestoreAt: e.target.value ? new Date(e.target.value).toISOString() : null }))} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white" /></label><label className="text-xs uppercase tracking-[.14em] text-white/35 sm:col-span-2">Public explanation<textarea rows={4} value={settings.bookingExplanation ?? ""} onChange={(e) => update("bookingExplanation", e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 p-4 text-sm normal-case leading-6 tracking-normal text-white" /></label><label className="text-xs uppercase tracking-[.14em] text-white/35">Contact phone<input value={settings.bookingContactPhone ?? ""} onChange={(e) => update("bookingContactPhone", e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white" /></label><label className="text-xs uppercase tracking-[.14em] text-white/35">Contact email<input value={settings.bookingContactEmail ?? ""} onChange={(e) => update("bookingContactEmail", e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white" /></label><label className="text-xs uppercase tracking-[.14em] text-white/35 sm:col-span-2">Banner message<input value={settings.bookingBannerMessage ?? ""} onChange={(e) => update("bookingBannerMessage", e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white" /></label><label className="flex items-center gap-3 text-sm text-white/50"><input type="checkbox" checked={settings.bookingBannerEnabled} onChange={(e) => setSettings(current => ({ ...current, bookingBannerEnabled: e.target.checked }))} className="accent-[var(--helios-orange)]" />Show public status banner</label><label className="flex items-center gap-3 text-sm text-white/50"><input type="checkbox" checked={settings.bookingRequestEnabled} onChange={(e) => setSettings(current => ({ ...current, bookingRequestEnabled: e.target.checked }))} className="accent-[var(--helios-orange)]" />Enable booking-request form</label></div>
+        <div className="mt-6 grid gap-5 sm:grid-cols-2"><label className="text-xs uppercase tracking-[.14em] text-white/35">Booking mode<select disabled={saving || held} value={settings.bookingMode} onChange={(event) => setSettings(current => ({ ...current, bookingMode: event.target.value as PublicSiteSettings["bookingMode"] }))} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-[#111] px-4 text-sm normal-case tracking-normal text-white"><option value="ONLINE">Online</option><option value="UNAVAILABLE">Temporarily Unavailable</option><option value="PAUSED">Booking Paused</option></select></label><label className="text-xs uppercase tracking-[.14em] text-white/35">External booking destination<input disabled={saving || held} value={settings.bookingUrl ?? ""} onChange={(e) => update("bookingUrl", e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white" /></label><label className="text-xs uppercase tracking-[.14em] text-white/35">Public headline<input disabled={saving || held} value={settings.bookingHeadline ?? ""} onChange={(e) => update("bookingHeadline", e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white" /></label><label className="text-xs uppercase tracking-[.14em] text-white/35">Estimated restoration<input disabled={saving || held} type="datetime-local" value={settings.bookingEstimatedRestoreAt ? new Date(settings.bookingEstimatedRestoreAt).toISOString().slice(0,16) : ""} onChange={(e) => setSettings(current => ({ ...current, bookingEstimatedRestoreAt: e.target.value ? new Date(e.target.value).toISOString() : null }))} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white" /></label><label className="text-xs uppercase tracking-[.14em] text-white/35 sm:col-span-2">Public explanation<textarea disabled={saving || held} rows={4} value={settings.bookingExplanation ?? ""} onChange={(e) => update("bookingExplanation", e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 p-4 text-sm normal-case leading-6 tracking-normal text-white" /></label><label className="text-xs uppercase tracking-[.14em] text-white/35">Contact phone<input disabled={saving || held} value={settings.bookingContactPhone ?? ""} onChange={(e) => update("bookingContactPhone", e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white" /></label><label className="text-xs uppercase tracking-[.14em] text-white/35">Contact email<input disabled={saving || held} value={settings.bookingContactEmail ?? ""} onChange={(e) => update("bookingContactEmail", e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white" /></label><label className="text-xs uppercase tracking-[.14em] text-white/35 sm:col-span-2">Banner message<input disabled={saving || held} value={settings.bookingBannerMessage ?? ""} onChange={(e) => update("bookingBannerMessage", e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm normal-case tracking-normal text-white" /></label><label className="flex items-center gap-3 text-sm text-white/50"><input disabled={saving || held} type="checkbox" checked={settings.bookingBannerEnabled} onChange={(e) => setSettings(current => ({ ...current, bookingBannerEnabled: e.target.checked }))} className="accent-[var(--helios-orange)]" />Show public status banner</label><label className="flex items-center gap-3 text-sm text-white/50"><input disabled={saving || held} type="checkbox" checked={settings.bookingRequestEnabled} onChange={(e) => setSettings(current => ({ ...current, bookingRequestEnabled: e.target.checked }))} className="accent-[var(--helios-orange)]" />Enable booking-request form</label></div>
         <div className="mt-6 rounded-xl border border-white/10 bg-black/25 p-5"><p className="text-[.52rem] uppercase tracking-[.14em] text-white/30">Unavailable-state preview</p><p className="mt-3 text-xl font-light text-white">{settings.bookingHeadline}</p><p className="mt-2 text-sm leading-6 text-white/40">{settings.bookingExplanation}</p></div>
         </div>
       </section>
 
-      <section id="content-discovery" data-settings-section className="mt-6 scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-6"><div className="flex items-start justify-between gap-4"><div className="min-w-0 pr-2"><p className="eyebrow text-[var(--helios-orange)]">Content &amp; Discovery</p><h2 className="mt-2 text-xl font-light text-white">Blog Studio Voice</h2><p className="mt-2 text-sm text-white/35">Long-form guidance used by the existing Blog Studio AI workflow.</p></div><AdminCardToggle expanded={expandedSections["content-discovery"]} label="Content & Discovery" controls="content-discovery-content" onClick={() => toggleSettingsSection("content-discovery")} /></div><div id="content-discovery-content" hidden={!expandedSections["content-discovery"]}><div className="mt-6 flex justify-end"><button type="button" onClick={() => setVoiceExpanded(true)} className="admin-btn-secondary">Expand Editor</button></div><div className="mt-6 grid gap-5 lg:grid-cols-3">{([["brandVoice","Brand voice"],["brandAudience","Primary audience"],["brandWritingGuidance","Writing guardrails"]] as const).map(([key,label]) => <label key={key} className="text-xs uppercase tracking-[.14em] text-white/35">{label}<textarea rows={7} value={settings[key] ?? ""} onChange={(e) => update(key,e.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 p-4 text-sm font-normal normal-case leading-6 tracking-normal text-white" /></label>)}</div><label className="mt-5 block text-xs uppercase tracking-[.14em] text-white/35">Default article author<input value={settings.defaultBlogAuthor ?? ""} onChange={(e) => update("defaultBlogAuthor",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm font-normal normal-case tracking-normal text-white" /></label></div></section>
-      {voiceExpanded && <div role="dialog" aria-modal="true" aria-labelledby="voice-editor-title" aria-describedby="voice-editor-description" className="fixed inset-0 z-[100] overflow-y-auto bg-black/85 p-4 backdrop-blur"><div className="mx-auto my-4 min-h-[calc(100vh-2rem)] max-w-6xl rounded-2xl border border-white/10 bg-[#111] p-6 sm:p-8"><div className="flex justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Blog Studio</p><h2 id="voice-editor-title" className="mt-2 text-3xl font-light text-white">Voice Editor</h2><p id="voice-editor-description" className="mt-2 text-sm text-white/35">Changes remain available in the standard editor until you save settings.</p></div><button ref={voiceCloseRef} onClick={() => setVoiceExpanded(false)} className="admin-btn-secondary">Close</button></div><div className="mt-8 grid gap-6">{([["brandVoice","Brand voice"],["brandAudience","Primary audience"],["brandWritingGuidance","Writing guardrails"]] as const).map(([key,label]) => <label key={key} className="text-xs uppercase tracking-[.14em] text-white/35">{label}<textarea rows={8} value={settings[key] ?? ""} onChange={(e) => update(key,e.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 p-5 text-base font-normal normal-case leading-7 tracking-normal text-white" /></label>)}</div><div className="mt-8 flex justify-end gap-3"><button onClick={() => setVoiceExpanded(false)} className="admin-btn-secondary">Keep editing later</button><button disabled={saving} onClick={async () => { await persist(settings, "Blog Studio Voice saved."); setVoiceExpanded(false); }} className="admin-btn-primary">{saving ? "Saving…" : "Save Settings"}</button></div></div></div>}
+      <section id="content-discovery" data-settings-section className="mt-6 scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-6"><div className="flex items-start justify-between gap-4"><div className="min-w-0 pr-2"><p className="eyebrow text-[var(--helios-orange)]">Content &amp; Discovery</p><h2 className="mt-2 text-xl font-light text-white">Blog Studio Voice</h2><p className="mt-2 text-sm text-white/35">Long-form guidance used by the existing Blog Studio AI workflow.</p></div><AdminCardToggle expanded={expandedSections["content-discovery"]} label="Content & Discovery" controls="content-discovery-content" onClick={() => toggleSettingsSection("content-discovery")} /></div><div id="content-discovery-content" hidden={!expandedSections["content-discovery"]}><div className="mt-6 flex justify-end"><button type="button" onClick={() => setVoiceExpanded(true)} className="admin-btn-secondary">Expand Editor</button></div><div className="mt-6 grid gap-5 lg:grid-cols-3">{([["brandVoice","Brand voice"],["brandAudience","Primary audience"],["brandWritingGuidance","Writing guardrails"]] as const).map(([key,label]) => <label key={key} className="text-xs uppercase tracking-[.14em] text-white/35">{label}<textarea disabled={saving || held} rows={7} value={settings[key] ?? ""} onChange={(e) => update(key,e.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 p-4 text-sm font-normal normal-case leading-6 tracking-normal text-white" /></label>)}</div><label className="mt-5 block text-xs uppercase tracking-[.14em] text-white/35">Default article author<input disabled={saving || held} value={settings.defaultBlogAuthor ?? ""} onChange={(e) => update("defaultBlogAuthor",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm font-normal normal-case tracking-normal text-white" /></label></div></section>
+      {voiceExpanded && <div role="dialog" aria-modal="true" aria-labelledby="voice-editor-title" aria-describedby="voice-editor-description" className="fixed inset-0 z-[100] overflow-y-auto bg-black/85 p-4 backdrop-blur"><div className="mx-auto my-4 min-h-[calc(100vh-2rem)] max-w-6xl rounded-2xl border border-white/10 bg-[#111] p-6 sm:p-8"><div className="flex justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Blog Studio</p><h2 id="voice-editor-title" className="mt-2 text-3xl font-light text-white">Voice Editor</h2><p id="voice-editor-description" className="mt-2 text-sm text-white/35">Changes remain available in the standard editor until you save settings.</p></div><button ref={voiceCloseRef} onClick={() => setVoiceExpanded(false)} className="admin-btn-secondary">Close</button></div><div className="mt-8 grid gap-6">{([["brandVoice","Brand voice"],["brandAudience","Primary audience"],["brandWritingGuidance","Writing guardrails"]] as const).map(([key,label]) => <label key={key} className="text-xs uppercase tracking-[.14em] text-white/35">{label}<textarea disabled={saving || held} rows={8} value={settings[key] ?? ""} onChange={(e) => update(key,e.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 p-5 text-base font-normal normal-case leading-7 tracking-normal text-white" /></label>)}</div><div className="mt-8 flex justify-end gap-3"><button onClick={() => setVoiceExpanded(false)} className="admin-btn-secondary">Keep editing later</button><button disabled={saving || held} onClick={async () => { await persist(settings, "Blog Studio Voice saved and confirmed."); setVoiceExpanded(false); }} className="admin-btn-primary">{saving ? "Saving…" : "Save Settings"}</button></div></div></div>}
 
       <section id="search-appearance" data-settings-section className="mt-6 scroll-mt-28 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111] p-6 lg:p-8">
         <div className="flex items-start justify-between gap-4"><div className="min-w-0 pr-2"><p className="eyebrow text-[var(--helios-orange)]">Search Appearance</p><h2 className="mt-2 text-2xl font-light text-white">Homepage SEO preview</h2></div><AdminCardToggle expanded={expandedSections["search-appearance"]} label="Search Appearance" controls="search-appearance-content" onClick={() => toggleSettingsSection("search-appearance")} /></div>
@@ -841,8 +779,8 @@ export default function SiteSettingsForm({
             </div>
           </div>
           <div className="space-y-5">
-            <label className="block text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Default SEO title <span className={settings.defaultSeoTitle.length > 60 ? "float-right text-amber-300/75" : "float-right text-white/25"}>{settings.defaultSeoTitle.length}/60</span><input value={settings.defaultSeoTitle} maxLength={160} onChange={(event) => update("defaultSeoTitle", event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label>
-            <label className="block text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Default SEO description <span className={settings.defaultSeoDescription.length > 160 ? "float-right text-amber-300/75" : "float-right text-white/25"}>{settings.defaultSeoDescription.length}/160</span><textarea rows={4} value={settings.defaultSeoDescription} maxLength={320} onChange={(event) => update("defaultSeoDescription", event.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case leading-6 tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label>
+            <label className="block text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Default SEO title <span className={settings.defaultSeoTitle.length > 60 ? "float-right text-amber-300/75" : "float-right text-white/25"}>{settings.defaultSeoTitle.length}/60</span><input disabled={saving || held} value={settings.defaultSeoTitle} maxLength={160} onChange={(event) => update("defaultSeoTitle", event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label>
+            <label className="block text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/35">Default SEO description <span className={settings.defaultSeoDescription.length > 160 ? "float-right text-amber-300/75" : "float-right text-white/25"}>{settings.defaultSeoDescription.length}/160</span><textarea disabled={saving || held} rows={4} value={settings.defaultSeoDescription} maxLength={320} onChange={(event) => update("defaultSeoDescription", event.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm normal-case leading-6 tracking-normal text-white outline-none focus:border-[var(--helios-orange)]" /></label>
             <p className="text-xs leading-5 text-white/28">Aim for roughly 50–60 characters in the title and 140–160 in the description. Write naturally for people; search engines may rewrite either field.</p>
           </div>
         </div>
@@ -858,12 +796,12 @@ export default function SiteSettingsForm({
       <div className="sticky bottom-[max(1.25rem,env(safe-area-inset-bottom))] mt-10 flex items-center justify-between gap-5 rounded-2xl border border-white/10 bg-[#161616]/95 p-4 shadow-2xl backdrop-blur-xl">
         <p role="status" className="text-sm text-white/40">
           {message ||
-            (dirty ? "Unsaved changes." : "All settings are saved.")}
+            (dirty ? "Unsaved changes." : "Settings loaded.")}
         </p>
         <button
           type="button"
           onClick={() => void persist(settings)}
-          disabled={saving || uploading !== null || !dirty}
+          disabled={saving || held || uploading !== null || !dirty}
           className="shrink-0 admin-btn-primary"
         >
           {saving ? "Saving…" : mode === "homepage" ? "Save Homepage Settings" : "Save settings"}

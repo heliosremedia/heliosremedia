@@ -12,8 +12,9 @@ test("homepage curation uses full-width ordered workspaces and truthful save sta
   assert.ok(media >= 0 && availability > media && copy > availability);
   assert.match(source, /Save Homepage Settings/);
   assert.match(source, /Unsaved changes\./);
-  assert.match(source, /beforeunload/);
-  assert.match(source, /disabled=\{saving \|\| uploading !== null \|\| !dirty\}/);
+  assert.match(source, /useSettingsRecovery/);
+  assert.match(read("app/admin/settings/useSettingsRecovery.tsx"), /beforeunload/);
+  assert.match(source, /disabled=\{saving \|\| held \|\| uploading !== null \|\| !dirty\}/);
   assert.match(source, /role="dialog"/);
   assert.match(source, /controls muted playsInline/);
   assert.match(source, /event\.key === "Escape"/);
