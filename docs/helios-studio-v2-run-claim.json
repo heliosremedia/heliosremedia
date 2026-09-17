@@ -1,7 +1,7 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-site-settings-browser-recovery",
-  "expiresAt": "2026-09-17T21:51:07.532Z",
+  "expiresAt": null,
   "branch": "codex/v2-site-settings-browser-recovery",
   "pr": 309,
   "head": "aeb654ec5d6553a66f8d32a6cfb793da2bee9da8",
@@ -12,15 +12,22 @@
     "runId": 35266409889,
     "jobId": 105354602130,
     "tests": 738,
-    "status": "every step passed",
-    "chromium": "Actual settings global/homepage/navigation/structure at 390px/1440px, held responses, copy/reload, sibling drafts, six upload preparations, unknown upload acknowledgements and remount containment passed."
+    "status": "passed",
+    "allSteps": "passed"
   },
   "finalHeadCI": {
     "runId": 35267291934,
-    "status": "pending"
+    "jobId": 105357508781,
+    "tests": 738,
+    "status": "passed",
+    "allSteps": "passed",
+    "chromium": "All four actual settings form modes at 390px and 1440px, twelve held outcomes per mode, revision advancement, copy/reload, fetch/JSON timeouts, late remount settlement, sibling draft preservation and six synthetic upload preparations passed. Independent addon enablement, upload acknowledgement-loss reference retention and runtime/console checks passed."
   },
   "outstandingChanges": false,
-  "scope": "STOP after final documentation-head CI verification for PR 309. Do not begin another roadmap packet.",
+  "packetStatus": "PR 309 complete for its intended scope and ready for roadmap review; draft and unmerged",
+  "scope": "STOP: user's current authorization is this site-settings browser recovery packet only. Do not begin another roadmap packet or resume the paused broad automation.",
+  "nextRecommendation": "Featured-film browser revision/acknowledgement recovery after a separate boundary review, recommendation only, not started",
+  "limitations": "Synthetic settings fetch/XHR and isolated PGlite narrow route/SQL adapters only. No authenticated hosted settings save/reopen, generated-Prisma/Neon concurrency, actual R2/Stream/provider or production verification. Manual copied recovery is not durable browser draft storage or automatic reconciliation.",
   "production": "ON HOLD",
-  "limitations": "Synthetic fetch/XHR and narrow isolated PGlite adapters. No authenticated hosted, generated-Prisma/Neon concurrency, real provider or production evidence. Manual copies are not durable browser storage."
+  "phase": "Broader Phase 1/2 and later roadmap gates remain open"
 }
