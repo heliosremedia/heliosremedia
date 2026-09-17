@@ -26,7 +26,7 @@ Already-contained controls remain: duplicate admission, frozen card input, late 
 
 ## Validation and limits
 
-Actual route tests execute preparation, current authorization, curation wrapper and attachment helper with isolated database/provider delegates. They are not hosted Prisma/Neon contention or real R2 evidence. Actual-component tests exercise canonical negative receipts, wrong asset IDs after transfer, timeout and retained preparation, alongside the existing recovery suite. Chromium uses the real components with synthetic fetch/XHR and local fixture images at 390px and 1440px. Final counts and workflow evidence will be recorded after verification.
+Actual route tests execute preparation, current authorization, curation wrapper and attachment helper with isolated database/provider delegates. They are not hosted Prisma/Neon contention or real R2 evidence. Actual-component tests exercise canonical negative receipts, wrong asset IDs after transfer, timeout and retained preparation, alongside the existing recovery suite. Chromium uses the real components with synthetic fetch/XHR and local fixture images at 390px and 1440px. Final counts and workflow evidence are recorded below.
 
 No production build, migration, deployment, data change or provider operation is part of validation. Local fixture bundle success is not a browser pass; local Chromium was unavailable. Hosted authenticated browser, real storage byte/header integrity, signed-capability expiry/revocation, registry quarantine racing attachment, parent ownership transfer, registry usages/lifecycle, mixed-version rollout and restoration remain open Phase 1/2 gates. Registry provisioned status proves preparation, not immutable bytes or full media integrity.
 
@@ -35,3 +35,11 @@ No production build, migration, deployment, data change or provider operation is
 Code-only; retain all issued keys/URLs and registry records. Roll back editor and work-card writers together only after overlap rehearsal. Old writers cannot safely accept new scoped keys and previously allowed unregistered attachment; do not restore them for tenant-enabled writes. New browser against old preparation/writer holds for reconciliation rather than accepting missing receipts. Already attached legacy objects remain readable. Issued URLs are bearer capabilities for the existing configured lifetime. Orphaned/replaced object cleanup is explicitly deferred.
 
 Recommended next packet: bounded parent-ownership transfer race inventory and executable baseline for homepage curation. Do not implement it here.
+
+## Final verified code checkpoint
+
+Draft [#312](https://github.com/heliosremedia/heliosremedia/pull/312), branch `codex/v2-work-card-upload-ownership`, base `codex/v2-homepage-curation-recovery` (#311). Verified code head `5e9efa0e25774bf3b30d0dc2aeba061e24bde94a`, tree `f9467575f0df53f14eee0619cb63dfa07f9a6214`. [CI 35284178005](https://github.com/heliosremedia/heliosremedia/actions/runs/35284178005), job `105412778939`, passed **819 tests, 0 failures**, Prisma generation, non-incremental TypeScript, every existing browser check, isolated anonymous Next.js HTTP/Chromium and whitespace. Fresh actual curation component Chromium passed at 390px on 2026-09-17 22:58:52 UTC and 1440px at 22:59:01 UTC, including the new upload/attachment cases. Transport and object images were synthetic.
+
+Local full regression passed 818 before the final compatibility refinement; all 60 targeted route/component checks passed afterward. Final CI covers that refinement and the added test. Scoped lint and fixture bundling passed locally. Exact existing URL-only legacy attachments are also retained, while introduction or substitution is refused. This is historical compatibility, not proof of provenance for unmapped old URLs.
+
+Packet 5 is internally complete for roadmap review. Final documentation head and its exact-head CI are recorded in the PR and canonical run claim. No merge, deployment, production verification or subsequent packet was performed.
