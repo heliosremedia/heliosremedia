@@ -6,6 +6,6 @@ export function normalized(value: unknown) { return typeof value === 'string' ? 
 /** Merge only acknowledged fields whose local value has not changed since admission. */
 export function mergeDraft<T extends { id: string }>(current: T, submitted: T, acknowledged: T): T {
  const result = { ...current };
- for (const key of Object.keys(acknowledged) as (keyof T)[]) if (JSON.stringify(current[key]) === JSON.stringify(submitted[key])) result[key] = acknowledged[key];
+ for (const key of Object.keys(submitted) as (keyof T)[]) if (Object.hasOwn(acknowledged, key) && JSON.stringify(current[key]) === JSON.stringify(submitted[key])) result[key] = acknowledged[key];
  return result;
 }

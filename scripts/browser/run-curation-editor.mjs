@@ -5,11 +5,8 @@ import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 
 const bundle = await build({ entryPoints: ['scripts/browser/curation-editor-fixture.jsx'], bundle: true, jsx: 'automatic', write: false,
-  plugins: [{ name: 'synthetic-settings-defaults', setup(builder) {
-    builder.onLoad({ filter: /\/lib\/site-settings\.ts$/ }, async args => ({ loader: 'ts',
-      contents: (await readFile(args.path, 'utf8')).replace(/^import .*;\n/gm, '').split('export async function getSiteSettings')[0],
-    }));
-  } }],
+  // Next substitutes these build-time constants; standalone esbuild must do so too.
+  define: { 'process.env.NODE_ENV': '"development"', 'process.env': '{}' },
 });
 const css = await postcss([tailwind()]).process(await readFile('app/globals.css', 'utf8'), { from: 'app/globals.css' });
 if (process.argv.includes('--bundle-only')) {

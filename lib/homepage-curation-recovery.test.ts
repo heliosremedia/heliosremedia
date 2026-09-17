@@ -113,3 +113,7 @@ test('curation project blur callbacks are synchronously admitted once', () => {
 test('curation successful response cannot admit the previous save callback again', async () => {
  let calls=0; const f=fixture(async (_u:string, options:any) => { calls++; return acknowledgement(options); }); const old=f.button('Save card'); old.props.onClick(); await tick(); old.props.onClick(); assert.equal(calls,1);
 });
+test('curation active-only project acknowledgement cannot overwrite an unsaved title', async () => {
+ const f=fixture(async (_u:string, options:any) => acknowledgement(options,true),true);
+ f.input().props.onChange({target:{value:'Unsaved project title'}}); f.button('Hide').props.onClick(); await tick(); assert.equal(f.input().props.value,'Unsaved project title'); assert.ok(!f.render().some(e => e.type === 'textarea')); assert.ok(f.button('Show'));
+});

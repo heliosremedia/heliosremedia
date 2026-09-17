@@ -24,13 +24,13 @@ export default function HomepageProjectManager({ initialPlacements, projects, wo
       const row = record(data.placement), project = record(row?.project);
       if (!row || !project || typeof row.id !== 'string' || typeof row.active !== 'boolean' || typeof row.displayOrder !== 'number' || !(row.titleOverride === null || typeof row.titleOverride === 'string')) return false;
       if (method === 'POST') return row.projectId === body.projectId && projects.some(p => p.id === row.projectId) && !ids.includes(row.id) && sameMembers(order, [...ids, row.id]);
-      return row.id === item?.id && row.projectId === item.projectId && sameMembers(order, ids) && (!('active' in body) || row.active === body.active) && (row.titleOverride === normalized('titleOverride' in body ? body.titleOverride : item.titleOverride));
+      return row.id === item?.id && row.projectId === item.projectId && sameMembers(order, ids) && (!('active' in body) || row.active === body.active) && (!('titleOverride' in body) || row.titleOverride === normalized(body.titleOverride));
     });
     if (!recovery.current(token)) return;
     if (data) {
       if (method === 'POST') { const row = data.placement as Placement; setPlacements(current => [...current, { ...row, imageUrl: null }]); setSelected(current => current === snapshot.selected ? '' : current); }
       else if (method === 'DELETE') setPlacements(current => current.filter(row => row.id !== item!.id));
-      else setPlacements(current => current.map(row => row.id === item!.id ? mergeDraft(row, item!, { ...item!, ...data.placement as Placement }) : row));
+      else setPlacements(current => current.map(row => row.id === item!.id ? mergeDraft(row, item!, { ...item!, ...('titleOverride' in body ? { titleOverride: (data.placement as Placement).titleOverride } : {}), ...('active' in body ? { active: (data.placement as Placement).active } : {}) }) : row));
       recovery.complete(token, false);
     }
     setBusy(false);

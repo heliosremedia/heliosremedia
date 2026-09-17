@@ -52,6 +52,6 @@ export async function checkCurationEditor(base) {
    }
    await setup('lost'); await cards().getByRole('button', { name: 'Remove', exact: true }).first().click(); await pending(); await finish(); await copy().waitFor(); assert.equal(await cards().locator('h3').count(), 2);
    assert.deepEqual(errors, []); console.log(`PASS: actual curation editors Chromium ${width}px, synthetic transport, ${new Date().toISOString()}`);
-  } finally { await page.close(); }
+  } catch (error) { console.error('Curation fixture diagnostics', { errors, body: (await page.locator('body').innerText()).slice(0,3000) }); throw error; } finally { await page.close(); }
  } } finally { await browser.close(); }
 }
