@@ -1,9 +1,10 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-featured-film-browser-recovery",
-  "expiresAt": "2026-09-18T06:30:00Z",
+  "expiresAt": null,
   "branch": "codex/v2-featured-film-browser-recovery",
   "base": "codex/v2-site-settings-browser-recovery",
+  "baseHead": "aeb654ec5d6553a66f8d32a6cfb793da2bee9da8",
   "pr": 310,
   "head": "b617a4312671996381115b6fba91511edecd20d7",
   "tree": "a19c58be0a7c3a63f4c27e55136f944a7325a464",
@@ -13,15 +14,22 @@
     "runId": 35276721981,
     "jobId": 105389064682,
     "tests": 752,
-    "allSteps": "passed",
-    "chromium": "featured film 390/1440px passed"
+    "status": "passed",
+    "allSteps": "passed"
   },
   "finalHeadCI": {
     "runId": 35277486519,
     "jobId": 105391479431,
-    "status": "in_progress"
+    "tests": 752,
+    "status": "passed",
+    "allSteps": "passed",
+    "chromium": "Actual featured-film 390px/1440px passed at 2026-09-17T21:40:16Z/21:40:23Z: 17 held responses, revision advancement, duplicate/frozen saves, copied recovery, timeouts, video/poster replacement/removal, retained references, late presign/transfer/remount and sibling preservation. Synthetic fetch/XHR only."
   },
-  "scope": "Packet 3 only, stop at verified completion",
+  "outstandingChanges": false,
+  "packetStatus": "Packet 3 / PR310 complete for intended scope and ready for roadmap review; draft/open/mergeable/unmerged",
+  "scope": "STOP after Packet 3. Do not begin the next packet or resume the paused broad automation.",
+  "limitations": "No authenticated hosted upload/save/reopen, real R2/Stream, generated-Prisma/Neon rollback/concurrency or production evidence. Manual copies are not durable drafts. Public legacy film remains conditional on no curated work cards. Broader Phase1/2 and later gates open.",
+  "nextRecommendation": "Homepage project/work-card curation browser recovery inventory and executable baseline after separate boundary review; not started",
   "production": "ON HOLD",
   "automation": "broad task remains paused"
 }
