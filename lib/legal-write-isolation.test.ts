@@ -134,7 +134,7 @@ test('legal expansion rolls back without losing rows before the contract cutover
 
 function routeFixture(db: PGlite) {
   const state = { company: 'b', role: 'ADMIN', tenant: true, session: true, failSettings: false, failReadback: false,
-    beforeTransaction: async () => {}, invalidations: 0 };
+    beforeTransaction: async () => {}, invalidations: 0, failInvalidation: false };
   type SQL = { query: PGlite['query'] };
   type Row = Record<string, unknown> & { id: string; updatedAt: Date };
   const clause = (where: Record<string, unknown>, values: unknown[]): string => Object.entries(where).map(([key, value]) => {
@@ -193,7 +193,7 @@ function routeFixture(db: PGlite) {
     await state.beforeTransaction(); return db.transaction(sql=>fn(client(sql,true)));
   } };
   const modules: Record<string, unknown> = {
-    'server-only': {}, 'next/server': { NextResponse: Response }, 'next/cache': { revalidatePath() { state.invalidations++; } },
+    'server-only': {}, 'next/server': { NextResponse: Response }, 'next/cache': { revalidatePath() { state.invalidations++; if (state.failInvalidation) throw new Error('PRIVATE synthetic invalidation failure'); } },
     '@/lib/prisma': { prisma }, '@/lib/auth/session': { getAdminSession: async () => state.session ? { userId: `operator-${state.company}`, workspaceId: state.company, role: state.role, sessionVersion: 7 } : null },
     '@/lib/workspace-context-core': { tenantContextEnabled: () => state.tenant },
     './workspace-context-core.ts': { tenantContextEnabled: () => state.tenant },
@@ -209,6 +209,28 @@ function routeFixture(db: PGlite) {
     getPublishedLegalDocument(type: string): Promise<Record<string, unknown> | null>;
   }>('./legal-documents.ts',modules) };
 }
+
+test('legal route can commit before invalidation failure, requiring retained-copy recovery instead of retry', async () => {
+  const db = await database();
+  try {
+    await mapLegal(db); await approveCutover(db); await db.exec(contract);
+    const f = routeFixture(db); f.state.failInvalidation = true;
+    const beforeA = (await db.query('SELECT * FROM "LegalDocument" WHERE "workspaceId"=\'a\' ORDER BY id')).rows;
+    const payload = { ...input, updatedAt: new Date(0).toISOString(), published: true, content: '<p>' + 'Reviewed synthetic copy. '.repeat(10) + '</p>' };
+    const write = request(payload); write.headers.set('x-helios-legal-revision','1');
+    const result = await f.route.PATCH(write);
+    assert.equal(result.status,500); assert.doesNotMatch(await result.text(),/PRIVATE/);
+    const committed = await f.readers.getPublishedLegalDocument('PRIVACY_POLICY');
+    assert.equal(committed?.title,payload.title); assert.equal(committed?.content,payload.content);
+    assert.equal((await db.query<{ privacyPolicyPublished: boolean }>('SELECT "privacyPolicyPublished" FROM "SiteSettings" WHERE "workspaceId"=\'b\'')).rows[0].privacyPolicyPublished,true);
+    assert.deepEqual((await db.query('SELECT * FROM "LegalDocument" WHERE "workspaceId"=\'a\' ORDER BY id')).rows,beforeA);
+    const snapshot = (await db.query('SELECT * FROM "LegalDocument" ORDER BY id')).rows;
+    f.state.failInvalidation = false;
+    // Simulate a separate stale caller, not an automatic UI retry.
+    assert.equal((await f.route.PATCH(request(payload))).status,409);
+    assert.deepEqual((await db.query('SELECT * FROM "LegalDocument" ORDER BY id')).rows,snapshot);
+  } finally { await db.close(); }
+});
 
 test('legal route isolates same-type documents, fences old writes and rolls document/settings back atomically', async () => {
   const db = await database();

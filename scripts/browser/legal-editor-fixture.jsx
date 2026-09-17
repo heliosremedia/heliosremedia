@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import LegalDocumentsManager from '../../app/admin/settings/LegalDocumentsManager';
 
 const row = { id: 'privacy-one', type: 'PRIVACY_POLICY', title: 'Privacy', content: '<p>Synthetic reviewed privacy copy</p>', published: false, updatedAt: '2026-09-13T00:00:00.000Z' };
-const state = window.legalFixture = { calls: [], mode: 'success', pending: null, committed: null };
+const state = window.legalFixture = { calls: [], mode: 'success', pending: null, jsonPending: null, committed: null };
 window.fetch = async (url, options = {}) => {
   if (url !== '/api/admin/legal-documents' || options.method !== 'PATCH') throw new Error('Unexpected synthetic request');
   const submitted = JSON.parse(options.body);
@@ -16,10 +16,16 @@ window.fetch = async (url, options = {}) => {
   if (state.mode === 'conflict' || state.mode === 'forbidden') return Response.json({ success: false, error: 'PRIVATE failure' }, { status: state.mode === 'conflict' ? 409 : 403 });
   if (state.mode === 'non-json') return new Response('PRIVATE malformed response');
   if (state.mode === 'foreign') document.id = 'foreign';
+  if (state.mode === 'wrong-type') document.type = submitted.type === 'PRIVACY_POLICY' ? 'TERMS_OF_SERVICE' : 'PRIVACY_POLICY';
   if (state.mode === 'stale') document.updatedAt = submitted.updatedAt;
+  if (state.mode === 'invalid-revision') document.updatedAt = 'invalid';
   if (state.mode === 'wrong-publication') document.published = !submitted.published;
+  if (state.mode === 'slow-json') return { ok: true, json: () => new Promise(resolve => { state.jsonPending = () => resolve({ success: true, revisionProtocol: 1, document }); }) };
   return Response.json({ success: true, ...(state.mode === 'legacy' ? {} : { revisionProtocol: 1 }), document });
 };
-createRoot(document.getElementById('root')).render(<LegalDocumentsManager initialDocuments={[
+const root = createRoot(document.getElementById('root'));
+let editorEpoch = 0;
+state.remount = () => root.render(<LegalDocumentsManager key={++editorEpoch} initialDocuments={[
   row, { ...row, id: 'legal-terms-of-service', type: 'TERMS_OF_SERVICE', title: 'Terms', updatedAt: new Date(0).toISOString() },
 ]} />);
+state.remount();

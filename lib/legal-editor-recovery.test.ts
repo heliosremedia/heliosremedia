@@ -51,19 +51,37 @@ test('legal editor admits one save synchronously and freezes captured input call
 });
 
 test('legal editor holds uncertain or untrusted responses and retains both drafts for explicit recovery', async () => {
-  for (const response of [new Response('not JSON'), Response.json({ success: true }), ack({ id: 'foreign' }), ack({ type: 'TERMS_OF_SERVICE' }), ack({ updatedAt: original.updatedAt }), ack({ published: 'yes' }), Response.json({ success: false }, { status: 409 }), Response.json({ success: false }, { status: 403 })]) {
+  const matching = (patch: Record<string, unknown>) => ack({ title: 'Retain my title', ...patch });
+  for (const response of [new Response('not JSON'), Response.json({ success: true }), matching({ id: 'foreign' }), matching({ type: 'TERMS_OF_SERVICE' }), matching({ updatedAt: original.updatedAt }), matching({ updatedAt: 'not a date' }), matching({ published: 'yes' }), matching({ title: 'Unexpected title' }), Response.json({ success: false }, { status: 409 }), Response.json({ success: false }, { status: 403 })]) {
     let calls = 0;
     const f = fixture(async () => { calls++; return response; });
     f.render().find(e => e.props.value === 'Privacy')!.props.onChange({ target: { value: 'Retain my title' } });
+    f.render().find(e => e.props.value === 'Terms')!.props.onChange({ target: { value: 'Retain my terms' } });
     const save = f.button('Save document'); save.props.onClick(); await tick(); save.props.onClick();
     assert.equal(calls, 1); assert.equal(f.button('Save document').props.disabled, true);
     assert.ok(f.render().some(e => e.props.role === 'alert'));
     const recovery = f.render().find(e => e.props['aria-label'] === 'Unsaved legal documents')!;
-    assert.equal(recovery.props.readOnly, true); assert.match(recovery.props.value, /Retain my title/); assert.match(recovery.props.value, /Terms/);
+    assert.equal(recovery.props.readOnly, true); assert.match(recovery.props.value, /Retain my title/); assert.match(recovery.props.value, /Retain my terms/);
     const reload = f.button('Reload saved documents'); reload.props.onClick(); assert.equal(f.reloads(), 0);
     f.render().find(e => e.props['aria-label'] === 'I have preserved my unsaved copy')!.props.onChange({ target: { checked: true } });
     f.button('Reload saved documents').props.onClick(); assert.equal(f.reloads(), 1);
   }
+});
+
+test('matching edited document acknowledgements advance the next request revision and preserve the other draft', async () => {
+  const requests: Record<string, unknown>[] = [];
+  const f = fixture(async (_url, options) => {
+    const body = JSON.parse(String(options?.body)); requests.push(body);
+    return ack({ ...body, updatedAt: new Date(Date.parse(body.updatedAt) + 1).toISOString() });
+  });
+  f.render().find(e => e.props.value === 'Privacy')!.props.onChange({ target: { value: 'Retain my title' } });
+  f.render().find(e => e.props.value === 'Terms')!.props.onChange({ target: { value: 'Retain my terms' } });
+  f.button('Save document').props.onClick(); await tick();
+  assert.equal(f.button('Save document').props.disabled, false);
+  assert.ok(f.render().some(e => e.props.value === 'Retain my terms'));
+  f.button('Save document').props.onClick(); await tick();
+  assert.equal(requests.length,2);
+  assert.equal(requests[1].updatedAt,'2026-09-13T00:00:00.001Z');
 });
 
 test('legal editor accepts sanitized authoritative data and new document identity only from the unsaved sentinel', async () => {

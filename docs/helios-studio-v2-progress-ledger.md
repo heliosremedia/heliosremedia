@@ -1,6 +1,14 @@
 # Helios Studio V2 progress ledger
 
-## 2026-09-13 legal editor recovery, implementation in progress
+## 2026-09-17 narrow completion review: #308 only
+
+Confirmed open draft #308 at remote `5be21d5c855555fb690f58f9ff7d3ebf6beab9a9`, based on #307 `d84f9bcc2e45dd36fcffebc36e22776bf6a9dfb9`, and recovered it into a fresh worktree. Preserved the old checkout's uncommitted test/document work, reviewed its unfinished post-commit test and incorporated only that in-scope test into this review. Reclaimed the expired canonical run claim by expected-SHA write. Read required repository instructions/documents, complete PR diff and installed Next.js security guidance. Locked dependency installation and fresh baseline passed 722/722 before changes.
+
+Prior CI run 34737570082 passed regression/TypeScript and existing recovery/location Chromium, but FAILED legal Chromium on CSS uppercase text. Corrected the assertion to use underlying text without weakening publication semantics. Negative VM fixtures now match the submitted title, eliminating incidental rejection that masked identity/type/revision coverage; a positive edited-title/revision control also passes. Added complete mobile/desktop recovery paths, wrong-type/invalid-revision cases and delayed JSON after a newer editor remount. Completed actual-route/PGlite post-commit invalidation-failure evidence without changing invalidation behavior. Twelve focused component/route tests and fixture bundling passed. Local Chromium download failed; fresh CI execution is required and is not replaced by bundling.
+
+Scope is strictly #308. No application redesign, other roadmap implementation, protected integration change, production migration, deployment or merge. Final full suite/TypeScript/scoped lint/CI evidence follows. Production remains ON HOLD; packet completion will not imply authenticated hosted/Neon/concurrency/provider/production parity. Recommended subsequent packet for review only: site-settings browser revision and acknowledgement recovery. Do not begin it in this session.
+
+## Historical 2026-09-13 legal editor recovery implementation
 
 Recovered clean #307 final tree `62962bef8976621df2d3f2c52058a315b7c5f5a2`, rechecked latest draft/main and every successful final-head CI step in run 34736608431. Main remains `72dab34568cb6885f3e93b5ed9db38edca156835`. Acquired the canonical expected-SHA claim for `codex/v2-legal-editor-recovery`. Read AGENTS, roadmap, charter, architecture, audit, ledger, Next.js skill and installed data-security guidance. Reproduced all 717 baseline tests.
 

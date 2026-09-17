@@ -20,7 +20,15 @@ A company administrator edits reviewed legal HTML, saves through the existing sc
 
 Actual-component VM tests first reproduced duplicate requests, unsafe retries and unconfirmed success copy. They cover synchronous callback fencing, identity/revision/shape mismatches, creation and legacy IDs, network/fetch/JSON timeouts and late results, local validation, retained drafts and explicit reload admission. Existing actual-route PGlite tests now check protocol signalling and missing/unsupported version validation in addition to prior authorization/SQL rollback evidence.
 
-The dedicated Chromium runner mounts the real editor with synthetic fetch responses on loopback only. It checks duplicate saves, frozen inputs, confirmed publication, new identity, eight held outcomes, keyboard/selectable recovery, no replay, timeout/late success and mobile/desktop overflow. All real external requests and non-GET network requests are denied. This is not authenticated legal API/browser, generated Prisma/Neon or hosted deployment evidence. Local bundle compilation alone is not browser verification; fresh CI must pass the Chromium step.
+The dedicated Chromium runner mounts the real editor with synthetic fetch responses on loopback only. At both 390px mobile and 1440px desktop widths it checks duplicate saves, frozen inputs, confirmed publication, new identity, ten held outcomes, keyboard/selectable recovery, no replay, fetch/JSON timeouts and late success after remounting a newer editor. All real external requests and non-GET network requests are denied. This is not authenticated legal API/browser, generated Prisma/Neon or hosted deployment evidence. Local bundle compilation alone is not browser verification; fresh CI must pass the Chromium step.
+
+## September 17 completion review
+
+Recovered the exact remote #308 head `5be21d5c855555fb690f58f9ff7d3ebf6beab9a9` into a fresh detached worktree and reproduced 722 passing tests before changes. Prior run 34737570082 failed its legal Chromium assertion because CSS transforms the badge's rendered text to uppercase. The check now examines the badge's underlying text while retaining the exact semantic assertion; product styling is unchanged.
+
+Corrected negative response fixtures to match the submitted edited title so identity/type/revision rejection cannot pass merely because of an unrelated title mismatch. Added a positive edited-title acknowledgement and next-revision control. Completed the unfinished actual-route PGlite test proving a document/footer transaction can commit before invalidation returns HTTP 500, with the other company preserved and a separate stale caller rejected. This is evidence for held recovery, not a cache-invalidation architecture change.
+
+No application behavior was redesigned during this completion review. In-flight inputs are frozen and captured edit callbacks are ignored; this prevents accepting new edits that a late response could overwrite. Both pre-save drafts remain available after uncertainty. The recovery snapshot must be copied externally before explicit reload; the synthetic fixture does not prove persisted server readback after reload. Final combined validation and fresh CI evidence are recorded in the progress ledger.
 
 ## Rollback and remaining gates
 
