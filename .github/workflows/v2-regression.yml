@@ -56,6 +56,8 @@ jobs:
         run: npm run test:settings-browser
       - name: Check synthetic featured-film revision recovery in Chromium
         run: npm run test:film-browser
+      - name: Check actual homepage curation recovery in synthetic Chromium
+        run: npm run test:curation-browser
       - name: Check isolated Studio layout with real Next.js HTTP and Chromium
         run: npm run test:studio-layout
       - name: Check patch whitespace

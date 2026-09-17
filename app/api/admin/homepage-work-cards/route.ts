@@ -1,8 +1,7 @@
-import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
-import { deleteContentImage, verifyContentImage } from "@/lib/content-image-storage";
-import { prisma } from "@/lib/prisma";
+import { verifyContentImage } from "@/lib/content-image-storage";
+import { withCurationWrite } from "@/lib/homepage-curation-write";
 import { getAdminSession } from "@/lib/auth/session";
 
 const select = {
@@ -39,15 +38,12 @@ function destination(input: unknown, fallback: string) {
   return url.toString();
 }
 
-function refresh() {
-  revalidatePath("/");
-  revalidatePath("/admin/homepage");
-}
 
 export async function POST(request: Request) {
   try {
     const session = await getAdminSession();
     if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
+    return await withCurationWrite(session, "work-cards", request, async (prisma, timestamp) => {
     const body = (await request.json()) as Record<string, unknown>;
     const serviceId = typeof body.serviceId === "string" ? body.serviceId.trim() : "";
     const [service, count] = await Promise.all([
@@ -58,11 +54,12 @@ export async function POST(request: Request) {
     if (count >= 5) return NextResponse.json({ success: false, error: "The homepage supports up to five work cards." }, { status: 409 });
 
     const card = await prisma.homepageWorkCard.create({
-      data: { serviceId: service.id, displayOrder: count, destinationOverride: `/portfolio?service=${service.slug}` },
+      data: { updatedAt: timestamp, serviceId: service.id, displayOrder: count, destinationOverride: `/portfolio?service=${service.slug}` },
       select,
     });
-    refresh();
+
     return NextResponse.json({ success: true, card }, { status: 201 });
+    });
   } catch (error) {
     console.error("Unable to add homepage work card:", error);
     return NextResponse.json({ success: false, error: "The homepage work card could not be added." }, { status: 500 });
@@ -73,6 +70,7 @@ export async function PATCH(request: Request) {
   try {
     const session = await getAdminSession();
     if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
+    return await withCurationWrite(session, "work-cards", request, async (prisma, timestamp) => {
     const body = (await request.json()) as Record<string, unknown>;
     if (body.action === "reorder") {
       const ids = Array.isArray(body.cardIds) ? body.cardIds.filter((id): id is string => typeof id === "string") : [];
@@ -80,8 +78,8 @@ export async function PATCH(request: Request) {
       if (ids.length !== current.length || new Set(ids).size !== ids.length || current.some(({ id }) => !ids.includes(id))) {
         return NextResponse.json({ success: false, error: "Homepage cards changed before the order was saved." }, { status: 409 });
       }
-      await prisma.$transaction(ids.map((id, displayOrder) => prisma.homepageWorkCard.updateMany({ where: { id, service: { workspaceId: session.workspaceId } }, data: { displayOrder } })));
-      refresh();
+      await Promise.all(ids.map((id, displayOrder) => prisma.homepageWorkCard.updateMany({ where: { id, service: { workspaceId: session.workspaceId } }, data: { displayOrder, updatedAt: timestamp } })));
+
       return NextResponse.json({ success: true, cardIds: ids });
     }
 
@@ -128,6 +126,7 @@ export async function PATCH(request: Request) {
     const changed = await prisma.homepageWorkCard.updateMany({
       where: { id: cardId, service: { workspaceId: session.workspaceId } },
       data: {
+        updatedAt: timestamp,
         titleOverride: textValue(body.titleOverride, 120),
         serviceId: nextService.id,
         destinationOverride: destination(body.destinationOverride, `/portfolio?service=${nextService.slug}`),
@@ -142,12 +141,12 @@ export async function PATCH(request: Request) {
       },
     });
     if (changed.count !== 1) return NextResponse.json({ success: false, error: "Homepage card not found." }, { status: 404 });
+    // Retain replaced objects for reconciliation; lifecycle cleanup is a separate gate.
     const card = await prisma.homepageWorkCard.findFirstOrThrow({ where: { id: cardId, service: { workspaceId: session.workspaceId }, OR: [{ featuredMediaId: null }, { featuredMedia: { project: { workspaceId: session.workspaceId } } }] }, select });
 
-    if (imageStorageKey !== existing.imageStorageKey) await deleteContentImage(existing.imageStorageKey);
-    if (videoStorageKey !== existing.videoStorageKey) await deleteContentImage(existing.videoStorageKey);
-    refresh();
+
     return NextResponse.json({ success: true, card });
+    });
   } catch (error) {
     if (error instanceof Error && error.message === "INVALID_VALUE") {
       return NextResponse.json({ success: false, error: "One or more homepage card values are invalid." }, { status: 400 });
@@ -161,15 +160,16 @@ export async function DELETE(request: Request) {
   try {
     const session = await getAdminSession();
     if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
+    return await withCurationWrite(session, "work-cards", request, async (prisma) => {
     const id = new URL(request.url).searchParams.get("cardId")?.trim();
     if (!id) return NextResponse.json({ success: false, error: "A card ID is required." }, { status: 400 });
     const card = await prisma.homepageWorkCard.findFirst({ where: { id, service: { workspaceId: session.workspaceId }, OR: [{ featuredMediaId: null }, { featuredMedia: { project: { workspaceId: session.workspaceId } } }] }, select: { id: true, imageStorageKey: true, videoStorageKey: true } });
     if (!card) return NextResponse.json({ success: false, error: "Homepage card not found." }, { status: 404 });
     const deleted = await prisma.homepageWorkCard.deleteMany({ where: { id: card.id, service: { workspaceId: session.workspaceId } } });
     if (deleted.count !== 1) return NextResponse.json({ success: false, error: "Homepage card changed before deletion." }, { status: 409 });
-    await Promise.all([deleteContentImage(card.imageStorageKey), deleteContentImage(card.videoStorageKey)]);
-    refresh();
+
     return NextResponse.json({ success: true, deletedCardId: card.id });
+    });
   } catch (error) {
     console.error("Unable to remove homepage work card:", error);
     return NextResponse.json({ success: false, error: "The homepage work card could not be removed." }, { status: 500 });
