@@ -49,7 +49,9 @@ const root = createRoot(document.getElementById('root'));
 let epoch = 0;
 const mode = new URLSearchParams(location.search).get('form') ?? 'navigation';
 const editor = (form, key) => <section key={key} data-editor={form}>{form === 'global' || form === 'homepage'
-  ? <SiteSettingsForm initialSettings={initial} initialRevision={revision} mode={form} />
+  ? <SiteSettingsForm initialSettings={initial} initialRevision={revision} mode={form}
+      brandIdentityAddon={<label>Independent brand tool<input aria-label="Independent brand tool" /></label>}
+      legalAddon={<label>Independent legal tool<input aria-label="Independent legal tool" /></label>} />
   : <HomepageStructureManager initialSettings={initial} initialRevision={revision} mode={form} />}</section>;
 state.remount = () => { epoch++; root.render(mode === 'combined' ? ['navigation', 'homepage', 'structure'].map(form => editor(form, `${epoch}-${form}`)) : editor(mode, epoch)); };
 state.remount();

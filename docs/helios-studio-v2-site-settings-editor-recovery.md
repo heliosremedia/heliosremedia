@@ -32,6 +32,7 @@ An admin-only loader reads values and their revision together using the existing
 - Recovery offers a selectable JSON copy of **all mounted settings-editor drafts on the page**. The copy includes scope and revision for comparison. A newer sibling edit invalidates the copied-confirmation checkbox and prevents a stale reload callback from discarding that edit. Other tools on the same page are explicitly called out for manual preservation. Reload requires confirmation that the copy was preserved and never replays a write.
 - Copies exist only in mounted JavaScript memory. There is no localStorage, IndexedDB, server draft storage or automated conflict merge. Browser navigation warnings are a best-effort aid, not durable recovery from crashes or forced navigation.
 - Navigation rows retain their editable identity even when a new row temporarily shares a destination with an existing link. Existing placement/order behavior is preserved.
+- Pending/held state disables only controls owned by these settings forms. Independent legal and favicon/social-image addons retain their own behavior and recovery controls; their implementations are unchanged.
 
 ## Verification
 

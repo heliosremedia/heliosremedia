@@ -9,6 +9,7 @@ export async function checkSettingsEditor(base) {
       const page = await browser.newPage({ viewport: { width, height: 1000 } });
       const errors = [], unexpected = [];
       page.on('pageerror', error => errors.push(error.message));
+      page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
       page.on('dialog', dialog => dialog.accept());
       await page.route('**/*', async route => {
         if (new URL(route.request().url()).origin !== base || route.request().method() !== 'GET') {
@@ -36,12 +37,12 @@ export async function checkSettingsEditor(base) {
       try {
         for (const form of Object.keys(labels)) {
           await setup(form); await input(form).fill('Retain this settings edit');
-          await start(form); await finish(); await page.waitForFunction(() => !document.querySelector('fieldset[disabled]'));
+          await start(form); await finish(); await page.waitForFunction(() => !document.querySelector('[aria-busy="true"],fieldset[disabled]'));
           assert.equal(await input(form).inputValue(), 'Retain this settings edit');
           assert.match(await region(form).getByRole('status').last().innerText(), /saved|published/i);
           await input(form).fill('Next revision edit'); await save(form).click(); await page.waitForFunction(() => !!window.settingsFixture.pending);
           assert.equal(await page.evaluate(() => window.settingsFixture.calls[1].editorRevision.updatedAt), '2026-09-17T00:00:01.000Z');
-          await finish(); await page.waitForFunction(() => !document.querySelector('fieldset[disabled]'));
+          await finish(); await page.waitForFunction(() => !document.querySelector('[aria-busy="true"],fieldset[disabled]'));
 
           for (const mode of ['lost-ack', 'conflict', 'non-json', 'foreign-id', 'foreign-workspace', 'foreign-row', 'wrong-scope', 'wrong-request', 'wrong-prior', 'stale', 'invalid-revision', 'legacy']) {
             await setup(form, mode); await input(form).fill('Keep my uncertain edit');
@@ -49,6 +50,10 @@ export async function checkSettingsEditor(base) {
             assert.match(await page.getByRole('alert').innerText(), mode === 'conflict' ? /changed since/ : /uncertain/);
             assert.doesNotMatch(await page.getByRole('alert').innerText(), /PRIVATE/);
             assert.equal(await save(form).isDisabled(), true);
+            if (form === 'global') {
+              assert.equal(await page.getByLabel('Independent brand tool', { exact: true }).isEnabled(), true);
+              assert.equal(await page.getByLabel('Independent legal tool', { exact: true }).isEnabled(), true);
+            }
             const copy = page.getByLabel('Unsaved settings copy', { exact: true });
             assert.match(await copy.inputValue(), /Keep my uncertain edit/);
             await copy.focus(); assert.equal(await copy.evaluate(node => node.selectionEnd === node.value.length), true);
@@ -93,12 +98,19 @@ export async function checkSettingsEditor(base) {
           await page.evaluate(() => window.settingsFixture.presignPending()); await page.waitForFunction(() => !!window.settingsFixture.pending);
           assert.equal(await page.evaluate(() => window.settingsFixture.uploads), 1);
           assert.equal(await page.evaluate(() => window.settingsFixture.calls[0].editorRevision.updatedAt), '2026-09-17T00:00:00.000Z');
-          await finish(); await page.waitForFunction(() => !document.querySelector('fieldset[disabled]'));
+          await finish(); await page.waitForFunction(() => !document.querySelector('[aria-busy="true"],fieldset[disabled]'));
           assert.equal(await input(form).inputValue(), 'Draft before upload');
+          await setup(form, 'lost-ack'); await input(form).fill('Draft retained with uploaded media');
+          await file.setInputFiles({ name: 'synthetic.png', mimeType: 'image/png', buffer: Buffer.from('synthetic-only') });
+          await page.waitForFunction(() => !!window.settingsFixture.presignPending); await page.evaluate(() => window.settingsFixture.presignPending());
+          await page.waitForFunction(() => !!window.settingsFixture.pending); await finish(); await page.getByRole('alert').waitFor();
+          const uploadedCopy = await page.getByLabel('Unsaved settings copy', { exact: true }).inputValue();
+          assert.match(uploadedCopy, /Draft retained with uploaded media/); assert.match(uploadedCopy, /synthetic-image.svg/);
+          assert.equal(await page.evaluate(() => window.settingsFixture.calls.length), 1);
           await setup(form);
           await file.setInputFiles({ name: 'synthetic.png', mimeType: 'image/png', buffer: Buffer.from('synthetic-only') });
           await page.waitForFunction(() => !!window.settingsFixture.presignPending);
-          await page.evaluate(() => window.settingsFixture.remount()); await page.waitForFunction(() => !document.querySelector('fieldset[disabled]'));
+          await page.evaluate(() => window.settingsFixture.remount()); await page.waitForFunction(() => !document.querySelector('[aria-busy="true"],fieldset[disabled]'));
           await input(form).fill('Draft after upload remount'); await page.evaluate(() => window.settingsFixture.presignPending());
           await page.waitForTimeout(20);
           assert.equal(await page.evaluate(() => window.settingsFixture.uploads), 0);

@@ -102,7 +102,7 @@ test('all settings form modes freeze input, fence stale callbacks and advance ac
     edit.props.onChange({ target: { value: 'Late overwritten value' } });
     capturedEdit.props.onChange({ target: { value: 'Edit during save' } });
     assert.ok(f.render().some(e => e.props.value === 'Retain drafted text'), 'accepted pre-save text stays frozen');
-    assert.ok(f.render().some(e => e.type === 'fieldset' && e.props.disabled === true));
+    assert.ok(f.render().some(e => (e.type === 'fieldset' || e.type === 'input') && e.props.disabled === true));
     finish(Response.json(acknowledgement(requests[0], f.initialSettings))); await tick();
     assert.ok(f.render().some(e => e.props.value === 'Retain drafted text'), mode);
     assert.equal(f.hasWarning(), false, 'confirmed values clear the navigation warning');
@@ -138,6 +138,21 @@ test('ephemeral recovery collection retains all mounted settings copies and remo
   title = 'Later first draft'; exports.refreshSettingsCopies(); assert.notEqual(exports.readSettingsCopies(), copied);
   removeFirst(); assert.doesNotMatch(exports.readSettingsCopies(), /first draft/i);
   removeSecond(); assert.equal(exports.readSettingsCopies(), '[]'); assert.equal(notifications, 5); unsubscribe();
+});
+
+test('all six actual settings upload callbacks share synchronous admission and fence unmounted preparation', async () => {
+  for (const [mode, index] of [['global', 0], ['global', 1], ['homepage', 0], ['homepage', 1], ['homepage', 2], ['homepage', 3]] as const) {
+    const requests: string[] = []; let finish!: (response: Response) => void;
+    const f = fixture(async (url) => { requests.push(String(url)); return new Promise<Response>(resolve => { finish = resolve; }); }, mode);
+    field(f, mode).props.onChange({ target: { value: 'Draft retained during upload' } });
+    const file = f.render().filter(e => e.type === 'input' && e.props.type === 'file')[index];
+    const event = () => ({ target: { value: '', files: [{ name: 'synthetic.png', type: 'image/png', size: 10 }] } });
+    file.props.onChange(event()); file.props.onChange(event());
+    assert.equal(requests.length, 1); assert.match(requests[0], /presign$/);
+    assert.ok(f.render().some(e => e.props.value === 'Draft retained during upload' && e.props.disabled === true));
+    f.unmount(); finish(Response.json({ success: true, upload: { key: 'synthetic', publicUrl: '/image.png', uploadUrl: '/upload', contentType: 'image/png' } }));
+    await tick(); assert.equal(requests.length, 1, 'late presign cannot issue a settings write or start XHR after unmount');
+  }
 });
 
 test('all settings forms retain drafts and hold mismatched or unknown acknowledgements without retries', async () => {
