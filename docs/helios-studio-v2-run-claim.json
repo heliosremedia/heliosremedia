@@ -5,6 +5,10 @@
   "branch": "codex/v2-homepage-curation-recovery",
   "base": "codex/v2-featured-film-browser-recovery",
   "baseHead": "b617a4312671996381115b6fba91511edecd20d7",
-  "scope": "Packet 4 diagnostic-first inventory, executable baseline and bounded proven recovery defects only. Stop after verified draft. Broad automation remains paused.",
-  "production": "ON HOLD"
+  "pr": 311,
+  "head": "afb088e2fbbda8d279b3ea032d0112cc111df7ce",
+  "tree": "5a378ae04a7c8e1914e6b8a679cdc9930065d154",
+  "scope": "Packet 4 only; local 785 tests passed; exact-head CI/Chromium pending; stop after verified draft",
+  "production": "ON HOLD",
+  "automation": "paused"
 }
