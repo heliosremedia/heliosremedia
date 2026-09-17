@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
+import type { SettingsRevision } from './site-settings-editor';
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- Executable actual-component hook harness. */
 type Element = { type: any; props: Record<string, any> };
@@ -14,7 +15,7 @@ function elements(node: any): Element[] {
   return [node, ...elements(node.props.children)];
 }
 const revision = { id: 'workspace:b', workspaceId: 'b', storedWorkspaceId: 'b', updatedAt: '2026-09-17T00:00:00.000Z' };
-function fixture(fetcher: typeof fetch, mode = 'navigation', timer = setTimeout, revisionOverride = revision, extra: Record<string, any> = {}, initialOverride: Record<string, any> = {}) {
+function fixture(fetcher: typeof fetch, mode = 'navigation', timer = setTimeout, revisionOverride: SettingsRevision = revision, extra: Record<string, any> = {}, initialOverride: Record<string, any> = {}) {
   const values: any[] = []; let cursor = 0; let reloads = 0;
   const cleanups = new Set<() => void>();
   const listeners = new Map<string, () => void>();
