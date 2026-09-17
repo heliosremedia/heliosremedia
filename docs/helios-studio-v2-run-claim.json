@@ -1,33 +1,10 @@
 {
-  "status": "released",
-  "runId": "atlas-308-final-review",
-  "expiresAt": null,
-  "branch": "codex/v2-legal-editor-recovery",
-  "pr": 308,
-  "head": "7845eb09befa21248711252fba20f8b3306e4df3",
-  "tree": "a9261e84bfa9045b21fd2af8adb02e95571a8ad3",
-  "localHead": "8d3b212c751d524bf3db8c677aa83a5398eff009",
-  "codeHead": "c346d189f22495b73d6fe1d40c740d7c2685b5a7",
-  "codeCI": {
-    "runId": 35260653806,
-    "jobId": 105335223653,
-    "tests": 724,
-    "status": "passed",
-    "allSteps": "passed"
-  },
-  "finalHeadCI": {
-    "runId": 35261319360,
-    "jobId": 105337477191,
-    "tests": 724,
-    "status": "passed",
-    "allSteps": "passed",
-    "legalChromium": "390px and 1440px recovery, ten held responses, fetch/JSON timeout, late response after newer editor remount passed"
-  },
-  "outstandingChanges": false,
-  "packetStatus": "PR 308 internally complete and ready for roadmap review; draft and unmerged",
-  "scope": "STOP: user's latest instruction limits this work to PR 308 only. Do not begin another roadmap packet.",
-  "nextRecommendation": "Site-settings browser revision and acknowledgement recovery, recommendation only, not started",
-  "limitations": "Synthetic legal browser responses and isolated PGlite narrow adapters only; no authenticated hosted legal workflow, Neon/generated-Prisma concurrency, provider or production evidence. Manual copied recovery is not durable draft storage.",
-  "production": "ON HOLD",
-  "phase": "Broader Phase 1/2 and later roadmap gates remain open"
+  "status": "active",
+  "runId": "atlas-site-settings-browser-recovery",
+  "expiresAt": "2026-09-17T21:09:47.732Z",
+  "branch": "codex/v2-site-settings-browser-recovery",
+  "base": "codex/v2-legal-editor-recovery",
+  "baseHead": "7845eb09befa21248711252fba20f8b3306e4df3",
+  "scope": "User authorized site-settings browser revision and acknowledgement recovery only. Stop after packet verification. Production ON HOLD.",
+  "outstandingChanges": false
 }
