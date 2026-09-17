@@ -6,10 +6,13 @@
   "base": "codex/v2-featured-film-browser-recovery",
   "baseHead": "b617a4312671996381115b6fba91511edecd20d7",
   "pr": 311,
-  "head": "3725dc4d95827a3a7aa7cc8db762941098b586a6",
-  "tree": "b338cb180f0cd00643ef271ac9307b3b1221b05c",
-  "ci": 35281342479,
-  "scope": "Packet 4 only; active-only draft merge and fixture build constants fixed; exact-head CI/Chromium pending; stop after verified draft",
+  "head": "c1aeadac9f1442ea6369b683aa1cd124fbf5e5bd",
+  "tree": "32d55f9c85c20505fa1e9fe368340485e8fbdd4f",
+  "verifiedCodeHead": "3725dc4d95827a3a7aa7cc8db762941098b586a6",
+  "verifiedCodeCI": 35281342479,
+  "tests": 786,
+  "chromium": "390px and 1440px passed; synthetic actual components",
+  "scope": "Packet 4 only; final documentation-head CI pending; stop after verified draft",
   "production": "ON HOLD",
   "automation": "paused"
 }
