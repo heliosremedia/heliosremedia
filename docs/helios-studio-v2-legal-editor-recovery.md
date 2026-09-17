@@ -30,6 +30,20 @@ Corrected negative response fixtures to match the submitted edited title so iden
 
 No application behavior was redesigned during this completion review. In-flight inputs are frozen and captured edit callbacks are ignored; this prevents accepting new edits that a late response could overwrite. Both pre-save drafts remain available after uncertainty. The recovery snapshot must be copied externally before explicit reload; the synthetic fixture does not prove persisted server readback after reload. Final combined validation and fresh CI evidence are recorded in the progress ledger.
 
+Verified code: `c346d189f22495b73d6fe1d40c740d7c2685b5a7` on `codex/v2-legal-editor-recovery`, [PR #308](https://github.com/heliosremedia/heliosremedia/pull/308). [Run 35260653806](https://github.com/heliosremedia/heliosremedia/actions/runs/35260653806), job `105335223653`, passed every step and **724/724 tests**. Local final tests, Prisma generation, non-incremental TypeScript, scoped lint, fixture bundling and whitespace also passed. Local Chromium download failed; the following Chromium results were actually executed in fresh CI, not inferred from bundling.
+
+| Required behavior | Verified evidence |
+| --- | --- |
+| Duplicate saves, frozen input and stale callbacks | Actual-component VM plus real Chromium duplicate/frozen-save checks; old callback cannot resubmit the previous revision |
+| Identity, type, revision and publication intent | Independently mismatched responses with matching submitted titles, positive edited-title/revision control, and Chromium held-response cases |
+| Preservation of applicable drafts | Both document drafts retained in VM and mobile/desktop Chromium recovery; successful save preserves the other draft |
+| Uncertain publication never automatically retries | Request counts remain one, both save buttons held, reload starts without replay; SQL test proves HTTP 500 can follow committed document/footer writes |
+| Bounded fetch/JSON and late responses | VM covers fetch/JSON/network uncertainty; Chromium exercises fetch and JSON timeouts and late old JSON after a newer editor remount |
+| Explicit copy/reload recovery | Read-only selectable snapshot, copy-preserved acknowledgement required, keyboard reload exercised at both widths |
+| Desktop/mobile paths | Complete recovery cases at 390px and 1440px, no overflow/runtime error/external browser request |
+
+This packet is complete for roadmap review, remains draft/unmerged, and grants no production readiness. Final documentation-head CI is recorded in the canonical repository run claim and PR metadata. Work stops at #308.
+
 ## Rollback and remaining gates
 
 No schema, legal copy, provider, OAuth, token, public URL or production setting is changed. Reverting the UI restores prior client behavior but also its known save-recovery defects. Keep #307's scoped server authorization/revision checks and staged migration guards. New clients with old servers hold unversioned acknowledgements rather than claiming confirmation.
