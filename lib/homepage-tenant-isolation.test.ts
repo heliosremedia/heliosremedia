@@ -29,7 +29,7 @@ test("homepage reads use the requested workspace and reject a foreign featured-m
   assert.match(publicHome, /project: \{ workspaceId: publicWorkspaceId, status: "PUBLISHED" \}/);
   assert.match(publicHome, /service: \{ workspaceId: publicWorkspaceId, active: true \}/);
   assert.match(publicHome, /featuredMedia: \{ project: \{ workspaceId: publicWorkspaceId \} \}/);
-  assert.match(adminHome, /getSiteSettings\(session\.workspaceId\)/);
+  assert.match(adminHome, /getAdminSiteSettings\(session\.workspaceId\)/);
   assert.match(adminHome, /project: \{ workspaceId: session\.workspaceId \}/);
   assert.match(adminHome, /service: \{ workspaceId: session\.workspaceId \}/);
 });

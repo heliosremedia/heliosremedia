@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSettingsRecovery } from "@/app/admin/settings/useSettingsRecovery";
+import type { SettingsRevision } from "@/lib/site-settings-editor";
 import type { ReactNode } from "react";
 import type { PublicSiteSettings } from "@/lib/site-settings";
 import { AdminCardToggle } from "@/app/admin/components/AdminCardControls";
@@ -66,9 +68,14 @@ function uploadToR2(
   uploadUrl: string,
   contentType: string,
   onProgress: (progress: number) => void,
+  signal: AbortSignal,
 ) {
   return new Promise<void>((resolve, reject) => {
     const request = new XMLHttpRequest();
+    const abort = () => { request.abort(); reject(new Error("Upload interrupted.")); };
+    signal.addEventListener("abort", abort, { once: true });
+    request.addEventListener("loadend", () => signal.removeEventListener("abort", abort), { once: true });
+    if (signal.aborted) { abort(); return; }
 
     request.upload.addEventListener("progress", (event) => {
       if (event.lengthComputable) {
@@ -97,20 +104,19 @@ function uploadToR2(
 
 export default function SiteSettingsForm({
   initialSettings,
+  initialRevision,
   mode = "global",
   brandIdentityAddon,
   legalAddon,
 }: {
   initialSettings: PublicSiteSettings;
+  initialRevision: SettingsRevision;
   mode?: "global" | "homepage";
   brandIdentityAddon?: ReactNode;
   legalAddon?: ReactNode;
 }) {
-  const [settings, setSettings] = useState(initialSettings);
-  const [savedSettings, setSavedSettings] = useState(initialSettings);
-  const [saving, setSaving] = useState(false);
+  const { settings, setSettings, savedSettings, saving, held, dirty, message, setMessage, persist, recovery } = useSettingsRecovery(initialSettings, initialRevision, "full");
   const [uploading, setUploading] = useState<UploadState>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [voiceExpanded, setVoiceExpanded] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<"video" | "poster" | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -124,13 +130,6 @@ export default function SiteSettingsForm({
   });
   const voiceCloseRef = useRef<HTMLButtonElement>(null);
   const previewTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const dirty = JSON.stringify(settings) !== JSON.stringify(savedSettings);
-  useEffect(() => {
-    if (!dirty) return;
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
   useEffect(() => {
     if (!mediaPreview) return;
     const close = (event: KeyboardEvent) => {
@@ -170,246 +169,184 @@ export default function SiteSettingsForm({
     }
   }
 
-  async function persist(
-    nextSettings: PublicSiteSettings,
-    successMessage = "Global settings saved.",
-  ) {
-    setSaving(true);
-    setMessage(null);
-
-    try {
-      const response = await fetch("/api/admin/site-settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(nextSettings),
-      });
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Unable to save settings.");
-      }
-
-      setSettings(data.settings);
-      setSavedSettings(data.settings);
-      setMessage(successMessage);
-      return data.settings as PublicSiteSettings;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unable to save settings.";
-      setMessage(errorMessage);
-      throw error;
-    } finally {
-      setSaving(false);
-    }
-  }
-
   async function uploadHeroMedia(kind: "video" | "poster", file: File) {
-    setUploading({ kind, progress: 0 });
-    setMessage(
-      kind === "video"
-        ? "Preparing homepage hero video…"
-        : "Preparing homepage poster…",
-    );
-
-    try {
-      const response = await fetch("/api/admin/site-settings/hero-media/presign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kind,
-          fileName: file.name,
-          fileType: file.type,
-          fileSize: file.size,
-        }),
-      });
-      const data = (await response.json()) as PresignResponse;
-
-      if (!response.ok || !data.success || !data.upload) {
-        throw new Error(data.error || "Unable to prepare this upload.");
-      }
-
-      await uploadToR2(
-        file,
-        data.upload.uploadUrl,
-        data.upload.contentType,
-        (progress) => setUploading({ kind, progress }),
-      );
-
-      const key = kind === "video" ? "heroVideoUrl" : "heroPosterUrl";
-      const nextSettings = {
-        ...settings,
-        [key]: data.upload.publicUrl,
-      };
-
-      await persist(
-        nextSettings,
-        kind === "video"
-          ? "Homepage hero video uploaded and published."
-          : "Homepage poster uploaded and published.",
-      );
-    } catch (error) {
+    await persist(settings, kind === "video" ? "Homepage hero video uploaded and published." : "Homepage poster uploaded and published.", async (signal) => {
+      setUploading({ kind, progress: 0 });
       setMessage(
-        error instanceof Error
-          ? error.message
-          : "The homepage media could not be uploaded.",
+        kind === "video"
+          ? "Preparing homepage hero video…"
+          : "Preparing homepage poster…",
       );
-    } finally {
-      setUploading(null);
-    }
+
+      try {
+        const response = await fetch("/api/admin/site-settings/hero-media/presign", {
+          method: "POST",
+          signal,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            kind,
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+          }),
+        });
+        const data = (await response.json()) as PresignResponse;
+
+        if (!response.ok || !data.success || !data.upload) {
+          throw new Error(data.error || "Unable to prepare this upload.");
+        }
+
+        signal.throwIfAborted();
+        await uploadToR2(
+          file,
+          data.upload.uploadUrl,
+          data.upload.contentType,
+          (progress) => { if (!signal.aborted) setUploading({ kind, progress }); },
+          signal,
+        );
+
+        const key = kind === "video" ? "heroVideoUrl" : "heroPosterUrl";
+        const nextSettings = {
+          ...settings,
+          [key]: data.upload.publicUrl,
+        };
+
+        return nextSettings;
+      } finally {
+        if (!signal.aborted) setUploading(null);
+      }
+    });
   }
 
   async function uploadBrandLogo(file: File) {
-    setUploading({ kind: "logo", progress: 0 });
-    setMessage("Preparing managed brand logo…");
+    await persist(settings, "Brand logo uploaded and published across the website.", async (signal) => {
+      setUploading({ kind: "logo", progress: 0 });
+      setMessage("Preparing managed brand logo…");
 
-    try {
-      const response = await fetch("/api/admin/site-settings/brand-logo/presign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileName: file.name, fileType: file.type, fileSize: file.size }),
-      });
-      const data = (await response.json()) as PresignResponse & { upload?: PresignResponse["upload"] & { key: string } };
+      try {
+        const response = await fetch("/api/admin/site-settings/brand-logo/presign", {
+          method: "POST",
+          signal,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileName: file.name, fileType: file.type, fileSize: file.size }),
+        });
+        const data = (await response.json()) as PresignResponse & { upload?: PresignResponse["upload"] & { key: string } };
 
-      if (!response.ok || !data.success || !data.upload) {
-        throw new Error(data.error || "Unable to prepare this logo upload.");
+        if (!response.ok || !data.success || !data.upload) {
+          throw new Error(data.error || "Unable to prepare this logo upload.");
+        }
+
+        signal.throwIfAborted();
+        await uploadToR2(file, data.upload.uploadUrl, data.upload.contentType, (progress) =>
+          { if (!signal.aborted) setUploading({ kind: "logo", progress }); }, signal,
+        );
+
+        return {
+            ...settings,
+            brandLogoStorageKey: data.upload.key,
+            brandLogoUrl: data.upload.publicUrl,
+            brandLogoAlt: settings.brandLogoAlt || settings.businessName,
+          };
+      } finally {
+        if (!signal.aborted) setUploading(null);
       }
-
-      await uploadToR2(file, data.upload.uploadUrl, data.upload.contentType, (progress) =>
-        setUploading({ kind: "logo", progress }),
-      );
-
-      await persist(
-        {
-          ...settings,
-          brandLogoStorageKey: data.upload.key,
-          brandLogoUrl: data.upload.publicUrl,
-          brandLogoAlt: settings.brandLogoAlt || settings.businessName,
-        },
-        "Brand logo uploaded and published across the website.",
-      );
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "The brand logo could not be uploaded.");
-    } finally {
-      setUploading(null);
-    }
+    });
   }
 
   async function clearBrandLogo() {
-    const previous = settings;
     const nextSettings = { ...settings, brandLogoStorageKey: null, brandLogoUrl: null };
-    setSettings(nextSettings);
 
-    try {
-      await persist(nextSettings, "Using the default Helios logo.");
-    } catch {
-      setSettings(previous);
-    }
+    await persist(nextSettings, "Using the default Helios logo.");
   }
 
   async function uploadBrandMonogram(file: File) {
-    setUploading({ kind: "monogram", progress: 0 });
-    setMessage("Preparing managed brand monogram…");
+    await persist(settings, "Brand monogram uploaded and connected to the admin access shortcut.", async (signal) => {
+      setUploading({ kind: "monogram", progress: 0 });
+      setMessage("Preparing managed brand monogram…");
 
-    try {
-      const response = await fetch("/api/admin/site-settings/brand-monogram/presign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileName: file.name, fileType: file.type, fileSize: file.size }),
-      });
-      const data = (await response.json()) as PresignResponse & { upload?: PresignResponse["upload"] & { key: string } };
+      try {
+        const response = await fetch("/api/admin/site-settings/brand-monogram/presign", {
+          method: "POST",
+          signal,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileName: file.name, fileType: file.type, fileSize: file.size }),
+        });
+        const data = (await response.json()) as PresignResponse & { upload?: PresignResponse["upload"] & { key: string } };
 
-      if (!response.ok || !data.success || !data.upload) {
-        throw new Error(data.error || "Unable to prepare this monogram upload.");
+        if (!response.ok || !data.success || !data.upload) {
+          throw new Error(data.error || "Unable to prepare this monogram upload.");
+        }
+
+        signal.throwIfAborted();
+        await uploadToR2(file, data.upload.uploadUrl, data.upload.contentType, (progress) =>
+          { if (!signal.aborted) setUploading({ kind: "monogram", progress }); }, signal,
+        );
+
+        return {
+            ...settings,
+            brandMonogramStorageKey: data.upload.key,
+            brandMonogramUrl: data.upload.publicUrl,
+          };
+      } finally {
+        if (!signal.aborted) setUploading(null);
       }
-
-      await uploadToR2(file, data.upload.uploadUrl, data.upload.contentType, (progress) =>
-        setUploading({ kind: "monogram", progress }),
-      );
-
-      await persist(
-        {
-          ...settings,
-          brandMonogramStorageKey: data.upload.key,
-          brandMonogramUrl: data.upload.publicUrl,
-        },
-        "Brand monogram uploaded and connected to the admin access shortcut.",
-      );
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "The brand monogram could not be uploaded.");
-    } finally {
-      setUploading(null);
-    }
+    });
   }
 
   async function clearBrandMonogram() {
-    const previous = settings;
     const nextSettings = { ...settings, brandMonogramStorageKey: null, brandMonogramUrl: null };
-    setSettings(nextSettings);
 
-    try {
-      await persist(nextSettings, "Using the primary-logo fallback for admin access.");
-    } catch {
-      setSettings(previous);
-    }
+    await persist(nextSettings, "Using the primary-logo fallback for admin access.");
   }
 
   async function clearHeroVideo() {
     const nextSettings = { ...settings, heroVideoUrl: null };
-    setSettings(nextSettings);
 
-    try {
-      await persist(nextSettings, "Homepage hero video disconnected.");
-    } catch {
-      setSettings(settings);
-    }
+    await persist(nextSettings, "Homepage hero video disconnected.");
   }
 
   async function uploadHomepageImage(kind: "standard" | "conversion", file: File) {
-    setUploading({ kind, progress: 0 });
-    setMessage("Preparing homepage section image…");
+    await persist(settings, kind === "standard" ? "Helios Standard image published." : "Homepage call-to-action image published.", async (signal) => {
+      setUploading({ kind, progress: 0 });
+      setMessage("Preparing homepage section image…");
 
-    try {
-      const response = await fetch("/api/admin/site-settings/homepage-images/presign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kind: kind === "standard" ? "helios-standard" : "primary-conversion",
-          fileName: file.name,
-          fileType: file.type,
-          fileSize: file.size,
-        }),
-      });
-      const data = (await response.json()) as PresignResponse;
-      if (!response.ok || !data.success || !data.upload?.key) {
-        throw new Error(data.error || "Unable to prepare this image upload.");
+      try {
+        const response = await fetch("/api/admin/site-settings/homepage-images/presign", {
+          method: "POST",
+          signal,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            kind: kind === "standard" ? "helios-standard" : "primary-conversion",
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+          }),
+        });
+        const data = (await response.json()) as PresignResponse;
+        if (!response.ok || !data.success || !data.upload?.key) {
+          throw new Error(data.error || "Unable to prepare this image upload.");
+        }
+
+        signal.throwIfAborted();
+        await uploadToR2(file, data.upload.uploadUrl, data.upload.contentType, (progress) =>
+          { if (!signal.aborted) setUploading({ kind, progress }); }, signal,
+        );
+
+        const nextSettings = kind === "standard"
+          ? { ...settings, heliosStandardImageStorageKey: data.upload.key, heliosStandardImageUrl: data.upload.publicUrl }
+          : { ...settings, primaryConversionImageStorageKey: data.upload.key, primaryConversionImageUrl: data.upload.publicUrl };
+        return nextSettings;
+      } finally {
+        if (!signal.aborted) setUploading(null);
       }
-
-      await uploadToR2(file, data.upload.uploadUrl, data.upload.contentType, (progress) =>
-        setUploading({ kind, progress }),
-      );
-
-      const nextSettings = kind === "standard"
-        ? { ...settings, heliosStandardImageStorageKey: data.upload.key, heliosStandardImageUrl: data.upload.publicUrl }
-        : { ...settings, primaryConversionImageStorageKey: data.upload.key, primaryConversionImageUrl: data.upload.publicUrl };
-      await persist(nextSettings, kind === "standard" ? "Helios Standard image published." : "Homepage call-to-action image published.");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "The homepage image could not be uploaded.");
-    } finally {
-      setUploading(null);
-    }
+    });
   }
 
   async function clearHomepageImage(kind: "standard" | "conversion") {
-    const previous = settings;
     const nextSettings = kind === "standard"
       ? { ...settings, heliosStandardImageStorageKey: null, heliosStandardImageUrl: null }
       : { ...settings, primaryConversionImageStorageKey: null, primaryConversionImageUrl: null };
-    setSettings(nextSettings);
-    try {
-      await persist(nextSettings, "Using the original homepage image.");
-    } catch {
-      setSettings(previous);
-    }
+    await persist(nextSettings, "Using the original homepage image.");
   }
 
   const groups = [
@@ -521,6 +458,8 @@ export default function SiteSettingsForm({
 
   return (
     <div onInvalid={revealInvalidParent}>
+      {recovery}
+      <fieldset disabled={saving || held} className="min-w-0">
       {mode === "homepage" ? (
         <>
       <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111] p-6 lg:p-8">
@@ -827,7 +766,7 @@ export default function SiteSettingsForm({
       </section>
 
       <section id="content-discovery" data-settings-section className="mt-6 scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-6"><div className="flex items-start justify-between gap-4"><div className="min-w-0 pr-2"><p className="eyebrow text-[var(--helios-orange)]">Content &amp; Discovery</p><h2 className="mt-2 text-xl font-light text-white">Blog Studio Voice</h2><p className="mt-2 text-sm text-white/35">Long-form guidance used by the existing Blog Studio AI workflow.</p></div><AdminCardToggle expanded={expandedSections["content-discovery"]} label="Content & Discovery" controls="content-discovery-content" onClick={() => toggleSettingsSection("content-discovery")} /></div><div id="content-discovery-content" hidden={!expandedSections["content-discovery"]}><div className="mt-6 flex justify-end"><button type="button" onClick={() => setVoiceExpanded(true)} className="admin-btn-secondary">Expand Editor</button></div><div className="mt-6 grid gap-5 lg:grid-cols-3">{([["brandVoice","Brand voice"],["brandAudience","Primary audience"],["brandWritingGuidance","Writing guardrails"]] as const).map(([key,label]) => <label key={key} className="text-xs uppercase tracking-[.14em] text-white/35">{label}<textarea rows={7} value={settings[key] ?? ""} onChange={(e) => update(key,e.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 p-4 text-sm font-normal normal-case leading-6 tracking-normal text-white" /></label>)}</div><label className="mt-5 block text-xs uppercase tracking-[.14em] text-white/35">Default article author<input value={settings.defaultBlogAuthor ?? ""} onChange={(e) => update("defaultBlogAuthor",e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/25 px-4 text-sm font-normal normal-case tracking-normal text-white" /></label></div></section>
-      {voiceExpanded && <div role="dialog" aria-modal="true" aria-labelledby="voice-editor-title" aria-describedby="voice-editor-description" className="fixed inset-0 z-[100] overflow-y-auto bg-black/85 p-4 backdrop-blur"><div className="mx-auto my-4 min-h-[calc(100vh-2rem)] max-w-6xl rounded-2xl border border-white/10 bg-[#111] p-6 sm:p-8"><div className="flex justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Blog Studio</p><h2 id="voice-editor-title" className="mt-2 text-3xl font-light text-white">Voice Editor</h2><p id="voice-editor-description" className="mt-2 text-sm text-white/35">Changes remain available in the standard editor until you save settings.</p></div><button ref={voiceCloseRef} onClick={() => setVoiceExpanded(false)} className="admin-btn-secondary">Close</button></div><div className="mt-8 grid gap-6">{([["brandVoice","Brand voice"],["brandAudience","Primary audience"],["brandWritingGuidance","Writing guardrails"]] as const).map(([key,label]) => <label key={key} className="text-xs uppercase tracking-[.14em] text-white/35">{label}<textarea rows={8} value={settings[key] ?? ""} onChange={(e) => update(key,e.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 p-5 text-base font-normal normal-case leading-7 tracking-normal text-white" /></label>)}</div><div className="mt-8 flex justify-end gap-3"><button onClick={() => setVoiceExpanded(false)} className="admin-btn-secondary">Keep editing later</button><button disabled={saving} onClick={async () => { await persist(settings, "Blog Studio Voice saved."); setVoiceExpanded(false); }} className="admin-btn-primary">{saving ? "Saving…" : "Save Settings"}</button></div></div></div>}
+      {voiceExpanded && <div role="dialog" aria-modal="true" aria-labelledby="voice-editor-title" aria-describedby="voice-editor-description" className="fixed inset-0 z-[100] overflow-y-auto bg-black/85 p-4 backdrop-blur"><div className="mx-auto my-4 min-h-[calc(100vh-2rem)] max-w-6xl rounded-2xl border border-white/10 bg-[#111] p-6 sm:p-8"><div className="flex justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Blog Studio</p><h2 id="voice-editor-title" className="mt-2 text-3xl font-light text-white">Voice Editor</h2><p id="voice-editor-description" className="mt-2 text-sm text-white/35">Changes remain available in the standard editor until you save settings.</p></div><button ref={voiceCloseRef} onClick={() => setVoiceExpanded(false)} className="admin-btn-secondary">Close</button></div><div className="mt-8 grid gap-6">{([["brandVoice","Brand voice"],["brandAudience","Primary audience"],["brandWritingGuidance","Writing guardrails"]] as const).map(([key,label]) => <label key={key} className="text-xs uppercase tracking-[.14em] text-white/35">{label}<textarea rows={8} value={settings[key] ?? ""} onChange={(e) => update(key,e.target.value)} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/25 p-5 text-base font-normal normal-case leading-7 tracking-normal text-white" /></label>)}</div><div className="mt-8 flex justify-end gap-3"><button onClick={() => setVoiceExpanded(false)} className="admin-btn-secondary">Keep editing later</button><button disabled={saving} onClick={async () => { await persist(settings, "Blog Studio Voice saved and confirmed."); setVoiceExpanded(false); }} className="admin-btn-primary">{saving ? "Saving…" : "Save Settings"}</button></div></div></div>}
 
       <section id="search-appearance" data-settings-section className="mt-6 scroll-mt-28 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111] p-6 lg:p-8">
         <div className="flex items-start justify-between gap-4"><div className="min-w-0 pr-2"><p className="eyebrow text-[var(--helios-orange)]">Search Appearance</p><h2 className="mt-2 text-2xl font-light text-white">Homepage SEO preview</h2></div><AdminCardToggle expanded={expandedSections["search-appearance"]} label="Search Appearance" controls="search-appearance-content" onClick={() => toggleSettingsSection("search-appearance")} /></div>
@@ -858,12 +797,12 @@ export default function SiteSettingsForm({
       <div className="sticky bottom-[max(1.25rem,env(safe-area-inset-bottom))] mt-10 flex items-center justify-between gap-5 rounded-2xl border border-white/10 bg-[#161616]/95 p-4 shadow-2xl backdrop-blur-xl">
         <p role="status" className="text-sm text-white/40">
           {message ||
-            (dirty ? "Unsaved changes." : "All settings are saved.")}
+            (dirty ? "Unsaved changes." : "Settings loaded.")}
         </p>
         <button
           type="button"
           onClick={() => void persist(settings)}
-          disabled={saving || uploading !== null || !dirty}
+          disabled={saving || held || uploading !== null || !dirty}
           className="shrink-0 admin-btn-primary"
         >
           {saving ? "Saving…" : mode === "homepage" ? "Save Homepage Settings" : "Save settings"}
@@ -873,6 +812,7 @@ export default function SiteSettingsForm({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={settings.heroPosterUrl || ""} alt={settings.heroPosterAlt || "Current homepage poster"} className="max-h-[75vh] w-full object-contain" />
       </></div></div> : null}
+      </fieldset>
     </div>
   );
 }

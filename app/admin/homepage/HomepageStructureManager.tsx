@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useSettingsRecovery } from "@/app/admin/settings/useSettingsRecovery";
+import type { SettingsRevision } from "@/lib/site-settings-editor";
 import type {
   PublicContentCard,
   PublicNavigationItem,
@@ -52,17 +53,22 @@ export function mergeNavigation(
 
 export default function HomepageStructureManager({
   initialSettings,
+  initialRevision,
   mode,
 }: {
   initialSettings: PublicSiteSettings;
+  initialRevision: SettingsRevision;
   mode: "navigation" | "structure";
 }) {
-  const [settings, setSettings] = useState(initialSettings);
-  const [navigation, setNavigation] = useState(() =>
-    mergeNavigation(initialSettings),
-  );
-  const [message, setMessage] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const editor = useSettingsRecovery(mode === "navigation" ? {
+    ...initialSettings, headerNavigation: mergeNavigation(initialSettings), footerNavigation: mergeNavigation(initialSettings),
+  } : initialSettings, initialRevision, mode === "navigation" ? "homepage-navigation" : "homepage-structure");
+  const { settings, setSettings, saving, held, message, recovery } = editor;
+  const navigation = settings.headerNavigation as ManagedNavigationItem[];
+  const setNavigation = (change: (current: ManagedNavigationItem[]) => ManagedNavigationItem[]) => setSettings(current => {
+    const next = change(current.headerNavigation as ManagedNavigationItem[]);
+    return { ...current, headerNavigation: next, footerNavigation: next };
+  });
 
   const updateCard = (
     key: ListKey,
@@ -95,47 +101,15 @@ export default function HomepageStructureManager({
     });
 
   async function save() {
-    setSaving(true);
-    setMessage(null);
-    try {
-      const body =
-        mode === "navigation"
-          ? {
-              updateScope: "homepage-navigation",
-              navigation: navigation.map((item) => ({
-                ...item,
-                published: true,
-              })),
-            }
-          : {
-              updateScope: "homepage-structure",
-              standardPrinciples: settings.standardPrinciples,
-              approachCards: settings.approachCards,
-            };
-      const response = await fetch("/api/admin/site-settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
-      setSettings(result.settings);
-      setNavigation(mergeNavigation(result.settings));
-      setMessage(
-        mode === "navigation"
-          ? "Navigation links saved."
-          : "Reusable structure saved.",
-      );
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to save.");
-    } finally {
-      setSaving(false);
-    }
+    const next = mode === "navigation" ? { ...settings, headerNavigation: navigation, footerNavigation: navigation } : settings;
+    await editor.persist(next, mode === "navigation" ? "Navigation links saved and confirmed." : "Reusable structure saved and confirmed.");
   }
 
   if (mode === "navigation") {
     return (
       <div>
+        {recovery}
+        <fieldset disabled={saving || held} className="min-w-0">
         <div className="flex justify-end">
           <button
             type="button"
@@ -263,9 +237,11 @@ export default function HomepageStructureManager({
             <option key={value} value={value} />
           ))}
         </datalist>
+        </fieldset>
         <SaveBar
           message={message}
           saving={saving}
+          held={held}
           label="Save navigation"
           onSave={save}
         />
@@ -274,7 +250,9 @@ export default function HomepageStructureManager({
   }
 
   return (
-    <div className="grid gap-7 xl:grid-cols-2">
+    <div>
+      {recovery}
+      <fieldset disabled={saving || held} className="grid min-w-0 gap-7 xl:grid-cols-2">
       {(["standardPrinciples", "approachCards"] as ListKey[]).map((key) => (
         <div key={key}>
           <h3 className="text-lg text-white">
@@ -352,10 +330,12 @@ export default function HomepageStructureManager({
           </div>
         </div>
       ))}
+      </fieldset>
       <div className="xl:col-span-2">
         <SaveBar
           message={message}
           saving={saving}
+          held={held}
           label="Save structure"
           onSave={save}
         />
@@ -367,11 +347,13 @@ export default function HomepageStructureManager({
 function SaveBar({
   message,
   saving,
+  held,
   label,
   onSave,
 }: {
   message: string | null;
   saving: boolean;
+  held: boolean;
   label: string;
   onSave: () => Promise<void>;
 }) {
@@ -383,7 +365,7 @@ function SaveBar({
       <button
         type="button"
         onClick={() => void onSave()}
-        disabled={saving}
+        disabled={saving || held}
         className="admin-btn-primary"
       >
         {saving ? "Saving…" : label}
