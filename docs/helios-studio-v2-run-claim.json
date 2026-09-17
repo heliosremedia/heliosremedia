@@ -1,32 +1,11 @@
 {
-  "status": "released",
-  "runId": "atlas-homepage-curation-recovery",
-  "releasedAt": "2026-09-17T22:35:11.504Z",
-  "expiresAt": null,
-  "branch": "codex/v2-homepage-curation-recovery",
-  "base": "codex/v2-featured-film-browser-recovery",
-  "baseHead": "b617a4312671996381115b6fba91511edecd20d7",
-  "pr": 311,
-  "head": "c1aeadac9f1442ea6369b683aa1cd124fbf5e5bd",
-  "tree": "32d55f9c85c20505fa1e9fe368340485e8fbdd4f",
-  "ci": 35282097514,
-  "job": 105406121216,
-  "conclusion": "success",
-  "tests": {
-    "passed": 786,
-    "failed": 0
-  },
-  "chromium": {
-    "widths": [
-      390,
-      1440
-    ],
-    "evidence": "actual components, synthetic fetch/XHR; 2026-09-17T22:33:08Z and 22:33:15Z"
-  },
-  "verifiedCodeHead": "3725dc4d95827a3a7aa7cc8db762941098b586a6",
-  "verifiedCodeCI": 35281342479,
-  "scope": "Packet 4 complete; STOP. Do not start another packet without authorization.",
-  "production": "ON HOLD",
-  "automation": "verified paused",
-  "nextRecommendation": "Work-card upload ownership/canonical acknowledgement inventory and bounded hardening; not implemented"
+  "status": "active",
+  "runId": "atlas-work-card-upload-ownership",
+  "startedAt": "2026-09-17T22:42:35.074Z",
+  "expiresAt": "2026-09-18T02:42:35.074Z",
+  "branch": "codex/v2-work-card-upload-ownership",
+  "base": "codex/v2-homepage-curation-recovery",
+  "baseHead": "c1aeadac9f1442ea6369b683aa1cd124fbf5e5bd",
+  "scope": "Packet 5 only; no lifecycle cleanup or production changes",
+  "production": "ON HOLD"
 }
