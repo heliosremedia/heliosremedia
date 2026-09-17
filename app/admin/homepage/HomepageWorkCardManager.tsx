@@ -1,5 +1,6 @@
 "use client";
 
+import { isWorkCardMediaKey, canonicalWorkCardUrl } from "@/lib/work-card-media";
 import { useState } from "react";
 import Image from "next/image";
 import { useCurationRecovery } from "./useCurationRecovery";
@@ -49,7 +50,7 @@ export default function HomepageWorkCardManager({ initialCards, services, films,
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
   const [cardFeedback, setCardFeedback] = useState<Record<string, string>>({});
-  const recovery = useCurationRecovery('work-cards', workspaceId, initialRevision, { cards: initialCards, selectedService: '' });
+  const recovery = useCurationRecovery('work-cards', workspaceId, initialRevision, { cards: initialCards, selectedService: '', preparedUpload: null as Record<string, unknown> | null });
   const snapshot = recovery.draft, { cards, selectedService } = snapshot;
   const setCards = (update: WorkCard[] | ((rows: WorkCard[]) => WorkCard[])) => recovery.setDraft(current => ({ ...current, cards: typeof update === 'function' ? update(current.cards) : update }));
   const setSelectedService = (update: string | ((value: string) => string)) => recovery.setDraft(current => ({ ...current, selectedService: typeof update === 'function' ? update(current.selectedService) : update }));
@@ -60,7 +61,7 @@ export default function HomepageWorkCardManager({ initialCards, services, films,
   }
   const editable = (card: WorkCard) => ({ cardId: card.id, serviceId: card.serviceId, titleOverride: card.titleOverride, destinationOverride: card.destinationOverride, active: card.active, imageStorageKey: card.imageStorageKey, imageUrl: card.imageUrl, imageAlt: card.imageAlt, mediaMode: card.mediaMode, featuredMediaId: card.featuredMediaId, videoStorageKey: card.videoStorageKey, videoUrl: card.videoUrl });
   type Token = NonNullable<ReturnType<typeof recovery.begin>>;
-  async function write(token: Token, method: string, body: Record<string, unknown>, submitted?: WorkCard) {
+  async function write(token: Token, method: string, body: Record<string, unknown>, submitted?: WorkCard, preparedProof?: Record<string, unknown>) {
     const ids = cards.map(card => card.id);
     const data = await recovery.mutate(token, '/api/admin/homepage-work-cards' + (method === 'DELETE' ? `?cardId=${encodeURIComponent(submitted!.id)}` : ''), { method, body: method === 'DELETE' ? undefined : JSON.stringify(body) }, (result, order) => {
       if (method === 'DELETE') return result.deletedCardId === submitted?.id && sameMembers(order, ids.filter(id => id !== submitted?.id));
@@ -71,6 +72,19 @@ export default function HomepageWorkCardManager({ initialCards, services, films,
       if (row.featuredMediaId !== null && record(row.featuredMedia)?.id !== row.featuredMediaId) return false;
       if (method === 'POST') return row.serviceId === body.serviceId && !ids.includes(row.id) && sameMembers(order, [...ids, row.id]);
       if (row.id !== submitted?.id || !sameMembers(order, ids)) return false;
+      const media = record(result.media);
+      if (!media || media.protocol !== 1 || media.intent !== 'attach' || media.cardId !== submitted.id) return false;
+      for (const kind of ['image', 'video'] as const) {
+        const proof = record(media[kind]), key = row[kind + 'StorageKey'], url = row[kind + 'Url'];
+        if (preparedProof?.kind === kind && proof?.assetId !== preparedProof.assetId) return false;
+        if (!proof || proof.workspaceId !== workspaceId || proof.cardId !== submitted.id || proof.kind !== kind || proof.key !== key || proof.mediaId !== key || proof.url !== url) return false;
+        if (!key && !url) { if (proof.verification !== 'empty' || proof.assetId !== null) return false; }
+        else if (key === null && typeof url === 'string') { if (proof.verification !== 'retained' || proof.assetId !== null || submitted[kind === 'image' ? 'imageStorageKey' : 'videoStorageKey'] !== null || submitted[kind === 'image' ? 'imageUrl' : 'videoUrl'] !== url || url.includes('/workspaces/')) return false; }
+        else if (typeof key !== 'string' || typeof url !== 'string') return false;
+        else if (key.startsWith('workspaces/')) {
+          if (proof.verification !== 'registered' || typeof proof.assetId !== 'string' || !proof.assetId || !isWorkCardMediaKey(workspaceId, submitted.id, kind, key) || !canonicalWorkCardUrl(key, url)) return false;
+        } else if (proof.verification !== 'retained' || key !== submitted[kind === 'image' ? 'imageStorageKey' : 'videoStorageKey'] || !key.startsWith(`site/homepage/work-cards/${submitted.id}/`)) return false;
+      }
       return Object.entries(body).every(([key, value]) => {
         if (key === 'cardId') return true;
         if (key === 'featuredMediaId') return row[key] === (body.mediaMode === 'LIBRARY_VIDEO' ? value : null);
@@ -89,6 +103,7 @@ export default function HomepageWorkCardManager({ initialCards, services, films,
       else if (method === 'DELETE') setCards(current => current.filter(card => card.id !== submitted!.id));
       else if (body.action === 'reorder') setCards(current => [...current].sort((a,b) => order.indexOf(a.id) - order.indexOf(b.id)));
       else setCards(current => current.map(card => card.id === submitted!.id ? mergeDraft(card, submitted!, data.card as WorkCard) : card));
+      if (preparedProof) recovery.setDraft(current => ({ ...current, preparedUpload: null }));
       recovery.complete(token, false); setMessage('Curation change confirmed. Check the public page separately.');
       if (submitted) setCardFeedback(current => ({ ...current, [submitted.id]: 'Submitted change saved ✓' }));
     }
@@ -106,19 +121,24 @@ export default function HomepageWorkCardManager({ initialCards, services, films,
     const token = recovery.begin(snapshot, { upload: { cardId: card.id, kind, name: file.name } }); if (!token) return;
     setBusy(`${card.id}:${kind}`); setProgress(0); setMessage('Preparing upload…');
     try {
-      const data = await recovery.transport(token, '/api/admin/homepage-work-cards/presign', { method: 'POST', body: JSON.stringify({ cardId: card.id, kind, fileName: file.name, fileType: file.type, fileSize: file.size }) });
+      const data = await recovery.transport(token, '/api/admin/homepage-work-cards/presign', { method: 'POST', headers: { 'x-curation-revision': token.revision, 'x-curation-request': token.requestId }, body: JSON.stringify({ cardId: card.id, kind, fileName: file.name, fileType: file.type, fileSize: file.size }) });
       if (!recovery.current(token)) return;
       const upload = data?.upload;
-      if (!upload || typeof upload.key !== 'string' || !upload.key.startsWith(`site/homepage/work-cards/${card.id}/`) || typeof upload.publicUrl !== 'string' || !/^https?:\/\//.test(upload.publicUrl) || typeof upload.uploadUrl !== 'string' || !/^https:\/\//.test(upload.uploadUrl) || upload.contentType !== file.type) throw new Error('Invalid upload response');
+      const proof = record(data?.media), ack = record(data?.acknowledgement);
+      if (!upload || typeof upload.key !== 'string' || !isWorkCardMediaKey(workspaceId, card.id, kind, upload.key) || typeof upload.publicUrl !== 'string' || !canonicalWorkCardUrl(upload.key, upload.publicUrl) || typeof upload.uploadUrl !== 'string' || !/^https:\/\//.test(upload.uploadUrl) || upload.contentType !== file.type
+        || !proof || proof.protocol !== 1 || proof.intent !== 'prepare' || proof.workspaceId !== workspaceId || proof.cardId !== card.id || proof.kind !== kind || proof.mediaId !== upload.key || proof.key !== upload.key || proof.url !== upload.publicUrl || proof.verification !== 'registered' || typeof proof.assetId !== 'string' || !proof.assetId
+        || !ack || ack.protocol !== 1 || ack.requestId !== token.requestId || ack.workspaceId !== workspaceId || ack.scope !== 'work-cards' || ack.previousRevision !== token.revision || ack.revision !== token.revision || !Array.isArray(ack.ids) || !sameIds(ack.ids as string[], cards.map(item => item.id))) throw new Error('Invalid upload response');
+      recovery.setDraft(current => ({ ...current, preparedUpload: { ...proof, requestId: token.requestId, revision: token.revision, transfer: 'unconfirmed' } }));
       await uploadFile(file, upload.uploadUrl, upload.contentType, value => { if (recovery.current(token)) setProgress(value); }, token.controller.signal);
       if (!recovery.current(token)) return;
+      recovery.setDraft(current => ({ ...current, preparedUpload: { ...proof, requestId: token.requestId, revision: token.revision, transfer: 'completed', attachment: 'unconfirmed' } }));
       // Keep the prepared reference even if the subsequent acknowledgement is lost.
       const prepared = kind === 'image' ? { imageStorageKey: upload.key as string, imageUrl: upload.publicUrl as string } : { videoStorageKey: upload.key as string, videoUrl: upload.publicUrl as string, mediaMode: 'UPLOADED_VIDEO' as const };
       const current = recovery.readDraft().cards.find(item => item.id === card.id); if (!current) throw new Error('Editor changed');
       // Upload does not silently save edits made while the transfer was running.
       const submitted = { ...card, ...prepared };
       setCards(rows => rows.map(row => row.id === card.id ? mergeDraft(row, card, submitted) : row));
-      await write(token, 'PATCH', editable(submitted), submitted);
+      await write(token, 'PATCH', editable(submitted), submitted, proof);
     } catch { if (recovery.current(token)) { recovery.fail(token); setBusy(null); setProgress(0); } }
   }
   async function move(index: number, direction: -1 | 1) {

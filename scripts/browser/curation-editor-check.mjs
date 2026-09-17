@@ -6,7 +6,7 @@ export async function checkCurationEditor(base) {
  try { for (const width of [390,1440]) {
   const page = await browser.newPage({ viewport: { width, height: 1000 } }); const errors = [];
   page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); }); page.on('dialog', d => d.accept());
-  await page.route('**/*', route => new URL(route.request().url()).origin === base && route.request().method() === 'GET' ? route.continue() : route.abort());
+  await page.route('**/*', route => new URL(route.request().url()).origin === base && route.request().method() === 'GET' ? (new URL(route.request().url()).pathname.startsWith('/workspaces/') ? route.fulfill({status:200,contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>'}) : route.continue()) : route.abort());
   await page.clock.install();
   const cards = () => page.getByRole('region', { name: 'Work cards editor', exact: true });
   const projects = () => page.getByRole('region', { name: 'Featured project editor', exact: true });
@@ -39,10 +39,13 @@ export async function checkCurationEditor(base) {
    }
    await setup(); await save().click(); await pending(); await page.clock.fastForward(20001); await copy().waitFor(); await title().fill('After timeout'); await finish(); await page.clock.runFor(10); assert.equal(await title().inputValue(), 'After timeout'); assert.equal(await save().isDisabled(), true);
    await setup('slow-json'); await save().click(); await pending(); await finish(); await page.waitForFunction(() => !!window.curationFixture.jsonPending); await page.clock.fastForward(20001); await copy().waitFor(); await page.evaluate(() => window.curationFixture.remount()); await save().waitFor(); await title().fill('New instance'); await page.evaluate(() => window.curationFixture.jsonPending()); await page.clock.runFor(10); assert.equal(await title().inputValue(), 'New instance');
-   for (const mode of ['success','lost']) {
+   for (const mode of ['success','lost','attachment-asset']) {
     await setup(mode); await title().fill('Upload draft'); await cards().locator('input[type=file]').nth(1).setInputFiles({ name: 'test.webp', mimeType: 'image/webp', buffer: Buffer.from('synthetic') }); await page.waitForFunction(() => !!window.curationFixture.presignPending); assert.equal(await save().isDisabled(), true);
     await page.evaluate(() => window.curationFixture.presignPending()); await pending(); await finish(); await page.clock.runFor(10); assert.equal(await page.evaluate(() => window.curationFixture.uploads), 1);
-    if (mode === 'lost') { await copy().waitFor(); assert.match(await copy().inputValue(), /site\/homepage\/work-cards\/c1\/image.webp/); assert.match(await copy().inputValue(), /Upload draft/); }
+    if (mode !== 'success') { await copy().waitFor(); assert.match(await copy().inputValue(), /workspaces\/a\/homepage-work-cards\/c1\/image-test.webp/); assert.match(await copy().inputValue(), /Upload draft/); }
+   }
+   for(const mode of ['upload-company','upload-card','upload-url','upload-unregistered']) {
+    await setup(mode); await cards().locator('input[type=file]').nth(1).setInputFiles({name:'test.webp',mimeType:'image/webp',buffer:Buffer.from('synthetic')});await page.waitForFunction(()=>!!window.curationFixture.presignPending);await page.evaluate(()=>window.curationFixture.presignPending());await copy().waitFor();assert.equal(await page.evaluate(()=>window.curationFixture.uploads),0);assert.equal(await page.evaluate(()=>window.curationFixture.calls.length),0);
    }
    for (const phase of ['presign','transfer']) {
     await setup(); await page.evaluate(phase => { window.curationFixture.slowTransfer = phase === 'transfer'; }, phase);

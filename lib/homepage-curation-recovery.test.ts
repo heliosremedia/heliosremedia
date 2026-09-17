@@ -44,10 +44,17 @@ test('curation actual component retains attempted order after uncertain acknowle
  const f = fixture(async () => { throw new Error('lost'); }); f.button('↓').props.onClick(); await tick(); const titles = f.render().filter(e => e.type === 'h3').map(e => e.props.children); assert.deepEqual(titles, ['c2', 'c1']);
 });
 
+function mediaProof(row: any) {
+ return { protocol: 1, intent: 'attach', cardId: row.id, ...Object.fromEntries(['image','video'].map(kind => { const key = row[kind+'StorageKey'], url = row[kind+'Url']; return [kind, { workspaceId:'a',cardId:row.id,kind,key,url,mediaId:key,assetId:key?'asset1':null,verification:key?'registered':'empty' }]; })) };
+}
+function preparation(options: any) {
+ const body=JSON.parse(options.body), key=`workspaces/a/homepage-work-cards/${body.cardId}/${body.kind}-test.webp`, url='https://assets.test/'+key;
+ return {success:true,upload:{key,publicUrl:url,uploadUrl:'https://upload.test/object',contentType:body.fileType},media:{protocol:1,intent:'prepare',workspaceId:'a',cardId:body.cardId,kind:body.kind,key,url,mediaId:key,assetId:'asset1',verification:'registered'},acknowledgement:{protocol:1,workspaceId:'a',scope:'work-cards',requestId:options.headers['x-curation-request'],previousRevision:options.headers['x-curation-revision'],revision:options.headers['x-curation-revision'],ids:['c1','c2']}};
+}
 function acknowledgement(options: any, project = false, mutate?: (value: any) => void) {
  const body = options.body ? JSON.parse(options.body) : {};
  const row = project ? { ...placement, ...body } : { ...card(), ...body };
- const result: any = { success: true, ...(project ? { placement: row } : { card: row }), acknowledgement: { protocol: 1, scope: project ? 'projects' : 'work-cards', requestId: options.headers['x-curation-request'], workspaceId: 'a', previousRevision: options.headers['x-curation-revision'], revision: 'a'.repeat(64), ids: project ? ['p1'] : ['c1','c2'] } };
+ const result: any = { success: true, media: mediaProof(row), ...(project ? { placement: row } : { card: row }), acknowledgement: { protocol: 1, scope: project ? 'projects' : 'work-cards', requestId: options.headers['x-curation-request'], workspaceId: 'a', previousRevision: options.headers['x-curation-revision'], revision: 'a'.repeat(64), ids: project ? ['p1'] : ['c1','c2'] } };
  mutate?.(result); return Response.json(result);
 }
 for (const defect of ['company', 'request', 'scope', 'revision', 'previous', 'ids', 'card', 'intent']) test(`curation rejects ${defect} acknowledgement and holds further writes`, async () => {
@@ -98,8 +105,8 @@ test('curation upload cannot enter during save and late presign cannot transfer 
 });
 test('curation retains prepared media and sibling draft when save acknowledgement is lost', async () => {
  let transfers = 0; class XHR { upload = {}; status = 200; onload!: () => void; open() {} setRequestHeader() {} send() { transfers++; this.onload(); } abort() {} }
- const f = fixture(async (url: string) => { if (url.endsWith('presign')) return Response.json({ success: true, upload: { key: 'site/homepage/work-cards/c1/image.webp', publicUrl: 'https://assets.test/image.webp', uploadUrl: 'https://upload.test/object', contentType: 'image/webp' } }); throw new Error('lost'); }, false, { XMLHttpRequest: XHR });
- const inputs = f.render().filter(e => e.type === 'input' && typeof e.props.value === 'string'); inputs[3].props.onChange({ target: { value: 'Sibling draft' } }); f.render().filter(e => e.props.type === 'file')[1].props.onChange({ target: { files: [{ name: 'image.webp', type: 'image/webp', size: 10 }], value: '' } }); await tick(); await tick(); f.render(); const copy = f.render().find(e => e.type === 'textarea'); assert.match(copy.props.value, /site\/homepage\/work-cards\/c1\/image.webp/); assert.match(copy.props.value, /Sibling draft/); assert.equal(transfers, 1);
+ const f = fixture(async (url: string, options: any) => { if (url.endsWith('presign')) return Response.json(preparation(options)); throw new Error('lost'); }, false, { XMLHttpRequest: XHR });
+ const inputs = f.render().filter(e => e.type === 'input' && typeof e.props.value === 'string'); inputs[3].props.onChange({ target: { value: 'Sibling draft' } }); f.render().filter(e => e.props.type === 'file')[1].props.onChange({ target: { files: [{ name: 'image.webp', type: 'image/webp', size: 10 }], value: '' } }); await tick(); await tick(); f.render(); const copy = f.render().find(e => e.type === 'textarea'); assert.match(copy.props.value, /workspaces\/a\/homepage-work-cards\/c1\/image-test.webp/); assert.match(copy.props.value, /Sibling draft/); assert.equal(transfers, 1);
 });
 test('curation confirmed remove changes only the acknowledged record', async () => {
  const f = fixture(async (_u: string, options: any) => acknowledgement(options, false, result => { result.deletedCardId = 'c1'; result.acknowledgement.ids = ['c2']; })); f.button('Remove').props.onClick(); await tick(); assert.deepEqual(f.render().filter(e => e.type === 'h3').map(e => e.props.children),['c2']);
@@ -116,4 +123,29 @@ test('curation successful response cannot admit the previous save callback again
 test('curation active-only project acknowledgement cannot overwrite an unsaved title', async () => {
  const f=fixture(async (_u:string, options:any) => acknowledgement(options,true),true);
  f.input().props.onChange({target:{value:'Unsaved project title'}}); f.button('Hide').props.onClick(); await tick(); assert.equal(f.input().props.value,'Unsaved project title'); assert.ok(!f.render().some(e => e.type === 'textarea')); assert.ok(f.button('Show'));
+});
+
+test('work-card upload rejects a bare unregistered preparation before transfer', async () => {
+ let transfers = 0;
+ class XHR { upload = {}; open() {} setRequestHeader() {} send() { transfers++; } }
+ const f = fixture(async () => Response.json({ success: true, upload: { key: 'site/homepage/work-cards/c1/image.webp', publicUrl: 'https://foreign.test/object.webp', uploadUrl: 'https://upload.test/object', contentType: 'image/webp' } }), false, { XMLHttpRequest: XHR });
+ f.render().filter(e => e.props.type === 'file')[1].props.onChange({ target: { files: [{ name: 'image.webp', type: 'image/webp', size: 10 }], value: '' } });
+ await tick(); assert.equal(transfers, 0);
+});
+
+for (const defect of ['company','card','media','asset','url','key','kind','revision','request','preparation']) test(`work-card component rejects ${defect} upload acknowledgement before transfer`,async()=>{
+ let transfers=0,calls=0;class XHR {upload={};open(){}setRequestHeader(){}send(){transfers++;}}
+ const f=fixture(async(_u:string,options:any)=>{calls++;const result=preparation(options);
+ if(defect==='company')result.media.workspaceId='b';if(defect==='card')result.media.cardId='c2';if(defect==='media')result.media.mediaId='other';if(defect==='asset')result.media.assetId='';if(defect==='url')result.media.url='https://foreign.test/object';if(defect==='key')result.upload.key=result.upload.key.replace('/a/','/b/');if(defect==='kind')result.media.kind='video';if(defect==='revision')result.acknowledgement.revision='newer';if(defect==='request')result.acknowledgement.requestId='other';if(defect==='preparation')result.media.verification='pending';return Response.json(result);
+ },false,{XMLHttpRequest:XHR});
+ const input=f.render().filter(e=>e.props.type==='file')[1];const event=()=>({target:{files:[{name:'image.webp',type:'image/webp',size:10}],value:''}});input.props.onChange(event());input.props.onChange(event());await tick();assert.equal(calls,1);assert.equal(transfers,0);assert.ok(f.render().some(e=>e.type==='textarea'));
+});
+for(const defect of ['company','card','asset','key','url','preparation'])test(`work-card component retains prepared reference after ${defect} attachment receipt`,async()=>{
+ let transfers=0,calls=0;class XHR{upload={};status=200;onload!:()=>void;open(){}setRequestHeader(){}send(){transfers++;this.onload();}abort(){}}
+ const f=fixture(async(url:string,options:any)=>{calls++;if(url.endsWith('presign'))return Response.json(preparation(options));return acknowledgement(options,false,result=>{const proof=result.media.image;if(defect==='company')proof.workspaceId='b';if(defect==='card')proof.cardId='c2';if(defect==='asset')proof.assetId='different';if(defect==='key')proof.mediaId='different';if(defect==='url')proof.url='https://foreign.test/object';if(defect==='preparation')proof.verification='retained';});},false,{XMLHttpRequest:XHR});
+ f.render().filter(e=>e.props.type==='file')[1].props.onChange({target:{files:[{name:'image.webp',type:'image/webp',size:10}],value:''}});await tick();await tick();const copy=f.render().find(e=>e.type==='textarea');assert.match(copy.props.value,/image-test.webp/);assert.match(copy.props.value,/asset1/);assert.equal(transfers,1);assert.equal(calls,2);
+});
+test('work-card transfer timeout retains preparation without automatic attachment or retry',async()=>{
+ let expire:()=>void=()=>{},calls=0;class XHR{upload={};ontimeout!:()=>void;onabort!:()=>void;open(){}setRequestHeader(){}send(){expire=()=>this.ontimeout();}abort(){this.onabort?.();}}
+ const f=fixture(async(_url:string,options:any)=>{calls++;return Response.json(preparation(options));},false,{XMLHttpRequest:XHR});f.render().filter(e=>e.props.type==='file')[1].props.onChange({target:{files:[{name:'image.webp',type:'image/webp',size:10}],value:''}});await tick();expire();await tick();assert.match(f.render().find(e=>e.type==='textarea').props.value,/asset1/);assert.equal(calls,1);
 });
