@@ -4,11 +4,18 @@
   "expiresAt": "2026-09-17T20:15:00Z",
   "branch": "codex/v2-legal-editor-recovery",
   "pr": 308,
-  "head": "c346d189f22495b73d6fe1d40c740d7c2685b5a7",
-  "tree": "0fe360e6ea512e6301483d0d0493aec8c8e212fa",
-  "localHead": "01ce3193108f07d24333bfbd4fa81d1cf9413b66",
-  "localTests": 724,
-  "validation": "Prisma generation, nonincremental TypeScript, scoped lint, fixture bundle, whitespace passed; fresh CI pending",
-  "scope": "Finish PR 308 only; no next roadmap packet",
+  "head": "7845eb09befa21248711252fba20f8b3306e4df3",
+  "tree": "a9261e84bfa9045b21fd2af8adb02e95571a8ad3",
+  "localHead": "8d3b212c751d524bf3db8c677aa83a5398eff009",
+  "codeHead": "c346d189f22495b73d6fe1d40c740d7c2685b5a7",
+  "codeCI": {
+    "runId": 35260653806,
+    "jobId": 105335223653,
+    "tests": 724,
+    "status": "passed",
+    "allSteps": "passed"
+  },
+  "finalHeadCI": "pending",
+  "scope": "Finish PR 308 only; STOP after packet, no next roadmap implementation",
   "production": "ON HOLD"
 }
