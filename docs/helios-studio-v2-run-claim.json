@@ -1,11 +1,15 @@
 {
   "status": "active",
   "runId": "atlas-work-card-upload-ownership",
-  "startedAt": "2026-09-17T22:42:35.074Z",
-  "expiresAt": "2026-09-18T02:42:35.074Z",
+  "updatedAt": "2026-09-17T22:53:37.177Z",
+  "expiresAt": "2026-09-18T00:53:37.177Z",
   "branch": "codex/v2-work-card-upload-ownership",
   "base": "codex/v2-homepage-curation-recovery",
   "baseHead": "c1aeadac9f1442ea6369b683aa1cd124fbf5e5bd",
-  "scope": "Packet 5 only; no lifecycle cleanup or production changes",
+  "pr": 312,
+  "head": "5e9efa0e25774bf3b30d0dc2aeba061e24bde94a",
+  "tree": "f9467575f0df53f14eee0619cb63dfa07f9a6214",
+  "ci": 35284178005,
+  "scope": "Packet 5 only; verifying CI/Chromium. No subsequent packet.",
   "production": "ON HOLD"
 }
