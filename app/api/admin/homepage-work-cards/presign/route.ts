@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { prisma } from "@/lib/prisma";
+import { withCurationWrite } from "@/lib/homepage-curation-write";
+import { workCardMediaPrefix } from "@/lib/work-card-media";
+import { workCardAssetNamespace } from "@/lib/work-card-media-server";
 import { getAdminSession } from "@/lib/auth/session";
 import {
   createHomepageWorkCardKey,
@@ -23,7 +25,7 @@ export async function POST(request: Request) {
     const allowed = kind === "video" ? VIDEO_TYPES : IMAGE_TYPES;
     const maxSize = kind === "video" ? 500 * 1024 * 1024 : 25 * 1024 * 1024;
 
-    if (!cardId || !kind || !allowed.has(fileType) || !Number.isFinite(fileSize) || fileSize <= 0 || fileSize > maxSize) {
+    if (!cardId || !kind || !allowed.has(fileType) || !Number.isSafeInteger(fileSize) || fileSize <= 0 || fileSize > maxSize) {
       return NextResponse.json({
         success: false,
         error: kind === "video"
@@ -32,18 +34,25 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
+    return await withCurationWrite(session, "work-cards", request, async (prisma) => {
     const card = await prisma.homepageWorkCard.findFirst({ where: { id: cardId, service: { workspaceId: session.workspaceId }, OR: [{ featuredMediaId: null }, { featuredMedia: { project: { workspaceId: session.workspaceId } } }] }, select: { id: true } });
     if (!card) return NextResponse.json({ success: false, error: "Homepage card not found." }, { status: 404 });
 
-    const key = createHomepageWorkCardKey(card.id, kind, fileType);
+    const key = workCardMediaPrefix(session.workspaceId, card.id) + createHomepageWorkCardKey(card.id, kind, fileType).split('/').pop();
+    const asset = await prisma.workspaceAsset.create({ data: { workspaceId: session.workspaceId, provider: 'R2', providerNamespace: workCardAssetNamespace(), providerKey: key, byteSize: BigInt(fileSize), provenance: { kind: 'WORK_CARD_UPLOAD', cardId: card.id, mediaKind: kind, actorId: session.userId } }, select: { id: true } });
+    const uploadUrl = await createPresignedUploadUrl(key, fileType);
+    const provisioned = await prisma.workspaceAsset.updateMany({ where: { id: asset.id, workspaceId: session.workspaceId, status: 'UPLOAD_PENDING' }, data: { status: 'UPLOAD_PROVISIONED' } });
+    if (provisioned.count !== 1) throw new Error('INVALID_VALUE');
     return NextResponse.json({
       success: true,
+      media: { protocol: 1, intent: 'prepare', workspaceId: session.workspaceId, cardId: card.id, kind, mediaId: key, assetId: asset.id, key, url: getPublicAssetUrl(key), verification: 'registered' },
       upload: {
         key,
-        uploadUrl: await createPresignedUploadUrl(key, fileType),
+        uploadUrl,
         publicUrl: getPublicAssetUrl(key),
         contentType: fileType,
       },
+    });
     });
   } catch (error) {
     console.error("Unable to prepare homepage work-card upload:", error);

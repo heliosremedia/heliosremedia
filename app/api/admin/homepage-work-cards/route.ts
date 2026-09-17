@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { verifyContentImage } from "@/lib/content-image-storage";
+import { resolveWorkCardMedia } from "@/lib/work-card-media-server";
 import { withCurationWrite } from "@/lib/homepage-curation-write";
 import { getAdminSession } from "@/lib/auth/session";
 
@@ -101,8 +101,8 @@ export async function PATCH(request: Request) {
     const featuredMediaId = textValue(body.featuredMediaId, 200);
     const imageStorageKey = textValue(body.imageStorageKey, 1500);
     const videoStorageKey = textValue(body.videoStorageKey, 1500);
-    if (imageStorageKey && !imageStorageKey.startsWith(`site/homepage/work-cards/${cardId}/`)) throw new Error("INVALID_VALUE");
-    if (videoStorageKey && !videoStorageKey.startsWith(`site/homepage/work-cards/${cardId}/`)) throw new Error("INVALID_VALUE");
+    const image = await resolveWorkCardMedia(prisma, session.workspaceId, cardId, 'image', { key: imageStorageKey, url: textValue(body.imageUrl, 1500) }, { key: existing.imageStorageKey, url: existing.imageUrl });
+    const video = await resolveWorkCardMedia(prisma, session.workspaceId, cardId, 'video', { key: videoStorageKey, url: textValue(body.videoUrl, 1500) }, { key: existing.videoStorageKey, url: existing.videoUrl });
 
     if (mediaMode === "LIBRARY_VIDEO") {
       const media = featuredMediaId ? await prisma.media.findFirst({
@@ -120,8 +120,6 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ success: false, error: "Upload a looping preview before selecting uploaded video." }, { status: 400 });
     }
 
-    if (imageStorageKey !== existing.imageStorageKey) await verifyContentImage(imageStorageKey);
-    if (videoStorageKey !== existing.videoStorageKey) await verifyContentImage(videoStorageKey);
 
     const changed = await prisma.homepageWorkCard.updateMany({
       where: { id: cardId, service: { workspaceId: session.workspaceId } },
@@ -131,12 +129,12 @@ export async function PATCH(request: Request) {
         serviceId: nextService.id,
         destinationOverride: destination(body.destinationOverride, `/portfolio?service=${nextService.slug}`),
         imageStorageKey,
-        imageUrl: textValue(body.imageUrl, 1500),
+        imageUrl: image.url,
         imageAlt: textValue(body.imageAlt, 240),
         mediaMode,
         featuredMediaId: mediaMode === "LIBRARY_VIDEO" ? featuredMediaId : null,
         videoStorageKey,
-        videoUrl: textValue(body.videoUrl, 1500),
+        videoUrl: video.url,
         ...(typeof body.active === "boolean" ? { active: body.active } : {}),
       },
     });
@@ -145,7 +143,7 @@ export async function PATCH(request: Request) {
     const card = await prisma.homepageWorkCard.findFirstOrThrow({ where: { id: cardId, service: { workspaceId: session.workspaceId }, OR: [{ featuredMediaId: null }, { featuredMedia: { project: { workspaceId: session.workspaceId } } }] }, select });
 
 
-    return NextResponse.json({ success: true, card });
+    return NextResponse.json({ success: true, card, media: { protocol: 1, intent: "attach", cardId, image, video } });
     });
   } catch (error) {
     if (error instanceof Error && error.message === "INVALID_VALUE") {

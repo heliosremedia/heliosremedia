@@ -11,7 +11,13 @@ window.fetch = async (url, options = {}) => {
  const body = options.body ? JSON.parse(options.body) : {};
  if (url.endsWith('/presign')) {
   state.presigns++; await new Promise(r => { state.presignPending = r; });
-  return Response.json({ success: true, upload: { key: `site/homepage/work-cards/${body.cardId}/${body.kind}.webp`, publicUrl: location.origin + '/object.svg', uploadUrl: 'https://upload.test/object', contentType: body.fileType } });
+  const key = `workspaces/a/homepage-work-cards/${body.cardId}/${body.kind}-test.webp`, url = location.origin + '/'+key;
+  const result = {success:true,upload:{key,publicUrl:url,uploadUrl:'https://upload.test/object',contentType:body.fileType},media:{protocol:1,intent:'prepare',workspaceId:'a',cardId:body.cardId,kind:body.kind,key,url,mediaId:key,assetId:'asset1',verification:'registered'},acknowledgement:{protocol:1,workspaceId:'a',scope:'work-cards',requestId:options.headers['x-curation-request'],previousRevision:options.headers['x-curation-revision'],revision:options.headers['x-curation-revision'],ids:state.cards.map(row=>row.id)}};
+  if(state.mode==='upload-company')result.media.workspaceId='b';
+  if(state.mode==='upload-card')result.media.cardId='c2';
+  if(state.mode==='upload-url')result.media.url=location.origin+'/other';
+  if(state.mode==='upload-unregistered')result.media.verification='pending';
+  return Response.json(result);
  }
  state.calls.push({ url, body, headers: options.headers, method: options.method }); await new Promise(r => { state.pending = r; }); state.pending = null;
  const scope = url.includes('homepage-projects') ? 'projects' : 'work-cards', isProject = scope === 'projects';
@@ -25,6 +31,8 @@ window.fetch = async (url, options = {}) => {
  if (isProject) state.placements = rows; else state.cards = rows;
  const ack = { protocol: 1, requestId: options.headers['x-curation-request'], scope, workspaceId: 'a', previousRevision: options.headers['x-curation-revision'], revision: (++state.sequence).toString(16).padStart(64,'0'), ids: rows.map(row => row.id) };
  result.acknowledgement = ack;
+ if(result.card && options.method==='PATCH')result.media={protocol:1,intent:'attach',cardId:result.card.id,...Object.fromEntries(['image','video'].map(kind=>{const key=result.card[kind+'StorageKey'],url=result.card[kind+'Url'];return [kind,{workspaceId:'a',cardId:result.card.id,kind,key,url,mediaId:key,assetId:key?'asset1':null,verification:key?'registered':'empty'}];}))};
+ if(state.mode==='attachment-asset' && result.media)result.media.image.assetId='other';
  if (state.mode === 'lost') throw new Error('PRIVATE lost response');
  if (state.mode === 'non-json') return new Response('PRIVATE invalid JSON');
  if (state.mode === 'conflict') return Response.json({ success: false }, { status: 409 });
