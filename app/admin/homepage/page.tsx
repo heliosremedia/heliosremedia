@@ -6,6 +6,8 @@ import { normalizeHomepageCurationPreferences } from "@/lib/homepage-curation-la
 import SiteSettingsForm from "../settings/SiteSettingsForm";
 import HomepageProjectManager, { type Placement, type ProjectOption } from "./HomepageProjectManager";
 import HomepageWorkCardManager, { type FilmOption, type ServiceOption, type WorkCard } from "./HomepageWorkCardManager";
+import HomepageFilmManager from "./HomepageFilmManager";
+import { filmDTO } from "@/lib/featured-film-editor";
 import HomepageStructureManager from "./HomepageStructureManager";
 import HomepageCurationOrganizer from "./HomepageCurationOrganizer";
 
@@ -47,7 +49,7 @@ export default async function HomepageCurationPage() {
           id: "homepage-media",
           title: "Homepage Media",
           description: "Hero media, public availability, homepage copy, and supporting imagery.",
-          content: <SiteSettingsForm key={revision.workspaceId} initialRevision={revision} initialSettings={settings} mode="homepage" />,
+          content: <div className="space-y-7"><SiteSettingsForm key={revision.workspaceId} initialRevision={revision} initialSettings={settings} mode="homepage" /><HomepageFilmManager key={`film:${revision.workspaceId}`} initialRevision={revision} initialSettings={filmDTO(settings)} /></div>,
         },
         {
           id: "featured-project",

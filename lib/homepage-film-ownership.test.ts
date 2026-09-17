@@ -28,15 +28,16 @@ type Route = { PATCH(request: Request): Promise<Response> };
 function fixture() {
   const actor = { userId: 'operator', workspaceId: 'b', sessionVersion: 7, role: 'EDITOR' };
   const state = { session: actor as typeof actor | null, tenant: true, companies: [{ id: 'a' }, { id: 'b' }],
-    exists: true, owner: 'b', revision: 1, writes: 0, headChecks: 0, freshRole: 'EDITOR', membershipStatus: 'ACTIVE',
+    readbackFails: false, invalidationFails: false, exists: true, owner: 'b', revision: 1, writes: 0, headChecks: 0, freshRole: 'EDITOR', membershipStatus: 'ACTIVE',
     assetOwner: 'b', assetStatus: 'UPLOAD_PROVISIONED', registered: true,
     beforeWrite: () => {}, events: [] as string[], result: {} as Record<string, unknown>, logs: [] as unknown[],
     current: { featuredFilmVideoStorageKey: legacy.key, featuredFilmVideoUrl: legacy.url, featuredFilmPosterStorageKey: null as string | null, featuredFilmPosterUrl: null as string | null } };
   const baseModules: Record<string, unknown> = {
-    'server-only': {}, 'next/server': { NextResponse: Response }, 'next/cache': { revalidatePath() {} },
+    'server-only': {}, 'next/server': { NextResponse: Response }, 'next/cache': { revalidatePath() { if (state.invalidationFails) throw new Error('INVALIDATION_FAILED'); } },
     '@/lib/auth/session': { getAdminSession: async () => state.session },
     '@/lib/workspace-brand-storage': policy, './workspace-brand-storage': policy,
     '@/lib/homepage-film-ownership': ownership,
+    '@/lib/featured-film-editor': load('./featured-film-editor.ts', { './site-settings-editor': load('./site-settings-editor.ts', {}) }),
     '@/lib/r2-upload': { getPublicAssetUrl: publicUrl },
     '@/lib/r2': { r2Config: { accountId: 'account', bucketName: 'bucket' } },
     '@/lib/content-image-storage': { verifyContentImage: async () => { state.headChecks++; } },
@@ -69,6 +70,7 @@ function fixture() {
             if (where.AND[1].workspaceId !== undefined && where.AND[1].workspaceId !== state.owner) return { count: 0 };
             state.writes++; state.result = data; return { count: 1 };
           },
+          findUnique: async () => { if (state.readbackFails) throw new Error('READBACK_FAILED'); return { id: state.exists ? 'settings-b' : 'workspace:b', workspaceId: state.owner, updatedAt: new Date(), ...state.result }; },
           create: async ({ data }: { data: Record<string, unknown> }) => {
             assert.equal(data.id, 'workspace:b'); assert.equal(data.workspaceId, 'b'); state.writes++; state.result = data;
           },
@@ -194,4 +196,50 @@ test('featured-film presign registers workspace identity before signing and vali
   assert.equal(response.status, 200);
   assert.equal(signed, 1);
   assert.match((await response.json()).upload.key, /^workspaces\/b\/site-featured-film\//);
+});
+
+test('featured-film rejects an already stale versioned browser revision before provider work', async () => {
+ const f = fixture();
+ const input = { ...body, requestId: 'operation-1', editorRevision: { id: 'settings-b', workspaceId: 'b', storedWorkspaceId: 'b', updatedAt: new Date(0).toISOString() } };
+ const response = await f.route.PATCH(new Request('https://b.example/api/admin/homepage-film', { method: 'PATCH', headers: { 'content-type': 'application/json', 'x-helios-film-revision': '1' }, body: JSON.stringify(input) }));
+ assert.equal(response.status, 409); assert.equal(f.state.writes, 0); assert.equal(f.state.headChecks, 0);
+});
+
+const browserRequest = (input: unknown) => new Request('https://b.example/api/admin/homepage-film', { method: 'PATCH', headers: { 'content-type': 'application/json', 'x-helios-film-revision': '1' }, body: JSON.stringify(input) });
+const browserRevision = { id: 'settings-b', workspaceId: 'b', storedWorkspaceId: 'b', updatedAt: new Date(1).toISOString() };
+test('film versioned write returns correlated authoritative revision and media attestation without expanding DTO', async () => {
+ const f = fixture();
+ const response = await f.route.PATCH(browserRequest({ ...body, requestId: 'operation-1', editorRevision: browserRevision }));
+ assert.equal(response.status, 200); const data = await response.json();
+ assert.deepEqual(data.acknowledgement.previousRevision, browserRevision); assert.equal(data.acknowledgement.requestId, 'operation-1');
+ assert.equal(data.acknowledgement.scope, 'featured-film'); assert.equal(data.acknowledgement.revision.id, 'settings-b');
+ assert.ok(Date.parse(data.acknowledgement.revision.updatedAt) > 1); assert.equal(Object.keys(data.settings).length, 6);
+ assert.deepEqual(data.acknowledgement.media.video, { key: videoKey, url: publicUrl(videoKey), kind: 'video', workspaceId: 'b', verification: 'registered' });
+});
+test('film versioned preconditions reject foreign scope and invalid revision before media verification', async () => {
+ for (const revision of [{ ...browserRevision, id: 'settings-a' }, { ...browserRevision, workspaceId: 'a' }, { ...browserRevision, storedWorkspaceId: 'a' }, { ...browserRevision, updatedAt: 'invalid' }, null]) {
+  const f = fixture(); const response = await f.route.PATCH(browserRequest({ ...body, requestId: 'operation-1', editorRevision: revision }));
+  assert.ok([400, 409].includes(response.status)); assert.equal(f.state.writes, 0); assert.equal(f.state.headChecks, 0);
+ }
+});
+test('film versioned remove, retained legacy and scoped creation preserve their explicit acknowledgement identities', async () => {
+ for (const mode of ['remove', 'retained', 'create']) {
+  const f = fixture(); if (mode === 'create') f.state.exists = false;
+  const input = { ...body, requestId: 'operation-1', editorRevision: mode === 'create' ? { ...browserRevision, id: 'workspace:b', updatedAt: null } : browserRevision,
+   ...(mode === 'create' ? {} : { featuredFilmEnabled: mode === 'retained', featuredFilmVideoStorageKey: mode === 'retained' ? legacy.key : null,
+     featuredFilmVideoUrl: mode === 'retained' ? legacy.url : null, featuredFilmPosterStorageKey: null, featuredFilmPosterUrl: null }) };
+  const response = await f.route.PATCH(browserRequest(input)); assert.equal(response.status, 200, mode); const data = await response.json();
+  assert.equal(data.acknowledgement.media.video.verification, mode === 'create' ? 'registered' : mode === 'retained' ? 'retained' : 'empty');
+  assert.equal(data.acknowledgement.revision.id, input.editorRevision.id);
+ }
+});
+
+test('film holds failed readback and post-commit invalidation without returning an unconfirmed acknowledgement', async () => {
+ for (const mode of ['readbackFails', 'invalidationFails'] as const) {
+  const f = fixture(); f.state[mode] = true;
+  const response = await f.route.PATCH(browserRequest({ ...body, requestId: 'operation-1', editorRevision: browserRevision }));
+  assert.equal(response.status, 500); const data = await response.json(); assert.equal(data.success, false); assert.equal(data.acknowledgement, undefined);
+  // These delegates establish response containment, not hosted rollback/concurrency.
+  assert.equal(f.state.writes, 1);
+ }
 });
