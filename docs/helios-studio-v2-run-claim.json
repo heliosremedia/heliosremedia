@@ -4,6 +4,18 @@
   "branch": "codex/v2-migration-restoration-rehearsal",
   "base": "codex/v2-application-rollback-rehearsal",
   "baseHead": "a0b018af4947cf52466534220eb2e725c8f239d2",
-  "expiresAt": "2026-09-18T16:45:43.180Z",
-  "scope": "Packet 10 only; isolated fixtures; production ON HOLD"
+  "expiresAt": "2026-09-18T17:15:36.671Z",
+  "scope": "Packet 10 only; isolated fixtures; production ON HOLD",
+  "pr": 317,
+  "head": "6c0058c9b870e12f9d4127741e2eab4cbd1b1d32",
+  "verifiedCheckpoint": "3b98ba2ce1fd74ae3d539de168f85fe7ebcee6f3",
+  "verifiedRuns": [
+    35353960875,
+    35353960906
+  ],
+  "finalRuns": [
+    35354985239,
+    35354985201
+  ],
+  "note": "Checkpoint passed886 tests and real PostgreSQL migration/backfill/logical restore/application/Chromium. Final exact-head verification running. No next packet."
 }
