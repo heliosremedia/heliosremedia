@@ -12,7 +12,8 @@ window.fetch = async (url, options = {}) => {
  if (url.endsWith('/presign')) {
   state.presigns++; await new Promise(r => { state.presignPending = r; });
   const key = `workspaces/a/homepage-work-cards/${body.cardId}/${body.kind}-test.webp`, url = location.origin + '/'+key;
-  const result = {success:true,upload:{key,publicUrl:url,uploadUrl:'https://upload.test/object',contentType:body.fileType},media:{protocol:1,intent:'prepare',workspaceId:'a',cardId:body.cardId,kind:body.kind,key,url,mediaId:key,assetId:'asset1',verification:'registered'},acknowledgement:{protocol:1,workspaceId:'a',scope:'work-cards',requestId:options.headers['x-curation-request'],previousRevision:options.headers['x-curation-revision'],revision:options.headers['x-curation-revision'],ids:state.cards.map(row=>row.id)}};
+  const result = {success:true,upload:{key,publicUrl:url,uploadUrl:'https://upload.test/object',contentType:body.fileType},media:{protocol:1,intent:'prepare',workspaceId:'a',cardId:body.cardId,serviceId:'s'+body.cardId,kind:body.kind,key,url,mediaId:key,assetId:'asset1',verification:'registered'},acknowledgement:{protocol:1,workspaceId:'a',scope:'work-cards',requestId:options.headers['x-curation-request'],previousRevision:options.headers['x-curation-revision'],revision:options.headers['x-curation-revision'],ids:state.cards.map(row=>row.id)}};
+  if(state.mode==='upload-parent')result.media.serviceId='obsolete';
   if(state.mode==='upload-company')result.media.workspaceId='b';
   if(state.mode==='upload-card')result.media.cardId='c2';
   if(state.mode==='upload-url')result.media.url=location.origin+'/other';
@@ -31,7 +32,8 @@ window.fetch = async (url, options = {}) => {
  if (isProject) state.placements = rows; else state.cards = rows;
  const ack = { protocol: 1, requestId: options.headers['x-curation-request'], scope, workspaceId: 'a', previousRevision: options.headers['x-curation-revision'], revision: (++state.sequence).toString(16).padStart(64,'0'), ids: rows.map(row => row.id) };
  result.acknowledgement = ack;
- if(result.card && options.method==='PATCH')result.media={protocol:1,intent:'attach',cardId:result.card.id,...Object.fromEntries(['image','video'].map(kind=>{const key=result.card[kind+'StorageKey'],url=result.card[kind+'Url'];return [kind,{workspaceId:'a',cardId:result.card.id,kind,key,url,mediaId:key,assetId:key?'asset1':null,verification:key?'registered':'empty'}];}))};
+ if(result.card && options.method==='PATCH')result.media={protocol:1,intent:'attach',cardId:result.card.id,...Object.fromEntries(['image','video'].map(kind=>{const key=result.card[kind+'StorageKey'],url=result.card[kind+'Url'];return [kind,{workspaceId:'a',cardId:result.card.id,serviceId:result.card.serviceId,kind,key,url,mediaId:key,assetId:key?'asset1':null,verification:key?'registered':'empty'}];}))};
+ if(state.mode==='attachment-parent' && result.media)result.media.image.serviceId='obsolete';
  if(state.mode==='attachment-asset' && result.media)result.media.image.assetId='other';
  if (state.mode === 'lost') throw new Error('PRIVATE lost response');
  if (state.mode === 'non-json') return new Response('PRIVATE invalid JSON');

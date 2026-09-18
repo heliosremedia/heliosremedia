@@ -19,10 +19,11 @@ export async function PATCH(request: Request) {
     const preferences = normalizeHomepageCurationPreferences(
       await request.json(),
     );
-    await prisma.adminUser.updateMany({
+    const changed = await prisma.adminUser.updateMany({
       where: { id: session.userId, workspaceId: session.workspaceId },
       data: { homepageCurationPreferences: preferences },
     });
+    if (changed.count !== 1) return NextResponse.json({ success: false, error: "Your workspace changed. Reload before saving layout preferences." }, { status: 409 });
     return NextResponse.json({ success: true, preferences });
   } catch (error) {
     console.error("Unable to save homepage curation layout:", error);

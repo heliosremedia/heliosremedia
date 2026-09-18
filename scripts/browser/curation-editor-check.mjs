@@ -33,18 +33,18 @@ export async function checkCurationEditor(base) {
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await Promise.all([page.waitForEvent('load'), reload.click()]); await save().waitFor(); assert.equal(await page.evaluate(() => window.curationFixture.calls.length), 0);
    }
-   for (const mode of ['success','lost','order']) {
+   for (const mode of ['success','lost','order','conflict']) {
     await setup(mode); await cards().getByRole('button', { name: '↓', exact: true }).first().click(); await pending(); await finish(); await page.clock.runFor(10);
     assert.equal(await cards().locator('h3').first().innerText(), 'Service c2'); if (mode !== 'success') await copy().waitFor();
    }
    await setup(); await save().click(); await pending(); await page.clock.fastForward(20001); await copy().waitFor(); await title().fill('After timeout'); await finish(); await page.clock.runFor(10); assert.equal(await title().inputValue(), 'After timeout'); assert.equal(await save().isDisabled(), true);
    await setup('slow-json'); await save().click(); await pending(); await finish(); await page.waitForFunction(() => !!window.curationFixture.jsonPending); await page.clock.fastForward(20001); await copy().waitFor(); await page.evaluate(() => window.curationFixture.remount()); await save().waitFor(); await title().fill('New instance'); await page.evaluate(() => window.curationFixture.jsonPending()); await page.clock.runFor(10); assert.equal(await title().inputValue(), 'New instance');
-   for (const mode of ['success','lost','attachment-asset']) {
+   for (const mode of ['success','lost','attachment-asset','attachment-parent','conflict']) {
     await setup(mode); await title().fill('Upload draft'); await cards().locator('input[type=file]').nth(1).setInputFiles({ name: 'test.webp', mimeType: 'image/webp', buffer: Buffer.from('synthetic') }); await page.waitForFunction(() => !!window.curationFixture.presignPending); assert.equal(await save().isDisabled(), true);
     await page.evaluate(() => window.curationFixture.presignPending()); await pending(); await finish(); await page.clock.runFor(10); assert.equal(await page.evaluate(() => window.curationFixture.uploads), 1);
     if (mode !== 'success') { await copy().waitFor(); assert.match(await copy().inputValue(), /workspaces\/a\/homepage-work-cards\/c1\/image-test.webp/); assert.match(await copy().inputValue(), /Upload draft/); }
    }
-   for(const mode of ['upload-company','upload-card','upload-url','upload-unregistered']) {
+   for(const mode of ['upload-company','upload-card','upload-url','upload-unregistered','upload-parent']) {
     await setup(mode); await cards().locator('input[type=file]').nth(1).setInputFiles({name:'test.webp',mimeType:'image/webp',buffer:Buffer.from('synthetic')});await page.waitForFunction(()=>!!window.curationFixture.presignPending);await page.evaluate(()=>window.curationFixture.presignPending());await copy().waitFor();assert.equal(await page.evaluate(()=>window.curationFixture.uploads),0);assert.equal(await page.evaluate(()=>window.curationFixture.calls.length),0);
    }
    for (const phase of ['presign','transfer']) {
