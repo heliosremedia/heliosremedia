@@ -20,7 +20,7 @@ export async function checkLayoutEditor(url){
   }
   await page.goto(url);await move().waitFor();await page.evaluate(()=>window.layout.mode='timeout');await move().click();await page.evaluate(()=>window.layout.remount());await page.evaluate(()=>window.layout.pending.forEach(f=>f()));await page.waitForTimeout(160);assert.equal((await order())[0],'homepage-navigation');
   await page.evaluate(()=>window.layout.mode='success');await move().click();await page.getByRole('status').filter({hasText:'Confirmed saved'}).waitFor();
-  await page.goto(url+'/#homepage-navigation');await page.waitForTimeout(100);assert.equal(await page.evaluate(()=>window.layout.requests.length),0);
+  await page.goto(url+'/?hash-load=1#homepage-navigation');await page.waitForTimeout(100);assert.equal(await page.evaluate(()=>window.layout.requests.length),0);
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));assert.deepEqual(errors,[]);
   console.log(`PASS private layout actual component ${width}px ${new Date().toISOString()}: revision, strict receipts, duplicate, uncertainty, retained copy/reload, timeouts, remount; synthetic transport`);await page.close();
  }}finally{await browser.close();}
