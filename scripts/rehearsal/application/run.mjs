@@ -65,19 +65,19 @@ try{
   const asset=await driver.prisma.workspaceAsset.findFirstOrThrow();await assert.rejects(driver.prisma.workspaceAsset.update({where:{id:asset.id},data:{workspaceId:'b'}}));
   if(!process.argv.includes('--http-only')){
    const {chromium}=await import('playwright');browser=await chromium.launch({headless:true});
-   for(const width of [390,1440]){
+   for(const [width,loaded] of [[390,'prior'],[1440,'prior'],[390,'candidate'],[1440,'candidate']]){
     const context=await browser.newContext({viewport:{width,height:1000}});const token=driver.cookie().split('=').slice(1).join('=');await context.addCookies([{name:'helios_admin_session',value:token,url:origin}]);
     await context.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
-    const page=await context.newPage();switchTo('prior');await page.goto(origin+'/admin/homepage#our-work');
+    const page=await context.newPage();switchTo(loaded);await page.goto(origin+'/admin/homepage#our-work');
     const cards=page.locator('#our-work');const title=cards.getByLabel('Card title',{exact:true}).first();await title.waitFor();
     let acknowledge,arrive;const arrived=new Promise(r=>arrive=r),held=new Promise(r=>acknowledge=r);let mutations=0,delay=true;
     await page.route('**/api/admin/homepage-work-cards',async route=>{mutations++;const response=await route.fetch();if(delay){arrive();await held;}await route.fulfill({response});});
-    await title.fill('Retain across routing');switchTo('candidate');await cards.getByRole('button',{name:'Save card',exact:true}).first().click();await arrived;
+    await title.fill('Retain across routing');switchTo(loaded==='prior'?'candidate':'prior');await cards.getByRole('button',{name:'Save card',exact:true}).first().click();await arrived;
     await title.fill('Newer edit while response held');switchTo('prior');delay=false;acknowledge();await cards.getByText('Submitted change saved ✓',{exact:true}).waitFor();assert.equal(await title.inputValue(),'Newer edit while response held');assert.equal(mutations,1);
     switchTo('prior');const state=await(await fetch(origin+'/api/rehearsal-state',{headers:{cookie:driver.cookie()}})).json();await fetch(origin+'/api/admin/homepage-work-cards',{method:'PATCH',headers:{cookie:driver.cookie(),'x-curation-revision':state.cards.revision,'x-curation-request':'other-tab'},body:JSON.stringify({action:'reorder',cardIds:state.cards.ids.slice().reverse()})});
     await title.fill('Unsaved after rollback');await cards.getByRole('button',{name:'Save card',exact:true}).first().click();await cards.getByLabel('Retained homepage drafts',{exact:true}).waitFor();await page.waitForTimeout(150);assert.equal(mutations,2);assert.match(await cards.getByLabel('Retained homepage drafts',{exact:true}).inputValue(),/Unsaved after rollback/);
     await cards.getByLabel('I have retained all drafts shown above.').check();await cards.getByRole('button',{name:'Reload to reconcile'}).click();await title.waitFor();assert.notEqual(await title.inputValue(),'Unsaved after rollback');assert.equal(mutations,2);
-    console.log('PASS actual authenticated local application Chromium '+width+'px: prior-loaded browser saves to candidate; rollback stale conflict retains copy and reload reads DB');await context.close();
+    console.log('PASS actual authenticated local application Chromium '+width+'px: '+loaded+'-loaded browser saves after routing switch; rollback stale conflict retains copy and reload reads DB');await context.close();
    }
   }
   console.log('PASS Packet 9 generated Prisma/PostgreSQL and two real Next application processes through local routing; zero data restoration');
