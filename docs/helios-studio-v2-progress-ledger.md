@@ -1,5 +1,13 @@
 # Helios Studio V2 progress ledger
 
+## Packet 9 in progress: isolated application rollback rehearsal
+
+- Branch `codex/v2-application-rollback-rehearsal`, base #315 `ad165992518283ff72a4d3c4e2e8f888adcacbcb`; #311–#315 and main heads freshly verified. Expected-SHA claim acquired. Fresh checkout; unrelated local edits preserved.
+- Topology inventory: full #314 source plus exact #315 hardened mutation overlay, and #315 candidate, using disposable Next application copies and loopback routing. Generated PrismaPg connects only to fixed disposable PostgreSQL service. Auth/session/membership and routes are real; font/provider verification are isolated substitutions. No runtime application file changed.
+- Added safety tests and rehearsal for public/admin routing, current/stale/headerless/foreign writes, project/order/private-layout concurrency, registered attachment retention, parent-row transfer lock overlap and browser copy/reload across routing transitions. Two safety tests pass; generated client, driver bundle, TypeScript and scoped lint pass locally.
+- Local PostgreSQL/Docker unavailable; package-manager permissions prevent provisioning. Restricted subprocess engine download initially failed; standalone generation succeeded. Real PostgreSQL and full application execution are PENDING CI, not yet claimed. CI uses a disposable PostgreSQL16 service with synthetic credentials. Schema initialization uses db push plus the existing registry identity trigger, NOT the historical migration chain.
+- Feature: `docs/helios-studio-v2-application-rollback-rehearsal.md`. Production ON HOLD. No merge/deploy/provider action, broad writer retirement or next packet.
+
 ## Latest verified packet: September 18, 2026, #315 (Packet 8)
 
 - Draft [#315](https://github.com/heliosremedia/heliosremedia/pull/315), branch `codex/v2-homepage-mixed-version`, base #314 `codex/v2-private-layout-recovery` at `63df1f7ba403144c9858136674b11cad8d3231f0`. Verified implementation head `944a997862919299ba9370c932a5c8caa2346c8d`, tree `8feef48422d834427dd3c4e02e8d27984584559d`, identical to local `fb8f0b13e75a8fa02c4dc5f3dcc77b8516827535`. Final documentation head and exact-head CI are tracked on the PR and canonical run claim.

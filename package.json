@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.4.1",
+    "@prisma/adapter-pg": "7.8.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/qrcode": "^1.5.6",
