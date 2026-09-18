@@ -1,5 +1,13 @@
 # Helios Studio V2 progress ledger
 
+## Packet 10 in progress: historical migration and restoration
+
+- Fresh checkout, branch `codex/v2-migration-restoration-rehearsal`, base #316 `a0b018af4947cf52466534220eb2e725c8f239d2`; expected-SHA claim held. Production ON HOLD.
+- Historical empty-database replay reproduces missing `SocialConnectionState` at `20260727190000_social_direct_publishing`. No history rewrite. Supported fixture uses pinned pre-V2 main schema and all18 actual V2 SQL files, actual content/brand/legal operator scripts and retained compatibility guards.
+- Added real PostgreSQL16 logical dump/restore workflow, exact/semantic integrity snapshots, failure injection and restored-application mode. Preliminary PGlite migration/backfill checks and two safety tests pass; real PostgreSQL/restore/application CI pending.
+- Feature/operator runbook: `docs/helios-studio-v2-migration-restoration-rehearsal.md`. No merge/deploy/production data/provider action or next packet.
+
+
 ## Latest verified packet: September 18, 2026, #316 (Packet 9)
 
 - Draft [#316](https://github.com/heliosremedia/heliosremedia/pull/316), branch `codex/v2-application-rollback-rehearsal`, base #315 `codex/v2-homepage-mixed-version` at `ad165992518283ff72a4d3c4e2e8f888adcacbcb`. Verified implementation head `73588785b5b07a6e0fb8453a6eb5a6cbdab5a769`, tree `62bb548538655b2bf4df01a77f79dbb3873d19f0`, identical to local implementation tree. Final documentation-head SHA and exact-head CI are recorded in the PR and canonical claim. Fresh checkout and expected-SHA run claim; unrelated local edits preserved. Main remains `72dab34568cb6885f3e93b5ed9db38edca156835`.
