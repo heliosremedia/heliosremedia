@@ -1,15 +1,31 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-homepage-parent-transfer",
-  "updatedAt": "2026-09-18T00:12:21.632Z",
-  "expiresAt": "2026-09-18T02:12:21.632Z",
+  "releasedAt": "2026-09-18T00:28:52.416Z",
+  "expiresAt": null,
   "branch": "codex/v2-homepage-parent-transfer",
   "base": "codex/v2-work-card-upload-ownership",
   "baseHead": "26bd99d98e1b86d7c65eec9b353064e3e109fd91",
   "pr": 313,
-  "head": "08eecd496ebea0f2195f3bead54f3609137486b9",
-  "tree": "7991b6cba698e8513cca6a1fe99eee34742f1bc3",
-  "ci": 35290147108,
-  "scope": "Packet 6 only; final verification in progress",
-  "production": "ON HOLD"
+  "head": "528dfeb037af918c40184d89376fe6587df273d1",
+  "tree": "c38939fa9db14e45e8442ddf14a18ee6663f51c8",
+  "ci": 35290819410,
+  "job": 105433053861,
+  "conclusion": "success",
+  "tests": {
+    "passed": 835,
+    "failed": 0
+  },
+  "chromium": {
+    "widths": [
+      390,
+      1440
+    ],
+    "evidence": "Actual curation components; synthetic transport; 2026-09-18T00:27:24Z and 00:27:34Z"
+  },
+  "verifiedCodeHead": "08eecd496ebea0f2195f3bead54f3609137486b9",
+  "verifiedCodeCI": 35290147108,
+  "scope": "Packet 6 complete. STOP; no subsequent packet authorized.",
+  "production": "ON HOLD",
+  "nextRecommendation": "Private homepage section-layout preference browser recovery inventory and executable baseline; not implemented"
 }
