@@ -1,0 +1,63 @@
+{
+  "protocol": 1,
+  "scope": "Homepage mutation rollback minimum. Not a full deployment/config/database attestation.",
+  "base": "63df1f7ba403144c9858136674b11cad8d3231f0",
+  "files": [
+    {
+      "path": "app/api/admin/homepage-projects/route.ts",
+      "sha256": "fb15cad06027b483a2175bfd64ab1fd293a1857251189f6e862c779ec3d04e6a"
+    },
+    {
+      "path": "app/api/admin/homepage-work-cards/route.ts",
+      "sha256": "c92599a6772b9829045c94709f9a9c182590fb80f61df187b70b98f8397dd86b"
+    },
+    {
+      "path": "app/api/admin/homepage-work-cards/presign/route.ts",
+      "sha256": "0e327757e539f415f58ad8d3a79bee5b0bdef9f8d3438ccc77ebc59d1156c297"
+    },
+    {
+      "path": "app/api/admin/homepage-layout/route.ts",
+      "sha256": "fc47c246fc95ccaea141dd3581fb574d20d310818d826a14a28ab2d9bf8010f0"
+    },
+    {
+      "path": "lib/homepage-curation-write.ts",
+      "sha256": "85a2ed6d5a9c5ddc9585c4bb9d51009bbf4c715beed296736bd3f6fcb773d852"
+    },
+    {
+      "path": "lib/homepage-curation-parent-lock.ts",
+      "sha256": "55dce3fdfcda08ab6933798c2109111a66fe7a32a2cd39ef98c2175dfb436097"
+    },
+    {
+      "path": "lib/work-card-media-server.ts",
+      "sha256": "d95e8ea1cab81f92783e2228af7facdb51e3286b9bb2726a022a2bc0be816450"
+    },
+    {
+      "path": "lib/work-card-media.ts",
+      "sha256": "18865cca57f4816bba41eb0baa8156ab1d18bbfd6a951fae89acfdcf740caf71"
+    },
+    {
+      "path": "lib/homepage-layout-revision.ts",
+      "sha256": "bac4c006e7ec6b3e308fd2270a4f845241332f3d1f5e3fa50c9e8da8e4d265e8"
+    },
+    {
+      "path": "lib/homepage-curation-layout.ts",
+      "sha256": "d068fe2d8097d1e34e1c89316f481e726921aa0eb573250f9d1986a524d0555f"
+    },
+    {
+      "path": "lib/workspace-write-access.ts",
+      "sha256": "efa4c1fad0e94f600b252b14416fd19054da9557ee0a4dc91b4845e85996a656"
+    },
+    {
+      "path": "lib/workspace-membership-core.ts",
+      "sha256": "9ba8d4573153f12f9656b364ea58fc3807953a5e7de0ab6445191c5865fba844"
+    },
+    {
+      "path": "lib/workspace-context-core.ts",
+      "sha256": "356d4b38a792a67b515d64df1f263bf5351ae010d9b15051a5c578fec5accbd2"
+    },
+    {
+      "path": "lib/auth/session.ts",
+      "sha256": "82d67b679f11a43530a1ca26bd84692bb3fbb3e77a07685e5e150c1ae0c1f78e"
+    }
+  ]
+}

@@ -35,6 +35,7 @@ window.fetch = async (url, options = {}) => {
  if(result.card && options.method==='PATCH')result.media={protocol:1,intent:'attach',cardId:result.card.id,...Object.fromEntries(['image','video'].map(kind=>{const key=result.card[kind+'StorageKey'],url=result.card[kind+'Url'];return [kind,{workspaceId:'a',cardId:result.card.id,serviceId:result.card.serviceId,kind,key,url,mediaId:key,assetId:key?'asset1':null,verification:key?'registered':'empty'}];}))};
  if(state.mode==='attachment-parent' && result.media)result.media.image.serviceId='obsolete';
  if(state.mode==='attachment-asset' && result.media)result.media.image.assetId='other';
+ if (state.mode === 'rollback-server') { delete result.acknowledgement; delete result.media; }
  if (state.mode === 'lost') throw new Error('PRIVATE lost response');
  if (state.mode === 'non-json') return new Response('PRIVATE invalid JSON');
  if (state.mode === 'conflict') return Response.json({ success: false }, { status: 409 });

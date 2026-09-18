@@ -20,12 +20,11 @@ export async function curationSnapshot(tx: Prisma.TransactionClient, workspaceId
  return { revision: curationRevision(workspaceId, scope, rows), ids: rows.map(row => row.id), timestamp: new Date(Math.max(Date.now(), ...rows.map(row => row.updatedAt.getTime() + 1))) };
 }
 class RejectedWrite extends Error { constructor(readonly response: Response) { super('CURATION_REJECTED'); } }
-/** Keep this admission fence in the compatible rollback writer bundle. */
+/** All writers, including legacy requests, share the lock and count/readback transaction. */
 export async function withCurationWrite(actor: WorkspaceWriteActor, scope: CurationScope, request: Request, write: (tx: Prisma.TransactionClient, timestamp: Date) => Promise<Response>) {
  const revision = request.headers.get('x-curation-revision');
  const requestId = request.headers.get('x-curation-request');
- if (!revision || !requestId) return NextResponse.json({ success: false, code: 'HOMEPAGE_RELOAD_REQUIRED', reloadRequired: true, error: 'This homepage editor is out of date. Retain your work and reload before saving.' }, { status: 409 });
- if (revision.length > 128 || requestId.length > 100) return NextResponse.json({ success: false, error: 'Invalid curation revision.' }, { status: 400 });
+ if ((revision !== null || requestId !== null) && (!revision || !requestId || revision.length > 128 || requestId.length > 100)) return NextResponse.json({ success: false, error: 'Invalid curation revision.' }, { status: 400 });
  try {
   const result = await prisma.$transaction(async tx => {
    await requireLockedWorkspaceEditor(tx, actor);

@@ -30,3 +30,11 @@ test('private layout reload requires retained copy and never retries',async()=>{
 
 test('private layout fences previous workspace callbacks before and after a context switch',async()=>{let finish:any,calls=0;const f=fixture((_u:any,o:any)=>{calls++;return new Promise(r=>{finish=()=>r(response(o));});});const old=f.button('Move homepage-navigation down');old.props.onClick();f.switchWorkspace('b');finish();await tick();old.props.onClick();assert.equal(calls,1);assert.doesNotMatch(String(f.render().find(e=>e.props.role==='status').props.children),/Confirmed/);});
 test('private layout JSON timeout fences settlement after an unknown outcome',async()=>{let expire:any,settle:any;const f=fixture(async(_u:any,o:any)=>({ok:true,status:200,json:()=>new Promise(r=>{settle=async()=>r(await response(o).json());})}),{setTimeout:(fn:any)=>{expire=fn;return 1;}});f.button('Move homepage-navigation down').props.onClick();await tick();expire();await tick();settle();await tick();assert.match(String(f.render().find(e=>e.props.role==='status').props.children),/uncertain/);assert.equal(f.order()[0],'homepage-media');});
+
+test('private layout older-server response after a confirmed new save holds the next choice without replay',async()=>{
+ let calls=0;const f=fixture(async(_u:any,o:any)=>{calls++;return calls===1?response(o):Response.json({success:true,preferences:JSON.parse(o.body)});});
+ f.button('Move homepage-navigation down').props.onClick();await tick();
+ assert.match(String(f.render().find(e=>e.props.role==='status').props.children),/Confirmed saved/);
+ f.button('Move homepage-navigation down').props.onClick();await tick();assert.equal(f.order()[2],'homepage-navigation');assert.ok(f.render().some(e=>e.type==='textarea'));
+ f.button('Move homepage-navigation down').props.onClick();await tick();assert.equal(calls,2);
+});

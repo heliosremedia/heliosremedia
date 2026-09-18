@@ -1,0 +1,26 @@
+[
+  {
+    "file": "curation-write-314.txt",
+    "commit": "63df1f7ba403144c9858136674b11cad8d3231f0",
+    "path": "lib/homepage-curation-write.ts",
+    "sha256": "0ea978ccc2f295ede6c15f402258061e91f5d0c39308f6aaf924a5f1b377f839"
+  },
+  {
+    "file": "layout-route-313.txt",
+    "commit": "528dfeb037af918c40184d89376fe6587df273d1",
+    "path": "app/api/admin/homepage-layout/route.ts",
+    "sha256": "ca60abaf49c0ad53585569348af86d756300d81e6ace30a02f6595ade61d7aaf"
+  },
+  {
+    "file": "layout-reader-313.txt",
+    "commit": "528dfeb037af918c40184d89376fe6587df273d1",
+    "path": "lib/homepage-curation-layout.ts",
+    "sha256": "2da32da8b870e9a593c2284848944afb6bdf3bb4c5e63ce1c46b8eeda9d02d02"
+  },
+  {
+    "file": "media-reader-312.txt",
+    "commit": "26bd99d98e1b86d7c65eec9b353064e3e109fd91",
+    "path": "lib/work-card-media-server.ts",
+    "sha256": "69fa8079aeba6fce0c094db38f0c1e8069bcb185b34da2b390f31b1338b1c933"
+  }
+]

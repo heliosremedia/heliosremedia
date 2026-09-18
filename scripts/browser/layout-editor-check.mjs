@@ -9,7 +9,7 @@ export async function checkLayoutEditor(url){
   const order=()=>page.locator('section[id]').evaluateAll(nodes=>nodes.map(n=>n.id));
   await page.goto(url);await move().click();await page.getByRole('status').filter({hasText:'Confirmed saved'}).waitFor();
   await move().click();await page.getByRole('status').filter({hasText:'Confirmed saved'}).waitFor();assert.equal(await page.evaluate(()=>window.layout.requests[1].headers['x-layout-revision']),'b'.repeat(64));
-  for(const mode of ['lost','json','workspace','identity','revision','conflict','timeout','json-timeout']){
+  for(const mode of ['lost','json','workspace','identity','revision','conflict','timeout','json-timeout','rollback-server']){
    await page.goto(url);await move().waitFor();await page.evaluate(m=>{window.layout.mode=m;},mode);
    await move().evaluate(button=>{button.click();button.click();});await page.getByLabel('Retained homepage drafts').waitFor();
    assert.equal(await page.evaluate(()=>window.layout.requests.length),1);assert.equal((await order())[0],'homepage-media');
