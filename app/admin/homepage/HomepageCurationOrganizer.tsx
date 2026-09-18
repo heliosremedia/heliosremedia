@@ -1,5 +1,7 @@
 "use client";
 
+import { useLayoutRecovery } from "./useLayoutRecovery";
+
 import {
   useEffect,
   useMemo,
@@ -11,7 +13,6 @@ import {
 
 import {
   DEFAULT_HOMEPAGE_CURATION_PREFERENCES,
-  normalizeHomepageCurationPreferences,
   type HomepageCurationPreferences,
   type HomepageCurationSectionId,
 } from "@/lib/homepage-curation-layout";
@@ -32,18 +33,19 @@ type Section = {
 
 export default function HomepageCurationOrganizer({
   initialPreferences,
+  initialRevision, userId, workspaceId,
   sections,
 }: {
   initialPreferences: HomepageCurationPreferences;
+  initialRevision: string; userId: string; workspaceId: string;
   sections: Section[];
 }) {
-  const [preferences, setPreferences] = useState(() =>
-    normalizeHomepageCurationPreferences(initialPreferences),
-  );
+  const recovery = useLayoutRecovery(userId, workspaceId, initialRevision, initialPreferences);
+  const preferences = recovery.draft;
+  const saving = recovery.saving || recovery.held;
+  const message = recovery.status;
   const [draggedId, setDraggedId] =
     useState<HomepageCurationSectionId | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
   const [confirmReset, setConfirmReset] = useState(false);
   const headingRefs = useRef<
     Partial<Record<HomepageCurationSectionId, HTMLButtonElement | null>>
@@ -53,31 +55,8 @@ export default function HomepageCurationOrganizer({
     [sections],
   );
 
-  async function persist(next: HomepageCurationPreferences, success: string) {
-    const previous = preferences;
-    setPreferences(next);
-    setSaving(true);
-    setMessage("Saving layout…");
-    try {
-      const response = await fetch("/api/admin/homepage-layout", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(next),
-      });
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || "Homepage layout could not be saved.");
-      }
-      setPreferences(normalizeHomepageCurationPreferences(result.preferences));
-      setMessage(success);
-    } catch (error) {
-      setPreferences(previous);
-      setMessage(
-        error instanceof Error ? error.message : "Homepage layout could not be saved.",
-      );
-    } finally {
-      setSaving(false);
-    }
+  function persist(next: HomepageCurationPreferences) {
+    return recovery.persist(preferences, next);
   }
 
   function reorder(source: HomepageCurationSectionId, targetIndex: number) {
@@ -86,7 +65,6 @@ export default function HomepageCurationOrganizer({
     if (nextOrder.join() === preferences.order.join()) return;
     void persist(
       { ...preferences, order: nextOrder },
-      `${sectionById.get(source)?.title ?? "Section"} moved to position ${targetIndex + 1}.`,
     );
   }
 
@@ -98,7 +76,6 @@ export default function HomepageCurationOrganizer({
     [nextOrder[index], nextOrder[target]] = [nextOrder[target], nextOrder[index]];
     void persist(
       { ...preferences, order: nextOrder },
-      `${sectionById.get(id)?.title ?? "Section"} moved to position ${target + 1}.`,
     );
   }
 
@@ -109,12 +86,11 @@ export default function HomepageCurationOrganizer({
       : [...preferences.collapsed, id];
     void persist(
       { ...preferences, collapsed },
-      `${sectionById.get(id)?.title ?? "Section"} ${collapsed.includes(id) ? "collapsed" : "expanded"}.`,
     );
   }
 
   function openAndFocus(id: HomepageCurationSectionId) {
-    if (preferences.collapsed.includes(id)) toggle(id, true);
+    recovery.reveal(id);
     requestAnimationFrame(() => {
       document.getElementById(id)?.scrollIntoView({
         behavior: "smooth",
@@ -126,7 +102,8 @@ export default function HomepageCurationOrganizer({
 
   useEffect(() => {
     const id = window.location.hash.slice(1) as HomepageCurationSectionId;
-    if (sectionById.has(id)) window.setTimeout(() => openAndFocus(id), 0);
+    const timer = sectionById.has(id) ? window.setTimeout(() => openAndFocus(id), 0) : undefined;
+    return () => window.clearTimeout(timer);
     // The initial hash is handled once; later navigator actions call openAndFocus.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -144,8 +121,8 @@ export default function HomepageCurationOrganizer({
           if (preferences.collapsed.includes(sectionId)) toggle(sectionId, true);
         }}
         actions={<>
-          <button type="button" disabled={saving || preferences.collapsed.length === 0} onClick={() => void persist({ ...preferences, collapsed: [] }, "All homepage sections expanded.")} className="admin-btn-secondary whitespace-nowrap">Expand All</button>
-          <button type="button" disabled={saving || preferences.collapsed.length === preferences.order.length} onClick={() => void persist({ ...preferences, collapsed: [...preferences.order] }, "All homepage sections collapsed.")} className="admin-btn-secondary whitespace-nowrap">Collapse All</button>
+          <button type="button" disabled={saving || preferences.collapsed.length === 0} onClick={() => void persist({ ...preferences, collapsed: [] })} className="admin-btn-secondary whitespace-nowrap">Expand All</button>
+          <button type="button" disabled={saving || preferences.collapsed.length === preferences.order.length} onClick={() => void persist({ ...preferences, collapsed: [...preferences.order] })} className="admin-btn-secondary whitespace-nowrap">Collapse All</button>
         </>}
       />
 
@@ -169,7 +146,6 @@ export default function HomepageCurationOrganizer({
                 setConfirmReset(false);
                 void persist(
                   DEFAULT_HOMEPAGE_CURATION_PREFERENCES,
-                  "Default homepage layout restored.",
                 );
               }}
               className="admin-btn-primary"
@@ -196,6 +172,7 @@ export default function HomepageCurationOrganizer({
         )}
       </div>
 
+      {recovery.panel}
       <div className="space-y-5">
         {preferences.order.map((id, index) => {
           const section = sectionById.get(id);
@@ -229,6 +206,7 @@ export default function HomepageCurationOrganizer({
                     headingRefs.current[id] = node;
                   }}
                   type="button"
+                  disabled={saving}
                   aria-expanded={!collapsed}
                   aria-controls={`${id}-content`}
                   onClick={() => toggle(id)}
@@ -252,7 +230,7 @@ export default function HomepageCurationOrganizer({
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
                   <AdminDragHandle
                     label={section.title}
-                    draggable
+                    draggable={!saving}
                     onDragStart={(event: DragEvent<HTMLSpanElement>) => {
                       setDraggedId(id);
                       event.dataTransfer.effectAllowed = "move";
@@ -273,6 +251,7 @@ export default function HomepageCurationOrganizer({
                     symbol="↓"
                   />
                   <AdminCardToggle
+                    disabled={saving}
                     expanded={!collapsed}
                     label={section.title}
                     controls={`${id}-content`}

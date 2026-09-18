@@ -1,5 +1,14 @@
 # Helios Studio V2 progress ledger
 
+## Packet 7 in verification: private homepage layout recovery
+
+- Branch `codex/v2-private-layout-recovery`, base #313 `codex/v2-homepage-parent-transfer` at `528dfeb037af918c40184d89376fe6587df273d1`. Fresh checkout; main remains `72dab34568cb6885f3e93b5ed9db38edca156835`. Canonical expected-SHA claim acquired. Broad automation remains paused.
+- Inventoried HomepageCurationOrganizer and PATCH /api/admin/homepage-layout: private AdminUser JSON order/collapse, no SiteSettings/public-layout parent. Reproduced duplicate requests, unknown-outcome order loss, unvalidated acknowledgement acceptance and stale revision 200. Existing zero-count rejection and historical normalization retained.
+- Added required browser revision/context preconditions, current membership/account lock and revalidation, complete-set validation, unique stored JSON generation, exact-count write and transactional authoritative readback. Preserved all active roles including viewers. No schema or migration.
+- Synchronous browser admission/frozen input, strict scoped receipts, timeout/context/unmount fencing and shared retained-copy reconciliation; layout edits blocked while pending or held. Sibling content stays mounted/editable. Hash expansion is local-only so recovery reload cannot automatically write.
+- Local final combined suite **867 passed, 0 failed**. Prisma generation, non-incremental TypeScript, scoped lint, fixture bundle and whitespace passed. Final context-effect refinement passed all 19 component checks; fresh CI will verify the final combined tree. Actual-route SQL adapter checks use PGlite, not generated-Prisma/independent Neon contention. Local Chromium unavailable; CI browser evidence pending, packet not yet complete.
+- Feature inventory, DTOs, baselines, compatibility, rollback and limits: `docs/helios-studio-v2-private-layout-recovery.md`. Hosted authentication, contention/latency, mixed-version overlap/restoration and broader Phase 1/2 gates remain open. Production ON HOLD. No next packet started. Recommend only a bounded homepage mixed-version writer and rollback rehearsal.
+
 ## Latest verified packet: September 18, 2026, #313 (Packet 6)
 
 - Draft [#313](https://github.com/heliosremedia/heliosremedia/pull/313), branch `codex/v2-homepage-parent-transfer`, base #312 `codex/v2-work-card-upload-ownership` at `26bd99d98e1b86d7c65eec9b353064e3e109fd91`. Verified code head `08eecd496ebea0f2195f3bead54f3609137486b9`, tree `7991b6cba698e8513cca6a1fe99eee34742f1bc3`. Final documentation head and exact-head CI are recorded in PR metadata and the canonical claim.

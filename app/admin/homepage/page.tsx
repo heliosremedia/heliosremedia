@@ -1,3 +1,4 @@
+import { homepageLayoutRevision } from "@/lib/homepage-layout-revision";
 import { curationRevision } from "@/lib/homepage-curation-write";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
@@ -37,6 +38,10 @@ export default async function HomepageCurationPage() {
   const footerCount = settings.footerNavigation.filter((item) => item.displayInFooter ?? item.published !== false).length;
   return <div className="space-y-7"><section className="border-b border-white/[0.08] pb-7"><p className="eyebrow text-[var(--helios-orange)]">Public presentation</p><h1 className="mt-3 text-3xl font-light tracking-[-0.03em] text-white sm:text-4xl">Homepage curation</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-white/40">Control homepage content while arranging this admin workspace to match your workflow. Layout changes are private and never affect the public page order.</p></section>
     <HomepageCurationOrganizer
+      key={`layout:${session.userId}:${session.workspaceId}`}
+      userId={session.userId}
+      workspaceId={session.workspaceId}
+      initialRevision={homepageLayoutRevision(session.userId, session.workspaceId, user?.homepageCurationPreferences)}
       initialPreferences={normalizeHomepageCurationPreferences(user?.homepageCurationPreferences)}
       sections={[
         {

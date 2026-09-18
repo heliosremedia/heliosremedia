@@ -48,3 +48,11 @@ export function normalizeHomepageCurationPreferences(
   );
   return { order, collapsed };
 }
+
+/** New writes must be complete; normalization remains only for historical reads. */
+export function validHomepageLayout(value: unknown): value is HomepageCurationPreferences {
+ if (!value || typeof value !== 'object') return false;
+ const { order, collapsed } = value as HomepageCurationPreferences;
+ const valid = (list: unknown): list is HomepageCurationSectionId[] => Array.isArray(list) && list.every(id => HOMEPAGE_CURATION_SECTION_IDS.includes(id)) && new Set(list).size === list.length;
+ return valid(order) && order.length === HOMEPAGE_CURATION_SECTION_IDS.length && valid(collapsed);
+}
