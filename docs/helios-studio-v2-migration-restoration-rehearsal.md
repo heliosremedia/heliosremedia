@@ -1,0 +1,85 @@
+# Packet 10: historical migration, backfill and logical restoration
+
+Status: isolated implementation checkpoint verified; final-head confirmation is recorded on the draft PR. Production ON HOLD.
+
+## Inventory and supported starting point
+
+Base #316 is `a0b018af4947cf52466534220eb2e725c8f239d2`. Pre-V2 schema is pinned to main `72dab34568cb6885f3e93b5ed9db38edca156835`. #307 legal compatibility guards, #315 hardened writers and #316 actual application harness are retained. No application runtime behavior or migration history is modified.
+
+A preliminary executable replay from the first historical SQL migration fails at `20260727190000_social_direct_publishing`: `SocialConnectionState` does not exist yet. The isolated PostgreSQL workflow asserts this known failure independently. The packet does not silently reorder files, rewrite history, mark failed migrations resolved or claim empty-database historical replay succeeds. Repairing the historical baseline/dependency history remains a separate gate.
+
+The supported historical fixture starts from the exact pinned pre-V2 Prisma schema, materialized using `prisma migrate diff --from-empty --to-schema ... --script`. This is a schema snapshot, not a replay of every pre-V2 migration or proof of deployed `_prisma_migrations` history. All 18 V2 SQL files from tenant foundation through legal scoped identity are then executed unmodified in lexical order, each within an explicit isolated transaction. SQL SHA256 values are logged. This wrapper is not `prisma migrate deploy` and does not fabricate a Prisma migration ledger. Production history/checksum reconciliation remains required.
+
+## Historical fixture coverage
+
+- Two workspaces, active owner accounts and historical private-layout order/collapsed JSON without a generation field; memberships come from the real tenant-foundation migration.
+- Nullable legacy `SiteSettings.id=default` and an owned second-company singleton. The default has explicit fixture evidence assigning it to A. One guarded row-count-checked fixture mapping assigns it; no general settings backfill tool is invented.
+- Published projects, parent-owned homepage placements, ordered service/work cards and project media with historical storage keys and no registry provenance.
+- Global legal type identity, original synthetic text/publication flags and timestamps; privacy belongs to A and terms to B. No legal cutover or guard removal.
+- Blog series/posts with matching project media and absent historical ownership; paused newsletter series with preserved future generation schedules. Creator relationship deliberately differs from stored owner for one series. No job/cron/provider runs.
+- Already scoped location rows sharing a slug across companies, manual brand rows and a post-expansion synthetic retained registry preparation.
+- Empty remaining roots still exercise their real expansion DDL; no claim of exhaustive customer-state coverage.
+
+## Backfill and failure contract
+
+Actual same-connection operator scripts: `backfill-content-ownership.sql`, `backfill-brand-ownership.sql`, `backfill-legal-ownership.sql`. Their temporary mapping tables use explicit synthetic record evidence. No creator, oldest-workspace or branding inference occurs.
+
+Negative checks require missing brand migration mapping to fail with DDL/data rolled back; missing operator mappings to fail; a contradictory blog/series mapping to roll back; and a trigger-injected interruption during newsletter backfill to roll back earlier blog updates. The trigger is test-only and removed after the expected failure. Retry explicitly starts after ROLLBACK and corrected evidence. Repeated supported operator scripts must leave the entire row snapshot unchanged. DDL itself is not idempotent and is reapplied only to a restored pre-migration database.
+
+Location company/slug uniqueness, retained global legal uniqueness and legacy unregistered media are verified. Legal's database-only `LegalDocument_legacy_type_guard` remains intact; no `db push` is used after expansion. Shared legal types remain blocked until a separately authorized cutover. Registry provenance is added only for an explicit synthetic new preparation, never guessed for old media.
+
+## Backup and restoration method
+
+Dedicated disposable PostgreSQL16 service with synthetic credentials. Exact loopback database allowlist; all targets must be absent before creation. PostgreSQL16 `pg_dump --format=custom --no-owner --no-acl` creates pre/post logical backups. SHA256 and deterministic whole-database row snapshots/counts are logged. No backup contains customer data or provider credentials.
+
+Pre-migration dump restores into a separate clean database with `pg_restore --single-transaction --exit-on-error`. Full row snapshots and index/trigger catalogs must match exactly. The actual V2 migration/backfill sequence reruns; semantic equality excludes only new membership createdAt/updatedAt timestamps, because those are intentionally regenerated by the membership expansion. No identities, owners, ordering, publication or configuration fields are excluded. Legacy preferences have no generation field; the real current layout writer introduces and advances it during restored-application verification.
+
+Post-migration dump restores into another clean database with exact row/catalog equality, including the legal guard and registry trigger. A truncated copy must fail atomically into a separate empty target. No automatic retry or destructive cleanup follows failure. A further restore supplies the existing full-application rehearsal database; it must equal the post-migration snapshot before application writes.
+
+The existing application harness gets an explicit `--restored-fixture` mode gated by the fixed isolated database and `PACKET10_REHEARSAL=isolated-only`. It skips schema initialization and seeding, so restored operator-managed indexes/triggers survive. Both prior-compatible and current source builds retain hardened writers. Real authenticated location/legal reads, foreign removal denial and two-host settings resolution supplement the existing homepage contention/rollback/Chromium checks. Signed sessions and provider/font substitutions remain synthetic. No storage transfer, provider API, production environment or live routing.
+
+## Rehearsal-only operator procedure
+
+1. Confirm authorization is for isolated data only, pin source/schema/migration hashes, and verify the run claim. Stop for changed migration history, unknown database, existing target databases, runtime env files or unmapped ownership.
+2. Create a dedicated disposable PostgreSQL16 service and fresh databases through the workflow. Seed only documented fixtures. Record counts, row hashes, ownership, publication, ordering and catalog snapshots.
+3. Take and checksum the pre-migration logical dump before any expansion. Restore-test it before treating it as recovery evidence.
+4. Apply the pinned V2 SQL in order with transaction failure stopping execution. Supply only verified brand mapping on the migration connection. Never guess an owner to get past a failure.
+5. Prepare temporary per-record mapping tables on the operator connection. Execute actual backfills, reconcile all scoped relationships and repeat idempotent scripts. Explicitly verify the legacy singleton mapping and retained legal guard.
+6. Stop on incomplete/contradictory ownership, duplicates, partial results or interruption. Roll back the failed transaction, preserve evidence and backup, correct the verified mapping, then retry only the supported backfill. Do not rerun non-idempotent DDL blindly or remove guards.
+7. Restore the pre-dump into a NEW clean target, verify exact historical integrity, rerun expansion/backfill and compare semantic results. Never restore over the source to hide a discrepancy.
+8. Take/restore a post-dump and compare rows plus index/trigger catalogs. Refuse corrupt/incomplete dumps; abandon that isolated failed target for review. No automated production restore or cleanup command is provided.
+9. Start the actual application only against the restored fixture. Verify public/admin scoping, revision-aware writes, foreign rejection, rollback-compatible reads and browser recovery. Do not enable cron or external providers.
+10. Preserve CI evidence and the operator findings. These steps are NOT a production-authorized migration or restoration runbook. Stop at this packet's review gate.
+
+## Verification and limits
+
+Targeted preliminary PGlite execution passed fixture seeding, all18 V2 SQL files, ambiguity/interruption rollback and idempotent backfills. This is not PostgreSQL/backup/application evidence; dedicated PostgreSQL CI has since passed as recorded below. Three executable safety/integrity/HTTP tests and scoped lint pass locally.
+
+Limitations: not hosted Neon/PrismaNeon, full historical empty-database replay, Prisma deploy-ledger reconciliation, PITR/WAL recovery, large/customer-data completeness, real providers or production. Phase1/2 isolation/media/job and release gates remain open. Recommended next packet only: historical migration dependency/ledger reconciliation and a supported bootstrap baseline, preserving existing applied checksums and compatibility guards. No next packet is started.
+
+## First PostgreSQL execution
+
+CI35353171649 at `1ef960c1d271e66c37b13a319b5c4d509962e925` passed real PostgreSQL migration/backfill, pre/post dumps/restores, semantic replay and truncated-backup rejection, followed by both full application builds. It then failed the B-host assertion: Node24 fetch silently ignored the supplied Host header and sent the URL's127.0.0.1 host. A local executable HTTP echo reproduced this transport behavior. The harness now uses explicit loopback HTTP transport with a tested Host header; no application change is warranted. Final CI remains pending. Added generated-Prisma scoped read/CAS/rollback checks for both restored databases and pinned the restored candidate build to #316 explicitly.
+
+Synthetic logical dumps remain on the isolated runner until environment disposal, including failure paths. Backup logs use SHA256 over the raw dump bytes. The candidate application source is explicitly pinned to #316; the prior compatible build retains #315 hardened homepage writers.
+
+## Verified application and restoration checkpoint
+
+Draft [#317](https://github.com/heliosremedia/heliosremedia/pull/317), branch `codex/v2-migration-restoration-rehearsal`, base #316 `codex/v2-application-rollback-rehearsal`. Implementation checkpoint `3b98ba2ce1fd74ae3d539de168f85fe7ebcee6f3`, tree `3efb01ff00057f5af9412a3344b52f6023603289`.
+
+[CI35353960875](https://github.com/heliosremedia/heliosremedia/actions/runs/35353960875), job105628601154, passed every step on September18,2026:
+
+- Real PostgreSQL16.15, PostgreSQL16 dump/restore tools and generated Prisma7.8. All18 V2 migration SQL files and three actual operator scripts executed. Explicit ambiguity/interruption checks and idempotent repeats passed.
+- Pre-migration logical restore matched every table's rows and index/trigger catalogs. Migration/backfill replay matched semantically, excluding only regenerated membership timestamps. Post-migration restore matched exactly. The truncated dump was rejected with the target still empty.
+- Generated Prisma separately exercised both restored databases: scoped reads, conditional writes, foreign/stale rejection, transaction rollback and immutable registry ownership.
+- Both full Next16.2.10 application builds/start passed on restored data without schema push/reseeding. Actual authenticated admin legal/location reads were scoped; foreign removal returned404; explicit HTTP Host requests resolved companyA/B settings independently.
+- Existing real homepage route checks passed project/order/private-layout/attachment200+409 contention, old/stale409, foreign404, atomic reorder rollback, parent-transfer containment and zero observed deadlocks. These are bounded correctness checks, not load/performance or hosted Neon evidence.
+- Actual application Chromium passed prior-loaded390px14:08:05UTC, prior-loaded1440px14:08:09UTC, candidate-loaded390px14:08:11UTC and candidate-loaded1440px14:08:14UTC. It preserved newer edits across held receipts and reconciled retained copies without automatic retry.
+
+The final fixture refinement removes a not-yet-existing generation field from pre-V2 JSON and retains logical backup files until ephemeral environment disposal. Raw dump-byte SHA256 replaces the earlier encoded checksum representation. Final exact-head workflow IDs and commit are recorded on the PR and canonical run claim after those checks; this avoids a self-referential documentation commit.
+
+The local full suite passed885 before the added real HTTP Host regression; all three targeted checks and non-incremental TypeScript/scoped lint passed afterward. Regression CI35353960906 passed886 tests, zero failures, every Prisma/type/browser/whitespace step against the verified checkpoint. No repeated local full suite was used for minor harness corrections.
+
+This packet establishes the pinned pre-V2-schema → real V2 SQL/backfill → logical restore contract. It does not establish successful replay of the entire historical migration directory from empty, or production migration/restore authorization. No deployed migration file, legal copy, application runtime, provider configuration, production data or compatibility guard was changed.
+
+[Regression CI35353960906](https://github.com/heliosremedia/heliosremedia/actions/runs/35353960906), job105628620391, passed every step. **Packet10 is complete for the bounded pinned-schema migration/backfill and logical-restoration scope**, subject to exact final-head confirmation recorded on #317 and the canonical claim. The historical empty-bootstrap defect remains an explicit follow-up gate. Stop here; no next packet or production cutover is authorized by this evidence.

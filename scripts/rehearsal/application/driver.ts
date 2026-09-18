@@ -52,6 +52,7 @@ export async function exercise(origin:string,switchTo:(name:string)=>void){
   console.log('PASS real Next HTTP '+mode+': public/admin routing, reads, project/order/layout parallel 200+409, stale/headerless/foreign rejection');
  }
  // Real preparation and attachment routes; object existence is synthetic.
+ const assetBaseline=await prisma.workspaceAsset.count();
  const before=await state();const prepared=await request('/api/admin/homepage-work-cards/presign','POST',{cardId:'ca1',kind:'image',fileType:'image/webp',fileSize:10},{'x-curation-revision':before.cards.revision,'x-curation-request':'prepare'});assert.equal(prepared.status,200);const upload=await prepared.json();
  const body={cardId:'ca1',serviceId:'sa1',mediaMode:'IMAGE',imageStorageKey:upload.media.key,imageUrl:upload.media.url};
  const attachments=await Promise.all([write('work-cards',before.cards.revision,body),write('work-cards',before.cards.revision,{...body,titleOverride:'Concurrent attachment'})]);assert.deepEqual(attachments.map(r=>r.status).sort(),[200,409]);const attached=attachments.find(r=>r.status===200)!;assert.equal((await attached.json()).media.image.assetId,upload.media.assetId);
@@ -59,7 +60,7 @@ export async function exercise(origin:string,switchTo:(name:string)=>void){
  switchTo('prior');const readback=await state();assert.equal(readback.cardRows.find((r:{id:string})=>r.id==='ca1').imageStorageKey,upload.media.key);
  assert.equal((await request('/api/admin/homepage-work-cards','PATCH',body)).status,409);
  switchTo('candidate');assert.equal((await write('work-cards',readback.cards.revision,{...body,titleOverride:'After rollback'})).status,200);
- assert.equal(await prisma.workspaceAsset.count(),1);
+ assert.equal(await prisma.workspaceAsset.count(),assetBaseline+1);
  assert.equal(JSON.stringify(await prisma.homepageProject.findUnique({where:{id:'hpb'}})),originalB);
  // Force a second-row database failure and prove that the first positional update rolls back.
  const ordering=await state();assert.equal((await write('work-cards',ordering.cards.revision,{action:'reorder',cardIds:['ca2','ca1']})).status,200);

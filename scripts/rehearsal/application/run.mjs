@@ -7,8 +7,10 @@ import {join,dirname} from 'node:path';
 import {build} from 'esbuild';
 import {pathToFileURL} from 'node:url';
 import {DATABASE,PRIOR,CANDIDATE,requireIsolatedDatabase,requireLoopback} from './safety.mjs';
+import {readHost} from '../restoration/http.mjs';
 import {checkHomepageRollback} from '../check-homepage-rollback.mjs';
 const root=process.cwd();
+const candidateRevision=process.argv.includes('--restored-fixture')?'a0b018af4947cf52466534220eb2e725c8f239d2':CANDIDATE;
 assert.equal((await readdir(root)).filter(n=>/^\.env(?:\.|$)/.test(n)&&n!=='.env.example').length,0,'No runtime environment files permitted');
 requireIsolatedDatabase(process.env.PACKET9_DATABASE_URL);
 const scratch=await mkdtemp(join(tmpdir(),'helios-packet9-'));const children=[];const logs=new Map();let proxy,browser,driver;
@@ -49,18 +51,34 @@ try{
  if(process.argv.includes('--prepare-only')){console.log('PASS generated Prisma driver bundle and safety preparation; database/application not executed');}
  else{
   Object.assign(process.env,{PACKET9_DATABASE_URL:DATABASE,AUTH_SECRET:env.AUTH_SECRET});driver=await import(pathToFileURL(bundle));
+  if(process.argv.includes('--restored-fixture')){
+   assert.equal(process.env.PACKET10_REHEARSAL,'isolated-only');
+   assert.equal(await driver.prisma.workspace.count(),2);
+   assert.equal(await driver.prisma.legalDocument.count(),2);
+   assert.equal(await driver.prisma.blogPost.count(),2);
+   console.log('Using explicitly restored Packet10 fixture; no db push or reseeding');
+  }else{
   const tables=await driver.prisma.$queryRawUnsafe("SELECT tablename FROM pg_tables WHERE schemaname='public'");assert.equal(tables.length,0,'Refuse any populated database');
   console.log('PostgreSQL version:',await driver.prisma.$queryRawUnsafe('SELECT version()'));
   await command(process.execPath,['node_modules/prisma/build/index.js','db','push']);
   const registry=await readFile('prisma/migrations/20260911235500_workspace_asset_registry/migration.sql','utf8');
   const fn=registry.indexOf('CREATE FUNCTION'),trigger=registry.indexOf('CREATE TRIGGER');await driver.prisma.$executeRawUnsafe(registry.slice(fn,trigger));await driver.prisma.$executeRawUnsafe(registry.slice(trigger));
   await driver.seed();
+  }
   assert.equal((await command('git',['rev-parse',PRIOR+':prisma/migrations'])).trim(),(await command('git',['rev-parse',CANDIDATE+':prisma/migrations'])).trim(),'Rehearsed source revisions must share migration history');
-  const prior=await prepare('prior',PRIOR),candidate=await prepare('candidate',CANDIDATE);
+  const prior=await prepare('prior',PRIOR),candidate=await prepare('candidate',candidateRevision);
   const targets={prior:await start('prior',prior,45181),candidate:await start('candidate',candidate,45182)};let active='prior';
   proxy=createServer(async(req,res)=>{try{const target=targets[active];const name=active;const url=new URL(req.url,'http://127.0.0.1');assert.equal(url.origin,'http://127.0.0.1');const headers={};for(const [k,v] of Object.entries(req.headers))if(!['host','connection','content-length'].includes(k)&&!k.startsWith('x-forwarded'))headers[k]=v;const chunks=[];for await(const chunk of req)chunks.push(chunk);const upstream=await fetch(target+url.pathname+url.search,{method:req.method,headers,body:['GET','HEAD'].includes(req.method)?undefined:Buffer.concat(chunks),redirect:'manual',signal:AbortSignal.timeout(120000)});res.statusCode=upstream.status;upstream.headers.forEach((v,k)=>{if(!['content-encoding','content-length','transfer-encoding','connection'].includes(k))res.setHeader(k,v);});res.setHeader('x-rehearsal-target',name);res.end(Buffer.from(await upstream.arrayBuffer()));}catch(error){res.statusCode=502;res.end(String(error));}});
   await new Promise(r=>proxy.listen(0,'127.0.0.1',r));const origin='http://127.0.0.1:'+proxy.address().port;
   const switchTo=name=>{assert.ok(name in targets);active=name;};
+  if(process.argv.includes('--restored-fixture')){
+   const headers={cookie:driver.cookie()};
+   const locations=await fetch(origin+'/admin/locations',{headers});assert.equal(locations.status,200);const html=await locations.text();assert.match(html,/Location a/);assert.doesNotMatch(html,/Location b/);
+   const settings=await fetch(origin+'/admin/settings',{headers});assert.equal(settings.status,200);const legal=await settings.text();assert.match(legal,/Synthetic legal a/);assert.doesNotMatch(legal,/Synthetic legal b/);
+   const before=JSON.stringify(await driver.prisma.locationPage.findUnique({where:{id:'lb'}}));assert.equal((await fetch(origin+'/api/admin/locations?locationId=lb',{method:'DELETE',headers})).status,404);assert.equal(JSON.stringify(await driver.prisma.locationPage.findUnique({where:{id:'lb'}})),before);
+   for(const [host,id] of [['127.0.0.1','a'],['localhost','b']]){const {status,text}=await readHost(targets.candidate,host);assert.equal(status,200);assert.ok(text.includes('REHEARSAL COMPANY '+id));assert.ok(!text.includes('REHEARSAL COMPANY '+(id==='a'?'b':'a')));}
+   console.log('PASS restored actual admin legal/location reads, foreign removal denial and two public host settings scopes');
+  }
   await driver.exercise(origin,switchTo);
   const asset=await driver.prisma.workspaceAsset.findFirstOrThrow();await assert.rejects(driver.prisma.workspaceAsset.update({where:{id:asset.id},data:{workspaceId:'b'}}));
   if(!process.argv.includes('--http-only')){
