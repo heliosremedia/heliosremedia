@@ -1,21 +1,24 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-migration-restoration",
   "branch": "codex/v2-migration-restoration-rehearsal",
   "base": "codex/v2-application-rollback-rehearsal",
   "baseHead": "a0b018af4947cf52466534220eb2e725c8f239d2",
-  "expiresAt": "2026-09-18T17:15:36.671Z",
+  "expiresAt": "2026-09-18T14:23:15.561Z",
   "scope": "Packet 10 only; isolated fixtures; production ON HOLD",
   "pr": 317,
   "head": "6c0058c9b870e12f9d4127741e2eab4cbd1b1d32",
-  "verifiedCheckpoint": "3b98ba2ce1fd74ae3d539de168f85fe7ebcee6f3",
+  "verifiedCheckpoint": "6c0058c9b870e12f9d4127741e2eab4cbd1b1d32",
   "verifiedRuns": [
-    35353960875,
-    35353960906
+    35354985239,
+    35354985201
   ],
   "finalRuns": [
     35354985239,
     35354985201
   ],
-  "note": "Checkpoint passed886 tests and real PostgreSQL migration/backfill/logical restore/application/Chromium. Final exact-head verification running. No next packet."
+  "note": "Packet 10 complete for pinned pre-V2 schema migration/backfill/logical restoration scope. Draft #317 open/unmerged; final exact-head CI passed. Historical empty-bootstrap migration dependency and deployed Prisma ledger reconciliation remain gates. Production ON HOLD; no next packet started.",
+  "releasedAt": "2026-09-18T14:23:15.561Z",
+  "testCount": 886,
+  "chromium": "Passed actual restored application at 390px/1440px for prior-compatible and candidate builds; all regression browser checks passed."
 }
