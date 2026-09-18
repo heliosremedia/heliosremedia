@@ -48,3 +48,9 @@ Recommended next packet: private homepage section-layout preference browser reco
 The existing `WorkspaceAsset_identity_guard` database trigger already rejects workspace/provider/namespace/key identity changes. The existing isolated migration test exercises that rejection; this packet does not duplicate or bypass it. Registry status/provenance lifecycle coordination remains distinct from parent ownership and is not expanded here.
 
 Local final combined suite: **835 passed, 0 failed**. Prisma generation without migration, non-incremental TypeScript, scoped lint, curation fixture bundle and whitespace passed. Local Chromium is not claimed; fresh CI browser verification is pending publication.
+
+## Verified checkpoint
+
+Draft [#313](https://github.com/heliosremedia/heliosremedia/pull/313), `codex/v2-homepage-parent-transfer`, stacked on #312 `codex/v2-work-card-upload-ownership`. Verified code head `08eecd496ebea0f2195f3bead54f3609137486b9`, tree `7991b6cba698e8513cca6a1fe99eee34742f1bc3`. [CI 35290147108](https://github.com/heliosremedia/heliosremedia/actions/runs/35290147108), job `105431068502`, passed **835/835 tests** and every workflow step. Fresh actual curation Chromium passed 390px at 2026-09-18 00:17:58 UTC and 1440px at 00:18:08 UTC. These are actual components with synthetic transport; all existing browser and isolated anonymous Next.js HTTP checks also passed.
+
+Packet 6 is complete for bounded roadmap review, subject to the stated hosted/rollout gates. Final documentation head and its exact-head CI are recorded on the PR and canonical run claim. No next packet, merge, deployment, migration or provider operation was performed.
