@@ -58,6 +58,8 @@ jobs:
         run: npm run test:film-browser
       - name: Check actual homepage curation recovery in synthetic Chromium
         run: npm run test:curation-browser
+      - name: Check private homepage layout recovery in synthetic Chromium
+        run: node scripts/browser/run-layout-editor.mjs
       - name: Check isolated Studio layout with real Next.js HTTP and Chromium
         run: npm run test:studio-layout
       - name: Check patch whitespace
