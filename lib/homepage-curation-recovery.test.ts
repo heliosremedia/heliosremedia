@@ -168,3 +168,9 @@ test('parent transfer during upload rejects attachment and retains preparation w
 test('workspace context change fences the old save acknowledgement',async()=>{
  let finish:()=>void=()=>{};const f=fixture((_u:string,o:any)=>new Promise(r=>{finish=()=>r(acknowledgement(o));}));f.button('Save card').props.onClick();f.switchWorkspace('b');f.render();f.input().props.onChange({target:{value:'New workspace draft'}});finish();await tick();assert.equal(f.input().props.value,'New workspace draft');assert.ok(!f.render().some(e=>e.props.children==='Submitted change saved ✓'));
 });
+
+for(const transition of ['older-server','reload-required'])test(`curation version transition ${transition} retains draft and never replays`,async()=>{
+ let calls=0;const f=fixture(async(_u:string,o:any)=>{calls++;return transition==='reload-required'?Response.json({success:false,code:'HOMEPAGE_RELOAD_REQUIRED',reloadRequired:true},{status:409}):acknowledgement(o,false,r=>{delete r.acknowledgement;delete r.media;});});
+ f.input().props.onChange({target:{value:'Retained across rollback'}});f.button('Save card').props.onClick();await tick();
+ assert.equal(f.input().props.value,'Retained across rollback');assert.ok(f.render().some(e=>e.type==='textarea'));f.button('Save card').props.onClick();await tick();assert.equal(calls,1);
+});

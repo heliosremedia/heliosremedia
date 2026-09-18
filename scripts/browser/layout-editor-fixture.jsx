@@ -9,7 +9,7 @@ window.fetch=async(_url,options)=>{
  const state=window.layout;state.requests.push(options);const mode=state.mode;
  const response=()=>{const ack={protocol:1,scope:'private-homepage-layout',intent:'replace',userId:'u',workspaceId:'a',requestId:options.headers['x-layout-request'],previousRevision:options.headers['x-layout-revision'],revision:state.revision==='b'.repeat(64)?'c'.repeat(64):'b'.repeat(64)};
  if(mode==='workspace')ack.workspaceId='b';if(mode==='revision')ack.revision=ack.previousRevision;if(mode==='identity')ack.userId='other';
- state.revision=ack.revision;return Response.json({success:true,preferences:JSON.parse(options.body),acknowledgement:ack});};
+ state.revision=ack.revision;return Response.json({success:true,preferences:JSON.parse(options.body),acknowledgement:mode==='rollback-server'?undefined:ack});};
  if(mode==='lost')throw Error('lost');if(mode==='conflict')return Response.json({success:false},{status:409});
  if(mode==='json')return {ok:true,status:200,json:async()=>{throw Error('json');}};
  if(mode==='timeout')return new Promise(resolve=>state.pending.push(()=>resolve(response())));

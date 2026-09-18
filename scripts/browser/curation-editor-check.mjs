@@ -20,7 +20,7 @@ export async function checkCurationEditor(base) {
    await setup(); await title().fill('Frozen'); await save().evaluate(n => { n.click(); n.click(); }); await pending(); assert.equal(await page.evaluate(() => window.curationFixture.calls.length), 1);
    await title().fill('Newer'); await finish(); await save().waitFor(); assert.equal(await title().inputValue(), 'Newer');
    await save().click(); await pending(); assert.equal(await page.evaluate(() => window.curationFixture.calls[1].headers['x-curation-revision']), '1'.padStart(64,'0')); await finish(); await save().waitFor();
-   for (const mode of ['lost','non-json','conflict','company','revision','request','identity']) {
+   for (const mode of ['lost','non-json','conflict','company','revision','request','identity','rollback-server']) {
     await setup(mode); await title().fill('Keep this'); await cards().getByLabel('Card title', { exact: true }).nth(1).fill('Sibling');
     await projects().getByLabel('Homepage title').fill('Project draft');
     // Blur triggers the independent project save; finish it before testing the card failure.
