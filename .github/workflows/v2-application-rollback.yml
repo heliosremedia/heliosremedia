@@ -1,0 +1,44 @@
+name: V2 isolated application rollback
+on:
+  push:
+    branches: ['codex/v2-application-rollback-rehearsal']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: application-rollback-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  rehearsal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16@sha256:f1c3376c26f2609ab9f29f71f824103fe2fcd8ee0346485cb6122a4f93df6f94
+        env:
+          POSTGRES_USER: helios_rehearsal
+          POSTGRES_PASSWORD: synthetic_only
+          POSTGRES_DB: helios_packet9
+        ports: ['55439:5432']
+        options: >-
+          --health-cmd "pg_isready -U helios_rehearsal -d helios_packet9"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PACKET9_DATABASE_URL: postgresql://helios_rehearsal:synthetic_only@127.0.0.1:55439/helios_packet9
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Fetch pinned rehearsal source trees
+        run: |
+          git fetch --depth 1 origin 63df1f7ba403144c9858136674b11cad8d3231f0
+          git fetch --depth 1 origin ad165992518283ff72a4d3c4e2e8f888adcacbcb
+      - run: npm ci --ignore-scripts
+      - run: ./node_modules/.bin/playwright install --with-deps chromium
+      - name: Full isolated application rollback and PostgreSQL rehearsal
+        run: node scripts/rehearsal/application/run.mjs
