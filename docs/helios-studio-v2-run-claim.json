@@ -1,10 +1,10 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-application-rollback",
   "branch": "codex/v2-application-rollback-rehearsal",
   "base": "codex/v2-homepage-mixed-version",
   "baseHead": "ad165992518283ff72a4d3c4e2e8f888adcacbcb",
-  "expiresAt": "2026-09-18T16:32:00.000Z",
+  "expiresAt": null,
   "scope": "Packet 9 only; production ON HOLD",
   "pr": 316,
   "head": "a0b018af4947cf52466534220eb2e725c8f239d2",
@@ -13,5 +13,12 @@
     35349925761,
     35349925691
   ],
-  "note": "Implementation verified. Final documentation-head CI in progress."
+  "note": "Packet 9 complete and ready for roadmap review. Both exact-head workflows passed. PR draft/open/unmerged. Production ON HOLD. No next packet started.",
+  "releasedAt": "2026-09-18T13:39:24.686Z",
+  "finalRuns": [
+    35350776000,
+    35350776096
+  ],
+  "tests": 883,
+  "chromium": "Passed actual isolated Next application at 390px/1440px from both prior and candidate revisions; real HTTP/PostgreSQL; synthetic providers/signed sessions"
 }
