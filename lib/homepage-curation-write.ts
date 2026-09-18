@@ -1,3 +1,4 @@
+import { lockCurationParents } from '@/lib/homepage-curation-parent-lock';
 import { createHash } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
@@ -27,6 +28,7 @@ export async function withCurationWrite(actor: WorkspaceWriteActor, scope: Curat
  try {
   const result = await prisma.$transaction(async tx => {
    await requireLockedWorkspaceEditor(tx, actor);
+   await lockCurationParents(tx, actor.workspaceId, scope, request);
    const before = await curationSnapshot(tx, actor.workspaceId, scope);
    if (revision !== null && revision !== before.revision) throw new RejectedWrite(NextResponse.json({ success: false, error: 'Homepage curation changed. Retain your draft and reload to reconcile.' }, { status: 409 }));
    const response = await write(tx, before.timestamp);

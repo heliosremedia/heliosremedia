@@ -10,9 +10,9 @@ export function workCardAssetNamespace() {
 }
 /** Called inside the authorized curation transaction; never deletes provider objects. */
 export async function resolveWorkCardMedia(tx: Prisma.TransactionClient, workspaceId: string, cardId: string, kind: WorkCardMediaKind,
- submitted: { key: string | null; url: string | null }, existing: { key: string | null; url: string | null }) {
+ submitted: { key: string | null; url: string | null }, existing: { key: string | null; url: string | null }, parent: { currentServiceId: string; nextServiceId: string }) {
  const { key, url } = submitted;
- const receipt = (verification: 'empty' | 'retained' | 'registered', assetId: string | null = null) => ({ workspaceId, cardId, kind, key, url, mediaId: key, assetId, verification });
+ const receipt = (verification: 'empty' | 'retained' | 'registered', assetId: string | null = null) => ({ workspaceId, cardId, serviceId: parent.nextServiceId, kind, key, url, mediaId: key, assetId, verification });
  if (!key && !url) return receipt('empty');
  // Preserve an exact historical URL-only attachment; never introduce one.
  if (!key && url && existing.key === null && url === existing.url && !url.includes('/workspaces/')) return receipt('retained');
@@ -26,6 +26,7 @@ export async function resolveWorkCardMedia(tx: Prisma.TransactionClient, workspa
  if (scoped) {
   const provenance = asset?.provenance as Record<string, unknown> | null;
   if (!asset || provenance?.kind !== 'WORK_CARD_UPLOAD' || provenance.cardId !== cardId || provenance.mediaKind !== kind) throw new Error('INVALID_VALUE');
+  if (!unchanged && (provenance?.serviceId !== parent.currentServiceId || provenance?.serviceId !== parent.nextServiceId)) throw new Error('INVALID_VALUE');
   if (!unchanged) await verifyContentImage(key);
   return receipt('registered', asset.id);
  }

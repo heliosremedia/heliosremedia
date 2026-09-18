@@ -14,7 +14,7 @@ function elements(node: any): any[] {
 const card = (id = 'c1') => ({ id, serviceId: 's' + id, titleOverride: 'Original', destinationOverride: '/portfolio', displayOrder: id === 'c1' ? 0 : 1, active: true, imageStorageKey: null, imageUrl: null, imageAlt: null, mediaMode: 'IMAGE', featuredMediaId: null, videoStorageKey: null, videoUrl: null, service: { id: 's' + id, name: id, slug: id, active: true }, featuredMedia: null });
 const placement = { id: 'p1', projectId: 'project1', titleOverride: 'Original', displayOrder: 0, active: true, imageUrl: null, project: { title: 'Project', slug: 'project', status: 'PUBLISHED', locationLabel: null, heroMedia: null } };
 function fixture(fetcher: any, project = false, extra: Record<string, any> = {}) {
- const values: any[] = []; let cursor = 0; const cleanups = new Set<() => void>();
+ const values: any[] = []; let cursor = 0; let workspaceId = 'a'; const cleanups = new Set<() => void>();
  const modules: Record<string, any> = { react: {
  useState(initial: any) { const i = cursor++; if (!(i in values)) values[i] = typeof initial === 'function' ? initial() : initial; return [values[i], (next: any) => { values[i] = typeof next === 'function' ? next(values[i]) : next; }]; },
  useRef(initial: any) { const i = cursor++; if (!(i in values)) values[i] = { current: initial }; return values[i]; },
@@ -24,8 +24,8 @@ function fixture(fetcher: any, project = false, extra: Record<string, any> = {})
  function load(path: string): any { const exports = {}; runInNewContext(ts.transpileModule(readFileSync(path, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText, { exports, Error, URL, Date, AbortController, crypto: globalThis.crypto, setTimeout: () => 0, clearTimeout, fetch: fetcher, window: { addEventListener() {}, removeEventListener() {}, location: { reload() {} } }, ...extra, require(id: string) { if (id in modules) return modules[id]; let path = id.startsWith('@/') ? id.slice(2) : id.startsWith('./') ? 'app/admin/homepage/' + id.slice(2) : ''; if (path) { if (!/\.tsx?$/.test(path)) path += path.includes('useCuration') || path.includes('CurationRecovery') ? '.tsx' : '.ts'; return modules[id] = load(path); } throw new Error('Unexpected ' + id); } }); return exports; }
  const component = load(`app/admin/homepage/Homepage${project ? 'Project' : 'WorkCard'}Manager.tsx`).default;
  const props = project ? { initialPlacements: [placement], projects: [{ id: 'project1', title: 'Project', slug: 'project' }] } : { initialCards: [card(), card('c2')], services: [card().service, card('c2').service], films: [] };
- const render = () => { cursor = 0; return elements(component({ ...props, workspaceId: 'a', initialRevision: 'baseline' })); };
- return { render, button: (name: string) => render().find(e => e.type === 'button' && e.props.children === name), input: () => render().find(e => e.type === 'input' && e.props.type !== 'file' && e.props.type !== 'checkbox'), unmount: () => cleanups.forEach(fn => fn()) };
+ const render = () => { cursor = 0; return elements(component({ ...props, workspaceId, initialRevision: 'baseline' })); };
+ return { render, switchWorkspace: (next: string) => { workspaceId = next; }, button: (name: string) => render().find(e => e.type === 'button' && e.props.children === name), input: () => render().find(e => e.type === 'input' && e.props.type !== 'file' && e.props.type !== 'checkbox'), unmount: () => cleanups.forEach(fn => fn()) };
 }
 const tick = () => new Promise(r => setTimeout(r, 0));
 test('curation actual component synchronously prevents duplicate saves', () => {
@@ -45,11 +45,11 @@ test('curation actual component retains attempted order after uncertain acknowle
 });
 
 function mediaProof(row: any) {
- return { protocol: 1, intent: 'attach', cardId: row.id, ...Object.fromEntries(['image','video'].map(kind => { const key = row[kind+'StorageKey'], url = row[kind+'Url']; return [kind, { workspaceId:'a',cardId:row.id,kind,key,url,mediaId:key,assetId:key?'asset1':null,verification:key?'registered':'empty' }]; })) };
+ return { protocol: 1, intent: 'attach', cardId: row.id, ...Object.fromEntries(['image','video'].map(kind => { const key = row[kind+'StorageKey'], url = row[kind+'Url']; return [kind, { workspaceId:'a',cardId:row.id,serviceId:row.serviceId,kind,key,url,mediaId:key,assetId:key?'asset1':null,verification:key?'registered':'empty' }]; })) };
 }
 function preparation(options: any) {
  const body=JSON.parse(options.body), key=`workspaces/a/homepage-work-cards/${body.cardId}/${body.kind}-test.webp`, url='https://assets.test/'+key;
- return {success:true,upload:{key,publicUrl:url,uploadUrl:'https://upload.test/object',contentType:body.fileType},media:{protocol:1,intent:'prepare',workspaceId:'a',cardId:body.cardId,kind:body.kind,key,url,mediaId:key,assetId:'asset1',verification:'registered'},acknowledgement:{protocol:1,workspaceId:'a',scope:'work-cards',requestId:options.headers['x-curation-request'],previousRevision:options.headers['x-curation-revision'],revision:options.headers['x-curation-revision'],ids:['c1','c2']}};
+ return {success:true,upload:{key,publicUrl:url,uploadUrl:'https://upload.test/object',contentType:body.fileType},media:{protocol:1,intent:'prepare',workspaceId:'a',cardId:body.cardId,serviceId:'s'+body.cardId,kind:body.kind,key,url,mediaId:key,assetId:'asset1',verification:'registered'},acknowledgement:{protocol:1,workspaceId:'a',scope:'work-cards',requestId:options.headers['x-curation-request'],previousRevision:options.headers['x-curation-revision'],revision:options.headers['x-curation-revision'],ids:['c1','c2']}};
 }
 function acknowledgement(options: any, project = false, mutate?: (value: any) => void) {
  const body = options.body ? JSON.parse(options.body) : {};
@@ -148,4 +148,23 @@ for(const defect of ['company','card','asset','key','url','preparation'])test(`w
 test('work-card transfer timeout retains preparation without automatic attachment or retry',async()=>{
  let expire:()=>void=()=>{},calls=0;class XHR{upload={};ontimeout!:()=>void;onabort!:()=>void;open(){}setRequestHeader(){}send(){expire=()=>this.ontimeout();}abort(){this.onabort?.();}}
  const f=fixture(async(_url:string,options:any)=>{calls++;return Response.json(preparation(options));},false,{XMLHttpRequest:XHR});f.render().filter(e=>e.props.type==='file')[1].props.onChange({target:{files:[{name:'image.webp',type:'image/webp',size:10}],value:''}});await tick();expire();await tick();assert.match(f.render().find(e=>e.type==='textarea').props.value,/asset1/);assert.equal(calls,1);
+});
+
+for(const operation of ['save','reorder','remove'])test(`homepage ${operation} after parent transfer retains draft and does not retry`,async()=>{
+ let calls=0;const f=fixture(async()=>{calls++;return Response.json({success:false},{status:409});});f.input().props.onChange({target:{value:'Retained after transfer'}});f.button(operation==='save'?'Save card':operation==='reorder'?'↓':'Remove').props.onClick();await tick();assert.match(f.render().find(e=>e.type==='textarea').props.value,/Retained after transfer/);assert.equal(calls,1);
+});
+test('work-card preparation for obsolete service parent cannot start transfer',async()=>{
+ let transfers=0;class XHR{upload={};open(){}setRequestHeader(){}send(){transfers++;}}
+ const f=fixture(async(_u:string,o:any)=>{const result=preparation(o);result.media.serviceId='obsolete';return Response.json(result);},false,{XMLHttpRequest:XHR});f.render().filter(e=>e.props.type==='file')[1].props.onChange({target:{files:[{name:'x.webp',type:'image/webp',size:10}],value:''}});await tick();assert.equal(transfers,0);assert.ok(f.render().some(e=>e.type==='textarea'));
+});
+test('obsolete-parent attachment acknowledgement preserves prepared reference and newer edits',async()=>{
+ let transfers=0;class XHR{upload={};status=200;onload!:()=>void;open(){}setRequestHeader(){}send(){transfers++;this.onload();}abort(){}}
+ const f=fixture(async(u:string,o:any)=>u.endsWith('presign')?Response.json(preparation(o)):acknowledgement(o,false,result=>{result.media.image.serviceId='obsolete';}),false,{XMLHttpRequest:XHR});f.render().filter(e=>e.props.type==='file')[1].props.onChange({target:{files:[{name:'x.webp',type:'image/webp',size:10}],value:''}});await tick();await tick();assert.equal(transfers,1);assert.match(f.render().find(e=>e.type==='textarea').props.value,/asset1/);
+});
+test('parent transfer during upload rejects attachment and retains preparation without replay',async()=>{
+ let finish:()=>void=()=>{},calls=0;class XHR{upload={};status=200;onload!:()=>void;open(){}setRequestHeader(){}send(){finish=()=>this.onload();}abort(){}}
+ const f=fixture(async(u:string,o:any)=>{calls++;return u.endsWith('presign')?Response.json(preparation(o)):Response.json({success:false},{status:409});},false,{XMLHttpRequest:XHR});f.render().filter(e=>e.props.type==='file')[1].props.onChange({target:{files:[{name:'x.webp',type:'image/webp',size:10}],value:''}});await tick();f.input().props.onChange({target:{value:'Newer after transfer'}});finish();await tick();await tick();assert.equal(calls,2);assert.match(f.render().find(e=>e.type==='textarea').props.value,/Newer after transfer/);assert.match(f.render().find(e=>e.type==='textarea').props.value,/asset1/);
+});
+test('workspace context change fences the old save acknowledgement',async()=>{
+ let finish:()=>void=()=>{};const f=fixture((_u:string,o:any)=>new Promise(r=>{finish=()=>r(acknowledgement(o));}));f.button('Save card').props.onClick();f.switchWorkspace('b');f.render();f.input().props.onChange({target:{value:'New workspace draft'}});finish();await tick();assert.equal(f.input().props.value,'New workspace draft');assert.ok(!f.render().some(e=>e.props.children==='Submitted change saved ✓'));
 });

@@ -78,7 +78,8 @@ export async function PATCH(request: Request) {
       if (ids.length !== current.length || new Set(ids).size !== ids.length || current.some(({ id }) => !ids.includes(id))) {
         return NextResponse.json({ success: false, error: "Homepage cards changed before the order was saved." }, { status: 409 });
       }
-      await Promise.all(ids.map((id, displayOrder) => prisma.homepageWorkCard.updateMany({ where: { id, service: { workspaceId: session.workspaceId } }, data: { displayOrder, updatedAt: timestamp } })));
+      const changes = await Promise.all(ids.map((id, displayOrder) => prisma.homepageWorkCard.updateMany({ where: { id, service: { workspaceId: session.workspaceId } }, data: { displayOrder, updatedAt: timestamp } })));
+      if (changes.some(change => change.count !== 1)) return NextResponse.json({ success: false, error: "Homepage parent ownership changed. Reload to reconcile." }, { status: 409 });
 
       return NextResponse.json({ success: true, cardIds: ids });
     }
@@ -101,8 +102,8 @@ export async function PATCH(request: Request) {
     const featuredMediaId = textValue(body.featuredMediaId, 200);
     const imageStorageKey = textValue(body.imageStorageKey, 1500);
     const videoStorageKey = textValue(body.videoStorageKey, 1500);
-    const image = await resolveWorkCardMedia(prisma, session.workspaceId, cardId, 'image', { key: imageStorageKey, url: textValue(body.imageUrl, 1500) }, { key: existing.imageStorageKey, url: existing.imageUrl });
-    const video = await resolveWorkCardMedia(prisma, session.workspaceId, cardId, 'video', { key: videoStorageKey, url: textValue(body.videoUrl, 1500) }, { key: existing.videoStorageKey, url: existing.videoUrl });
+    const image = await resolveWorkCardMedia(prisma, session.workspaceId, cardId, 'image', { key: imageStorageKey, url: textValue(body.imageUrl, 1500) }, { key: existing.imageStorageKey, url: existing.imageUrl }, { currentServiceId: existing.serviceId, nextServiceId });
+    const video = await resolveWorkCardMedia(prisma, session.workspaceId, cardId, 'video', { key: videoStorageKey, url: textValue(body.videoUrl, 1500) }, { key: existing.videoStorageKey, url: existing.videoUrl }, { currentServiceId: existing.serviceId, nextServiceId });
 
     if (mediaMode === "LIBRARY_VIDEO") {
       const media = featuredMediaId ? await prisma.media.findFirst({

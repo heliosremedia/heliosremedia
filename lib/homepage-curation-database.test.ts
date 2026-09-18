@@ -7,14 +7,15 @@ import ts from 'typescript';
 import { PGlite } from '@electric-sql/pglite';
 /* eslint-disable @typescript-eslint/no-explicit-any -- Actual routes/helpers, explicit Prisma-shaped SQL adapter over isolated PGlite. */
 async function fixture() {
- const db = new PGlite(); const controls = { failId: '', cacheFailure: false };
+ const db = new PGlite(); const controls = { failId: '', cacheFailure: false, transferAtAdmission: false, locks: [] as string[] };
  await db.exec(`
  CREATE TABLE "Workspace" (id text PRIMARY KEY);
  CREATE TABLE "AdminUser" (id text PRIMARY KEY, "workspaceId" text, "sessionVersion" int, active boolean, role text);
  CREATE TABLE "Project" (id text PRIMARY KEY, "workspaceId" text REFERENCES "Workspace", status text);
  CREATE TABLE "Service" (id text PRIMARY KEY, "workspaceId" text REFERENCES "Workspace");
+ CREATE TABLE "Media" (id text PRIMARY KEY, "projectId" text REFERENCES "Project");
  CREATE TABLE "HomepageProject" (id text PRIMARY KEY, "projectId" text UNIQUE REFERENCES "Project", "titleOverride" text, active boolean DEFAULT true, "displayOrder" int DEFAULT 0, "updatedAt" timestamptz DEFAULT now(), "createdAt" timestamptz DEFAULT now());
- CREATE TABLE "HomepageWorkCard" (id text PRIMARY KEY, "serviceId" text UNIQUE REFERENCES "Service", "displayOrder" int DEFAULT 0, "updatedAt" timestamptz DEFAULT now(), "createdAt" timestamptz DEFAULT now());
+ CREATE TABLE "HomepageWorkCard" (id text PRIMARY KEY, "serviceId" text UNIQUE REFERENCES "Service", "featuredMediaId" text, "displayOrder" int DEFAULT 0, "updatedAt" timestamptz DEFAULT now(), "createdAt" timestamptz DEFAULT now());
  INSERT INTO "Workspace" VALUES ('a'),('b');
  INSERT INTO "AdminUser" VALUES ('u','a',1,true,'EDITOR');
  INSERT INTO "Project" VALUES ('pa','a','PUBLISHED'),('pa2','a','PUBLISHED'),('pb','b','PUBLISHED');
@@ -43,7 +44,12 @@ async function fixture() {
    };
   }
   return { ...models,
-   $queryRaw: async (parts: TemplateStringsArray, ...values: any[]) => (await sql.query(parts.reduce((result, part, i) => result + (i ? '$' + i : '') + part, ''), values)).rows,
+   $queryRaw: async (parts: TemplateStringsArray, ...values: any[]) => {
+    const query=parts.reduce((result, part, i) => result + (i ? '$' + i : '') + part, '');
+    controls.locks.push(query);
+    if(controls.transferAtAdmission && query.includes('FROM "AdminUser"')) { controls.transferAtAdmission=false; await sql.query('UPDATE "Project" SET "workspaceId"=$1 WHERE id=$2',['b','pa']); }
+    return (await sql.query(query, values)).rows;
+   },
    adminUser: { findFirst: async ({ where }: any) => (await sql.query('SELECT * FROM "AdminUser" WHERE id=$1 AND "workspaceId"=$2',[where.id,where.workspaceId])).rows[0] },
    project: { findFirst: async ({ where }: any) => (await sql.query('SELECT * FROM "Project" WHERE id=$1 AND "workspaceId"=$2 AND status=$3',[where.id,where.workspaceId,where.status])).rows[0] },
   };
@@ -79,4 +85,32 @@ test('curation actual route/database serializes legacy count admission and expos
   const id = (await responses[0].json()).placement.id; const before=await f.revision(); f.controls.cacheFailure=true;
   assert.equal((await f.call(f.projects,'PATCH',{placementId:id,titleOverride:'Committed'},before)).status,500); assert.notEqual(await f.revision(),before);
  } finally { await f.db.close(); }
+});
+
+test('homepage ownership transfer before admission rejects stale update, reorder and delete, including legacy requests',async()=>{
+ const f=await fixture();try{
+  const projectRevision=await f.revision(),cardRevision=await f.revision('work-cards');
+  await f.db.exec(`UPDATE "Project" SET "workspaceId"='b' WHERE id='pa'; UPDATE "Service" SET "workspaceId"='b' WHERE id='sa';`);
+  assert.equal((await f.call(f.projects,'PATCH',{placementId:'p1',titleOverride:'Stale'},projectRevision)).status,409);
+  assert.equal((await f.call(f.projects,'PATCH',{placementId:'p1',titleOverride:'Legacy'})).status,404);
+  assert.equal((await f.call(f.cards,'PATCH',{action:'reorder',cardIds:['c2','c1']},cardRevision)).status,409);
+  assert.equal((await f.call(f.cards,'PATCH',{action:'reorder',cardIds:['c2','c1']})).status,409);
+  const removed=await f.projects.DELETE(new Request('http://localhost/api?placementId=p1',{method:'DELETE',headers:{'x-curation-revision':projectRevision,'x-curation-request':'old'}}));assert.equal(removed.status,409);
+  assert.equal((await f.db.query<any>('SELECT "titleOverride" FROM "HomepageProject" WHERE id=\'p1\'')).rows[0].titleOverride,'Keep');
+ }finally{await f.db.close();}
+});
+test('parent transfer at admission is re-read before mutation; parent and child lock SQL executes on unchanged writes',async()=>{
+ const f=await fixture();try{
+  const before=await f.revision();f.controls.transferAtAdmission=true;
+  assert.equal((await f.call(f.projects,'PATCH',{placementId:'p1',titleOverride:'Unsafe'},before)).status,409);
+  // The injected change is inside this isolated transaction and rolls back with its rejection.
+  assert.equal((await f.call(f.projects,'PATCH',{placementId:'p1',titleOverride:'Safe'},before)).status,200);
+  assert.ok(f.controls.locks.some(query=>query.includes('FOR UPDATE OF p')));
+  assert.ok(f.controls.locks.some(query=>query.includes('FOR UPDATE OF h, p')));
+  assert.equal((await f.call(f.cards,'PATCH',{action:'reorder',cardIds:['c2','c1']},await f.revision('work-cards'))).status,200);
+  assert.ok(f.controls.locks.some(query=>query.includes('FOR UPDATE OF h, s')));
+ }finally{await f.db.close();}
+});
+test('synthetic null parent workspace cannot bypass legacy homepage predicates',async()=>{
+ const f=await fixture();try{await f.db.exec('UPDATE "Project" SET "workspaceId"=NULL WHERE id=\'pa\'');assert.equal((await f.call(f.projects,'PATCH',{placementId:'p1',active:false})).status,404);}finally{await f.db.close();}
 });

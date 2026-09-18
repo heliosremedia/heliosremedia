@@ -32,7 +32,8 @@ export async function PATCH(request: Request) {
       const ids = Array.isArray(body.placementIds) ? body.placementIds.filter((id): id is string => typeof id === "string") : [];
       const current = await prisma.homepageProject.findMany({ where: { project: { workspaceId: session.workspaceId } }, select: { id: true } });
       if (ids.length !== current.length || new Set(ids).size !== ids.length || current.some(({ id }) => !ids.includes(id))) return NextResponse.json({ success: false, error: "Homepage curation changed before the order was saved." }, { status: 409 });
-      await Promise.all(ids.map((id, displayOrder) => prisma.homepageProject.updateMany({ where: { id, project: { workspaceId: session.workspaceId } }, data: { displayOrder, updatedAt: timestamp } })));
+      const changes = await Promise.all(ids.map((id, displayOrder) => prisma.homepageProject.updateMany({ where: { id, project: { workspaceId: session.workspaceId } }, data: { displayOrder, updatedAt: timestamp } })));
+      if (changes.some(change => change.count !== 1)) return NextResponse.json({ success: false, error: "Homepage parent ownership changed. Reload to reconcile." }, { status: 409 });
        return NextResponse.json({ success: true, placementIds: ids });
     }
     const placementId = typeof body.placementId === "string" ? body.placementId : "";
