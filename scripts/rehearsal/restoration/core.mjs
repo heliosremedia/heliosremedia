@@ -15,7 +15,7 @@ export function digest(value){return createHash('sha256').update(JSON.stringify(
 export async function seedHistorical(db){
  for(const id of ['a','b']){
   await db.query(`INSERT INTO "Workspace" (id,name,slug,"updatedAt") VALUES ($1,$2,$3,$4)`,[id,'Synthetic '+id,'synthetic-'+id,STAMP]);
-  await db.query(`INSERT INTO "AdminUser" (id,email,"displayName",role,"workspaceId",disciplines,"sessionVersion","updatedAt","homepageCurationPreferences") VALUES ($1,$2,$3,'OWNER',$4,'{}',1,$5,$6::jsonb)`,['u'+id,id+'@example.test','Synthetic '+id,id,STAMP,JSON.stringify({order:['our-work','hero'],collapsed:['hero'],layoutGeneration:'historical-retained-generation'})]);
+  await db.query(`INSERT INTO "AdminUser" (id,email,"displayName",role,"workspaceId",disciplines,"sessionVersion","updatedAt","homepageCurationPreferences") VALUES ($1,$2,$3,'OWNER',$4,'{}',1,$5,$6::jsonb)`,['u'+id,id+'@example.test','Synthetic '+id,id,STAMP,JSON.stringify({order:['our-work','homepage-navigation','homepage-media','featured-project','homepage-structure'],collapsed:['homepage-navigation']})]);
   await db.query(`INSERT INTO "SiteSettings" (id,"workspaceId","businessName","privacyPolicyPublished","termsOfServicePublished","updatedAt") VALUES ($1,$2,$3,$4,$5,$6)`,[id==='a'?'default':'settings-b',id==='a'?null:id,'REHEARSAL COMPANY '+id,id==='a',id==='b',STAMP]);
   await db.query(`INSERT INTO "Project" (id,"workspaceId",title,slug,status,"updatedAt") VALUES ($1,$2,$3,$4,'PUBLISHED',$5)`,['p'+id,id,'Project '+id,'synthetic-project-'+id,STAMP]);
   await db.query(`INSERT INTO "HomepageProject" (id,"projectId","titleOverride","updatedAt") VALUES ($1,$2,$3,$4)`,['hp'+id,'p'+id,'Initial '+id,STAMP]);

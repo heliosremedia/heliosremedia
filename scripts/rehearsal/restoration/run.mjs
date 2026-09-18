@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {spawn} from 'node:child_process';
 import {mkdtemp,readFile,writeFile,readdir,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -15,7 +16,7 @@ const clients=[];const generated=join(process.cwd(),'scripts/rehearsal/restorati
 async function command(cmd,args){return new Promise((resolve,reject)=>{const p=spawn(cmd,args,{env,stdio:['ignore','pipe','pipe']});let out='';p.stdout.on('data',x=>out+=x);p.stderr.on('data',x=>out+=x);p.on('error',reject);p.on('exit',code=>code===0?resolve(out):reject(Error(out.slice(-5000))));});}
 async function connect(name){const c=new pg.Client({connectionString:requireDatabase(databaseUrl(name))});await c.connect();clients.push(c);return c;}
 const control=new pg.Client({connectionString:'postgresql://helios_rehearsal:synthetic_only@127.0.0.1:55439/packet10_control'});
-async function dump(name,path){await command('/usr/lib/postgresql/16/bin/pg_dump',['--dbname',databaseUrl(name),'--format=custom','--no-owner','--no-acl','--file',path]);console.log('BACKUP',name,digest((await readFile(path)).toString('base64')));}
+async function dump(name,path){await command('/usr/lib/postgresql/16/bin/pg_dump',['--dbname',databaseUrl(name),'--format=custom','--no-owner','--no-acl','--file',path]);console.log('BACKUP',name,createHash('sha256').update(await readFile(path)).digest('hex'));}
 async function restore(name,path){await command('/usr/lib/postgresql/16/bin/pg_restore',['--dbname',databaseUrl(name),'--single-transaction','--exit-on-error','--no-owner','--no-acl',path]);}
 try{
  await control.connect();assert.equal((await control.query('SELECT datname FROM pg_database WHERE datname=ANY($1::text[])',[DATABASES])).rows.length,0,'Refuse existing rehearsal databases');
@@ -45,4 +46,4 @@ try{
  await build({entryPoints:['scripts/rehearsal/restoration/verify.ts'],outfile:generated,bundle:true,platform:'node',format:'esm',packages:'external'});
  const {verifyRestored}=await import(pathToFileURL(generated));await verifyRestored('packet10_pre_restore');await verifyRestored('packet10_post_restore');
  console.log('PASS Packet10 migration/backup/restore phase; application verification follows');
-}finally{await Promise.all(clients.map(c=>c.end()));await control.end();await rm(generated,{force:true});await rm(scratch,{recursive:true,force:true});}
+}finally{await Promise.all(clients.map(c=>c.end()));await control.end();await rm(generated,{force:true});console.log('Synthetic backups retained until isolated environment disposal: '+scratch);}
