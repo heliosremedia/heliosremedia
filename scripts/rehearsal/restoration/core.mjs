@@ -60,3 +60,5 @@ export async function backfill(db,{negative=false}={}){
 }
 
 export async function catalog(db){return {indexes:(await db.query("SELECT indexname,indexdef FROM pg_indexes WHERE schemaname='public' ORDER BY indexname")).rows,triggers:(await db.query("SELECT t.tgname,pg_get_triggerdef(t.oid) definition FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND NOT t.tgisinternal ORDER BY t.tgname")).rows};}
+
+export function ownershipDistribution(state){return Object.fromEntries(Object.entries(state).filter(([,rows])=>rows.length).map(([table,rows])=>[table,rows.reduce((counts,row)=>{const owner=Object.hasOwn(row,'workspaceId')?row.workspaceId??'NULL':'parent/global';counts[owner]=(counts[owner]??0)+1;return counts;},{})]));}

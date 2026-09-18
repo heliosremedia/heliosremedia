@@ -11,3 +11,9 @@ test('integrity checksum detects changed owner, revision, ordering and publicati
  for(const change of [{workspaceId:'b'},{revision:'new'},{order:2},{published:false}])assert.notEqual(digest(baseline),digest({...baseline,...change}));
  assert.equal(digest(baseline),digest({...baseline}));
 });
+
+ test('virtual-host rehearsal sends the requested Host to the loopback application',async()=>{
+ const {createServer}=await import('node:http');const {readHost}=await import('../scripts/rehearsal/restoration/http.mjs');
+ const server=createServer((req,res)=>res.end(req.headers.host));await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));
+ try{const address=server.address();assert.ok(address&&typeof address!=='string');const origin='http://127.0.0.1:'+address.port;assert.deepEqual(await readHost(origin,'localhost'),{status:200,text:'localhost'});assert.deepEqual(await readHost(origin,'127.0.0.1'),{status:200,text:'127.0.0.1'});assert.throws(()=>readHost('https://production.example','localhost'));}finally{await new Promise<void>(resolve=>server.close(()=>resolve()));}
+});

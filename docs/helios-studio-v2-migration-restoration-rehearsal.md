@@ -56,3 +56,7 @@ The existing application harness gets an explicit `--restored-fixture` mode gate
 Targeted preliminary PGlite execution passed fixture seeding, all18 V2 SQL files, ambiguity/interruption rollback and idempotent backfills. This is not PostgreSQL/backup/application evidence; dedicated CI is pending. Two executable safety/integrity tests and scoped lint pass locally.
 
 Limitations: not hosted Neon/PrismaNeon, full historical empty-database replay, Prisma deploy-ledger reconciliation, PITR/WAL recovery, large/customer-data completeness, real providers or production. Phase1/2 isolation/media/job and release gates remain open. Recommended next packet will follow the concrete findings after final verification. No next packet is started.
+
+## First PostgreSQL execution
+
+CI35353171649 at `1ef960c1d271e66c37b13a319b5c4d509962e925` passed real PostgreSQL migration/backfill, pre/post dumps/restores, semantic replay and truncated-backup rejection, followed by both full application builds. It then failed the B-host assertion: Node24 fetch silently ignored the supplied Host header and sent the URL's127.0.0.1 host. A local executable HTTP echo reproduced this transport behavior. The harness now uses explicit loopback HTTP transport with a tested Host header; no application change is warranted. Final CI remains pending. Added generated-Prisma scoped read/CAS/rollback checks for both restored databases and pinned the restored candidate build to #316 explicitly.

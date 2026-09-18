@@ -39,6 +39,7 @@ jobs:
         run: |
           git fetch --depth 1 origin 72dab34568cb6885f3e93b5ed9db38edca156835
           git fetch --depth 1 origin 63df1f7ba403144c9858136674b11cad8d3231f0
+          git fetch --depth 1 origin a0b018af4947cf52466534220eb2e725c8f239d2
           git fetch --depth 1 origin ad165992518283ff72a4d3c4e2e8f888adcacbcb
       - run: npm ci --ignore-scripts
       - run: ./node_modules/.bin/playwright install --with-deps chromium
