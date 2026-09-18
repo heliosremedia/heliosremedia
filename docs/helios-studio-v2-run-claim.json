@@ -1,10 +1,15 @@
 {
   "status": "active",
   "runId": "atlas-homepage-parent-transfer",
-  "startedAt": "2026-09-18T00:01:41.020Z",
-  "expiresAt": "2026-09-18T03:01:41.020Z",
+  "updatedAt": "2026-09-18T00:12:21.632Z",
+  "expiresAt": "2026-09-18T02:12:21.632Z",
   "branch": "codex/v2-homepage-parent-transfer",
   "base": "codex/v2-work-card-upload-ownership",
   "baseHead": "26bd99d98e1b86d7c65eec9b353064e3e109fd91",
-  "scope": "Packet 6 only; production ON HOLD"
+  "pr": 313,
+  "head": "08eecd496ebea0f2195f3bead54f3609137486b9",
+  "tree": "7991b6cba698e8513cca6a1fe99eee34742f1bc3",
+  "ci": 35290147108,
+  "scope": "Packet 6 only; final verification in progress",
+  "production": "ON HOLD"
 }
