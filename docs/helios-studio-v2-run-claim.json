@@ -1,31 +1,9 @@
 {
-  "status": "released",
-  "runId": "atlas-homepage-parent-transfer",
-  "releasedAt": "2026-09-18T00:28:52.416Z",
-  "expiresAt": null,
-  "branch": "codex/v2-homepage-parent-transfer",
-  "base": "codex/v2-work-card-upload-ownership",
-  "baseHead": "26bd99d98e1b86d7c65eec9b353064e3e109fd91",
-  "pr": 313,
-  "head": "528dfeb037af918c40184d89376fe6587df273d1",
-  "tree": "c38939fa9db14e45e8442ddf14a18ee6663f51c8",
-  "ci": 35290819410,
-  "job": 105433053861,
-  "conclusion": "success",
-  "tests": {
-    "passed": 835,
-    "failed": 0
-  },
-  "chromium": {
-    "widths": [
-      390,
-      1440
-    ],
-    "evidence": "Actual curation components; synthetic transport; 2026-09-18T00:27:24Z and 00:27:34Z"
-  },
-  "verifiedCodeHead": "08eecd496ebea0f2195f3bead54f3609137486b9",
-  "verifiedCodeCI": 35290147108,
-  "scope": "Packet 6 complete. STOP; no subsequent packet authorized.",
-  "production": "ON HOLD",
-  "nextRecommendation": "Private homepage section-layout preference browser recovery inventory and executable baseline; not implemented"
+  "status": "active",
+  "runId": "atlas-private-layout-recovery",
+  "branch": "codex/v2-private-layout-recovery",
+  "base": "codex/v2-homepage-parent-transfer",
+  "baseHead": "528dfeb037af918c40184d89376fe6587df273d1",
+  "expiresAt": "2026-09-18T02:39:13.860Z",
+  "scope": "Packet 7 only; production ON HOLD"
 }
