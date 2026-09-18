@@ -27,3 +27,13 @@ Coordinate page props/editor/route rollback. Old servers lack revision fences; n
 Local Chromium is unavailable in this checkout; the fixture bundles but that is not a browser pass. Fresh CI must supply actual Chromium evidence at 390px and 1440px using synthetic transport. Hosted authentication, generated-Prisma/Neon independent contention, deadlock/latency, deployment parity, restoration and Phase 1/2 exit gates remain open. No provider/storage verification or production action is claimed. Public readers/presentation/URLs/SEO/curated-work precedence/featured-film fallback are unchanged.
 
 Recommended next packet only: bounded homepage mixed-version writer and rollback rehearsal. Do not implement it here. Production ON HOLD.
+
+## Verified checkpoint
+
+Draft [#314](https://github.com/heliosremedia/heliosremedia/pull/314), branch `codex/v2-private-layout-recovery`, base #313 `codex/v2-homepage-parent-transfer`. Verified implementation head `28fa080a75c4e9878efc0f8f56a98284581baa3b`, tree `76b151b77cfc65cb35db628d9c24c53998284584`, matches the clean local implementation tree. [CI 35293500449](https://github.com/heliosremedia/heliosremedia/actions/runs/35293500449), job `105441179806`, passed **867 tests, zero failures, every step**. Prisma generation without migration, non-incremental TypeScript, all preceding editor browsers, private-layout browser, isolated anonymous Next.js HTTP/Chromium and whitespace passed. Scoped lint and fixture bundle passed locally.
+
+Fresh actual private-layout organizer Chromium passed **390px at 2026-09-18 01:05:18 UTC** and **1440px at 01:05:20 UTC**. Tests cover authoritative revision advancement, duplicate callbacks, eight held outcomes, retained order/copy/reload without replay, fetch/JSON timeouts, late response after remount, hash-load without writing, overflow and runtime errors. Transport is synthetic. No hosted authenticated, provider, independent-Neon or production verification is claimed.
+
+Initial CI `35292926554` passed all 867 tests/types and previous browser suites but failed the final hash-load assertion: fragment-only navigation retained the existing page's request counter. The fixture now requests a fresh document with a query parameter before asserting zero writes. No application code changed for that harness fix. The successful run above supersedes the failed run; final documentation-head SHA and exact-head CI are recorded on the PR and canonical run claim.
+
+Packet 7 is internally complete for bounded roadmap review, subject to the remaining gates above. STOP here. No subsequent packet, merge, deployment, production migration or provider change occurred.
