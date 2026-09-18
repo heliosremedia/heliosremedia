@@ -1,11 +1,17 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-homepage-mixed-version",
   "branch": "codex/v2-homepage-mixed-version",
   "base": "codex/v2-private-layout-recovery",
   "baseHead": "63df1f7ba403144c9858136674b11cad8d3231f0",
   "pr": 315,
-  "head": "944a997862919299ba9370c932a5c8caa2346c8d",
-  "expiresAt": "2026-09-18T05:33:50.707Z",
-  "scope": "Packet 8 only; CI 35303611651 in progress; production ON HOLD"
+  "head": "ad165992518283ff72a4d3c4e2e8f888adcacbcb",
+  "expiresAt": null,
+  "scope": "Packet 8 only; no next packet started",
+  "tree": "cbfa10223c6ac0b284022f3961acca08acd6279a",
+  "releasedAt": "2026-09-18T03:50:21.221Z",
+  "ciRun": 35304256000,
+  "ciJob": 105473083863,
+  "tests": 881,
+  "result": "Packet 8 complete for bounded scope; final-head CI and synthetic Chromium passed; draft open unmerged; stop here; production ON HOLD"
 }
