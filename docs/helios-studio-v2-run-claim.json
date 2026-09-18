@@ -1,9 +1,31 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-private-layout-recovery",
+  "releasedAt": "2026-09-18T01:14:49.393Z",
+  "expiresAt": null,
   "branch": "codex/v2-private-layout-recovery",
   "base": "codex/v2-homepage-parent-transfer",
   "baseHead": "528dfeb037af918c40184d89376fe6587df273d1",
-  "expiresAt": "2026-09-18T02:39:13.860Z",
-  "scope": "Packet 7 only; production ON HOLD"
+  "pr": 314,
+  "head": "63df1f7ba403144c9858136674b11cad8d3231f0",
+  "tree": "df4690cbdadb425d3e3a9b5ace35ede3b131b0c1",
+  "ci": 35294019094,
+  "job": 105442680880,
+  "conclusion": "success",
+  "tests": {
+    "passed": 867,
+    "failed": 0
+  },
+  "chromium": {
+    "widths": [
+      390,
+      1440
+    ],
+    "evidence": "Actual private organizer, synthetic transport; 2026-09-18T01:12:41Z and 01:12:44Z"
+  },
+  "verifiedCodeHead": "28fa080a75c4e9878efc0f8f56a98284581baa3b",
+  "verifiedCodeCI": 35293500449,
+  "scope": "Packet 7 complete. STOP; no next packet authorized.",
+  "production": "ON HOLD",
+  "nextRecommendation": "Bounded homepage mixed-version writer and rollback rehearsal; not implemented"
 }
