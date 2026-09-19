@@ -53,6 +53,9 @@ export async function applicationGate(){
      assert.throws(()=>verifyManifest(altered,r),'Recomputed digest must not disguise stale '+field);
     }
     const opposite=records.get(name==='prior'?'candidate':'prior');assert.throws(()=>verifyManifest(opposite.manifest,r));
+    const file='release-evidence/'+name+'-manifest.json';
+    await writeFile(file,canonical(opposite.manifest));
+    try{await assert.rejects(this.admit(name));}finally{await writeFile(file,canonical(r.manifest)+'\n');}
    }
    console.log('PASS stale/mismatched/rollback artifact cannot be promoted');
   },

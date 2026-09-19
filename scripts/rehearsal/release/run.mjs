@@ -41,6 +41,12 @@ try{
  await assert.rejects(migrateApproved(options('packet11_replay','verified-baseline')),/does not match/);
  assert.equal((await readLedger(noledger)).length,0);
  console.log('PASS no-ledger requires explicit baseline; missing guard rejected; no resolve');
+ // Prevent the known data-bearing brand migration from failing after earlier migrations committed.
+ await old.query(`INSERT INTO "Testimonial" (id,"agentName",testimonial,"updatedAt") VALUES ('ambiguous','Synthetic','Fixture',now())`);
+ await assert.rejects(migrateApproved(options('packet11_historical','historical-ledger')),/ownership migration plan/);
+ assert.deepEqual(await readLedger(old),oldLedger);
+ await old.query(`DELETE FROM "Testimonial" WHERE id='ambiguous'`);
+ console.log('PASS ambiguous historical brand ownership stops before any migration');
  const results=[];
  for(const [database,selected] of [['packet11_clean','clean-bootstrap'],['packet11_noledger','verified-baseline'],['packet11_historical','historical-ledger']]){
   const result=await migrateApproved(options(database,selected));results.push(result);

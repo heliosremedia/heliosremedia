@@ -42,10 +42,18 @@ export function head(){return requireCandidate(execFileSync('git',['rev-parse','
 export function stateEvidence(state,database){return {state:state.state,track:state.track,schemaHash:state.schemaHash,ledgerHash:state.ledgerHash,database};}
 export async function preflight({artifact,reference,database,selected,candidate}){
  isolatedEnvironment();requireCandidate(candidate);assert.equal(candidate,head(),'Candidate does not match checkout');
+ try{execFileSync('git',['diff','--quiet','HEAD','--'],{stdio:'ignore'});}catch{throw Error('Tracked checkout changed since candidate commit');}
  const identity=await sourceIdentity(artifact,reference);
  requireDatabase(databaseUrl(database));
  const db=new pg.Client({connectionString:databaseUrl(database)});await db.connect();
- try{const state=await inspect(db,reference);const track=admission(state,selected);return {identity,selected,candidate,...stateEvidence(state,database),track};}finally{await db.end();}
+ try{
+  const state=await inspect(db,reference);const track=admission(state,selected);
+  if(state.state==='supported-historical-ledger'){
+   const legacy=(await db.query('SELECT EXISTS(SELECT 1 FROM "Testimonial") OR EXISTS(SELECT 1 FROM "TrustedLogo") AS present')).rows[0].present;
+   assert.equal(legacy,false,'Historical brand rows need a separately reviewed ownership migration plan');
+  }
+  return {identity,selected,candidate,...stateEvidence(state,database),track};
+ }finally{await db.end();}
 }
 // Serializes cooperating release processes. Arbitrary external DDL must remain quiesced.
 // The callback is reached only after a fresh classification, never from a cached receipt.

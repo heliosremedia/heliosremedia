@@ -59,6 +59,8 @@ jobs:
         run: node scripts/rehearsal/release/run.mjs
       - name: Gated current build, compatible rollback and promotion simulation
         run: node scripts/rehearsal/application/run.mjs --restored-fixture --release-gate
+      - name: Require complete candidate-bound release evidence
+        run: node scripts/release/verify-artifacts.mjs
       - name: Whitespace and immutable migrations
         run: |
           git diff --exit-code HEAD -- prisma/migrations prisma/schema.prisma
