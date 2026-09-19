@@ -1,5 +1,14 @@
 # Helios Studio V2 progress ledger
 
+## Packet 12 implementation checkpoint: September 19, 2026
+
+- Scope: isolated deployment-track preflight and release artifact admission only. Branch `codex/v2-deployment-track-preflight`, stacked on #318 `f53239ae6a80d9c8afa20c72b5e89dfd5dc233cf`. Fresh clone, expected-SHA run claim; main unchanged72dab345. Production ON HOLD.
+- Reproduced actual build entrypoint accepting successful migration status without classification/artifact evidence. Hosted builds now explicitly stop before commands; normal local builds are not deployable artifacts. No cloud settings changed.
+- Explicit clean-bootstrap, verified-baseline, historical-ledger and current-family tracks; immutable manifest/catalog/schema/config checks; actual preflight/deploy/postflight with cooperating advisory lock. No automatic resolve, repair or db push. Exact no-ledger schema requires separately reviewed baseline establishment.
+- Current-HEAD full application build and compatible rollback integration bind source/build/test/ledger/schema identities into separate deterministic canonical JSON receipts. Fresh admission before local routing switches, stale/mismatched receipts rejected.106 migration SQL files and compatibility guards unchanged.
+- Dedicated isolated PostgreSQL workflow and negative matrix implemented; final CI/application/Chromium evidence pending. Feature/runbook: `docs/helios-studio-v2-release-preflight.md`.
+- Actual deployed ledger, hosted adapter/Neon/PrismaNeon, cloud provenance/approval enforcement, DDL quiescence, PITR/QA/release and broader Phase1/2 gates remain open. STOP after Packet12. Recommended only non-production hosted adapter/artifact-provenance inventory subject to access; not started.
+
 ## Latest verified packet: September 19, 2026, #318 (Packet 11)
 
 - Draft [#318](https://github.com/heliosremedia/heliosremedia/pull/318), `codex/v2-migration-ledger-bootstrap` stacked on #317 `codex/v2-migration-restoration-rehearsal` at `6c0058c9b870e12f9d4127741e2eab4cbd1b1d32`. Verified checkpoint `38812e3df331f2b0d290d14071a09e7dbf628194`; final documentation/collation-check head and exact-head CI recorded on PR/claim. Fresh checkout and conditional claim; unrelated work preserved.

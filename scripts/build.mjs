@@ -10,9 +10,11 @@ function run(command, args) {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
-if (process.env.VERCEL_ENV === "production") {
-  console.log("Checking production migration history. Apply reviewed migrations separately before deployment.");
-  run("npx", ["prisma", "migrate", "status"]);
+// Hosted admission is deliberately closed until an explicitly reviewed hosted adapter exists.
+// A plain local build is not a deployable release artifact. Use the isolated release workflow.
+if (process.env.VERCEL || process.env.VERCEL_ENV || process.env.HELIOS_RELEASE_TARGET) {
+  console.log("Release blocked: use the classified isolated release workflow. Hosted release remains on hold.");
+  process.exit(1);
 }
 
 run("npx", ["prisma", "generate"]);

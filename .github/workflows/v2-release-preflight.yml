@@ -1,0 +1,72 @@
+name: V2 isolated release preflight and artifact admission
+on:
+  push:
+    branches: ['codex/v2-deployment-track-preflight']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: release-preflight-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  rehearsal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: postgres:16@sha256:f1c3376c26f2609ab9f29f71f824103fe2fcd8ee0346485cb6122a4f93df6f94
+        env:
+          POSTGRES_USER: helios_rehearsal
+          POSTGRES_PASSWORD: synthetic_only
+          POSTGRES_DB: packet11_control
+        ports: ['55439:5432']
+        options: >-
+          --health-cmd "pg_isready -U helios_rehearsal -d packet11_control"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PACKET10_REHEARSAL: isolated-only
+      PACKET11_REHEARSAL: isolated-only
+      PACKET12_REHEARSAL: isolated-only
+      PACKET9_DATABASE_URL: postgresql://helios_rehearsal:synthetic_only@127.0.0.1:55439/helios_packet9
+      DIRECT_URL: postgresql://unused:unused@127.0.0.1:1/unused
+      DATABASE_URL: postgresql://unused:unused@127.0.0.1:1/unused
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Fetch pinned schema and rollback source
+        run: |
+          git fetch --depth 1 origin 72dab34568cb6885f3e93b5ed9db38edca156835
+          git fetch --depth 1 origin 63df1f7ba403144c9858136674b11cad8d3231f0
+          git fetch --depth 1 origin ad165992518283ff72a4d3c4e2e8f888adcacbcb
+      - run: npm ci --ignore-scripts
+      - run: ./node_modules/.bin/prisma generate
+      - name: Regression evidence bound to candidate SHA
+        run: node scripts/release/test-evidence.mjs
+      - name: Types and scoped lint
+        run: |
+          ./node_modules/.bin/next typegen
+          ./node_modules/.bin/tsc --noEmit --incremental false
+          ./node_modules/.bin/eslint scripts/release/*.mjs scripts/rehearsal/release/*.mjs scripts/rehearsal/application/run.mjs scripts/rehearsal/application/driver.ts scripts/build.mjs lib/release-preflight.test.ts lib/build-migration-gate.test.ts
+      - run: ./node_modules/.bin/playwright install --with-deps chromium
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client-16
+      - name: Safe tracks and unsafe-state release matrix
+        run: node scripts/rehearsal/release/run.mjs
+      - name: Gated current build, compatible rollback and promotion simulation
+        run: node scripts/rehearsal/application/run.mjs --restored-fixture --release-gate
+      - name: Whitespace and immutable migrations
+        run: |
+          git diff --exit-code HEAD -- prisma/migrations prisma/schema.prisma
+          git show --format= --check HEAD
+      - name: Retain non-secret release manifests
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: isolated-release-evidence-${{ github.sha }}
+          path: release-evidence/*.json
+          if-no-files-found: error
+          retention-days: 30

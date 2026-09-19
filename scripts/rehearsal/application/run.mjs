@@ -10,7 +10,10 @@ import {DATABASE,PRIOR,CANDIDATE,requireIsolatedDatabase,requireLoopback} from '
 import {readHost} from '../restoration/http.mjs';
 import {checkHomepageRollback} from '../check-homepage-rollback.mjs';
 const root=process.cwd();
-const candidateRevision=process.argv.includes('--restored-fixture')?'a0b018af4947cf52466534220eb2e725c8f239d2':CANDIDATE;
+const releaseMode=process.argv.includes('--release-gate');
+const release=releaseMode?await (await import('../../release/application-gate.mjs')).applicationGate():null;
+if(releaseMode){assert.ok(process.argv.includes('--restored-fixture'));assert.ok(!process.argv.includes('--dev')&&!process.argv.includes('--http-only')&&!process.argv.includes('--prepare-only'));}
+const candidateRevision=releaseMode?(await import('../../release/gate.mjs')).head():process.argv.includes('--restored-fixture')?'a0b018af4947cf52466534220eb2e725c8f239d2':CANDIDATE;
 assert.equal((await readdir(root)).filter(n=>/^\.env(?:\.|$)/.test(n)&&n!=='.env.example').length,0,'No runtime environment files permitted');
 requireIsolatedDatabase(process.env.PACKET9_DATABASE_URL);
 const scratch=await mkdtemp(join(tmpdir(),'helios-packet9-'));const children=[];const logs=new Map();let proxy,browser,driver;
@@ -41,7 +44,9 @@ async function prepare(name,revision){
 }
 async function start(name,dir,port){
  const mode=process.argv.includes('--dev')?'dev':'start';
+ if(release)await release.beforeBuild(name,dir,name==='prior'?PRIOR:candidateRevision);
  if(mode==='start'){console.log('Building full isolated '+name+' application');console.log((await command(process.execPath,[join(root,'node_modules/next/dist/bin/next'),'build','--webpack'],dir)).slice(-2000));}
+ if(release)await release.afterBuild(name);
  const p=spawn(process.execPath,[join(root,'node_modules/next/dist/bin/next'),mode,...(mode==='dev'?['--webpack']:[]),'--hostname','127.0.0.1','--port',String(port)],{cwd:dir,env:{...env,NODE_ENV:mode==='dev'?'development':'production'},stdio:['ignore','pipe','pipe']});children.push(p);logs.set(p,'');const capture=b=>logs.set(p,(logs.get(p)+b).slice(-15000));p.stdout.on('data',capture);p.stderr.on('data',capture);
  await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(Error('startup timeout '+name)),90000);const check=()=>{if(/Ready in/.test(logs.get(p))){clearTimeout(timeout);resolve();}};p.stdout.on('data',check);p.on('exit',c=>{clearTimeout(timeout);reject(Error('application exited '+c));});p.on('error',reject);});return requireLoopback('http://127.0.0.1:'+port);
 }
@@ -68,9 +73,10 @@ try{
   assert.equal((await command('git',['rev-parse',PRIOR+':prisma/migrations'])).trim(),(await command('git',['rev-parse',CANDIDATE+':prisma/migrations'])).trim(),'Rehearsed source revisions must share migration history');
   const prior=await prepare('prior',PRIOR),candidate=await prepare('candidate',candidateRevision);
   const targets={prior:await start('prior',prior,45181),candidate:await start('candidate',candidate,45182)};let active='prior';
+  if(release){for(const name of ['prior','candidate'])await release.qualify(name,targets[name],driver.cookie());await release.negatives();await release.admit('prior');}
   proxy=createServer(async(req,res)=>{try{const target=targets[active];const name=active;const url=new URL(req.url,'http://127.0.0.1');assert.equal(url.origin,'http://127.0.0.1');const headers={};for(const [k,v] of Object.entries(req.headers))if(!['host','connection','content-length'].includes(k)&&!k.startsWith('x-forwarded'))headers[k]=v;const chunks=[];for await(const chunk of req)chunks.push(chunk);const upstream=await fetch(target+url.pathname+url.search,{method:req.method,headers,body:['GET','HEAD'].includes(req.method)?undefined:Buffer.concat(chunks),redirect:'manual',signal:AbortSignal.timeout(120000)});res.statusCode=upstream.status;upstream.headers.forEach((v,k)=>{if(!['content-encoding','content-length','transfer-encoding','connection'].includes(k))res.setHeader(k,v);});res.setHeader('x-rehearsal-target',name);res.end(Buffer.from(await upstream.arrayBuffer()));}catch(error){res.statusCode=502;res.end(String(error));}});
   await new Promise(r=>proxy.listen(0,'127.0.0.1',r));const origin='http://127.0.0.1:'+proxy.address().port;
-  const switchTo=name=>{assert.ok(name in targets);active=name;};
+  const switchTo=async name=>{assert.ok(name in targets);if(release)await release.admit(name);active=name;};
   if(process.argv.includes('--restored-fixture')){
    const headers={cookie:driver.cookie()};
    const locations=await fetch(origin+'/admin/locations',{headers});assert.equal(locations.status,200);const html=await locations.text();assert.match(html,/Location a/);assert.doesNotMatch(html,/Location b/);
@@ -86,18 +92,19 @@ try{
    for(const [width,loaded] of [[390,'prior'],[1440,'prior'],[390,'candidate'],[1440,'candidate']]){
     const context=await browser.newContext({viewport:{width,height:1000}});const token=driver.cookie().split('=').slice(1).join('=');await context.addCookies([{name:'helios_admin_session',value:token,url:origin}]);
     await context.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
-    const page=await context.newPage();switchTo(loaded);await page.goto(origin+'/admin/homepage#our-work');
+    const page=await context.newPage();await switchTo(loaded);await page.goto(origin+'/admin/homepage#our-work');
     const cards=page.locator('#our-work');const title=cards.getByLabel('Card title',{exact:true}).first();await title.waitFor();
     let acknowledge,arrive;const arrived=new Promise(r=>arrive=r),held=new Promise(r=>acknowledge=r);let mutations=0,delay=true;
     await page.route('**/api/admin/homepage-work-cards',async route=>{mutations++;const response=await route.fetch();if(delay){arrive();await held;}await route.fulfill({response});});
-    await title.fill('Retain across routing');switchTo(loaded==='prior'?'candidate':'prior');await cards.getByRole('button',{name:'Save card',exact:true}).first().click();await arrived;
-    await title.fill('Newer edit while response held');switchTo('prior');delay=false;acknowledge();await cards.getByText('Submitted change saved ✓',{exact:true}).waitFor();assert.equal(await title.inputValue(),'Newer edit while response held');assert.equal(mutations,1);
-    switchTo('prior');const state=await(await fetch(origin+'/api/rehearsal-state',{headers:{cookie:driver.cookie()}})).json();await fetch(origin+'/api/admin/homepage-work-cards',{method:'PATCH',headers:{cookie:driver.cookie(),'x-curation-revision':state.cards.revision,'x-curation-request':'other-tab'},body:JSON.stringify({action:'reorder',cardIds:state.cards.ids.slice().reverse()})});
+    await title.fill('Retain across routing');await switchTo(loaded==='prior'?'candidate':'prior');await cards.getByRole('button',{name:'Save card',exact:true}).first().click();await arrived;
+    await title.fill('Newer edit while response held');await switchTo('prior');delay=false;acknowledge();await cards.getByText('Submitted change saved ✓',{exact:true}).waitFor();assert.equal(await title.inputValue(),'Newer edit while response held');assert.equal(mutations,1);
+    await switchTo('prior');const state=await(await fetch(origin+'/api/rehearsal-state',{headers:{cookie:driver.cookie()}})).json();await fetch(origin+'/api/admin/homepage-work-cards',{method:'PATCH',headers:{cookie:driver.cookie(),'x-curation-revision':state.cards.revision,'x-curation-request':'other-tab'},body:JSON.stringify({action:'reorder',cardIds:state.cards.ids.slice().reverse()})});
     await title.fill('Unsaved after rollback');await cards.getByRole('button',{name:'Save card',exact:true}).first().click();await cards.getByLabel('Retained homepage drafts',{exact:true}).waitFor();await page.waitForTimeout(150);assert.equal(mutations,2);assert.match(await cards.getByLabel('Retained homepage drafts',{exact:true}).inputValue(),/Unsaved after rollback/);
     await cards.getByLabel('I have retained all drafts shown above.').check();await cards.getByRole('button',{name:'Reload to reconcile'}).click();await title.waitFor();assert.notEqual(await title.inputValue(),'Unsaved after rollback');assert.equal(mutations,2);
     console.log('PASS actual authenticated local application Chromium '+width+'px: '+loaded+'-loaded browser saves after routing switch; rollback stale conflict retains copy and reload reads DB');await context.close();
    }
   }
+  if(release)await release.finish();
   console.log('PASS Packet 9 generated Prisma/PostgreSQL and two real Next application processes through local routing; zero data restoration');
  }
 }catch(error){for(const [p,log] of logs)console.error('isolated application '+p.pid+' diagnostics: '+log.slice(-8000));throw error;}
