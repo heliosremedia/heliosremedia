@@ -62,3 +62,7 @@ To unblock a future read-only qualification, supply through approved connectors/
 If access still yields no visible project, denied/partial metadata, unknown classification, production evidence, missing DB provenance or missing upload correlation, retain the safe reason code and stop. Do not create a project, provision a database, copy production credentials, connect a guessed URL, repair metadata or deploy to manufacture evidence.
 
 Outcome B is a completed inventory/negative-proof packet, **not closure of the live access gate**. Code-only rollback requires no restoration. All production holds, Phase1/2 broader gates, compatibility guards and prior tests remain intact. Recommended next packet only: resolve project-scoped non-production access and obtain authenticated project/deployment/database evidence under this checklist. No next packet started.
+
+## CI harness correction
+
+Initial access-contract CI35423967419 passed all63 selected access/admission/build-guard tests and scoped lint, then its whitespace step treated a depth1 checkout as a root commit and reported pre-existing blank lines elsewhere. Checkout now fetches depth2, matching the regression workflow. No historical files were edited to hide the failure. Final exact-head runs are recorded on #321 and the canonical claim.
