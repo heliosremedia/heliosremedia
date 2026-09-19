@@ -1,24 +1,9 @@
 {
-  "status": "released",
-  "runId": "atlas-migration-restoration",
-  "branch": "codex/v2-migration-restoration-rehearsal",
-  "base": "codex/v2-application-rollback-rehearsal",
-  "baseHead": "a0b018af4947cf52466534220eb2e725c8f239d2",
-  "expiresAt": "2026-09-18T14:23:15.561Z",
-  "scope": "Packet 10 only; isolated fixtures; production ON HOLD",
-  "pr": 317,
-  "head": "6c0058c9b870e12f9d4127741e2eab4cbd1b1d32",
-  "verifiedCheckpoint": "6c0058c9b870e12f9d4127741e2eab4cbd1b1d32",
-  "verifiedRuns": [
-    35354985239,
-    35354985201
-  ],
-  "finalRuns": [
-    35354985239,
-    35354985201
-  ],
-  "note": "Packet 10 complete for pinned pre-V2 schema migration/backfill/logical restoration scope. Draft #317 open/unmerged; final exact-head CI passed. Historical empty-bootstrap migration dependency and deployed Prisma ledger reconciliation remain gates. Production ON HOLD; no next packet started.",
-  "releasedAt": "2026-09-18T14:23:15.561Z",
-  "testCount": 886,
-  "chromium": "Passed actual restored application at 390px/1440px for prior-compatible and candidate builds; all regression browser checks passed."
+  "status": "active",
+  "runId": "atlas-migration-ledger",
+  "branch": "codex/v2-migration-ledger-bootstrap",
+  "base": "codex/v2-migration-restoration-rehearsal",
+  "baseHead": "6c0058c9b870e12f9d4127741e2eab4cbd1b1d32",
+  "expiresAt": "2026-09-19T06:46:07.422Z",
+  "scope": "Packet 11 only. Isolated bootstrap/ledger verification. Production ON HOLD."
 }
