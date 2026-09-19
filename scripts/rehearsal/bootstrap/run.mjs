@@ -6,7 +6,7 @@ import pg from 'pg';
 import {prepareArtifact,prisma,databaseUrl,DATABASES,command} from '../../migrations/bootstrap/artifact.mjs';
 import {BASELINE,schemaSnapshot,readLedger,inspect,hash} from '../../migrations/bootstrap/inspect.mjs';
 import {withoutHistoricalGuards,verifyPrismaModel} from '../../migrations/bootstrap/equivalence.mjs';
-import {seedHistorical,migrate,backfill} from '../restoration/core.mjs';
+import {seedHistorical,migrate,backfill,operator,snapshot} from '../restoration/core.mjs';
 assert.equal(process.env.PACKET11_REHEARSAL,'isolated-only');
 assert.equal((await readdir('.')).filter(n=>/^\.env(?:\.|$)/.test(n)&&n!=='.env.example').length,0);
 const clients=[];const control=new pg.Client({connectionString:databaseUrl('packet11_control')});
@@ -51,7 +51,7 @@ try{
  assert.equal(failed.name,'20260727190000_social_direct_publishing');assert.match(failed.message,/SocialConnectionState/);console.log('PASS immutable main history failure reproduced',failed);
  // Deterministic interruption of the actual Prisma baseline; all its DDL rolls back.
  const broken=await connect('packet11_failure');await broken.query(`CREATE FUNCTION packet11_interrupt() RETURNS event_trigger LANGUAGE plpgsql AS $$ BEGIN IF tg_tag='CREATE INDEX' THEN RAISE EXCEPTION 'synthetic interrupted baseline'; END IF; END $$;CREATE EVENT TRIGGER packet11_interrupt ON ddl_command_start EXECUTE FUNCTION packet11_interrupt();`);
- await assert.rejects(prisma(artifact,'packet11_failure',['migrate','deploy']),/synthetic interrupted baseline/);
+ await assert.rejects(prisma(artifact,'packet11_failure',['migrate','deploy']),/synthetic interrupted baseline|current transaction is aborted/);
  await broken.query('DROP EVENT TRIGGER packet11_interrupt;DROP FUNCTION packet11_interrupt()');
  assert.equal((await inspect(broken,reference)).state,'incomplete-migration');
  assert.equal((await broken.query(`SELECT to_regclass('public."Workspace"') value`)).rows[0].value,null);
@@ -74,6 +74,13 @@ try{
  }
  assert.deepEqual((await readLedger(existing)).filter(r=>!r.migration_name.startsWith('2026091')),original);
  console.log('PASS clean, verified-no-ledger and original-ledger paths have equal full schema semantics and idempotent deploy');
+ // Empty current bootstrap backfills must be no-ops with explicit empty mapping tables.
+ await empty.query('CREATE TEMP TABLE "ContentOwnershipMapping" (kind text,id text,"workspaceId" text);CREATE TEMP TABLE "BrandOwnershipMapping" (kind text,id text,"workspaceId" text);CREATE TEMP TABLE "LegalOwnershipMapping" (id text,"workspaceId" text)');
+ const emptyBefore=await snapshot(empty);
+ for(const name of ['backfill-content-ownership.sql','backfill-brand-ownership.sql','backfill-legal-ownership.sql']){await operator(empty,name);await operator(empty,name);}
+ assert.deepEqual(await snapshot(empty),emptyBefore);
+ await empty.query('DROP TABLE pg_temp."ContentOwnershipMapping",pg_temp."BrandOwnershipMapping",pg_temp."LegalOwnershipMapping"');
+ console.log('PASS empty current bootstrap backfills are idempotent and leave ledger unchanged');
  // Actual #317 schema + fixture + SQL/backfill path is independent of Prisma deploy.
  await backfill(ref);await seedHistorical(empty);await backfill(empty);
  for(const table of ['BlogPost','BlogSeries','NewsletterSeries','Testimonial','TrustedLogo','LegalDocument','SiteSettings','Project','LocationPage']){

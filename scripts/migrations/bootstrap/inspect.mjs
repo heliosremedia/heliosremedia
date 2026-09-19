@@ -25,7 +25,7 @@ export async function readLedger(db){
  const exists=(await db.query(`SELECT to_regclass('public._prisma_migrations') present`)).rows[0].present;
  return exists?(await db.query('SELECT id,migration_name,checksum,started_at,finished_at,rolled_back_at,applied_steps_count FROM "_prisma_migrations" ORDER BY started_at,id')).rows:[];
 }
-export function classify({ledger,schema,historical,current,manifest,baselineChecksum,pinnedHistorical=null}){
+export function classify({ledger,schema,historical,current,manifest,baselineChecksum,pinnedHistorical={}}){
  const result=(state,track=null)=>({state,track,mayDeploy:state==='supported-historical-ledger'||state==='current-compatible-ledger',mayBaseline:state==='verified-historical-without-ledger',automaticRepair:false});
  const hasBaseline=ledger.some(r=>r.migration_name===BASELINE);
  const track=hasBaseline?'baseline':'historical';

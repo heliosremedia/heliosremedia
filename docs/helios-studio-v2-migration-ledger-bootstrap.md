@@ -60,3 +60,7 @@ The current V2 production build's `prisma migrate status` uses the canonical his
 Local targeted classifier/safety tests and preliminary PGlite catalog/migration/backfill execution passed. Generated Prisma passed. PostgreSQL, final regression, application and CI results are pending publication at this checkpoint; no hosted or production success is claimed.
 
 Remaining Phase1/2 gates include actual deployed-ledger inventory, reviewed drift reconciliation, hosted Neon/PrismaNeon and deployment-track binding, customer-sized ownership coverage, PITR/export/recovery, independent isolation review and broader media/job reliability. Recommended next packet only: read-only deployment-track/preflight integration inventory and executable release-artifact checks, without production access or cutover. Stop after Packet11.
+
+## First PostgreSQL execution
+
+CI35417222873 reproduced the historical failure and passed clean baseline deployment, verified no-ledger resolve and all historical-ledger negative fixtures. Its interruption assertion expected PostgreSQL's injected exception text, but Prisma 7.8 reports an aborted-transaction error while attempting to record failure logs. PostgreSQL logs confirm the injected exception. The assertion now accepts that Prisma diagnostic and still requires an incomplete ledger and absent baseline tables; no failed migration is resolved. A JavaScript optional-argument TypeScript inference issue in the test helper was also corrected. Final verification remains pending.
