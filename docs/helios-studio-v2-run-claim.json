@@ -1,28 +1,8 @@
 {
-  "status": "released",
-  "runId": "atlas-packet14-access-inventory",
-  "branch": "codex/v2-hosted-access-inventory",
-  "base": "codex/v2-hosted-artifact-provenance",
-  "pr": 321,
-  "head": "a61bb726f8c894abf1e754f4dbf68cbc714ec36d",
-  "tree": "14a735904bd4ff49427561c4224be4bcdd756afc",
-  "completedAt": "2026-09-19T05:38:17.467Z",
-  "outcome": "B",
-  "scope": "Packet14 complete: authenticated team/project inventory and tested negative qualification. Live access gate OPEN; Production ON HOLD. No next packet.",
-  "tests": 968,
-  "failed": 0,
-  "selectedTests": 63,
-  "ci": [
-    35424094342,
-    35424094287
-  ],
-  "safeHostedTarget": false,
-  "liveDeployment": false,
-  "liveDatabaseAccess": false,
-  "blockers": [
-    "Known Vercel team visible, project list empty",
-    "Team pagination not available through exposed tool",
-    "No direct Vercel token/CLI or Neon connector/API key",
-    "Non-production project/domain/provider/DB isolation and authenticated build-upload correlation remain unverified"
-  ]
+  "status": "active",
+  "runId": "atlas-packet15-access-enablement",
+  "branch": "codex/v2-hosted-access-owner-action",
+  "base": "codex/v2-hosted-access-inventory",
+  "expiresAt": "2026-09-19T06:45:24.271Z",
+  "scope": "Outcome B, document connector failure and precise owner actions only. No new synthetic logic or deployment."
 }
