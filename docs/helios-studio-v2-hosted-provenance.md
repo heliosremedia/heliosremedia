@@ -48,8 +48,18 @@ The actual adapter rejects wrong candidate/deployment/project/environment, missi
 
 ## Verification and remaining gates
 
-Targeted adapter suite: 26 passing tests. Initial local combined suite passed 931/931 before the additional error-redaction and missing-identity cases; expected final count is 933. Prisma7.8 generation, non-incremental TypeScript, scoped lint and whitespace passed. Final exact-head CI/test evidence is recorded on the PR and canonical run claim to avoid a self-referential documentation commit. Completion requires those checks to pass. This document does not claim a completed hosted run.
+Targeted adapter suite: 26 passing tests. Final combined CI suite passed 933/933. Prisma7.8 generation, non-incremental TypeScript, scoped lint and whitespace passed. Final exact-head CI/test evidence is recorded on the PR and canonical run claim to avoid a self-referential documentation commit. Final documentation-head checks remain required. This document does not claim a completed hosted run.
 
 No live Vercel deployment, hosted rollback, Neon, real provider, production routing or hosted build-log redaction test occurred. Actual hosted project settings and Git integration remain unknown. The synthetic fallback satisfies the implementation path explicitly authorized for unavailable access, but the live operational gate remains OPEN. Phase1 isolation audit/hosted evidence and Phase2 media/job reliability/lifecycle gates remain open. Rollback of this code-only packet requires no data restore; all compatibility guards and media remain retained.
 
 Recommended next packet only: safely scoped non-production project/database access inventory and authenticated provenance retrieval, followed by a separately gated live adapter rehearsal if isolation can be proved. No implementation of that packet is started.
+
+## Verified implementation evidence, September 19, 2026
+
+Implementation `8b4e2ead49de26d1b95ffe63a7f94f53455833ff` passed both exact-head workflows: [synthetic hosted admission35422614424](https://github.com/heliosremedia/heliosremedia/actions/runs/35422614424) and [regression35422614516](https://github.com/heliosremedia/heliosremedia/actions/runs/35422614516). **933 tests passed, zero failures**, including26 adapter cases. Generated Prisma7.8, non-incremental TypeScript, scoped lint, immutable SQL/schema checks and whitespace passed.
+
+Real disposable PostgreSQL16, actual safe-track migrations and all unsafe-state rejections passed. Both full Next16.2.10 builds/start and authenticated synthetic HTTP tenant/revision/parent-lock/atomic-order checks passed. Actual application Chromium passed prior-loaded390px05:02:38UTC,1440px05:02:43UTC and candidate-loaded390px05:02:48UTC,1440px05:02:53UTC. Candidate/rollback manifests stayed distinct; schema/ledger stayed stable. The synthetic hosted adapter consumed these real manifests and passed at05:02:57UTC. No hosted transport was used.
+
+[Evidence artifact10578710547](https://github.com/heliosremedia/heliosremedia/actions/runs/35422614424/artifacts/10578710547), ZIP SHA256 `acc2430048ab9ac873b7090c3b3dff8c96329c58f15013a44a21a427ceeb92fe`, retained30days. This ZIP digest is not the adapter's canonical JSON digest.
+
+Packet13 is complete for the authorized synthetic fallback after final documentation-head checks pass; live hosted enforcement remains open. Final head and its exact-head runs are recorded on #320 and the canonical claim. No next packet follows.
