@@ -4,13 +4,19 @@
   "branch": "codex/v2-migration-ledger-bootstrap",
   "base": "codex/v2-migration-restoration-rehearsal",
   "baseHead": "6c0058c9b870e12f9d4127741e2eab4cbd1b1d32",
-  "head": "38812e3df331f2b0d290d14071a09e7dbf628194",
+  "head": "f53239ae6a80d9c8afa20c72b5e89dfd5dc233cf",
   "pr": 318,
-  "expiresAt": "2026-09-19T06:05:19.273Z",
-  "runs": [
+  "expiresAt": "2026-09-19T06:14:39.969Z",
+  "verifiedCheckpoint": "38812e3df331f2b0d290d14071a09e7dbf628194",
+  "verifiedRuns": [
     35417511300,
     35417511301
   ],
+  "finalRuns": [
+    35417934745,
+    35417934738
+  ],
+  "testCount": 895,
   "scope": "Packet 11 only. Isolated bootstrap/ledger verification. Production ON HOLD.",
-  "note": "Local895 tests passed. CI bootstrap phases passed at prior intermediate revision; final populated-ledger/application verification in progress. Historical files immutable. No next packet."
+  "note": "Verified checkpoint passed actual PostgreSQL/Prisma bootstrap, populated ledger, schema/backfill, full app and Chromium, plus895 regression tests. Final exact-head checks running. No next packet."
 }
