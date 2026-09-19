@@ -1,5 +1,18 @@
 # Helios Studio V2 progress ledger
 
+## Packet 14: hosted access inventory, September 19, 2026
+
+Outcome B: **safe hosted target NOT identified; live access gate remains OPEN**. Branch `codex/v2-hosted-access-inventory`, base #320 `codex/v2-hosted-artifact-provenance` at `1a09a9546aab41e96db0b65e22c9eb52d1b49a19`. Main unchanged72dab345. Production ON HOLD.
+
+Authenticated Vercel connector sees Helios team `team_H79eaUfq9xMqcbf34ZCtwwn9`; project list for that team is empty/count0. Teams pagination cursors cannot be followed by the exposed tool, so other account coverage is unknown. No Vercel CLI/direct token, Neon connector or Neon API key is available. No production data, provider secrets, project environment values or databases were accessed. Credential mutation capability cannot be established from GET discovery.
+
+Added bounded fixed-origin GET-only inventory, no redirects/retries/env-file loading, safe reason-code receipts and actual no-credential CLI exit2. Supplemental snapshot qualification rejects unknown/production target, domains/aliases, wrong source/team/project/deployment, stale observations, unknown/production/wrong database and candidate/rollback artifact mismatch. Even consistent snapshots are non-deployable; they cannot authenticate themselves. #320 live-provider rejection and hosted build block stay intact. Dedicated live inventory workflow is manual-only; separate automated tests have no cloud credentials. No deployment metadata/database retrieval is claimed because prerequisite project access failed.
+
+Draft #321.35 new targeted cases pass; local full suite968/968 passes. Initial contract CI35423967419 passed63 selected tests/lint; a depth1 checkout caused the whitespace step to inspect inherited files as root additions. Corrected to depth2, without touching historical files. Generated Prisma7.8, non-incremental TypeScript, scoped lint and whitespace are required; final exact-head evidence is recorded on the draft PR and canonical claim. Feature/operator checklist: `docs/helios-studio-v2-hosted-access.md`; safe observed connector receipt: `docs/helios-studio-v2-hosted-access-inventory.json`.
+
+Exact blocker: project-level read access to a specifically identified disposable non-production Vercel target, complete domain/provider isolation evidence, independently identified non-production DB/branch/owner/privileges and authenticated source/build-upload correlation. Supply access through approved connectors/secret management, not chat. Unknown means stop. Recommended next packet only: resolve that scoped access and collect authenticated project/deployment/database evidence. No provisioning, deployment, next packet, schema/runtime change or data restore. Phase1/2 broader gates remain open.
+
+
 ## Packet 13: synthetic hosted artifact provenance, September 19, 2026
 
 Branch `codex/v2-hosted-artifact-provenance`, stacked on #319 `codex/v2-deployment-track-preflight` at `b25dd0899516c5542e9fdb8cb53496246218234e`. Main remains `72dab34568cb6885f3e93b5ed9db38edca156835`. Production ON HOLD.
