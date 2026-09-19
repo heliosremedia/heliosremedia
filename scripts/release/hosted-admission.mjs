@@ -3,7 +3,13 @@ import {canonical,digest,verifyManifest} from './policy.mjs';
 
 // Normalized provider boundary, deliberately synthetic-only. No network or deployment
 // implementation is authorized until an isolated project and database are verified.
-export async function admitHosted({role,manifest,pin,provider,now}) {
+export async function admitHosted(input) {
+ try { return await validateHosted(input); } catch {
+  // Provider/assertion diagnostics can contain untrusted fields. Never propagate them.
+  throw new Error("Hosted admission rejected; evidence or target could not be verified");
+ }
+}
+async function validateHosted({role,manifest,pin,provider,now}) {
  assert.equal(provider.kind,'synthetic-provider','Live hosted adapter is not enabled');
  assert.ok(['candidate','rollback'].includes(role));
  const expected=pin.releases[role];assert.ok(expected,'Missing independently pinned release');

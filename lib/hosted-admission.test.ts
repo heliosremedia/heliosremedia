@@ -38,3 +38,5 @@ const failures: [string,(f:ReturnType<typeof fixture>)=>void][]=[
 for(const [name,mutate] of failures)test('hosted admission rejects '+name,async()=>{const f=fixture();mutate(f);await assert.rejects(run(f));});
 test('candidate cannot substitute rollback',async()=>{const f=fixture();f.pin.releases.rollback.manifest=f.pin.releases.candidate.manifest;await assert.rejects(run(f,'rollback'));});
 test('audit never copies arbitrary provider secrets',async()=>{const f=fixture();Object.assign(f.deployments['synthetic-candidate'],{token:'do-not-log'});assert.ok(!JSON.stringify(await run(f)).includes('do-not-log'));});
+
+test('rejection never exposes provider error or unexpected secret fields',async()=>{const f=fixture();Object.assign(f.target,{token:'do-not-log'});await assert.rejects(run(f),error=>{assert.ok(!String(error).includes('do-not-log'));return true;});f.provider.target=async()=>{throw Error('secret-provider-token');};await assert.rejects(run(f),error=>{assert.ok(!String(error).includes('secret-provider-token'));return true;});});

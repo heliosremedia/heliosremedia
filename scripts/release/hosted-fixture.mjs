@@ -3,7 +3,7 @@ import {digest} from './policy.mjs';
 export function hostedFixture(candidate,rollback,now=1000000) {
  const manifests={candidate,rollback};
  const target={projectId:'synthetic-project',environment:'preview',classification:'isolated-non-production',providerCredentials:'synthetic-only',customDomains:[],databaseClassification:'disposable',databaseId:'synthetic-database'};
- const workflow={repository:'heliosremedia/heliosremedia',runId:candidate.run,headSha:candidate.candidate,conclusion:'success',path:'.github/workflows/v2-release-preflight.yml'};
+ const workflow={repository:'heliosremedia/heliosremedia',runId:candidate.run,headSha:candidate.candidate,conclusion:'success',path:'.github/workflows/v2-hosted-admission.yml'};
  const artifact={id:'synthetic-artifact',runId:workflow.runId,expired:false,digest:digest(manifests),manifests};
  const releases=Object.fromEntries(Object.entries(manifests).map(([role,manifest])=>[role,{manifest,deploymentId:'synthetic-'+role}]));
  const deployments=Object.fromEntries(Object.entries(releases).map(([role,{manifest,deploymentId}])=>[deploymentId,{id:deploymentId,projectId:target.projectId,environment:'preview',state:'READY',sourceSha:manifest.sourceRevision,buildDigest:manifest.build.digest,manifestChecksum:manifest.checksum,artifactId:artifact.id,admissionId:'synthetic-admission',customDomains:[],role}]));

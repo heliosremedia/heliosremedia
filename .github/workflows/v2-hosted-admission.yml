@@ -52,7 +52,7 @@ jobs:
         run: |
           ./node_modules/.bin/next typegen
           ./node_modules/.bin/tsc --noEmit --incremental false
-          ./node_modules/.bin/eslint scripts/release/*.mjs scripts/rehearsal/release/*.mjs scripts/rehearsal/application/run.mjs scripts/rehearsal/application/driver.ts scripts/build.mjs lib/release-preflight.test.ts lib/build-migration-gate.test.ts
+          ./node_modules/.bin/eslint scripts/release/*.mjs scripts/rehearsal/release/*.mjs scripts/rehearsal/application/run.mjs scripts/rehearsal/application/driver.ts scripts/build.mjs lib/release-preflight.test.ts lib/build-migration-gate.test.ts lib/hosted-admission.test.ts
       - run: ./node_modules/.bin/playwright install --with-deps chromium
       - run: sudo apt-get update && sudo apt-get install -y postgresql-client-16
       - name: Safe tracks and unsafe-state release matrix
