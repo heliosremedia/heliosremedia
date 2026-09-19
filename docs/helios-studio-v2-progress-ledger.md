@@ -1,5 +1,20 @@
 # Helios Studio V2 progress ledger
 
+## Packet 13: synthetic hosted artifact provenance, September 19, 2026
+
+Branch `codex/v2-hosted-artifact-provenance`, stacked on #319 `codex/v2-deployment-track-preflight` at `b25dd0899516c5542e9fdb8cb53496246218234e`. Main remains `72dab34568cb6885f3e93b5ed9db38edca156835`. Production ON HOLD.
+
+Connected Vercel project inventory returned an empty list for the known team. No safe non-production project/database/domain/provider environment could be verified; no Neon connector is exposed. No production resource or hosted mutation was accessed. Project overrides, Git integration, actual bindings and provider enforcement remain unknown, not inferred safe.
+
+Implemented a synthetic-only normalized provider adapter binding independently pinned candidate/rollback manifests to workflow, artifact payload digest, deployment/build/project/environment and freshly read migration receipt. All real hosted builds remain blocked by #319. No SDK, network deployment, alias or migration changes. Explicit preview/disposable/synthetic/no-custom-domain safety requirements, bounded admission expiry, strict role separation and allowlisted audit receipts fail closed. Provider metadata is mocked; mutable metadata/environment values are not claimed as proof. The future authenticated retrieval/upload correlation remains a gate.
+
+26 actual adapter tests cover positive candidate/rollback/re-admission and wrong SHA/deployment/project/environment, missing/stale/altered manifest, both role swaps, migration mismatch, unadmitted build, production inventory, domain/database uncertainty, live-provider rejection, expired/modified artifact, failed/wrong CI, wrong build and stale schema/read. A dedicated isolated workflow regenerates the full #319 release evidence then consumes the real candidate/prior manifests through the synthetic adapter. Draft #320 is open on this branch. Final combined CI suite passed 933/933. Generated Prisma7.8, non-incremental TypeScript, scoped lint and whitespace passed. Final head and exact-head workflow evidence are recorded on #320 and the canonical run claim after verification, avoiding a self-referential documentation commit. Completion requires those checks to pass.
+
+Implementation `8b4e2ead49de26d1b95ffe63a7f94f53455833ff` passed [admission CI35422614424](https://github.com/heliosremedia/heliosremedia/actions/runs/35422614424) and [regression CI35422614516](https://github.com/heliosremedia/heliosremedia/actions/runs/35422614516): **933 tests, zero failures**, Prisma/types/lint, actual disposable PostgreSQL migration matrix, two full application builds/HTTP, four application Chromium cases at390/1440 and actual release-manifest consumption by the synthetic adapter. Evidence artifact10578710547 has ZIP SHA256 `acc2430048ab9ac873b7090c3b3dff8c96329c58f15013a44a21a427ceeb92fe`. Packet13 is complete for the authorized synthetic fallback once the final documentation-head checks pass. Live hosted operational verification remains OPEN. Final exact-head receipts are on #320 and the claim.
+
+Feature inventory, trust boundary and operator stop procedure: `docs/helios-studio-v2-hosted-provenance.md`. Code-only rollback, no data restoration, all SQL/schema/public/provider behavior unchanged. No live Vercel/Neon/deployment/rollback claim. Phase1/2 and hosted operational gates remain open. Recommended next packet only: safely scoped non-production access inventory and authenticated provenance retrieval, with live rehearsal only after verified isolation. Not started.
+
+
 ## Packet 12 verified implementation checkpoint: September 19, 2026
 
 - Draft [#319](https://github.com/heliosremedia/heliosremedia/pull/319), `codex/v2-deployment-track-preflight` on #318 `codex/v2-migration-ledger-bootstrap`. Implementation `34dddc81bfe4c5dd90ccb026a7dd3d39e36a220d`, tree `d4f1e72463dccce78e5122a2e5e54569d0dc05e7`; final exact-head SHA/runs recorded on PR and canonical claim after verification.
