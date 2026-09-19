@@ -1,0 +1,26 @@
+name: V2 manual read-only hosted access inventory
+on:
+  workflow_dispatch:
+    inputs:
+      team_id:
+        description: Explicit team ID for read-only inventory
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+      - name: Read-only inventory, never deployment admission
+        env:
+          HELIOS_INVENTORY_TEAM_ID: ${{ inputs.team_id }}
+          HELIOS_READONLY_VERCEL_TOKEN: ${{ secrets.HELIOS_READONLY_VERCEL_TOKEN }}
+        run: node scripts/release/access-inventory-cli.mjs

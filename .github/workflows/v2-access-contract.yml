@@ -1,0 +1,23 @@
+name: V2 hosted access contract tests
+on:
+  push:
+    branches: ['codex/v2-hosted-access-inventory']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node --experimental-strip-types --test lib/access-provenance.test.ts lib/hosted-admission.test.ts lib/build-migration-gate.test.ts
+      - run: ./node_modules/.bin/eslint scripts/release/access-*.mjs lib/access-provenance.test.ts
+      - run: git show --format= --check HEAD
