@@ -1,5 +1,14 @@
 # Helios Studio V2 progress ledger
 
+## Packet 11 implementation checkpoint: September 19, 2026
+
+- Scope: historical migration dependency and ledger/bootstrap reconciliation only. Fresh branch `codex/v2-migration-ledger-bootstrap` on #317 `6c0058c9b870e12f9d4127741e2eab4cbd1b1d32`. Expected-SHA claim held. Main still `72dab34568cb6885f3e93b5ed9db38edca156835`.
+- Root cause: July27 direct-publishing references SocialConnectionState and social tables created July28. All106 original migration files remain byte-identical. No claims about actual deployed history; production not accessed.
+- Separate generated schema-baseline track plus byte-identical18 V2 migrations; existing ledgers retain original history. Read-only classifier rejects mismatches/unknown/failed/rolled-back/incomplete/duplicate entries and schema drift. Baseline resolve requires exact schema validation.
+- Full inventory additionally found seven historical CHECKs and a featured-offering partial unique index omitted by Prisma schema snapshots. Baseline preserves exact definitions. The #317 path comparison explicitly accounts for these intended added protections; no shipped SQL is edited.
+- Added actual Prisma/PostgreSQL rehearsal for empty/no-ledger/original-ledger paths, failed baseline, schema equivalence, backfill and unchanged application ledger. Local targeted tests/preliminary PGlite passed; final PostgreSQL/CI/application evidence pending. Feature and rehearsal-only runbook: `docs/helios-studio-v2-migration-ledger-bootstrap.md`.
+- Production ON HOLD; no merge/deploy/production data/migration/resolve, compatibility retirement, provisioning or next packet. Current production-build migration-track binding and real deployed-ledger evidence remain gates. STOP after Packet11; next recommendation only is deployment-track/preflight integration inventory and release-artifact checks.
+
 ## Latest verified packet: September 18, 2026, #317 (Packet 10)
 
 - Draft [#317](https://github.com/heliosremedia/heliosremedia/pull/317), branch `codex/v2-migration-restoration-rehearsal`, base #316 `codex/v2-application-rollback-rehearsal` at `a0b018af4947cf52466534220eb2e725c8f239d2`. Verified checkpoint `3b98ba2ce1fd74ae3d539de168f85fe7ebcee6f3`, tree `3efb01ff00057f5af9412a3344b52f6023603289`. Final fixture/backup-retention refinements and documentation-head SHA/exact-head CI are recorded on the PR and canonical claim. Fresh checkout, expected-SHA claim, unrelated work preserved.
