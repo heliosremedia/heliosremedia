@@ -57,6 +57,9 @@ try{
  assert.equal((await broken.query(`SELECT to_regclass('public."Workspace"') value`)).rows[0].value,null);
  console.log('PASS interrupted actual Prisma baseline is not healthy; no automatic resolve');
  await artifact.expand();
+ await seedHistorical(existing);
+ // Verified fixture mapping on this disposable database only, inherited by Prisma's migration connection.
+ await control.query("ALTER DATABASE packet11_historical SET helios.legacy_brand_workspace_id='a'");
  // Compare raw #317 schema path and all expected Prisma definitions explicitly.
  const modelDb=await connect('packet11_model');
  const modelSql=await command(process.execPath,['node_modules/prisma/build/index.js','migrate','diff','--from-empty','--to-schema','prisma/schema.prisma','--script'],{DIRECT_URL:databaseUrl('packet11_control')});
@@ -72,6 +75,7 @@ try{
   assert.equal((await inspect(db,reference)).state,'current-compatible-ledger');
   const before=await readLedger(db);await prisma(artifact,name,['migrate','deploy'],{track});assert.deepEqual(await readLedger(db),before);
  }
+ await control.query('ALTER DATABASE packet11_historical RESET helios.legacy_brand_workspace_id');
  assert.deepEqual((await readLedger(existing)).filter(r=>!r.migration_name.startsWith('2026091')),original);
  console.log('PASS clean, verified-no-ledger and original-ledger paths have equal full schema semantics and idempotent deploy');
  // Empty current bootstrap backfills must be no-ops with explicit empty mapping tables.
@@ -82,9 +86,9 @@ try{
  await empty.query('DROP TABLE pg_temp."ContentOwnershipMapping",pg_temp."BrandOwnershipMapping",pg_temp."LegalOwnershipMapping"');
  console.log('PASS empty current bootstrap backfills are idempotent and leave ledger unchanged');
  // Actual #317 schema + fixture + SQL/backfill path is independent of Prisma deploy.
- await backfill(ref);await seedHistorical(empty);await backfill(empty);
+ await backfill(ref);await backfill(existing);await seedHistorical(empty);await backfill(empty);
  for(const table of ['BlogPost','BlogSeries','NewsletterSeries','Testimonial','TrustedLogo','LegalDocument','SiteSettings','Project','LocationPage']){
-  const sql='SELECT id,"workspaceId" FROM "'+table+'" ORDER BY id';assert.deepEqual((await empty.query(sql)).rows,(await ref.query(sql)).rows);
+  const sql='SELECT id,"workspaceId" FROM "'+table+'" ORDER BY id';assert.deepEqual((await empty.query(sql)).rows,(await ref.query(sql)).rows);assert.deepEqual((await existing.query(sql)).rows,(await ref.query(sql)).rows);
  }
  // Empty/current backfills and later mapped fixtures are safe and repeatable; no inferred owners.
  console.log('PASS actual operators preserve equal two-company fixture state');

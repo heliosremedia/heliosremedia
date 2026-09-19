@@ -28,10 +28,9 @@ export async function prepareArtifact(dir){
  await writeFile(join(dir,'historical.config.ts'),config(resolve('prisma/migrations')));
  return {dir,sql,raw,guards,manifest,baselineChecksum:hash(sql),async expand(){for(const n of Object.keys(manifest).filter(n=>n.startsWith('2026091'))){await mkdir(join(migrations,n));await writeFile(join(migrations,n,'migration.sql'),await readFile('prisma/migrations/'+n+'/migration.sql'));}}};
 }
-export async function prisma(artifact,name,args,{track='baseline',verifiedBrandOwner}={}){
+export async function prisma(artifact,name,args,{track='baseline'}={}){
  requireDatabase(databaseUrl(name));assert.equal(process.env.PACKET11_REHEARSAL,'isolated-only');
- assert.ok(!verifiedBrandOwner||verifiedBrandOwner==='a','Only reviewed synthetic mapping accepted');
- return command(process.execPath,['node_modules/prisma/build/index.js',...args,'--config',join(artifact.dir,track==='baseline'?'prisma.config.ts':'historical.config.ts')],{DIRECT_URL:databaseUrl(name),DATABASE_URL:databaseUrl(name),...(verifiedBrandOwner?{PGOPTIONS:'-c helios.legacy_brand_workspace_id=a'}:{})});
+ return command(process.execPath,['node_modules/prisma/build/index.js',...args,'--config',join(artifact.dir,track==='baseline'?'prisma.config.ts':'historical.config.ts')],{DIRECT_URL:databaseUrl(name),DATABASE_URL:databaseUrl(name)});
 }
 
 export async function historicalGuards(){

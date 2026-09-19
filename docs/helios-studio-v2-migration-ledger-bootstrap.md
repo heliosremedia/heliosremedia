@@ -33,7 +33,7 @@ Full comparison includes tables/columns/types/nullability/defaults, indexes and 
 
 The #317 raw snapshot path is compared explicitly: the intended difference is exactly seven historical checks and one partial index. The new baseline restores these protections rather than silently omitting them. The current Prisma model is also compared: database-only checks, legal/global/domain guards and identity triggers remain, plus a known PostgreSQL-versus-Prisma truncated testimonial index name. No `db push` is used to erase those differences.
 
-Actual V2 SQL and actual content/brand/legal operator scripts are exercised. Two synthetic companies receive explicit verified mappings; repeated supported backfills are idempotent. Clean bootstrap has no guessed legacy owner or Helios-specific seed content. Fixture accounts added after foundation receive explicit synthetic active memberships.
+Actual V2 SQL and actual content/brand/legal operator scripts are exercised. The original-ledger fixture also contains legacy records before Prisma deploy. An explicit verified synthetic brand mapping is installed only on that disposable database for the migration connection, then reset; no production environment setting changes. Two synthetic companies receive explicit verified mappings; repeated supported backfills are idempotent. Clean bootstrap has no guessed legacy owner or Helios-specific seed content. Fixture accounts added after foundation receive explicit synthetic active memberships.
 
 ## Isolated operator runbook
 
