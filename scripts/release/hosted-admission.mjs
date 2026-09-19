@@ -13,6 +13,10 @@ async function validateHosted({role,manifest,pin,provider,now}) {
  assert.equal(provider.kind,'synthetic-provider','Live hosted adapter is not enabled');
  assert.ok(['candidate','rollback'].includes(role));
  const expected=pin.releases[role];assert.ok(expected,'Missing independently pinned release');
+ for(const id of [pin.admissionId,pin.target.projectId,pin.target.databaseId,pin.artifact.id,pin.workflow.runId,pin.releases.candidate.deploymentId,pin.releases.rollback.deploymentId])assert.ok(typeof id==='string' && /^[a-zA-Z0-9_-]{1,128}$/.test(id),'Missing or malformed immutable identity');
+ assert.equal(pin.workflow.path,'.github/workflows/v2-hosted-admission.yml');
+ assert.equal(pin.releases.candidate.manifest.sourceRevision,pin.releases.candidate.manifest.candidate);
+ assert.notEqual(pin.releases.rollback.manifest.sourceRevision,pin.releases.candidate.manifest.sourceRevision);
  assert.ok(manifest,'Missing manifest');
  verifyManifest(manifest,expected.manifest);
  assert.equal(manifest.checksum,expected.manifest.checksum);

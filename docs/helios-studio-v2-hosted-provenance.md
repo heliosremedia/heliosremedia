@@ -48,7 +48,7 @@ The actual adapter rejects wrong candidate/deployment/project/environment, missi
 
 ## Verification and remaining gates
 
-Targeted adapter suite: 25 passing tests. Initial local combined suite passed 931/931 before the additional error-redaction case; expected final count is 932. Prisma7.8 generation, non-incremental TypeScript, scoped lint and whitespace passed. Final exact-head CI/test evidence is recorded on the PR and canonical run claim to avoid a self-referential documentation commit. Completion requires those checks to pass. This document does not claim a completed hosted run.
+Targeted adapter suite: 26 passing tests. Initial local combined suite passed 931/931 before the additional error-redaction and missing-identity cases; expected final count is 933. Prisma7.8 generation, non-incremental TypeScript, scoped lint and whitespace passed. Final exact-head CI/test evidence is recorded on the PR and canonical run claim to avoid a self-referential documentation commit. Completion requires those checks to pass. This document does not claim a completed hosted run.
 
 No live Vercel deployment, hosted rollback, Neon, real provider, production routing or hosted build-log redaction test occurred. Actual hosted project settings and Git integration remain unknown. The synthetic fallback satisfies the implementation path explicitly authorized for unavailable access, but the live operational gate remains OPEN. Phase1 isolation audit/hosted evidence and Phase2 media/job reliability/lifecycle gates remain open. Rollback of this code-only packet requires no data restore; all compatibility guards and media remain retained.
 

@@ -13,6 +13,7 @@ test('synthetic candidate rollback candidate each requires independent provenanc
  const f=fixture();for(const role of ['candidate','rollback','candidate']){const receipt=await run(f,role);assert.equal(receipt.role,role);assert.equal(receipt.mode,'synthetic-only');}
 });
 const failures: [string,(f:ReturnType<typeof fixture>)=>void][]=[
+ ['missing admission identity',f=>{Object.assign(f.pin,{admissionId:undefined});Object.assign(f.deployments['synthetic-candidate'],{admissionId:undefined});}],
  ['candidate SHA',f=>{f.workflow.headSha='f'.repeat(40);}],
  ['deployment id',f=>{f.deployments['synthetic-candidate'].id='other';}],
  ['project',f=>{f.deployments['synthetic-candidate'].projectId='other';}],
