@@ -4,6 +4,13 @@
   "branch": "codex/v2-migration-ledger-bootstrap",
   "base": "codex/v2-migration-restoration-rehearsal",
   "baseHead": "6c0058c9b870e12f9d4127741e2eab4cbd1b1d32",
-  "expiresAt": "2026-09-19T06:46:07.422Z",
-  "scope": "Packet 11 only. Isolated bootstrap/ledger verification. Production ON HOLD."
+  "head": "38812e3df331f2b0d290d14071a09e7dbf628194",
+  "pr": 318,
+  "expiresAt": "2026-09-19T06:05:19.273Z",
+  "runs": [
+    35417511300,
+    35417511301
+  ],
+  "scope": "Packet 11 only. Isolated bootstrap/ledger verification. Production ON HOLD.",
+  "note": "Local895 tests passed. CI bootstrap phases passed at prior intermediate revision; final populated-ledger/application verification in progress. Historical files immutable. No next packet."
 }
