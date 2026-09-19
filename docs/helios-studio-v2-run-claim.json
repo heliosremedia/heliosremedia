@@ -1,5 +1,5 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-packet12-release-preflight",
   "branch": "codex/v2-deployment-track-preflight",
   "base": "codex/v2-migration-ledger-bootstrap",
@@ -7,17 +7,17 @@
   "pr": 319,
   "head": "b25dd0899516c5542e9fdb8cb53496246218234e",
   "tree": "3c0501a626c9023e9c870ebc0f3089ebc2da8efe",
-  "expiresAt": "2026-09-19T06:28:04.036Z",
-  "verifiedCheckpoint": "34dddc81bfe4c5dd90ccb026a7dd3d39e36a220d",
+  "expiresAt": "2026-09-19T04:37:17.374Z",
+  "releasedAt": "2026-09-19T04:37:17.374Z",
+  "verifiedCheckpoint": "b25dd0899516c5542e9fdb8cb53496246218234e",
   "verifiedRuns": [
-    35420890770,
-    35420890650
-  ],
-  "finalRuns": [
     35421323870,
     35421323840
   ],
   "testCount": 907,
+  "artifact": 10577558709,
+  "artifactSha256": "3cc762020e15210bfaaf0eb15cdce29a9db8636c9bbbc89b81fafd226cd30ba9",
+  "chromium": "Real isolated Next app, synthetic signed sessions/provider transport. Prior and candidate loaded390/1440px passed04:34:02–04:34:15UTC September19,2026.",
   "scope": "Packet 12 isolated release preflight/artifact admission only. Production ON HOLD.",
-  "note": "Initial exact-head full PostgreSQL/application/Chromium and regression CI passed. Final review refinements published, exact-head CI running. No next packet."
+  "note": "Complete for bounded isolated scope. Exact-head PostgreSQL16.15/Prisma migrations/unsafe-state checks,907 tests/types/lint, actual app builds/HTTP/Chromium, gate-controlled routing, final artifact admission and upload passed. Draft319 open/mergeable/unmerged. Hosted builds remain blocked; actual deployed ledger, hosted adapter/provenance/privileges/PITR/QA/release and broader Phase1/2 gates remain. No next packet started."
 }
