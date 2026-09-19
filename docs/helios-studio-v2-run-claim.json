@@ -1,9 +1,21 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-packet13-hosted-provenance",
   "branch": "codex/v2-hosted-artifact-provenance",
   "base": "codex/v2-deployment-track-preflight",
-  "baseHead": "b25dd0899516c5542e9fdb8cb53496246218234e",
-  "expiresAt": "2026-09-19T07:43:33.791Z",
-  "scope": "Packet 13 only. Non-production inventory and synthetic hosted adapter if no safe target. Production ON HOLD."
+  "pr": 320,
+  "head": "1a09a9546aab41e96db0b65e22c9eb52d1b49a19",
+  "tree": "28084fb8ead33274cfe7364db2152aa89af1c8b8",
+  "completedAt": "2026-09-19T05:14:29.582Z",
+  "scope": "Packet 13 complete for authorized synthetic fallback; live hosted gate OPEN. Production ON HOLD. No next packet.",
+  "tests": 933,
+  "failed": 0,
+  "ci": [
+    35423007653,
+    35423007648
+  ],
+  "artifact": 10578170764,
+  "artifactDigest": "sha256:f2ca3c1759717e6ff56d3cb882b79159cd6e910e881aa06e242b23ca84bc4317",
+  "chromium": "actual isolated application 390/1440 prior/candidate passed; synthetic sessions and providers",
+  "limitations": "No safe visible Vercel non-production project, no Neon connector, no live deployment/rollback/provider/production verification."
 }
