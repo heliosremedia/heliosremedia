@@ -4,6 +4,20 @@
   "branch": "codex/v2-deployment-track-preflight",
   "base": "codex/v2-migration-ledger-bootstrap",
   "baseHead": "f53239ae6a80d9c8afa20c72b5e89dfd5dc233cf",
-  "expiresAt": "2026-09-19T07:04:48.879Z",
-  "scope": "Packet 12 only. Isolated preflight/artifact enforcement. Production ON HOLD."
+  "pr": 319,
+  "head": "b25dd0899516c5542e9fdb8cb53496246218234e",
+  "tree": "3c0501a626c9023e9c870ebc0f3089ebc2da8efe",
+  "expiresAt": "2026-09-19T06:28:04.036Z",
+  "verifiedCheckpoint": "34dddc81bfe4c5dd90ccb026a7dd3d39e36a220d",
+  "verifiedRuns": [
+    35420890770,
+    35420890650
+  ],
+  "finalRuns": [
+    35421323870,
+    35421323840
+  ],
+  "testCount": 907,
+  "scope": "Packet 12 isolated release preflight/artifact admission only. Production ON HOLD.",
+  "note": "Initial exact-head full PostgreSQL/application/Chromium and regression CI passed. Final review refinements published, exact-head CI running. No next packet."
 }
