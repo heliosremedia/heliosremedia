@@ -1,24 +1,9 @@
 {
-  "status": "released",
-  "runId": "atlas-migration-ledger",
-  "branch": "codex/v2-migration-ledger-bootstrap",
-  "base": "codex/v2-migration-restoration-rehearsal",
-  "baseHead": "6c0058c9b870e12f9d4127741e2eab4cbd1b1d32",
-  "head": "f53239ae6a80d9c8afa20c72b5e89dfd5dc233cf",
-  "pr": 318,
-  "expiresAt": "2026-09-19T03:20:30.694Z",
-  "verifiedCheckpoint": "f53239ae6a80d9c8afa20c72b5e89dfd5dc233cf",
-  "verifiedRuns": [
-    35417934745,
-    35417934738
-  ],
-  "finalRuns": [
-    35417934745,
-    35417934738
-  ],
-  "testCount": 895,
-  "scope": "Packet 11 only. Isolated bootstrap/ledger verification. Production ON HOLD.",
-  "note": "Packet11 isolated bootstrap/ledger rehearsal complete. Draft #318 open/unmerged/mergeable; final exact-head CI passed895 tests and real PostgreSQL/Prisma/schema/backfill/application/Chromium checks. Actual deployed Helios ledger remains unknown; hosted/deployment-track binding gates remain. Production ON HOLD. No next packet started.",
-  "releasedAt": "2026-09-19T03:20:30.694Z",
-  "chromium": "Actual synthetic-authenticated Next application passed390/1440px for both loaded revisions at03:17:24–03:17:29UTC September19,2026; all regression browser checks passed."
+  "status": "active",
+  "runId": "atlas-packet12-release-preflight",
+  "branch": "codex/v2-deployment-track-preflight",
+  "base": "codex/v2-migration-ledger-bootstrap",
+  "baseHead": "f53239ae6a80d9c8afa20c72b5e89dfd5dc233cf",
+  "expiresAt": "2026-09-19T07:04:48.879Z",
+  "scope": "Packet 12 only. Isolated preflight/artifact enforcement. Production ON HOLD."
 }
