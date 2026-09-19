@@ -22,7 +22,7 @@ export async function seed(){
  console.log('PASS generated Prisma seeded two isolated companies, settings, memberships, projects and cards');
 }
 export function cookie(id='a'){return SESSION_COOKIE+'='+createSessionToken({userId:'u'+id,email:id+'@example.test',displayName:'Synthetic '+id,role:'OWNER',sessionVersion:1});}
-export async function exercise(origin:string,switchTo:(name:string)=>void){
+export async function exercise(origin:string,switchTo:(name:string)=>void|Promise<void>){
  const request=async(path:string,method='GET',body?:unknown,headers:Record<string,string>={})=>{
   const r=await fetch(origin+path,{method,headers:{cookie:cookie(),...headers},body:body===undefined?undefined:JSON.stringify(body),redirect:'manual',signal:AbortSignal.timeout(120000)});return r;
  };
@@ -32,7 +32,7 @@ export async function exercise(origin:string,switchTo:(name:string)=>void){
  assert.equal((await fetch(origin+'/api/rehearsal-state')).status,401);assert.equal((await fetch(origin+'/api/admin/homepage-projects',{method:'PATCH',body:'{}'})).status,401);
  const originalB=JSON.stringify(await prisma.homepageProject.findUnique({where:{id:'hpb'}}));
  for(const mode of ['prior','candidate','prior','candidate']){
-  switchTo(mode);
+  await switchTo(mode);
   const admin=await request('/admin/homepage');assert.equal(admin.status,200);assert.equal(admin.headers.get('x-rehearsal-target'),mode);assert.match(await admin.text(),/Homepage curation/);
   const publicPage=await request('/');assert.equal(publicPage.status,200);assert.equal(publicPage.headers.get('x-rehearsal-target'),mode);assert.match(await publicPage.text(),/REHEARSAL COMPANY a/);
   const before=await state();assert.equal(before.settings.businessName,'REHEARSAL COMPANY a');
@@ -57,9 +57,9 @@ export async function exercise(origin:string,switchTo:(name:string)=>void){
  const body={cardId:'ca1',serviceId:'sa1',mediaMode:'IMAGE',imageStorageKey:upload.media.key,imageUrl:upload.media.url};
  const attachments=await Promise.all([write('work-cards',before.cards.revision,body),write('work-cards',before.cards.revision,{...body,titleOverride:'Concurrent attachment'})]);assert.deepEqual(attachments.map(r=>r.status).sort(),[200,409]);const attached=attachments.find(r=>r.status===200)!;assert.equal((await attached.json()).media.image.assetId,upload.media.assetId);
  console.log('PASS independent attachment writers: one200, one409, one prepared asset');
- switchTo('prior');const readback=await state();assert.equal(readback.cardRows.find((r:{id:string})=>r.id==='ca1').imageStorageKey,upload.media.key);
+ await switchTo('prior');const readback=await state();assert.equal(readback.cardRows.find((r:{id:string})=>r.id==='ca1').imageStorageKey,upload.media.key);
  assert.equal((await request('/api/admin/homepage-work-cards','PATCH',body)).status,409);
- switchTo('candidate');assert.equal((await write('work-cards',readback.cards.revision,{...body,titleOverride:'After rollback'})).status,200);
+ await switchTo('candidate');assert.equal((await write('work-cards',readback.cards.revision,{...body,titleOverride:'After rollback'})).status,200);
  assert.equal(await prisma.workspaceAsset.count(),assetBaseline+1);
  assert.equal(JSON.stringify(await prisma.homepageProject.findUnique({where:{id:'hpb'}})),originalB);
  // Force a second-row database failure and prove that the first positional update rolls back.

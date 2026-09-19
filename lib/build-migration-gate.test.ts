@@ -24,20 +24,13 @@ function runBuild(environment: string, status: number | null = 0) {
   } catch (error) { if (error !== exitSignal) throw error; }
   return { calls, exitCode };
 }
-test("production checks history but never applies migrations during a build", () => {
-  const result = runBuild("production");
-  assert.deepEqual(result.calls, [["npx","prisma","migrate","status"],["npx","prisma","generate"],["npx","next","build"]]);
-  assert.equal(result.exitCode, undefined);
-});
-test("failed migration status stops generation and application build", () => {
-  for (const status of [1, 2, null]) {
-    const result = runBuild("production", status);
-    assert.equal(result.calls.length, 1);
-    assert.equal(result.exitCode, status ?? 1);
+test("hosted builds stop before any database or build command without release admission", () => {
+ for(const environment of ["production","preview","development"]){
+  for(const status of [0,1,2,null]){
+   const result=runBuild(environment,status);assert.equal(result.exitCode,1);assert.deepEqual(result.calls,[]);
   }
+ }
 });
-test("preview and local builds have no database migration command", () => {
-  for (const environment of ["preview", "development", ""]) {
-    assert.deepEqual(runBuild(environment).calls, [["npx","prisma","generate"],["npx","next","build"]]);
-  }
+test("plain local build has no migration command and is not a release artifact", () => {
+ assert.deepEqual(runBuild("").calls,[["npx","prisma","generate"],["npx","next","build"]]);
 });

@@ -1,5 +1,23 @@
 # Helios Studio V2 progress ledger
 
+## Packet 12 verified implementation checkpoint: September 19, 2026
+
+- Draft [#319](https://github.com/heliosremedia/heliosremedia/pull/319), `codex/v2-deployment-track-preflight` on #318 `codex/v2-migration-ledger-bootstrap`. Implementation `34dddc81bfe4c5dd90ccb026a7dd3d39e36a220d`, tree `d4f1e72463dccce78e5122a2e5e54569d0dc05e7`; final exact-head SHA/runs recorded on PR and canonical claim after verification.
+- [Release CI35420890770](https://github.com/heliosremedia/heliosremedia/actions/runs/35420890770), job105838256184, passed every step on real disposable PostgreSQL16.15: actual Prisma7.8 safe-track migrations/idempotence, unsafe-state rejection, catalog equivalence,907/0 regression, generation, non-incremental types, scoped lint, two complete application builds/start, local gated routing and artifact upload.
+- Current candidate and compatible rollback each have effective-source/build/schema/ledger/test receipts. Actual admin/public scoping and revision/foreign/concurrency checks passed. Chromium390/1440 from both loaded revisions passed04:24:22–04:24:33UTC with retained edits/copies and no replay. Post-use schema/ledger stable. No hosted/authentication-provider/Neon/R2/Stream/production claim.
+- Final review adds dirty-checkout rejection, on-disk swapped receipt rejection through actual admission, complete evidence-set enforcement and conservative historical-brand ambiguity rejection before migration. Fresh final CI required; exact-head results on PR/claim. Local907 full,15 targeted, Prisma/types/lint/whitespace passed.106 existing migrations and schema unchanged; no automatic resolve/repair/db push.
+- Hosted build entrypoint now fails closed in this DRAFT. Actual cloud settings/main remain untouched. Separate hosted adapter, deployed-ledger inventory, reviewed ownership plans, quiesced DDL/privileges, cloud provenance/approvals, PITR and Jake QA/release decision remain gates. Broader Phase1/2 work is not closed.
+- Feature/runbook `docs/helios-studio-v2-release-preflight.md`. Packet12 bounded isolated scope is complete only after exact final checks recorded on PR/claim. STOP; recommend only non-production hosted adapter/artifact-provenance inventory subject to access. Not started. Production ON HOLD.
+
+## Packet 12 implementation checkpoint: September 19, 2026
+
+- Scope: isolated deployment-track preflight and release artifact admission only. Branch `codex/v2-deployment-track-preflight`, stacked on #318 `f53239ae6a80d9c8afa20c72b5e89dfd5dc233cf`. Fresh clone, expected-SHA run claim; main unchanged72dab345. Production ON HOLD.
+- Reproduced actual build entrypoint accepting successful migration status without classification/artifact evidence. Hosted builds now explicitly stop before commands; normal local builds are not deployable artifacts. No cloud settings changed.
+- Explicit clean-bootstrap, verified-baseline, historical-ledger and current-family tracks; immutable manifest/catalog/schema/config checks; actual preflight/deploy/postflight with cooperating advisory lock. No automatic resolve, repair or db push. Exact no-ledger schema requires separately reviewed baseline establishment.
+- Current-HEAD full application build and compatible rollback integration bind source/build/test/ledger/schema identities into separate deterministic canonical JSON receipts. Fresh admission before local routing switches, stale/mismatched receipts rejected.106 migration SQL files and compatibility guards unchanged.
+- Dedicated isolated PostgreSQL workflow and negative matrix implemented; final CI/application/Chromium evidence pending. Feature/runbook: `docs/helios-studio-v2-release-preflight.md`.
+- Actual deployed ledger, hosted adapter/Neon/PrismaNeon, cloud provenance/approval enforcement, DDL quiescence, PITR/QA/release and broader Phase1/2 gates remain open. STOP after Packet12. Recommended only non-production hosted adapter/artifact-provenance inventory subject to access; not started.
+
 ## Latest verified packet: September 19, 2026, #318 (Packet 11)
 
 - Draft [#318](https://github.com/heliosremedia/heliosremedia/pull/318), `codex/v2-migration-ledger-bootstrap` stacked on #317 `codex/v2-migration-restoration-rehearsal` at `6c0058c9b870e12f9d4127741e2eab4cbd1b1d32`. Verified checkpoint `38812e3df331f2b0d290d14071a09e7dbf628194`; final documentation/collation-check head and exact-head CI recorded on PR/claim. Fresh checkout and conditional claim; unrelated work preserved.
