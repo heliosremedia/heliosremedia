@@ -43,6 +43,7 @@ try{
  await fault('DELETE FROM "_prisma_migrations" WHERE id=$1',[first.id],'incomplete-ledger');
  await fault('UPDATE "_prisma_migrations" SET migration_name=$1 WHERE id=$2',['unknown-migration',first.id],'unknown-migration');
  await fault('ALTER TABLE "SocialConnection" DROP COLUMN "providerUsername"',[],'schema-mismatch');
+ await fault('ALTER TABLE "SiteSettings" ALTER COLUMN "businessName" TYPE text COLLATE "C"',[],'schema-mismatch');
  await fault('UPDATE "_prisma_migrations" SET finished_at=started_at-interval \'1 day\' WHERE id=$1',[first.id],'invalid-ledger-metadata');
  console.log('PASS historical ledger fixtures preserve original records; no repairs');
  // Reproduce exact committed history failure independently from the new baseline track.

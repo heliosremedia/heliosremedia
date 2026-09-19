@@ -1,6 +1,6 @@
 # Packet 11: historical migration dependency and ledger reconciliation
 
-Draft isolated implementation. Production ON HOLD. Base #317 at `6c0058c9b870e12f9d4127741e2eab4cbd1b1d32`; no historical migration, Prisma schema, application runtime or deployment config is changed.
+Verified isolated implementation checkpoint; exact final-head confirmation is recorded on draft #318. Production ON HOLD. Base #317 at `6c0058c9b870e12f9d4127741e2eab4cbd1b1d32`; no historical migration, Prisma schema, application runtime or deployment config is changed.
 
 ## Root cause and immutable history
 
@@ -29,7 +29,7 @@ Baselining records an equivalent schema baseline, not a false assertion that his
 
 ## Schema and data evidence
 
-Full comparison includes tables/columns/types/nullability/defaults, indexes and validity, primary/unique/check/foreign-key constraints, triggers and enabled state, functions, enums in order, views, sequences, row-security policies, extra schemas/types/extensions and event triggers. Migration bookkeeping is excluded from application-schema equality and checked separately. Missing or altered guards are mismatches.
+Full comparison includes tables/persistence/columns/types/nullability/collations/defaults, indexes and validity, primary/unique/check/foreign-key constraints, triggers and enabled state, functions, enums in order, views, sequences, row-security policies, extra schemas/types/extensions and event triggers. Migration bookkeeping is excluded from application-schema equality and checked separately. Missing or altered guards are mismatches.
 
 The #317 raw snapshot path is compared explicitly: the intended difference is exactly seven historical checks and one partial index. The new baseline restores these protections rather than silently omitting them. The current Prisma model is also compared: database-only checks, legal/global/domain guards and identity triggers remain, plus a known PostgreSQL-versus-Prisma truncated testimonial index name. No `db push` is used to erase those differences.
 
@@ -57,10 +57,28 @@ The current V2 production build's `prisma migrate status` uses the canonical his
 
 ## Verification checkpoint
 
-Local targeted classifier/safety tests and preliminary PGlite catalog/migration/backfill execution passed. Generated Prisma passed. PostgreSQL, final regression, application and CI results are pending publication at this checkpoint; no hosted or production success is claimed.
+Local full regression passed895 tests, zero failures. Nine targeted classifier/safety tests, generated Prisma7.8, non-incremental TypeScript, scoped lint, preliminary PGlite schema/backfill equivalence and whitespace passed. Actual catalog mutation also proves collation-only drift changes the schema fingerprint. Real PostgreSQL and application evidence follows; no hosted or production success is claimed.
 
 Remaining Phase1/2 gates include actual deployed-ledger inventory, reviewed drift reconciliation, hosted Neon/PrismaNeon and deployment-track binding, customer-sized ownership coverage, PITR/export/recovery, independent isolation review and broader media/job reliability. Recommended next packet only: read-only deployment-track/preflight integration inventory and executable release-artifact checks, without production access or cutover. Stop after Packet11.
 
 ## First PostgreSQL execution
 
-CI35417222873 reproduced the historical failure and passed clean baseline deployment, verified no-ledger resolve and all historical-ledger negative fixtures. Its interruption assertion expected PostgreSQL's injected exception text, but Prisma 7.8 reports an aborted-transaction error while attempting to record failure logs. PostgreSQL logs confirm the injected exception. The assertion now accepts that Prisma diagnostic and still requires an incomplete ledger and absent baseline tables; no failed migration is resolved. A JavaScript optional-argument TypeScript inference issue in the test helper was also corrected. Final verification remains pending.
+CI35417222873 reproduced the historical failure and passed clean baseline deployment, verified no-ledger resolve and all historical-ledger negative fixtures. Its interruption assertion expected PostgreSQL's injected exception text, but Prisma 7.8 reports an aborted-transaction error while attempting to record failure logs. PostgreSQL logs confirm the injected exception. The assertion now accepts that Prisma diagnostic and still requires an incomplete ledger and absent baseline tables; no failed migration is resolved. A JavaScript optional-argument TypeScript inference issue in the test helper was also corrected. The following implementation checkpoint subsequently passed; final-head confirmation remains recorded on the PR and claim.
+
+## Verified checkpoint, September 19, 2026
+
+Draft [#318](https://github.com/heliosremedia/heliosremedia/pull/318), branch `codex/v2-migration-ledger-bootstrap`, base `codex/v2-migration-restoration-rehearsal` (#317). Verified implementation `38812e3df331f2b0d290d14071a09e7dbf628194`.
+
+[Bootstrap/application CI35417511300](https://github.com/heliosremedia/heliosremedia/actions/runs/35417511300), job105828917890, passed every step on real disposable PostgreSQL16.15:
+
+- Actual Prisma7.8 deploy created the new baseline, then18 V2 migrations. The separately verified no-ledger path resolved only that baseline. The populated original-ledger fixture applied V2 through the canonical directory without changing any of its88 historical entries. Both complete ledgers passed repeated no-op deploy.
+- Full schema catalogs matched across supported paths. The exact #317 path differed only by the seven restored historical checks and one partial unique index. Current Prisma definitions matched after enumerating the retained database-only guards and known testimonial index-name difference. Baseline SQL SHA256 is `6eb3e3af3536ec58df86fcdf5739c2b07dc1664263410c06ceed012c6c6e3dbb`.
+- Checksum, unknown/missing entry, failed/rolled-back entry, invalid timestamp and missing schema object fixtures all failed closed without repairs. A real interrupted Prisma baseline left an incomplete ledger and no Workspace table. No resolve followed that failure.
+- Empty current backfills were no-ops; populated historical and current fixtures reached equal scoped identity mappings through the actual three operator scripts. Repeat backfills preserved data. The explicit brand mapping was reset after the isolated historical migration.
+- Both full application builds/start passed using a logical copy of the clean bootstrap. Actual authenticated synthetic legal/location reads, two public hosts, foreign removal404, homepage/project/order/private-layout/attachment200+409 contention, atomic reorder rollback and parent-lock transfer rejection passed. Zero observed deadlocks is bounded correctness evidence only.
+- Chromium passed prior-loaded390px03:08:45UTC, prior-loaded1440px03:08:48UTC, candidate-loaded390px03:08:50UTC and candidate-loaded1440px03:08:52UTC. Retained edits/copies and explicit reconciliation survived routing changes without automatic retry.
+- The final post-application inspection proved migration ledger and schema unchanged. The existing Packet9 harness's “zero data restoration” log describes its routing subsection; this packet supplied it with a logical copy of the bootstrap database.
+
+[Regression CI35417511301](https://github.com/heliosremedia/heliosremedia/actions/runs/35417511301), job105828917049, passed **895 tests, zero failures**, Prisma generation, non-incremental TypeScript, every existing browser/fixture/Studio HTTP check and whitespace.
+
+Final review adds column collation and relation persistence to the schema fingerprint, with an executable collation-only mismatch fixture. Final documentation-head and exact-head workflows are recorded on #318 and the canonical run claim rather than a self-referential commit. **Packet11 is complete for the bounded isolated bootstrap/ledger rehearsal after those final checks pass.** Actual deployed-ledger reconciliation, hosted verification and deployment-track binding are NOT claimed complete. No next packet, merge, deployment or provisioning follows this checkpoint.
