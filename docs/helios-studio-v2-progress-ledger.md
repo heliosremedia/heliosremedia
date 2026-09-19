@@ -1,5 +1,18 @@
 # Helios Studio V2 progress ledger
 
+## Packet 15: external access enablement blocked, September 19, 2026
+
+**Outcome B. No application/test/adapter changes.** Base #321 `a61bb726f8c894abf1e754f4dbf68cbc714ec36d`; main `72dab34568cb6885f3e93b5ed9db38edca156835`. Fresh authenticated discovery again sees Helios team `team_H79eaUfq9xMqcbf34ZCtwwn9` but returns no projects. Direct lookup of the known `heliosremedia` slug fails in the connector with `INVALID_ARGUMENT`: exposed `projectId` is not mapped to required `idOrName`. One retry supplying the reported field also fails. This is a connector invocation defect before provider lookup, NOT a Vercel404 or proof of permission denial.
+
+Authenticated GitHub status for pinned main reports a successful Vercel integration pointing to `https://vercel.com/helios-real-estate-media/heliosremedia/CcUjMpNxnxE9Vcdc8TMyYsQpEcCz`. It establishes historical integration linkage under the expected team/project slug, not a safe preview target or provider-authoritative deployment identity. No alternate-account or missing-project conclusion is justified. Team pagination remains unavailable through the exposed tool.
+
+No Vercel CLI, VERCEL_TOKEN, HELIOS_READONLY_VERCEL_TOKEN, NEON_API_KEY, DATABASE_URL or DIRECT_URL is present (booleans only checked). No Neon connector or project-creation tool is available. App provider is Neon via PrismaNeon, with DIRECT_URL for Prisma CLI; actual branch/DB ownership remains unknown. No safe application/DB target, authenticated deployment/DB provenance, upload correlation, live qualification/deployment/rollback is established.
+
+Account-owner action: confirm the intended non-production project and owning team in Vercel; repair/re-authorize project visibility or provide read-only API access through secure configuration to bypass the broken connector lookup; identify or separately provision an EMPTY isolated non-production Neon project/database and grant metadata plus schema/ledger read access. Do not clone production data/secrets or enable Git auto-deployment. Required non-secret handoff and verification criteria are in the Packet15 addendum to `docs/helios-studio-v2-hosted-access.md`.
+
+Documentation-only PR on #321; whitespace/diff reviewed. No new tests or full-suite rerun warranted; inherited968/968 and exact #321 CI35424094342/35424094287 remain the last code verification, not new hosted evidence. Final PR/head recorded in canonical claim. Production ON HOLD. Packet15 complete as B; live gate OPEN. No further repository implementation can grant external access. Next packet only after owner action: authenticated read-only qualification and build-upload correlation. Not started.
+
+
 ## Packet 14: hosted access inventory, September 19, 2026
 
 Outcome B: **safe hosted target NOT identified; live access gate remains OPEN**. Branch `codex/v2-hosted-access-inventory`, base #320 `codex/v2-hosted-artifact-provenance` at `1a09a9546aab41e96db0b65e22c9eb52d1b49a19`. Main unchanged72dab345. Production ON HOLD.
