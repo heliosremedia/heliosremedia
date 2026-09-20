@@ -1,5 +1,14 @@
 # Helios Studio V2 progress ledger
 
+
+## Packet 16: authenticated empty Neon baseline, execution blocked (September 20, 2026)
+
+**INCOMPLETE; staging remains unmodified.** Fresh #322 base `ba964b856614ce9d4279a99fb5e4c83cd0da5c3c`; main unchanged72dab345. Neon connector now authenticates project `calm-shape-83359560` / branch `br-young-math-arj7l4r3` / database `helios_v2_staging`, aws-us-west-2, PostgreSQL16.15. SQL proves zero user/public relations, absent ledger, zero public functions/types, extra schemas/extensions/event triggers. This closes the database identity/empty-observation gap only.
+
+Direct PostgreSQL endpoint DNS fails in this runtime, while connector SQL works. Actual #318 artifact generation also stops on Prisma engine download DNS (binaries.prisma.sh EAI_AGAIN). No migration/seed/build/deployment attempted, no secrets persisted, no schema/ledger changed.106 immutable SQL files/directory membership and source schema/manifest checksums pass. No fresh full suite or CI: checkpoint is documentation only, with whitespace verification. Full evidence, precise runner prerequisite and safe resume sequence: `docs/helios-studio-v2-neon-staging-bootstrap.md`.
+
+Existing #318/#319 loopback-only helpers and hosted guard are preserved. Resume this packet with an approved network-capable staging execution environment and a reviewed exact-target executor; do not bypass guards or substitute connector SQL for Prisma ledger handling. Vercel target separation remains owner-reported, provider provenance/hosted admission remains open. All bootstrap/postflight, real Neon application isolation/build, hosted browser and rollback gates remain outstanding. No next packet started. Final PR/head recorded on the canonical claim.
+
 ## Packet 15: external access enablement blocked, September 19, 2026
 
 **Outcome B. No application/test/adapter changes.** Base #321 `a61bb726f8c894abf1e754f4dbf68cbc714ec36d`; main `72dab34568cb6885f3e93b5ed9db38edca156835`. Fresh authenticated discovery again sees Helios team `team_H79eaUfq9xMqcbf34ZCtwwn9` but returns no projects. Direct lookup of the known `heliosremedia` slug fails in the connector with `INVALID_ARGUMENT`: exposed `projectId` is not mapped to required `idOrName`. One retry supplying the reported field also fails. This is a connector invocation defect before provider lookup, NOT a Vercel404 or proof of permission denial.
