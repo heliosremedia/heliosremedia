@@ -1,13 +1,8 @@
 {
-  "status": "released",
-  "runId": "atlas-packet15-access-enablement",
-  "branch": "codex/v2-hosted-access-owner-action",
-  "base": "codex/v2-hosted-access-inventory",
-  "releasedAt": "2026-09-19T05:48:44.945Z",
-  "pr": 322,
-  "head": "ba964b856614ce9d4279a99fb5e4c83cd0da5c3c",
-  "tree": "71662f48560e3cb74df91ea9ae6adf0f197e3bd3",
-  "outcome": "B",
-  "evidence": "Team visible, project list empty; project lookup connector argument mapping fails before provider. GitHub status establishes historical integration linkage only. No Neon connector or credentials. Docs-only, whitespace passed, no fresh CI/tests or deployment.",
-  "next": "Owner must identify isolated Vercel and empty Neon targets and enable authenticated scoped access. Do not start another packet."
+  "status": "active",
+  "runId": "atlas-packet16-neon-bootstrap",
+  "branch": "codex/v2-neon-staging-bootstrap",
+  "base": "codex/v2-hosted-access-owner-action",
+  "expiresAt": "2026-09-20T23:48:44.307Z",
+  "scope": "Exact staging target only. Read-only qualification first; no production or deployment."
 }
