@@ -19,6 +19,6 @@ test('staging rejects broad branch policy',()=>assert.throws(()=>protection(prot
 test('staging metadata requires credentials before network',async()=>{await assert.rejects(jsonGet('https://example.invalid',''));});
 
 test('actual staging executor with no manual authority exits before network or Prisma',()=>{
- const result=spawnSync(process.execPath,['scripts/staging/bootstrap.mjs'],{env:{PATH:process.env.PATH},encoding:'utf8',timeout:10000});
+ const result=spawnSync(process.execPath,['scripts/staging/bootstrap.mjs'],{env:{PATH:process.env.PATH,NODE_ENV:"test"},encoding:'utf8',timeout:10000});
  assert.equal(result.status,1);assert.match(result.stderr,/STAGING_BOOTSTRAP_BLOCKED/);assert.equal(result.stdout,'');
 });
