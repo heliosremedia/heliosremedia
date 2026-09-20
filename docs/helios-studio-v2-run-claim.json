@@ -1,8 +1,13 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-packet16-neon-bootstrap",
   "branch": "codex/v2-neon-staging-bootstrap",
   "base": "codex/v2-hosted-access-owner-action",
-  "expiresAt": "2026-09-20T23:48:44.307Z",
-  "scope": "Exact staging target only. Read-only qualification first; no production or deployment."
+  "releasedAt": "2026-09-20T22:52:12.438Z",
+  "pr": 323,
+  "head": "3453f854fae9630c16b0753582735dd8166fd6c3",
+  "tree": "e007e9eae83509bfddf24de205925e68fc9bdef1",
+  "complete": false,
+  "blocker": "Authenticated Neon metadata/SQL works; runtime direct PostgreSQL DNS and Prisma engine download fail. No mutation. Requires approved network-capable staging runner and exact-target admission executor.",
+  "verification": "106 immutable SQL source checks and whitespace pass. No fresh CI/full regression or application/hosted verification."
 }
