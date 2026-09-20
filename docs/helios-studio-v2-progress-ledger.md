@@ -1104,3 +1104,11 @@ Reproduced ignored zero-count reorder/layout writes, obsolete service preparatio
 Isolated actual-route/PGlite and component checks cover completed transfers, admission changes, null/legacy ownership, stale parent receipts, upload/save/order/removal and context change. Hosted independent-connection concurrency is not claimed. Final regression and CI evidence pending. Production ON HOLD. Stop after Packet 6. Recommended next packet only: private homepage section-layout preference browser recovery inventory and executable baseline.
 
 Local final Packet 6 verification passed **835/835 tests**, Prisma generation without migration, non-incremental TypeScript, scoped lint, fixture bundling and whitespace. Existing registry identity-guard migration tests already prevent asset workspace transfer. No local or hosted browser claim is made from bundling. Fresh exact-head CI and synthetic actual-component Chromium are required before closing the packet.
+
+## Packet 16 resumed: manual staging executor, not yet live
+
+On #323, added an exact-target workflow_dispatch executor with independently checked environment owner approval/branch/no-bypass policy, authenticated Neon project/branch/endpoint/database matching, SHA and #318/#319 artifact/reference admission, actual Prisma deploy/postflight/no-op repeat and safe receipt. Existing loopback/hosted guards remain intact.26 targeted executable policy/CLI tests pass. Credential-free contract CI added; exact final evidence recorded on PR/claim. No live bootstrap claimed.
+
+GitHub status and vercel[bot] comment prove both linked projects reacted to #323 head3453f854; both reported failure. This is Git integration fan-out, not proof of production promotion. Staging deployment lookup returned404; failure reasons and provider target metadata remain unknown. No production settings changed.
+
+External execution gates: protected GitHub Environment and staging-only secrets; workflow registration on default branch (requires separately approved workflow-only change, not stack merge); authorized manual dispatch capability. Current tools cannot configure these or dispatch. Details and exact names in the staging-bootstrap runbook. Packet16 remains OPEN; no Packet17 work, application release or deployment.
