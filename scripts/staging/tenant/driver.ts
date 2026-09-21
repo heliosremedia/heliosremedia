@@ -17,7 +17,7 @@ export async function qualify(connection: Parameters<typeof connect>[0]) {
   const db = connect(connection);
   try {
     await db.$transaction(async tx => {
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(1200319)`;
+      await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(1200319)`;
       const existing = await tx.workspace.findMany({ select: { id: true }, orderBy: { id: 'asc' } });
       const tables = await tx.$queryRaw<{ tablename: string }[]>`SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename <> '_prisma_migrations' ORDER BY tablename`;
       const fixtureTables = new Set(['Workspace', 'AdminUser', 'WorkspaceMembership', 'SiteSettings', 'Project', 'HomepageProject', 'WorkspaceDomain']);

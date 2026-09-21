@@ -10,8 +10,8 @@ import {inspect} from '../migrations/bootstrap/inspect.mjs';
 import {databaseUrl} from '../migrations/bootstrap/artifact.mjs';
 import {bundle} from './tenant/bundle.mjs';
 let db;
+const isolated=process.argv[2]==='--isolated';
 try {
- const isolated=process.argv[2]==='--isolated';
  assert.ok(process.argv.length===(isolated?3:2));
  let candidate,connection;
  if(isolated){
@@ -50,6 +50,8 @@ try {
  await mkdir('staging-evidence',{recursive:true});
  await writeFile('staging-evidence/'+(isolated?'tenant-isolated':'tenant-neon')+'.json',JSON.stringify({version:1,candidate,target:isolated?'disposable-local-postgresql16':TARGET,identity,observedAt:new Date().toISOString(),qualification,schemaHash:after.schemaHash,ledgerHash:after.ledgerHash,ledgerUnchanged:true,deployable:false,hostedApplicationVerified:false},null,2)+'\n');
  console.log('PASS '+(isolated?'isolated repeatability':'Neon')+' tenant route/service qualification; schema/ledger unchanged; NOT hosted HTTP or deployment admission');
-}catch{
+}catch(error){
+ // Only the fixed credential-free loopback harness can expose diagnostics.
+ if(isolated&&process.env.PACKET12_REHEARSAL==='isolated-only')console.error(error);
  console.error('STAGING_TENANT_QUALIFICATION_BLOCKED: no retry, repair, deletion or deployment. Review protected inputs and synthetic fixture state. Raw diagnostics suppressed.');process.exitCode=1;
 }finally{if(db)await db.end().catch(()=>{});}
