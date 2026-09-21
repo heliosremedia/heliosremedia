@@ -1,24 +1,41 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-packet16-tenant-qualification",
   "branch": "codex/v2-neon-staging-bootstrap",
   "pr": 323,
-  "head": "a632451c6f79ee756f26e994edae2bb3a7838db9",
-  "tree": "a95e9b07dec26e5b8052db136e29837111556d0f",
-  "expiresAt": "2026-09-21T02:55:46.295Z",
+  "head": "6e9544067b73909dcd68e2859c9345976172918f",
+  "tree": "ab3da90740306999c0ebe5e0ed48670d3d1ee885",
+  "releasedAt": "2026-09-21T02:14:04.432Z",
+  "packetComplete": false,
   "databaseBaseline": {
     "head": "513f5eb94c963c2d33929604f56cc5f7107de483",
     "run": 35549161614,
     "attempt": 2,
     "completed": true
   },
+  "tests": 1001,
+  "failed": 0,
+  "ci": {
+    "tenantPostgreSQL": 35552871684,
+    "contract": 35552871680,
+    "regression": 35552871703,
+    "all": "success at exact head"
+  },
+  "artifact": {
+    "id": 10618804275,
+    "digest": "sha256:65b2ea413240f4b1e320a22c81dddb37edd4f7813f0201b7a01c3b8fff5ef224"
+  },
+  "verification": "Actual route/service/generated PrismaPg on isolated PostgreSQL16, both tenant directions, concurrent200+409, stale409, foreign404, public host/settings scoping, repeatability, unchanged schema/ledger. Synthetic Chromium390/1440 and isolated Next HTTP passed; NOT hosted Neon tenant evidence.",
   "liveSeed": false,
   "hostedDeployment": false,
   "productionChanges": false,
-  "ci": [
-    35552277415,
-    35552277404,
-    35552277495
-  ],
-  "next": "Finish isolated qualification CI; separate default-branch registration review required before protected tenant dispatch"
+  "vercelSettingsChanged": false,
+  "liveReadOnly": "Authenticated staging Vercel UI projectID confirmed, default vercel.app domain only/no deployment, exit0 preserved. Neon19 complete ledger entries,0 workspaces.",
+  "registrationRequired": {
+    "file": ".github/workflows/v2-neon-staging-tenants.yml",
+    "blob": "38b1e708a0a1c1a8907b214b3bef992b8140101b",
+    "main": "131532e10082160883750fa3e5312501c8768124",
+    "supportingFiles": []
+  },
+  "next": "Owner review of one-file default-branch registration, then protected current-baseline tenant dispatch. Keep hosted deployment/build settings on hold; no Packet17."
 }
