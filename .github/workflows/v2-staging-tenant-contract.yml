@@ -51,7 +51,7 @@ jobs:
         run: |
           ./node_modules/.bin/next typegen
           ./node_modules/.bin/tsc --noEmit --incremental false
-          ./node_modules/.bin/eslint scripts/staging/*.mjs scripts/staging/*.ts scripts/staging/tenant/* lib/staging-hosted-admission.test.ts lib/r2.ts scripts/release/*.mjs scripts/rehearsal/release/*.mjs scripts/rehearsal/application/run.mjs scripts/rehearsal/application/driver.ts scripts/build.mjs lib/release-preflight.test.ts lib/build-migration-gate.test.ts
+          ./node_modules/.bin/eslint scripts/staging/*.mjs scripts/staging/*.ts scripts/staging/actions/*.mjs lib/staging-actions-executor.test.ts scripts/staging/tenant/* lib/staging-hosted-admission.test.ts lib/r2.ts scripts/release/*.mjs scripts/rehearsal/release/*.mjs scripts/rehearsal/application/run.mjs scripts/rehearsal/application/driver.ts scripts/build.mjs lib/release-preflight.test.ts lib/build-migration-gate.test.ts
       - run: sudo apt-get update && sudo apt-get install -y postgresql-client-16
       - name: Safe tracks and unsafe-state release matrix
         run: node scripts/rehearsal/release/run.mjs

@@ -1,5 +1,13 @@
 # Helios Studio V2 progress ledger
 
+## Packet16 protected hosted Actions executor preparation (September21,2026)
+
+Manual Vercel UI qualification is superseded by a protected manual Actions executor. Application source remains pinned to dbfb19909d3fe0bb91d81a478210373340f86e86; new executor/diagnostics source has a separate review SHA. Existing candidate1041/1041 tests and workflows35556635809/35556635811/35556635812 are verified baseline, not new hosted evidence.
+
+New workflow validates Environment protection, exact staging project/team/Git candidate, authenticated Neon identity, current schema/ledger and existing synthetic footprint; creates only one Preview; validates native build receipt; performs signed-session HTTP/concurrency and Chromium qualification; restores staging suppression, synthetic hostname mappings and run-owned temporary configuration. No migrations or production endpoint. Safe phase/reason/hash diagnostics replace raw errors. See helios-studio-v2-protected-hosted-executor.md for exact pending mutations, secret names, API path, pinned-source diagnostic limitation and cleanup failure recovery.
+
+Prepared only, not registered or dispatched. Both project suppression settings remain untouched. Final executor CI pending; exact results recorded on #323 and canonical claim. Owner approval required before first live execution. Packet16 remains OPEN; no Packet17.
+
 ## Packet16 staging-only hosted admission implementation (September21,2026)
 
 Real Neon tenant baseline verified at6e9544067b73909dcd68e2859c9345976172918f, run35553978752: two synthetic tenants,1001 passing tests, both-direction read/write isolation, concurrent200+409 and stale409, unchanged schema/19-entry ledger, no unexpected rows. This supersedes earlier pending tenant observations.

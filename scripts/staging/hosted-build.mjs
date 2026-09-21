@@ -1,5 +1,6 @@
 // Native Vercel build entry. No migrate/deploy/resolve/db-push command exists here.
 import assert from 'node:assert/strict';
+import {diagnostic} from './actions/diagnostics.mjs';
 import {readFile,readdir,access,mkdir,writeFile} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 import pg from 'pg';
@@ -22,15 +23,19 @@ export async function databaseState(db,manifest){
  }catch(e){await db.query('ROLLBACK');throw e;}
 }
 export async function executeHosted(deps,env){
- const candidate=runtime(env); // Must precede every effect, including provider reads.
- const proof=provenance(await deps.metadata(),env);
- const identity=await deps.source(candidate);
- const before=await deps.inspect();
- // Never build against an unclassified database, even if an adapter malfunctions.
- assert.equal(before.state,'current-compatible-ledger');assert.equal(before.track,'baseline');
- await deps.build();
- const after=await deps.inspect();const result=receipt(proof,before,after,identity,await deps.digest());
- await deps.persist(result);return result;
+ let phase='runtime';
+ try {
+  const candidate=runtime(env);
+  phase='provider-provenance';const proof=provenance(await deps.metadata(),env);
+  phase='source-integrity';const identity=await deps.source(candidate);
+  phase='database-preflight';const before=await deps.inspect();
+  assert.equal(before.state,'current-compatible-ledger');assert.equal(before.track,'baseline');
+  phase='application-build';await deps.build();
+  phase='database-postflight';const after=await deps.inspect();
+  phase='artifact-digest';const result=receipt(proof,before,after,identity,await deps.digest());
+  phase='receipt-persistence';await deps.persist(result);return result;
+ } catch(error) {const safe=new Error('STAGING_HOSTED_BUILD_BLOCKED');safe.safeDiagnostic=diagnostic(phase,error);throw safe;}
+
 }
 export async function main(env=process.env){
  let db;
@@ -62,7 +67,7 @@ export async function main(env=process.env){
    persist:async result=>{await mkdir('staging-evidence',{recursive:true});await writeFile('staging-evidence/hosted-build.json',JSON.stringify(result,null,2)+'\n');},
   },env);
   console.log('STAGING_BUILD_RECEIPT '+JSON.stringify(result));
- }catch{console.error('STAGING_HOSTED_BUILD_BLOCKED: no migration, deployment or retry. Inspect approved target/evidence. Raw diagnostics suppressed.');process.exitCode=1;}
+ }catch(error){console.error('STAGING_HOSTED_BUILD_BLOCKED '+JSON.stringify(error.safeDiagnostic||diagnostic('runtime',error)));process.exitCode=1;}
  finally{if(db)await db.end().catch(()=>{});}
 }
 
