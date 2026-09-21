@@ -1,13 +1,7 @@
 {
-  "status": "released",
-  "runId": "atlas-packet16-first-hosted-execution",
+  "status": "active",
+  "runId": "atlas-packet16-preflight-diagnostics",
   "branch": "codex/v2-neon-staging-bootstrap",
-  "executor": "51f6ad1a4bde4cc54620e32214eb7f95b6f694a5",
-  "candidate": "dbfb19909d3fe0bb91d81a478210373340f86e86",
-  "workflowRun": 35563010507,
-  "workflowStatus": "completed",
-  "result": "Run35563010507 attempt1 stopped in preflight IDENTITY_OR_CONTRACT_MISMATCH. Safe artifact10621934940 downloaded and checksum verified b422d9d0ee43c50e96db32c40d216a2d0c3cf0f3098a82c61a68f400bda28b4f. phases empty, no preflight snapshot or deployment. 76 targeted tests passed. No configuration/create/HTTP/Chromium/postflight executed. Restoration step skipped because admission journal absent. Exact failed assertion not identifiable from current safe diagnostic; no automatic retry or changed candidate.",
-  "releasedAt": "2026-09-21T05:02:26.125Z",
-  "conclusion": "failure",
-  "failureHash": "0f7961a572558d33aae061b70577c27c7f1319638b8ad7342be55690c8f84165"
+  "expiresAt": "2026-09-21T07:08:56.782Z",
+  "scope": "Diagnostics only, unchanged gates/order, no live dispatch"
 }
