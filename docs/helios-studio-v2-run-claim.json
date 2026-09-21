@@ -1,20 +1,10 @@
 {
-  "status": "released",
-  "runId": "atlas-packet16-executor",
+  "status": "active",
+  "runId": "atlas-packet16-tenant-qualification",
   "branch": "codex/v2-neon-staging-bootstrap",
   "pr": 323,
-  "head": "513f5eb94c963c2d33929604f56cc5f7107de483",
-  "tree": "d3486657f9ae127d83fba50109581857eac769ef",
-  "releasedAt": "2026-09-20T23:54:27.004Z",
-  "packetComplete": false,
-  "executorImplemented": true,
-  "contractCI": 35545620368,
-  "regressionCI": 35545620367,
-  "tests": 994,
-  "failed": 0,
-  "verification": "Exact-head CI green: Prisma, nonincremental TypeScript, regression, synthetic Chromium/Studio HTTP.26 new policy/CLI cases, scoped lint/whitespace. Initial NODE_ENV test typing defect fixed.",
-  "liveBootstrap": false,
-  "productionChanges": false,
-  "blocker": "Owner-configured protected environment/staging secrets and separately approved workflow-only default-branch registration required; no available dispatch capability. Vercel dual Git integration reactions investigated read-only; no project changes.",
-  "next": "Resume Packet16 after external execution gates; no Packet17."
+  "baseline": "513f5eb94c963c2d33929604f56cc5f7107de483",
+  "startedAt": "2026-09-21T01:37:41.706Z",
+  "expiresAt": "2026-09-21T02:37:41.706Z",
+  "scope": "Protected staging tenant qualification; no deployment or build setting changes"
 }
