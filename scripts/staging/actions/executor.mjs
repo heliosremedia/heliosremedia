@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import {invocation,deployment,CANDIDATE} from './policy.mjs';
-import {diagnostic} from './diagnostics.mjs';
+import {diagnostic,blockedError} from './diagnostics.mjs';
 // Effects injected for exhaustive failure-order tests. POST is admitted once, never retried.
 export async function execute(deps,env){
- invocation(env);let phase='preflight',before,id,qualified=false;const evidence={candidate:CANDIDATE,executor:env.GITHUB_SHA,phases:[],failures:[]};
+ invocation(env);let phase='preflight',before,id,firstFailure,qualified=false;const evidence={candidate:CANDIDATE,executor:env.GITHUB_SHA,phases:[],failures:[]};
  try{
   before=await deps.preflight();evidence.before=before;evidence.phases.push(phase);
   phase='configure-preview';await deps.configure();evidence.phases.push(phase);
@@ -11,7 +11,7 @@ export async function execute(deps,env){
   phase='wait-build';const ready=await deps.wait(id);evidence.deployment=deployment(ready,id);assert.equal(ready.readyState,'READY');evidence.phases.push(phase);
   phase='build-receipt';evidence.build=await deps.receipt(id);evidence.phases.push(phase);
   phase='hosted-http-chromium';evidence.qualification=await deps.qualify(ready);qualified=true;evidence.phases.push(phase);
- }catch(error){evidence.failures.push(diagnostic(phase,error));}
+ }catch(error){firstFailure=error;evidence.failures.push(diagnostic(phase,error));}
  finally{
   // Preflight rejection must cause no mutation, including "cleanup" against an unqualified target.
   if(before){
@@ -22,5 +22,5 @@ export async function execute(deps,env){
   if(id){try{evidence.events=await deps.diagnostics(id);}catch(error){evidence.failures.push(diagnostic('collect-build-diagnostics',error));}}
   evidence.success=qualified&&evidence.failures.length===0;await deps.persist(evidence);
  }
- if(!evidence.success)throw Error('STAGING_EXECUTOR_BLOCKED');return evidence;
+ if(!evidence.success)throw blockedError(firstFailure);return evidence;
 }

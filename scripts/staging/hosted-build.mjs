@@ -1,3 +1,4 @@
+import {check,checked} from './actions/diagnostics.mjs';
 // Native Vercel build entry. No migrate/deploy/resolve/db-push command exists here.
 import assert from 'node:assert/strict';
 import {diagnostic} from './actions/diagnostics.mjs';
@@ -13,12 +14,12 @@ import {generatedClientCheck} from '../release/gate.mjs';
 export async function databaseState(db,manifest){
  await db.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
  try{
-  assert.equal((await db.query('SELECT current_database() name')).rows[0].name,TARGET.database);
-  assert.equal(Math.floor(Number((await db.query('SHOW server_version_num')).rows[0].server_version_num)/10000),16);
+  await checked('DATABASE_CONNECTED_NAME', async ()=>assert.equal((await db.query('SELECT current_database() name')).rows[0].name,TARGET.database));
+  await checked('DATABASE_CONNECTED_VERSION', async ()=>assert.equal(Math.floor(Number((await db.query('SHOW server_version_num')).rows[0].server_version_num)/10000),16));
   const schema=await schemaSnapshot(db),ledger=await readLedger(db);
-  assert.equal(hash(schema),CURRENT_SCHEMA,'Unreviewed schema');
+  check('DATABASE_SCHEMA_HASH', ()=>assert.equal(hash(schema),CURRENT_SCHEMA,'Unreviewed schema'));
   const state=classify({ledger,schema,current:schema,historical:{},manifest,baselineChecksum:BASELINE_CHECKSUM});
-  assert.equal(state.state,'current-compatible-ledger');assert.equal(state.track,'baseline');
+  check('DATABASE_LEDGER_CLASSIFICATION', ()=>assert.equal(state.state,'current-compatible-ledger'));check('DATABASE_LEDGER_TRACK', ()=>assert.equal(state.track,'baseline'));
   await db.query('COMMIT');return {...state,schemaHash:hash(schema),ledgerHash:hash(ledger)};
  }catch(e){await db.query('ROLLBACK');throw e;}
 }

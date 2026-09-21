@@ -1,6 +1,6 @@
 # Packet 16: protected Actions hosted qualification executor
 
-Status: prepared for review, NOT registered on main and NOT executed live. This supersedes the manual Vercel UI procedure. No project settings, secrets, deployment, domains or live database changed during implementation.
+Status: registered workflow-only on main at b6fb99e9a5ffe5b30c6d7b538cb79861e4fa6199. First approved live run35563010507 attempt1 stopped at preflight; no admission, configuration or deployment occurred. This correction is diagnostics-only and has NOT been dispatched live.
 
 ## Two immutable identities
 
@@ -49,3 +49,15 @@ A force-killed runner or provider outage can defeat best-effort cleanup. Such a 
 Executable tests cover the real orchestration and REST transport: every lifecycle failure, wrong repository/ref/executor/candidate/confirmation, production/foreign target, unknown environment inventory, schema drift, uncertain POST, cleanup attempts after partial failure and secret-free diagnostics. Existing native build and synthetic browser regression workflows remain required. Isolated CI is distinct from live hosted evidence. Final exact executor head and CI IDs are recorded on PR323 and the canonical run claim after validation.
 
 Stop before registration/dispatch approval. Packet16 live hosted qualification remains OPEN. No merge, production change or Packet17.
+
+## Preflight diagnostic correction (September 21, 2026)
+
+Reviewed executor baseline: `51f6ad1a4bde4cc54620e32214eb7f95b6f694a5`. Run35563010507 passed76 targeted tests but retained only `IDENTITY_OR_CONTRACT_MISMATCH`, empty admitted phases and `success:false`. Artifact10621934940 archive SHA256: `b422d9d0ee43c50e96db32c40d216a2d0c3cf0f3098a82c61a68f400bda28b4f`. Its original assertion is not recoverable from that evidence; no cause is inferred. No deployment identity, hosted browser result or restoration action exists for this rejected preflight.
+
+The corrected executor labels the existing assertions and metadata-read stages without changing their predicates, argument evaluation, ordering or thrown error identity. `scripts/staging/actions/check-codes.mjs` is the fixed allowlist. Examples: `CHECK_EXECUTOR_SHA`, `CHECK_CANDIDATE_SHA`, `CHECK_GITHUB_RUN_SHA`, `CHECK_VERCEL_TEAM_ID`, `CHECK_VERCEL_PROJECT_ID`, `CHECK_DEPLOYMENT_TARGET`, `CHECK_DEPLOYMENT_SOURCE_SHA`, `CHECK_NEON_BRANCH_ID`, `CHECK_DATABASE_NAME`, `CHECK_ENVIRONMENT_ADMIN_BYPASS`, `CHECK_STAGING_SUPPRESSION`. Nested read failures retain context, for example `CHECK_GITHUB_ENVIRONMENT_READ__SCOPED_CREDENTIAL_PRESENCE` or `CHECK_NEON_PROJECT_READ__AUTHENTICATED_METADATA_STATUS`. Missing/malformed direct connection configuration is `CHECK_DATABASE_URL_PARSE`; credential presence inside a parsed URL is separately checked.
+
+Serialized contract: allowlisted `phase`, fixed `reason`, `matched:false`, and SHA256 `detailHash`. No raw expected/observed values, URLs, headers, error properties, response bodies or credentials are serialized. Private WeakMap labels cannot be forged by provider error properties. The same reason reaches retained evidence and the terminal executor error. Existing unlabelled execution failures retain bounded fallback reasons. Application candidate remains `dbfb19909d3fe0bb91d81a478210373340f86e86`; this executor correction does not change that deployed source or its native build script.
+
+187 diagnostic tests cover all registered reason codes, original throw semantics, secret-sentinel redaction in retained/terminal evidence, real policy mismatches, isolated execution of the real live preflight callback, read-only database rejection, and no mutation/cleanup before admission. Executable AST fingerprints strip only diagnostic wrappers and compare all four affected gate/effect files against reviewed executor51f6ad1, proving unchanged original checks and effect ordering. The existing76 executor/admission tests remain required. Full exact-head regression, isolated PostgreSQL/build and executor-contract CI are required before this correction is considered verified; final head/run evidence is recorded on PR323 and the canonical run claim.
+
+No manual workflow, approval policy, default-branch registration, provider setting, database, suppression condition or deployment payload is changed by this correction. No live dispatch is authorized by this diagnostics task. Next live execution requires review of the new executor SHA; it alone can identify the original environmental mismatch. Packet16 remains open; Packet17 is not started.

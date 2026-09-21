@@ -1,5 +1,13 @@
 # Helios Studio V2 progress ledger
 
+## Packet16 preflight diagnostics only (September21,2026)
+
+Workflow-only registration is complete at main b6fb99e9a5ffe5b30c6d7b538cb79861e4fa6199. Approved run35563010507 attempt1, executor51f6ad1a4bde4cc54620e32214eb7f95b6f694a5 and candidate dbfb19909d3fe0bb91d81a478210373340f86e86, passed76 targeted tests then failed before admission with IDENTITY_OR_CONTRACT_MISMATCH. Retained artifact10621934940 has no admitted phases and no deployment. The exact failing assertion is unknown. This supersedes earlier “not registered/executed” preparation notes, not the verified Neon baseline.
+
+Diagnostics-only correction adds static per-check and metadata-stage reasons, matched:false and error hash. No provider bodies, URLs, credentials or observed values are retained. Existing gates, argument evaluation and effect order are preserved; executable AST equality checks compare against the reviewed executor.187 added diagnostic cases include every code, secret redaction, original errors, actual policy/preflight failures and zero provider mutation before admission. Full regression/isolated build/contract CI must pass at the published head; exact SHA and runs are recorded on PR323 and the canonical claim. See protected-hosted-executor document for the diagnostic contract and evidence limitations.
+
+No live dispatch, registration change, Vercel/Neon mutation, application candidate change, merge or production action in this correction. Hosted HTTP/Chromium, deployment provenance, postflight/restoration and rollback remain unverified. Packet16 OPEN; no Packet17. Next action is review of the diagnostic executor, followed only by a separately authorized protected staging execution.
+
 ## Packet16 protected hosted Actions executor preparation (September21,2026)
 
 Manual Vercel UI qualification is superseded by a protected manual Actions executor. Application source remains pinned to dbfb19909d3fe0bb91d81a478210373340f86e86; new executor/diagnostics source has a separate review SHA. Existing candidate1041/1041 tests and workflows35556635809/35556635811/35556635812 are verified baseline, not new hosted evidence.
