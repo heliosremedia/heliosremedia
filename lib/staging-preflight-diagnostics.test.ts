@@ -7,7 +7,7 @@ import {runInNewContext} from 'node:vm';
 import {check,checked,diagnostic,eventsSummary} from '../scripts/staging/actions/diagnostics.mjs';
 import {CHECK_CODES} from '../scripts/staging/actions/check-codes.mjs';
 import {execute} from '../scripts/staging/actions/executor.mjs';
-import {invocation,project,deployment,environmentInventory,HOSTED,CANDIDATE,CONFIRMATION} from '../scripts/staging/actions/policy.mjs';
+import {invocation,project,deployment,environmentInventory,HOSTED,CANDIDATE,CONFIRMATION,RELEASE_RUN} from '../scripts/staging/actions/policy.mjs';
 import {protection,targetConnection,TARGET} from '../scripts/staging/policy.mjs';
 const sentinel='private-password-token-DO-NOT-LOG';
 function reason(operation:()=>unknown){try{operation();assert.fail('Expected rejection');}catch(error){return diagnostic('preflight',error).reason;}}
@@ -76,7 +76,7 @@ function gateFingerprint(source:string){
  try{return createHash('sha256').update(ts.createPrinter({removeComments:true}).printFile(transformed.transformed[0])).digest('hex');}finally{transformed.dispose();}
 }
 for(const [path,hash]of Object.entries({
- 'scripts/staging/actions/policy.mjs':'844fa6bff8a677df7d1d49d2249bdffccff7d601999000892d44c50ee463f761',
+ 'scripts/staging/actions/policy.mjs':'e9ae7894d74eaaac617ed608a71a1828246ca9f3f40cc3f72db807d0387fd53a',
  'scripts/staging/policy.mjs':'ffeb3024e47a9323d6015fb407e380f11663d729358a7c7a855d89c3095b50f8',
  'scripts/staging/hosted-build.mjs':'f2534c5b316ccc60c173bdae3440820a264d5f8dc8df6b23792352542e47b57d',
  'scripts/staging/actions/live.mjs':'5eaef8b802fdfeba53e73b16794874302615d6e45a4779779ba535d6a38813b3',
@@ -95,7 +95,7 @@ for(const [key,code]of Object.entries({head_sha:'GITHUB_RUN_SHA',head_branch:'GI
  const source=readFileSync('scripts/staging/actions/live.mjs','utf8');const ast=ts.createSourceFile('live.mjs',source,ts.ScriptTarget.Latest,true);
  let body='';function find(node:ts.Node){if(ts.isPropertyAssignment(node)&&node.name.getText(ast)==='preflight'&&ts.isArrowFunction(node.initializer))body=node.initializer.body.getText(ast);ts.forEachChild(node,find);}find(ast);assert.ok(body);
  const calls:string[]=[];
- const context={env:{STAGING_GITHUB_READ_TOKEN:'synthetic'},ENVIRONMENT:policy.name,HOSTED,CANDIDATE,RELEASE_RUN:35556635812,assert,check,checked,protection,
+ const context={env:{STAGING_GITHUB_READ_TOKEN:'synthetic'},ENVIRONMENT:policy.name,HOSTED,CANDIDATE,RELEASE_RUN,assert,check,checked,protection,
   jsonGet:async(url:string)=>{calls.push(url);if(url.endsWith('/deployment-branch-policies'))return branches;if(url.includes('/environments/'))return policy;return {head_sha:CANDIDATE,head_branch:HOSTED.branch,status:'completed',conclusion:'success',path:'.github/workflows/v2-regression.yml',[key]:sentinel};},
   api:async()=>{throw Error('Provider must not be reached');}
  };
