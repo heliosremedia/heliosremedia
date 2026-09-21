@@ -17,7 +17,7 @@ try {
  if(isolated){
   assert.equal(process.env.PACKET12_REHEARSAL,'isolated-only');
   candidate=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
-  connection={connectionString:databaseUrl('packet11_clean')};
+  connection={connectionString:databaseUrl('packet11_noledger')};
  } else {
   candidate=invocation(process.env);assert.equal(process.env.STAGING_TRACK,'current-baseline');
   assert.equal(process.env.STAGING_TENANT_CONFIRMATION,'seed-synthetic-tenants-only');
@@ -36,7 +36,7 @@ try {
  const tests=JSON.parse(await readFile('release-evidence/tests.json','utf8'));
  assert.equal(tests.candidate,candidate);assert.equal(tests.status,'passed');assert.equal(tests.failed,0);assert.ok(tests.count>0);
  db=new pg.Client(connection);await db.connect();
- assert.equal((await db.query('SELECT current_database() name')).rows[0].name,isolated?'packet11_clean':TARGET.database);
+ assert.equal((await db.query('SELECT current_database() name')).rows[0].name,isolated?'packet11_noledger':TARGET.database);
  assert.equal(Math.floor(Number((await db.query('SHOW server_version_num')).rows[0].server_version_num)/10000),16);
  assert.equal((await db.query('SELECT pg_try_advisory_lock(1200318) locked')).rows[0].locked,true);
  const before=await inspect(db,context.reference);admission(before,'current-baseline');
