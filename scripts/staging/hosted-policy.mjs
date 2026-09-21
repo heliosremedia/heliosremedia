@@ -13,7 +13,7 @@ export function runtime(env){
  assert.match(env.STAGING_RELEASE_RUN_ID||'',/^[1-9][0-9]*$/);
  assert.ok(!env.HELIOS_RELEASE_TARGET&&!env.STUDIO_V2_LOCAL_WORKSPACE_SLUG);
  // Deny all configured application provider families, not just their API keys.
- for(const [key,value] of Object.entries(env))if(value)assert.ok(!/^(R2_|CLOUDFLARE_|AWS_|RESEND_|OPENAI_|GOOGLE_|SOCIAL_|HDPH_|CRON_SECRET$|HELIOS_ADMIN_|INQUIRY_NOTIFICATION_|NEXT_PUBLIC_GA_|NEXT_PUBLIC_SITE_URL$|CAMPAIGN_|PORTAL_)/.test(key),'External provider configuration forbidden');
+ for(const [key,value] of Object.entries(env))if(value)assert.ok(!/^(R2_|CLOUDFLARE_|AWS_|RESEND_|OPENAI_|GOOGLE_|SOCIAL_|META_|LINKEDIN_|TIKTOK_|UPTIMEROBOT_|NEWSLETTER_|INQUIRY_|HDPH_|CRON_SECRET$|HELIOS_ADMIN_|INQUIRY_NOTIFICATION_|NEXT_PUBLIC_GA_|NEXT_PUBLIC_SITE_URL$|CAMPAIGN_|PORTAL_)/.test(key),'External provider configuration forbidden');
  for(const key of ['DATABASE_URL','DIRECT_URL']){
   const u=new URL(env[key]);assert.ok(['postgres:','postgresql:'].includes(u.protocol));
   assert.equal(u.hostname,'ep-crimson-snow-araflu1k.c-4.us-west-2.aws.neon.tech');
