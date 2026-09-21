@@ -1,7 +1,10 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-packet16-hosted-registration",
   "branch": "codex/v2-neon-staging-bootstrap",
-  "expiresAt": "2026-09-21T05:51:23.362Z",
-  "scope": "Approved workflow-only main registration; live dispatch blocked by missing Environment STAGING_VERCEL_TOKEN"
+  "executor": "51f6ad1a4bde4cc54620e32214eb7f95b6f694a5",
+  "candidate": "dbfb19909d3fe0bb91d81a478210373340f86e86",
+  "registration": "b6fb99e9a5ffe5b30c6d7b538cb79861e4fa6199",
+  "releasedAt": "2026-09-21T04:53:52.242Z",
+  "result": "Workflow-only main registration verified and discovered. Zero runs; missing protected Environment STAGING_VERCEL_TOKEN blocks dispatch. Both Vercel contexts skipped. No deployment or live DB/settings changes. Owner must add staging-only secret through GitHub; no credentials in chat."
 }
