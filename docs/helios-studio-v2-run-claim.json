@@ -1,9 +1,11 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-packet16-first-hosted-execution",
   "branch": "codex/v2-neon-staging-bootstrap",
-  "expiresAt": "2026-09-21T06:00:52.713Z",
   "executor": "51f6ad1a4bde4cc54620e32214eb7f95b6f694a5",
   "candidate": "dbfb19909d3fe0bb91d81a478210373340f86e86",
-  "scope": "Approved single protected staging execution; production untouched"
+  "workflowRun": 35563010507,
+  "workflowStatus": "waiting",
+  "result": "Dispatched once with approved inputs. All three required Environment secret names verified. GitHub required reviewer gate awaits owner approval. No job execution or deployment yet. Do not redispatch; resume monitoring this run.",
+  "releasedAt": "2026-09-21T05:02:26.125Z"
 }
