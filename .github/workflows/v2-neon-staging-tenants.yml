@@ -1,0 +1,96 @@
+name: V2 manual protected Neon tenant qualification
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: Exact reviewed branch head SHA
+        required: true
+        type: string
+      track:
+        description: Explicit database track
+        required: true
+        type: choice
+        options: [current-baseline]
+      tenant_confirmation:
+        description: Enter seed-synthetic-tenants-only
+        required: true
+        type: string
+      confirmation:
+        description: Enter calm-shape-83359560/br-young-math-arj7l4r3/helios_v2_staging
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: helios-v2-staging-bootstrap
+  cancel-in-progress: false
+jobs:
+  rehearsal:
+    if: github.repository == 'heliosremedia/heliosremedia' && github.ref == 'refs/heads/codex/v2-neon-staging-bootstrap' && github.sha == inputs.candidate_sha
+    environment: helios-v2-staging-bootstrap
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16@sha256:f1c3376c26f2609ab9f29f71f824103fe2fcd8ee0346485cb6122a4f93df6f94
+        env:
+          POSTGRES_USER: helios_rehearsal
+          POSTGRES_PASSWORD: synthetic_only
+          POSTGRES_DB: packet11_control
+        ports: ['55439:5432']
+        options: >-
+          --health-cmd "pg_isready -U helios_rehearsal -d packet11_control"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PACKET10_REHEARSAL: isolated-only
+      PACKET11_REHEARSAL: isolated-only
+      PACKET12_REHEARSAL: isolated-only
+      PACKET9_DATABASE_URL: postgresql://helios_rehearsal:synthetic_only@127.0.0.1:55439/helios_packet9
+      DIRECT_URL: postgresql://unused:unused@127.0.0.1:1/unused
+      DATABASE_URL: postgresql://unused:unused@127.0.0.1:1/unused
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Fetch pinned schema and rollback source
+        run: |
+          git fetch --depth 1 origin 72dab34568cb6885f3e93b5ed9db38edca156835
+          git fetch --depth 1 origin 63df1f7ba403144c9858136674b11cad8d3231f0
+          git fetch --depth 1 origin ad165992518283ff72a4d3c4e2e8f888adcacbcb
+      - run: npm ci --ignore-scripts
+      - run: ./node_modules/.bin/prisma generate
+      - name: Regression evidence bound to candidate SHA
+        run: node scripts/release/test-evidence.mjs
+      - name: Types and scoped lint
+        run: |
+          ./node_modules/.bin/next typegen
+          ./node_modules/.bin/tsc --noEmit --incremental false
+          ./node_modules/.bin/eslint scripts/staging/*.mjs scripts/staging/tenant/* scripts/release/*.mjs scripts/rehearsal/release/*.mjs scripts/rehearsal/application/run.mjs scripts/rehearsal/application/driver.ts scripts/build.mjs lib/release-preflight.test.ts lib/build-migration-gate.test.ts
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client-16
+      - name: Safe tracks and unsafe-state release matrix
+        run: node scripts/rehearsal/release/run.mjs
+      - name: Isolated tenant qualification and repeatability
+        run: node scripts/staging/qualify-tenants.mjs --isolated
+      - name: Guarded exact-target tenant qualification
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          STAGING_GITHUB_READ_TOKEN: ${{ secrets.STAGING_GITHUB_READ_TOKEN }}
+          STAGING_NEON_API_KEY: ${{ secrets.STAGING_NEON_API_KEY }}
+          STAGING_DIRECT_URL: ${{ secrets.STAGING_DIRECT_URL }}
+          STAGING_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          STAGING_TENANT_CONFIRMATION: ${{ inputs.tenant_confirmation }}
+          STAGING_TRACK: ${{ inputs.track }}
+          STAGING_CONFIRMATION: ${{ inputs.confirmation }}
+        run: node scripts/staging/qualify-tenants.mjs
+      - name: Retain allowlisted tenant receipt only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: neon-staging-tenants-${{ github.sha }}-${{ github.run_id }}
+          path: staging-evidence/tenant-neon.json
+          if-no-files-found: error
+          retention-days: 30
