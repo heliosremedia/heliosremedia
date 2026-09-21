@@ -49,3 +49,13 @@ test('actual R2 module imports without credentials only for exact disabled stagi
  assert.throws(()=>load({...env,VERCEL_ENV:'production'}),/Missing required/);assert.throws(()=>load({...env,VERCEL_PROJECT_ID:'foreign'}),/Missing required/);
  load({R2_ACCOUNT_ID:'synthetic',R2_ACCESS_KEY_ID:'synthetic',R2_SECRET_ACCESS_KEY:'synthetic',R2_BUCKET_NAME:'synthetic',R2_PUBLIC_URL:'https://assets.invalid'});assert.equal(clients,1);
 });
+
+test('native build digest binds linked dependency bytes and rejects escapes and cycles',async()=>{
+ const {mkdtemp,mkdir,writeFile,symlink,rm}=await import('node:fs/promises');const {tmpdir}=await import('node:os');const {join}=await import('node:path');const {hostedDigest}=await import('../scripts/staging/hosted-digest.mjs');
+ const dir=await mkdtemp(join(tmpdir(),'staging-digest-'));const root=join(dir,'build'),deps=join(dir,'deps');
+ try{await mkdir(join(root,'node_modules'),{recursive:true});await mkdir(deps);await writeFile(join(deps,'module.js'),'first');await symlink(deps,join(root,'node_modules','package'));
+ const first=await hostedDigest(root,deps);assert.equal(await hostedDigest(root,deps),first);await writeFile(join(deps,'module.js'),'changed');assert.notEqual(await hostedDigest(root,deps),first);
+ await symlink(dir,join(root,'node_modules','escape'));await assert.rejects(hostedDigest(root,deps),/escapes/);await rm(join(root,'node_modules','escape'));
+ await symlink(deps,join(deps,'cycle'));await assert.rejects(hostedDigest(root,deps),/cycle/);
+ }finally{await rm(dir,{recursive:true,force:true});}
+});

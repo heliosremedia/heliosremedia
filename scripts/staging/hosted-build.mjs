@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import {readFile,readdir,access,mkdir,writeFile} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 import pg from 'pg';
+import {hostedDigest} from './hosted-digest.mjs';
 import {runtime,provenance,receipt,HOSTED} from './hosted-policy.mjs';
 import {TARGET,jsonGet,targetConnection} from './policy.mjs';
 import {schemaSnapshot,readLedger,classify,hash} from '../migrations/bootstrap/inspect.mjs';
 import {BASELINE_CHECKSUM,CURRENT_SCHEMA} from '../release/policy.mjs';
-import {generatedClientCheck,treeDigest} from '../release/gate.mjs';
+import {generatedClientCheck} from '../release/gate.mjs';
 export async function databaseState(db,manifest){
  await db.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
  try{
@@ -57,7 +58,7 @@ export async function main(env=process.env){
    },
    inspect:()=>databaseState(db,manifest),
    build:()=>buildApplication(env),
-   digest:()=>treeDigest('.next',{exclude:['cache']}),
+   digest:()=>hostedDigest(),
    persist:async result=>{await mkdir('staging-evidence',{recursive:true});await writeFile('staging-evidence/hosted-build.json',JSON.stringify(result,null,2)+'\n');},
   },env);
   console.log('STAGING_BUILD_RECEIPT '+JSON.stringify(result));

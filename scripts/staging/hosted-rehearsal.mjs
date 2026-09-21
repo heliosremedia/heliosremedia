@@ -6,7 +6,7 @@ import pg from 'pg';
 import {HOSTED} from './hosted-policy.mjs';
 import {executeHosted,databaseState,buildApplication} from './hosted-build.mjs';
 import {databaseUrl} from '../migrations/bootstrap/artifact.mjs';
-import {treeDigest} from '../release/gate.mjs';
+import {hostedDigest} from './hosted-digest.mjs';
 import {readFile} from 'node:fs/promises';
 assert.equal(process.env.PACKET12_REHEARSAL,'isolated-only');
 for(const k of ['VERCEL','VERCEL_ENV','STAGING_NEON_API_KEY','STAGING_VERCEL_READ_TOKEN','STAGING_GITHUB_READ_TOKEN'])assert.ok(!process.env[k]);
@@ -24,7 +24,7 @@ try{
   source:async()=>({rehearsal:'synthetic-provider-metadata-real-local-build'}),
   inspect:()=>databaseState(db,manifest),
   build:()=>buildApplication({...env,PATH:process.env.PATH,HOME:process.env.HOME,DATABASE_URL:local,DIRECT_URL:local}),
-  digest:()=>treeDigest('.next',{exclude:['cache']}),
+  digest:()=>hostedDigest(),
   persist:async r=>{await mkdir('staging-evidence',{recursive:true});await writeFile('staging-evidence/hosted-isolated.json',JSON.stringify({...r,mode:'isolated-synthetic-provenance',deployable:false},null,2)+'\n');},
  },env);
  assert.equal(result.promotable,false);
