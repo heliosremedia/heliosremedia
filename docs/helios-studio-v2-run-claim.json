@@ -1,16 +1,7 @@
 {
-  "status": "released",
-  "runId": "atlas-packet16-actions-hosted",
+  "status": "active",
+  "runId": "atlas-packet16-hosted-registration",
   "branch": "codex/v2-neon-staging-bootstrap",
-  "executor": "51f6ad1a4bde4cc54620e32214eb7f95b6f694a5",
-  "candidate": "dbfb19909d3fe0bb91d81a478210373340f86e86",
-  "releasedAt": "2026-09-21T04:48:14.634Z",
-  "tests": 1077,
-  "ci": [
-    35561810217,
-    35561810211,
-    35561810203
-  ],
-  "result": "Prepared and verified only. Owner approval required before workflow-only registration and first live dispatch. No Vercel settings, live database or deployment changed; both Vercel checks skipped. Packet16 hosted qualification remains open; no Packet17.",
-  "verification": "Regression, generated Prisma, nonincremental TypeScript, scoped lint, synthetic Chromium, isolated PostgreSQL16.15 and actual Next build passed. No live hosted qualification."
+  "expiresAt": "2026-09-21T05:51:23.362Z",
+  "scope": "Approved workflow-only main registration; live dispatch blocked by missing Environment STAGING_VERCEL_TOKEN"
 }
