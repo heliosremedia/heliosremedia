@@ -1,0 +1,77 @@
+name: V2 manual protected staging Preview qualification
+on:
+  workflow_dispatch:
+    inputs:
+      executor_sha:
+        description: Exact reviewed executor branch head (not the deployed source)
+        required: true
+        type: string
+      candidate_sha:
+        description: Must be dbfb19909d3fe0bb91d81a478210373340f86e86
+        required: true
+        type: string
+      confirmation:
+        description: Enter calm-shape-83359560/br-young-math-arj7l4r3/helios_v2_staging
+        required: true
+        type: string
+      hosted_confirmation:
+        description: Enter deploy-preview-and-qualify-synthetic-tenants-only
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: helios-v2-staging-bootstrap
+  cancel-in-progress: false
+jobs:
+  qualify:
+    if: github.repository == 'heliosremedia/heliosremedia' && github.ref == 'refs/heads/codex/v2-neon-staging-bootstrap' && github.sha == inputs.executor_sha && inputs.candidate_sha == 'dbfb19909d3fe0bb91d81a478210373340f86e86'
+    environment: helios-v2-staging-bootstrap
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      STAGING_EXECUTOR_SHA: ${{ inputs.executor_sha }}
+      STAGING_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+      STAGING_TRACK: current-baseline
+      STAGING_CONFIRMATION: ${{ inputs.confirmation }}
+      STAGING_HOSTED_CONFIRMATION: ${{ inputs.hosted_confirmation }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: dbfb19909d3fe0bb91d81a478210373340f86e86
+          path: .candidate
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Test executor without provider credentials
+        run: node --experimental-strip-types --test lib/staging-actions-executor.test.ts lib/staging-hosted-admission.test.ts
+      - run: ./node_modules/.bin/playwright install --with-deps chromium
+      - name: Protected one-shot Preview and hosted qualification
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          STAGING_GITHUB_READ_TOKEN: ${{ secrets.STAGING_GITHUB_READ_TOKEN }}
+          STAGING_VERCEL_TOKEN: ${{ secrets.STAGING_VERCEL_TOKEN }}
+          STAGING_NEON_API_KEY: ${{ secrets.STAGING_NEON_API_KEY }}
+          STAGING_DIRECT_URL: ${{ secrets.STAGING_DIRECT_URL }}
+          STAGING_VERCEL_BYPASS_SECRET: ${{ secrets.STAGING_VERCEL_BYPASS_SECRET }}
+        run: node --experimental-strip-types scripts/staging/actions/live.mjs
+      - name: Always restore staging suppression after an admitted attempt
+        if: always() && hashFiles('staging-evidence/restoration-needed.json') != ''
+        env:
+          STAGING_VERCEL_TOKEN: ${{ secrets.STAGING_VERCEL_TOKEN }}
+        run: node --experimental-strip-types scripts/staging/actions/live.mjs --restore-suppression
+      - name: Retain safe diagnostics only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: staging-hosted-qualification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: staging-evidence/hosted-actions.json
+          if-no-files-found: warn
+          retention-days: 30
