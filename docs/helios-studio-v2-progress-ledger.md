@@ -1,5 +1,13 @@
 # Helios Studio V2 progress ledger
 
+## Packet16 staging-only hosted admission implementation (September21,2026)
+
+Real Neon tenant baseline verified at6e9544067b73909dcd68e2859c9345976172918f, run35553978752: two synthetic tenants,1001 passing tests, both-direction read/write isolation, concurrent200+409 and stale409, unchanged schema/19-entry ledger, no unexpected rows. This supersedes earlier pending tenant observations.
+
+New bounded admission implementation remains under verification. Exact staging project/team/Preview/source/branch, authenticated Vercel/GitHub/Neon metadata, read-only schema/ledger preflight/postflight, immutable migration identity and generated-client check gate Next build. Receipt binds native Next output digest but remains non-promotable pending actual hosted provenance/HTTP checks. Runner-only normal signed-session cookies and provider-owned preview hostname plans add no auth endpoint or database mutation. See docs/helios-studio-v2-staging-hosted-admission.md for configuration names, review gates and exact one-shot condition template.
+
+Both Vercel projects remain suppressed and unchanged. No live database writes, environment changes, deployment, merge or Packet17. Final exact-head CI evidence will be recorded on #323 and canonical run claim.
+
 ## Packet 16 continuation: protected tenant qualification (September 21, 2026)
 
 Database baseline is now VERIFIED at candidate `513f5eb94c963c2d33929604f56cc5f7107de483`, manual run35549161614 attempt2: real Neon bootstrap/postflight and repeated migration no-op passed,994/994 tests. Independent authenticated readback: PostgreSQL16.15,114 public tables,19 completed migration rows,zero workspaces. This supersedes the historical blocked observations below. Bootstrap receipt artifact10617918204 was retained by CI; its archive contents were not independently downloaded here.

@@ -51,16 +51,20 @@ jobs:
         run: |
           ./node_modules/.bin/next typegen
           ./node_modules/.bin/tsc --noEmit --incremental false
-          ./node_modules/.bin/eslint scripts/staging/*.mjs scripts/staging/tenant/* scripts/release/*.mjs scripts/rehearsal/release/*.mjs scripts/rehearsal/application/run.mjs scripts/rehearsal/application/driver.ts scripts/build.mjs lib/release-preflight.test.ts lib/build-migration-gate.test.ts
+          ./node_modules/.bin/eslint scripts/staging/*.mjs scripts/staging/*.ts scripts/staging/tenant/* lib/staging-hosted-admission.test.ts scripts/release/*.mjs scripts/rehearsal/release/*.mjs scripts/rehearsal/application/run.mjs scripts/rehearsal/application/driver.ts scripts/build.mjs lib/release-preflight.test.ts lib/build-migration-gate.test.ts
       - run: sudo apt-get update && sudo apt-get install -y postgresql-client-16
       - name: Safe tracks and unsafe-state release matrix
         run: node scripts/rehearsal/release/run.mjs
       - name: Isolated tenant qualification and repeatability
         run: node scripts/staging/qualify-tenants.mjs --isolated
+      - name: Isolated hosted admission and actual candidate build
+        run: node scripts/staging/hosted-rehearsal.mjs
       - name: Retain isolated receipt
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: isolated-tenant-qualification-${{ github.sha }}
-          path: staging-evidence/tenant-isolated.json
+          path: |
+            staging-evidence/tenant-isolated.json
+            staging-evidence/hosted-isolated.json
           if-no-files-found: error
           retention-days: 30
