@@ -31,7 +31,7 @@ test('manual workflow is protected, pinned, no automatic trigger and always rest
 
 test('actual Vercel adapter pins origin/team and refuses all production mutation paths',async()=>{
  const {vercelClient}=await import('../scripts/staging/actions/vercel.mjs');const calls:{url:string;method:string}[]=[];
- const api=vercelClient('synthetic-only',async(url:string,options:{method:string})=>{calls.push({url,method:options.method});return Response.json({id:'dpl_test'});});
+ const api=vercelClient('synthetic-only',async(url,options)=>{calls.push({url:String(url),method:options?.method||'GET'});return Response.json({id:'dpl_test'});});
  await api('/v13/deployments','POST',createRequest());assert.equal(calls.length,1);assert.match(calls[0].url,new RegExp('^https://api.vercel.com/v13/deployments\\?teamId='+HOSTED.team+'$'));
  for(const [path,method,body] of [['/v9/projects/prj_FPZa82WCG2w4oxJzf7DEV04ChuWB','PATCH',{commandForIgnoringBuildStep:'exit 1'}],['/v13/deployments','POST',{...createRequest(),target:'production'}],['/v10/projects/'+HOSTED.project+'/env','POST',{target:['production'],gitBranch:HOSTED.branch}],['/v9/projects/'+HOSTED.project,'PATCH',{name:'renamed'}]] as const)await assert.rejects(api(path,method,body));assert.equal(calls.length,1);
 });
@@ -60,6 +60,6 @@ test('hosted HTTP harness exercises both tenant directions, conflict race and br
   }},
   newPage:async()=>({setViewportSize:async({width}:{width:number})=>{widths.push(width);},on:()=>{},goto:async()=>response(200,''),getByRole:()=>({waitFor:async()=>{}}),close:async()=>{}}),
  };}};
- const results=await qualifyHTTP(db,ids.map((workspaceId,i)=>({workspaceId,hostname:'helios-v2-staging-'+i+'.vercel.app'})),'a'.repeat(96),undefined,{launch:async()=>browser});
+ const results=await qualifyHTTP(db,ids.map((workspaceId,i)=>({workspaceId,hostname:'helios-v2-staging-'+i+'.vercel.app'})),'a'.repeat(96),undefined,{launch:async()=>browser} as unknown as Parameters<typeof qualifyHTTP>[4]);
  assert.equal(results.length,2);assert.deepEqual(widths,[390,1440,390,1440]);assert.equal(process.env.AUTH_SECRET,undefined);
 });
