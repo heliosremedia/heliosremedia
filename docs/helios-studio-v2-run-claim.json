@@ -1,17 +1,36 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-packet16-tenant-registration",
   "branch": "codex/v2-neon-staging-bootstrap",
   "head": "6e9544067b73909dcd68e2859c9345976172918f",
-  "expiresAt": "2026-09-21T03:20:32.242Z",
-  "scope": "Approved one-file workflow registration and protected Neon tenant dispatch only; no deployments",
-  "bootstrapBaseline": {
-    "run": 35549161614,
-    "attempt": 2
+  "releasedAt": "2026-09-21T02:23:22.229Z",
+  "registration": {
+    "commit": "6cf2cb9ddb47626318c1173a749aa24632b300ae",
+    "file": ".github/workflows/v2-neon-staging-tenants.yml",
+    "blob": "38b1e708a0a1c1a8907b214b3bef992b8140101b",
+    "filesChanged": 1
+  },
+  "run": {
+    "id": 35553978752,
+    "attempt": 1,
+    "status": "waiting",
+    "job": 106193896568,
+    "track": "current-baseline",
+    "tenantConfirmation": "seed-synthetic-tenants-only",
+    "confirmation": "calm-shape-83359560/br-young-math-arj7l4r3/helios_v2_staging",
+    "blocker": "Required owner environment review; not approved by agent"
   },
   "neonBefore": {
+    "database": "helios_v2_staging",
+    "version": "16.15",
     "workspaces": 0,
     "ledgerEntries": 19,
     "incomplete": 0
-  }
+  },
+  "liveSeed": false,
+  "hostedDeployment": false,
+  "productionChanges": false,
+  "vercelSettingsChanged": false,
+  "vercel": "Authenticated UI verified both projects saved ignore command exit 0",
+  "next": "Owner Review deployments approval on run35553978752, then inspect results and live read-only postflight. Do not redispatch or deploy; no Packet17."
 }
