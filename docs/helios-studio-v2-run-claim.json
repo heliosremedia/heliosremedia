@@ -1,7 +1,31 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-packet16-preflight-diagnostics",
   "branch": "codex/v2-neon-staging-bootstrap",
-  "expiresAt": "2026-09-21T07:08:56.782Z",
-  "scope": "Diagnostics only, unchanged gates/order, no live dispatch"
+  "head": "64af9c6462d5fb5254ef3a40b6a80b14b63594e7",
+  "pr": 323,
+  "completedAt": "2026-09-21T05:28:39.689Z",
+  "scope": "Diagnostics-only; unchanged gates and effect ordering; no live dispatch",
+  "evidence": {
+    "testCount": 1264,
+    "newDiagnosticTests": 187,
+    "diagnosticCodes": 112,
+    "ciRuns": [
+      35564228593,
+      35564228614,
+      35564228612
+    ],
+    "allExactHead": true,
+    "allSuccess": true,
+    "localTypeScript": true,
+    "localScopedLint": true,
+    "whitespace": true,
+    "syntheticChromium": true,
+    "isolatedPostgresAndBuild": true,
+    "vercelStatuses": "Both projects Canceled by Ignored Build Step",
+    "candidate": "dbfb19909d3fe0bb91d81a478210373340f86e86",
+    "liveDispatch": false,
+    "packet16Complete": false
+  },
+  "remaining": "Original preflight mismatch unknown. Review new executor before any live execution. Hosted qualification remains open; no Packet17."
 }
