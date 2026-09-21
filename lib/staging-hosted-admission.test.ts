@@ -39,3 +39,13 @@ test('actual production build CLI fails closed even with staging opt-in',()=>{
  const f=fixture();const r=spawnSync(process.execPath,['scripts/build.mjs'],{encoding:'utf8',env:{NODE_ENV:"test",PATH:process.env.PATH,...f.env,VERCEL_ENV:'production'}});assert.notEqual(r.status,0);assert.match(r.stderr,/STAGING_HOSTED_BUILD_BLOCKED/);assert.ok(!r.stderr.includes('synthetic:synthetic'));
 });
 test('receipt checksum is deterministic and binds revision and build digest',()=>{const f=fixture(),p=provenance(f.metadata,f.env);assert.deepEqual(receipt(p,state,state,{},h),receipt(p,state,state,{},h));assert.notEqual(receipt(p,state,state,{},h).checksum,receipt(p,state,state,{},'c'.repeat(64)).checksum);assert.equal(runtime(f.env),sha);});
+
+test('actual R2 module imports without credentials only for exact disabled staging context',async()=>{
+ const {readFileSync}=await import('node:fs');const {runInNewContext}=await import('node:vm');const ts=(await import('typescript')).default;
+ const code=ts.transpileModule(readFileSync('lib/r2.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText;
+ let clients=0;const load=(env:Record<string,string>)=>{const exports:{r2Config?:{bucketName:string};r2Client?:{send:unknown}}={};runInNewContext(code,{exports,process:{env},require:()=>({S3Client:class{constructor(){clients++;}}})});return exports;};
+ const env={STAGING_HOSTED_ADMISSION:'preview-only',VERCEL_ENV:'preview',VERCEL_PROJECT_ID:HOSTED.project};
+ const r=load(env);assert.equal(clients,0);assert.throws(()=>r.r2Config!.bucketName,/R2_DISABLED/);assert.throws(()=>r.r2Client!.send,/R2_DISABLED/);
+ assert.throws(()=>load({...env,VERCEL_ENV:'production'}),/Missing required/);assert.throws(()=>load({...env,VERCEL_PROJECT_ID:'foreign'}),/Missing required/);
+ load({R2_ACCOUNT_ID:'synthetic',R2_ACCESS_KEY_ID:'synthetic',R2_SECRET_ACCESS_KEY:'synthetic',R2_BUCKET_NAME:'synthetic',R2_PUBLIC_URL:'https://assets.invalid'});assert.equal(clients,1);
+});

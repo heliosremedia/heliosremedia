@@ -67,7 +67,7 @@ export async function main(env=process.env){
 
 export async function buildApplication(env){
     // Admission credentials never enter the Next child process.
-    const child={PATH:env.PATH,HOME:env.HOME,NODE_ENV:'production',NEXT_TELEMETRY_DISABLED:'1',DATABASE_URL:env.DATABASE_URL,DIRECT_URL:env.DIRECT_URL,AUTH_SECRET:env.AUTH_SECRET,STUDIO_V2_TENANT_CONTEXT_ENABLED:'true',VERCEL:'1',VERCEL_ENV:'preview',VERCEL_URL:env.VERCEL_URL};
+    const child={PATH:env.PATH,HOME:env.HOME,NODE_ENV:'production',NEXT_TELEMETRY_DISABLED:'1',DATABASE_URL:env.DATABASE_URL,DIRECT_URL:env.DIRECT_URL,AUTH_SECRET:env.AUTH_SECRET,STUDIO_V2_TENANT_CONTEXT_ENABLED:'true',VERCEL:'1',VERCEL_ENV:'preview',VERCEL_PROJECT_ID:HOSTED.project,STAGING_HOSTED_ADMISSION:'preview-only',VERCEL_URL:env.VERCEL_URL};
     for(const pkg of ['prisma','@prisma/client'])assert.equal(JSON.parse(await readFile('node_modules/'+pkg+'/package.json','utf8')).version,'7.8.0');
     execFileSync(process.execPath,['node_modules/prisma/build/index.js','generate'],{env:child,stdio:'pipe'});
     await generatedClientCheck(process.cwd());
