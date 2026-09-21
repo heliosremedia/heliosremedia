@@ -1,36 +1,8 @@
 {
-  "status": "released",
-  "runId": "atlas-packet16-hosted-admission",
+  "status": "active",
+  "runId": "atlas-packet16-actions-hosted",
   "branch": "codex/v2-neon-staging-bootstrap",
   "candidate": "dbfb19909d3fe0bb91d81a478210373340f86e86",
-  "tree": "80c67d661e12737df2a8735d1bc61e33e2b7036a",
-  "completedAt": "2026-09-21T03:19:26.555Z",
-  "result": "Staging-only hosted admission implementation verified in isolated CI. Packet16 hosted execution remains open. No settings/deployment/live DB changes.",
-  "tests": {
-    "passed": 1041,
-    "failed": 0
-  },
-  "runs": [
-    {
-      "id": 35556635809,
-      "name": "V2 staging executor credential-free contract",
-      "conclusion": "success"
-    },
-    {
-      "id": 35556635811,
-      "name": "V2 isolated staging tenant route qualification",
-      "conclusion": "success"
-    },
-    {
-      "id": 35556635812,
-      "name": "V2 regression",
-      "conclusion": "success"
-    }
-  ],
-  "artifact": {
-    "id": 10620787116,
-    "archiveSha256": "72362ca35588c77dc86ba2cb58a660550e69fb3166e1fe91ea2128a615d66186"
-  },
-  "vercel": "Both project checks canceled by Ignored Build Step; no setting changed.",
-  "next": "Owner review of exact-SHA Preview plan. No Packet17."
+  "expiresAt": "2026-09-21T05:49:57.433Z",
+  "scope": "Prepare protected hosted executor only; no live execution, settings changes or deployment."
 }
