@@ -3,8 +3,22 @@
   "runId": "atlas-packet16-tenant-qualification",
   "branch": "codex/v2-neon-staging-bootstrap",
   "pr": 323,
-  "baseline": "513f5eb94c963c2d33929604f56cc5f7107de483",
-  "startedAt": "2026-09-21T01:37:41.706Z",
-  "expiresAt": "2026-09-21T02:37:41.706Z",
-  "scope": "Protected staging tenant qualification; no deployment or build setting changes"
+  "head": "a632451c6f79ee756f26e994edae2bb3a7838db9",
+  "tree": "a95e9b07dec26e5b8052db136e29837111556d0f",
+  "expiresAt": "2026-09-21T02:55:46.295Z",
+  "databaseBaseline": {
+    "head": "513f5eb94c963c2d33929604f56cc5f7107de483",
+    "run": 35549161614,
+    "attempt": 2,
+    "completed": true
+  },
+  "liveSeed": false,
+  "hostedDeployment": false,
+  "productionChanges": false,
+  "ci": [
+    35552277415,
+    35552277404,
+    35552277495
+  ],
+  "next": "Finish isolated qualification CI; separate default-branch registration review required before protected tenant dispatch"
 }
