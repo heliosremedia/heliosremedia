@@ -1,5 +1,18 @@
 # Helios Studio V2 progress ledger
 
+## Packet 16 continuation: protected tenant qualification (September 21, 2026)
+
+Database baseline is now VERIFIED at candidate `513f5eb94c963c2d33929604f56cc5f7107de483`, manual run35549161614 attempt2: real Neon bootstrap/postflight and repeated migration no-op passed,994/994 tests. Independent authenticated readback: PostgreSQL16.15,114 public tables,19 completed migration rows,zero workspaces. This supersedes the historical blocked observations below. Bootstrap receipt artifact10617918204 was retained by CI; its archive contents were not independently downloaded here.
+
+Authenticated Vercel browser sign-in now succeeds. Staging project ID `prj_PUv0ADGxYl5QjRYaMv2h8Km1UmMg` is visible under Helios Real Estate Media. Domain inventory shows only `helios-v2-staging.vercel.app`, with No Deployment. Build suppression remains `exit 0` (UI labels this “Don’t build anything”). No setting changed. This is authenticated UI evidence, not immutable deployment/API/upload provenance. Production was not opened or modified.
+
+New draft-only tenant executor uses a separate manual workflow, existing protected environment and exact Neon target policy. It performs no migration or deployment. It requires current-baseline classification, fresh candidate-bound tests/source evidence, explicit seed confirmation and unchanged catalog/ledger after qualification. Atomic seed creates exactly two synthetic workspaces, passwordless owner identities/memberships, scoped settings, published synthetic projects/homepage placements and reserved `.example.test` public mappings. Unknown/non-fixture data blocks without repair. Repeat execution validates identities and footprint before using existing fixtures.
+
+Qualification bundles actual session verification, public host resolution, settings readers, curation snapshot and homepage PATCH route with generated Prisma/PrismaPg. Only Next request context/cache/navigation and Prisma construction are adapted. It tests both tenant directions, foreign404, parallel200+409, stale409, authoritative revision readback, unknown-host rejection, anonymous403 and unchanged other-tenant placement. No provider adapters are invoked. This is route/service execution, not hosted HTTP/browser or the deployed PrismaNeon transport.
+
+Verification: implementation under review; fresh isolated PostgreSQL CI and final evidence pending. Existing bootstrap workflow and all application/release guards unchanged. New manual workflow is NOT yet registered on default branch or dispatched. Live tenant seed and hosted qualification remain outstanding. Registration is a separate narrowly scoped owner-reviewed action; do not merge the V2 stack. No staging build-setting approval is requested yet because hosted admission is not ready. Packet16 OPEN; no Packet17.
+
+
 
 ## Packet 16: authenticated empty Neon baseline, execution blocked (September 20, 2026)
 
