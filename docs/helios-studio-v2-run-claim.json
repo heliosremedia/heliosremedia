@@ -1,75 +1,8 @@
 {
-  "status": "released",
-  "runId": "atlas-packet16-tenant-registration",
+  "status": "active",
+  "runId": "atlas-packet16-hosted-admission",
   "branch": "codex/v2-neon-staging-bootstrap",
-  "head": "6e9544067b73909dcd68e2859c9345976172918f",
-  "releasedAt": "2026-09-21T02:32:56.673Z",
-  "registration": {
-    "commit": "6cf2cb9ddb47626318c1173a749aa24632b300ae",
-    "file": ".github/workflows/v2-neon-staging-tenants.yml",
-    "blob": "38b1e708a0a1c1a8907b214b3bef992b8140101b",
-    "filesChanged": 1
-  },
-  "run": {
-    "id": 35553978752,
-    "attempt": 1,
-    "status": "completed",
-    "job": 106193896568,
-    "track": "current-baseline",
-    "tenantConfirmation": "seed-synthetic-tenants-only",
-    "confirmation": "calm-shape-83359560/br-young-math-arj7l4r3/helios_v2_staging",
-    "blocker": null,
-    "conclusion": "success"
-  },
-  "neonBefore": {
-    "database": "helios_v2_staging",
-    "version": "16.15",
-    "workspaces": 0,
-    "ledgerEntries": 19,
-    "incomplete": 0
-  },
-  "liveSeed": true,
-  "hostedDeployment": false,
-  "productionChanges": false,
-  "vercelSettingsChanged": false,
-  "vercel": "Authenticated UI verified both projects saved ignore command exit 0",
-  "next": "Authorized database-only tenant qualification complete. Hosted app/build admission, HTTP/Chromium and rollback remain open; no deployment or Packet17.",
-  "tests": {
-    "passed": 1001,
-    "failed": 0
-  },
-  "neonAfter": {
-    "workspaces": 2,
-    "workspaceIds": [
-      "packet16-a",
-      "packet16-b"
-    ],
-    "fixtureTables": 7,
-    "rowsPerFixtureTable": 2,
-    "otherEmptyTables": 106,
-    "ledgerEntries": 19,
-    "incomplete": 0,
-    "schemaAndLedgerHashesUnchanged": true,
-    "unexpectedData": false
-  },
-  "checks": "Both tenant directions: scoped reads, foreign404, concurrent200+409, stale409, authoritative ack/revision, other tenant unchanged, unknown host rejected, anonymous403. Actual Prisma route/service on Neon with synthetic request contexts, not hosted HTTP.",
-  "artifact": {
-    "id": 10619228059,
-    "name": "neon-staging-tenants-6e9544067b73909dcd68e2859c9345976172918f-35553978752",
-    "size_in_bytes": 1029,
-    "url": "https://api.github.com/repos/heliosremedia/heliosremedia/actions/artifacts/10619228059",
-    "archive_download_url": "https://api.github.com/repos/heliosremedia/heliosremedia/actions/artifacts/10619228059/zip",
-    "expired": false,
-    "created_at": "2026-09-21T02:29:06Z",
-    "expires_at": "2026-10-21T02:29:05Z",
-    "updated_at": "2026-09-21T02:29:06Z",
-    "digest": "sha256:9187be377adfb5f687b2614806ece0fde53bd14b48558a3c72585e184b553f23",
-    "workflow_run": {
-      "id": 35553978752,
-      "repository_id": 1301054677,
-      "head_repository_id": 1301054677,
-      "head_branch": "codex/v2-neon-staging-bootstrap",
-      "head_sha": "6e9544067b73909dcd68e2859c9345976172918f"
-    }
-  }
+  "baseline": "6e9544067b73909dcd68e2859c9345976172918f",
+  "expiresAt": "2026-09-21T03:40:08.226Z",
+  "scope": "Staging admission implementation and isolated tests only. No Vercel settings/deployment/live DB changes."
 }
