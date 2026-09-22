@@ -59,3 +59,58 @@ test('native build digest binds linked dependency bytes and rejects escapes and 
  await symlink(deps,join(deps,'cycle'));await assert.rejects(hostedDigest(root,deps),/cycle/);
  }finally{await rm(dir,{recursive:true,force:true});}
 });
+
+// Independently enumerated fixtures cover every arm of the existing deny expression.
+import {check,diagnostic,eventsSummary} from '../scripts/staging/actions/diagnostics.mjs';
+const providerCases=[
+ ['R2_PRIVATE_SENTINEL','R2'],['CLOUDFLARE_PRIVATE_SENTINEL','CLOUDFLARE'],
+ ['AWS_PRIVATE_SENTINEL','AWS'],['RESEND_PRIVATE_SENTINEL','RESEND'],
+ ['OPENAI_PRIVATE_SENTINEL','OPENAI'],['GOOGLE_PRIVATE_SENTINEL','GOOGLE'],
+ ['SOCIAL_PRIVATE_SENTINEL','SOCIAL'],['META_PRIVATE_SENTINEL','META'],
+ ['LINKEDIN_PRIVATE_SENTINEL','LINKEDIN'],['TIKTOK_PRIVATE_SENTINEL','TIKTOK'],
+ ['UPTIMEROBOT_PRIVATE_SENTINEL','UPTIMEROBOT'],['NEWSLETTER_PRIVATE_SENTINEL','NEWSLETTER'],
+ ['INQUIRY_PRIVATE_SENTINEL','INQUIRY'],['HDPH_PRIVATE_SENTINEL','HDPH'],
+ ['CRON_SECRET','CRON'],['HELIOS_ADMIN_PRIVATE_SENTINEL','HELIOS_ADMIN'],
+ ['INQUIRY_NOTIFICATION_PRIVATE_SENTINEL','INQUIRY'],['NEXT_PUBLIC_GA_PRIVATE_SENTINEL','ANALYTICS'],
+ ['NEXT_PUBLIC_SITE_URL','PRODUCTION_SITE'],['CAMPAIGN_PRIVATE_SENTINEL','CAMPAIGN'],
+ ['PORTAL_PRIVATE_SENTINEL','PORTAL'],
+] as const;
+for(const [key,family] of providerCases){
+ test('runtime privately labels forbidden family '+family+' '+key,async()=>{
+  const env={...fixture().env,[key]:'https://credential-sentinel:secret-sentinel@provider.invalid/private'};
+  let touched=false;
+  await assert.rejects(executeHosted({metadata:async()=>{touched=true;}},env),(error:Error & {safeDiagnostic:Record<string,unknown>})=>{
+   const d=error.safeDiagnostic;
+   assert.deepEqual(Object.keys(d).sort(),['detailHash','matched','phase','reason']);
+   assert.equal(d.phase,'runtime');assert.equal(d.reason,'CHECK_PROVIDER_FAMILY_'+family);assert.equal(d.matched,false);
+   assert.match(String(d.detailHash),/^[a-f0-9]{64}$/);
+   const retained=eventsSummary([{type:'stderr',text:'STAGING_HOSTED_BUILD_BLOCKED '+JSON.stringify(d)}])[0];
+   assert.equal(retained.reason,d.reason);assert.equal(retained.phase,'runtime');
+   const serialized=JSON.stringify([error,d,retained]);
+   for(const secret of [key,env[key],'credential-sentinel','secret-sentinel','provider.invalid'])assert.ok(!serialized.includes(secret));
+   return true;
+  });
+  assert.equal(touched,false);
+  assert.equal(runtime({...fixture().env,[key]:''}),sha);
+ });
+}
+test('provider diagnostic rejects unknown codes and ignores forged error metadata',()=>{
+ assert.throws(()=>check('PROVIDER_FAMILY_FORGED',()=>{}),/UNKNOWN_DIAGNOSTIC_CHECK/);
+ const forged=Object.assign(new Error('External provider configuration forbidden'),{reason:'CHECK_PROVIDER_FAMILY_AWS',providerFamily:'AWS',key:'AWS_PRIVATE_SENTINEL',value:'secret-sentinel'});
+ assert.equal(diagnostic('runtime',forged).reason,'PROVIDER_DISABLED');
+ const retained=eventsSummary([{type:'stderr',text:'STAGING_HOSTED_BUILD_BLOCKED '+JSON.stringify({phase:'runtime',reason:'CHECK_PROVIDER_FAMILY_FORGED',detailHash:h,key:'secret-sentinel'})}])[0];
+ assert.notEqual(retained.reason,'CHECK_PROVIDER_FAMILY_FORGED');assert.ok(!JSON.stringify(retained).includes('secret-sentinel'));
+});
+test('provider family matching preserves case, prefix, exact-key and empty-value admission boundaries',()=>{
+ for(const key of ['aws_PRIVATE_SENTINEL','PREFIX_AWS_PRIVATE_SENTINEL','CRON_SECRET_SUFFIX','NEXT_PUBLIC_SITE_URL_SUFFIX','UNRECOGNIZED_PRIVATE_SENTINEL'])assert.equal(runtime({...fixture().env,[key]:'synthetic'}),sha);
+ for(const [key] of providerCases)for(const value of ['0','false',' '])assert.throws(()=>runtime({...fixture().env,[key]:value}));
+});
+
+test('runtime restrictions are byte-identical to reviewed guard after removing diagnostic wrapper',async()=>{
+ const {readFileSync}=await import('node:fs');const {createHash}=await import('node:crypto');
+ const source=readFileSync('scripts/staging/hosted-policy.mjs','utf8');
+ const guard=source.slice(source.indexOf('export function runtime'),source.indexOf('export function provenance'))
+  .replace('check(providerFamily(key),()=>assert.ok(', 'assert.ok(')
+  .replace("'External provider configuration forbidden'));", "'External provider configuration forbidden');");
+ assert.equal(createHash('sha256').update(guard).digest('hex'),'92fa2e9cda62692e3b1c4041632626ca3ae2ddeedae9808991681c96e7a8940e');
+});

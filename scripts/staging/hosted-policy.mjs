@@ -1,3 +1,30 @@
+import {check} from './actions/diagnostics.mjs';
+// Diagnostic classification only; the admission predicate below remains authoritative.
+const providerFamilies=[
+ ['PROVIDER_FAMILY_R2',/^R2_/],
+ ['PROVIDER_FAMILY_CLOUDFLARE',/^CLOUDFLARE_/],
+ ['PROVIDER_FAMILY_AWS',/^AWS_/],
+ ['PROVIDER_FAMILY_RESEND',/^RESEND_/],
+ ['PROVIDER_FAMILY_OPENAI',/^OPENAI_/],
+ ['PROVIDER_FAMILY_GOOGLE',/^GOOGLE_/],
+ ['PROVIDER_FAMILY_SOCIAL',/^SOCIAL_/],
+ ['PROVIDER_FAMILY_META',/^META_/],
+ ['PROVIDER_FAMILY_LINKEDIN',/^LINKEDIN_/],
+ ['PROVIDER_FAMILY_TIKTOK',/^TIKTOK_/],
+ ['PROVIDER_FAMILY_UPTIMEROBOT',/^UPTIMEROBOT_/],
+ ['PROVIDER_FAMILY_NEWSLETTER',/^NEWSLETTER_/],
+ ['PROVIDER_FAMILY_INQUIRY',/^INQUIRY_/],
+ ['PROVIDER_FAMILY_HDPH',/^HDPH_/],
+ ['PROVIDER_FAMILY_CRON',/^CRON_SECRET$/],
+ ['PROVIDER_FAMILY_HELIOS_ADMIN',/^HELIOS_ADMIN_/],
+ ['PROVIDER_FAMILY_ANALYTICS',/^NEXT_PUBLIC_GA_/],
+ ['PROVIDER_FAMILY_PRODUCTION_SITE',/^NEXT_PUBLIC_SITE_URL$/],
+ ['PROVIDER_FAMILY_CAMPAIGN',/^CAMPAIGN_/],
+ ['PROVIDER_FAMILY_PORTAL',/^PORTAL_/],
+];
+function providerFamily(key){
+ return providerFamilies.find(([,pattern])=>pattern.test(key))?.[0]||'PROVIDER_FAMILY_UNKNOWN';
+}
 import assert from 'node:assert/strict';
 import {TARGET,REF} from './policy.mjs';
 import {digest,requireCandidate} from '../release/policy.mjs';
@@ -13,7 +40,7 @@ export function runtime(env){
  assert.match(env.STAGING_RELEASE_RUN_ID||'',/^[1-9][0-9]*$/);
  assert.ok(!env.HELIOS_RELEASE_TARGET&&!env.STUDIO_V2_LOCAL_WORKSPACE_SLUG);
  // Deny all configured application provider families, not just their API keys.
- for(const [key,value] of Object.entries(env))if(value)assert.ok(!/^(R2_|CLOUDFLARE_|AWS_|RESEND_|OPENAI_|GOOGLE_|SOCIAL_|META_|LINKEDIN_|TIKTOK_|UPTIMEROBOT_|NEWSLETTER_|INQUIRY_|HDPH_|CRON_SECRET$|HELIOS_ADMIN_|INQUIRY_NOTIFICATION_|NEXT_PUBLIC_GA_|NEXT_PUBLIC_SITE_URL$|CAMPAIGN_|PORTAL_)/.test(key),'External provider configuration forbidden');
+ for(const [key,value] of Object.entries(env))if(value)check(providerFamily(key),()=>assert.ok(!/^(R2_|CLOUDFLARE_|AWS_|RESEND_|OPENAI_|GOOGLE_|SOCIAL_|META_|LINKEDIN_|TIKTOK_|UPTIMEROBOT_|NEWSLETTER_|INQUIRY_|HDPH_|CRON_SECRET$|HELIOS_ADMIN_|INQUIRY_NOTIFICATION_|NEXT_PUBLIC_GA_|NEXT_PUBLIC_SITE_URL$|CAMPAIGN_|PORTAL_)/.test(key),'External provider configuration forbidden'));
  for(const key of ['DATABASE_URL','DIRECT_URL']){
   const u=new URL(env[key]);assert.ok(['postgres:','postgresql:'].includes(u.protocol));
   assert.equal(u.hostname,'ep-crimson-snow-araflu1k.c-4.us-west-2.aws.neon.tech');
