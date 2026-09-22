@@ -77,7 +77,8 @@ const providerCases=[
 ] as const;
 for(const [key,family] of providerCases){
  test('runtime privately labels forbidden family '+family+' '+key,async()=>{
-  const env={...fixture().env,[key]:'https://credential-sentinel:secret-sentinel@provider.invalid/private'};
+  const value='https://credential-sentinel:secret-sentinel@provider.invalid/private';
+  const env={...fixture().env,[key]:value};
   let touched=false;
   await assert.rejects(executeHosted({metadata:async()=>{touched=true;}},env),(error:Error & {safeDiagnostic:Record<string,unknown>})=>{
    const d=error.safeDiagnostic;
@@ -87,7 +88,7 @@ for(const [key,family] of providerCases){
    const retained=eventsSummary([{type:'stderr',text:'STAGING_HOSTED_BUILD_BLOCKED '+JSON.stringify(d)}])[0];
    assert.equal(retained.reason,d.reason);assert.equal(retained.phase,'runtime');
    const serialized=JSON.stringify([error,d,retained]);
-   for(const secret of [key,env[key],'credential-sentinel','secret-sentinel','provider.invalid'])assert.ok(!serialized.includes(secret));
+   for(const secret of [key,value,'credential-sentinel','secret-sentinel','provider.invalid'])assert.ok(!serialized.includes(secret));
    return true;
   });
   assert.equal(touched,false);
