@@ -83,7 +83,7 @@ for(const [key,family] of providerCases){
   await assert.rejects(executeHosted({metadata:async()=>{touched=true;}},env),(error:Error & {safeDiagnostic:Record<string,unknown>})=>{
    const d=error.safeDiagnostic;
    assert.deepEqual(Object.keys(d).sort(),['detailHash','matched','phase','reason']);
-   assert.equal(d.phase,'runtime');assert.equal(d.reason,'CHECK_PROVIDER_FAMILY_'+family);assert.equal(d.matched,false);
+   assert.equal(d.phase,'runtime');assert.equal(d.reason,family==='AWS'?'CHECK_PROVIDER_AWS_UNKNOWN':'CHECK_PROVIDER_FAMILY_'+family);assert.equal(d.matched,false);
    assert.match(String(d.detailHash),/^[a-f0-9]{64}$/);
    const retained=eventsSummary([{type:'stderr',text:'STAGING_HOSTED_BUILD_BLOCKED '+JSON.stringify(d)}])[0];
    assert.equal(retained.reason,d.reason);assert.equal(retained.phase,'runtime');
@@ -114,4 +114,69 @@ test('runtime restrictions are byte-identical to reviewed guard after removing d
   .replace('check(providerFamily(key),()=>assert.ok(', 'assert.ok(')
   .replace("'External provider configuration forbidden'));", "'External provider configuration forbidden');");
  assert.equal(createHash('sha256').update(guard).digest('hex'),'92fa2e9cda62692e3b1c4041632626ca3ae2ddeedae9808991681c96e7a8940e');
+});
+
+const awsKeyCases=[
+ ['AWS_ACCESS_KEY_ID','CHECK_PROVIDER_AWS_ACCESS_KEY_ID'],
+ ['AWS_SECRET_ACCESS_KEY','CHECK_PROVIDER_AWS_SECRET_ACCESS_KEY'],
+ ['AWS_SESSION_TOKEN','CHECK_PROVIDER_AWS_SESSION_TOKEN'],
+ ['AWS_SECURITY_TOKEN','CHECK_PROVIDER_AWS_SECURITY_TOKEN'],
+ ['AWS_REGION','CHECK_PROVIDER_AWS_REGION'],
+ ['AWS_DEFAULT_REGION','CHECK_PROVIDER_AWS_DEFAULT_REGION'],
+ ['AWS_PROFILE','CHECK_PROVIDER_AWS_PROFILE'],
+ ['AWS_DEFAULT_PROFILE','CHECK_PROVIDER_AWS_DEFAULT_PROFILE'],
+ ['AWS_ROLE_ARN','CHECK_PROVIDER_AWS_ROLE_ARN'],
+ ['AWS_WEB_IDENTITY_TOKEN_FILE','CHECK_PROVIDER_AWS_WEB_IDENTITY_TOKEN_FILE'],
+ ['AWS_SHARED_CREDENTIALS_FILE','CHECK_PROVIDER_AWS_SHARED_CREDENTIALS_FILE'],
+ ['AWS_CONFIG_FILE','CHECK_PROVIDER_AWS_CONFIG_FILE'],
+ ['AWS_SDK_LOAD_CONFIG','CHECK_PROVIDER_AWS_SDK_LOAD_CONFIG'],
+ ['AWS_CONTAINER_CREDENTIALS_RELATIVE_URI','CHECK_PROVIDER_AWS_CONTAINER_CREDENTIALS_RELATIVE_URI'],
+ ['AWS_CONTAINER_CREDENTIALS_FULL_URI','CHECK_PROVIDER_AWS_CONTAINER_CREDENTIALS_FULL_URI'],
+ ['AWS_CONTAINER_AUTHORIZATION_TOKEN','CHECK_PROVIDER_AWS_CONTAINER_AUTHORIZATION_TOKEN'],
+ ['AWS_EXECUTION_ENV','CHECK_PROVIDER_AWS_EXECUTION_ENV'],
+ ['AWS_LAMBDA_FUNCTION_NAME','CHECK_PROVIDER_AWS_LAMBDA_FUNCTION_NAME'],
+ ['AWS_LAMBDA_FUNCTION_VERSION','CHECK_PROVIDER_AWS_LAMBDA_FUNCTION_VERSION'],
+ ['AWS_LAMBDA_LOG_GROUP_NAME','CHECK_PROVIDER_AWS_LAMBDA_LOG_GROUP_NAME'],
+ ['AWS_LAMBDA_LOG_STREAM_NAME','CHECK_PROVIDER_AWS_LAMBDA_LOG_STREAM_NAME'],
+] as const;
+for(const [key,code] of awsKeyCases){
+ test('AWS runtime emits only fixed category '+code,async()=>{
+  const value='https://private-sentinel:credential-sentinel@secret.invalid/private';
+  let touched=false;
+  await assert.rejects(executeHosted({metadata:async()=>{touched=true;}},{...fixture().env,[key]:value}),(error:Error & {safeDiagnostic:Record<string,unknown>})=>{
+   const d=error.safeDiagnostic;
+   assert.deepEqual(Object.keys(d).sort(),['detailHash','matched','phase','reason']);
+   assert.equal(d.reason,code);assert.equal(d.phase,'runtime');assert.equal(d.matched,false);
+   assert.match(String(d.detailHash),/^[a-f0-9]{64}$/);
+   const event=eventsSummary([{type:'stderr',text:'STAGING_HOSTED_BUILD_BLOCKED '+JSON.stringify({...d,key,value,url:value})}])[0];
+   assert.deepEqual(event,{index:0,type:'stderr',...d});
+   // Only the explicitly allowlisted reason may identify the known key category.
+   const {reason,...rest}=d;assert.equal(reason,code);
+   for(const secret of [key,value,'private-sentinel','credential-sentinel','secret.invalid'])assert.ok(!JSON.stringify(rest).includes(secret));
+   assert.ok(!JSON.stringify([error,event]).includes(value));
+   return true;
+  });
+  assert.equal(touched,false);
+  assert.equal(runtime({...fixture().env,[key]:''}),sha);
+  for(const value of ['0','false',' '])assert.throws(()=>runtime({...fixture().env,[key]:value}));
+ });
+}
+test('unknown AWS keys and near matches remain rejected with one fixed code',()=>{
+ for(const key of ['AWS_','AWS_PRIVATE_KEY_SENTINEL','AWS_REGION_SUFFIX','AWS_region','AWS_constructor','AWS___proto__','AWS_\nsecret-sentinel']){
+  assert.throws(()=>runtime({...fixture().env,[key]:'credential-sentinel'}),(error:Error)=>{
+   const d=diagnostic('runtime',error);assert.equal(d.reason,'CHECK_PROVIDER_AWS_UNKNOWN');
+   assert.ok(!JSON.stringify(d).includes('secret-sentinel'));assert.ok(!JSON.stringify(d).includes('credential-sentinel'));return true;
+  });
+ }
+});
+test('AWS diagnostics cannot be forged through error properties or unknown event codes',()=>{
+ for(const reason of ['CHECK_PROVIDER_AWS_REGION','CHECK_PROVIDER_AWS_FORGED']){
+  const error=Object.assign(new Error('External provider configuration forbidden'),{reason,code:reason,key:'AWS_REGION',value:'credential-sentinel',safeDiagnostic:{phase:'runtime',reason,detailHash:h}});
+  assert.equal(diagnostic('runtime',error).reason,'PROVIDER_DISABLED');
+ }
+ assert.throws(()=>check('PROVIDER_AWS_FORGED',()=>{}),/UNKNOWN_DIAGNOSTIC_CHECK/);
+ for(const reason of ['CHECK_PROVIDER_AWS_FORGED','CHECK_PROVIDER_AWS_REGION__FORGED']){
+  const event=eventsSummary([{type:'stderr',text:'STAGING_HOSTED_BUILD_BLOCKED '+JSON.stringify({phase:'runtime',reason,detailHash:h,value:'credential-sentinel'})}])[0];
+  assert.notEqual(event.reason,reason);assert.ok(!JSON.stringify(event).includes('credential-sentinel'));
+ }
 });
