@@ -7,7 +7,7 @@ on:
         required: true
         type: string
       candidate_sha:
-        description: Must be 9adff750c9e51b8bddfac83efe3e3b2bbec8e3e4
+        description: Must be 9853a60934263a538462feba8c5364cae87b4bd2
         required: true
         type: string
       confirmation:
@@ -26,7 +26,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   qualify:
-    if: github.repository == 'heliosremedia/heliosremedia' && github.ref == 'refs/heads/codex/v2-neon-staging-bootstrap' && github.sha == inputs.executor_sha && inputs.candidate_sha == '9adff750c9e51b8bddfac83efe3e3b2bbec8e3e4'
+    if: github.repository == 'heliosremedia/heliosremedia' && github.ref == 'refs/heads/codex/v2-neon-staging-bootstrap' && github.sha == inputs.executor_sha && inputs.candidate_sha == '9853a60934263a538462feba8c5364cae87b4bd2'
     environment: helios-v2-staging-bootstrap
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -42,7 +42,7 @@ jobs:
           persist-credentials: false
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
-          ref: 9adff750c9e51b8bddfac83efe3e3b2bbec8e3e4
+          ref: 9853a60934263a538462feba8c5364cae87b4bd2
           path: .candidate
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38

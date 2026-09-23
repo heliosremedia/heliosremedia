@@ -2,8 +2,8 @@ import {check} from './diagnostics.mjs';
 import assert from 'node:assert/strict';
 import {HOSTED} from '../hosted-policy.mjs';
 export {HOSTED};
-export const CANDIDATE='9adff750c9e51b8bddfac83efe3e3b2bbec8e3e4';
-export const RELEASE_RUN=35786199004;
+export const CANDIDATE='9853a60934263a538462feba8c5364cae87b4bd2';
+export const RELEASE_RUN=35879542356;
 export const CONFIRMATION='deploy-preview-and-qualify-synthetic-tenants-only';
 export const IGNORE=`if [ "$VERCEL_ENV" = preview ] && [ "$VERCEL_GIT_COMMIT_SHA" = ${CANDIDATE} ]; then exit 1; else exit 0; fi`;
 export function invocation(e){
