@@ -7,7 +7,8 @@ import {execFileSync, type ExecFileSyncOptionsWithStringEncoding} from 'node:chi
 import {checkDirtyCheckout,dirtyCategories} from '../scripts/staging/dirty-checkout.mjs';
 import {check,diagnostic,eventsSummary} from '../scripts/staging/actions/diagnostics.mjs';
 const secret='secret-content-and-arbitrary-path-sentinel';
-const cases=[['package-lock.json','PACKAGE_LOCK'],['package.json','PACKAGE_JSON'],['tsconfig.json','TSCONFIG'],['prisma/schema.prisma','PRISMA_SCHEMA'],['prisma/migrations/20260901_example/migration.sql','MIGRATION'],['app/generated/prisma/client.ts','GENERATED_OR_CONFIG'],['next.config.ts','GENERATED_OR_CONFIG'],[secret,'OTHER_TRACKED']] as const;
+const generatedCases=[['next-env.d.ts','NEXT_ENV'],['tsconfig.tsbuildinfo','TSCONFIG_BUILDINFO'],['prisma.config.ts','PRISMA_CONFIG'],['next.config.ts','NEXT_CONFIG'],['eslint.config.mjs','ESLINT_CONFIG'],['postcss.config.mjs','POSTCSS_CONFIG'],['vercel.json','VERCEL_CONFIG'],['app/generated/prisma/client.ts','GENERATED_PRISMA'],['app/generated/prisma/'+secret+' unusual.ts','GENERATED_OR_CONFIG_UNKNOWN']] as const;
+const cases=[['package-lock.json','PACKAGE_LOCK'],['package.json','PACKAGE_JSON'],['tsconfig.json','TSCONFIG'],['prisma/schema.prisma','PRISMA_SCHEMA'],['prisma/migrations/20260901_example/migration.sql','MIGRATION'],...generatedCases,[secret,'OTHER_TRACKED']] as const;
 function repo(){
  const cwd=mkdtempSync(join(tmpdir(),'dirty-checkout-'));
  const run=(cmd:string,args:string[],options:ExecFileSyncOptionsWithStringEncoding={encoding:'utf8'})=>execFileSync(cmd,args,{...options,cwd,encoding:'utf8',stdio:'pipe'});
@@ -27,16 +28,16 @@ function rejection(f:ReturnType<typeof repo>,expected:string[]){
   assert.equal(d.reason,'CHECK_SOURCE_CLEAN_CHECKOUT__'+expected.map(c=>'SOURCE_DIRTY_'+c).join('__'));
   const events=eventsSummary([{type:'stderr',text:'STAGING_HOSTED_BUILD_BLOCKED '+JSON.stringify({...d,path:secret,contents:secret,output:secret})}]);
   assert.deepEqual(events,[{index:0,type:'stderr',...d}]);
-  for(const forbidden of [secret,f.cwd,'package-lock.json','migration.sql'])assert.ok(!JSON.stringify([d,events]).includes(forbidden));
+  for(const forbidden of [secret,f.cwd,...cases.map(([name])=>name)])assert.ok(!JSON.stringify([d,events]).includes(forbidden));
   return true;
  });
  assert.equal(calls.length,2);assert.ok(calls.every(a=>a.includes('--no-ext-diff')&&a.includes('--no-textconv')&&a.includes('-z')));
 }
 for(const [name,category] of cases)test('real tracked change maps to '+category+' '+name,()=>{
- const f=repo();try{f.put(name,secret+'\n');rejection(f,[category]);}finally{f.cleanup();}
+ const f=repo();try{f.put(name,secret+'\n');rejection(f,generatedCases.some(([path])=>path===name)?['GENERATED_OR_CONFIG',category]:[category]);}finally{f.cleanup();}
 });
 test('mixed tracked changes retain each distinct fixed category in stable order',()=>{
- const f=repo();try{for(const [name] of cases)f.put(name,secret+'\n');rejection(f,['PACKAGE_LOCK','PACKAGE_JSON','TSCONFIG','PRISMA_SCHEMA','MIGRATION','GENERATED_OR_CONFIG','OTHER_TRACKED']);}finally{f.cleanup();}
+ const f=repo();try{for(const [name] of cases)f.put(name,secret+'\n');rejection(f,['PACKAGE_LOCK','PACKAGE_JSON','TSCONFIG','PRISMA_SCHEMA','MIGRATION','GENERATED_OR_CONFIG',...generatedCases.map(([,code])=>code),'OTHER_TRACKED']);}finally{f.cleanup();}
 });
 test('mode-only change is distinct from content change',()=>{
  const f=repo();try{chmodSync(join(f.cwd,'package-lock.json'),0o755);rejection(f,['MODE_ONLY']);f.put('package-lock.json',secret+'\n');rejection(f,['PACKAGE_LOCK']);}finally{f.cleanup();}
@@ -72,4 +73,26 @@ test('forged diagnostic properties and unknown codes cannot enter retained class
  assert.throws(()=>check('SOURCE_DIRTY_FORGED',()=>{}),/UNKNOWN_DIAGNOSTIC_CHECK/);
  const event=eventsSummary([{type:'stderr',text:'STAGING_HOSTED_BUILD_BLOCKED '+JSON.stringify({phase:'source-integrity',reason:'CHECK_SOURCE_DIRTY_FORGED',detailHash:'a'.repeat(64),path:secret})}])[0];
  assert.notEqual(event.reason,'CHECK_SOURCE_DIRTY_FORGED');assert.ok(!JSON.stringify(event).includes(secret));
+});
+
+test('unknown config paths never impersonate reviewed exact paths',()=>{
+ for(const path of ['nested/next-env.d.ts','next.config.js','vercel.json.backup','config/'+secret,'app/generated/other/'+secret,'SOURCE_DIRTY_NEXT_ENV']){
+  assert.deepEqual(dirtyCategories(':100644 100644 '+'a'.repeat(40)+' '+'0'.repeat(40)+' M\0'+path+'\0','1\t1\t'+path+'\0'),['SOURCE_DIRTY_OTHER_TRACKED']);
+ }
+});
+test('unrecognized paths inside reviewed Prisma namespace use only fixed unknown code',()=>{
+ for(const path of ['app/generated/prisma/../'+secret,'app/generated/prisma/'+secret+'\n.ts','app/generated/prisma/'+secret+'\t.ts']){
+  assert.deepEqual(dirtyCategories(':100644 100644 '+'a'.repeat(40)+' '+'0'.repeat(40)+' M\0'+path+'\0','1\t1\t'+path+'\0'),['SOURCE_DIRTY_GENERATED_OR_CONFIG','SOURCE_DIRTY_GENERATED_OR_CONFIG_UNKNOWN']);
+ }
+});
+test('generated path mode-only changes remain mode-only',()=>{
+ const f=repo();try{chmodSync(join(f.cwd,'next-env.d.ts'),0o755);rejection(f,['MODE_ONLY']);f.put('next-env.d.ts',secret+'\n');rejection(f,['GENERATED_OR_CONFIG','NEXT_ENV']);}finally{f.cleanup();}
+});
+test('all generated subcategory labels reject forged error properties',()=>{
+ for(const [,code] of generatedCases){
+  const error=Object.assign(new Error('failure'),{reason:'CHECK_SOURCE_DIRTY_'+code,code:'SOURCE_DIRTY_'+code});
+  assert.equal(diagnostic('source-integrity',error).reason,'CONTRACT_OR_EXECUTION_FAILED');
+  const events=eventsSummary([{text:'STAGING_HOSTED_BUILD_BLOCKED '+JSON.stringify({phase:'source-integrity',reason:'CHECK_SOURCE_DIRTY_'+code+'__'+secret,detailHash:'a'.repeat(64),path:secret})}]);
+  assert.notEqual(events[0].reason,'CHECK_SOURCE_DIRTY_'+code+'__'+secret);assert.ok(!JSON.stringify(events).includes(secret));
+ }
 });
