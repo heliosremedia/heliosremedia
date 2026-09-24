@@ -5,6 +5,7 @@ import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
 import {createHash} from 'node:crypto';
 import {check,checked,diagnostic,eventsSummary} from '../scripts/staging/actions/diagnostics.mjs';
+import {checkDirtyCheckout} from '../scripts/staging/dirty-checkout.mjs';
 import {BASELINE_CHECKSUM} from '../scripts/release/policy.mjs';
 
 const candidate='a'.repeat(40),secret='private-file-content-and-credential-sentinel';
@@ -24,7 +25,7 @@ find(ast);assert.ok(sourceBody);
 function harness(options:{gitSha?:string;dirty?:boolean;envFile?:string;missing?:string;rawManifest?:string;directories?:string[];migrationDrift?:boolean;schemaDrift?:boolean;parseFailure?:boolean;digestFailure?:boolean}={}){
  const calls:string[]=[];
  const original=Object.assign(new Error(secret),{stderr:Buffer.from(secret),path:'/private/'+secret,reason:'CHECK_SOURCE_FORGED'});
- const context={assert,check,checked,BASELINE_CHECKSUM,Object,manifest:undefined,
+ const context={assert,check,checked,checkDirtyCheckout,BASELINE_CHECKSUM,Object,manifest:undefined,
   execFileSync:(_command:string,args:string[])=>{calls.push(args[0]);if(args[0]==='rev-parse')return (options.gitSha??candidate)+'\n';if(options.dirty)throw original;return Buffer.alloc(0);},
   access:async(name:string)=>{calls.push('access:'+name);if(name!==options.envFile)throw Error('absent');},
   readFile:async(name:string)=>{
@@ -59,7 +60,7 @@ for(const [code,options] of cases)test('actual source callback rejects with fixe
  await assert.rejects(h.source(candidate),(error:Error)=>{
   const d=diagnostic('source-integrity',error);
   assert.deepEqual(Object.keys(d).sort(),['detailHash','matched','phase','reason']);
-  assert.equal(d.phase,'source-integrity');assert.equal(d.reason,'CHECK_'+code);assert.equal(d.matched,false);
+  assert.equal(d.phase,'source-integrity');assert.equal(d.reason,'CHECK_'+code+(code==='SOURCE_CLEAN_CHECKOUT'?'__SOURCE_DIRTY_OTHER_TRACKED':''));assert.equal(d.matched,false);
   assert.match(d.detailHash,/^[a-f0-9]{64}$/);
   const retained=eventsSummary([{type:'stderr',text:'STAGING_HOSTED_BUILD_BLOCKED '+JSON.stringify({...d,file:secret,contents:secret,observedHash:hash(secret)})}]);
   assert.deepEqual(retained,[{index:0,type:'stderr',...d}]);

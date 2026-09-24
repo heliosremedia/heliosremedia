@@ -60,7 +60,7 @@ function gateFingerprint(source:string){
  const transformed=ts.transform(ast,[ctx=>root=>{
   function visit(node:ts.Node):ts.VisitResult<ts.Node> | undefined{
    if(ts.isImportDeclaration(node)&&node.importClause?.namedBindings&&ts.isNamedImports(node.importClause.namedBindings)){
-    const items=node.importClause.namedBindings.elements.filter(e=>!['check','checked'].includes(e.name.text));
+    const items=node.importClause.namedBindings.elements.filter(e=>!['check','checked','checkDirtyCheckout'].includes(e.name.text));
     if(!items.length&&!node.importClause.name)return undefined;
     return ts.factory.updateImportDeclaration(node,node.modifiers,ts.factory.updateImportClause(node.importClause,node.importClause.isTypeOnly,node.importClause.name,ts.factory.updateNamedImports(node.importClause.namedBindings,items)),node.moduleSpecifier,node.attributes);
    }
@@ -68,6 +68,7 @@ function gateFingerprint(source:string){
     const body=(node.expression.arguments[1] as ts.ArrowFunction).body;
     if(ts.isCallExpression(body)&&(body.expression.getText(ast).startsWith('assert.')||body.expression.getText(ast)==='hash'))return ts.visitNode(body,visit);
    }
+   if(ts.isCallExpression(node)&&node.expression.getText(ast)==='checkDirtyCheckout')return ts.visitNode((node.arguments[0] as ts.ArrowFunction).body,visit);
    if(ts.isCallExpression(node)&&['check','checked'].includes(node.expression.getText(ast)))return ts.visitNode((node.arguments[1] as ts.ArrowFunction).body,visit);
    return ts.visitEachChild(node,visit,ctx);
   }
