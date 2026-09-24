@@ -3,14 +3,14 @@ import assert from 'node:assert/strict';
 import {mkdtempSync,writeFileSync,mkdirSync,rmSync,chmodSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
-import {execFileSync} from 'node:child_process';
+import {execFileSync, type ExecFileSyncOptionsWithStringEncoding} from 'node:child_process';
 import {checkDirtyCheckout,dirtyCategories} from '../scripts/staging/dirty-checkout.mjs';
 import {check,diagnostic,eventsSummary} from '../scripts/staging/actions/diagnostics.mjs';
 const secret='secret-content-and-arbitrary-path-sentinel';
 const cases=[['package-lock.json','PACKAGE_LOCK'],['package.json','PACKAGE_JSON'],['tsconfig.json','TSCONFIG'],['prisma/schema.prisma','PRISMA_SCHEMA'],['prisma/migrations/20260901_example/migration.sql','MIGRATION'],['app/generated/prisma/client.ts','GENERATED_OR_CONFIG'],['next.config.ts','GENERATED_OR_CONFIG'],[secret,'OTHER_TRACKED']] as const;
 function repo(){
  const cwd=mkdtempSync(join(tmpdir(),'dirty-checkout-'));
- const run=(cmd:string,args:string[],options:Record<string,unknown>={})=>execFileSync(cmd,args,{...options,cwd,encoding:'utf8',stdio:'pipe'});
+ const run=(cmd:string,args:string[],options:ExecFileSyncOptionsWithStringEncoding={encoding:'utf8'})=>execFileSync(cmd,args,{...options,cwd,encoding:'utf8',stdio:'pipe'});
  const put=(name:string,value:string)=>{const p=join(cwd,name);mkdirSync(dirname(p),{recursive:true});writeFileSync(p,value);};
  run('git',['init','-q']);run('git',['config','user.name','Synthetic Test']);run('git',['config','user.email','synthetic@example.invalid']);run('git',['config','core.filemode','true']);
  for(const [name] of cases)put(name,'original\n');
@@ -21,7 +21,7 @@ function repo(){
 function rejection(f:ReturnType<typeof repo>,expected:string[]){
  const calls:string[][]=[];let original:unknown;
  const operation=()=>{try{return f.run('git',['diff','--quiet','HEAD','--']);}catch(e){original=e;throw e;}};
- assert.throws(()=>check('SOURCE_CLEAN_CHECKOUT',()=>checkDirtyCheckout(operation,(cmd:string,args:string[],options:Record<string,unknown>)=>{calls.push(args);return f.run(cmd,args,options);})),e=>{
+ assert.throws(()=>check('SOURCE_CLEAN_CHECKOUT',()=>checkDirtyCheckout(operation,(cmd:string,args:string[],options:ExecFileSyncOptionsWithStringEncoding)=>{calls.push(args);return f.run(cmd,args,options);})),e=>{
   assert.equal(e,original);
   const d=diagnostic('source-integrity',e);
   assert.equal(d.reason,'CHECK_SOURCE_CLEAN_CHECKOUT__'+expected.map(c=>'SOURCE_DIRTY_'+c).join('__'));

@@ -28,6 +28,9 @@ export function dirtyCategories(raw,numstat){
   return order.filter(code=>found.has(code));
  }catch{return [other];}
 }
+/** @param {() => unknown} operation
+ * @param {(file: string, args: string[], options: import('node:child_process').ExecFileSyncOptionsWithStringEncoding) => string} run
+ */
 export function checkDirtyCheckout(operation,run=execFileSync){
  try{return operation();}catch(error){
   let codes=[other];
