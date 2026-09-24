@@ -107,10 +107,12 @@ test('provider family matching preserves case, prefix, exact-key and empty-value
  for(const [key] of providerCases)for(const value of ['0','false',' '])assert.throws(()=>runtime({...fixture().env,[key]:value}));
 });
 
-test('runtime restrictions are byte-identical to reviewed guard after removing diagnostic wrapper',async()=>{
+test('runtime restrictions preserve reviewed guard except exact metadata exemption',async()=>{
  const {readFileSync}=await import('node:fs');const {createHash}=await import('node:crypto');
  const source=readFileSync('scripts/staging/hosted-policy.mjs','utf8');
  const guard=source.slice(source.indexOf('export function runtime'),source.indexOf('export function provenance'))
+  .replace(" // Platform runtime metadata is exempt by exact name; never read its value.\n", '')
+  .replace("for(const key of Object.keys(env))if(key!=='AWS_EXECUTION_ENV'&&env[key])", 'for(const [key,value] of Object.entries(env))if(value)')
   .replace('check(providerFamily(key),()=>assert.ok(', 'assert.ok(')
   .replace("'External provider configuration forbidden'));", "'External provider configuration forbidden');");
  assert.equal(createHash('sha256').update(guard).digest('hex'),'92fa2e9cda62692e3b1c4041632626ca3ae2ddeedae9808991681c96e7a8940e');
@@ -133,7 +135,6 @@ const awsKeyCases=[
  ['AWS_CONTAINER_CREDENTIALS_RELATIVE_URI','CHECK_PROVIDER_AWS_CONTAINER_CREDENTIALS_RELATIVE_URI'],
  ['AWS_CONTAINER_CREDENTIALS_FULL_URI','CHECK_PROVIDER_AWS_CONTAINER_CREDENTIALS_FULL_URI'],
  ['AWS_CONTAINER_AUTHORIZATION_TOKEN','CHECK_PROVIDER_AWS_CONTAINER_AUTHORIZATION_TOKEN'],
- ['AWS_EXECUTION_ENV','CHECK_PROVIDER_AWS_EXECUTION_ENV'],
  ['AWS_LAMBDA_FUNCTION_NAME','CHECK_PROVIDER_AWS_LAMBDA_FUNCTION_NAME'],
  ['AWS_LAMBDA_FUNCTION_VERSION','CHECK_PROVIDER_AWS_LAMBDA_FUNCTION_VERSION'],
  ['AWS_LAMBDA_LOG_GROUP_NAME','CHECK_PROVIDER_AWS_LAMBDA_LOG_GROUP_NAME'],
@@ -162,7 +163,7 @@ for(const [key,code] of awsKeyCases){
  });
 }
 test('unknown AWS keys and near matches remain rejected with one fixed code',()=>{
- for(const key of ['AWS_','AWS_PRIVATE_KEY_SENTINEL','AWS_REGION_SUFFIX','AWS_region','AWS_constructor','AWS___proto__','AWS_\nsecret-sentinel']){
+ for(const key of ['AWS_','AWS_PRIVATE_KEY_SENTINEL','AWS_REGION_SUFFIX','AWS_EXECUTION_ENV_SUFFIX','AWS_execution_env','AWS_region','AWS_constructor','AWS___proto__','AWS_\nsecret-sentinel']){
   assert.throws(()=>runtime({...fixture().env,[key]:'credential-sentinel'}),(error:Error)=>{
    const d=diagnostic('runtime',error);assert.equal(d.reason,'CHECK_PROVIDER_AWS_UNKNOWN');
    assert.ok(!JSON.stringify(d).includes('secret-sentinel'));assert.ok(!JSON.stringify(d).includes('credential-sentinel'));return true;
@@ -178,5 +179,35 @@ test('AWS diagnostics cannot be forged through error properties or unknown event
  for(const reason of ['CHECK_PROVIDER_AWS_FORGED','CHECK_PROVIDER_AWS_REGION__FORGED']){
   const event=eventsSummary([{type:'stderr',text:'STAGING_HOSTED_BUILD_BLOCKED '+JSON.stringify({phase:'runtime',reason,detailHash:h,value:'credential-sentinel'})}])[0];
   assert.notEqual(event.reason,reason);assert.ok(!JSON.stringify(event).includes('credential-sentinel'));
+ }
+});
+
+// A throwing getter proves admission never inspects the exempt metadata value.
+function withExecutionMetadata(env:Record<string,string>){
+ return Object.defineProperty(env,'AWS_EXECUTION_ENV',{enumerable:true,get(){throw new Error('metadata value must never be read');}});
+}
+test('AWS_EXECUTION_ENV alone is accepted without reading its value',()=>{
+ assert.equal(runtime(withExecutionMetadata({...fixture().env})),sha);
+});
+for(const [key,code] of awsKeyCases){
+ test('runtime metadata cannot mask '+code,async()=>{
+  for(const metadataFirst of [true,false]){
+   const env:Record<string,string>=metadataFirst?withExecutionMetadata({...fixture().env}):{...fixture().env,[key]:'credential-sentinel'};
+   if(metadataFirst)env[key]='credential-sentinel';else withExecutionMetadata(env);
+   let touched=false;
+   await assert.rejects(executeHosted({metadata:async()=>{touched=true;}},env),(error:Error & {safeDiagnostic:Record<string,unknown>})=>{
+    assert.equal(error.safeDiagnostic.phase,'runtime');assert.equal(error.safeDiagnostic.reason,code);
+    assert.ok(!JSON.stringify([error,error.safeDiagnostic]).includes('credential-sentinel'));return true;
+   });
+   assert.equal(touched,false);
+  }
+ });
+}
+test('runtime metadata does not mask any other forbidden provider family',()=>{
+ for(const [key,family] of providerCases){
+  const env=withExecutionMetadata({...fixture().env,[key]:'credential-sentinel'});
+  assert.throws(()=>runtime(env),(error:Error)=>{
+   assert.equal(diagnostic('runtime',error).reason,family==='AWS'?'CHECK_PROVIDER_AWS_UNKNOWN':'CHECK_PROVIDER_FAMILY_'+family);return true;
+  });
  }
 });
