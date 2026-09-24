@@ -77,7 +77,7 @@ function gateFingerprint(source:string){
  try{return createHash('sha256').update(ts.createPrinter({removeComments:true}).printFile(transformed.transformed[0])).digest('hex');}finally{transformed.dispose();}
 }
 for(const [path,hash]of Object.entries({
- 'scripts/staging/actions/policy.mjs':'ec7fd38b3b0e8beac6c7fced2ac73c86300498bd6c47a357c222370c9fcef814',
+ 'scripts/staging/actions/policy.mjs':'c62c54edfba46f21397d9efbe832516835642a321dae5c586f8ccdcb10e2ade7',
  'scripts/staging/policy.mjs':'ffeb3024e47a9323d6015fb407e380f11663d729358a7c7a855d89c3095b50f8',
  'scripts/staging/hosted-build.mjs':'f2534c5b316ccc60c173bdae3440820a264d5f8dc8df6b23792352542e47b57d',
  'scripts/staging/actions/live.mjs':'5eaef8b802fdfeba53e73b16794874302615d6e45a4779779ba535d6a38813b3',
