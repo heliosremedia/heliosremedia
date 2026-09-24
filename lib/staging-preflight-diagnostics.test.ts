@@ -66,7 +66,7 @@ function gateFingerprint(source:string){
    }
    if(ts.isAwaitExpression(node)&&ts.isCallExpression(node.expression)&&node.expression.expression.getText(ast)==='checked'){
     const body=(node.expression.arguments[1] as ts.ArrowFunction).body;
-    if(ts.isCallExpression(body)&&body.expression.getText(ast).startsWith('assert.'))return ts.visitNode(body,visit);
+    if(ts.isCallExpression(body)&&(body.expression.getText(ast).startsWith('assert.')||body.expression.getText(ast)==='hash'))return ts.visitNode(body,visit);
    }
    if(ts.isCallExpression(node)&&['check','checked'].includes(node.expression.getText(ast)))return ts.visitNode((node.arguments[1] as ts.ArrowFunction).body,visit);
    return ts.visitEachChild(node,visit,ctx);

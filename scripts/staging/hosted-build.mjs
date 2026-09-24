@@ -54,13 +54,13 @@ export async function main(env=process.env){
     db=new pg.Client(connection);await db.connect();assert.equal((await db.query('SELECT pg_try_advisory_lock(1200318) locked')).rows[0].locked,true);return {project,deployment,domains,run,jobs};
    },
    source:async candidate=>{
-    assert.equal(execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),candidate);execFileSync('git',['diff','--quiet','HEAD','--']);
-    for(const name of ['.env','.env.local','.env.production','.env.production.local']){let exists=true;try{await access(name);}catch{exists=false;}assert.equal(exists,false,'Environment file not allowed');}
-    const raw=await readFile('scripts/migrations/bootstrap/history-sha256.json','utf8');assert.equal(hash(raw),'8cb9e5d72af3c2353018a3099d14172794e165a5e54ee11b02e80c46a5e6437a');manifest=JSON.parse(raw);
-    assert.deepEqual((await readdir('prisma/migrations')).filter(n=>/^\d/.test(n)).sort(),Object.keys(manifest).sort());
-    for(const [name,h] of Object.entries(manifest))assert.equal(hash(await readFile('prisma/migrations/'+name+'/migration.sql','utf8')),h);
-    const schema=hash(await readFile('prisma/schema.prisma','utf8'));assert.equal(schema,'ede3650c4b65f8704a125672ed32f7b7110a78a83cdacf14744e6419d02a0892');
-    return {migrationManifest:hash(raw),prismaSchema:schema,baselineChecksum:BASELINE_CHECKSUM,lockfile:hash(await readFile('package-lock.json','utf8'))};
+    check('SOURCE_CANDIDATE_SHA',()=>assert.equal(execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),candidate));check('SOURCE_CLEAN_CHECKOUT',()=>execFileSync('git',['diff','--quiet','HEAD','--']));
+    for(const name of ['.env','.env.local','.env.production','.env.production.local']){let exists=true;try{await access(name);}catch{exists=false;}check('SOURCE_ENVIRONMENT_FILE',()=>assert.equal(exists,false,'Environment file not allowed'));}
+    const raw=await checked('SOURCE_MANIFEST_READ',()=>readFile('scripts/migrations/bootstrap/history-sha256.json','utf8'));check('SOURCE_MANIFEST_HASH',()=>assert.equal(hash(raw),'8cb9e5d72af3c2353018a3099d14172794e165a5e54ee11b02e80c46a5e6437a'));manifest=check('SOURCE_MANIFEST_PARSE',()=>JSON.parse(raw));
+    await checked('SOURCE_MIGRATION_DIRECTORY_SET',async()=>assert.deepEqual((await readdir('prisma/migrations')).filter(n=>/^\d/.test(n)).sort(),Object.keys(manifest).sort()));
+    for(const [name,h] of Object.entries(manifest))await checked('SOURCE_HISTORICAL_MIGRATION_CHECKSUM',async()=>assert.equal(hash(await readFile('prisma/migrations/'+name+'/migration.sql','utf8')),h));
+    const schema=await checked('SOURCE_PRISMA_SCHEMA_HASH',async()=>hash(await readFile('prisma/schema.prisma','utf8')));check('SOURCE_PRISMA_SCHEMA_HASH',()=>assert.equal(schema,'ede3650c4b65f8704a125672ed32f7b7110a78a83cdacf14744e6419d02a0892'));
+    return {migrationManifest:check('SOURCE_MANIFEST_HASH',()=>hash(raw)),prismaSchema:schema,baselineChecksum:BASELINE_CHECKSUM,lockfile:await checked('SOURCE_LOCKFILE_READ_DIGEST',async()=>hash(await readFile('package-lock.json','utf8')))};
    },
    inspect:()=>databaseState(db,manifest),
    build:()=>buildApplication(env),
