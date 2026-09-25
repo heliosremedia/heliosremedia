@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync,writeFileSync,mkdirSync,rmSync,chmodSync} from 'node:fs';
+import {readFileSync,mkdtempSync,writeFileSync,mkdirSync,rmSync,chmodSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
 import {execFileSync, type ExecFileSyncOptionsWithStringEncoding} from 'node:child_process';
@@ -22,16 +22,16 @@ function repo(){
 function rejection(f:ReturnType<typeof repo>,expected:string[]){
  const calls:string[][]=[];let original:unknown;
  const operation=()=>{try{return f.run('git',['diff','--quiet','HEAD','--']);}catch(e){original=e;throw e;}};
- assert.throws(()=>check('SOURCE_CLEAN_CHECKOUT',()=>checkDirtyCheckout(operation,(cmd:string,args:string[],options:ExecFileSyncOptionsWithStringEncoding)=>{calls.push(args);return f.run(cmd,args,options);})),e=>{
+ assert.throws(()=>check('SOURCE_CLEAN_CHECKOUT',()=>checkDirtyCheckout(operation,(cmd:string,args:string[],options:ExecFileSyncOptionsWithStringEncoding)=>{calls.push(args);return f.run(cmd,args,options);},()=>readFileSync(join(f.cwd,'vercel.json'),'utf8'))),e=>{
   assert.equal(e,original);
   const d=diagnostic('source-integrity',e);
-  assert.equal(d.reason,'CHECK_SOURCE_CLEAN_CHECKOUT__'+expected.map(c=>'SOURCE_DIRTY_'+c).join('__'));
+  assert.equal(d.reason,'CHECK_SOURCE_CLEAN_CHECKOUT__'+[...expected,...(expected.includes('VERCEL_CONFIG')?['VERCEL_CONFIG_INVALID_JSON']:[])].map(c=>'SOURCE_DIRTY_'+c).join('__'));
   const events=eventsSummary([{type:'stderr',text:'STAGING_HOSTED_BUILD_BLOCKED '+JSON.stringify({...d,path:secret,contents:secret,output:secret})}]);
   assert.deepEqual(events,[{index:0,type:'stderr',...d}]);
   for(const forbidden of [secret,f.cwd,...cases.map(([name])=>name)])assert.ok(!JSON.stringify([d,events]).includes(forbidden));
   return true;
  });
- assert.equal(calls.length,2);assert.ok(calls.every(a=>a.includes('--no-ext-diff')&&a.includes('--no-textconv')&&a.includes('-z')));
+ assert.equal(calls.length,expected.includes('VERCEL_CONFIG')?3:2);assert.ok(calls.slice(0,2).every(a=>a.includes('--no-ext-diff')&&a.includes('--no-textconv')&&a.includes('-z')));
 }
 for(const [name,category] of cases)test('real tracked change maps to '+category+' '+name,()=>{
  const f=repo();try{f.put(name,secret+'\n');rejection(f,generatedCases.some(([path])=>path===name)?['GENERATED_OR_CONFIG',category]:[category]);}finally{f.cleanup();}

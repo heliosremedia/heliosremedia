@@ -1,5 +1,6 @@
 import {execFileSync} from 'node:child_process';
 import {check} from './actions/diagnostics.mjs';
+import {vercelConfigDiagnostic,readWorkingVercelConfig} from './vercel-config-diagnostic.mjs';
 const other='SOURCE_DIRTY_OTHER_TRACKED';
 const order=['SOURCE_DIRTY_PACKAGE_LOCK','SOURCE_DIRTY_PACKAGE_JSON','SOURCE_DIRTY_TSCONFIG','SOURCE_DIRTY_PRISMA_SCHEMA','SOURCE_DIRTY_MIGRATION','SOURCE_DIRTY_GENERATED_OR_CONFIG','SOURCE_DIRTY_MODE_ONLY',other];
 const generated=new Map([
@@ -43,7 +44,7 @@ export function dirtyCategories(raw,numstat){
 /** @param {() => unknown} operation
  * @param {(file: string, args: string[], options: import('node:child_process').ExecFileSyncOptionsWithStringEncoding) => string} run
  */
-export function checkDirtyCheckout(operation,run=execFileSync){
+export function checkDirtyCheckout(operation,run=execFileSync,readConfig=readWorkingVercelConfig){
  try{return operation();}catch(error){
   let codes=[other];
   try{
@@ -53,6 +54,7 @@ export function checkDirtyCheckout(operation,run=execFileSync){
     const raw=run('git',['diff',...common,'--raw','--no-abbrev','-z','HEAD','--'],options);
     const stats=run('git',['diff',...common,'--numstat','-z','HEAD','--'],options);
     codes=dirtyCategories(raw,stats);
+    if(codes.includes('SOURCE_DIRTY_VERCEL_CONFIG'))codes.push(vercelConfigDiagnostic(run,readConfig));
    }
   }catch{/* Diagnostic collection can never turn the authoritative failure into admission. */}
   function reject(index){if(index===codes.length)throw error;return check(codes[index],()=>reject(index+1));}
