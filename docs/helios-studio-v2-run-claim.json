@@ -1,5 +1,5 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-packet16-corrected-hosted-2e6555d",
   "branch": "codex/v2-neon-staging-bootstrap",
   "head": "2e6555d0cbcbe9b151461146e1097bf3af3a6080",
@@ -29,8 +29,9 @@
         "packet16-a.example.test",
         "packet16-b.example.test"
       ]
-    }
+    },
+    "correctedHostedRun": 36182012088
   },
   "production": "ON HOLD",
-  "nextAction": "Dispatch corrected protected staging qualification and inspect evidence."
+  "nextAction": "Owner review of protected Environment for run 36182012088, then independently inspect execution, cleanup and qualification evidence."
 }
