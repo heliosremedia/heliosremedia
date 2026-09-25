@@ -1,31 +1,15 @@
 {
-  "status": "released",
-  "runId": "atlas-packet16-preflight-diagnostics",
+  "status": "active",
+  "runId": "atlas-packet16-receipt-redaction-36175397618",
   "branch": "codex/v2-neon-staging-bootstrap",
-  "head": "64af9c6462d5fb5254ef3a40b6a80b14b63594e7",
+  "head": "5a520fa58d2270a21f2a9994ccf504ae011e3c48",
   "pr": 323,
-  "completedAt": "2026-09-21T05:28:39.689Z",
-  "scope": "Diagnostics-only; unchanged gates and effect ordering; no live dispatch",
+  "scope": "Diagnose and correct public receipt identifier redaction; preserve checksum and all admission gates; non-production only",
   "evidence": {
-    "testCount": 1264,
-    "newDiagnosticTests": 187,
-    "diagnosticCodes": 112,
-    "ciRuns": [
-      35564228593,
-      35564228614,
-      35564228612
-    ],
-    "allExactHead": true,
-    "allSuccess": true,
-    "localTypeScript": true,
-    "localScopedLint": true,
-    "whitespace": true,
-    "syntheticChromium": true,
-    "isolatedPostgresAndBuild": true,
-    "vercelStatuses": "Both projects Canceled by Ignored Build Step",
-    "candidate": "dbfb19909d3fe0bb91d81a478210373340f86e86",
-    "liveDispatch": false,
-    "packet16Complete": false
+    "run": 36175397618,
+    "reason": "CHECK_BUILD_RECEIPT_CHECKSUM",
+    "cleanup": true,
+    "schemaLedgerUnchanged": true
   },
-  "remaining": "Original preflight mismatch unknown. Review new executor before any live execution. Hosted qualification remains open; no Packet17."
+  "production": "ON HOLD"
 }
