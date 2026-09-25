@@ -1,10 +1,10 @@
 {
-  "status": "released",
-  "runId": "atlas-packet16-http-redirect-diagnostics",
+  "status": "active",
+  "runId": "atlas-packet16-owner-bypass-configured",
   "branch": "codex/v2-neon-staging-bootstrap",
   "head": "6d0634621659b2f5497da209b2411edba731899b",
   "pr": 323,
-  "scope": "Add fixed request-stage labels for hosted 302 rejection; no acceptance, credential or protection changes",
+  "scope": "Run verified staging qualification after owner configured automation credential",
   "evidence": {
     "run": 36184876212,
     "reason": "CHECK_HTTP_PUBLIC_STATUS",
@@ -35,8 +35,9 @@
     "buildReceiptPassed": true,
     "pendingRun": null,
     "artifact": 10886138108,
-    "protection": "Vercel Authentication enabled; automation bypass secret inventory empty"
+    "protection": "Vercel Authentication enabled; automation bypass secret inventory empty",
+    "ownerReportedBypassSaved": true
   },
   "production": "ON HOLD",
-  "nextAction": "Owner creates staging-only Vercel automation bypass secret and stores directly in protected GitHub Environment STAGING_VERCEL_BYPASS_SECRET; then dispatch same verified pair. No further retry yet. Production ON HOLD."
+  "nextAction": "Dispatch same verified candidate/executor; preserve protected owner review."
 }
