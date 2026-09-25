@@ -1,13 +1,13 @@
 {
-  "status": "released",
-  "runId": "atlas-packet16-owner-bypass-configured",
+  "status": "active",
+  "runId": "atlas-packet16-anonymous-proxy-contract",
   "branch": "codex/v2-neon-staging-bootstrap",
   "head": "6d0634621659b2f5497da209b2411edba731899b",
   "pr": 323,
-  "scope": "Run verified staging qualification after owner configured automation credential",
+  "scope": "Correct hosted anonymous API expectation to existing proxy401; retain denial and isolation gates",
   "evidence": {
-    "run": 36184876212,
-    "reason": "CHECK_HTTP_PUBLIC_STATUS",
+    "run": 36189494446,
+    "reason": "IDENTITY_OR_CONTRACT_MISMATCH",
     "cleanup": true,
     "schemaLedgerUnchanged": true,
     "exactHeadCi": [
@@ -33,11 +33,12 @@
     "correctedHostedRun": 36182012088,
     "phase": "hosted-http-chromium",
     "buildReceiptPassed": true,
-    "pendingRun": 36189494446,
+    "pendingRun": null,
     "artifact": 10886138108,
     "protection": "Vercel Authentication enabled; automation bypass secret inventory empty",
-    "ownerReportedBypassSaved": true
+    "ownerReportedBypassSaved": true,
+    "publicRedirectCleared": true
   },
   "production": "ON HOLD",
-  "nextAction": "Owner review for protected run 36189494446, then inspect actual credential effectiveness, qualification and cleanup. Production ON HOLD."
+  "nextAction": "Test actual proxy contract, publish minimal executor correction, exact-head CI"
 }
