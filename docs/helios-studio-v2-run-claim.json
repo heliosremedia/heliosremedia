@@ -1,8 +1,8 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-packet16-anonymous-proxy-contract",
   "branch": "codex/v2-neon-staging-bootstrap",
-  "head": "6d0634621659b2f5497da209b2411edba731899b",
+  "head": "9ce887a83d35b48a4dd4c5373e26681267e935e9",
   "pr": 323,
   "scope": "Correct hosted anonymous API expectation to existing proxy401; retain denial and isolation gates",
   "evidence": {
@@ -11,11 +11,11 @@
     "cleanup": true,
     "schemaLedgerUnchanged": true,
     "exactHeadCi": [
-      36184083629,
-      36184083644,
-      36184083597
+      36190448061,
+      36190448051,
+      36190447917
     ],
-    "localTestsPassed": 1539,
+    "localTestsPassed": 1544,
     "independentVercelRestoration": true,
     "independentNeonPostflight": {
       "database": "helios_v2_staging",
@@ -33,12 +33,12 @@
     "correctedHostedRun": 36182012088,
     "phase": "hosted-http-chromium",
     "buildReceiptPassed": true,
-    "pendingRun": null,
+    "pendingRun": 36191234689,
     "artifact": 10886138108,
     "protection": "Vercel Authentication enabled; automation bypass secret inventory empty",
     "ownerReportedBypassSaved": true,
     "publicRedirectCleared": true
   },
   "production": "ON HOLD",
-  "nextAction": "Test actual proxy contract, publish minimal executor correction, exact-head CI"
+  "nextAction": "Owner review of protected run36191234689, then inspect hosted qualification and cleanup. Production ON HOLD."
 }
