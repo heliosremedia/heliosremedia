@@ -2,7 +2,7 @@
   "status": "active",
   "runId": "atlas-packet16-egress-category-diagnostics",
   "branch": "codex/v2-neon-staging-bootstrap",
-  "head": "81b9c2c1bc78dbe9d944f5ed893d7063e3126729",
+  "head": "77dfe4104ad0756c1c0aedf87f78a3ece666a609",
   "pr": 323,
   "scope": "Classify blocked browser requests using fixed non-secret resource and destination categories; keep no-egress gate",
   "evidence": {
@@ -11,11 +11,11 @@
     "cleanup": true,
     "schemaLedgerUnchanged": true,
     "exactHeadCi": [
-      36192097040,
-      36192096944,
-      36192097047
+      36195965648,
+      36195965734,
+      36195965661
     ],
-    "localTestsPassed": 1546,
+    "localTestsPassed": 1565,
     "independentVercelRestoration": true,
     "independentNeonPostflight": {
       "database": "helios_v2_staging",
@@ -30,15 +30,14 @@
         "packet16-b.example.test"
       ]
     },
-    "correctedHostedRun": 36182012088,
     "phase": "hosted-http-chromium",
     "buildReceiptPassed": true,
     "pendingRun": null,
-    "artifact": 10886138108,
-    "protection": "Vercel Authentication enabled; automation bypass secret inventory empty",
+    "artifact": 10890165807,
+    "protection": "Vercel Authentication enabled; owner-configured automation bypass clears public redirect",
     "ownerReportedBypassSaved": true,
     "publicRedirectCleared": true
   },
   "production": "ON HOLD",
-  "nextAction": "Implement and verify bounded egress diagnostics; no unverified source correction"
+  "nextAction": "Wait for exact-head CI, then dispatch protected staging qualification"
 }
