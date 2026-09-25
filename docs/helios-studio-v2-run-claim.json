@@ -1,13 +1,13 @@
 {
-  "status": "released",
-  "runId": "atlas-packet16-corrected-hosted-2e6555d",
+  "status": "active",
+  "runId": "atlas-packet16-http-redirect-diagnostics",
   "branch": "codex/v2-neon-staging-bootstrap",
   "head": "2e6555d0cbcbe9b151461146e1097bf3af3a6080",
   "pr": 323,
-  "scope": "Diagnose and correct public receipt identifier redaction; preserve checksum and all admission gates; non-production only",
+  "scope": "Add fixed request-stage labels for hosted 302 rejection; no acceptance, credential or protection changes",
   "evidence": {
-    "run": 36175397618,
-    "reason": "CHECK_BUILD_RECEIPT_CHECKSUM",
+    "run": 36182012088,
+    "reason": "IDENTITY_OR_CONTRACT_MISMATCH",
     "cleanup": true,
     "schemaLedgerUnchanged": true,
     "exactHeadCi": [
@@ -30,8 +30,10 @@
         "packet16-b.example.test"
       ]
     },
-    "correctedHostedRun": 36182012088
+    "correctedHostedRun": 36182012088,
+    "phase": "hosted-http-chromium",
+    "buildReceiptPassed": true
   },
   "production": "ON HOLD",
-  "nextAction": "Owner review of protected Environment for run 36182012088, then independently inspect execution, cleanup and qualification evidence."
+  "nextAction": "Publish minimal HTTP status diagnostics after tests and exact-head CI."
 }
