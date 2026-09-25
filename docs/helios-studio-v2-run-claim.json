@@ -1,6 +1,6 @@
 {
-  "status": "released",
-  "runId": "atlas-packet16-receipt-redaction-36175397618",
+  "status": "active",
+  "runId": "atlas-packet16-corrected-hosted-2e6555d",
   "branch": "codex/v2-neon-staging-bootstrap",
   "head": "2e6555d0cbcbe9b151461146e1097bf3af3a6080",
   "pr": 323,
@@ -17,8 +17,20 @@
     ],
     "localTestsPassed": 1533,
     "independentVercelRestoration": true,
-    "independentNeonPostflight": "blocked: staging organization absent from authenticated browser account; SQL connector missing project_id"
+    "independentNeonPostflight": {
+      "database": "helios_v2_staging",
+      "publicTables": 114,
+      "migrations": 19,
+      "incomplete": 0,
+      "workspaces": 2,
+      "admins": 2,
+      "memberships": 2,
+      "domains": [
+        "packet16-a.example.test",
+        "packet16-b.example.test"
+      ]
+    }
   },
   "production": "ON HOLD",
-  "nextAction": "Restore staging Neon account access, complete read-only postflight, then protected staging qualification. No retry dispatched."
+  "nextAction": "Dispatch corrected protected staging qualification and inspect evidence."
 }
