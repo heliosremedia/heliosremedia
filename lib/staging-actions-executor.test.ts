@@ -46,7 +46,8 @@ test('actual Vercel transport does not retry uncertain POST or print response cr
  await assert.rejects(api('/v13/deployments','POST',createRequest()),{message:'VERCEL_HTTP_403'});assert.equal(calls,1);
 });
 
-test('hosted HTTP harness exercises both tenant directions, conflict race and browser widths',async()=>{
+for(const failure of ['', 'PUBLIC', 'ADMIN', 'BROWSER'])test('hosted HTTP harness both tenants and fixed redirect diagnostic '+(failure||'success'),async()=>{
+ const {diagnostic}=await import('../scripts/staging/actions/diagnostics.mjs');
  const {qualifyHTTP,revision}=await import('../scripts/staging/actions/http.mjs');
  const ids=['packet16-a','packet16-b'];const rows=Object.fromEntries(ids.map(id=>[id,{id:id+'-placement',projectId:id+'-project',displayOrder:0,updatedAt:new Date('2026-09-01')} ]));
  const db={query:async(sql:string,args:string[])=>{
@@ -55,17 +56,18 @@ test('hosted HTTP harness exercises both tenant directions, conflict race and br
   if(sql.includes('"WorkspaceMembership"'))return {rows:[{workspaceId:id,userId:id+'-owner',role:'OWNER',status:'ACTIVE'}]};
   return {rows:[{...rows[id]}]};
  }};
- let contexts=0;const widths:number[]=[];
+ let contexts=0,closedContexts=0,closedBrowsers=0;const widths:number[]=[];
  const response=(status:number,data:unknown)=>({status:()=>status,json:async()=>data,text:async()=>String(data)});
- const browser={close:async()=>{},newContext:async()=>{const id=ids[contexts++];let authenticated=false;return {
-  close:async()=>{},addCookies:async()=>{authenticated=true;},route:async()=>{},
-  request:{get:async(url:string)=>response(200,url.endsWith('/admin/homepage')?id+'-placement':'Synthetic '+id),patch:async(_url:string,options:{data:{placementId?:string};headers?:Record<string,string>})=>{
+ const browser={close:async()=>{closedBrowsers++;},newContext:async()=>{const id=ids[contexts++];let authenticated=false;return {
+  close:async()=>{closedContexts++;},addCookies:async()=>{authenticated=true;},route:async()=>{},
+  request:{get:async(url:string)=>response((url.endsWith('/admin/homepage')?failure==='ADMIN':failure==='PUBLIC')?302:200,url.endsWith('/admin/homepage')?id+'-placement':'Synthetic '+id),patch:async(_url:string,options:{data:{placementId?:string};headers?:Record<string,string>})=>{
    if(!authenticated)return response(403,{});if(options.data.placementId!==id+'-placement')return response(404,{});
    const before=revision(id,[rows[id]]);if(options.headers?.['x-curation-revision']!==before)return response(409,{});
    rows[id].updatedAt=new Date(rows[id].updatedAt.getTime()+1);return response(200,{acknowledgement:{workspaceId:id,previousRevision:before,revision:revision(id,[rows[id]])}});
   }},
-  newPage:async()=>({setViewportSize:async({width}:{width:number})=>{widths.push(width);},on:()=>{},goto:async()=>response(200,''),getByRole:()=>({waitFor:async()=>{}}),close:async()=>{}}),
+  newPage:async()=>({setViewportSize:async({width}:{width:number})=>{widths.push(width);},on:()=>{},goto:async()=>response(failure==='BROWSER'?302:200,''),getByRole:()=>({waitFor:async()=>{}}),close:async()=>{}}),
  };}};
- const results=await qualifyHTTP(db,ids.map((workspaceId,i)=>({workspaceId,hostname:'helios-v2-staging-'+i+'.vercel.app'})),'a'.repeat(96),undefined,{launch:async()=>browser} as unknown as Parameters<typeof qualifyHTTP>[4]);
- assert.equal(results.length,2);assert.deepEqual(widths,[390,1440,390,1440]);assert.equal(process.env.AUTH_SECRET,undefined);
+ const run=()=>qualifyHTTP(db,ids.map((workspaceId,i)=>({workspaceId,hostname:'helios-v2-staging-'+i+'.vercel.app'})),'a'.repeat(96),undefined,{launch:async()=>browser} as unknown as Parameters<typeof qualifyHTTP>[4]);
+ if(failure){await assert.rejects(run(),e=>{const d=diagnostic('hosted-http-chromium',e);assert.equal(d.reason,'CHECK_HTTP_'+failure+'_STATUS');assert.equal(d.matched,false);assert.deepEqual(Object.keys(d).sort(),['detailHash','matched','phase','reason']);assert.ok(!JSON.stringify(d).includes('vercel.app'));return true;});assert.equal(closedContexts,1);assert.equal(closedBrowsers,1);assert.equal(process.env.AUTH_SECRET,undefined);return;}
+ const results=await run();assert.equal(closedContexts,2);assert.equal(closedBrowsers,1);assert.equal(results.length,2);assert.deepEqual(widths,[390,1440,390,1440]);assert.equal(process.env.AUTH_SECRET,undefined);
 });

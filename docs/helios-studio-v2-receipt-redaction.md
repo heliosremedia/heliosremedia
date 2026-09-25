@@ -57,3 +57,32 @@ The application candidate and its CI evidence remain pinned. Full local and
 exact-executor CI results are recorded after verification. Independent Neon
 postflight and a new protected hosted qualification remain required. No retry
 or Packet 16 completion is claimed by this implementation. Production ON HOLD.
+
+
+## Hosted verification follow-up
+
+Run `36182012088` at executor `2e6555d0cbcbe9b151461146e1097bf3af3a6080`
+proves the receipt correction: the Preview reached READY and all receipt checks
+passed. Candidate remains `2999055b2b59467fcfef446c33a47212e72d4712`.
+The subsequent hosted HTTP/Chromium phase failed closed with
+`IDENTITY_OR_CONTRACT_MISMATCH`, detail hash
+`f3b36e73d9d882bdb9dd7302babe080354439f4087326e2b70a48f8ad59e4a71`.
+Locally reproducing Node's assertion message confirms this hash corresponds to
+actual HTTP 302 versus expected 200. It does not identify which request or the
+redirect destination. No successful hosted tenant/browser qualification is claimed.
+
+Artifact `10885715509` was downloaded and its archive SHA256 verified:
+`f34fed1a09fcaa1c88fca520a58e90e1e561c8da5351439ce5fba99fade2d4e1`.
+Its schema and ledger hashes equal the before/after hashes above. All four cleanup
+phases passed; the independent Actions suppression step also passed. Fresh
+read-only Neon UI query confirms 114 tables, 19 complete migrations, zero incomplete,
+2 workspaces/admins/memberships, and both original example.test domains.
+Authenticated staging Vercel UI confirms exit 0 and only DATABASE_URL/DIRECT_URL
+remain. No production changes.
+
+The next bounded diagnostic change wraps only the three existing expected-200
+assertions with fixed labels HTTP_PUBLIC_STATUS, HTTP_ADMIN_STATUS and
+HTTP_BROWSER_STATUS. Request options, redirect rejection, auth, acceptance,
+ordering and cleanup are unchanged. Actual harness tests independently inject
+302 at each point and verify the correct safe label, context/browser closure and
+AUTH_SECRET removal. Existing both-direction success coverage is retained.

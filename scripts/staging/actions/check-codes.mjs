@@ -1,5 +1,8 @@
 // Fixed identifiers only. Never derive diagnostic labels from external values.
 export const CHECK_CODES=Object.freeze([
+  "HTTP_PUBLIC_STATUS",
+  "HTTP_ADMIN_STATUS",
+  "HTTP_BROWSER_STATUS",
   "BUILD_RECEIPT_EVENT_ARRAY",
   "BUILD_RECEIPT_COUNT",
   "BUILD_RECEIPT_JSON_PARSE",
