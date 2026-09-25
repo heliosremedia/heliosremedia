@@ -1,5 +1,5 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-packet16-owner-bypass-configured",
   "branch": "codex/v2-neon-staging-bootstrap",
   "head": "6d0634621659b2f5497da209b2411edba731899b",
@@ -33,11 +33,11 @@
     "correctedHostedRun": 36182012088,
     "phase": "hosted-http-chromium",
     "buildReceiptPassed": true,
-    "pendingRun": null,
+    "pendingRun": 36189494446,
     "artifact": 10886138108,
     "protection": "Vercel Authentication enabled; automation bypass secret inventory empty",
     "ownerReportedBypassSaved": true
   },
   "production": "ON HOLD",
-  "nextAction": "Dispatch same verified candidate/executor; preserve protected owner review."
+  "nextAction": "Owner review for protected run 36189494446, then inspect actual credential effectiveness, qualification and cleanup. Production ON HOLD."
 }
