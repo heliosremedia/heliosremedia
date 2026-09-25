@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {createHash,randomUUID} from 'node:crypto';
 import {chromium} from 'playwright';
 import {check} from './diagnostics.mjs';
+import {egressCategories,assertNoEgress} from './egress.mjs';
 import {syntheticCookie} from '../hosted-session.ts';
 export function revision(workspaceId,rows){return createHash('sha256').update(JSON.stringify([workspaceId,'projects',[...rows].sort((a,b)=>a.id.localeCompare(b.id)).map(r=>[r.id,r.projectId,r.displayOrder,new Date(r.updatedAt).toISOString()])])).digest('hex');}
 export async function qualifyHTTP(db,bindings,secret,bypass,browserType=chromium){
@@ -30,10 +31,10 @@ export async function qualifyHTTP(db,bindings,secret,bypass,browserType=chromium
    const after=await snapshot();assert.equal(ack.workspaceId,id);assert.equal(ack.previousRevision,rev);assert.equal(ack.revision,revision(id,after));assert.notEqual(ack.revision,rev);
    assert.equal((await patch(id+'-placement',rev,'Stale')).status(),409);
    assert.deepEqual((await db.query('SELECT * FROM "HomepageProject" WHERE id=$1',[other+'-placement'])).rows,untouched);
-   const blocked=[];await context.route('**/*',async route=>{const u=new URL(route.request().url());if(u.origin!==origin){blocked.push(u.hostname);return route.abort();}return route.continue();});
+   const blocked=[];await context.route('**/*',async route=>{const u=new URL(route.request().url());if(u.origin!==origin){blocked.push(egressCategories(u.href,route.request().resourceType()));return route.abort();}return route.continue();});
    for(const width of [390,1440]){const page=await context.newPage();await page.setViewportSize({width,height:900});const errors=[];page.on('pageerror',()=>errors.push('pageerror'));
     const response=await page.goto(origin+'/admin/homepage',{waitUntil:'networkidle',timeout:60000});check('HTTP_BROWSER_STATUS',()=>assert.equal(response?.status(),200));await page.getByRole('heading',{name:'Homepage curation',exact:true}).waitFor();assert.equal(errors.length,0);await page.close();}
-   check('HTTP_BROWSER_EGRESS',()=>assert.equal(blocked.length,0,'Unexpected browser egress blocked'));results.push({workspace:id,publicRead:true,adminRead:true,foreignWrite:404,concurrent:[200,409],stale:409,widths:[390,1440],externalRequests:0});
+   assertNoEgress(blocked);results.push({workspace:id,publicRead:true,adminRead:true,foreignWrite:404,concurrent:[200,409],stale:409,widths:[390,1440],externalRequests:0});
   }finally{await context.close();}
  }}finally{await browser.close();delete process.env.AUTH_SECRET;}
  return results;

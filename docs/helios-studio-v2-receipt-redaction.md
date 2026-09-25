@@ -147,3 +147,27 @@ All restoration phases and independent suppression succeeded; schema/ledger hash
 unchanged. Fresh Neon read-only query confirms114 tables,19 completed migrations,
 0 incomplete,2 workspaces/admins/memberships and original example.test domains.
 Vercel UI confirms exit0. Production remains ON HOLD; Packet16 remains open.
+
+## Fixed browser egress categories
+
+Run36192851157 at executor81b9c2c1bc78dbe9d944f5ed893d7063e3126729
+failed CHECK_HTTP_BROWSER_EGRESS with the same two-request assertion hash
+2bb21c8b210db9de6362040a824158a1552e9c5fcd6925a449e0add600ba5046.
+The toolbar suppression header did not resolve it; the source is still unknown.
+Both-direction hosted qualification remains incomplete.
+
+Artifact10890165807 archive SHA256 independently verified:
+9b15e5584f00660229fd4606063a6ebdeeded0c05b1d579b4ef93c423d035b49.
+Receipt admission passed and all four cleanup/postflight phases succeeded;
+schema/ledger hashes equal baseline. Fresh read-only Neon inspection confirmed
+114 public tables,19 complete migrations,0 incomplete,2 workspaces/admins/memberships
+and both original example.test domains. Vercel suppression independently shows exit0; variable inventory contains only
+the original DIRECT_URL and DATABASE_URL.
+
+The executor now retains only fixed destination and resource-type categories for
+blocked requests. No URL, path, query, credentials, headers or arbitrary hostname
+is retained. Unknown hosts/types map to fixed OTHER labels. The identical zero
+count assertion, error message and abort behavior remain. Tests exercise actual
+harness interception, fixed classification, redaction, error hash preservation,
+deduplication and forged labels. No host is permitted by this classification.
+Candidate unchanged; production ON HOLD.
