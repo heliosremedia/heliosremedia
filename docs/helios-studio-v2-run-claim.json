@@ -1,8 +1,8 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-packet16-http-redirect-diagnostics",
   "branch": "codex/v2-neon-staging-bootstrap",
-  "head": "2e6555d0cbcbe9b151461146e1097bf3af3a6080",
+  "head": "6d0634621659b2f5497da209b2411edba731899b",
   "pr": 323,
   "scope": "Add fixed request-stage labels for hosted 302 rejection; no acceptance, credential or protection changes",
   "evidence": {
@@ -11,11 +11,11 @@
     "cleanup": true,
     "schemaLedgerUnchanged": true,
     "exactHeadCi": [
-      36179545084,
-      36179545113,
-      36179545128
+      36184083629,
+      36184083644,
+      36184083597
     ],
-    "localTestsPassed": 1533,
+    "localTestsPassed": 1539,
     "independentVercelRestoration": true,
     "independentNeonPostflight": {
       "database": "helios_v2_staging",
@@ -32,8 +32,9 @@
     },
     "correctedHostedRun": 36182012088,
     "phase": "hosted-http-chromium",
-    "buildReceiptPassed": true
+    "buildReceiptPassed": true,
+    "pendingRun": 36184876212
   },
   "production": "ON HOLD",
-  "nextAction": "Publish minimal HTTP status diagnostics after tests and exact-head CI."
+  "nextAction": "Owner review of protected staging run 36184876212; inspect fixed HTTP request-stage diagnostic and cleanup evidence. Production ON HOLD."
 }
