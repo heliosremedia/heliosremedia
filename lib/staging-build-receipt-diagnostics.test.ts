@@ -5,8 +5,10 @@ import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
 import {check,diagnostic,eventsSummary} from '../scripts/staging/actions/diagnostics.mjs';
 import {digest} from '../scripts/release/policy.mjs';
+import {receipt as produceReceipt} from '../scripts/staging/hosted-policy.mjs';
+import {TARGET} from '../scripts/staging/policy.mjs';
 const secret='private-receipt-credential-sentinel',candidate='a'.repeat(40),id='dpl_synthetic';
-const hosted={project:'project_synthetic',team:'team_synthetic'},target={project:'synthetic',branch:'synthetic',database:'synthetic'};
+const hosted={project:'project_synthetic_'+'p'.repeat(32),team:'team_synthetic'},target={project:'synthetic',branch:'synthetic',database:'synthetic'};
 const before={schemaHash:'b'.repeat(64),ledgerHash:'c'.repeat(64)},run=123;
 const base={candidate,deployment:id,...hosted,environment:'preview',tests:{run},database:target,...before,buildDigest:'d'.repeat(64)};
 const ast=ts.createSourceFile('live.mjs',readFileSync('scripts/staging/actions/live.mjs','utf8'),ts.ScriptTarget.Latest,true);
@@ -62,4 +64,41 @@ test('forged diagnostics and receipt properties cannot admit invalid receipt',as
  assert.throws(()=>check('BUILD_RECEIPT_FORGED',()=>{}),/UNKNOWN_DIAGNOSTIC_CHECK/);
  const safe=eventsSummary([{text:'STAGING_HOSTED_BUILD_BLOCKED '+JSON.stringify({...forged,reason:'CHECK_BUILD_RECEIPT_FORGED',secret})}]);
  assert.notEqual(safe[0].reason,'CHECK_BUILD_RECEIPT_FORGED');assert.ok(!JSON.stringify(safe).includes(secret));
+});
+
+// Execute the actual configuration callback with synthetic credentials and a
+// captured provider transport, then round-trip the actual producer's receipt.
+async function configuredRows(){
+ let configure='';
+ function findConfigure(node:ts.Node){if(ts.isPropertyAssignment(node)&&node.name.getText(ast)==='configure'&&ts.isArrowFunction(node.initializer))configure=node.initializer.body.getText(ast);ts.forEachChild(node,findConfigure);}
+ findConfigure(ast);assert.ok(configure);
+ const rows:Array<{key:string;value:string;type:string;target:string[];gitBranch:string;comment:string}>=[];
+ const host={...hosted,branch:'synthetic-branch'},ignore='synthetic-ignore';
+ const env={STAGING_DIRECT_URL:'postgresql://synthetic-private-database-credential',STAGING_VERCEL_TOKEN:'synthetic-private-vercel-token'.repeat(2),STAGING_GITHUB_READ_TOKEN:'synthetic-private-github-token'.repeat(2),STAGING_NEON_API_KEY:'synthetic-private-neon-key'.repeat(2)};
+ const fn=runInNewContext('(async()=>'+configure+')',{assert,Object,env,secret:'synthetic-private-auth-secret'.repeat(3),CANDIDATE:candidate,HOSTED:host,RELEASE_RUN:run,IGNORE:ignore,projectPath:'/synthetic-project',marker:'synthetic-run',api:async(_path:string,method:string,row:typeof rows[number])=>{if(method==='POST'){rows.push(row);return {id:'synthetic-id'};}return {commandForIgnoringBuildStep:ignore};}});
+ await fn();return rows;
+}
+test('actual configure makes only fixed public receipt identities plain',async()=>{
+ const rows=await configuredRows();
+ assert.deepEqual(rows.filter(r=>r.type==='plain').map(r=>r.key).sort(),['STAGING_CANDIDATE_SHA','VERCEL_PROJECT_ID']);
+ assert.equal(rows.find(r=>r.key==='STAGING_CANDIDATE_SHA')?.value,candidate);
+ assert.equal(rows.find(r=>r.key==='VERCEL_PROJECT_ID')?.value,hosted.project);
+ for(const key of ['DATABASE_URL','DIRECT_URL','AUTH_SECRET','STAGING_VERCEL_READ_TOKEN','STAGING_GITHUB_READ_TOKEN','STAGING_NEON_API_KEY'])assert.equal(rows.find(r=>r.key===key)?.type,'encrypted');
+ for(const row of rows){assert.equal(JSON.stringify(row.target),'["preview"]');assert.equal(row.gitBranch,'synthetic-branch');assert.equal(row.comment,'synthetic-run');}
+});
+test('producer receipt survives public configuration but rejects provider-redacted identities',async()=>{
+ const rows=await configuredRows();
+ const state={state:'current-compatible-ledger',track:'baseline',...before};
+ const original=produceReceipt({...base,tests:{run,attempt:1,status:'passed'}},state,state,{lockfile:'e'.repeat(64)},base.buildDigest);
+ const serialized=JSON.stringify(original);
+ for(const row of rows.filter(r=>r.value.includes('private')))assert.ok(!serialized.includes(row.value));
+ const redact=(text:string,publicSensitive:boolean)=>rows.reduce((out,row)=>(row.value.length>=32&&(row.type!=='plain'||publicSensitive))?out.split(row.value).join('[REDACTED]'):out,text);
+ const transported=JSON.parse(redact(serialized,false)),{checksum,...payload}=transported;
+ assert.equal(digest(payload),checksum);
+ assert.deepEqual(transported.database,TARGET);
+ const broken=JSON.parse(redact(serialized,true)),{checksum:brokenChecksum,...brokenPayload}=broken;
+ assert.equal(broken.candidate,'[REDACTED]');assert.equal(broken.project,'[REDACTED]');assert.notEqual(digest(brokenPayload),brokenChecksum);
+ for(const key of ['candidate','project','buildDigest']){
+  const tampered={...transported,[key]:'tampered'};const {checksum,...payload}=tampered;assert.notEqual(digest(payload),checksum);
+ }
 });

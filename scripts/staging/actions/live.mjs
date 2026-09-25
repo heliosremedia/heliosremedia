@@ -57,7 +57,9 @@ try{
   },
   configure:async()=>{
    const vars={DATABASE_URL:env.STAGING_DIRECT_URL,DIRECT_URL:env.STAGING_DIRECT_URL,AUTH_SECRET:secret,STUDIO_V2_TENANT_CONTEXT_ENABLED:'true',STAGING_HOSTED_ADMISSION:'preview-only',STAGING_CANDIDATE_SHA:CANDIDATE,STAGING_RELEASE_RUN_ID:String(RELEASE_RUN),STAGING_VERCEL_READ_TOKEN:env.STAGING_VERCEL_TOKEN,STAGING_GITHUB_READ_TOKEN:env.STAGING_GITHUB_READ_TOKEN||env.GITHUB_TOKEN,STAGING_NEON_API_KEY:env.STAGING_NEON_API_KEY,VERCEL_ORG_ID:HOSTED.team,VERCEL_PROJECT_ID:HOSTED.project};
-   for(const [key,value] of Object.entries(vars)){assert.ok(value);const row=await api('/v10/projects/'+HOSTED.project+'/env','POST',{key,value,type:'encrypted',target:['preview'],gitBranch:HOSTED.branch,comment:marker});assert.ok(row.id||row.created);}
+   // These two fixed public identities are receipt content, never credentials.
+   // Sensitive-value log redaction would otherwise invalidate the receipt checksum.
+   for(const [key,value] of Object.entries(vars)){assert.ok(value);const row=await api('/v10/projects/'+HOSTED.project+'/env','POST',{key,value,type:['STAGING_CANDIDATE_SHA','VERCEL_PROJECT_ID'].includes(key)?'plain':'encrypted',target:['preview'],gitBranch:HOSTED.branch,comment:marker});assert.ok(row.id||row.created);}
    await api(projectPath,'PATCH',{commandForIgnoringBuildStep:IGNORE});assert.equal((await api(projectPath)).commandForIgnoringBuildStep,IGNORE);
   },
   create:async()=>{const d=await api('/v13/deployments','POST',createRequest());return d;},

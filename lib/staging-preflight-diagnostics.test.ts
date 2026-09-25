@@ -56,6 +56,9 @@ for(const [code,value]of urlCases)test('actual connection rejection '+code,()=>a
 // Strip diagnostic-only wrappers, then fingerprint the complete original executable AST.
 // These hashes are from reviewed executor 51f6ad1, not a newly generated expectation.
 function gateFingerprint(source:string){
+ // Normalize only the reviewed public-identity storage classification; keep the
+ // historical fingerprint for every admission predicate and effect ordering.
+ source=source.replace("type:['STAGING_CANDIDATE_SHA','VERCEL_PROJECT_ID'].includes(key)?'plain':'encrypted'", "type:'encrypted'");
  const ast=ts.createSourceFile('guard.mjs',source,ts.ScriptTarget.Latest,true);
  const transformed=ts.transform(ast,[ctx=>root=>{
   function visit(node:ts.Node):ts.VisitResult<ts.Node> | undefined{

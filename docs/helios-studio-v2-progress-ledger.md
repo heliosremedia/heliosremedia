@@ -1149,3 +1149,20 @@ On #323, added an exact-target workflow_dispatch executor with independently che
 GitHub status and vercel[bot] comment prove both linked projects reacted to #323 head3453f854; both reported failure. This is Git integration fan-out, not proof of production promotion. Staging deployment lookup returned404; failure reasons and provider target metadata remain unknown. No production settings changed.
 
 External execution gates: protected GitHub Environment and staging-only secrets; workflow registration on default branch (requires separately approved workflow-only change, not stack merge); authorized manual dispatch capability. Current tools cannot configure these or dispatch. Details and exact names in the staging-bootstrap runbook. Packet16 remains OPEN; no Packet17 work, application release or deployment.
+
+## Packet 16: September 25 receipt redaction correction
+
+Protected run36175397618 reached READY on candidate2999055, then failed closed
+at `CHECK_BUILD_RECEIPT_CHECKSUM`. Downloaded artifact10882409380 matched its
+GitHub archive digest and records all cleanup phases plus unchanged schema and
+ledger. Authenticated Vercel UI independently confirmed staging `exit 0` and
+only the two original database variables. The build log shows the public
+candidate SHA and project ID redacted inside the checksummed receipt.
+
+The executor now classifies only those two fixed public identities as plain
+configuration. Credentials retain their existing encrypted type. Receipt
+validation, candidate and regression-run pins, Preview targeting, cleanup and
+all admission checks remain unchanged. Local regression passed1533/1533;
+exact-head CI and independent Neon postflight remain pending. See
+`docs/helios-studio-v2-receipt-redaction.md` for reproducible evidence and limits.
+No hosted retry, phase exit, Packet17, merge or production change is claimed.
