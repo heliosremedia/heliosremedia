@@ -1,6 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {runInNewContext} from 'node:vm';
+import {createRequire} from 'node:module';
+import ts from 'typescript';
+import * as token from './auth/token.ts';
+const require=createRequire(import.meta.url);
+const nextServer=require('next/server');
+const proxyExports:{proxy?:(request:unknown)=>Response}={};
+runInNewContext(ts.transpileModule(readFileSync('proxy.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports:proxyExports,URL,require:(name:string)=>{if(name==='next/server')return nextServer;if(name==='@/lib/auth/token')return token;throw Error('Unexpected proxy dependency');}});
+function anonymousProxy(){return proxyExports.proxy!(new nextServer.NextRequest('https://synthetic.example.test/api/admin/homepage-projects',{method:'PATCH'}));}
+test('actual application proxy denies anonymous API mutations with401',async()=>{const r=anonymousProxy();assert.equal(r.status,401);assert.deepEqual(await r.json(),{success:false,error:'Authentication required.'});assert.equal(r.headers.get('location'),null);});
 import {execute} from '../scripts/staging/actions/executor.mjs';
 import {invocation,project,deployment,createRequest,environmentInventory,CANDIDATE,HOSTED,CONFIRMATION,IGNORE} from '../scripts/staging/actions/policy.mjs';
 import {diagnostic,eventsSummary} from '../scripts/staging/actions/diagnostics.mjs';
@@ -46,7 +56,7 @@ test('actual Vercel transport does not retry uncertain POST or print response cr
  await assert.rejects(api('/v13/deployments','POST',createRequest()),{message:'VERCEL_HTTP_403'});assert.equal(calls,1);
 });
 
-for(const failure of ['', 'PUBLIC', 'ADMIN', 'BROWSER'])test('hosted HTTP harness both tenants and fixed redirect diagnostic '+(failure||'success'),async()=>{
+for(const failure of ['', 'PUBLIC', 'ADMIN', 'BROWSER', 'ANONYMOUS_200', 'ANONYMOUS_302', 'ANONYMOUS_403'])test('hosted HTTP harness both tenants and fixed redirect diagnostic '+(failure||'success'),async()=>{
  const {diagnostic}=await import('../scripts/staging/actions/diagnostics.mjs');
  const {qualifyHTTP,revision}=await import('../scripts/staging/actions/http.mjs');
  const ids=['packet16-a','packet16-b'];const rows=Object.fromEntries(ids.map(id=>[id,{id:id+'-placement',projectId:id+'-project',displayOrder:0,updatedAt:new Date('2026-09-01')} ]));
@@ -61,13 +71,13 @@ for(const failure of ['', 'PUBLIC', 'ADMIN', 'BROWSER'])test('hosted HTTP harnes
  const browser={close:async()=>{closedBrowsers++;},newContext:async()=>{const id=ids[contexts++];let authenticated=false;return {
   close:async()=>{closedContexts++;},addCookies:async()=>{authenticated=true;},route:async()=>{},
   request:{get:async(url:string)=>response((url.endsWith('/admin/homepage')?failure==='ADMIN':failure==='PUBLIC')?302:200,url.endsWith('/admin/homepage')?id+'-placement':'Synthetic '+id),patch:async(_url:string,options:{data:{placementId?:string};headers?:Record<string,string>})=>{
-   if(!authenticated)return response(403,{});if(options.data.placementId!==id+'-placement')return response(404,{});
+   if(!authenticated){const denied=anonymousProxy();return response(failure.startsWith('ANONYMOUS_')?Number(failure.split('_')[1]):denied.status,await denied.json());}if(options.data.placementId!==id+'-placement')return response(404,{});
    const before=revision(id,[rows[id]]);if(options.headers?.['x-curation-revision']!==before)return response(409,{});
    rows[id].updatedAt=new Date(rows[id].updatedAt.getTime()+1);return response(200,{acknowledgement:{workspaceId:id,previousRevision:before,revision:revision(id,[rows[id]])}});
   }},
   newPage:async()=>({setViewportSize:async({width}:{width:number})=>{widths.push(width);},on:()=>{},goto:async()=>response(failure==='BROWSER'?302:200,''),getByRole:()=>({waitFor:async()=>{}}),close:async()=>{}}),
  };}};
  const run=()=>qualifyHTTP(db,ids.map((workspaceId,i)=>({workspaceId,hostname:'helios-v2-staging-'+i+'.vercel.app'})),'a'.repeat(96),undefined,{launch:async()=>browser} as unknown as Parameters<typeof qualifyHTTP>[4]);
- if(failure){await assert.rejects(run(),e=>{const d=diagnostic('hosted-http-chromium',e);assert.equal(d.reason,'CHECK_HTTP_'+failure+'_STATUS');assert.equal(d.matched,false);assert.deepEqual(Object.keys(d).sort(),['detailHash','matched','phase','reason']);assert.ok(!JSON.stringify(d).includes('vercel.app'));return true;});assert.equal(closedContexts,1);assert.equal(closedBrowsers,1);assert.equal(process.env.AUTH_SECRET,undefined);return;}
+ if(failure){await assert.rejects(run(),e=>{const d=diagnostic('hosted-http-chromium',e);assert.equal(d.reason,'CHECK_HTTP_'+(failure.startsWith('ANONYMOUS_')?'ANONYMOUS':failure)+'_STATUS');assert.equal(d.matched,false);assert.deepEqual(Object.keys(d).sort(),['detailHash','matched','phase','reason']);assert.ok(!JSON.stringify(d).includes('vercel.app'));return true;});assert.equal(closedContexts,1);assert.equal(closedBrowsers,1);assert.equal(process.env.AUTH_SECRET,undefined);return;}
  const results=await run();assert.equal(closedContexts,2);assert.equal(closedBrowsers,1);assert.equal(results.length,2);assert.deepEqual(widths,[390,1440,390,1440]);assert.equal(process.env.AUTH_SECRET,undefined);
 });

@@ -15,7 +15,7 @@ export async function qualifyHTTP(db,bindings,secret,bypass,browserType=chromium
   try{
    const publicResponse=await context.request.get(origin+'/',{maxRedirects:0,timeout:30000});check('HTTP_PUBLIC_STATUS',()=>assert.equal(publicResponse.status(),200));
    const publicHTML=await publicResponse.text();assert.ok(publicHTML.includes('Synthetic '+id));assert.ok(!publicHTML.includes('Synthetic '+other));
-   const anonymous=await context.request.patch(origin+'/api/admin/homepage-projects',{data:{},maxRedirects:0,timeout:30000});assert.equal(anonymous.status(),403);
+   const anonymous=await context.request.patch(origin+'/api/admin/homepage-projects',{data:{},maxRedirects:0,timeout:30000});check('HTTP_ANONYMOUS_STATUS',()=>assert.equal(anonymous.status(),401));
    await context.addCookies([cookie]);
    const admin=await context.request.get(origin+'/admin/homepage',{maxRedirects:0,timeout:30000});check('HTTP_ADMIN_STATUS',()=>assert.equal(admin.status(),200));
    const html=await admin.text();assert.ok(html.includes(id+'-placement'));assert.ok(!html.includes(other+'-placement'));

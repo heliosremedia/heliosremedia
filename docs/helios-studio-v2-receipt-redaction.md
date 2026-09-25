@@ -86,3 +86,33 @@ HTTP_BROWSER_STATUS. Request options, redirect rejection, auth, acceptance,
 ordering and cleanup are unchanged. Actual harness tests independently inject
 302 at each point and verify the correct safe label, context/browser closure and
 AUTH_SECRET removal. Existing both-direction success coverage is retained.
+
+
+## Anonymous API boundary correction
+
+After the owner configured the staging automation bypass credential, run
+`36189494446` passed the public200 and own/foreign public content assertions.
+The next anonymous PATCH returned401, while the harness incorrectly expected403.
+Safe failure hash `6867b0fd71d08adeebab181d566d6a3bcada226c9502debf4edae84c7f9dad83`
+exactly matches Node's actual401/expected403 assertion message.
+The pinned application's existing proxy.ts explicitly returns401 with
+Authentication required for unauthenticated /api/admin requests, before route
+execution. The route-level403 expectation belonged to the earlier direct-route
+adapter and was incorrectly carried into the hosted HTTP harness.
+
+The correction requires exactly401 and adds fixed HTTP_ANONYMOUS_STATUS diagnostics.
+It does not accept a range of statuses or modify the application, session validation,
+proxy, route handler, deployment protection, tenant checks, or cleanup. Tests execute
+the actual proxy source with real NextRequest/NextResponse and token verification;
+the harness consumes its anonymous response. Separate failure cases reject200,302
+and403 and verify context/browser and AUTH_SECRET cleanup. Existing both-direction
+foreign404, concurrency200/409, stale409 and browser checks remain enforced.
+
+Downloaded artifact10887711479 matched archive SHA256
+`a34ed22000ff8c68ba2a6c59d9b73ec5f58005e27f1ba72e8caeb43dfefd6dc9`.
+All cleanup phases passed and schema/ledger hashes remain identical to the baseline
+above. Independent authenticated UI checks confirmed exit0 suppression, only the two
+original database variables,114 tables,19 complete migrations,0 incomplete,
+2 synthetic workspaces/admins/memberships and both original example.test domains.
+No authenticated admin, mutation race or hosted Chromium success is claimed.
+Candidate remains2999055b2b59467fcfef446c33a47212e72d4712. Production ON HOLD.
