@@ -1,8 +1,8 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-packet16-browser-egress",
   "branch": "codex/v2-neon-staging-bootstrap",
-  "head": "9ce887a83d35b48a4dd4c5373e26681267e935e9",
+  "head": "81b9c2c1bc78dbe9d944f5ed893d7063e3126729",
   "pr": 323,
   "scope": "Suppress provider toolbar for automated qualification; preserve zero-egress check and label failures",
   "evidence": {
@@ -11,11 +11,11 @@
     "cleanup": true,
     "schemaLedgerUnchanged": true,
     "exactHeadCi": [
-      36190448061,
-      36190448051,
-      36190447917
+      36192097040,
+      36192096944,
+      36192097047
     ],
-    "localTestsPassed": 1544,
+    "localTestsPassed": 1546,
     "independentVercelRestoration": true,
     "independentNeonPostflight": {
       "database": "helios_v2_staging",
@@ -33,12 +33,12 @@
     "correctedHostedRun": 36182012088,
     "phase": "hosted-http-chromium",
     "buildReceiptPassed": true,
-    "pendingRun": null,
+    "pendingRun": 36192851157,
     "artifact": 10886138108,
     "protection": "Vercel Authentication enabled; automation bypass secret inventory empty",
     "ownerReportedBypassSaved": true,
     "publicRedirectCleared": true
   },
   "production": "ON HOLD",
-  "nextAction": "Test request-only toolbar suppression and unchanged egress rejection"
+  "nextAction": "Owner review of protected run36192851157, inspect complete both-direction qualification and cleanup. Toolbar cause remains hypothesis until verified. Production ON HOLD."
 }
