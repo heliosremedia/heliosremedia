@@ -54,9 +54,19 @@ export function checkDirtyCheckout(operation,run=execFileSync,readConfig=readWor
     const raw=run('git',['diff',...common,'--raw','--no-abbrev','-z','HEAD','--'],options);
     const stats=run('git',['diff',...common,'--numstat','-z','HEAD','--'],options);
     codes=dirtyCategories(raw,stats);
-    if(codes.includes('SOURCE_DIRTY_VERCEL_CONFIG'))codes.push(vercelConfigDiagnostic(run,readConfig));
+    if(codes.includes('SOURCE_DIRTY_VERCEL_CONFIG')){
+     const mutation=vercelConfigDiagnostic(run,readConfig);
+     codes.push(mutation);
+     // Exact complete metadata set, regular file, unchanged mode: never admit
+     // mixed changes or trust a diagnostic attached to the original error.
+     const soleConfig=/^:(100644|100755) \1 [a-f0-9]{40,64} [a-f0-9]{40,64} M\0vercel\.json\0$/.test(raw)
+      && /^\d+\t\d+\tvercel\.json\0$/.test(stats);
+     // The classifier parses both bounded snapshots and requires identical JSON
+     // tokens outside strings; this also proves semantic equality without writes.
+     if(soleConfig&&mutation==='SOURCE_DIRTY_VERCEL_CONFIG_WHITESPACE_ONLY')return;
+    }
    }
-  }catch{/* Diagnostic collection can never turn the authoritative failure into admission. */}
+  }catch{/* Collection failures never qualify for the narrow whitespace exception. */}
   function reject(index){if(index===codes.length)throw error;return check(codes[index],()=>reject(index+1));}
   return reject(0);
  }
