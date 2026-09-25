@@ -63,10 +63,10 @@ try{
   create:async()=>{const d=await api('/v13/deployments','POST',createRequest());return d;},
   wait:async id=>{for(let i=0;i<90;i++){const d=await api('/v13/deployments/'+id);deployment(d,id);if(['READY','ERROR','CANCELED'].includes(d.readyState))return d;await new Promise(r=>setTimeout(r,10000));}throw Error('Build timeout');},
   receipt:async id=>{
-   const logs=await events(id);assert.ok(Array.isArray(logs));const lines=logs.map(e=>e.text||e.payload?.text||'').filter(s=>s.startsWith('STAGING_BUILD_RECEIPT '));assert.equal(lines.length,1);
-   const raw=JSON.parse(lines[0].slice('STAGING_BUILD_RECEIPT '.length)),{checksum,...body}=raw;assert.equal(digest(body),checksum);
-   assert.equal(raw.candidate,CANDIDATE);assert.equal(raw.deployment,id);assert.equal(raw.project,HOSTED.project);assert.equal(raw.team,HOSTED.team);assert.equal(raw.environment,'preview');assert.equal(raw.tests.run,RELEASE_RUN);
-   assert.deepEqual(raw.database,TARGET);assert.equal(raw.schemaHash,before.schemaHash);assert.equal(raw.ledgerHash,before.ledgerHash);assert.match(raw.buildDigest,/^[a-f0-9]{64}$/);
+   const logs=await events(id);check('BUILD_RECEIPT_EVENT_ARRAY',()=>assert.ok(Array.isArray(logs)));const lines=logs.map(e=>e.text||e.payload?.text||'').filter(s=>s.startsWith('STAGING_BUILD_RECEIPT '));check('BUILD_RECEIPT_COUNT',()=>assert.equal(lines.length,1));
+   const raw=check('BUILD_RECEIPT_JSON_PARSE',()=>JSON.parse(lines[0].slice('STAGING_BUILD_RECEIPT '.length))),{checksum,...body}=raw;check('BUILD_RECEIPT_CHECKSUM',()=>assert.equal(digest(body),checksum));
+   check('BUILD_RECEIPT_CANDIDATE',()=>assert.equal(raw.candidate,CANDIDATE));check('BUILD_RECEIPT_DEPLOYMENT',()=>assert.equal(raw.deployment,id));check('BUILD_RECEIPT_PROJECT',()=>assert.equal(raw.project,HOSTED.project));check('BUILD_RECEIPT_TEAM',()=>assert.equal(raw.team,HOSTED.team));check('BUILD_RECEIPT_ENVIRONMENT',()=>assert.equal(raw.environment,'preview'));check('BUILD_RECEIPT_TEST_RUN',()=>assert.equal(raw.tests.run,RELEASE_RUN));
+   check('BUILD_RECEIPT_DATABASE_TARGET',()=>assert.deepEqual(raw.database,TARGET));check('BUILD_RECEIPT_SCHEMA_HASH',()=>assert.equal(raw.schemaHash,before.schemaHash));check('BUILD_RECEIPT_LEDGER_HASH',()=>assert.equal(raw.ledgerHash,before.ledgerHash));check('BUILD_RECEIPT_DIGEST_FORMAT',()=>assert.match(raw.buildDigest,/^[a-f0-9]{64}$/));
    return {candidate:CANDIDATE,deployment:id,buildDigest:raw.buildDigest,schemaHash:raw.schemaHash,ledgerHash:raw.ledgerHash,checksum};
   },
   qualify:async d=>{
