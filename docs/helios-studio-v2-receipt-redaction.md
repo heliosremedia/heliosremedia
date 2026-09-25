@@ -116,3 +116,34 @@ original database variables,114 tables,19 complete migrations,0 incomplete,
 2 synthetic workspaces/admins/memberships and both original example.test domains.
 No authenticated admin, mutation race or hosted Chromium success is claimed.
 Candidate remains2999055b2b59467fcfef446c33a47212e72d4712. Production ON HOLD.
+
+
+## Browser egress qualification follow-up
+
+Run36191234689 at executor9ce887a83d35b48a4dd4c5373e26681267e935e9
+passed receipt admission and progressed past public, anonymous401, admin200,
+foreign404, race200/409, acknowledgement/revision, stale409, unchanged other tenant,
+and both390/1440 browser checks for the first tenant. It failed at the zero-egress
+assertion: local Node assertion hashing reproduces the exact safe hash
+2bb21c8b210db9de6362040a824158a1552e9c5fcd6925a449e0add600ba5046
+for two blocked requests and message Unexpected browser egress blocked.
+This identifies the assertion by hash, not a retained per-check success receipt;
+both-direction hosted qualification remains incomplete.
+
+The provider toolbar is a likely source (one injected request per width), but the
+prior artifact does not identify hosts. Vercel officially documents request header
+x-vercel-skip-toolbar:1 for automated E2E tests:
+https://vercel.com/docs/vercel-toolbar/managing-toolbar#disable-toolbar-for-automation
+The executor now supplies this request-only header alongside the existing optional
+protection bypass. No Vercel settings or app code change. External requests are
+still aborted and any nonzero count still fails, now with HTTP_BROWSER_EGRESS.
+Tests verify header composition with/without bypass, same-origin continuation,
+external abort and rejection, diagnostic redaction and cleanup. No external host is
+allowlisted, no count reset and no redirect/tenant/receipt gate is weakened.
+
+Artifact10887839271 downloaded; archive SHA256 verified:
+786c57345710045a75618d7eb2ce2adb783cea03ea92a44370f30adac6fa06f5.
+All restoration phases and independent suppression succeeded; schema/ledger hashes
+unchanged. Fresh Neon read-only query confirms114 tables,19 completed migrations,
+0 incomplete,2 workspaces/admins/memberships and original example.test domains.
+Vercel UI confirms exit0. Production remains ON HOLD; Packet16 remains open.
