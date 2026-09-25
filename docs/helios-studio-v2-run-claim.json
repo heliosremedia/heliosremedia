@@ -1,12 +1,12 @@
 {
-  "status": "released",
-  "runId": "atlas-packet16-anonymous-proxy-contract",
+  "status": "active",
+  "runId": "atlas-packet16-browser-egress",
   "branch": "codex/v2-neon-staging-bootstrap",
   "head": "9ce887a83d35b48a4dd4c5373e26681267e935e9",
   "pr": 323,
-  "scope": "Correct hosted anonymous API expectation to existing proxy401; retain denial and isolation gates",
+  "scope": "Suppress provider toolbar for automated qualification; preserve zero-egress check and label failures",
   "evidence": {
-    "run": 36189494446,
+    "run": 36191234689,
     "reason": "IDENTITY_OR_CONTRACT_MISMATCH",
     "cleanup": true,
     "schemaLedgerUnchanged": true,
@@ -33,12 +33,12 @@
     "correctedHostedRun": 36182012088,
     "phase": "hosted-http-chromium",
     "buildReceiptPassed": true,
-    "pendingRun": 36191234689,
+    "pendingRun": null,
     "artifact": 10886138108,
     "protection": "Vercel Authentication enabled; automation bypass secret inventory empty",
     "ownerReportedBypassSaved": true,
     "publicRedirectCleared": true
   },
   "production": "ON HOLD",
-  "nextAction": "Owner review of protected run36191234689, then inspect hosted qualification and cleanup. Production ON HOLD."
+  "nextAction": "Test request-only toolbar suppression and unchanged egress rejection"
 }
