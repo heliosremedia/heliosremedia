@@ -6,8 +6,8 @@
   "pr": 323,
   "scope": "Add fixed request-stage labels for hosted 302 rejection; no acceptance, credential or protection changes",
   "evidence": {
-    "run": 36182012088,
-    "reason": "IDENTITY_OR_CONTRACT_MISMATCH",
+    "run": 36184876212,
+    "reason": "CHECK_HTTP_PUBLIC_STATUS",
     "cleanup": true,
     "schemaLedgerUnchanged": true,
     "exactHeadCi": [
@@ -33,8 +33,10 @@
     "correctedHostedRun": 36182012088,
     "phase": "hosted-http-chromium",
     "buildReceiptPassed": true,
-    "pendingRun": 36184876212
+    "pendingRun": null,
+    "artifact": 10886138108,
+    "protection": "Vercel Authentication enabled; automation bypass secret inventory empty"
   },
   "production": "ON HOLD",
-  "nextAction": "Owner review of protected staging run 36184876212; inspect fixed HTTP request-stage diagnostic and cleanup evidence. Production ON HOLD."
+  "nextAction": "Owner creates staging-only Vercel automation bypass secret and stores directly in protected GitHub Environment STAGING_VERCEL_BYPASS_SECRET; then dispatch same verified pair. No further retry yet. Production ON HOLD."
 }
