@@ -1,15 +1,24 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-packet16-receipt-redaction-36175397618",
   "branch": "codex/v2-neon-staging-bootstrap",
-  "head": "5a520fa58d2270a21f2a9994ccf504ae011e3c48",
+  "head": "2e6555d0cbcbe9b151461146e1097bf3af3a6080",
   "pr": 323,
   "scope": "Diagnose and correct public receipt identifier redaction; preserve checksum and all admission gates; non-production only",
   "evidence": {
     "run": 36175397618,
     "reason": "CHECK_BUILD_RECEIPT_CHECKSUM",
     "cleanup": true,
-    "schemaLedgerUnchanged": true
+    "schemaLedgerUnchanged": true,
+    "exactHeadCi": [
+      36179545084,
+      36179545113,
+      36179545128
+    ],
+    "localTestsPassed": 1533,
+    "independentVercelRestoration": true,
+    "independentNeonPostflight": "blocked: staging organization absent from authenticated browser account; SQL connector missing project_id"
   },
-  "production": "ON HOLD"
+  "production": "ON HOLD",
+  "nextAction": "Restore staging Neon account access, complete read-only postflight, then protected staging qualification. No retry dispatched."
 }
