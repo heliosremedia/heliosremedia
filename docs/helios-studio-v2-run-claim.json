@@ -1,13 +1,13 @@
 {
-  "status": "released",
-  "runId": "atlas-packet16-browser-egress",
+  "status": "active",
+  "runId": "atlas-packet16-egress-category-diagnostics",
   "branch": "codex/v2-neon-staging-bootstrap",
   "head": "81b9c2c1bc78dbe9d944f5ed893d7063e3126729",
   "pr": 323,
-  "scope": "Suppress provider toolbar for automated qualification; preserve zero-egress check and label failures",
+  "scope": "Classify blocked browser requests using fixed non-secret resource and destination categories; keep no-egress gate",
   "evidence": {
-    "run": 36191234689,
-    "reason": "IDENTITY_OR_CONTRACT_MISMATCH",
+    "run": 36192851157,
+    "reason": "CHECK_HTTP_BROWSER_EGRESS",
     "cleanup": true,
     "schemaLedgerUnchanged": true,
     "exactHeadCi": [
@@ -33,12 +33,12 @@
     "correctedHostedRun": 36182012088,
     "phase": "hosted-http-chromium",
     "buildReceiptPassed": true,
-    "pendingRun": 36192851157,
+    "pendingRun": null,
     "artifact": 10886138108,
     "protection": "Vercel Authentication enabled; automation bypass secret inventory empty",
     "ownerReportedBypassSaved": true,
     "publicRedirectCleared": true
   },
   "production": "ON HOLD",
-  "nextAction": "Owner review of protected run36192851157, inspect complete both-direction qualification and cleanup. Toolbar cause remains hypothesis until verified. Production ON HOLD."
+  "nextAction": "Implement and verify bounded egress diagnostics; no unverified source correction"
 }
