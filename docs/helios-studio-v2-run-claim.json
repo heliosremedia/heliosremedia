@@ -2,8 +2,8 @@
   "status": "active",
   "runId": "atlas-packet23-webhook-stored-ownership",
   "branch": "codex/v2-webhook-stored-ownership",
-  "head": "303e924c413f4371fae6c03bc63759dfb469f941",
-  "pr": null,
+  "head": "8b09af8b7e32a8cb8ca947d33b1d509af11d000e",
+  "pr": 330,
   "scope": "Align webhook and permanent bounce attribution with existing stored campaign ownership policy",
   "evidence": {
     "run": 36217912507,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Verify Packet22 CI/artifact while testing creator-transfer, unowned-event and diagnostic ownership correction",
+  "nextAction": "Finish Packet22 regression then integrate329; inspect Packet23 exact-head runtime/regression and downloaded evidence before integration",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -146,6 +146,32 @@
       }
     ],
     "localTargetedTests": 20,
+    "typescript": true,
+    "scopedLint": true,
+    "runtime": "success",
+    "artifact": 10910530482,
+    "artifactSha256": "eb6e0f2117e95a6b66a487437ceccb8897dbcdff341a1960c3d5f3bc52d2e355",
+    "independentlyDownloaded": true
+  },
+  "packet23": {
+    "head": "8b09af8b7e32a8cb8ca947d33b1d509af11d000e",
+    "pr": 330,
+    "tree": "8518c5200484fb99add9819a9244178bfd775bf9",
+    "runs": [
+      {
+        "id": 36255404288,
+        "name": "V2 regression",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 36255404188,
+        "name": "V2 isolated runtime request isolation",
+        "status": "in_progress",
+        "conclusion": null
+      }
+    ],
+    "localTargetedTests": 27,
     "typescript": true,
     "scopedLint": true
   }
