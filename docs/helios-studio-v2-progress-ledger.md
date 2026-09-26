@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## September 26, 2026: Packet 19 qualified; Packet 20 portfolio HTTP isolation
+
+PR #326 passed runtime36250083538 and regression36250083399 at69254f1d8cb9dd343429c0aab89fac564cd4d3cb, then merged into the non-production base at012e5343fdbca843aeb1f3f63aa14691523ff04e. Downloaded artifact10908419107 archive SHA256923ea475e56d78c6fe1e2f03184507c6baeb2e88db3aa330de0646f388dc50d9 independently verified; candidate and both-tenant assertions inspected. Real Next build/start with local PrismaPg passed alternating/concurrent host reads, actual writes/readback, foreign/stale rejection, current membership/session-version rejection and postflight. Hosted/CDN/router-cache proof is not claimed.
+
+Packet 20 extends this isolated runtime harness to [portfolio publication and preview boundaries](helios-studio-v2-runtime-portfolio-isolation.md), including actual preview creation/revocation, foreign-host token rejection, expiry and absence of rejected usage writes. No application or schema change. Exact-head CI/artifact qualification pending. Phase 1 remains open; production ON HOLD.
+
 ## September 26, 2026: Packet 18 closed; Packet 19 actual runtime qualification
 
 PR #325 passed regression36248414205 atc8a6836524076d3dcd246215dfe7d8aadf457d7f, then merged only into the non-production development base ata948ac3f1bf1b7642a4a0f1fecf87ab8f85f8a72. Packet 19 adds a branch-only disposable PostgreSQL/Next build-and-start qualification, exercising real Host headers, tenant writes and post-write reads, current membership and session-version revocation. No test authentication endpoint is installed.

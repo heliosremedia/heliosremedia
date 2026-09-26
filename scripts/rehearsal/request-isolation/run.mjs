@@ -8,6 +8,7 @@ import { createServer } from 'node:net';
 import { build } from 'esbuild';
 import { DATABASE, requireDatabase, requireOrigin } from './safety.mjs';
 import { qualify } from './http.mjs';
+import { qualifyPortfolio } from './portfolio.mjs';
 
 const root = process.cwd();
 const prepareOnly = process.argv[2] === '--prepare-only';
@@ -79,16 +80,19 @@ try {
       child.stdout.on('data', ready); child.once('error', error => { clearTimeout(timer); reject(error); });
       child.once('exit', code => { clearTimeout(timer); reject(new Error(`Next exited ${code}`)); });
     });
-    const result = await qualify(requireOrigin(`http://127.0.0.1:${port}`), driver);
+    const origin = requireOrigin(`http://127.0.0.1:${port}`);
+    const result = await qualify(origin, driver);
+    const portfolio = await qualifyPortfolio(origin, driver);
     assert.equal(await driver.schemaFingerprint(), schemaBefore);
     assert.equal(await driver.prisma.workspace.count(), 2);
     assert.equal(await driver.prisma.workspaceMembership.count({ where: { status: 'ACTIVE' } }), 2);
     assert.equal(await driver.prisma.adminUser.count({ where: { sessionVersion: 1 } }), 2);
     await mkdir('release-evidence', { recursive: true });
     await writeFile('release-evidence/request-isolation.json', JSON.stringify({ version: 1, candidate: head, runtime: 'Next build/start with PrismaPg',
-      target: 'disposable-local-postgresql', sourceSubstitutions: ['PrismaNeon to PrismaPg', 'offline font variables'], result,
+      target: 'disposable-local-postgresql', sourceSubstitutions: ['PrismaNeon to PrismaPg', 'offline font variables'], result, portfolio,
       schemaColumnsUnchanged: true, syntheticAccessRestored: true, hosted: false, deployable: false }, null, 2) + '\n');
     console.log('PASS actual Next production-mode HTTP: alternating/concurrent tenants, post-write reads, foreign/stale write rejection, membership/session revocation and schema/access postflight');
+    console.log('PASS both-direction portfolio published/draft/preview isolation, actual preview creation/revocation, expiry and rejected usage-write containment');
   }
 } catch (error) { console.error(logs); throw error; }
 finally {
