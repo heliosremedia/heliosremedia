@@ -1,13 +1,13 @@
 {
-  "status": "active",
+  "status": "released",
   "runId": "atlas-packet16-egress-result-investigation",
   "branch": "codex/v2-neon-staging-bootstrap",
   "head": "77dfe4104ad0756c1c0aedf87f78a3ece666a609",
   "pr": 323,
-  "scope": "Inspect approved run36196628613 and safely resolve bounded findings after independent restoration",
+  "scope": "Vercel live script egress identified; disable toolbar only for staging pre-production deployments",
   "evidence": {
-    "run": 36192851157,
-    "reason": "CHECK_HTTP_BROWSER_EGRESS",
+    "run": 36196628613,
+    "reason": "CHECK_HTTP_EGRESS_VERCEL_LIVE__HTTP_EGRESS_SCRIPT__HTTP_BROWSER_EGRESS",
     "cleanup": true,
     "schemaLedgerUnchanged": true,
     "exactHeadCi": [
@@ -32,13 +32,21 @@
     },
     "phase": "hosted-http-chromium",
     "buildReceiptPassed": true,
-    "pendingRun": 36196628613,
-    "artifact": 10890165807,
+    "pendingRun": 36217912507,
+    "artifact": 10898003071,
     "protection": "Vercel Authentication enabled; owner-configured automation bypass clears public redirect",
     "ownerReportedBypassSaved": true,
     "publicRedirectCleared": true,
-    "exactHeadCiStatus": "all-success"
+    "exactHeadCiStatus": "all-success",
+    "artifactSha256": "8e70c12a9700aa86e2a36da0de9bdb0b925d80497b5901b5fe95fa1c8ac6092b",
+    "toolbar": {
+      "project": "prj_PUv0ADGxYl5QjRYaMv2h8Km1UmMg",
+      "preProduction": "off",
+      "previous": "default",
+      "productionSetting": "unchanged",
+      "verifiedAfterNavigation": true
+    }
   },
   "production": "ON HOLD",
-  "nextAction": "Await completion and inspect fixed egress categories"
+  "nextAction": "Owner Environment review for36217912507; inspect zero-egress and both-direction qualification, then independent cleanup and Neon postflight"
 }
