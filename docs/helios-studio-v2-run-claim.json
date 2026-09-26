@@ -1,13 +1,13 @@
 {
   "status": "active",
-  "runId": "atlas-packet16-toolbar-off-verification",
-  "branch": "codex/v2-neon-staging-bootstrap",
-  "head": "77dfe4104ad0756c1c0aedf87f78a3ece666a609",
-  "pr": 323,
-  "scope": "Vercel live script egress identified; disable toolbar only for staging pre-production deployments",
+  "runId": "atlas-packet17-phase-exit-reconciliation",
+  "branch": "codex/v2-phase-exit-reconciliation",
+  "head": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7",
+  "pr": null,
+  "scope": "Packet 17: reconcile Phase 1/2 exit evidence and shared-job convergence gaps",
   "evidence": {
-    "run": 36196628613,
-    "reason": "CHECK_HTTP_EGRESS_VERCEL_LIVE__HTTP_EGRESS_SCRIPT__HTTP_BROWSER_EGRESS",
+    "run": 36217912507,
+    "reason": null,
     "cleanup": true,
     "schemaLedgerUnchanged": true,
     "exactHeadCi": [
@@ -30,23 +30,25 @@
         "packet16-b.example.test"
       ]
     },
-    "phase": "hosted-http-chromium",
+    "phase": "complete",
     "buildReceiptPassed": true,
-    "pendingRun": 36217912507,
-    "artifact": 10898003071,
+    "pendingRun": null,
+    "artifact": 10907013060,
     "protection": "Vercel Authentication enabled; owner-configured automation bypass clears public redirect",
     "ownerReportedBypassSaved": true,
     "publicRedirectCleared": true,
     "exactHeadCiStatus": "all-success",
-    "artifactSha256": "8e70c12a9700aa86e2a36da0de9bdb0b925d80497b5901b5fe95fa1c8ac6092b",
+    "artifactSha256": "a97ea9cc5b4b1453fe22cd9b0085803085f97e5405d0a1d46dcbd5bbf5c30437",
     "toolbar": {
       "project": "prj_PUv0ADGxYl5QjRYaMv2h8Km1UmMg",
       "preProduction": "off",
       "previous": "default",
       "productionSetting": "unchanged",
       "verifiedAfterNavigation": true
-    }
+    },
+    "hostedQualification": true,
+    "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Inspect approved run36217912507 and independently verify all exit evidence"
+  "nextAction": "Record qualified Packet16 and grounded Phase1/2 evidence matrix"
 }
