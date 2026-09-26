@@ -25,8 +25,9 @@ export async function qualifyWebhook(origin, driver) {
       'communicationClient', 'communicationSuppression', 'marketingEmailPreference', 'marketingEmailPreferenceEvent'];
     return Promise.all(tables.map(table => db[table].findMany({ orderBy: { id: 'asc' } })));
   };
-  const signed = async (host, message, type = 'email.delivered', eventId = randomUUID(), valid = true) => {
-    const body = { type, data: { email_id: message, to: ['foreign@example.test'], tags: { campaign_id: 'webhook-email-b' } } };
+  const signed = async (host, message, type = 'email.delivered', eventId = randomUUID(), valid = true, recipient = 'foreign@example.test') => {
+    const body = { type, data: { email_id: message, to: [recipient], tags: { campaign_id: 'webhook-email-b' },
+      ...(type === 'email.bounced' ? { bounce: { type: 'Permanent' } } : {}) } };
     const timestamp = String(Math.floor(Date.now() / 1000));
     const signature = createHmac('sha256', Buffer.from(WEBHOOK_KEY, 'base64')).update(`${eventId}.${timestamp}.${JSON.stringify(body)}`).digest('base64');
     const response = await http(origin, `${host}.example.test`, '/api/webhooks/resend', { method: 'POST', body,
@@ -64,13 +65,42 @@ export async function qualifyWebhook(origin, driver) {
     const message = `unique-${id}-${family}`;
     if (family === 'email') await db.campaignRecipient.update({ where: { id: `webhook-recipient-${id}` }, data: { providerMessageId: message } });
     else await db.referralCommunication.update({ where: { id: `webhook-communication-${id}` }, data: { providerMessageId: message } });
-    const response = await signed(id === 'a' ? 'b' : 'a', message);
+    const other = id === 'a' ? 'b' : 'a';
+    await db.adminUser.update({ where: { id: `u${id}` }, data: { workspaceId: other } });
+    try {
+    const response = await signed(other, message);
     assert.equal(response.status, 200); assert.equal(JSON.parse(response.text).matched, true);
     assert.equal((await db.resendWebhookEvent.findUniqueOrThrow({ where: { providerEventId: response.eventId } })).workspaceId, id);
     const beforeReplay = await snapshot();
     const replay = await signed(id, message, 'email.delivered', response.eventId);
     assert.equal(replay.status, 200); assert.equal(JSON.parse(replay.text).duplicate, true); assert.deepEqual(await snapshot(), beforeReplay);
-    results.push({ tenant: id, family, uniqueProcessed: true, duplicateNoEffect: true });
+    if (family === 'email') {
+      const bounced = await signed(other, message, 'email.bounced', randomUUID(), true, `${id}@example.test`);
+      assert.equal(bounced.status, 200);
+      assert.equal((await db.resendWebhookEvent.findUniqueOrThrow({ where: { providerEventId: bounced.eventId } })).workspaceId, id);
+      const group = await db.communicationGroup.findUniqueOrThrow({ where: { systemKey: `BOUNCED_BACK:${id}` } });
+      assert.equal(await db.communicationGroupMembership.count({ where: { groupId: group.id, clientId: `webhook-client-${id}` } }), 1);
+      assert.equal(await db.auditEvent.count({ where: { workspaceId: id, action: 'CLIENT_PERMANENT_BOUNCE_RECORDED', entityId: `webhook-client-${id}` } }), 1);
+    }
+    results.push({ tenant: id, family, uniqueProcessed: true, duplicateNoEffect: true, creatorTransferIgnored: true,
+      ...(family === 'email' ? { bounceGroupAndAuditOwned: true } : {}) });
+    } finally { await db.adminUser.update({ where: { id: `u${id}` }, data: { workspaceId: id } }); }
+    const campaign = family === 'email' ? db.emailCampaign : db.referralCampaign;
+    const campaignId = family === 'email' ? `webhook-email-${id}` : `webhook-referral-${id}`;
+    await campaign.update({ where: { id: campaignId }, data: { workspaceId: null } });
+    let rejected;
+    try {
+      const before = await snapshot();
+      rejected = await signed(id, message);
+      assert.equal(rejected.status, 503); assert.deepEqual(await snapshot(), before);
+      const event = await db.resendWebhookEvent.findUniqueOrThrow({ where: { providerEventId: rejected.eventId } });
+      assert.equal(event.processingStatus, 'FAILED_RETRYABLE'); assert.equal(event.workspaceId, null);
+    } finally { await campaign.update({ where: { id: campaignId }, data: { workspaceId: id } }); }
+    assert.equal((await signed(id, message, 'email.delivered', rejected.eventId)).status, 200);
+    assert.equal((await db.resendWebhookEvent.findUniqueOrThrow({ where: { providerEventId: rejected.eventId } })).workspaceId, id);
+    results.push({ tenant: id, family, unownedRejected: 503, resolvedOwnerRetry: 200 });
   }
+  const unknown = await signed('a', 'no-local-message'); assert.equal(unknown.status, 200);
+  assert.equal((await db.resendWebhookEvent.findUniqueOrThrow({ where: { providerEventId: unknown.eventId } })).workspaceId, null);
   return { invalidSignature: 401, cases: results, providerCalls: false };
 }

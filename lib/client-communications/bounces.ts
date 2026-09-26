@@ -1,4 +1,5 @@
 import "server-only";
+import { resolveCampaignWorkspace } from "./campaign-ownership";
 
 import { recordAuditEvent } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
@@ -92,7 +93,7 @@ export async function processPermanentBounce(providerEventId: string, event: Res
         id: true,
         clientId: true,
         email: true,
-        campaign: { select: { createdBy: { select: { workspaceId: true } } } },
+        campaign: { select: { workspaceId: true } },
       },
       take: 2,
     });
@@ -115,7 +116,7 @@ export async function processPermanentBounce(providerEventId: string, event: Res
       });
       return { status: "rejected" as const };
     }
-    const workspaceId = recipient.campaign.createdBy.workspaceId;
+    const workspaceId = await resolveCampaignWorkspace(recipient.campaign.workspaceId);
     const newer = await prisma.resendWebhookEvent.findFirst({
       where: {
         campaignRecipientId: recipient.id,
@@ -169,6 +170,7 @@ export async function processPermanentBounce(providerEventId: string, event: Res
       }),
     ]);
     await recordAuditEvent({
+      workspaceId,
       action: "CLIENT_PERMANENT_BOUNCE_RECORDED",
       entityType: "CommunicationClient",
       entityId: recipient.clientId,
