@@ -1,10 +1,10 @@
 {
   "status": "active",
-  "runId": "atlas-packet21-resume-and-webhook-review",
-  "branch": "codex/v2-preview-write-fencing",
-  "head": "e7743adc25f08b1c08d0a26927250d7b7fbe906a",
-  "pr": 328,
-  "scope": "Fix reproduced preview mutation stale-session race with transactional membership fencing",
+  "runId": "atlas-packet22-webhook-message-isolation",
+  "branch": "codex/v2-webhook-message-isolation",
+  "head": "59850041da91ca8e8e79a3f496b5c9abd4feed7a",
+  "pr": null,
+  "scope": "Signed webhook message identity ambiguity containment",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Integrate independently verified Packet21 then inspect webhook ownership boundary",
+  "nextAction": "Reproduce cross-family and multiple-referral message-ID ambiguity then reject before domain mutation",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -124,6 +124,7 @@
     "artifact": 10909416670,
     "artifactSha256": "c8ff0d2e09f8be022fb69412164058b36fdd0df1063a1d3e10c5ce708cccdff7",
     "independentlyDownloaded": true,
-    "runtimeQualified": true
+    "runtimeQualified": true,
+    "merge": "59850041da91ca8e8e79a3f496b5c9abd4feed7a"
   }
 }
