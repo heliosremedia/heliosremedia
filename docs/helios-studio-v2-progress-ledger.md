@@ -1,5 +1,12 @@
 # Helios Studio V2 progress ledger
 
+## September 26, 2026: Packet 17 closed; Packet 18 request isolation
+
+Packet 17 PR #324 passed exact-head regression run36245774505 at208d19c5ae0bc5ca894290732282cc2b3bf3cd07 and merged only into the non-production base atad732e95586db48ba7b879e5b8ef85373fd4e720.
+
+Packet 18 adds four executable regression cases across the actual public resolver/settings/session/membership module graph: alternating tenants, deliberately overlapping host resolution, fresh reads after an A-only fixture change, unknown/inactive host rejection and current membership/session-version enforcement. Request storage and database delegates are synthetic adapters. Existing application behavior passed; no application rewrite or schema change. [Evidence scope and remaining real-runtime qualification](helios-studio-v2-request-isolation.md) explicitly distinguish these tests from Next server/CDN/browser cache or hosted proof.
+
+Local targeted tests pass. TypeScript/scoped lint and exact-head CI results are recorded on the PR and run claim after verification. Phase 1 remains open; production ON HOLD.
 
 ## September 26, 2026: Packet 16 qualified; Packet 17 reconciliation
 
