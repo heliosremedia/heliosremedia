@@ -1,10 +1,10 @@
 {
   "status": "active",
-  "runId": "atlas-packet20-runtime-portfolio-isolation",
-  "branch": "codex/v2-runtime-portfolio-isolation",
-  "head": "012e5343fdbca843aeb1f3f63aa14691523ff04e",
+  "runId": "atlas-packet21-preview-write-fencing",
+  "branch": "codex/v2-preview-write-fencing",
+  "head": "752802d937dac5d89bf64772ca74c93e549f23f3",
   "pr": null,
-  "scope": "Real HTTP portfolio read, draft preview and revocation isolation",
+  "scope": "Fix reproduced preview mutation stale-session race with transactional membership fencing",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Extend proven isolated runtime harness to both-direction portfolio/preview boundaries",
+  "nextAction": "Publish locally verified fix; inspect actual PostgreSQL lock-observed runtime proof and regression CI",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -96,6 +96,20 @@
     "ci": "success",
     "artifact": 10908419107,
     "artifactSha256": "923ea475e56d78c6fe1e2f03184507c6baeb2e88db3aa330de0646f388dc50d9",
+    "independentlyDownloaded": true,
+    "runtimeQualified": true
+  },
+  "packet20": {
+    "head": "e42a2c54d3db372c403d01a227421be9e385ca86",
+    "pr": 327,
+    "merge": "752802d937dac5d89bf64772ca74c93e549f23f3",
+    "runs": [
+      36251029160,
+      36251029159
+    ],
+    "ci": "success",
+    "artifact": 10909805079,
+    "artifactSha256": "d6ccdf80bc19a9092d3d72245e883d8522a105c6d91d0d17662016f8bad29dc5",
     "independentlyDownloaded": true,
     "runtimeQualified": true
   }
