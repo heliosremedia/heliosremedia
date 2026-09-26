@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## September 26, 2026: Packet 18 closed; Packet 19 actual runtime qualification
+
+PR #325 passed regression36248414205 atc8a6836524076d3dcd246215dfe7d8aadf457d7f, then merged only into the non-production development base ata948ac3f1bf1b7642a4a0f1fecf87ab8f85f8a72. Packet 19 adds a branch-only disposable PostgreSQL/Next build-and-start qualification, exercising real Host headers, tenant writes and post-write reads, current membership and session-version revocation. No test authentication endpoint is installed.
+
+[Runtime qualification scope](helios-studio-v2-runtime-request-isolation.md) records the fixed empty-database gate, synthetic environment, temporary PrismaPg/offline-font substitutions, required assertions and evidence limitations. Local source preparation and three safety/transport tests pass. Exact-head CI and artifact inspection remain required before claiming this runtime qualification passed. Phase 1 remains open; production ON HOLD.
+
 ## September 26, 2026: Packet 17 closed; Packet 18 request isolation
 
 Packet 17 PR #324 passed exact-head regression run36245774505 at208d19c5ae0bc5ca894290732282cc2b3bf3cd07 and merged only into the non-production base atad732e95586db48ba7b879e5b8ef85373fd4e720.
