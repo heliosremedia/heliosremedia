@@ -1,5 +1,5 @@
 {
-  "status": "active",
+  "status": "checkpointed",
   "runId": "atlas-packet23-webhook-stored-ownership",
   "branch": "codex/v2-webhook-stored-ownership",
   "head": "8b09af8b7e32a8cb8ca947d33b1d509af11d000e",
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Finish Packet23 regression; integrate reviewed stored-ownership correction after success. Runtime artifact verified.",
+  "nextAction": "Continue Phase1 webhook negative-path qualification: signed payload shape, failed/replayed event handling and concurrent message/owner reassignment. Preserve existing global suppression policy; no production/provider activation.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -179,6 +179,9 @@
     "runtime": "success",
     "artifact": 10910387014,
     "artifactSha256": "9cbcbc0415330e7c7bd921b8cc831b1a41180d61548b33ef20e9551402596dfd",
-    "independentlyDownloaded": true
+    "independentlyDownloaded": true,
+    "ci": "success",
+    "merge": "acd33aad5df34c28d8d03a187353f7df8b2509cb",
+    "runtimeQualified": true
   }
 }
