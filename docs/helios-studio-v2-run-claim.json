@@ -1,9 +1,9 @@
 {
   "status": "active",
-  "runId": "atlas-packet21-preview-write-fencing",
+  "runId": "atlas-packet21-resume-and-webhook-review",
   "branch": "codex/v2-preview-write-fencing",
-  "head": "752802d937dac5d89bf64772ca74c93e549f23f3",
-  "pr": null,
+  "head": "e7743adc25f08b1c08d0a26927250d7b7fbe906a",
+  "pr": 328,
   "scope": "Fix reproduced preview mutation stale-session race with transactional membership fencing",
   "evidence": {
     "run": 36217912507,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Publish locally verified fix; inspect actual PostgreSQL lock-observed runtime proof and regression CI",
+  "nextAction": "Integrate independently verified Packet21 then inspect webhook ownership boundary",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -110,6 +110,19 @@
     "ci": "success",
     "artifact": 10909805079,
     "artifactSha256": "d6ccdf80bc19a9092d3d72245e883d8522a105c6d91d0d17662016f8bad29dc5",
+    "independentlyDownloaded": true,
+    "runtimeQualified": true
+  },
+  "packet21": {
+    "head": "e7743adc25f08b1c08d0a26927250d7b7fbe906a",
+    "pr": 328,
+    "ci": "success",
+    "runs": [
+      36252096449,
+      36252096432
+    ],
+    "artifact": 10909416670,
+    "artifactSha256": "c8ff0d2e09f8be022fb69412164058b36fdd0df1063a1d3e10c5ce708cccdff7",
     "independentlyDownloaded": true,
     "runtimeQualified": true
   }
