@@ -1,9 +1,9 @@
 {
-  "status": "active",
+  "status": "checkpointed",
   "runId": "atlas-packet18-request-isolation",
   "branch": "codex/v2-request-isolation",
-  "head": "ad732e95586db48ba7b879e5b8ef85373fd4e720",
-  "pr": null,
+  "head": "c8a6836524076d3dcd246215dfe7d8aadf457d7f",
+  "pr": 325,
   "scope": "Packet18 actual reader/session isolation with synthetic request/database adapters",
   "evidence": {
     "run": 36217912507,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Implement deterministic concurrent request and membership revocation regression coverage",
+  "nextAction": "Verify exact-head regression CI for PR325; then extend to actual Next server and isolated synthetic database request-boundary qualification.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -64,5 +64,24 @@
     "documentationOnly": true,
     "nextScope": "Actual reader/runtime alternating-host isolation; homepage force-dynamic and direct settings resolver observed; no cache refactor presumed",
     "merge": "ad732e95586db48ba7b879e5b8ef85373fd4e720"
+  },
+  "packet18": {
+    "head": "c8a6836524076d3dcd246215dfe7d8aadf457d7f",
+    "pr": 325,
+    "tree": "4069303bf666dfe821d03d20fb627833f819c3e8",
+    "targetedTestsPassed": 4,
+    "typescript": true,
+    "scopedLint": true,
+    "whitespace": true,
+    "ci": [
+      {
+        "id": 36248414205,
+        "name": "V2 regression",
+        "status": "in_progress",
+        "conclusion": null
+      }
+    ],
+    "evidenceBoundary": "Actual application module graph; synthetic request storage and database delegates. No Next server/CDN/browser cache qualification.",
+    "applicationChanged": false
   }
 }
