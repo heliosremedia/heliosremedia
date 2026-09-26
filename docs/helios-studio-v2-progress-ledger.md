@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## September 26, 2026: Packet 23 stored webhook ownership
+
+Packet 22 runtime36255047101 passed at303e924c413f4371fae6c03bc63759dfb469f941. Artifact10910530482 downloaded; SHA256eb6e0f2117e95a6b66a487437ceccb8897dbcdff341a1960c3d5f3bc52d2e355 independently verified. All ten signed-webhook case summaries and schema/access postflight inspected. Regression36255047029 is tracked on PR #329; no Packet 22 merge claim is made by this preparation entry.
+
+Packet 23 reproduces creator-transfer attribution, unowned-message admission and unmatched-tag attribution defects. The handler and permanent-bounce processor now use existing stored campaign ownership policy; unmatched diagnostics do not acquire ownership through tags; bounce audit attribution is explicit. Twenty-seven targeted tests, TypeScript/scoped lint/whitespace pass. [Policy, compatibility and remaining boundaries](helios-studio-v2-webhook-stored-ownership.md). Real Next/PostgreSQL creator-transfer, bounce and retry evidence is required from exact-head CI. No schema, credential, global consent-policy or production change. Phase 1 remains open.
+
 ## September 26, 2026: Packet 21 qualified; Packet 22 signed webhook ambiguity
 
 Packet 21 PR #328 passed exact-head regression36252096449 and runtime36252096432 ate7743adc25f08b1c08d0a26927250d7b7fbe906a. Downloaded artifact10909416670 SHA256c8ff0d2e09f8be022fb69412164058b36fdd0df1063a1d3e10c5ce708cccdff7 independently verified. Both tenant POST/DELETE membership-race cases rejected403 without preview/audit mutation; prior runtime checks and schema/access postflight passed. Non-production merge59850041da91ca8e8e79a3f496b5c9abd4feed7a.

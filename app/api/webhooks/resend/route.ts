@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { setMarketingPreference } from "@/lib/client-communications/preferences";
+import { resolveCampaignWorkspace } from "@/lib/client-communications/campaign-ownership";
 import { processPermanentBounce } from "@/lib/client-communications/bounces";
 import {
   diagnosticEmails,
@@ -44,20 +45,6 @@ type ResendEvent = {
     bounce?: { type?: string; subtype?: string; message?: string };
   };
 };
-
-function diagnosticCampaignId(tags: unknown) {
-  if (Array.isArray(tags)) {
-    const tag = tags.find((item) => item && typeof item === "object" &&
-      "name" in item && item.name === "campaign_id" && "value" in item);
-    return tag && typeof tag === "object" && "value" in tag && typeof tag.value === "string"
-      ? tag.value : null;
-  }
-  if (tags && typeof tags === "object" && "campaign_id" in tags) {
-    const value = (tags as { campaign_id?: unknown }).campaign_id;
-    return typeof value === "string" ? value : null;
-  }
-  return null;
-}
 
 function safeReject(reason: string, request: Request) {
   console.warn("Resend webhook rejected", {
@@ -124,7 +111,7 @@ export async function POST(request: Request) {
         id: true,
         clientId: true,
         email: true,
-        campaign: { select: { createdBy: { select: { workspaceId: true } } } },
+        campaign: { select: { workspaceId: true } },
       },
     }) : [];
     const referralMatches = providerMessageId
@@ -136,7 +123,7 @@ export async function POST(request: Request) {
           invitationId: true,
           campaignId: true,
           submissionId: true,
-          campaign: { select: { createdBy: { select: { workspaceId: true } } } },
+          campaign: { select: { workspaceId: true } },
         },
       })
       : [];
@@ -159,6 +146,7 @@ export async function POST(request: Request) {
     }
     const referralCommunication = referralMatches[0];
     if (referralCommunication) {
+      const workspaceId = await resolveCampaignWorkspace(referralCommunication.campaign.workspaceId);
       const referralStatus = {
         SENT: "SENT",
         DELIVERED: "DELIVERED",
@@ -194,7 +182,7 @@ export async function POST(request: Request) {
         prisma.resendWebhookEvent.update({
           where: { providerEventId },
           data: {
-            workspaceId: referralCommunication.campaign.createdBy.workspaceId,
+            workspaceId,
             processingStatus: "PROCESSED",
             processedAt: new Date(),
           },
@@ -204,16 +192,11 @@ export async function POST(request: Request) {
     }
     if (matches.length !== 1) {
       const diagnosticEmail = diagnosticEmails(event.data?.to)[0] || null;
-      const campaignId = diagnosticCampaignId(event.data?.tags);
-      const diagnosticCampaign = campaignId ? await prisma.emailCampaign.findUnique({
-        where: { id: campaignId },
-        select: { createdBy: { select: { workspaceId: true } } },
-      }) : null;
       await prisma.resendWebhookEvent.update({
         where: { providerEventId },
         data: {
           normalizedEmail: diagnosticEmail,
-          workspaceId: diagnosticCampaign?.createdBy.workspaceId,
+          workspaceId: null,
           processingStatus: providerMessageId
             ? matches.length ? "UNMATCHED_AMBIGUOUS_MESSAGE_ID" : "UNMATCHED_MESSAGE_ID"
             : "UNMATCHED_MISSING_MESSAGE_ID",
@@ -225,6 +208,7 @@ export async function POST(request: Request) {
     }
 
     const recipient = matches[0];
+    const workspaceId = await resolveCampaignWorkspace(recipient.campaign.workspaceId);
     await prisma.$transaction([
       prisma.campaignDeliveryEvent.upsert({
         where: { providerEventId },
@@ -245,7 +229,7 @@ export async function POST(request: Request) {
       prisma.resendWebhookEvent.update({
         where: { providerEventId },
         data: {
-          workspaceId: recipient.campaign.createdBy.workspaceId,
+          workspaceId,
           clientId: recipient.clientId,
           campaignRecipientId: recipient.id,
           normalizedEmail: recipient.email.trim().toLowerCase(),
