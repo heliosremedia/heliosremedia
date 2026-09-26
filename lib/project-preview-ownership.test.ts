@@ -25,17 +25,18 @@ test("preview creation and revocation require editor access and the project comp
       assert.equal(projectId, "target"); assert.equal(workspaceId, "a"); return own ? [{ id: projectId }] : [];
     },
     project: { findFirst: async ({ where }: { where: { workspaceId: string } }) => { assert.equal(where.workspaceId, "a"); return { slug: "listing", title: "Listing" }; } },
-    projectPreviewLink: { create: async ({ data }: { data: { tokenHash: string } }) => { assert.equal(data.tokenHash, "hash"); created++; return { id: "preview" }; } },
+    projectPreviewLink: { create: async ({ data }: { data: { tokenHash: string } }) => { assert.equal(data.tokenHash, "hash"); created++; return { id: "preview" }; },
+      updateMany: async ({ where }: { where: { project: { workspaceId: string }; projectId: string } }) => {
+        assert.equal(where.project.workspaceId, "a"); assert.equal(where.projectId, "target"); return { count: own ? 1 : 0 };
+      } },
   };
   const api = load<Record<"POST" | "DELETE", (request: Request, context: { params: Promise<{ projectId: string }> }) => Promise<Response>>>("../app/api/admin/projects/[projectId]/previews/route.ts", {
     "next/cache": { revalidatePath() {} }, "next/server": { NextResponse: Response },
     "@/lib/auth/session": { getAdminSession: async () => ({ role, workspaceId: "a", userId: "actor", email: "actor@example.test" }) },
     "@/lib/audit": { recordAuditEvent: async () => { audits++; } },
+    "@/lib/workspace-write-access": { requireLockedWorkspaceEditor: async () => {} },
     "@/lib/prisma": { prisma: {
       $transaction: (fn: (client: typeof tx) => Promise<unknown>) => fn(tx),
-      projectPreviewLink: { updateMany: async ({ where }: { where: { project: { workspaceId: string }; projectId: string } }) => {
-        assert.equal(where.project.workspaceId, "a"); assert.equal(where.projectId, "target"); return { count: own ? 1 : 0 };
-      } },
     } },
     "@/lib/project-preview": { createPreviewToken: () => "secret-token", hashPreviewToken: () => "hash" },
     "@/lib/project-preview-url": { getWorkspacePreviewUrl: async (workspaceId: string, path: string) => { assert.equal(workspaceId, "a"); return `https://a.example.test${path}`; } },

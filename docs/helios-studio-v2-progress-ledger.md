@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## September 26, 2026: Packet 20 qualified; Packet 21 preview write fencing
+
+PR #327 passed runtime36251029160 and regression36251029159 ate42a2c54d3db372c403d01a227421be9e385ca86. Downloaded artifact10909805079 SHA256d6ccdf80bc19a9092d3d72245e883d8522a105c6d91d0d17662016f8bad29dc5 independently matched; candidate, both-tenant portfolio/preview results and prior postflight inspected. Merged only into development base at752802d937dac5d89bf64772ca74c93e549f23f3.
+
+Packet 21 corrects a reproduced stale-session preview creation race by applying the existing locked current-membership helper inside both preview mutation transactions. Six negative cases plus existing ownership tests pass locally (11 total); TypeScript/scoped lint/whitespace pass. [Fix and evidence boundary](helios-studio-v2-preview-write-fencing.md) describes the additional real PostgreSQL lock-observed HTTP test required before qualification. No schema/token/provider changes. Phase 1 stays open; production ON HOLD.
+
 ## September 26, 2026: Packet 19 qualified; Packet 20 portfolio HTTP isolation
 
 PR #326 passed runtime36250083538 and regression36250083399 at69254f1d8cb9dd343429c0aab89fac564cd4d3cb, then merged into the non-production base at012e5343fdbca843aeb1f3f63aa14691523ff04e. Downloaded artifact10908419107 archive SHA256923ea475e56d78c6fe1e2f03184507c6baeb2e88db3aa330de0646f388dc50d9 independently verified; candidate and both-tenant assertions inspected. Real Next build/start with local PrismaPg passed alternating/concurrent host reads, actual writes/readback, foreign/stale rejection, current membership/session-version rejection and postflight. Hosted/CDN/router-cache proof is not claimed.
