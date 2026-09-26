@@ -1,7 +1,7 @@
 name: V2 isolated runtime request isolation
 on:
   push:
-    branches: ['codex/v2-runtime-request-isolation']
+    branches: ['codex/v2-runtime-request-isolation', 'codex/v2-runtime-portfolio-isolation']
 permissions:
   contents: read
 concurrency:
