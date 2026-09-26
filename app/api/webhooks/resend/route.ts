@@ -127,9 +127,10 @@ export async function POST(request: Request) {
         campaign: { select: { createdBy: { select: { workspaceId: true } } } },
       },
     }) : [];
-    const referralCommunication = matches.length === 0 && providerMessageId
-      ? await prisma.referralCommunication.findFirst({
+    const referralMatches = providerMessageId
+      ? await prisma.referralCommunication.findMany({
         where: { providerMessageId },
+        take: 2,
         select: {
           id: true,
           invitationId: true,
@@ -138,7 +139,25 @@ export async function POST(request: Request) {
           campaign: { select: { createdBy: { select: { workspaceId: true } } } },
         },
       })
-      : null;
+      : [];
+    // A verified signature authenticates the event, not a choice between local
+    // records. Require one message relationship across both delivery families.
+    if (matches.length + referralMatches.length > 1) {
+      await prisma.resendWebhookEvent.update({
+        where: { providerEventId },
+        data: {
+          workspaceId: null,
+          clientId: null,
+          campaignRecipientId: null,
+          normalizedEmail: null,
+          processingStatus: "UNMATCHED_AMBIGUOUS_MESSAGE_ID",
+          reason: "Multiple local delivery records share this provider message ID; reconciliation is required.",
+          processedAt: new Date(),
+        },
+      });
+      return NextResponse.json({ success: true, matched: false });
+    }
+    const referralCommunication = referralMatches[0];
     if (referralCommunication) {
       const referralStatus = {
         SENT: "SENT",

@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## September 26, 2026: Packet 21 qualified; Packet 22 signed webhook ambiguity
+
+Packet 21 PR #328 passed exact-head regression36252096449 and runtime36252096432 ate7743adc25f08b1c08d0a26927250d7b7fbe906a. Downloaded artifact10909416670 SHA256c8ff0d2e09f8be022fb69412164058b36fdd0df1063a1d3e10c5ce708cccdff7 independently verified. Both tenant POST/DELETE membership-race cases rejected403 without preview/audit mutation; prior runtime checks and schema/access postflight passed. Non-production merge59850041da91ca8e8e79a3f496b5c9abd4feed7a.
+
+Packet 22 reproduces and corrects signed webhook message-ID ambiguity across email/referral families and multiple referral records. Twenty targeted tests pass; TypeScript/scoped lint/whitespace pass. The disposable Next/PostgreSQL harness adds signed HTTP and unchanged-domain/consent evidence; exact-head CI and artifact inspection remain required. [Scope and unresolved ownership/consent boundaries](helios-studio-v2-webhook-message-isolation.md). No live provider, credential, schema or production changes. Phase 1 remains open.
+
 ## September 26, 2026: Packet 20 qualified; Packet 21 preview write fencing
 
 PR #327 passed runtime36251029160 and regression36251029159 ate42a2c54d3db372c403d01a227421be9e385ca86. Downloaded artifact10909805079 SHA256d6ccdf80bc19a9092d3d72245e883d8522a105c6d91d0d17662016f8bad29dc5 independently matched; candidate, both-tenant portfolio/preview results and prior postflight inspected. Merged only into development base at752802d937dac5d89bf64772ca74c93e549f23f3.

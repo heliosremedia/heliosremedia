@@ -10,6 +10,7 @@ import { DATABASE, requireDatabase, requireOrigin } from './safety.mjs';
 import { qualify } from './http.mjs';
 import { qualifyPortfolio } from './portfolio.mjs';
 import { qualifyPreviewFencing } from './preview-fencing.mjs';
+import { qualifyWebhook, WEBHOOK_KEY } from './webhook.mjs';
 
 const root = process.cwd();
 const prepareOnly = process.argv[2] === '--prepare-only';
@@ -25,7 +26,8 @@ const env = { PATH: process.env.PATH, HOME: process.env.HOME, TMPDIR: process.en
   NEXT_TELEMETRY_DISABLED: '1', DATABASE_URL: DATABASE, DIRECT_URL: DATABASE, PACKET19_DATABASE_URL: DATABASE,
   AUTH_SECRET: 'packet19-synthetic-isolated-session-secret-only', STUDIO_V2_TENANT_CONTEXT_ENABLED: 'true',
   R2_ACCOUNT_ID: 'synthetic', R2_ACCESS_KEY_ID: 'synthetic', R2_SECRET_ACCESS_KEY: 'synthetic', R2_BUCKET_NAME: 'synthetic',
-  R2_PUBLIC_URL: 'http://127.0.0.1:1/assets', NEXT_PUBLIC_SITE_URL: 'http://127.0.0.1', LEGACY_PUBLIC_HOSTS: 'never.example.test' };
+  R2_PUBLIC_URL: 'http://127.0.0.1:1/assets', NEXT_PUBLIC_SITE_URL: 'http://127.0.0.1', LEGACY_PUBLIC_HOSTS: 'never.example.test',
+  RESEND_WEBHOOK_SECRET: `whsec_${WEBHOOK_KEY}` };
 let child, driver, logs = '';
 async function command(executable, args, cwd = root) {
   return new Promise((resolve, reject) => {
@@ -85,6 +87,7 @@ try {
     const result = await qualify(origin, driver);
     const portfolio = await qualifyPortfolio(origin, driver);
     const previewFencing = await qualifyPreviewFencing(origin, driver);
+    const webhook = await qualifyWebhook(origin, driver);
     assert.equal(await driver.schemaFingerprint(), schemaBefore);
     assert.equal(await driver.prisma.workspace.count(), 2);
     assert.equal(await driver.prisma.workspaceMembership.count({ where: { status: 'ACTIVE' } }), 2);
@@ -92,7 +95,7 @@ try {
     await mkdir('release-evidence', { recursive: true });
     await writeFile('release-evidence/request-isolation.json', JSON.stringify({ version: 1, candidate: head, runtime: 'Next build/start with PrismaPg',
       target: 'disposable-local-postgresql', sourceSubstitutions: ['PrismaNeon to PrismaPg', 'offline font variables'], result, portfolio, previewFencing,
-      schemaColumnsUnchanged: true, syntheticAccessRestored: true, hosted: false, deployable: false }, null, 2) + '\n');
+      webhook, schemaColumnsUnchanged: true, syntheticAccessRestored: true, hosted: false, deployable: false }, null, 2) + '\n');
     console.log('PASS actual Next production-mode HTTP: alternating/concurrent tenants, post-write reads, foreign/stale write rejection, membership/session revocation and schema/access postflight');
     console.log('PASS both-direction portfolio published/draft/preview isolation, actual preview creation/revocation, expiry and rejected usage-write containment');
     console.log('PASS actual PostgreSQL lock-observed preview create/revoke: membership revoked after initial session, both tenants reject403 without preview/audit mutation');

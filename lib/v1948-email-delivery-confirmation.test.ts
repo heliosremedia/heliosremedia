@@ -14,7 +14,7 @@ test("Resend webhook is raw-body verified, durable, idempotent, and message-id f
   assert.match(route, /status: 503/);
   assert.match(route, /email\.complained/);
   assert.match(route, /communicationSuppression\.upsert/);
-  assert.match(route, /referralCommunication\.findFirst/);
+  assert.match(route, /referralCommunication\.findMany/);
   assert.doesNotMatch(route, /console\.(?:warn|error)\([^\n]*rawBody/);
 });
 

@@ -1,7 +1,7 @@
 name: V2 isolated runtime request isolation
 on:
   push:
-    branches: ['codex/v2-runtime-request-isolation', 'codex/v2-runtime-portfolio-isolation', 'codex/v2-preview-write-fencing']
+    branches: ['codex/v2-runtime-request-isolation', 'codex/v2-runtime-portfolio-isolation', 'codex/v2-preview-write-fencing', 'codex/v2-webhook-message-isolation']
 permissions:
   contents: read
 concurrency:
