@@ -1,5 +1,112 @@
 # Helios Studio V2 progress ledger
 
+## September 26, 2026: Packet 23 stored webhook ownership
+
+Packet 22 runtime36255047101 passed at303e924c413f4371fae6c03bc63759dfb469f941. Artifact10910530482 downloaded; SHA256eb6e0f2117e95a6b66a487437ceccb8897dbcdff341a1960c3d5f3bc52d2e355 independently verified. All ten signed-webhook case summaries and schema/access postflight inspected. Regression36255047029 is tracked on PR #329; no Packet 22 merge claim is made by this preparation entry.
+
+Packet 23 reproduces creator-transfer attribution, unowned-message admission and unmatched-tag attribution defects. The handler and permanent-bounce processor now use existing stored campaign ownership policy; unmatched diagnostics do not acquire ownership through tags; bounce audit attribution is explicit. Twenty-seven targeted tests, TypeScript/scoped lint/whitespace pass. [Policy, compatibility and remaining boundaries](helios-studio-v2-webhook-stored-ownership.md). Real Next/PostgreSQL creator-transfer, bounce and retry evidence is required from exact-head CI. No schema, credential, global consent-policy or production change. Phase 1 remains open.
+
+## September 26, 2026: Packet 21 qualified; Packet 22 signed webhook ambiguity
+
+Packet 21 PR #328 passed exact-head regression36252096449 and runtime36252096432 ate7743adc25f08b1c08d0a26927250d7b7fbe906a. Downloaded artifact10909416670 SHA256c8ff0d2e09f8be022fb69412164058b36fdd0df1063a1d3e10c5ce708cccdff7 independently verified. Both tenant POST/DELETE membership-race cases rejected403 without preview/audit mutation; prior runtime checks and schema/access postflight passed. Non-production merge59850041da91ca8e8e79a3f496b5c9abd4feed7a.
+
+Packet 22 reproduces and corrects signed webhook message-ID ambiguity across email/referral families and multiple referral records. Twenty targeted tests pass; TypeScript/scoped lint/whitespace pass. The disposable Next/PostgreSQL harness adds signed HTTP and unchanged-domain/consent evidence; exact-head CI and artifact inspection remain required. [Scope and unresolved ownership/consent boundaries](helios-studio-v2-webhook-message-isolation.md). No live provider, credential, schema or production changes. Phase 1 remains open.
+
+## September 26, 2026: Packet 20 qualified; Packet 21 preview write fencing
+
+PR #327 passed runtime36251029160 and regression36251029159 ate42a2c54d3db372c403d01a227421be9e385ca86. Downloaded artifact10909805079 SHA256d6ccdf80bc19a9092d3d72245e883d8522a105c6d91d0d17662016f8bad29dc5 independently matched; candidate, both-tenant portfolio/preview results and prior postflight inspected. Merged only into development base at752802d937dac5d89bf64772ca74c93e549f23f3.
+
+Packet 21 corrects a reproduced stale-session preview creation race by applying the existing locked current-membership helper inside both preview mutation transactions. Six negative cases plus existing ownership tests pass locally (11 total); TypeScript/scoped lint/whitespace pass. [Fix and evidence boundary](helios-studio-v2-preview-write-fencing.md) describes the additional real PostgreSQL lock-observed HTTP test required before qualification. No schema/token/provider changes. Phase 1 stays open; production ON HOLD.
+
+## September 26, 2026: Packet 19 qualified; Packet 20 portfolio HTTP isolation
+
+PR #326 passed runtime36250083538 and regression36250083399 at69254f1d8cb9dd343429c0aab89fac564cd4d3cb, then merged into the non-production base at012e5343fdbca843aeb1f3f63aa14691523ff04e. Downloaded artifact10908419107 archive SHA256923ea475e56d78c6fe1e2f03184507c6baeb2e88db3aa330de0646f388dc50d9 independently verified; candidate and both-tenant assertions inspected. Real Next build/start with local PrismaPg passed alternating/concurrent host reads, actual writes/readback, foreign/stale rejection, current membership/session-version rejection and postflight. Hosted/CDN/router-cache proof is not claimed.
+
+Packet 20 extends this isolated runtime harness to [portfolio publication and preview boundaries](helios-studio-v2-runtime-portfolio-isolation.md), including actual preview creation/revocation, foreign-host token rejection, expiry and absence of rejected usage writes. No application or schema change. Exact-head CI/artifact qualification pending. Phase 1 remains open; production ON HOLD.
+
+## September 26, 2026: Packet 18 closed; Packet 19 actual runtime qualification
+
+PR #325 passed regression36248414205 atc8a6836524076d3dcd246215dfe7d8aadf457d7f, then merged only into the non-production development base ata948ac3f1bf1b7642a4a0f1fecf87ab8f85f8a72. Packet 19 adds a branch-only disposable PostgreSQL/Next build-and-start qualification, exercising real Host headers, tenant writes and post-write reads, current membership and session-version revocation. No test authentication endpoint is installed.
+
+[Runtime qualification scope](helios-studio-v2-runtime-request-isolation.md) records the fixed empty-database gate, synthetic environment, temporary PrismaPg/offline-font substitutions, required assertions and evidence limitations. Local source preparation and three safety/transport tests pass. Exact-head CI and artifact inspection remain required before claiming this runtime qualification passed. Phase 1 remains open; production ON HOLD.
+
+## September 26, 2026: Packet 17 closed; Packet 18 request isolation
+
+Packet 17 PR #324 passed exact-head regression run36245774505 at208d19c5ae0bc5ca894290732282cc2b3bf3cd07 and merged only into the non-production base atad732e95586db48ba7b879e5b8ef85373fd4e720.
+
+Packet 18 adds four executable regression cases across the actual public resolver/settings/session/membership module graph: alternating tenants, deliberately overlapping host resolution, fresh reads after an A-only fixture change, unknown/inactive host rejection and current membership/session-version enforcement. Request storage and database delegates are synthetic adapters. Existing application behavior passed; no application rewrite or schema change. [Evidence scope and remaining real-runtime qualification](helios-studio-v2-request-isolation.md) explicitly distinguish these tests from Next server/CDN/browser cache or hosted proof.
+
+Local targeted tests pass. TypeScript/scoped lint and exact-head CI results are recorded on the PR and run claim after verification. Phase 1 remains open; production ON HOLD.
+
+## September 26, 2026: Packet 16 qualified; Packet 17 reconciliation
+
+Protected run [36217912507](https://github.com/heliosremedia/heliosremedia/actions/runs/36217912507), attempt 1, PASSED at executor `77dfe4104ad0756c1c0aedf87f78a3ece666a609` and candidate `2999055b2b59467fcfef446c33a47212e72d4712`. Downloaded artifact 10907013060 checksum independently verified. Both synthetic tenants passed hosted HTTP/Chromium at 390/1440, foreign-write isolation and conflict handling, with zero external requests. Cleanup/restoration and unchanged schema/ledger passed. Independent authenticated Vercel readback confirmed exit 0 and only original database project variables; fresh Neon READ ONLY postflight confirmed 114 tables, 19 completed migrations, zero incomplete and restored two-tenant fixture baseline.
+
+PR #323 merged only into `codex/v2-hosted-access-owner-action`, merge `e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7`. Bounded Packet 16 exit is satisfied. [Immutable evidence and limitations](helios-studio-v2-packet16-qualified.md) supersede historical OPEN hosted checkpoints below. Hosted rollback, all-route coverage, external-provider parity and production readiness are not claimed.
+
+Packet 17 on `codex/v2-phase-exit-reconciliation` records a [Phase 1/2 evidence matrix and worker inventory](helios-studio-v2-phase-exit-reconciliation.md). It is documentation-only: existing newsletter leases, social claim fencing, analytics cancellation/health chronology and publishing review-only uncertainty are preserved. Next bounded implementation is executable cache/request-boundary isolation evidence, with corrections only for observed defects. Exact-head documentation CI is recorded on its PR and canonical run claim after publication.
+
+Phase 0 essentially complete; Phase 1 still in final qualification; Phase 2 partial groundwork; Phases 3–7 ahead. No phase exit or completion percentage invented. Production ON HOLD; no main merge, production deployment/migration, provider migration or external-customer onboarding.
+
+## Packet16 preflight diagnostics only (September21,2026)
+
+Workflow-only registration is complete at main b6fb99e9a5ffe5b30c6d7b538cb79861e4fa6199. Approved run35563010507 attempt1, executor51f6ad1a4bde4cc54620e32214eb7f95b6f694a5 and candidate dbfb19909d3fe0bb91d81a478210373340f86e86, passed76 targeted tests then failed before admission with IDENTITY_OR_CONTRACT_MISMATCH. Retained artifact10621934940 has no admitted phases and no deployment. The exact failing assertion is unknown. This supersedes earlier “not registered/executed” preparation notes, not the verified Neon baseline.
+
+Diagnostics-only correction adds static per-check and metadata-stage reasons, matched:false and error hash. No provider bodies, URLs, credentials or observed values are retained. Existing gates, argument evaluation and effect order are preserved; executable AST equality checks compare against the reviewed executor.187 added diagnostic cases include every code, secret redaction, original errors, actual policy/preflight failures and zero provider mutation before admission. Full regression/isolated build/contract CI must pass at the published head; exact SHA and runs are recorded on PR323 and the canonical claim. See protected-hosted-executor document for the diagnostic contract and evidence limitations.
+
+No live dispatch, registration change, Vercel/Neon mutation, application candidate change, merge or production action in this correction. Hosted HTTP/Chromium, deployment provenance, postflight/restoration and rollback remain unverified. Packet16 OPEN; no Packet17. Next action is review of the diagnostic executor, followed only by a separately authorized protected staging execution.
+
+## Packet16 protected hosted Actions executor preparation (September21,2026)
+
+Manual Vercel UI qualification is superseded by a protected manual Actions executor. Application source remains pinned to dbfb19909d3fe0bb91d81a478210373340f86e86; new executor/diagnostics source has a separate review SHA. Existing candidate1041/1041 tests and workflows35556635809/35556635811/35556635812 are verified baseline, not new hosted evidence.
+
+New workflow validates Environment protection, exact staging project/team/Git candidate, authenticated Neon identity, current schema/ledger and existing synthetic footprint; creates only one Preview; validates native build receipt; performs signed-session HTTP/concurrency and Chromium qualification; restores staging suppression, synthetic hostname mappings and run-owned temporary configuration. No migrations or production endpoint. Safe phase/reason/hash diagnostics replace raw errors. See helios-studio-v2-protected-hosted-executor.md for exact pending mutations, secret names, API path, pinned-source diagnostic limitation and cleanup failure recovery.
+
+Prepared only, not registered or dispatched. Both project suppression settings remain untouched. Final executor CI pending; exact results recorded on #323 and canonical claim. Owner approval required before first live execution. Packet16 remains OPEN; no Packet17.
+
+## Packet16 staging-only hosted admission implementation (September21,2026)
+
+Real Neon tenant baseline verified at6e9544067b73909dcd68e2859c9345976172918f, run35553978752: two synthetic tenants,1001 passing tests, both-direction read/write isolation, concurrent200+409 and stale409, unchanged schema/19-entry ledger, no unexpected rows. This supersedes earlier pending tenant observations.
+
+New bounded admission implementation remains under verification. Exact staging project/team/Preview/source/branch, authenticated Vercel/GitHub/Neon metadata, read-only schema/ledger preflight/postflight, immutable migration identity and generated-client check gate Next build. Receipt binds native Next output digest but remains non-promotable pending actual hosted provenance/HTTP checks. Runner-only normal signed-session cookies and provider-owned preview hostname plans add no auth endpoint or database mutation. See docs/helios-studio-v2-staging-hosted-admission.md for configuration names, review gates and exact one-shot condition template.
+
+Both Vercel projects remain suppressed and unchanged. No live database writes, environment changes, deployment, merge or Packet17. Final exact-head CI evidence will be recorded on #323 and canonical run claim.
+
+## Packet 16 continuation: protected tenant qualification (September 21, 2026)
+
+Database baseline is now VERIFIED at candidate `513f5eb94c963c2d33929604f56cc5f7107de483`, manual run35549161614 attempt2: real Neon bootstrap/postflight and repeated migration no-op passed,994/994 tests. Independent authenticated readback: PostgreSQL16.15,114 public tables,19 completed migration rows,zero workspaces. This supersedes the historical blocked observations below. Bootstrap receipt artifact10617918204 was retained by CI; its archive contents were not independently downloaded here.
+
+Authenticated Vercel browser sign-in now succeeds. Staging project ID `prj_PUv0ADGxYl5QjRYaMv2h8Km1UmMg` is visible under Helios Real Estate Media. Domain inventory shows only `helios-v2-staging.vercel.app`, with No Deployment. Build suppression remains `exit 0` (UI labels this “Don’t build anything”). No setting changed. This is authenticated UI evidence, not immutable deployment/API/upload provenance. Production was not opened or modified.
+
+New draft-only tenant executor uses a separate manual workflow, existing protected environment and exact Neon target policy. It performs no migration or deployment. It requires current-baseline classification, fresh candidate-bound tests/source evidence, explicit seed confirmation and unchanged catalog/ledger after qualification. Atomic seed creates exactly two synthetic workspaces, passwordless owner identities/memberships, scoped settings, published synthetic projects/homepage placements and reserved `.example.test` public mappings. Unknown/non-fixture data blocks without repair. Repeat execution validates identities and footprint before using existing fixtures.
+
+Qualification bundles actual session verification, public host resolution, settings readers, curation snapshot and homepage PATCH route with generated Prisma/PrismaPg. Only Next request context/cache/navigation and Prisma construction are adapted. It tests both tenant directions, foreign404, parallel200+409, stale409, authoritative revision readback, unknown-host rejection, anonymous403 and unchanged other-tenant placement. No provider adapters are invoked. This is route/service execution, not hosted HTTP/browser or the deployed PrismaNeon transport.
+
+Verification: implementation under review; fresh isolated PostgreSQL CI and final evidence pending. Existing bootstrap workflow and all application/release guards unchanged. New manual workflow is NOT yet registered on default branch or dispatched. Live tenant seed and hosted qualification remain outstanding. Registration is a separate narrowly scoped owner-reviewed action; do not merge the V2 stack. No staging build-setting approval is requested yet because hosted admission is not ready. Packet16 OPEN; no Packet17.
+
+
+
+## Packet 16: authenticated empty Neon baseline, execution blocked (September 20, 2026)
+
+**INCOMPLETE; staging remains unmodified.** Fresh #322 base `ba964b856614ce9d4279a99fb5e4c83cd0da5c3c`; main unchanged72dab345. Neon connector now authenticates project `calm-shape-83359560` / branch `br-young-math-arj7l4r3` / database `helios_v2_staging`, aws-us-west-2, PostgreSQL16.15. SQL proves zero user/public relations, absent ledger, zero public functions/types, extra schemas/extensions/event triggers. This closes the database identity/empty-observation gap only.
+
+Direct PostgreSQL endpoint DNS fails in this runtime, while connector SQL works. Actual #318 artifact generation also stops on Prisma engine download DNS (binaries.prisma.sh EAI_AGAIN). No migration/seed/build/deployment attempted, no secrets persisted, no schema/ledger changed.106 immutable SQL files/directory membership and source schema/manifest checksums pass. No fresh full suite or CI: checkpoint is documentation only, with whitespace verification. Full evidence, precise runner prerequisite and safe resume sequence: `docs/helios-studio-v2-neon-staging-bootstrap.md`.
+
+Existing #318/#319 loopback-only helpers and hosted guard are preserved. Resume this packet with an approved network-capable staging execution environment and a reviewed exact-target executor; do not bypass guards or substitute connector SQL for Prisma ledger handling. Vercel target separation remains owner-reported, provider provenance/hosted admission remains open. All bootstrap/postflight, real Neon application isolation/build, hosted browser and rollback gates remain outstanding. No next packet started. Final PR/head recorded on the canonical claim.
+
+## Packet 15: external access enablement blocked, September 19, 2026
+
+**Outcome B. No application/test/adapter changes.** Base #321 `a61bb726f8c894abf1e754f4dbf68cbc714ec36d`; main `72dab34568cb6885f3e93b5ed9db38edca156835`. Fresh authenticated discovery again sees Helios team `team_H79eaUfq9xMqcbf34ZCtwwn9` but returns no projects. Direct lookup of the known `heliosremedia` slug fails in the connector with `INVALID_ARGUMENT`: exposed `projectId` is not mapped to required `idOrName`. One retry supplying the reported field also fails. This is a connector invocation defect before provider lookup, NOT a Vercel404 or proof of permission denial.
+
+Authenticated GitHub status for pinned main reports a successful Vercel integration pointing to `https://vercel.com/helios-real-estate-media/heliosremedia/CcUjMpNxnxE9Vcdc8TMyYsQpEcCz`. It establishes historical integration linkage under the expected team/project slug, not a safe preview target or provider-authoritative deployment identity. No alternate-account or missing-project conclusion is justified. Team pagination remains unavailable through the exposed tool.
+
+No Vercel CLI, VERCEL_TOKEN, HELIOS_READONLY_VERCEL_TOKEN, NEON_API_KEY, DATABASE_URL or DIRECT_URL is present (booleans only checked). No Neon connector or project-creation tool is available. App provider is Neon via PrismaNeon, with DIRECT_URL for Prisma CLI; actual branch/DB ownership remains unknown. No safe application/DB target, authenticated deployment/DB provenance, upload correlation, live qualification/deployment/rollback is established.
+
+Account-owner action: confirm the intended non-production project and owning team in Vercel; repair/re-authorize project visibility or provide read-only API access through secure configuration to bypass the broken connector lookup; identify or separately provision an EMPTY isolated non-production Neon project/database and grant metadata plus schema/ledger read access. Do not clone production data/secrets or enable Git auto-deployment. Required non-secret handoff and verification criteria are in the Packet15 addendum to `docs/helios-studio-v2-hosted-access.md`.
+
+Documentation-only PR on #321; whitespace/diff reviewed. No new tests or full-suite rerun warranted; inherited968/968 and exact #321 CI35424094342/35424094287 remain the last code verification, not new hosted evidence. Final PR/head recorded in canonical claim. Production ON HOLD. Packet15 complete as B; live gate OPEN. No further repository implementation can grant external access. Next packet only after owner action: authenticated read-only qualification and build-upload correlation. Not started.
+
+
 ## Packet 14: hosted access inventory, September 19, 2026
 
 Outcome B: **safe hosted target NOT identified; live access gate remains OPEN**. Branch `codex/v2-hosted-access-inventory`, base #320 `codex/v2-hosted-artifact-provenance` at `1a09a9546aab41e96db0b65e22c9eb52d1b49a19`. Main unchanged72dab345. Production ON HOLD.
@@ -1082,3 +1189,28 @@ Reproduced ignored zero-count reorder/layout writes, obsolete service preparatio
 Isolated actual-route/PGlite and component checks cover completed transfers, admission changes, null/legacy ownership, stale parent receipts, upload/save/order/removal and context change. Hosted independent-connection concurrency is not claimed. Final regression and CI evidence pending. Production ON HOLD. Stop after Packet 6. Recommended next packet only: private homepage section-layout preference browser recovery inventory and executable baseline.
 
 Local final Packet 6 verification passed **835/835 tests**, Prisma generation without migration, non-incremental TypeScript, scoped lint, fixture bundling and whitespace. Existing registry identity-guard migration tests already prevent asset workspace transfer. No local or hosted browser claim is made from bundling. Fresh exact-head CI and synthetic actual-component Chromium are required before closing the packet.
+
+## Packet 16 resumed: manual staging executor, not yet live
+
+On #323, added an exact-target workflow_dispatch executor with independently checked environment owner approval/branch/no-bypass policy, authenticated Neon project/branch/endpoint/database matching, SHA and #318/#319 artifact/reference admission, actual Prisma deploy/postflight/no-op repeat and safe receipt. Existing loopback/hosted guards remain intact.26 targeted executable policy/CLI tests pass. Credential-free contract CI added; exact final evidence recorded on PR/claim. No live bootstrap claimed.
+
+GitHub status and vercel[bot] comment prove both linked projects reacted to #323 head3453f854; both reported failure. This is Git integration fan-out, not proof of production promotion. Staging deployment lookup returned404; failure reasons and provider target metadata remain unknown. No production settings changed.
+
+External execution gates: protected GitHub Environment and staging-only secrets; workflow registration on default branch (requires separately approved workflow-only change, not stack merge); authorized manual dispatch capability. Current tools cannot configure these or dispatch. Details and exact names in the staging-bootstrap runbook. Packet16 remains OPEN; no Packet17 work, application release or deployment.
+
+## Packet 16: September 25 receipt redaction correction
+
+Protected run36175397618 reached READY on candidate2999055, then failed closed
+at `CHECK_BUILD_RECEIPT_CHECKSUM`. Downloaded artifact10882409380 matched its
+GitHub archive digest and records all cleanup phases plus unchanged schema and
+ledger. Authenticated Vercel UI independently confirmed staging `exit 0` and
+only the two original database variables. The build log shows the public
+candidate SHA and project ID redacted inside the checksummed receipt.
+
+The executor now classifies only those two fixed public identities as plain
+configuration. Credentials retain their existing encrypted type. Receipt
+validation, candidate and regression-run pins, Preview targeting, cleanup and
+all admission checks remain unchanged. Local regression passed1533/1533;
+exact-head CI and independent Neon postflight remain pending. See
+`docs/helios-studio-v2-receipt-redaction.md` for reproducible evidence and limits.
+No hosted retry, phase exit, Packet17, merge or production change is claimed.

@@ -1,0 +1,46 @@
+name: V2 isolated runtime request isolation
+on:
+  push:
+    branches: ['codex/v2-runtime-request-isolation', 'codex/v2-runtime-portfolio-isolation', 'codex/v2-preview-write-fencing', 'codex/v2-webhook-message-isolation', 'codex/v2-webhook-stored-ownership']
+permissions:
+  contents: read
+concurrency:
+  group: runtime-request-isolation-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  qualification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16@sha256:f1c3376c26f2609ab9f29f71f824103fe2fcd8ee0346485cb6122a4f93df6f94
+        env:
+          POSTGRES_USER: helios_rehearsal
+          POSTGRES_PASSWORD: synthetic_only
+          POSTGRES_DB: helios_packet19
+        ports: ['55439:5432']
+        options: >-
+          --health-cmd "pg_isready -U helios_rehearsal -d helios_packet19"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PACKET19_DATABASE_URL: postgresql://helios_rehearsal:synthetic_only@127.0.0.1:55439/helios_packet19
+      DIRECT_URL: postgresql://helios_rehearsal:synthetic_only@127.0.0.1:55439/helios_packet19
+      DATABASE_URL: postgresql://helios_rehearsal:synthetic_only@127.0.0.1:55439/helios_packet19
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: ./node_modules/.bin/prisma generate
+      - name: Qualify real Next production server against disposable PostgreSQL
+        run: node scripts/rehearsal/request-isolation/run.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: request-isolation-${{ github.sha }}
+          path: release-evidence/request-isolation.json
+          if-no-files-found: error
