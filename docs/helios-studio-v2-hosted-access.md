@@ -86,3 +86,7 @@ The available tools cannot enumerate further account pages, repair the connector
 Only IDs, URLs to account settings/resources and access confirmation belong in the handoff; no credentials. The exact account-membership cause of empty listing is still UNKNOWN. The verified blockers are missing project visibility, a broken direct-lookup connector contract, and absent usable database/provider access. This packet does not claim they were repaired.
 
 Validation is documentation diff/whitespace only. No code or infrastructure changed; #321's968 passing tests and CI35424094342/35424094287 are inherited evidence. The existing negative matrix is preserved without further synthetic work. Stop here; next packet only after external access changes.
+
+## Packet 16 database-access update
+
+Authenticated Neon access is now available and the exact new staging project/branch/database and empty PostgreSQL16.15 catalog have been verified. See `helios-studio-v2-neon-staging-bootstrap.md`. This supersedes the earlier absence of a Neon connector. Direct Prisma execution remains blocked by runtime network/engine access; no bootstrap or deployment occurred. Vercel provider provenance remains unverified. Packet16 is incomplete.
