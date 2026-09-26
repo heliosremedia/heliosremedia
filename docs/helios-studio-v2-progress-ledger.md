@@ -1,5 +1,16 @@
 # Helios Studio V2 progress ledger
 
+
+## September 26, 2026: Packet 16 qualified; Packet 17 reconciliation
+
+Protected run [36217912507](https://github.com/heliosremedia/heliosremedia/actions/runs/36217912507), attempt 1, PASSED at executor `77dfe4104ad0756c1c0aedf87f78a3ece666a609` and candidate `2999055b2b59467fcfef446c33a47212e72d4712`. Downloaded artifact 10907013060 checksum independently verified. Both synthetic tenants passed hosted HTTP/Chromium at 390/1440, foreign-write isolation and conflict handling, with zero external requests. Cleanup/restoration and unchanged schema/ledger passed. Independent authenticated Vercel readback confirmed exit 0 and only original database project variables; fresh Neon READ ONLY postflight confirmed 114 tables, 19 completed migrations, zero incomplete and restored two-tenant fixture baseline.
+
+PR #323 merged only into `codex/v2-hosted-access-owner-action`, merge `e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7`. Bounded Packet 16 exit is satisfied. [Immutable evidence and limitations](helios-studio-v2-packet16-qualified.md) supersede historical OPEN hosted checkpoints below. Hosted rollback, all-route coverage, external-provider parity and production readiness are not claimed.
+
+Packet 17 on `codex/v2-phase-exit-reconciliation` records a [Phase 1/2 evidence matrix and worker inventory](helios-studio-v2-phase-exit-reconciliation.md). It is documentation-only: existing newsletter leases, social claim fencing, analytics cancellation/health chronology and publishing review-only uncertainty are preserved. Next bounded implementation is executable cache/request-boundary isolation evidence, with corrections only for observed defects. Exact-head documentation CI is recorded on its PR and canonical run claim after publication.
+
+Phase 0 essentially complete; Phase 1 still in final qualification; Phase 2 partial groundwork; Phases 3–7 ahead. No phase exit or completion percentage invented. Production ON HOLD; no main merge, production deployment/migration, provider migration or external-customer onboarding.
+
 ## Packet16 preflight diagnostics only (September21,2026)
 
 Workflow-only registration is complete at main b6fb99e9a5ffe5b30c6d7b538cb79861e4fa6199. Approved run35563010507 attempt1, executor51f6ad1a4bde4cc54620e32214eb7f95b6f694a5 and candidate dbfb19909d3fe0bb91d81a478210373340f86e86, passed76 targeted tests then failed before admission with IDENTITY_OR_CONTRACT_MISMATCH. Retained artifact10621934940 has no admitted phases and no deployment. The exact failing assertion is unknown. This supersedes earlier “not registered/executed” preparation notes, not the verified Neon baseline.
