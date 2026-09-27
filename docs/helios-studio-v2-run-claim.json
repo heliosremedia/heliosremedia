@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Finish Packet 24 regression and merge; inspect Packet 25 exact-head CI/artifact before non-production merge",
+  "nextAction": "Inspect Packet 25 exact-head CI and downloaded runtime evidence before non-production merge",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -195,21 +195,25 @@
       {
         "id": 36292707458,
         "name": "V2 isolated runtime request isolation",
-        "status": "in_progress",
-        "conclusion": null
+        "head": "42bcde4b2624e14c6f5b3c49f1f9a5807a894934",
+        "status": "completed",
+        "conclusion": "success"
       },
       {
         "id": 36292707468,
         "name": "V2 regression",
-        "status": "in_progress",
-        "conclusion": null
+        "head": "42bcde4b2624e14c6f5b3c49f1f9a5807a894934",
+        "status": "completed",
+        "conclusion": "success"
       }
     ],
     "runtime": "success",
     "artifact": 10922607227,
     "artifactSha256": "367dc3d01e0dc453a23e640d9f9a4582515e85e3bcd6ddc41f45176bf41b1599",
     "independentlyDownloaded": true,
-    "runtimeQualified": true
+    "runtimeQualified": true,
+    "merge": "6da5683b12a93c36cac6619de3b2765b567c997e",
+    "ci": "success"
   },
   "packet25": {
     "head": "ca9921ae7eaa1f85cfe4110f4fba85a35758d6dc",
