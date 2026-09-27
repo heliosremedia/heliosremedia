@@ -9,7 +9,7 @@ import * as core from './resend-webhook-core.ts';
 function fixture(emailOwners: Array<string | null>, referralOwners: Array<string | null>, options: { creator?: string; tenantMode?: boolean; workspaces?: string[] } = {}) {
   const key = Buffer.from('synthetic-webhook-signing-key-only');
   const events = new Map<string, Record<string, unknown>>();
-  const effects: string[] = []; const lookups: string[] = [];
+  const effects: string[] = []; const lookups: string[] = []; const failureWrites: string[] = [];
   const emails = emailOwners.map((workspaceId, n) => ({ id: `recipient-${n}`, clientId: `client-${n}`, email: `${workspaceId}@example.test`, campaign: { workspaceId, createdBy: { workspaceId: options.creator ?? workspaceId } } }));
   const referrals = referralOwners.map((workspaceId, n) => ({ id: `referral-${n}`, invitationId: `invitation-${n}`, campaignId: `campaign-${n}`, submissionId: null, campaign: { workspaceId, createdBy: { workspaceId: options.creator ?? workspaceId } } }));
   const matching = <T>(family: string, rows: T[], where: { providerMessageId: string }, take = 2) => {
@@ -20,9 +20,9 @@ function fixture(emailOwners: Array<string | null>, referralOwners: Array<string
     workspace: { findMany: async () => (options.workspaces ?? ['a', 'b']).map(id => ({ id })) },
     resendWebhookEvent: {
       findUnique: async ({ where }: { where: { providerEventId: string } }) => { lookups.push('event'); return events.get(where.providerEventId) ?? null; },
-      create: async ({ data }: { data: Record<string, unknown> & { providerEventId: string } }) => { events.set(data.providerEventId, { ...data }); return data; },
+      create: async ({ data }: { data: Record<string, unknown> & { providerEventId: string } }) => { if (events.has(data.providerEventId)) throw Object.assign(new Error('unique event'), { code: 'P2002' }); events.set(data.providerEventId, { ...data }); return data; },
       update: async ({ where, data }: { where: { providerEventId: string }; data: Record<string, unknown> }) => { Object.assign(events.get(where.providerEventId)!, data); return {}; },
-      updateMany: async ({ where, data }: { where: { providerEventId: string }; data: Record<string, unknown> }) => { Object.assign(events.get(where.providerEventId)!, data); return { count: 1 }; },
+      updateMany: async ({ where, data }: { where: { providerEventId: string }; data: Record<string, unknown> }) => { failureWrites.push(where.providerEventId); Object.assign(events.get(where.providerEventId)!, data); return { count: 1 }; },
     },
     campaignRecipient: { findMany: async ({ where, take }: { where: { providerMessageId: string }; take: number }) => matching('email', emails, where, take) },
     referralCommunication: {
@@ -63,7 +63,7 @@ function fixture(emailOwners: Array<string | null>, referralOwners: Array<string
     const body = JSON.stringify({ type: options.type ?? 'email.delivered', data: { email_id: options.message === null ? undefined : options.message ?? 'known-message', to: ['foreign@example.test'], tags: { campaign_id: 'foreign-campaign' } } });
     return sendRaw(body, options);
   }
-  return { send, sendRaw, events, effects, lookups };
+  return { send, sendRaw, events, effects, lookups, failureWrites };
 }
 
 for (const [label, emails, referrals] of [
@@ -198,4 +198,26 @@ test('an unchanged failed event identity can still retry', async () => {
   assert.equal((await f.send({ message: ' known-message ' })).status, 200);
   assert.equal(f.events.get('event-1')?.processingStatus, 'PROCESSED');
   assert.deepEqual(f.effects, ['delivery']);
+});
+
+
+test('a concurrent first-insert loser cannot mark the winning event failed', async () => {
+  for (const owner of ['a', 'b']) {
+    const f = fixture([owner], []);
+    const responses = await Promise.all([f.send(), f.send()]);
+    assert.deepEqual(responses.map(r => r.status).sort(), [200, 503]);
+    assert.deepEqual(f.failureWrites, []);
+    assert.deepEqual(f.effects, ['delivery']);
+    assert.equal(f.events.get('event-1')?.processingStatus, 'PROCESSED');
+    assert.equal((await (await f.send()).json()).duplicate, true);
+    assert.deepEqual(f.effects, ['delivery']);
+  }
+});
+
+test('an admitted processing failure remains retryable', async () => {
+  const f = fixture([null], []);
+  assert.equal((await f.send()).status, 503);
+  assert.deepEqual(f.failureWrites, ['event-1']);
+  assert.equal(f.events.get('event-1')?.processingStatus, 'FAILED_RETRYABLE');
+  assert.deepEqual(f.effects, []);
 });

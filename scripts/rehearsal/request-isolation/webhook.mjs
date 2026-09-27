@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHmac, randomUUID } from 'node:crypto';
+import { setTimeout as delay } from 'node:timers/promises';
 import { http } from './http.mjs';
 
 export const WEBHOOK_KEY = Buffer.from('packet22-synthetic-webhook-signing-only').toString('base64');
@@ -132,7 +133,56 @@ export async function qualifyWebhook(origin, driver) {
     assert.equal((await db.resendWebhookEvent.findUniqueOrThrow({ where: { providerEventId: rejected.eventId } })).workspaceId, id);
     results.push({ tenant: id, family, unownedRejected: 503, changedRetryIdentity: 409, resolvedOwnerRetry: 200 });
   }
+  const concurrentAdmission = [];
+  const waitForBlocked = async (pid, count) => {
+    const deadline = Date.now() + 8000;
+    while (Date.now() < deadline) {
+      const rows = await db.$queryRaw`SELECT pid FROM pg_stat_activity WHERE datname=current_database() AND ${pid} = ANY(pg_blocking_pids(pid))`;
+      if (rows.length >= count) return;
+      await delay(25);
+    }
+    assert.fail(`Expected ${count} actual HTTP queries blocked by the held PostgreSQL lock`);
+  };
+  for (const id of ['a', 'b']) {
+    const eventId = randomUUID(); const message = `unique-${id}-referral`;
+    const before = await snapshot(); const auditCount = await db.referralAuditEvent.count();
+    let pending = [];
+    try {
+      await db.$transaction(async processingLock => {
+        await processingLock.$queryRaw`SELECT id FROM "ReferralCommunication" WHERE id=${`webhook-communication-${id}`} FOR UPDATE`;
+        const [{ pid: processingPid }] = await processingLock.$queryRaw`SELECT pg_backend_pid() AS pid`;
+        await db.$transaction(async admissionLock => {
+          // Both handlers must read the absent event before their inserts proceed.
+          await admissionLock.$executeRaw`LOCK TABLE "ResendWebhookEvent" IN SHARE MODE`;
+          const [{ pid }] = await admissionLock.$queryRaw`SELECT pg_backend_pid() AS pid`;
+          pending = [signed(id, message, 'email.delivered', eventId), signed(id, message, 'email.delivered', eventId)]
+            .map(request => request.then(response => ({ response }), error => ({ error })));
+          await waitForBlocked(pid, 2);
+        }, { timeout: 15000 });
+        // Hold the winner's domain write so the losing insert cannot be hidden by
+        // a later successful settlement overwriting its erroneous failure state.
+        await waitForBlocked(processingPid, 1);
+        const loser = await Promise.race(pending);
+        if (loser.error) throw loser.error;
+        assert.equal(loser.response.status, 503);
+        const active = await db.resendWebhookEvent.findUniqueOrThrow({ where: { providerEventId: eventId } });
+        assert.equal(active.processingStatus, 'PROCESSING');
+        assert.deepEqual(await snapshot(), before);
+      }, { timeout: 30000 });
+      const outcomes = await Promise.all(pending);
+      for (const outcome of outcomes) if (outcome.error) throw outcome.error;
+      assert.deepEqual(outcomes.map(outcome => outcome.response.status).sort(), [200, 503]);
+      assert.equal((await db.resendWebhookEvent.findUniqueOrThrow({ where: { providerEventId: eventId } })).processingStatus, 'PROCESSED');
+      assert.equal(await db.referralAuditEvent.count(), auditCount + 1);
+      const settled = await snapshot();
+      const replay = await signed(id, message, 'email.delivered', eventId);
+      assert.equal(replay.status, 200); assert.equal(JSON.parse(replay.text).duplicate, true);
+      assert.deepEqual(await snapshot(), settled);
+      concurrentAdmission.push({ tenant: id, twoInsertsBlocked: true, winnerProcessingBlocked: true,
+        loserStatus: 503, activeEventPreserved: true, winnerStatus: 200, oneDomainAudit: true, replayNoEffect: true });
+    } finally { await Promise.all(pending); }
+  }
   const unknown = await signed('a', 'no-local-message'); assert.equal(unknown.status, 200);
   assert.equal((await db.resendWebhookEvent.findUniqueOrThrow({ where: { providerEventId: unknown.eventId } })).workspaceId, null);
-  return { invalidSignature: 401, payloadBoundary, cases: results, providerCalls: false };
+  return { invalidSignature: 401, payloadBoundary, concurrentAdmission, cases: results, providerCalls: false };
 }
