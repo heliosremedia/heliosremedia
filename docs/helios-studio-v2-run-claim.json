@@ -353,6 +353,29 @@
     "pr": 336,
     "localTargetedTests": 26,
     "typescript": true,
-    "scopedLint": true
+    "scopedLint": true,
+    "runs": [
+      {
+        "id": 36353460450,
+        "name": "V2 regression",
+        "status": "in_progress",
+        "conclusion": null,
+        "head": "56a3e9fb4f56807681ae72f6101fbb457a0241c9"
+      },
+      {
+        "id": 36353460475,
+        "name": "V2 isolated runtime request isolation",
+        "status": "in_progress",
+        "conclusion": null,
+        "head": "56a3e9fb4f56807681ae72f6101fbb457a0241c9"
+      }
+    ],
+    "runtime": "success",
+    "artifact": 10942918520,
+    "artifactSha256": "4ed6243f1db1bb09decdf577403ac2e9c5e5933347ab177a7c2063c24ccc86e2",
+    "independentlyDownloaded": true,
+    "runtimeQualified": true,
+    "schemaColumnsUnchanged": true,
+    "syntheticAccessRestored": true
   }
 }
