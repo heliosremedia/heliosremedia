@@ -1,10 +1,10 @@
 {
   "status": "active",
-  "runId": "atlas-packet24-webhook-payload-boundary",
-  "branch": "codex/v2-webhook-payload-boundary",
-  "head": "42bcde4b2624e14c6f5b3c49f1f9a5807a894934",
-  "pr": 331,
-  "scope": "Validate signed webhook payloads before database access; exclude inherited event-name keys",
+  "runId": "atlas-packet25-webhook-retry-identity",
+  "branch": "codex/v2-webhook-retry-identity",
+  "head": "ca9921ae7eaa1f85cfe4110f4fba85a35758d6dc",
+  "pr": 332,
+  "scope": "Reject changed webhook message/event identity before retry or duplicate acknowledgement",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Inspect exact-head regression and runtime evidence, then merge Packet 24 only into non-production base",
+  "nextAction": "Finish Packet 24 regression and merge; inspect Packet 25 exact-head CI/artifact before non-production merge",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -204,6 +204,33 @@
         "status": "in_progress",
         "conclusion": null
       }
-    ]
+    ],
+    "runtime": "success",
+    "artifact": 10922607227,
+    "artifactSha256": "367dc3d01e0dc453a23e640d9f9a4582515e85e3bcd6ddc41f45176bf41b1599",
+    "independentlyDownloaded": true,
+    "runtimeQualified": true
+  },
+  "packet25": {
+    "head": "ca9921ae7eaa1f85cfe4110f4fba85a35758d6dc",
+    "pr": 332,
+    "tree": "19e32d5c7d7e9ba78a0b8714e0ae0422afc6459b",
+    "runs": [
+      {
+        "id": 36293034370,
+        "name": "V2 regression",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 36293034410,
+        "name": "V2 isolated runtime request isolation",
+        "status": "in_progress",
+        "conclusion": null
+      }
+    ],
+    "localTargetedTests": 24,
+    "typescript": true,
+    "scopedLint": true
   }
 }
