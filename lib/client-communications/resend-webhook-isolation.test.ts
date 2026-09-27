@@ -19,10 +19,15 @@ function fixture(emailOwners: Array<string | null>, referralOwners: Array<string
   const prisma = {
     workspace: { findMany: async () => (options.workspaces ?? ['a', 'b']).map(id => ({ id })) },
     resendWebhookEvent: {
-      findUnique: async ({ where }: { where: { providerEventId: string } }) => { lookups.push('event'); return events.get(where.providerEventId) ?? null; },
+      findUnique: async ({ where }: { where: { providerEventId: string } }) => { lookups.push('event'); const row = events.get(where.providerEventId); return row ? { ...row } : null; },
       create: async ({ data }: { data: Record<string, unknown> & { providerEventId: string } }) => { if (events.has(data.providerEventId)) throw Object.assign(new Error('unique event'), { code: 'P2002' }); events.set(data.providerEventId, { ...data }); return data; },
       update: async ({ where, data }: { where: { providerEventId: string }; data: Record<string, unknown> }) => { Object.assign(events.get(where.providerEventId)!, data); return {}; },
-      updateMany: async ({ where, data }: { where: { providerEventId: string }; data: Record<string, unknown> }) => { failureWrites.push(where.providerEventId); Object.assign(events.get(where.providerEventId)!, data); return { count: 1 }; },
+      updateMany: async ({ where, data }: { where: { providerEventId: string } & Record<string, unknown>; data: Record<string, unknown> }) => {
+        const row = events.get(where.providerEventId);
+        if (!row || Object.entries(where).some(([key, value]) => row[key] !== value)) return { count: 0 };
+        if (data.processingStatus === 'FAILED_RETRYABLE') failureWrites.push(where.providerEventId);
+        Object.assign(row, data); return { count: 1 };
+      },
     },
     campaignRecipient: { findMany: async ({ where, take }: { where: { providerMessageId: string }; take: number }) => matching('email', emails, where, take) },
     referralCommunication: {
@@ -220,4 +225,18 @@ test('an admitted processing failure remains retryable', async () => {
   assert.deepEqual(f.failureWrites, ['event-1']);
   assert.equal(f.events.get('event-1')?.processingStatus, 'FAILED_RETRYABLE');
   assert.deepEqual(f.effects, []);
+});
+
+
+test('concurrent failed-event retries admit only one processor', async () => {
+  for (const owner of ['a', 'b']) for (const family of ['email', 'referral']) {
+    const f = fixture(family === 'email' ? [owner] : [], family === 'referral' ? [owner] : []);
+    f.events.set('event-1', { providerEventId: 'event-1', providerMessageId: 'known-message', eventType: 'email.delivered', processingStatus: 'FAILED_RETRYABLE' });
+    const responses = await Promise.all([f.send(), f.send()]);
+    assert.deepEqual(responses.map(r => r.status).sort(), [200, 503]);
+    assert.deepEqual(f.failureWrites, []);
+    assert.deepEqual(f.effects, family === 'email' ? ['delivery'] : ['referral', 'invitation', 'referral-audit']);
+    assert.equal(f.events.get('event-1')?.processingStatus, 'PROCESSED');
+    assert.equal((await (await f.send()).json()).duplicate, true);
+  }
 });

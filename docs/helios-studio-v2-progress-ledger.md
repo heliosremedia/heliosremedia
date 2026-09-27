@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## September 27, 2026: Packet 26 independently reconfirmed; Packet 27 retry admission
+
+Live development basea1cfe6e0267382b2106cdebd44033baa7530e024 matches merged PR #333. Exact-head3846b3fce71349d203c56ffce7ef4d101ad3df73 workflows36293636315 and36293636494 independently reconfirmed SUCCESS. The automation checkpoint records1594 passing regression tests, Chromium, downloaded artifact10923232780 SHA25621dcd8bd72e9a7f50e2a12396dbd9440868100337ecf20c7169137804a371499 and both-tenant lock-observed first-admission proof. Historical preparation entries below remain unchanged.
+
+Packet 27 reproduces two successful concurrent admissions of an existing FAILED_RETRYABLE event, then makes retry admission conditional on unchanged event/message identity and failed status. [Scope and remaining recovery boundaries](helios-studio-v2-webhook-retry-admission.md). Twenty-seven targeted tests, TypeScript/scoped lint/syntax/whitespace pass. Actual HTTP/PostgreSQL retry overlap qualification is required from exact-head CI and downloaded evidence. No schema, provider, credential or production change. Phase 1 remains open.
+
 ## September 27, 2026: Packets 24–25 qualified; Packet 26 admission failure
 
 Packet 24 PR #331 passed regression36292707468 (1590 tests and Chromium) and runtime36292707458 at42bcde4b2624e14c6f5b3c49f1f9a5807a894934, then merged into development at6da5683b12a93c36cac6619de3b2765b567c997e. Artifact10922607227 SHA256367dc3d01e0dc453a23e640d9f9a4582515e85e3bcd6ddc41f45176bf41b1599 independently verified.
