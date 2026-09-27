@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## September 27, 2026: Packet 23 qualified; Packet 24 payload boundary
+
+PR #330 passed regression36255404288 and runtime36255404188 at8b09af8b7e32a8cb8ca947d33b1d509af11d000e. Downloaded artifact10910387014 SHA2569cbcbc0415330e7c7bd921b8cc831b1a41180d61548b33ef20e9551402596dfd independently verified; fourteen webhook summaries and schema/access postflight inspected. Non-production mergeacd33aad5df34c28d8d03a187353f7df8b2509cb.
+
+Packet 24 reproduces malformed signed JSON and inherited event-name admission failures, then validates consumed fields before database access. [Payload scope and compatibility](helios-studio-v2-webhook-payload-boundary.md). Twenty-two targeted tests, TypeScript/scoped lint and syntax checks pass. Both-host actual HTTP cases require exact-head runtime CI/artifact inspection. No schema, provider, credential or production change. Phase 1 remains open.
+
 ## September 26, 2026: Packet 23 stored webhook ownership
 
 Packet 22 runtime36255047101 passed at303e924c413f4371fae6c03bc63759dfb469f941. Artifact10910530482 downloaded; SHA256eb6e0f2117e95a6b66a487437ceccb8897dbcdff341a1960c3d5f3bc52d2e355 independently verified. All ten signed-webhook case summaries and schema/access postflight inspected. Regression36255047029 is tracked on PR #329; no Packet 22 merge claim is made by this preparation entry.

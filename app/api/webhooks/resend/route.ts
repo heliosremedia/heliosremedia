@@ -6,7 +6,7 @@ import { resolveCampaignWorkspace } from "@/lib/client-communications/campaign-o
 import { processPermanentBounce } from "@/lib/client-communications/bounces";
 import {
   diagnosticEmails,
-  normalizedResendStatus,
+  parseResendEvent,
   safeEventDate,
 } from "@/lib/client-communications/resend-webhook-core";
 
@@ -34,18 +34,6 @@ function verifyWebhook(rawBody: string, headers: Headers) {
   }
 }
 
-type ResendEvent = {
-  type?: string;
-  created_at?: string;
-  data?: {
-    email_id?: string;
-    to?: unknown;
-    tags?: unknown;
-    click?: { link?: string };
-    bounce?: { type?: string; subtype?: string; message?: string };
-  };
-};
-
 function safeReject(reason: string, request: Request) {
   console.warn("Resend webhook rejected", {
     reason,
@@ -62,17 +50,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false }, { status: 401 });
   }
 
-  let event: ResendEvent;
+  let payload: unknown;
   try {
-    event = JSON.parse(rawBody) as ResendEvent;
+    payload = JSON.parse(rawBody);
   } catch {
     safeReject("invalid_json", request);
     return NextResponse.json({ success: false }, { status: 400 });
   }
-  const normalizedStatus = normalizedResendStatus(event.type);
-  if (!normalizedStatus) {
+  const parsed = parseResendEvent(payload);
+  if (parsed.kind === "invalid") {
+    safeReject("invalid_payload", request);
+    return NextResponse.json({ success: false }, { status: 400 });
+  }
+  if (parsed.kind === "ignored") {
     return NextResponse.json({ success: true, ignored: true });
   }
+  const { event, normalizedStatus } = parsed;
   const providerMessageId = event.data?.email_id?.trim() || null;
   const occurredAt = safeEventDate(event.created_at, receivedAt);
 

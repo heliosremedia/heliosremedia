@@ -19,7 +19,7 @@ function fixture(emailOwners: Array<string | null>, referralOwners: Array<string
   const prisma = {
     workspace: { findMany: async () => (options.workspaces ?? ['a', 'b']).map(id => ({ id })) },
     resendWebhookEvent: {
-      findUnique: async ({ where }: { where: { providerEventId: string } }) => events.get(where.providerEventId) ?? null,
+      findUnique: async ({ where }: { where: { providerEventId: string } }) => { lookups.push('event'); return events.get(where.providerEventId) ?? null; },
       create: async ({ data }: { data: Record<string, unknown> & { providerEventId: string } }) => { events.set(data.providerEventId, { ...data }); return data; },
       update: async ({ where, data }: { where: { providerEventId: string }; data: Record<string, unknown> }) => { Object.assign(events.get(where.providerEventId)!, data); return {}; },
       updateMany: async ({ where, data }: { where: { providerEventId: string }; data: Record<string, unknown> }) => { Object.assign(events.get(where.providerEventId)!, data); return { count: 1 }; },
@@ -53,14 +53,17 @@ function fixture(emailOwners: Array<string | null>, referralOwners: Array<string
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText, { exports, Buffer, Date, console: { warn() {}, error() {} }, process: { env: { RESEND_WEBHOOK_SECRET: `whsec_${key.toString('base64')}` } },
     require: (id: string) => { assert.ok(id in modules, `Unexpected dependency ${id}`); return modules[id]; } });
-  async function send(options: { id?: string; message?: string | null; type?: string; invalidSignature?: boolean; timestamp?: number } = {}) {
+  async function sendRaw(body: string, options: { id?: string; invalidSignature?: boolean; timestamp?: number } = {}) {
     const id = options.id ?? 'event-1'; const timestamp = String(options.timestamp ?? Math.floor(Date.now() / 1000));
-    const body = JSON.stringify({ type: options.type ?? 'email.delivered', data: { email_id: options.message === null ? undefined : options.message ?? 'known-message', to: ['foreign@example.test'], tags: { campaign_id: 'foreign-campaign' } } });
     const signature = crypto.createHmac('sha256', key).update(`${id}.${timestamp}.${body}`).digest('base64');
     return exports.POST!(new Request('https://webhook.example.test/api/webhooks/resend', { method: 'POST', body,
       headers: { 'svix-id': id, 'svix-timestamp': timestamp, 'svix-signature': `v1,${options.invalidSignature ? 'invalid' : signature}` } }));
   }
-  return { send, events, effects, lookups };
+  async function send(options: { id?: string; message?: string | null; type?: string; invalidSignature?: boolean; timestamp?: number } = {}) {
+    const body = JSON.stringify({ type: options.type ?? 'email.delivered', data: { email_id: options.message === null ? undefined : options.message ?? 'known-message', to: ['foreign@example.test'], tags: { campaign_id: 'foreign-campaign' } } });
+    return sendRaw(body, options);
+  }
+  return { send, sendRaw, events, effects, lookups };
 }
 
 for (const [label, emails, referrals] of [
@@ -86,7 +89,7 @@ test('unique email/referral identities preserve processing and reject duplicate 
     assert.deepEqual(f.effects, family === 'email' ? ['delivery'] : ['referral', 'invitation', 'referral-audit']);
     const before = [...f.effects]; const queries = [...f.lookups];
     assert.equal((await (await f.send()).json()).duplicate, true);
-    assert.deepEqual(f.effects, before); assert.deepEqual(f.lookups, queries);
+    assert.deepEqual(f.effects, before); assert.deepEqual(f.lookups, [...queries, 'event']);
   }
 });
 
@@ -131,4 +134,42 @@ test('unmatched signed tags do not grant tenant ownership of diagnostic records'
   const f = fixture([], []); assert.equal((await f.send({ message: 'unknown' })).status, 200);
   assert.equal(f.events.get('event-1')?.workspaceId, null);
   assert.ok(!f.lookups.includes('diagnostic-tag'));
+});
+
+
+test('signed malformed envelopes and consumed fields reject400 before any database access', async () => {
+  const payloads = [null, [], true, 7, 'text', {}, { type: [] },
+    ...[true, 42, 'text', []].map(data => ({ type: 'email.delivered', data })),
+    ...[42, {}, []].map(email_id => ({ type: 'email.delivered', data: { email_id } })),
+    ...[true, 42, 'text', []].map(click => ({ type: 'email.clicked', data: { click } })),
+    { type: 'email.clicked', data: { click: { link: {} } } },
+    ...[true, 42, 'text', []].map(bounce => ({ type: 'email.bounced', data: { bounce } })),
+    { type: 'email.bounced', data: { bounce: { type: 42 } } },
+    { type: 'email.bounced', data: { bounce: { subtype: [] } } },
+    { type: 'email.bounced', data: { bounce: { message: {} } } },
+    { type: 'email.delivered', created_at: {} }];
+  for (const body of ['{', ...payloads.map(payload => JSON.stringify(payload))]) {
+    const f = fixture(['a'], []); const response = await f.sendRaw(body);
+    assert.equal(response.status, 400, body);
+    assert.equal(f.events.size, 0); assert.deepEqual(f.lookups, []); assert.deepEqual(f.effects, []);
+  }
+});
+
+test('unknown and inherited event names are ignored without database access', async () => {
+  for (const type of ['email.future_event', '__proto__', 'constructor', 'toString', 'hasOwnProperty']) {
+    const f = fixture(['a'], []);
+    const response = await f.sendRaw(JSON.stringify({ type, data: { email_id: {} } }));
+    assert.equal(response.status, 200); assert.equal((await response.json()).ignored, true);
+    assert.equal(f.events.size, 0); assert.deepEqual(f.lookups, []); assert.deepEqual(f.effects, []);
+  }
+});
+
+test('signature admission precedes parsing and nullable optional fields keep missing-ID behavior', async () => {
+  const unsigned = fixture(['a'], []);
+  assert.equal((await unsigned.sendRaw('null', { invalidSignature: true })).status, 401);
+  assert.deepEqual(unsigned.lookups, []);
+  for (const data of [null, {}, { email_id: null, click: null, bounce: null }, { email_id: '', click: { link: null }, bounce: { type: null, subtype: null, message: null } }]) {
+    const f = fixture([], []); assert.equal((await f.sendRaw(JSON.stringify({ type: 'email.delivered', created_at: null, data }))).status, 200);
+    assert.equal(f.events.get('event-1')?.processingStatus, 'UNMATCHED_MISSING_MESSAGE_ID'); assert.deepEqual(f.effects, []);
+  }
 });
