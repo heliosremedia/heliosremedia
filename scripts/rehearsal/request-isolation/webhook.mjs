@@ -190,20 +190,25 @@ export async function qualifyWebhook(origin, driver) {
     } finally { await Promise.all(pending); }
   }
   const partialRecovery = [];
-  for (const id of ['a', 'b']) for (const type of ['email.complained', 'email.bounced']) {
+  for (const id of ['a', 'b']) for (const [type, failureStage] of [['email.complained', 'preference'], ['email.complained', 'group'], ['email.bounced', 'group']]) {
     const eventId = randomUUID(); const message = `unique-${id}-email`; const email = `${id}@example.test`;
     if (type === 'email.complained') await db.marketingEmailPreference.upsert({
       where: { normalizedEmail: email }, create: { normalizedEmail: email, status: 'UNKNOWN', source: 'SYNTHETIC' },
       update: { status: 'UNKNOWN' },
     });
+    if (type === 'email.complained' && failureStage === 'group') {
+      const group = await db.communicationGroup.findUniqueOrThrow({ where: { systemKey: 'MARKETING_UNSUBSCRIBED' } });
+      await db.communicationGroupMembership.deleteMany({ where: { groupId: group.id, clientId: `webhook-client-${id}` } });
+    }
+    const historyBefore = await db.marketingEmailPreferenceEvent.count({ where: { messageId: message, reason: 'COMPLAINT' } });
     const auditBefore = await db.auditEvent.count();
     let pending;
     try {
       await db.$transaction(async held => {
-        if (type === 'email.complained') {
+        if (type === 'email.complained' && failureStage === 'preference') {
           await held.$queryRaw`SELECT id FROM "MarketingEmailPreference" WHERE "normalizedEmail"=${email} FOR UPDATE`;
         } else {
-          await held.$queryRaw`SELECT id FROM "CommunicationGroup" WHERE "systemKey"=${`BOUNCED_BACK:${id}`} FOR UPDATE`;
+          await held.$queryRaw`SELECT id FROM "CommunicationGroup" WHERE "systemKey"=${type === 'email.complained' ? 'MARKETING_UNSUBSCRIBED' : `BOUNCED_BACK:${id}`} FOR UPDATE`;
         }
         const [{ pid }] = await held.$queryRaw`SELECT pg_backend_pid() AS pid`;
         pending = signed(id, message, type, eventId, true, email)
@@ -212,6 +217,10 @@ export async function qualifyWebhook(origin, driver) {
         const active = await db.resendWebhookEvent.findUniqueOrThrow({ where: { providerEventId: eventId } });
         assert.equal(active.processingStatus, 'PROCESSING'); assert.equal(active.processedAt, null);
         assert.equal(await db.campaignDeliveryEvent.count({ where: { providerEventId: eventId } }), 1);
+        if (type === 'email.complained') {
+          assert.equal(await db.marketingEmailPreferenceEvent.count({ where: { messageId: message, reason: 'COMPLAINT' } }), historyBefore);
+          assert.equal((await db.marketingEmailPreference.findUniqueOrThrow({ where: { normalizedEmail: email } })).status, 'UNKNOWN');
+        }
         const beforeDuplicate = await snapshot();
         assert.equal((await signed(id, message, type, eventId, true, email)).status, 503);
         assert.deepEqual(await snapshot(), beforeDuplicate);
@@ -225,6 +234,7 @@ export async function qualifyWebhook(origin, driver) {
         assert.equal((await db.resendWebhookEvent.findUniqueOrThrow({ where: { providerEventId: eventId } })).processingStatus, 'FAILED_RETRYABLE');
         assert.equal(await db.auditEvent.count(), auditBefore);
         if (type === 'email.complained') {
+          assert.equal(await db.marketingEmailPreferenceEvent.count({ where: { messageId: message, reason: 'COMPLAINT' } }), historyBefore);
           assert.equal((await db.marketingEmailPreference.findUniqueOrThrow({ where: { normalizedEmail: email } })).status, 'UNKNOWN');
           assert.equal(await db.communicationSuppression.count({ where: { providerEventId: `${message}:${email}:COMPLAINT` } }), 1);
         }
@@ -237,7 +247,7 @@ export async function qualifyWebhook(origin, driver) {
         assert.equal((await db.marketingEmailPreference.findUniqueOrThrow({ where: { normalizedEmail: email } })).status, 'UNSUBSCRIBED');
         const group = await db.communicationGroup.findUniqueOrThrow({ where: { systemKey: 'MARKETING_UNSUBSCRIBED' } });
         assert.equal(await db.communicationGroupMembership.count({ where: { groupId: group.id, clientId: `webhook-client-${id}` } }), 1);
-        assert.equal(await db.marketingEmailPreferenceEvent.count({ where: { messageId: message, reason: 'COMPLAINT' } }), 1);
+        assert.equal(await db.marketingEmailPreferenceEvent.count({ where: { messageId: message, reason: 'COMPLAINT' } }), historyBefore + 1);
         assert.equal(await db.communicationSuppression.count({ where: { providerEventId: `${message}:${email}:COMPLAINT` } }), 1);
       } else {
         assert.equal(await db.auditEvent.count(), auditBefore + 1);
@@ -248,7 +258,7 @@ export async function qualifyWebhook(origin, driver) {
       const replay = await signed(id, message, type, eventId, true, email);
       assert.equal(replay.status, 200); assert.equal(JSON.parse(replay.text).duplicate, true);
       assert.deepEqual(await snapshot(), settled); assert.equal(await db.auditEvent.count(), auditSettled);
-      partialRecovery.push({ tenant: id, type, databaseWaitObserved: true, pendingNotTerminal: true, inFlightDuplicate: 503,
+      partialRecovery.push({ tenant: id, type, failureStage, preferenceHistoryAtomic: type === 'email.complained', databaseWaitObserved: true, pendingNotTerminal: true, inFlightDuplicate: 503,
         canceledQuery: true, failureRetryable: true, retry: 200, oneDeliveryEvent: true, requiredFollowUpComplete: true, replayNoEffect: true });
     } finally { await pending; }
   }
