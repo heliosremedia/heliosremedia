@@ -1,5 +1,5 @@
 {
-  "status": "active",
+  "status": "checkpointed",
   "runId": "atlas-packet28-webhook-completion-boundary",
   "branch": "codex/v2-webhook-completion-boundary",
   "head": "8b859e33d5ca0483a836b60e2a7f00d87347384f",
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Inspect Packet 28 exact-head CI and canceled-query recovery artifact; merge only after qualification and postflight pass",
+  "nextAction": "Continue Phase 1 with a bounded investigation of complaint preference commit/group reconciliation recovery; reproduce later failure before selecting the smallest correction. Arbitrary crash recovery, durable generation fencing, global consent scope and best-effort bounce audit remain unqualified. Production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -315,15 +315,15 @@
     "tree": "9e4cb3caaa761511eb6b37526a190bf371e1f96c",
     "runs": [
       {
-        "id": 36352119552,
-        "name": "V2 regression",
-        "head": "8b859e33d5ca0483a836b60e2a7f00d87347384f",
-        "status": "in_progress",
-        "conclusion": null
-      },
-      {
         "id": 36352119545,
         "name": "V2 isolated runtime request isolation",
+        "head": "8b859e33d5ca0483a836b60e2a7f00d87347384f",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 36352119552,
+        "name": "V2 regression",
         "head": "8b859e33d5ca0483a836b60e2a7f00d87347384f",
         "status": "completed",
         "conclusion": "success"
@@ -336,6 +336,15 @@
     "artifact": 10942109599,
     "artifactSha256": "bc4fc04dc3c2b235e8f06b77ee58daca3f6e60740233023b502a8ef1630ddc3b",
     "independentlyDownloaded": true,
-    "runtimeQualified": true
+    "runtimeQualified": true,
+    "ci": "success",
+    "regressionTests": 1596,
+    "chromium": true,
+    "merge": "acf34c9f7ac9fba4e29c47fd62aba17024669f04",
+    "mergedTreeMatchesTestedHead": true,
+    "localWorkingTreeClean": true,
+    "schemaColumnsUnchanged": true,
+    "syntheticAccessRestored": true,
+    "vercelDeploymentsSuppressed": true
   }
 }
