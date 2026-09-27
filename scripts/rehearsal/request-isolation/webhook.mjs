@@ -25,18 +25,39 @@ export async function qualifyWebhook(origin, driver) {
       'communicationClient', 'communicationSuppression', 'marketingEmailPreference', 'marketingEmailPreferenceEvent'];
     return Promise.all(tables.map(table => db[table].findMany({ orderBy: { id: 'asc' } })));
   };
-  const signed = async (host, message, type = 'email.delivered', eventId = randomUUID(), valid = true, recipient = 'foreign@example.test') => {
-    const body = { type, data: { email_id: message, to: [recipient], tags: { campaign_id: 'webhook-email-b' },
-      ...(type === 'email.bounced' ? { bounce: { type: 'Permanent' } } : {}) } };
+  const signedPayload = async (host, body, eventId = randomUUID(), valid = true) => {
     const timestamp = String(Math.floor(Date.now() / 1000));
     const signature = createHmac('sha256', Buffer.from(WEBHOOK_KEY, 'base64')).update(`${eventId}.${timestamp}.${JSON.stringify(body)}`).digest('base64');
     const response = await http(origin, `${host}.example.test`, '/api/webhooks/resend', { method: 'POST', body,
       headers: { 'svix-id': eventId, 'svix-timestamp': timestamp, 'svix-signature': `v1,${valid ? signature : 'invalid'}` } });
     return { ...response, eventId };
   };
+  const signed = (host, message, type = 'email.delivered', eventId = randomUUID(), valid = true, recipient = 'foreign@example.test') =>
+    signedPayload(host, { type, data: { email_id: message, to: [recipient], tags: { campaign_id: 'webhook-email-b' },
+      ...(type === 'email.bounced' ? { bounce: { type: 'Permanent' } } : {}) } }, eventId, valid);
   const initial = await snapshot(); const count = await db.resendWebhookEvent.count();
   assert.equal((await signed('a', 'unknown', 'email.delivered', randomUUID(), false)).status, 401);
   assert.equal(await db.resendWebhookEvent.count(), count); assert.deepEqual(await snapshot(), initial);
+  const malformed = [null, [], true, 7, 'text', {}, { type: [] },
+    ...[true, 42, 'text', []].map(data => ({ type: 'email.delivered', data })),
+    ...[42, {}, []].map(email_id => ({ type: 'email.delivered', data: { email_id } })),
+    ...[true, 42, 'text', []].map(click => ({ type: 'email.clicked', data: { click } })),
+    { type: 'email.clicked', data: { click: { link: {} } } },
+    ...[true, 42, 'text', []].map(bounce => ({ type: 'email.bounced', data: { bounce } })),
+    ...[{ type: 42 }, { subtype: [] }, { message: {} }].map(bounce => ({ type: 'email.bounced', data: { bounce } })),
+    { type: 'email.delivered', created_at: {} }];
+  const unknownTypes = ['email.future_event', '__proto__', 'constructor', 'toString', 'hasOwnProperty'];
+  for (const host of ['a', 'b']) {
+    assert.equal((await signedPayload(host, null, randomUUID(), false)).status, 401);
+    for (const body of malformed) assert.equal((await signedPayload(host, body)).status, 400);
+    for (const type of unknownTypes) {
+      const response = await signedPayload(host, { type, data: { email_id: {} } });
+      assert.equal(response.status, 200); assert.equal(JSON.parse(response.text).ignored, true);
+    }
+    assert.equal(await db.resendWebhookEvent.count(), count); assert.deepEqual(await snapshot(), initial);
+  }
+  const payloadBoundary = { tenants: ['a', 'b'], malformedPerTenant: malformed.length, malformedStatus: 400,
+    ignoredPerTenant: unknownTypes.length, signatureBeforeParsing: true, databaseRowsUnchanged: true };
   const results = [];
   for (const id of ['a', 'b']) {
     const other = id === 'a' ? 'b' : 'a';
@@ -102,5 +123,5 @@ export async function qualifyWebhook(origin, driver) {
   }
   const unknown = await signed('a', 'no-local-message'); assert.equal(unknown.status, 200);
   assert.equal((await db.resendWebhookEvent.findUniqueOrThrow({ where: { providerEventId: unknown.eventId } })).workspaceId, null);
-  return { invalidSignature: 401, cases: results, providerCalls: false };
+  return { invalidSignature: 401, payloadBoundary, cases: results, providerCalls: false };
 }
