@@ -134,6 +134,7 @@ export async function qualifyWebhook(origin, driver) {
     results.push({ tenant: id, family, unownedRejected: 503, changedRetryIdentity: 409, resolvedOwnerRetry: 200 });
   }
   const concurrentAdmission = [];
+  const concurrentRetry = [];
   const waitForBlocked = async (pid, count) => {
     const deadline = Date.now() + 8000;
     while (Date.now() < deadline) {
@@ -143,8 +144,12 @@ export async function qualifyWebhook(origin, driver) {
     }
     assert.fail(`Expected ${count} actual HTTP queries blocked by the held PostgreSQL lock`);
   };
-  for (const id of ['a', 'b']) {
+  for (const id of ['a', 'b']) for (const admission of ['first', 'retry']) {
     const eventId = randomUUID(); const message = `unique-${id}-referral`;
+    if (admission === 'retry') await db.resendWebhookEvent.create({ data: {
+      providerEventId: eventId, providerMessageId: message, eventType: 'email.delivered',
+      normalizedStatus: 'DELIVERED', processingStatus: 'FAILED_RETRYABLE', occurredAt: new Date(), reason: 'Synthetic retry fixture',
+    } });
     const before = await snapshot(); const auditCount = await db.referralAuditEvent.count();
     let pending = [];
     try {
@@ -152,14 +157,14 @@ export async function qualifyWebhook(origin, driver) {
         await processingLock.$queryRaw`SELECT id FROM "ReferralCommunication" WHERE id=${`webhook-communication-${id}`} FOR UPDATE`;
         const [{ pid: processingPid }] = await processingLock.$queryRaw`SELECT pg_backend_pid() AS pid`;
         await db.$transaction(async admissionLock => {
-          // Both handlers must read the absent event before their inserts proceed.
+          // Both handlers must read the same absent/failed event before admission writes proceed.
           await admissionLock.$executeRaw`LOCK TABLE "ResendWebhookEvent" IN SHARE MODE`;
           const [{ pid }] = await admissionLock.$queryRaw`SELECT pg_backend_pid() AS pid`;
           pending = [signed(id, message, 'email.delivered', eventId), signed(id, message, 'email.delivered', eventId)]
             .map(request => request.then(response => ({ response }), error => ({ error })));
           await waitForBlocked(pid, 2);
         }, { timeout: 15000 });
-        // Hold the winner's domain write so the losing insert cannot be hidden by
+        // Hold the winner's domain write so losing admission cannot be hidden by
         // a later successful settlement overwriting its erroneous failure state.
         await waitForBlocked(processingPid, 1);
         const loser = await Promise.race(pending);
@@ -178,11 +183,13 @@ export async function qualifyWebhook(origin, driver) {
       const replay = await signed(id, message, 'email.delivered', eventId);
       assert.equal(replay.status, 200); assert.equal(JSON.parse(replay.text).duplicate, true);
       assert.deepEqual(await snapshot(), settled);
-      concurrentAdmission.push({ tenant: id, twoInsertsBlocked: true, winnerProcessingBlocked: true,
-        loserStatus: 503, activeEventPreserved: true, winnerStatus: 200, oneDomainAudit: true, replayNoEffect: true });
+      const proof = { tenant: id, winnerProcessingBlocked: true,
+        loserStatus: 503, activeEventPreserved: true, winnerStatus: 200, oneDomainAudit: true, replayNoEffect: true };
+      if (admission === 'first') concurrentAdmission.push({ ...proof, twoInsertsBlocked: true });
+      else concurrentRetry.push({ ...proof, twoRetryUpdatesBlocked: true });
     } finally { await Promise.all(pending); }
   }
   const unknown = await signed('a', 'no-local-message'); assert.equal(unknown.status, 200);
   assert.equal((await db.resendWebhookEvent.findUniqueOrThrow({ where: { providerEventId: unknown.eventId } })).workspaceId, null);
-  return { invalidSignature: 401, payloadBoundary, concurrentAdmission, cases: results, providerCalls: false };
+  return { invalidSignature: 401, payloadBoundary, concurrentAdmission, concurrentRetry, cases: results, providerCalls: false };
 }

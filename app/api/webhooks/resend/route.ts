@@ -85,10 +85,14 @@ export async function POST(request: Request) {
     }
 
     if (existing) {
-      await prisma.resendWebhookEvent.update({
-        where: { providerEventId },
+      // The earlier read is not a claim: another retry may have already won.
+      const claimed = await prisma.resendWebhookEvent.updateMany({
+        where: { providerEventId, providerMessageId, eventType: event.type, processingStatus: "FAILED_RETRYABLE" },
         data: { processingStatus: "PROCESSING", reason: null, processedAt: null },
       });
+      if (claimed.count !== 1) {
+        return NextResponse.json({ success: false }, { status: 503 });
+      }
     } else {
       await prisma.resendWebhookEvent.create({
         data: {
