@@ -299,6 +299,11 @@
     ],
     "localTargetedTests": 27,
     "typescript": true,
-    "scopedLint": true
+    "scopedLint": true,
+    "runtime": "success",
+    "artifact": 10940574807,
+    "artifactSha256": "6af632cd75de31f1897bce6cd6098a53733b7659444a154a1493e04f9131464d",
+    "independentlyDownloaded": true,
+    "runtimeQualified": true
   }
 }
