@@ -1,10 +1,10 @@
 {
-  "status": "checkpointed",
-  "runId": "atlas-packet27-webhook-retry-admission",
-  "branch": "codex/v2-webhook-retry-admission",
-  "head": "7dc5e752b868ef205b54eb0b31ca02b5ef29c7c7",
-  "pr": 334,
-  "scope": "Conditional admission for concurrent FAILED_RETRYABLE webhook requests",
+  "status": "active",
+  "runId": "atlas-packet28-webhook-completion-boundary",
+  "branch": "codex/v2-webhook-completion-boundary",
+  "head": "61be715b15febd3c2573f69cbd54bd2d367c0bca",
+  "pr": null,
+  "scope": "Keep email follow-up processing nonterminal until completion and reject in-flight duplicate acknowledgements",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Continue Phase 1 webhook partial-side-effect recovery qualification: inspect terminal status timing and failure/reclaim boundaries without changing global consent semantics or introducing automatic PROCESSING recovery",
+  "nextAction": "Reproduce premature completion, fix completion boundary, qualify canceled-query partial failures and retries on disposable PostgreSQL",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
