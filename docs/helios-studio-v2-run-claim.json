@@ -2,8 +2,8 @@
   "status": "active",
   "runId": "atlas-packet28-webhook-completion-boundary",
   "branch": "codex/v2-webhook-completion-boundary",
-  "head": "61be715b15febd3c2573f69cbd54bd2d367c0bca",
-  "pr": null,
+  "head": "8b859e33d5ca0483a836b60e2a7f00d87347384f",
+  "pr": 335,
   "scope": "Keep email follow-up processing nonterminal until completion and reject in-flight duplicate acknowledgements",
   "evidence": {
     "run": 36217912507,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Reproduce premature completion, fix completion boundary, qualify canceled-query partial failures and retries on disposable PostgreSQL",
+  "nextAction": "Inspect Packet 28 exact-head CI and canceled-query recovery artifact; merge only after qualification and postflight pass",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -308,5 +308,27 @@
     "merge": "61be715b15febd3c2573f69cbd54bd2d367c0bca",
     "ci": "success",
     "regressionTests": 1595
+  },
+  "packet28": {
+    "head": "8b859e33d5ca0483a836b60e2a7f00d87347384f",
+    "pr": 335,
+    "tree": "9e4cb3caaa761511eb6b37526a190bf371e1f96c",
+    "runs": [
+      {
+        "id": 36352119552,
+        "name": "V2 regression",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 36352119545,
+        "name": "V2 isolated runtime request isolation",
+        "status": "in_progress",
+        "conclusion": null
+      }
+    ],
+    "localTargetedTests": 28,
+    "typescript": true,
+    "scopedLint": true
   }
 }
