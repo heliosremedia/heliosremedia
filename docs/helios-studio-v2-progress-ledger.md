@@ -1,5 +1,13 @@
 # Helios Studio V2 progress ledger
 
+## September 27, 2026: Packets 24–25 qualified; Packet 26 admission failure
+
+Packet 24 PR #331 passed regression36292707468 (1590 tests and Chromium) and runtime36292707458 at42bcde4b2624e14c6f5b3c49f1f9a5807a894934, then merged into development at6da5683b12a93c36cac6619de3b2765b567c997e. Artifact10922607227 SHA256367dc3d01e0dc453a23e640d9f9a4582515e85e3bcd6ddc41f45176bf41b1599 independently verified.
+
+Packet 25 PR #332 passed regression36293034370 (1592 tests and Chromium) and runtime36293034410 atca9921ae7eaa1f85cfe4110f4fba85a35758d6dc. Artifact10922808199 SHA25624d931d3d9b4d80dc914768574c77ad64f91b4f9ffc0383e4303e3d929132b85 independently downloaded and verified; both-family/both-tenant identity rejection and valid retry, prior isolation and schema/access postflight inspected. Non-production mergefa297db8e4de5e81e80113b82934d04fa0ef7b3e.
+
+Packet 26 reproduces a concurrent first-insert loser overwriting the active event's state, then restricts failure writes to requests that completed admission. [Scope, real-lock qualification and remaining recovery boundaries](helios-studio-v2-webhook-admission-failure.md). Twenty-six targeted tests, TypeScript/scoped lint/syntax/whitespace pass. Exact-head CI and real PostgreSQL lock-observed HTTP evidence pending. No schema, provider, credential or production change. Phase 1 remains open.
+
 ## September 27, 2026: Packet 24 runtime qualified; Packet 25 retry identity
 
 Packet 24 runtime36292707458 passed at42bcde4b2624e14c6f5b3c49f1f9a5807a894934. Artifact10922607227 independently downloaded; SHA256367dc3d01e0dc453a23e640d9f9a4582515e85e3bcd6ddc41f45176bf41b1599 matched. Both tenants passed27 malformed and5 ignored event cases, prior fourteen webhook summaries and schema/access postflight. Regression36292707468 remains tracked on PR #331; this preparation entry makes no Packet 24 merge claim.

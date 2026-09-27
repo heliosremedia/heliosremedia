@@ -69,6 +69,7 @@ export async function POST(request: Request) {
   const providerMessageId = event.data?.email_id?.trim() || null;
   const occurredAt = safeEventDate(event.created_at, receivedAt);
 
+  let admitted = false;
   try {
     const existing = await prisma.resendWebhookEvent.findUnique({
       where: { providerEventId },
@@ -101,6 +102,8 @@ export async function POST(request: Request) {
         },
       });
     }
+
+    admitted = true;
 
     const matches = providerMessageId ? await prisma.campaignRecipient.findMany({
       where: { providerMessageId },
@@ -270,7 +273,9 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ success: true, matched: true });
   } catch (error) {
-    await prisma.resendWebhookEvent.updateMany({
+    // A failed insert may mean another request owns this event. Only a request
+    // that completed admission may record its subsequent processing failure.
+    if (admitted) await prisma.resendWebhookEvent.updateMany({
       where: { providerEventId },
       data: {
         processingStatus: "FAILED_RETRYABLE",
