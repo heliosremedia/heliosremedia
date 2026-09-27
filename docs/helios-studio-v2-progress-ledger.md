@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## September 27, 2026: Packet 28 qualified; Packet 29 preference atomicity
+
+PR #335 merged into development at `acf34c9f7ac9fba4e29c47fd62aba17024669f04`. Tested head `8b859e33d5ca0483a836b60e2a7f00d87347384f` passed regression 36352119552 (1,596 tests and Chromium) and runtime 36352119545. Downloaded artifact 10942109599 SHA256 `bc4fc04dc3c2b235e8f06b77ee58daca3f6e60740233023b502a8ef1630ddc3b` independently checked; all four complaint/bounce recovery cases and schema/access postflight passed. Merged tree matched the tested head; Vercel deployments remained suppressed.
+
+Packet 29 reproduces preference/history persistence before a failed group mutation and moves reconciliation into the same transaction. [Scope and remaining recovery limits](helios-studio-v2-preference-group-atomicity.md). Both unsubscribe and resubscribe rollback/retry tests are required, plus real HTTP/PostgreSQL failure at the later group boundary for both tenants. Exact-head qualification remains required. No schema, consent-policy, provider, credential, hosted staging or production change. Phase 1 remains open.
+
 ## September 27, 2026: Packet 27 qualified; Packet 28 completion boundary
 
 Live base61be715b15febd3c2573f69cbd54bd2d367c0bca matches merged PR #334. Packet 27 exact head7dc5e752b868ef205b54eb0b31ca02b5ef29c7c7 passed regression36349332455 (1595 tests and Chromium) and runtime36349332430. Downloaded artifact10940574807 SHA2566af632cd75de31f1897bce6cd6098a53733b7659444a154a1493e04f9131464d independently checked; both-tenant retry admission, prior isolation and schema/access postflight passed.
