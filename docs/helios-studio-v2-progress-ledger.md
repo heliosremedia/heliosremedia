@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## September 27, 2026: Packet 24 runtime qualified; Packet 25 retry identity
+
+Packet 24 runtime36292707458 passed at42bcde4b2624e14c6f5b3c49f1f9a5807a894934. Artifact10922607227 independently downloaded; SHA256367dc3d01e0dc453a23e640d9f9a4582515e85e3bcd6ddc41f45176bf41b1599 matched. Both tenants passed27 malformed and5 ignored event cases, prior fourteen webhook summaries and schema/access postflight. Regression36292707468 remains tracked on PR #331; this preparation entry makes no Packet 24 merge claim.
+
+Packet 25 reproduces failed-event identity replacement and rejects a changed message ID or event type before retry or duplicate acknowledgement. [Scope and remaining recovery boundaries](helios-studio-v2-webhook-retry-identity.md). Twenty-four targeted tests, TypeScript/scoped lint/syntax/whitespace pass. Both-tenant email/referral HTTP changed-identity checks require exact-head CI and downloaded evidence. No schema, provider, credential or production change. Phase 1 remains open.
+
 ## September 27, 2026: Packet 23 qualified; Packet 24 payload boundary
 
 PR #330 passed regression36255404288 and runtime36255404188 at8b09af8b7e32a8cb8ca947d33b1d509af11d000e. Downloaded artifact10910387014 SHA2569cbcbc0415330e7c7bd921b8cc831b1a41180d61548b33ef20e9551402596dfd independently verified; fourteen webhook summaries and schema/access postflight inspected. Non-production mergeacd33aad5df34c28d8d03a187353f7df8b2509cb.

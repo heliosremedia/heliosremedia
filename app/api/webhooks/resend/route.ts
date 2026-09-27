@@ -72,8 +72,13 @@ export async function POST(request: Request) {
   try {
     const existing = await prisma.resendWebhookEvent.findUnique({
       where: { providerEventId },
-      select: { processingStatus: true },
+      select: { processingStatus: true, providerMessageId: true, eventType: true },
     });
+    // A retry may resume processing, but cannot redefine the stored event identity.
+    if (existing && (existing.providerMessageId !== providerMessageId || existing.eventType !== event.type)) {
+      safeReject("event_identity_conflict", request);
+      return NextResponse.json({ success: false }, { status: 409 });
+    }
     if (existing && existing.processingStatus !== "FAILED_RETRYABLE") {
       return NextResponse.json({ success: true, duplicate: true });
     }

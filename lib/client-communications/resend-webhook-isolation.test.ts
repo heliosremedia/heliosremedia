@@ -173,3 +173,29 @@ test('signature admission precedes parsing and nullable optional fields keep mis
     assert.equal(f.events.get('event-1')?.processingStatus, 'UNMATCHED_MISSING_MESSAGE_ID'); assert.deepEqual(f.effects, []);
   }
 });
+
+
+test('event IDs retain their original message and event-type identity on replay', async () => {
+  for (const owner of ['a', 'b']) for (const processingStatus of ['FAILED_RETRYABLE', 'PROCESSING', 'PROCESSED']) {
+    for (const original of [
+      { providerMessageId: 'different-message', eventType: 'email.delivered' },
+      { providerMessageId: null, eventType: 'email.delivered' },
+      { providerMessageId: 'known-message', eventType: 'email.bounced' },
+    ]) {
+      const f = fixture([owner], []);
+      f.events.set('event-1', { providerEventId: 'event-1', ...original, processingStatus, workspaceId: owner === 'a' ? 'b' : 'a' });
+      const before = JSON.stringify([...f.events]);
+      assert.equal((await f.send()).status, 409);
+      assert.equal(JSON.stringify([...f.events]), before); assert.deepEqual(f.effects, []);
+      assert.deepEqual(f.lookups, ['event']);
+    }
+  }
+});
+
+test('an unchanged failed event identity can still retry', async () => {
+  const f = fixture(['a'], []);
+  f.events.set('event-1', { providerEventId: 'event-1', providerMessageId: 'known-message', eventType: 'email.delivered', processingStatus: 'FAILED_RETRYABLE' });
+  assert.equal((await f.send({ message: ' known-message ' })).status, 200);
+  assert.equal(f.events.get('event-1')?.processingStatus, 'PROCESSED');
+  assert.deepEqual(f.effects, ['delivery']);
+});
