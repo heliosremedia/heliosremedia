@@ -80,6 +80,9 @@ export async function POST(request: Request) {
       safeReject("event_identity_conflict", request);
       return NextResponse.json({ success: false }, { status: 409 });
     }
+    if (existing?.processingStatus === "PROCESSING") {
+      return NextResponse.json({ success: false }, { status: 503 });
+    }
     if (existing && existing.processingStatus !== "FAILED_RETRYABLE") {
       return NextResponse.json({ success: true, duplicate: true });
     }
@@ -212,6 +215,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, matched: false });
     }
 
+    const followUpRequired = event.type === "email.bounced" || event.type === "email.complained";
     const recipient = matches[0];
     const workspaceId = await resolveCampaignWorkspace(recipient.campaign.workspaceId);
     await prisma.$transaction([
@@ -238,8 +242,8 @@ export async function POST(request: Request) {
           clientId: recipient.clientId,
           campaignRecipientId: recipient.id,
           normalizedEmail: recipient.email.trim().toLowerCase(),
-          processingStatus: "PROCESSED",
-          processedAt: new Date(),
+          processingStatus: followUpRequired ? "PROCESSING" : "PROCESSED",
+          processedAt: followUpRequired ? null : new Date(),
         },
       }),
     ]);
@@ -273,6 +277,10 @@ export async function POST(request: Request) {
         source: "RESEND_WEBHOOK",
         reason: "COMPLAINT",
         messageId: providerMessageId || undefined,
+      });
+      await prisma.resendWebhookEvent.update({
+        where: { providerEventId },
+        data: { processingStatus: "PROCESSED", processedAt: new Date() },
       });
     }
     return NextResponse.json({ success: true, matched: true });

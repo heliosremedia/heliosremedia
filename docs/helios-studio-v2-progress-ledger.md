@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## September 27, 2026: Packet 27 qualified; Packet 28 completion boundary
+
+Live base61be715b15febd3c2573f69cbd54bd2d367c0bca matches merged PR #334. Packet 27 exact head7dc5e752b868ef205b54eb0b31ca02b5ef29c7c7 passed regression36349332455 (1595 tests and Chromium) and runtime36349332430. Downloaded artifact10940574807 SHA2566af632cd75de31f1897bce6cd6098a53733b7659444a154a1493e04f9131464d independently checked; both-tenant retry admission, prior isolation and schema/access postflight passed.
+
+Packet 28 reproduces premature completion before complaint/bounce follow-up. It retains PROCESSING until required follow-up reaches its terminal boundary, returns503 for in-flight duplicates, and keeps one failure-settlement owner for admitted bounce errors. [Scope, failure injection and remaining limits](helios-studio-v2-webhook-completion-boundary.md). Twenty-eight targeted tests, TypeScript/scoped lint/syntax/whitespace pass. Real HTTP/PostgreSQL canceled-query recovery and exact-head regression remain required. No schema, credentials, providers, hosted staging or production changes. Phase 1 remains open.
+
 ## September 27, 2026: Packet 26 independently reconfirmed; Packet 27 retry admission
 
 Live development basea1cfe6e0267382b2106cdebd44033baa7530e024 matches merged PR #333. Exact-head3846b3fce71349d203c56ffce7ef4d101ad3df73 workflows36293636315 and36293636494 independently reconfirmed SUCCESS. The automation checkpoint records1594 passing regression tests, Chromium, downloaded artifact10923232780 SHA25621dcd8bd72e9a7f50e2a12396dbd9440868100337ecf20c7169137804a371499 and both-tenant lock-observed first-admission proof. Historical preparation entries below remain unchanged.

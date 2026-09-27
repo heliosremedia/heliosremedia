@@ -6,7 +6,7 @@ import test from 'node:test';
 import ts from 'typescript';
 import * as core from './resend-webhook-core.ts';
 
-function fixture(emailOwners: Array<string | null>, referralOwners: Array<string | null>, options: { creator?: string; tenantMode?: boolean; workspaces?: string[] } = {}) {
+function fixture(emailOwners: Array<string | null>, referralOwners: Array<string | null>, options: { creator?: string; tenantMode?: boolean; workspaces?: string[]; beforeEffect?: (name: string) => Promise<void> } = {}) {
   const key = Buffer.from('synthetic-webhook-signing-key-only');
   const events = new Map<string, Record<string, unknown>>();
   const effects: string[] = []; const lookups: string[] = []; const failureWrites: string[] = [];
@@ -15,7 +15,7 @@ function fixture(emailOwners: Array<string | null>, referralOwners: Array<string
   const matching = <T>(family: string, rows: T[], where: { providerMessageId: string }, take = 2) => {
     lookups.push(family); return where.providerMessageId === 'known-message' ? rows.slice(0, take) : [];
   };
-  const effect = (name: string) => async () => { effects.push(name); return {}; };
+  const effect = (name: string) => async () => { effects.push(name); await options.beforeEffect?.(name); return {}; };
   const prisma = {
     workspace: { findMany: async () => (options.workspaces ?? ['a', 'b']).map(id => ({ id })) },
     resendWebhookEvent: {
@@ -238,5 +238,38 @@ test('concurrent failed-event retries admit only one processor', async () => {
     assert.deepEqual(f.effects, family === 'email' ? ['delivery'] : ['referral', 'invitation', 'referral-audit']);
     assert.equal(f.events.get('event-1')?.processingStatus, 'PROCESSED');
     assert.equal((await (await f.send()).json()).duplicate, true);
+  }
+});
+
+
+test('follow-up failures never expose completed events or acknowledge in-flight duplicates', async () => {
+  for (const owner of ['a', 'b']) for (const type of ['email.complained', 'email.bounced']) {
+    let enter!: () => void; let reject!: (error: Error) => void;
+    const entered = new Promise<void>(resolve => { enter = resolve; });
+    const held = new Promise<void>((_resolve, fail) => { reject = fail; });
+    let pause = true;
+    const f = fixture([owner], [], { beforeEffect: async name => {
+      if (pause && name === (type === 'email.complained' ? 'preference' : 'bounce')) { enter(); await held; }
+    } });
+    const pending = f.send({ type });
+    await entered;
+    try {
+      assert.equal(f.events.get('event-1')?.processingStatus, 'PROCESSING');
+      assert.equal(f.events.get('event-1')?.processedAt, null);
+      const before = [...f.effects];
+      assert.equal((await f.send({ type })).status, 503);
+      assert.deepEqual(f.effects, before);
+    } finally { reject(new Error('Synthetic follow-up failure')); }
+    assert.equal((await pending).status, 503);
+    assert.equal(f.events.get('event-1')?.processingStatus, 'FAILED_RETRYABLE');
+    assert.deepEqual(f.failureWrites, ['event-1']);
+    if (type === 'email.complained') {
+      pause = false;
+      assert.equal((await f.send({ type })).status, 200);
+      assert.equal(f.events.get('event-1')?.processingStatus, 'PROCESSED');
+      const before = [...f.effects];
+      assert.equal((await (await f.send({ type })).json()).duplicate, true);
+      assert.deepEqual(f.effects, before);
+    }
   }
 });

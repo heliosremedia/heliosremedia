@@ -179,7 +179,9 @@ export async function processPermanentBounce(providerEventId: string, event: Res
     });
     return { status: "processed" as const, workspaceId, clientId: recipient.clientId };
   } catch (error) {
-    await recordRetryableBounceFailure(providerEventId, error);
+    // The admitting route owns failure settlement for an already accepted event.
+    // Do not release it for retry before the outer handler has unwound.
+    if (!alreadyAccepted) await recordRetryableBounceFailure(providerEventId, error);
     throw error;
   }
 }
