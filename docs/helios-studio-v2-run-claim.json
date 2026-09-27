@@ -1,10 +1,10 @@
 {
-  "status": "checkpointed",
-  "runId": "atlas-packet26-webhook-admission-failure",
-  "branch": "codex/v2-webhook-admission-failure",
-  "head": "3846b3fce71349d203c56ffce7ef4d101ad3df73",
-  "pr": 333,
-  "scope": "Prevent failed first-insert admission from overwriting another webhook request's event state",
+  "status": "active",
+  "runId": "atlas-packet27-webhook-retry-admission",
+  "branch": "codex/v2-webhook-retry-admission",
+  "head": "a1cfe6e0267382b2106cdebd44033baa7530e024",
+  "pr": null,
+  "scope": "Conditional admission for concurrent FAILED_RETRYABLE webhook requests",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Continue Phase 1 webhook qualification with concurrent FAILED_RETRYABLE admissions and partial-side-effect recovery; preserve identity guards, fail-closed behavior, global consent policy and non-production scope",
+  "nextAction": "Reproduce duplicate retry effects, conditionally admit one processor, verify both-tenant real HTTP overlap and existing postflight",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
