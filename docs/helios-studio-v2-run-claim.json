@@ -1,5 +1,5 @@
 {
-  "status": "active",
+  "status": "checkpointed",
   "runId": "atlas-packet27-webhook-retry-admission",
   "branch": "codex/v2-webhook-retry-admission",
   "head": "7dc5e752b868ef205b54eb0b31ca02b5ef29c7c7",
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Inspect Packet 27 exact-head regression/runtime CI and downloaded artifact; merge only into non-production base once all qualification passes",
+  "nextAction": "Continue Phase 1 webhook partial-side-effect recovery qualification: inspect terminal status timing and failure/reclaim boundaries without changing global consent semantics or introducing automatic PROCESSING recovery",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -287,14 +287,14 @@
       {
         "id": 36349332430,
         "name": "V2 isolated runtime request isolation",
-        "status": "in_progress",
-        "conclusion": null
+        "status": "completed",
+        "conclusion": "success"
       },
       {
         "id": 36349332455,
         "name": "V2 regression",
-        "status": "in_progress",
-        "conclusion": null
+        "status": "completed",
+        "conclusion": "success"
       }
     ],
     "localTargetedTests": 27,
@@ -304,6 +304,9 @@
     "artifact": 10940574807,
     "artifactSha256": "6af632cd75de31f1897bce6cd6098a53733b7659444a154a1493e04f9131464d",
     "independentlyDownloaded": true,
-    "runtimeQualified": true
+    "runtimeQualified": true,
+    "merge": "61be715b15febd3c2573f69cbd54bd2d367c0bca",
+    "ci": "success",
+    "regressionTests": 1595
   }
 }
