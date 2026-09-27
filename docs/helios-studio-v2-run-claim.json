@@ -317,18 +317,25 @@
       {
         "id": 36352119552,
         "name": "V2 regression",
+        "head": "8b859e33d5ca0483a836b60e2a7f00d87347384f",
         "status": "in_progress",
         "conclusion": null
       },
       {
         "id": 36352119545,
         "name": "V2 isolated runtime request isolation",
-        "status": "in_progress",
-        "conclusion": null
+        "head": "8b859e33d5ca0483a836b60e2a7f00d87347384f",
+        "status": "completed",
+        "conclusion": "success"
       }
     ],
     "localTargetedTests": 28,
     "typescript": true,
-    "scopedLint": true
+    "scopedLint": true,
+    "runtime": "success",
+    "artifact": 10942109599,
+    "artifactSha256": "bc4fc04dc3c2b235e8f06b77ee58daca3f6e60740233023b502a8ef1630ddc3b",
+    "independentlyDownloaded": true,
+    "runtimeQualified": true
   }
 }
