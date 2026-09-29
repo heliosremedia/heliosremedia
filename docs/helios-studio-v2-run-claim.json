@@ -391,6 +391,13 @@
     "pr": 337,
     "localTargetedTests": 28,
     "typescript": true,
-    "scopedLint": true
+    "scopedLint": true,
+    "runtime": "success",
+    "artifact": 11006672401,
+    "artifactSha256": "5395189dcaa0ecba0c23fa39dd8683e63880480cabedc1278b37b17b63604581",
+    "independentlyDownloaded": true,
+    "runtimeQualified": true,
+    "schemaColumnsUnchanged": true,
+    "syntheticAccessRestored": true
   }
 }
