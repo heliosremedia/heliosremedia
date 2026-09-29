@@ -1,5 +1,5 @@
 {
-  "status": "active",
+  "status": "checkpointed",
   "runId": "atlas-packet30-complaint-settlement-atomicity",
   "branch": "codex/v2-complaint-settlement-atomicity",
   "head": "254a9df43ed63eae1b951fc5f4c16aff17414d45",
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Inspect Packet 30 exact-head CI and terminal-query cancellation evidence; integrate only after qualification and postflight",
+  "nextAction": "Continue Phase 1 from verified Packet 30 merge. Reassess the isolation matrix and bound the next unresolved webhook recovery/audit or tenant entry-point qualification gap before implementation. Arbitrary crashes, stranded PROCESSING, changing ownership, global consent scope and bounce audit durability remain unqualified. Production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -398,6 +398,29 @@
     "independentlyDownloaded": true,
     "runtimeQualified": true,
     "schemaColumnsUnchanged": true,
-    "syntheticAccessRestored": true
+    "syntheticAccessRestored": true,
+    "runs": [
+      {
+        "id": 36505327624,
+        "name": "V2 isolated runtime request isolation",
+        "head": "254a9df43ed63eae1b951fc5f4c16aff17414d45",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 36505327655,
+        "name": "V2 regression",
+        "head": "254a9df43ed63eae1b951fc5f4c16aff17414d45",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "ci": "success",
+    "regressionTests": 1600,
+    "chromium": true,
+    "merge": "5e62ba395a859f6771763dd28ae16ae1344b64ee",
+    "mergedTreeMatchesTestedHead": true,
+    "localWorkingTreeClean": true,
+    "vercelDeploymentsSuppressed": true
   }
 }
