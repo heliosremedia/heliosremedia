@@ -262,7 +262,73 @@ export async function qualifyWebhook(origin, driver) {
         canceledQuery: true, failureRetryable: true, retry: 200, oneDeliveryEvent: true, requiredFollowUpComplete: true, replayNoEffect: true });
     } finally { await pending; }
   }
+  const complaintSettlement = [];
+  for (const id of ['a', 'b']) {
+    const email = `${id}@example.test`; const message = `unique-${id}-email`; const eventId = randomUUID();
+    const group = await db.communicationGroup.findUniqueOrThrow({ where: { systemKey: 'MARKETING_UNSUBSCRIBED' } });
+    const membership = { groupId: group.id, clientId: `webhook-client-${id}` };
+    await db.communicationGroupMembership.deleteMany({ where: membership });
+    await db.marketingEmailPreference.update({ where: { normalizedEmail: email }, data: { status: 'UNKNOWN' } });
+    const historyCount = () => db.marketingEmailPreferenceEvent.count({ where: { messageId: message, reason: 'COMPLAINT' } });
+    const historyBefore = await historyCount();
+    let pending; let heldEvent; let releaseEvent;
+    let eventReadyResolve; let eventReadyReject;
+    const eventReady = new Promise((resolve, reject) => { eventReadyResolve = resolve; eventReadyReject = reject; });
+    const eventRelease = new Promise(resolve => { releaseEvent = resolve; });
+    try {
+      await db.$transaction(async groupLock => {
+        await groupLock.$queryRaw`SELECT id FROM "CommunicationGroup" WHERE id=${group.id} FOR UPDATE`;
+        const [{ pid }] = await groupLock.$queryRaw`SELECT pg_backend_pid() AS pid`;
+        pending = signed(id, message, 'email.complained', eventId, true, email)
+          .then(response => ({ response }), error => ({ error }));
+        await waitForBlocked(pid, 1);
+        // Admission/delivery persistence has finished. Hold only the subsequent
+        // terminal write, then release the group query so real follow-up completes.
+        heldEvent = db.$transaction(async eventLock => {
+          await eventLock.$queryRaw`SELECT id FROM "ResendWebhookEvent" WHERE "providerEventId"=${eventId} FOR UPDATE`;
+          const [{ pid: eventPid }] = await eventLock.$queryRaw`SELECT pg_backend_pid() AS pid`;
+          eventReadyResolve(eventPid);
+          await eventRelease;
+        }, { timeout: 30000 }).then(() => ({}), error => { eventReadyReject(error); return { error }; });
+        await eventReady;
+      }, { timeout: 30000 });
+      const eventPid = await eventReady;
+      await waitForBlocked(eventPid, 1);
+      assert.equal(await historyCount(), historyBefore);
+      assert.equal((await db.marketingEmailPreference.findUniqueOrThrow({ where: { normalizedEmail: email } })).status, 'UNKNOWN');
+      assert.equal(await db.communicationGroupMembership.count({ where: membership }), 0);
+      assert.equal((await db.resendWebhookEvent.findUniqueOrThrow({ where: { providerEventId: eventId } })).processingStatus, 'PROCESSING');
+      assert.equal((await signed(id, message, 'email.complained', eventId, true, email)).status, 503);
+      const canceled = await db.$queryRaw`SELECT pg_cancel_backend(pid) AS canceled FROM pg_stat_activity
+        WHERE datname=current_database() AND ${eventPid} = ANY(pg_blocking_pids(pid))`;
+      assert.equal(canceled.length, 1); assert.equal(canceled[0].canceled, true);
+    } finally {
+      releaseEvent();
+      const held = await heldEvent;
+      await pending;
+      if (held?.error) throw held.error;
+    }
+    const failure = await pending; if (failure.error) throw failure.error;
+    assert.equal(failure.response.status, 503);
+    assert.equal((await db.resendWebhookEvent.findUniqueOrThrow({ where: { providerEventId: eventId } })).processingStatus, 'FAILED_RETRYABLE');
+    assert.equal(await historyCount(), historyBefore);
+    assert.equal((await db.marketingEmailPreference.findUniqueOrThrow({ where: { normalizedEmail: email } })).status, 'UNKNOWN');
+    assert.equal(await db.communicationGroupMembership.count({ where: membership }), 0);
+    assert.equal((await signed(id, message, 'email.complained', eventId, true, email)).status, 200);
+    const complete = await db.resendWebhookEvent.findUniqueOrThrow({ where: { providerEventId: eventId } });
+    assert.equal(complete.processingStatus, 'PROCESSED'); assert.equal(complete.workspaceId, id); assert.ok(complete.processedAt);
+    assert.equal(await historyCount(), historyBefore + 1);
+    assert.equal((await db.marketingEmailPreference.findUniqueOrThrow({ where: { normalizedEmail: email } })).status, 'UNSUBSCRIBED');
+    assert.equal(await db.communicationGroupMembership.count({ where: membership }), 1);
+    assert.equal(await db.campaignDeliveryEvent.count({ where: { providerEventId: eventId } }), 1);
+    const beforeReplay = await snapshot();
+    assert.equal(JSON.parse((await signed(id, message, 'email.complained', eventId, true, email)).text).duplicate, true);
+    assert.deepEqual(await snapshot(), beforeReplay);
+    complaintSettlement.push({ tenant: id, groupWaitObserved: true, terminalWaitObserved: true,
+      canceledTerminalQuery: true, preferenceAndGroupRolledBack: true, failureRetryable: true,
+      retry: 200, oneNewHistoryEvent: true, oneDeliveryEvent: true, replayNoEffect: true });
+  }
   const unknown = await signed('a', 'no-local-message'); assert.equal(unknown.status, 200);
   assert.equal((await db.resendWebhookEvent.findUniqueOrThrow({ where: { providerEventId: unknown.eventId } })).workspaceId, null);
-  return { invalidSignature: 401, payloadBoundary, concurrentAdmission, concurrentRetry, partialRecovery, cases: results, providerCalls: false };
+  return { invalidSignature: 401, payloadBoundary, concurrentAdmission, concurrentRetry, partialRecovery, complaintSettlement, cases: results, providerCalls: false };
 }

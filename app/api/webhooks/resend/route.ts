@@ -271,16 +271,18 @@ export async function POST(request: Request) {
           update: { releasedAt: null, reason: "COMPLAINT", clientId: recipient.clientId },
         }),
       ]);
-      await setMarketingPreference({
-        email,
-        status: "UNSUBSCRIBED",
-        source: "RESEND_WEBHOOK",
-        reason: "COMPLAINT",
-        messageId: providerMessageId || undefined,
-      });
-      await prisma.resendWebhookEvent.update({
-        where: { providerEventId },
-        data: { processingStatus: "PROCESSED", processedAt: new Date() },
+      await prisma.$transaction(async (transaction) => {
+        await setMarketingPreference({
+          email,
+          status: "UNSUBSCRIBED",
+          source: "RESEND_WEBHOOK",
+          reason: "COMPLAINT",
+          messageId: providerMessageId || undefined,
+        }, transaction);
+        await transaction.resendWebhookEvent.update({
+          where: { providerEventId },
+          data: { processingStatus: "PROCESSED", processedAt: new Date() },
+        });
       });
     }
     return NextResponse.json({ success: true, matched: true });
@@ -288,7 +290,7 @@ export async function POST(request: Request) {
     // A failed insert may mean another request owns this event. Only a request
     // that completed admission may record its subsequent processing failure.
     if (admitted) await prisma.resendWebhookEvent.updateMany({
-      where: { providerEventId },
+      where: { providerEventId, processingStatus: "PROCESSING" },
       data: {
         processingStatus: "FAILED_RETRYABLE",
         reason: error instanceof Error ? error.name.slice(0, 120) : "UnknownError",
