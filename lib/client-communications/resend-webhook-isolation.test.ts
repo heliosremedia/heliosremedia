@@ -6,7 +6,7 @@ import test from 'node:test';
 import ts from 'typescript';
 import * as core from './resend-webhook-core.ts';
 
-function fixture(emailOwners: Array<string | null>, referralOwners: Array<string | null>, options: { creator?: string; tenantMode?: boolean; workspaces?: string[]; beforeEffect?: (name: string) => Promise<void> } = {}) {
+function fixture(emailOwners: Array<string | null>, referralOwners: Array<string | null>, options: { creator?: string; tenantMode?: boolean; workspaces?: string[]; afterTerminalWrite?: () => void; beforeEffect?: (name: string) => Promise<void> } = {}) {
   const key = Buffer.from('synthetic-webhook-signing-key-only');
   const events = new Map<string, Record<string, unknown>>();
   const effects: string[] = []; const lookups: string[] = []; const failureWrites: string[] = [];
@@ -21,7 +21,7 @@ function fixture(emailOwners: Array<string | null>, referralOwners: Array<string
     resendWebhookEvent: {
       findUnique: async ({ where }: { where: { providerEventId: string } }) => { lookups.push('event'); const row = events.get(where.providerEventId); return row ? { ...row } : null; },
       create: async ({ data }: { data: Record<string, unknown> & { providerEventId: string } }) => { if (events.has(data.providerEventId)) throw Object.assign(new Error('unique event'), { code: 'P2002' }); events.set(data.providerEventId, { ...data }); return data; },
-      update: async ({ where, data }: { where: { providerEventId: string }; data: Record<string, unknown> }) => { Object.assign(events.get(where.providerEventId)!, data); return {}; },
+      update: async ({ where, data }: { where: { providerEventId: string }; data: Record<string, unknown> }) => { Object.assign(events.get(where.providerEventId)!, data); if (data.processingStatus === "PROCESSED") options.afterTerminalWrite?.(); return {}; },
       updateMany: async ({ where, data }: { where: { providerEventId: string } & Record<string, unknown>; data: Record<string, unknown> }) => {
         const row = events.get(where.providerEventId);
         if (!row || Object.entries(where).some(([key, value]) => row[key] !== value)) return { count: 0 };
@@ -39,7 +39,7 @@ function fixture(emailOwners: Array<string | null>, referralOwners: Array<string
     campaignDeliveryEvent: { upsert: effect('delivery') },
     communicationClient: { updateMany: effect('client-suppression') }, communicationSuppression: { upsert: effect('suppression') },
     emailCampaign: { findUnique: async () => { lookups.push('diagnostic-tag'); return { createdBy: { workspaceId: 'tagged-foreign-workspace' } }; } },
-    $transaction: async (operations: Promise<unknown>[]) => Promise.all(operations),
+    $transaction: async (operations: Promise<unknown>[] | ((transaction: unknown) => Promise<unknown>)): Promise<unknown> => typeof operations === "function" ? operations(prisma) : Promise.all(operations),
   };
   const ownership: Record<string, unknown> = {};
   const ownershipModules: Record<string, unknown> = { 'server-only': {}, '@/lib/prisma': { prisma }, '@/lib/auth/session': {},
@@ -271,5 +271,18 @@ test('follow-up failures never expose completed events or acknowledge in-flight 
       assert.equal((await (await f.send({ type })).json()).duplicate, true);
       assert.deepEqual(f.effects, before);
     }
+  }
+});
+
+
+test('an observed terminal write is not downgraded by a later acknowledgement error', async () => {
+  for (const owner of ['a', 'b']) {
+    const f = fixture([owner], [], { afterTerminalWrite: () => { throw new Error('synthetic acknowledgement failure'); } });
+    assert.equal((await f.send({ type: 'email.complained' })).status, 503);
+    assert.equal(f.events.get('event-1')?.processingStatus, 'PROCESSED');
+    assert.deepEqual(f.failureWrites, []);
+    const before = [...f.effects];
+    assert.equal((await (await f.send({ type: 'email.complained' })).json()).duplicate, true);
+    assert.deepEqual(f.effects, before);
   }
 });

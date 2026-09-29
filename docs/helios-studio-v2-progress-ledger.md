@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## September 28, 2026: Packet 29 qualified; Packet 30 complaint settlement
+
+Live development base `43d51847de492ac73ab34e0c191681cf5abf522e` matches Packet 29 / PR #336. Head `56a3e9fb4f56807681ae72f6101fbb457a0241c9` passed regression 36353460450 (1,598 tests and Chromium) and runtime 36353460475. Downloaded artifact 10942918520 SHA256 `4ed6243f1db1bb09decdf577403ac2e9c5e5933347ab177a7c2063c24ccc86e2` independently checked; both-tenant group-failure rollback/retry and prior isolation/postflight passed. Merged tree matched the tested head.
+
+Packet 30 reproduces preference persistence before failed webhook finalization, then combines those writes in one transaction and restricts catch-path failure writes to PROCESSING events. [Scope and evidence limits](helios-studio-v2-complaint-settlement-atomicity.md). Twenty-eight targeted tests, TypeScript/scoped lint and syntax/whitespace pass. Real HTTP/PostgreSQL terminal-query cancellation for both tenants and exact-head CI/artifact inspection remain required. No schema, consent-policy, provider, credential, hosted staging or production change. Phase 1 remains open.
+
 ## September 27, 2026: Packet 28 qualified; Packet 29 preference atomicity
 
 PR #335 merged into development at `acf34c9f7ac9fba4e29c47fd62aba17024669f04`. Tested head `8b859e33d5ca0483a836b60e2a7f00d87347384f` passed regression 36352119552 (1,596 tests and Chromium) and runtime 36352119545. Downloaded artifact 10942109599 SHA256 `bc4fc04dc3c2b235e8f06b77ee58daca3f6e60740233023b502a8ef1630ddc3b` independently checked; all four complaint/bounce recovery cases and schema/access postflight passed. Merged tree matched the tested head; Vercel deployments remained suppressed.

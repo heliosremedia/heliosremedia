@@ -63,15 +63,15 @@ export async function setMarketingPreference(input: {
   messageId?: string | null;
   actorId?: string | null;
   resubscribeMethod?: string | null;
-}) {
+}, transaction?: Prisma.TransactionClient) {
   const normalizedEmail = normalizeEmail(input.email);
   if (!normalizedEmail) throw new Error("A valid email address is required.");
   const now = new Date();
-  const existing = await prisma.marketingEmailPreference.findUnique({
-    where: { normalizedEmail },
-    select: { id: true, status: true },
-  });
-  const preference = await prisma.$transaction(async (transaction) => {
+  const perform = async (transaction: Prisma.TransactionClient) => {
+    const existing = await transaction.marketingEmailPreference.findUnique({
+      where: { normalizedEmail },
+      select: { id: true, status: true },
+    });
     const next = await transaction.marketingEmailPreference.upsert({
       where: { normalizedEmail },
       create: {
@@ -119,8 +119,8 @@ export async function setMarketingPreference(input: {
     });
     await reconcileUnsubscribedGroup(normalizedEmail, transaction);
     return next;
-  });
-  return preference;
+  };
+  return transaction ? perform(transaction) : prisma.$transaction(perform);
 }
 
 export async function createPreferenceToken(input: {
