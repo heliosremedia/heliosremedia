@@ -429,6 +429,22 @@
     "pr": 338,
     "localTargetedTests": 24,
     "typescript": true,
-    "scopedLint": true
+    "scopedLint": true,
+    "runtime": "success",
+    "artifact": 11095697696,
+    "artifactSha256": "7171326b548f960f65ffb939c7b665a715b5f612e771174e75865e729ce106fd",
+    "independentlyDownloaded": true,
+    "runtimeQualified": true,
+    "schemaColumnsUnchanged": true,
+    "syntheticAccessRestored": true
+  },
+  "consentDecision": {
+    "status": "owner-decision-prepared",
+    "document": "docs/helios-studio-v2-consent-boundary-owner-decision.md",
+    "branch": "ops/v2-automation-control",
+    "syntheticReproduction": "scripts/rehearsal/consent-boundary-probe.mjs",
+    "sameAddressCrossCompanyMutation": true,
+    "foreignClientAdminMutation": true,
+    "productionAccessed": false
   }
 }
