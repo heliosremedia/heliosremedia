@@ -328,7 +328,48 @@ export async function qualifyWebhook(origin, driver) {
       canceledTerminalQuery: true, preferenceAndGroupRolledBack: true, failureRetryable: true,
       retry: 200, oneNewHistoryEvent: true, oneDeliveryEvent: true, replayNoEffect: true });
   }
+  const bounceAudit = [];
+  for (const id of ['a', 'b']) {
+    const message = `unique-${id}-email`; const email = `${id}@example.test`; const eventId = randomUUID();
+    const group = await db.communicationGroup.findUniqueOrThrow({ where: { systemKey: `BOUNCED_BACK:${id}` } });
+    const membership = { groupId: group.id, clientId: `webhook-client-${id}` };
+    await db.communicationGroupMembership.deleteMany({ where: membership });
+    const auditBefore = await db.auditEvent.count(); let pending;
+    try {
+      await db.$transaction(async held => {
+        await held.$executeRaw`LOCK TABLE "AuditEvent" IN SHARE MODE`;
+        const [{ pid }] = await held.$queryRaw`SELECT pg_backend_pid() AS pid`;
+        pending = signed(id, message, 'email.bounced', eventId, true, email)
+          .then(response => ({ response }), error => ({ error }));
+        await waitForBlocked(pid, 1);
+        assert.equal((await db.resendWebhookEvent.findUniqueOrThrow({ where: { providerEventId: eventId } })).processingStatus, 'PROCESSING');
+        assert.equal(await db.communicationGroupMembership.count({ where: membership }), 0);
+        assert.equal(await db.auditEvent.count(), auditBefore);
+        assert.equal((await signed(id, message, 'email.bounced', eventId, true, email)).status, 503);
+        const canceled = await db.$queryRaw`SELECT pg_cancel_backend(pid) AS canceled FROM pg_stat_activity
+          WHERE datname=current_database() AND ${pid} = ANY(pg_blocking_pids(pid))`;
+        assert.equal(canceled.length, 1); assert.equal(canceled[0].canceled, true);
+        const failure = await pending; if (failure.error) throw failure.error;
+        assert.equal(failure.response.status, 503);
+        assert.equal((await db.resendWebhookEvent.findUniqueOrThrow({ where: { providerEventId: eventId } })).processingStatus, 'FAILED_RETRYABLE');
+        assert.equal(await db.communicationGroupMembership.count({ where: membership }), 0);
+        assert.equal(await db.auditEvent.count(), auditBefore);
+      }, { timeout: 30000 });
+    } finally { await pending; }
+    assert.equal((await signed(id, message, 'email.bounced', eventId, true, email)).status, 200);
+    assert.equal((await db.resendWebhookEvent.findUniqueOrThrow({ where: { providerEventId: eventId } })).processingStatus, 'PROCESSED');
+    assert.equal(await db.communicationGroupMembership.count({ where: membership }), 1);
+    assert.equal(await db.auditEvent.count(), auditBefore + 1);
+    const audits = await db.auditEvent.findMany({ where: { action: 'CLIENT_PERMANENT_BOUNCE_RECORDED', metadata: { path: ['providerEventId'], equals: eventId } } });
+    assert.equal(audits.length, 1); assert.equal(audits[0].workspaceId, id); assert.equal(audits[0].entityId, `webhook-client-${id}`);
+    assert.equal(await db.campaignDeliveryEvent.count({ where: { providerEventId: eventId } }), 1);
+    const beforeReplay = await snapshot();
+    assert.equal(JSON.parse((await signed(id, message, 'email.bounced', eventId, true, email)).text).duplicate, true);
+    assert.deepEqual(await snapshot(), beforeReplay); assert.equal(await db.auditEvent.count(), auditBefore + 1);
+    bounceAudit.push({ tenant: id, auditWaitObserved: true, canceledAuditQuery: true, membershipRolledBack: true,
+      failureRetryable: true, retry: 200, oneOwnedAudit: true, oneDeliveryEvent: true, replayNoEffect: true });
+  }
   const unknown = await signed('a', 'no-local-message'); assert.equal(unknown.status, 200);
   assert.equal((await db.resendWebhookEvent.findUniqueOrThrow({ where: { providerEventId: unknown.eventId } })).workspaceId, null);
-  return { invalidSignature: 401, payloadBoundary, concurrentAdmission, concurrentRetry, partialRecovery, complaintSettlement, cases: results, providerCalls: false };
+  return { invalidSignature: 401, payloadBoundary, concurrentAdmission, concurrentRetry, partialRecovery, complaintSettlement, bounceAudit, cases: results, providerCalls: false };
 }
