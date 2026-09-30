@@ -1,5 +1,5 @@
 {
-  "status": "active",
+  "status": "blocked-owner-architecture-decision",
   "runId": "atlas-packet31-bounce-audit-atomicity",
   "branch": "codex/v2-bounce-audit-atomicity",
   "head": "cabe2ff6c8595165cf52b3002f871ca7c3206dbb",
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Qualify Packet 31 exact-head CI and audit-query failure evidence; assess remaining consent architecture against canonical isolation requirements",
+  "nextAction": "Owner review of docs/helios-studio-v2-consent-boundary-owner-decision.md on ops/v2-automation-control. Approve tenant marketing preferences plus separate protected platform safety suppression and conservative legacy opt-out preservation before the cross-cutting consent migration. First follow-up is administrator-path containment. Production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -436,10 +436,34 @@
     "independentlyDownloaded": true,
     "runtimeQualified": true,
     "schemaColumnsUnchanged": true,
-    "syntheticAccessRestored": true
+    "syntheticAccessRestored": true,
+    "runs": [
+      {
+        "id": 36714191069,
+        "name": "V2 isolated runtime request isolation",
+        "head": "cabe2ff6c8595165cf52b3002f871ca7c3206dbb",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 36714191483,
+        "name": "V2 regression",
+        "head": "cabe2ff6c8595165cf52b3002f871ca7c3206dbb",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "ci": "success",
+    "regressionTests": 1602,
+    "chromium": true,
+    "merge": "df3912cf771a0d141d097089ccc70a859d1043a7",
+    "mergedTreeMatchesTestedHead": true,
+    "isolatedWorkingTreeClean": true,
+    "unrelatedLocalPhotoEditPreserved": true,
+    "vercelDeploymentsSuppressed": true
   },
   "consentDecision": {
-    "status": "owner-decision-prepared",
+    "status": "awaiting-owner-architecture-decision",
     "document": "docs/helios-studio-v2-consent-boundary-owner-decision.md",
     "branch": "ops/v2-automation-control",
     "syntheticReproduction": "scripts/rehearsal/consent-boundary-probe.mjs",
