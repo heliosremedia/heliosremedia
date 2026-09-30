@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## September 30, 2026: Packet 30 qualified; Packet 31 bounce audit
+
+Live development base `5e62ba395a859f6771763dd28ae16ae1344b64ee` matches Packet 30 / PR #337. Head `254a9df43ed63eae1b951fc5f4c16aff17414d45` passed regression 36505327655 (1,600 tests and Chromium) and runtime 36505327624. Downloaded artifact 11006672401 SHA256 `5395189dcaa0ecba0c23fa39dd8683e63880480cabedc1278b37b17b63604581` independently checked; both-tenant terminal-query rollback/retry and prior isolation/postflight passed. Merged tree matched the tested head.
+
+Packet 31 reproduces completed bounce events without durable audit, then moves the audit into the membership/completion transaction. [Scope and qualification](helios-studio-v2-bounce-audit-atomicity.md). Both-tenant audit-write cancellation, rollback, retry and inert replay are required from exact-head CI/downloaded evidence. No schema, policy, provider, credential, hosted staging or production changes. Phase 1 remains open. An isolated checkout preserves an unrelated local photo edit.
+
 ## September 28, 2026: Packet 29 qualified; Packet 30 complaint settlement
 
 Live development base `43d51847de492ac73ab34e0c191681cf5abf522e` matches Packet 29 / PR #336. Head `56a3e9fb4f56807681ae72f6101fbb457a0241c9` passed regression 36353460450 (1,598 tests and Chromium) and runtime 36353460475. Downloaded artifact 10942918520 SHA256 `4ed6243f1db1bb09decdf577403ac2e9c5e5933347ab177a7c2063c24ccc86e2` independently checked; both-tenant group-failure rollback/retry and prior isolation/postflight passed. Merged tree matched the tested head.
