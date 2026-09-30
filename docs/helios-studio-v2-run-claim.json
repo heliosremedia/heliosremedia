@@ -1,10 +1,10 @@
 {
-  "status": "checkpointed",
-  "runId": "atlas-packet30-complaint-settlement-atomicity",
-  "branch": "codex/v2-complaint-settlement-atomicity",
-  "head": "254a9df43ed63eae1b951fc5f4c16aff17414d45",
-  "pr": 337,
-  "scope": "Atomic complaint preference/group persistence and terminal webhook settlement",
+  "status": "active",
+  "runId": "atlas-packet31-bounce-audit-atomicity",
+  "branch": "codex/v2-bounce-audit-atomicity",
+  "head": "cabe2ff6c8595165cf52b3002f871ca7c3206dbb",
+  "pr": 338,
+  "scope": "Atomic owned permanent-bounce audit and completion",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Continue Phase 1 from verified Packet 30 merge. Reassess the isolation matrix and bound the next unresolved webhook recovery/audit or tenant entry-point qualification gap before implementation. Arbitrary crashes, stranded PROCESSING, changing ownership, global consent scope and bounce audit durability remain unqualified. Production ON HOLD.",
+  "nextAction": "Qualify Packet 31 exact-head CI and audit-query failure evidence; assess remaining consent architecture against canonical isolation requirements",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -422,5 +422,13 @@
     "mergedTreeMatchesTestedHead": true,
     "localWorkingTreeClean": true,
     "vercelDeploymentsSuppressed": true
+  },
+  "packet31": {
+    "head": "cabe2ff6c8595165cf52b3002f871ca7c3206dbb",
+    "tree": "9d51d8c12c3b7bea8ccd72f2554b4a4d6f03f85e",
+    "pr": 338,
+    "localTargetedTests": 24,
+    "typescript": true,
+    "scopedLint": true
   }
 }
