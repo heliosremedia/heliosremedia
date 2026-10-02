@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 2, 2026: Packet 31 reconfirmed; Packet 32 Social AI isolation
+
+Live non-production base `df3912cf771a0d141d097089ccc70a859d1043a7` matches merged PR #338. Exact head `cabe2ff6c8595165cf52b3002f871ca7c3206dbb` regression 36714191483 and runtime 36714191069 independently reconfirmed SUCCESS. PR/checkpoint evidence records 1,602 tests, Chromium, artifact 11095697696 SHA256 `7171326b548f960f65ffb939c7b665a715b5f612e771174e75865e729ce106fd`, both-tenant bounce audit rollback/retry and unchanged schema/restored synthetic access. This resume did not rerun hosted qualification or redownload the historical artifact.
+
+A fresh checkout replaces reliance on interrupted local work. Packet 32 adds four composed Social AI isolation tests: both-direction foreign campaign/variant/project rejection, overlapped source-to-prompt/output-target isolation and revocation before settlement. [Scope and adapter limits](helios-studio-v2-social-ai-isolation.md). No application change was required. Exact-head CI remains required before integration. Consent architecture remains a separate pending owner decision; this independent AI evidence packet does not cross it. Phase 1 remains open. Production ON HOLD.
+
 ## September 30, 2026: Packet 30 qualified; Packet 31 bounce audit
 
 Live development base `5e62ba395a859f6771763dd28ae16ae1344b64ee` matches Packet 30 / PR #337. Head `254a9df43ed63eae1b951fc5f4c16aff17414d45` passed regression 36505327655 (1,600 tests and Chromium) and runtime 36505327624. Downloaded artifact 11006672401 SHA256 `5395189dcaa0ecba0c23fa39dd8683e63880480cabedc1278b37b17b63604581` independently checked; both-tenant terminal-query rollback/retry and prior isolation/postflight passed. Merged tree matched the tested head.
