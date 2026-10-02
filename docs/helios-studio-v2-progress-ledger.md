@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 2, 2026: Packet 32 qualified; Packet 33 content-source isolation
+
+Live development base `147a78eabfde84cb65c22ecfd4ea86c76e694f16` independently confirmed as merged PR #339. Exact head `2206f6ef968933cf829fcda14f4a4797110b98f6` passed regression 37043023521: 1,606 tests, TypeScript and all Chromium checks. The checkpoint records matching tested/merged tree `c325313e7bca6682977ba817ecd1e8b73be4eeb8` and both Vercel deployments suppressed. This live checkpoint supersedes the supplied Packet 31 resume anchor.
+
+Packet 33 extends composed Social AI coverage to BLOG/NEWSLETTER sources and actual ownership-scope resolution. Eight added cases cover both-direction rejection, overlapping prompts/output targets and narrowly allowed legacy null ownership. [Scope and evidence limits](helios-studio-v2-social-ai-content-sources.md). Eighteen targeted tests, TypeScript, scoped lint and whitespace pass locally; exact-head CI is required before integration. No application/schema/provider/production change. Phase 1 remains open; consent architecture remains independently pending. Production ON HOLD.
+
 ## October 2, 2026: Packet 31 reconfirmed; Packet 32 Social AI isolation
 
 Live non-production base `df3912cf771a0d141d097089ccc70a859d1043a7` matches merged PR #338. Exact head `cabe2ff6c8595165cf52b3002f871ca7c3206dbb` regression 36714191483 and runtime 36714191069 independently reconfirmed SUCCESS. PR/checkpoint evidence records 1,602 tests, Chromium, artifact 11095697696 SHA256 `7171326b548f960f65ffb939c7b665a715b5f612e771174e75865e729ce106fd`, both-tenant bounce audit rollback/retry and unchanged schema/restored synthetic access. This resume did not rerun hosted qualification or redownload the historical artifact.
