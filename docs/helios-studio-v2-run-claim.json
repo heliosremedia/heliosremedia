@@ -1,10 +1,10 @@
 {
-  "status": "packet-complete",
-  "runId": "atlas-packet33-social-ai-content-sources",
-  "branch": "codex/v2-social-ai-content-sources",
-  "head": "12ce63f16be89f738ccd0334600046a3bb43c176",
-  "pr": 340,
-  "scope": "Social AI blog/newsletter source and legacy ownership composition",
+  "status": "in-progress",
+  "runId": "atlas-packet34-social-ai-runtime",
+  "branch": "codex/v2-social-ai-runtime",
+  "head": "3832c3a2408aa6804f0b3a729ea374da60eac5a2",
+  "pr": 341,
+  "scope": "Persisted Social AI output and current membership qualification",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Packet 33 integrated. Next bounded Phase 1 gap: actual Social AI output persistence and current-access settlement with disposable database and stubbed provider responses. Consent architecture remains independently pending. Production ON HOLD.",
+  "nextAction": "Inspect exact-head runtime/regression and download evidence before non-production integration. Production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -526,5 +526,14 @@
     "mergedTreeMatchesTestedHead": true,
     "isolatedWorkingTreeClean": true,
     "vercelDeploymentsSuppressed": true
+  },
+  "packet34": {
+    "head": "3832c3a2408aa6804f0b3a729ea374da60eac5a2",
+    "tree": "d98d900b74565a66f8d9ed1f81676010f306a464",
+    "pr": 341,
+    "localTargetedTests": 18,
+    "typescript": true,
+    "scopedLint": true,
+    "sourcePreparation": true
   }
 }
