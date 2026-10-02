@@ -1,5 +1,5 @@
 {
-  "status": "in-progress",
+  "status": "packet-complete",
   "runId": "atlas-packet32-social-ai-isolation",
   "branch": "codex/v2-social-ai-isolation",
   "head": "2206f6ef968933cf829fcda14f4a4797110b98f6",
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Verify exact-head regression/Chromium and suppressed Vercel statuses; integrate Packet 32 only after success. Consent architecture remains separately pending; production ON HOLD.",
+  "nextAction": "Packet 32 integrated. Next bounded Phase 1 scope: extend Social AI composition to BLOG/NEWSLETTER owned source families, or disposable PostgreSQL output persistence qualification. Preserve synthetic-provider boundary. Consent architecture remains independently pending owner decision; production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -479,6 +479,24 @@
     "typescript": true,
     "scopedLint": true,
     "providerCalls": false,
-    "evidenceBoundary": "Module composition with synthetic persistence and access adapters; no hosted or PostgreSQL qualification"
+    "evidenceBoundary": "Module composition with synthetic persistence and access adapters; no hosted or PostgreSQL qualification",
+    "merge": "147a78eabfde84cb65c22ecfd4ea86c76e694f16",
+    "runs": [
+      {
+        "id": 37043023521,
+        "head": "2206f6ef968933cf829fcda14f4a4797110b98f6",
+        "name": "V2 regression",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "regressionTests": 1606,
+    "chromium": true,
+    "ci": "success",
+    "jobLogsIndependentlyInspected": true,
+    "mergedTreeMatchesTestedHead": true,
+    "isolatedWorkingTreeClean": true,
+    "vercelDeploymentsSuppressed": true,
+    "mutationSensitivityChecked": true
   }
 }
