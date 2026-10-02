@@ -1,5 +1,5 @@
 {
-  "status": "in-progress",
+  "status": "packet-complete",
   "runId": "atlas-packet34-social-ai-runtime",
   "branch": "codex/v2-social-ai-runtime",
   "head": "3832c3a2408aa6804f0b3a729ea374da60eac5a2",
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Inspect exact-head runtime/regression and download evidence before non-production integration. Production ON HOLD.",
+  "nextAction": "Packet 34 integrated. Next bounded Phase 1 scope: Social AI multi-variant settlement failure/rollback in disposable PostgreSQL with synthetic providers, preserving current approval and request identity guards. Cross-tenant request-ID uniqueness and source changes during generation remain open. Consent architecture independently pending; production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -534,6 +534,37 @@
     "localTargetedTests": 18,
     "typescript": true,
     "scopedLint": true,
-    "sourcePreparation": true
+    "sourcePreparation": true,
+    "merge": "6d3089e8f8c7094457ffd2aa39c905412f888ecf",
+    "runs": [
+      {
+        "id": 37047286090,
+        "name": "V2 isolated runtime request isolation",
+        "head": "3832c3a2408aa6804f0b3a729ea374da60eac5a2",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 37047286145,
+        "name": "V2 regression",
+        "head": "3832c3a2408aa6804f0b3a729ea374da60eac5a2",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "ci": "success",
+    "regressionTests": 1617,
+    "chromium": true,
+    "runtime": "success",
+    "artifact": 11245446477,
+    "artifactSha256": "92100c2ac04c0b50231f3d8b24049cbfe47dd116a8437228880cfc67522b5471",
+    "independentlyDownloaded": true,
+    "runtimeQualified": true,
+    "schemaColumnsUnchanged": true,
+    "syntheticAccessRestored": true,
+    "liveProviderCalls": false,
+    "mergedTreeMatchesTestedHead": true,
+    "isolatedWorkingTreeClean": true,
+    "vercelDeploymentsSuppressed": true
   }
 }
