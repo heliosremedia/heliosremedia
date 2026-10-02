@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 2, 2026: Packet 33 qualified; Packet 34 persisted Social AI output
+
+Live non-production base `ef0d0dd171d7ff5d412f675d2b105d67f9d22900` confirmed as merged PR #340. Exact head `12ce63f16be89f738ccd0334600046a3bb43c176` passed regression 37045165283 with 1,614 tests, TypeScript and all Chromium checks; merged tree matched tested tree `6a4e43da0d3b76e4de03368e6a8345ad1e733bc3`. Vercel remained suppressed.
+
+Packet 34 extends the actual Next/PostgreSQL harness to Social AI persisted drafts, approval revocation, foreign rejection, replay and lock-observed membership revocation during a synthetic provider response. [Scope, provider substitution and limits](helios-studio-v2-social-ai-runtime.md). Eighteen targeted tests, TypeScript, scoped lint, syntax/whitespace and source preparation pass locally. Exact-head runtime/artifact and regression qualification remain required. No application/schema/hosted/provider/production change. Phase 1 remains open; consent architecture is independently pending. Production ON HOLD.
+
 ## October 2, 2026: Packet 32 qualified; Packet 33 content-source isolation
 
 Live development base `147a78eabfde84cb65c22ecfd4ea86c76e694f16` independently confirmed as merged PR #339. Exact head `2206f6ef968933cf829fcda14f4a4797110b98f6` passed regression 37043023521: 1,606 tests, TypeScript and all Chromium checks. The checkpoint records matching tested/merged tree `c325313e7bca6682977ba817ecd1e8b73be4eeb8` and both Vercel deployments suppressed. This live checkpoint supersedes the supplied Packet 31 resume anchor.
