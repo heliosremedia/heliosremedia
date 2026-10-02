@@ -8,6 +8,7 @@ import { createServer } from 'node:net';
 import { build } from 'esbuild';
 import { DATABASE, requireDatabase, requireOrigin } from './safety.mjs';
 import { qualify } from './http.mjs';
+import { qualifySocialAi } from './social-ai.mjs';
 import { qualifyPortfolio } from './portfolio.mjs';
 import { qualifyPreviewFencing } from './preview-fencing.mjs';
 import { qualifyWebhook, WEBHOOK_KEY } from './webhook.mjs';
@@ -55,6 +56,15 @@ async function prepare() {
   const fontImport = 'import { Cormorant_Garamond, Inter } from "next/font/google";';
   assert.ok(layout.includes(fontImport), 'Font substitution must match reviewed source');
   await writeFile(join(app, 'app/layout.tsx'), layout.replace(fontImport, 'const Cormorant_Garamond = (_options: unknown) => ({variable:""}); const Inter = (_options: unknown) => ({variable:""});'));
+  // Only this route receives a lexical fetch substitute. It cannot call a provider.
+  const aiRoutePath = join(app, 'app/api/admin/social/ai/route.ts');
+  const aiRoute = await readFile(aiRoutePath, 'utf8');
+  assert.equal((aiRoute.match(/await fetch\(/g) || []).length, 2, 'Review changed provider call sites');
+  assert.ok(!aiRoute.includes('syntheticSocialFetch'));
+  const keyRead = 'const apiKey = process.env.OPENAI_API_KEY?.trim();';
+  assert.equal(aiRoute.split(keyRead).length, 2, 'Review changed provider key read');
+  await cp(join(root, 'scripts/rehearsal/request-isolation/social-provider.ts'), join(app, 'lib/packet34-social-provider.ts'));
+  await writeFile(aiRoutePath, 'import { syntheticSocialFetch as fetch } from "@/lib/packet34-social-provider";\n' + aiRoute.replace(keyRead, "const apiKey = 'packet34-synthetic-no-provider';"));
   const bundle = join(scratch, 'driver.mjs');
   await build({ entryPoints: [join(root, 'scripts/rehearsal/request-isolation/driver.ts')], outfile: bundle, bundle: true, platform: 'node', format: 'esm', packages: 'external' });
   return bundle;
@@ -88,14 +98,15 @@ try {
     const portfolio = await qualifyPortfolio(origin, driver);
     const previewFencing = await qualifyPreviewFencing(origin, driver);
     const webhook = await qualifyWebhook(origin, driver);
+    const socialAi = await qualifySocialAi(origin, driver);
     assert.equal(await driver.schemaFingerprint(), schemaBefore);
     assert.equal(await driver.prisma.workspace.count(), 2);
     assert.equal(await driver.prisma.workspaceMembership.count({ where: { status: 'ACTIVE' } }), 2);
     assert.equal(await driver.prisma.adminUser.count({ where: { sessionVersion: 1 } }), 2);
     await mkdir('release-evidence', { recursive: true });
     await writeFile('release-evidence/request-isolation.json', JSON.stringify({ version: 1, candidate: head, runtime: 'Next build/start with PrismaPg',
-      target: 'disposable-local-postgresql', sourceSubstitutions: ['PrismaNeon to PrismaPg', 'offline font variables'], result, portfolio, previewFencing,
-      webhook, schemaColumnsUnchanged: true, syntheticAccessRestored: true, hosted: false, deployable: false }, null, 2) + '\n');
+      target: 'disposable-local-postgresql', sourceSubstitutions: ['PrismaNeon to PrismaPg', 'offline font variables', 'Social AI fetch to synthetic no-network provider'], result, portfolio, previewFencing,
+      webhook, socialAi, schemaColumnsUnchanged: true, syntheticAccessRestored: true, hosted: false, deployable: false }, null, 2) + '\n');
     console.log('PASS actual Next production-mode HTTP: alternating/concurrent tenants, post-write reads, foreign/stale write rejection, membership/session revocation and schema/access postflight');
     console.log('PASS both-direction portfolio published/draft/preview isolation, actual preview creation/revocation, expiry and rejected usage-write containment');
     console.log('PASS actual PostgreSQL lock-observed preview create/revoke: membership revoked after initial session, both tenants reject403 without preview/audit mutation');
