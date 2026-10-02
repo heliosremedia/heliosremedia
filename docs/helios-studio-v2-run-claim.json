@@ -1,10 +1,10 @@
 {
-  "status": "packet-complete",
-  "runId": "atlas-packet32-social-ai-isolation",
-  "branch": "codex/v2-social-ai-isolation",
-  "head": "2206f6ef968933cf829fcda14f4a4797110b98f6",
-  "pr": 339,
-  "scope": "Composed synthetic Social AI source/prompt/output-target isolation",
+  "status": "in-progress",
+  "runId": "atlas-packet33-social-ai-content-sources",
+  "branch": "codex/v2-social-ai-content-sources",
+  "head": "12ce63f16be89f738ccd0334600046a3bb43c176",
+  "pr": 340,
+  "scope": "Social AI blog/newsletter source and legacy ownership composition",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Packet 32 integrated. Next bounded Phase 1 scope: extend Social AI composition to BLOG/NEWSLETTER owned source families, or disposable PostgreSQL output persistence qualification. Preserve synthetic-provider boundary. Consent architecture remains independently pending owner decision; production ON HOLD.",
+  "nextAction": "Qualify Packet 33 exact-head regression/Chromium, confirm deployment suppression, then integrate only into non-production. Consent architecture remains separately pending. Production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -498,5 +498,16 @@
     "isolatedWorkingTreeClean": true,
     "vercelDeploymentsSuppressed": true,
     "mutationSensitivityChecked": true
+  },
+  "packet33": {
+    "head": "12ce63f16be89f738ccd0334600046a3bb43c176",
+    "tree": "6a4e43da0d3b76e4de03368e6a8345ad1e733bc3",
+    "pr": 340,
+    "localTargetedTests": 18,
+    "typescript": true,
+    "scopedLint": true,
+    "mutationSensitivityChecked": true,
+    "providerCalls": false,
+    "evidenceBoundary": "Module composition; synthetic database, authentication/current-access and output persistence"
   }
 }
