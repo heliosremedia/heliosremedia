@@ -2,6 +2,7 @@ import "server-only";
 
 import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/app/generated/prisma/client";
 import { normalizeEmail } from "./normalization";
 
 export const UNSUBSCRIBED_GROUP_KEY = "MARKETING_UNSUBSCRIBED";
@@ -13,7 +14,7 @@ export function generatePreferenceToken() {
   return randomBytes(32).toString("base64url");
 }
 
-async function systemGroup(transaction = prisma) {
+async function systemGroup(transaction: Prisma.TransactionClient = prisma) {
   return transaction.communicationGroup.upsert({
     where: { systemKey: UNSUBSCRIBED_GROUP_KEY },
     create: {
@@ -31,23 +32,23 @@ async function systemGroup(transaction = prisma) {
   });
 }
 
-export async function reconcileUnsubscribedGroup(normalizedEmail: string) {
-  const preference = await prisma.marketingEmailPreference.findUnique({
+export async function reconcileUnsubscribedGroup(normalizedEmail: string, transaction: Prisma.TransactionClient = prisma) {
+  const preference = await transaction.marketingEmailPreference.findUnique({
     where: { normalizedEmail },
     select: { status: true },
   });
-  const clients = await prisma.communicationClient.findMany({
+  const clients = await transaction.communicationClient.findMany({
     where: { normalizedEmail },
     select: { id: true },
   });
-  const group = await systemGroup();
+  const group = await systemGroup(transaction);
   if (preference && ["UNSUBSCRIBED", "SUPPRESSED"].includes(preference.status)) {
-    await prisma.communicationGroupMembership.createMany({
+    await transaction.communicationGroupMembership.createMany({
       data: clients.map((client) => ({ groupId: group.id, clientId: client.id })),
       skipDuplicates: true,
     });
   } else {
-    await prisma.communicationGroupMembership.deleteMany({
+    await transaction.communicationGroupMembership.deleteMany({
       where: { groupId: group.id, clientId: { in: clients.map((client) => client.id) } },
     });
   }
@@ -62,15 +63,15 @@ export async function setMarketingPreference(input: {
   messageId?: string | null;
   actorId?: string | null;
   resubscribeMethod?: string | null;
-}) {
+}, transaction?: Prisma.TransactionClient) {
   const normalizedEmail = normalizeEmail(input.email);
   if (!normalizedEmail) throw new Error("A valid email address is required.");
   const now = new Date();
-  const existing = await prisma.marketingEmailPreference.findUnique({
-    where: { normalizedEmail },
-    select: { id: true, status: true },
-  });
-  const preference = await prisma.$transaction(async (transaction) => {
+  const perform = async (transaction: Prisma.TransactionClient) => {
+    const existing = await transaction.marketingEmailPreference.findUnique({
+      where: { normalizedEmail },
+      select: { id: true, status: true },
+    });
     const next = await transaction.marketingEmailPreference.upsert({
       where: { normalizedEmail },
       create: {
@@ -116,10 +117,10 @@ export async function setMarketingPreference(input: {
         unsubscribedAt: ["UNSUBSCRIBED", "SUPPRESSED"].includes(input.status) ? now : null,
       },
     });
+    await reconcileUnsubscribedGroup(normalizedEmail, transaction);
     return next;
-  });
-  await reconcileUnsubscribedGroup(normalizedEmail);
-  return preference;
+  };
+  return transaction ? perform(transaction) : prisma.$transaction(perform);
 }
 
 export async function createPreferenceToken(input: {
