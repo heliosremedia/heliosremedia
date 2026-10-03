@@ -14,7 +14,7 @@ function fixture() {
   runInNewContext(ts.transpileModule(readFileSync(new URL('../scripts/rehearsal/request-isolation/social-provider.ts', import.meta.url), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
   }).outputText, { exports, Response, Headers, require: (id: string) => { assert.ok(id in modules, id); return modules[id]; } });
-  const body = (id: string, grounding = false) => ({ instructions: `You are Social Studio for Synthetic ${id}.`, input: `AI_FACT_${id}${grounding ? ` AI_DRAFT_${id}` : ''}`, text: { format: { type: grounding ? 'json_schema' : 'json_object' } } });
+  const body = (id: string, grounding = false, platforms = ['FACEBOOK']) => ({ instructions: `You are Social Studio for Synthetic ${id}.`, input: `Create distinct social drafts for: ${platforms.join(", ")}. AI_FACT_${id}${grounding ? ` AI_DRAFT_${id}` : ''}`, text: { format: { type: grounding ? 'json_schema' : 'json_object', schema: { properties: { platforms: { required: platforms } } } } } });
   return { body, locks: () => locks, call: (input: unknown, url = 'https://api.openai.com/v1/responses') => exports.syntheticSocialFetch!(url, {
     method: 'POST', headers: { Authorization: 'Bearer packet34-synthetic-no-provider' }, body: JSON.stringify(input),
   }) };
@@ -32,5 +32,23 @@ test('synthetic Social provider rejects unexpected destinations, tenants and for
   await assert.rejects(h.call(h.body('c')));
   await assert.rejects(h.call({ ...h.body('a'), input: 'AI_FACT_b' }));
   await assert.rejects(h.call({ ...h.body('a'), input: 'AI_FACT_a AI_FACT_b' }));
+  assert.equal(h.locks(), 0);
+});
+
+test('synthetic Social provider supplies exactly the requested two platforms at both stages', async () => {
+  const h = fixture();
+  for (const grounding of [false, true]) {
+    const response = await (await h.call(h.body('a', grounding, ['FACEBOOK', 'INSTAGRAM']))).json();
+    const result = JSON.parse(response.output_text);
+    const drafts = grounding ? result.platforms : Object.fromEntries(Object.entries(result).filter(([key]) => key !== 'campaignBrief'));
+    assert.deepEqual(Object.keys(drafts).sort(), ['FACEBOOK', 'INSTAGRAM']);
+    assert.equal(drafts.FACEBOOK.caption, 'AI_DRAFT_a'); assert.equal(drafts.INSTAGRAM.caption, 'AI_DRAFT_a');
+  }
+});
+test('synthetic Social provider rejects empty, duplicate and unsupported platform sets before locking', async () => {
+  const h = fixture();
+  for (const platforms of [[], ['FACEBOOK', 'FACEBOOK'], ['OTHER']]) {
+    for (const grounding of [false, true]) await assert.rejects(h.call(h.body('a', grounding, platforms)));
+  }
   assert.equal(h.locks(), 0);
 });

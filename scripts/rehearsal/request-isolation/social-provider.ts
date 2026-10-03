@@ -16,6 +16,12 @@ export async function syntheticSocialFetch(url: string, options: RequestInit) {
   const other = id === 'a' ? 'b' : 'a';
   assert.ok(body.input.includes(`AI_FACT_${id}`), 'Owned source facts required');
   assert.ok(!JSON.stringify(body).includes(`AI_FACT_${other}`), 'Foreign facts forbidden');
+  const platforms: string[] = generation
+    ? (/Create distinct social drafts for: ([A-Z, ]+)\./.exec(body.input)?.[1].split(', ') || [])
+    : body.text.format.schema?.properties?.platforms?.required;
+  assert.ok(Array.isArray(platforms) && platforms.length > 0 && platforms.length <= 2);
+  assert.equal(new Set(platforms).size, platforms.length);
+  assert.ok(platforms.every(platform => ['FACEBOOK', 'INSTAGRAM'].includes(platform)));
   // Tests can hold this lock to stop a provider response after admission commits.
   // Return an integer column, never the PostgreSQL void-valued lock itself.
   if (generation) await prisma.$transaction(async tx => {
@@ -23,5 +29,6 @@ export async function syntheticSocialFetch(url: string, options: RequestInit) {
   }, { timeout: 15000 });
   const campaignBrief = { positioning: `AI_DRAFT_${id}`, themes: ['Photography'], cadence: 'Weekly', formats: ['Post'], platformConsiderations: 'Clear', callsToAction: 'Explore' };
   const draft = { caption: `AI_DRAFT_${id}`, openingHook: '', hashtags: [], callToAction: '', onScreenText: '', videoConcept: '', altText: '' };
-  return Response.json({ output_text: JSON.stringify(generation ? { campaignBrief, FACEBOOK: draft } : { campaignBrief, platforms: { FACEBOOK: draft }, unsupportedClaims: [] }) });
+  const drafts = Object.fromEntries(platforms.map(platform => [platform, draft]));
+  return Response.json({ output_text: JSON.stringify(generation ? { campaignBrief, ...drafts } : { campaignBrief, platforms: drafts, unsupportedClaims: [] }) });
 }
