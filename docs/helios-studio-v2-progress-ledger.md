@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 3, 2026: Packet 34 qualified; Packet 35 multi-variant rollback
+
+Live base `6d3089e8f8c7094457ffd2aa39c905412f888ecf` confirmed as merged PR #341. Packet 34 exact head `3832c3a2408aa6804f0b3a729ea374da60eac5a2` passed regression 37047286145 (1,617 tests, TypeScript and Chromium) and runtime 37047286090. Artifact 11245446477 SHA256 `92100c2ac04c0b50231f3d8b24049cbfe47dd116a8437228880cfc67522b5471` was independently downloaded/verified; both-tenant persisted output and revoked settlement, prior isolation and schema/access postflight passed. Merged tree matched tested tree; Vercel remained suppressed.
+
+Packet 35 extends disposable runtime qualification to a cancelled second-variant write, rollback of both drafts/approval changes, same-request retry and inert replay. [Scope and failure injection](helios-studio-v2-social-ai-rollback.md). Twenty targeted local tests, TypeScript, scoped lint, syntax/whitespace and preparation pass. Exact-head CI/runtime/artifact verification remains required. No application, migration, hosted, live provider or production changes. Phase 1 remains open; consent architecture is independently pending. Production ON HOLD.
+
 ## October 2, 2026: Packet 33 qualified; Packet 34 persisted Social AI output
 
 Live non-production base `ef0d0dd171d7ff5d412f675d2b105d67f9d22900` confirmed as merged PR #340. Exact head `12ce63f16be89f738ccd0334600046a3bb43c176` passed regression 37045165283 with 1,614 tests, TypeScript and all Chromium checks; merged tree matched tested tree `6a4e43da0d3b76e4de03368e6a8345ad1e733bc3`. Vercel remained suppressed.

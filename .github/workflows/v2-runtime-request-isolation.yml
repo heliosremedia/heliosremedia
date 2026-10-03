@@ -1,7 +1,7 @@
 name: V2 isolated runtime request isolation
 on:
   push:
-    branches: ['codex/v2-runtime-request-isolation', 'codex/v2-runtime-portfolio-isolation', 'codex/v2-preview-write-fencing', 'codex/v2-webhook-message-isolation', 'codex/v2-webhook-stored-ownership', 'codex/v2-webhook-payload-boundary', 'codex/v2-webhook-retry-identity', 'codex/v2-webhook-admission-failure', 'codex/v2-webhook-retry-admission', 'codex/v2-webhook-completion-boundary', 'codex/v2-preference-group-atomicity', 'codex/v2-complaint-settlement-atomicity', 'codex/v2-bounce-audit-atomicity', 'codex/v2-social-ai-runtime']
+    branches: ['codex/v2-runtime-request-isolation', 'codex/v2-runtime-portfolio-isolation', 'codex/v2-preview-write-fencing', 'codex/v2-webhook-message-isolation', 'codex/v2-webhook-stored-ownership', 'codex/v2-webhook-payload-boundary', 'codex/v2-webhook-retry-identity', 'codex/v2-webhook-admission-failure', 'codex/v2-webhook-retry-admission', 'codex/v2-webhook-completion-boundary', 'codex/v2-preference-group-atomicity', 'codex/v2-complaint-settlement-atomicity', 'codex/v2-bounce-audit-atomicity', 'codex/v2-social-ai-runtime', 'codex/v2-social-ai-rollback']
 permissions:
   contents: read
 concurrency:
