@@ -2,8 +2,8 @@
   "status": "in-progress",
   "runId": "atlas-packet40-consent-scoped-adapters",
   "branch": "codex/v2-consent-scoped-adapters",
-  "head": null,
-  "pr": null,
+  "head": "493caa3bfff67072eb8daef2ae9fbb0870ea0c87",
+  "pr": 347,
   "scope": "Scoped consent service with conservative eligibility and atomic history/audit",
   "evidence": {
     "run": 36217912507,
@@ -770,5 +770,31 @@
     "syntheticAccessRestored": true,
     "mergedTreeMatchesTestedHead": true,
     "vercelDeploymentsSuppressed": true
+  },
+  "packet40": {
+    "head": "493caa3bfff67072eb8daef2ae9fbb0870ea0c87",
+    "tree": "d11389bc6b201b31d627363d87a10f92af3c406c",
+    "pr": 347,
+    "localTargetedTests": 13,
+    "typescript": true,
+    "scopedLint": true,
+    "sourcePreparation": true,
+    "runs": [
+      {
+        "id": 37222724628,
+        "name": "V2 regression",
+        "status": "in_progress",
+        "conclusion": null,
+        "head": "493caa3bfff67072eb8daef2ae9fbb0870ea0c87"
+      },
+      {
+        "id": 37222724623,
+        "name": "V2 isolated runtime request isolation",
+        "status": "in_progress",
+        "conclusion": null,
+        "head": "493caa3bfff67072eb8daef2ae9fbb0870ea0c87"
+      }
+    ],
+    "ci": "in-progress"
   }
 }
