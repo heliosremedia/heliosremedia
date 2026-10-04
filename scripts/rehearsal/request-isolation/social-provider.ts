@@ -27,8 +27,24 @@ export async function syntheticSocialFetch(url: string, options: RequestInit) {
   if (generation) await prisma.$transaction(async tx => {
     await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(3400, ${id === 'a' ? 1 : 2}::integer)`;
   }, { timeout: 15000 });
+  const mode = /PACKET36_([a-z-]+)/.exec(body.input)?.[1];
+  const failureModes = ['gen-http', 'gen-json', 'gen-timeout', 'ground-http', 'ground-json', 'ground-empty', 'ground-type', 'ground-platform', 'ground-brief', 'ground-extra', 'ground-claims'];
+  assert.ok(!mode || failureModes.includes(mode), 'Unknown synthetic failure mode');
+  const activeFailure = mode?.startsWith(generation ? 'gen-' : 'ground-');
+  if (activeFailure && mode?.endsWith('-http')) return new Response('provider-private-detail', { status: 503 });
+  if (activeFailure && mode?.endsWith('-json')) return Response.json({ output_text: 'provider-private-detail' });
+  if (activeFailure && mode === 'gen-timeout') throw new DOMException('provider-private-detail', 'TimeoutError');
   const campaignBrief = { positioning: `AI_DRAFT_${id}`, themes: ['Photography'], cadence: 'Weekly', formats: ['Post'], platformConsiderations: 'Clear', callsToAction: 'Explore' };
   const draft = { caption: `AI_DRAFT_${id}`, openingHook: '', hashtags: [], callToAction: '', onScreenText: '', videoConcept: '', altText: '' };
   const drafts = Object.fromEntries(platforms.map(platform => [platform, draft]));
-  return Response.json({ output_text: JSON.stringify(generation ? { campaignBrief, ...drafts } : { campaignBrief, platforms: drafts, unsupportedClaims: [] }) });
+  const review: Record<string, unknown> = { campaignBrief, platforms: drafts, unsupportedClaims: [] };
+  if (!generation) {
+    if (mode === 'ground-empty') review.platforms = { ...drafts, [platforms[0]]: {} };
+    if (mode === 'ground-type') review.platforms = { ...drafts, [platforms[0]]: { ...draft, caption: { value: 'provider-private-detail' } } };
+    if (mode === 'ground-platform') review.platforms = {};
+    if (mode === 'ground-brief') review.campaignBrief = { ...campaignBrief, themes: [42] };
+    if (mode === 'ground-extra') review.unexpected = 'provider-private-detail';
+    if (mode === 'ground-claims') review.unsupportedClaims = [42];
+  }
+  return Response.json({ output_text: JSON.stringify(generation ? { campaignBrief, ...drafts } : review) });
 }

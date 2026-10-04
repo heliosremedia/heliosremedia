@@ -13,7 +13,7 @@ function fixture() {
   };
   runInNewContext(ts.transpileModule(readFileSync(new URL('../scripts/rehearsal/request-isolation/social-provider.ts', import.meta.url), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
-  }).outputText, { exports, Response, Headers, require: (id: string) => { assert.ok(id in modules, id); return modules[id]; } });
+  }).outputText, { exports, Response, Headers, DOMException, require: (id: string) => { assert.ok(id in modules, id); return modules[id]; } });
   const body = (id: string, grounding = false, platforms = ['FACEBOOK']) => ({ instructions: `You are Social Studio for Synthetic ${id}.`, input: `Create distinct social drafts for: ${platforms.join(", ")}. AI_FACT_${id}${grounding ? ` AI_DRAFT_${id}` : ''}`, text: { format: { type: grounding ? 'json_schema' : 'json_object', schema: { properties: { platforms: { required: platforms } } } } } });
   return { body, locks: () => locks, call: (input: unknown, url = 'https://api.openai.com/v1/responses') => exports.syntheticSocialFetch!(url, {
     method: 'POST', headers: { Authorization: 'Bearer packet34-synthetic-no-provider' }, body: JSON.stringify(input),
@@ -51,4 +51,26 @@ test('synthetic Social provider rejects empty, duplicate and unsupported platfor
     for (const grounding of [false, true]) await assert.rejects(h.call(h.body('a', grounding, platforms)));
   }
   assert.equal(h.locks(), 0);
+});
+
+for (const mode of ['gen-http', 'gen-json', 'gen-timeout', 'ground-http', 'ground-json', 'ground-empty', 'ground-type', 'ground-platform', 'ground-brief', 'ground-extra', 'ground-claims']) test(`synthetic provider injects ${mode} only at the selected stage`, async () => {
+  const h = fixture();
+  for (const grounding of [false, true]) {
+    const input = h.body('a', grounding); input.input += ` PACKET36_${mode}`;
+    const active = mode.startsWith(grounding ? 'ground-' : 'gen-');
+    if (active && mode === 'gen-timeout') { await assert.rejects(h.call(input), { name: 'TimeoutError' }); continue; }
+    const response = await h.call(input);
+    if (active && mode.endsWith('-http')) { assert.equal(response.status, 503); continue; }
+    assert.equal(response.status, 200);
+    const { output_text: output } = await response.json();
+    if (active && mode.endsWith('-json')) { assert.throws(() => JSON.parse(output)); continue; }
+    const result = JSON.parse(output);
+    if (!active) assert.equal((grounding ? result.platforms.FACEBOOK : result.FACEBOOK).caption, 'AI_DRAFT_a');
+    else if (mode === 'ground-empty') assert.deepEqual(result.platforms.FACEBOOK, {});
+    else if (mode === 'ground-type') assert.equal(typeof result.platforms.FACEBOOK.caption, 'object');
+    else if (mode === 'ground-platform') assert.deepEqual(result.platforms, {});
+    else if (mode === 'ground-brief') assert.deepEqual(result.campaignBrief.themes, [42]);
+    else if (mode === 'ground-extra') assert.equal(result.unexpected, 'provider-private-detail');
+    else if (mode === 'ground-claims') assert.deepEqual(result.unsupportedClaims, [42]);
+  }
 });

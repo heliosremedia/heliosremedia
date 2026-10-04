@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 4, 2026: Packet 35 qualified; Packet 36 provider failures
+
+Live development base `1e551e1f73cdebc2fda1fd2601fe8b94b896f696` confirms merged PR #342. Packet 35 head `68aaa95ba23059ca174dc8a25103e1061f15b981` passed regression 37142820661 (1,619 tests, TypeScript and Chromium) and runtime 37142820660. Downloaded artifact 11280359944 SHA256 `b60ee0c1b77dca73ca10d9451735e08e70dba3ae6b66c48d432f471c8b755470` independently verified both-tenant rollback/retry, injection removal and schema/access postflight. Merged tree matched tested tree; Vercel remained suppressed.
+
+Packet 36 reproduces acceptance of an empty grounding draft, enforces the advertised response contract locally and adds both-tenant provider-failure preservation/retry qualification. [Scope and evidence limits](helios-studio-v2-social-ai-provider-failure.md). Thirty-two targeted tests pass; exact-head CI/runtime/artifact verification remains required. No schema, hosted, live provider or production change. Phase 1 remains open; consent architecture independently pending. Production ON HOLD.
+
 ## October 3, 2026: Packet 34 qualified; Packet 35 multi-variant rollback
 
 Live base `6d3089e8f8c7094457ffd2aa39c905412f888ecf` confirmed as merged PR #341. Packet 34 exact head `3832c3a2408aa6804f0b3a729ea374da60eac5a2` passed regression 37047286145 (1,617 tests, TypeScript and Chromium) and runtime 37047286090. Artifact 11245446477 SHA256 `92100c2ac04c0b50231f3d8b24049cbfe47dd116a8437228880cfc67522b5471` was independently downloaded/verified; both-tenant persisted output and revoked settlement, prior isolation and schema/access postflight passed. Merged tree matched tested tree; Vercel remained suppressed.
