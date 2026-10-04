@@ -2,8 +2,8 @@
   "status": "in-progress",
   "runId": "atlas-packet37-social-ai-request-scope",
   "branch": "codex/v2-social-ai-request-scope",
-  "head": null,
-  "pr": null,
+  "head": "761f43d33cfb0d506d6dadd1d552071c62c66a83",
+  "pr": 344,
   "scope": "Company-scoped Social AI request identity",
   "evidence": {
     "run": 36217912507,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Packet 36 integrated. Packet 37 will qualify scoped request uniqueness and checked-in migration only against disposable PostgreSQL. No hosted or production migration. Consent architecture remains an owner gate.",
+  "nextAction": "Verify Packet 37 exact-head CI and downloaded runtime evidence, then integrate only into non-production. Consent architecture remains a separate owner gate.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -634,5 +634,33 @@
     "liveProviderCalls": false,
     "mergedTreeMatchesTestedHead": true,
     "vercelDeploymentsSuppressed": true
+  },
+  "packet37": {
+    "head": "761f43d33cfb0d506d6dadd1d552071c62c66a83",
+    "tree": "573e1d05bbb970364c6a428a37b65a32246c7ddd",
+    "pr": 344,
+    "localTargetedTests": 32,
+    "typescript": true,
+    "scopedLint": true,
+    "prismaValidation": true,
+    "runs": [
+      {
+        "id": 37219794253,
+        "name": "V2 regression",
+        "status": "in_progress",
+        "conclusion": null,
+        "head": "761f43d33cfb0d506d6dadd1d552071c62c66a83"
+      },
+      {
+        "id": 37219794252,
+        "name": "V2 isolated runtime request isolation",
+        "status": "in_progress",
+        "conclusion": null,
+        "head": "761f43d33cfb0d506d6dadd1d552071c62c66a83"
+      }
+    ],
+    "ci": "in-progress",
+    "hostedMigration": false,
+    "productionAccessed": false
   }
 }
