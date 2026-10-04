@@ -2,7 +2,7 @@
   "status": "in-progress",
   "runId": "atlas-packet37-social-ai-request-scope",
   "branch": "codex/v2-social-ai-request-scope",
-  "head": "761f43d33cfb0d506d6dadd1d552071c62c66a83",
+  "head": "aa92810cccb374a7775225ff660eb627a2ad5b88",
   "pr": 344,
   "scope": "Company-scoped Social AI request identity",
   "evidence": {
@@ -636,31 +636,42 @@
     "vercelDeploymentsSuppressed": true
   },
   "packet37": {
-    "head": "761f43d33cfb0d506d6dadd1d552071c62c66a83",
-    "tree": "573e1d05bbb970364c6a428a37b65a32246c7ddd",
+    "head": "aa92810cccb374a7775225ff660eb627a2ad5b88",
+    "tree": "7fda4d6b53b8527c5d37b6107ebb61af6d4c53e9",
     "pr": 344,
-    "localTargetedTests": 32,
+    "localTargetedTests": 54,
     "typescript": true,
     "scopedLint": true,
     "prismaValidation": true,
     "runs": [
       {
-        "id": 37219794253,
+        "id": 37220132608,
         "name": "V2 regression",
         "status": "in_progress",
         "conclusion": null,
-        "head": "761f43d33cfb0d506d6dadd1d552071c62c66a83"
+        "head": "aa92810cccb374a7775225ff660eb627a2ad5b88"
       },
       {
-        "id": 37219794252,
+        "id": 37220132631,
         "name": "V2 isolated runtime request isolation",
         "status": "in_progress",
         "conclusion": null,
-        "head": "761f43d33cfb0d506d6dadd1d552071c62c66a83"
+        "head": "aa92810cccb374a7775225ff660eb627a2ad5b88"
       }
     ],
     "ci": "in-progress",
     "hostedMigration": false,
-    "productionAccessed": false
+    "productionAccessed": false,
+    "initialCandidate": {
+      "head": "761f43d33cfb0d506d6dadd1d552071c62c66a83",
+      "regression": 37219794253,
+      "regressionFailure": "Three staging diagnostics used current schema with historical hash; corrected test fixture only; protected gate unchanged",
+      "runtime": 37219794252,
+      "artifact": 11309847587,
+      "artifactSha256": "4709feaa60c439d351e9c0f858031d2bd809e8dcb0a493d809f3b64f616bb14d",
+      "independentlyDownloaded": true,
+      "indexAndAccessPostflight": true
+    },
+    "historicalHostedGateUnchanged": true
   }
 }
