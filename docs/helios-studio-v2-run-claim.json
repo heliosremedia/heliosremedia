@@ -1,10 +1,10 @@
 {
   "status": "in-progress",
-  "runId": "atlas-packet36-social-ai-provider-failure",
-  "branch": "codex/v2-social-ai-provider-failure",
-  "head": "ad5655bd3882b26861868347d1d4ea97c063bc54",
-  "pr": 343,
-  "scope": "Social AI grounding contract and provider-failure preservation",
+  "runId": "atlas-packet37-social-ai-request-scope",
+  "branch": "codex/v2-social-ai-request-scope",
+  "head": null,
+  "pr": null,
+  "scope": "Company-scoped Social AI request identity",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Publish Packet 36 and verify exact-head regression plus disposable runtime artifact. Production ON HOLD.",
+  "nextAction": "Packet 36 integrated. Packet 37 will qualify scoped request uniqueness and checked-in migration only against disposable PostgreSQL. No hosted or production migration. Consent architecture remains an owner gate.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -620,6 +620,19 @@
       37219078310,
       37219078308
     ],
-    "ci": "in-progress"
+    "ci": "success",
+    "merge": "a1a042a28b99730497e9da7188cad4bfd02d9d5f",
+    "regressionTests": 1630,
+    "chromium": true,
+    "runtime": "success",
+    "artifact": 11309641569,
+    "artifactSha256": "f772839f8f95447027a43710413dcc8e5920f548f3a270447189f42a55c23d79",
+    "independentlyDownloaded": true,
+    "providerFailureCases": 22,
+    "schemaColumnsUnchanged": true,
+    "syntheticAccessRestored": true,
+    "liveProviderCalls": false,
+    "mergedTreeMatchesTestedHead": true,
+    "vercelDeploymentsSuppressed": true
   }
 }
