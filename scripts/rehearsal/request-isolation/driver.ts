@@ -47,3 +47,5 @@ export async function schemaIndexFingerprint() {
   const indexes = await prisma.$queryRaw`SELECT tablename,indexname,indexdef FROM pg_indexes WHERE schemaname='public' ORDER BY tablename,indexname`;
   return createHash('sha256').update(JSON.stringify(indexes)).digest('hex');
 }
+
+export { readWorkspaceMarketingEligibility, setWorkspaceMarketingPreference } from "../../../lib/client-communications/workspace-consent";
