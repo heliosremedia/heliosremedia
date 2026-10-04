@@ -1,4 +1,4 @@
-# Phase 1 consent boundary: owner decision
+# Phase 1 consent boundary: approved non-production architecture
 October 4, 2026 live reconfirmation. Packet 36 integrated at `a1a042a28b99730497e9da7188cad4bfd02d9d5f`; Packet 37 candidate `761f43d33cfb0d506d6dadd1d552071c62c66a83` leaves these consent paths unchanged. The synthetic probe was rerun against the current checkout and again reproduced both findings below. No database, live provider or production access. Production ON HOLD.
 
 ## Verified problem
@@ -13,9 +13,9 @@ Source evidence:
 - lib/client-communications/preferences.ts: preference lookup and client updates/group reconciliation use normalizedEmail without workspace scope. addressIsMarketingEligible checks global preference/suppression.
 - app/api/admin/clients/preferences/route.ts: role check followed by client lookup by ID without workspace membership.
 - app/api/unsubscribe/route.ts: opaque token selects a global preference and applies a global unsubscribe.
-- docs/helios-studio-v2-current-state-audit.md already calls for separate tenant marketing preference and platform safety suppression semantics. That design direction has not yet been converted into an approved migration/classification contract.
+- docs/helios-studio-v2-current-state-audit.md already calls for separate tenant marketing preference and platform safety suppression semantics. The architecture below is now approved; implementation and migration qualification remain incomplete.
 
-## Proposed architecture to approve for non-production implementation
+## Approved architecture for non-production implementation
 1. Company-specific marketing preference keyed by (workspaceId, normalizedEmail), with company-owned history and token provenance. Company administrators may alter only their own marketing preference.
 2. Separate platform safety suppression, invisible to other companies and never releasable through ordinary tenant resubscribe. Preserve existing safety blocks and opt-outs during migration. Classify legacy/ambiguous records conservatively as a blocking compatibility overlay until ownership is proven.
 3. Public unsubscribe from an attributable company message affects that company's marketing preference. Legacy tokens continue to honor their old opt-out scope; no silent narrowing of an existing opt-out.
@@ -31,8 +31,8 @@ This changes persisted ownership, uniqueness, legacy token semantics and multipl
 - Require same-address A/B tests, shared-client A/B tests, foreign client rejection, unsubscribe/resubscribe with global safety block, legacy token behavior, concurrent mutation, rollback and exact-head CI/runtime evidence.
 - Retain separate production approval and migration/rollback rehearsal. Phase 1 remains open.
 
-## Requested decision
-Approve this split consent architecture for non-production development, including conservative preservation of existing global blocks and legacy opt-outs. This is not approval to deploy, migrate production, send email or onboard customers. If company-level consent is not desired, the alternative is to retain platform-wide preferences, which conflicts with the current independent-company isolation goal and requires an explicit product exception.
+## Owner approval
+Jake approved this split consent architecture on October 4, 2026 with “I approve,” including conservative preservation of existing global blocks and legacy opt-outs. This is not approval to deploy, migrate production, send email or onboard customers. If company-level consent is not desired, the alternative is to retain platform-wide preferences, which conflicts with the current independent-company isolation goal and requires an explicit product exception.
 
 ## Authority boundary
-Jake's standing authorization excludes major architectural and significant product decisions. This proposal is held for that gate; no skill or tool auto-review imposed the pause.
+Jake's standing authorization excludes major architectural and significant product decisions. Jake's explicit October 4 approval clears this architecture gate for non-production implementation. Production release remains separately gated.
