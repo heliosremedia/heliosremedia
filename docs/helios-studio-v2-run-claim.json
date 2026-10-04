@@ -1,5 +1,5 @@
 {
-  "status": "in-progress",
+  "status": "awaiting-owner-architecture-decision",
   "runId": "atlas-packet37-social-ai-request-scope",
   "branch": "codex/v2-social-ai-request-scope",
   "head": "aa92810cccb374a7775225ff660eb627a2ad5b88",
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Verify Packet 37 exact-head CI and downloaded runtime evidence, then integrate only into non-production. Consent architecture remains a separate owner gate.",
+  "nextAction": "Packets 36 and 37 integrated and verified. Next selected Phase 1 gate: approve the documented company-specific marketing consent / separate platform safety suppression architecture for non-production implementation, conservatively preserving legacy opt-outs. Standing authority excludes this major architecture decision. Production ON HOLD; no hosted or production migration performed. Other open work includes AI source changes during generation and arbitrary crash recovery; this checkpoint does not claim those are qualified or that Phase 1 is complete.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -469,7 +469,11 @@
     "syntheticReproduction": "scripts/rehearsal/consent-boundary-probe.mjs",
     "sameAddressCrossCompanyMutation": true,
     "foreignClientAdminMutation": true,
-    "productionAccessed": false
+    "productionAccessed": false,
+    "reconfirmedAt": "2026-10-04",
+    "reconfirmedSource": "a1a042a28b99730497e9da7188cad4bfd02d9d5f",
+    "unchangedAtIntegratedHead": "0b13aa489a61a91a87e5a24df725e45ec9aa0f40",
+    "syntheticProbeRerun": true
   },
   "packet32": {
     "head": "2206f6ef968933cf829fcda14f4a4797110b98f6",
@@ -645,21 +649,21 @@
     "prismaValidation": true,
     "runs": [
       {
-        "id": 37220132608,
-        "name": "V2 regression",
-        "status": "in_progress",
-        "conclusion": null,
-        "head": "aa92810cccb374a7775225ff660eb627a2ad5b88"
+        "id": 37220132631,
+        "head": "aa92810cccb374a7775225ff660eb627a2ad5b88",
+        "name": "V2 isolated runtime request isolation",
+        "status": "completed",
+        "conclusion": "success"
       },
       {
-        "id": 37220132631,
-        "name": "V2 isolated runtime request isolation",
-        "status": "in_progress",
-        "conclusion": null,
-        "head": "aa92810cccb374a7775225ff660eb627a2ad5b88"
+        "id": 37220132608,
+        "head": "aa92810cccb374a7775225ff660eb627a2ad5b88",
+        "name": "V2 regression",
+        "status": "completed",
+        "conclusion": "success"
       }
     ],
-    "ci": "in-progress",
+    "ci": "success",
     "hostedMigration": false,
     "productionAccessed": false,
     "initialCandidate": {
@@ -672,6 +676,21 @@
       "independentlyDownloaded": true,
       "indexAndAccessPostflight": true
     },
-    "historicalHostedGateUnchanged": true
+    "historicalHostedGateUnchanged": true,
+    "merge": "0b13aa489a61a91a87e5a24df725e45ec9aa0f40",
+    "regressionTests": 1632,
+    "chromium": true,
+    "runtime": "success",
+    "artifact": 11309304185,
+    "artifactSha256": "da621c414adc7228c862e7289197166eba407309f6877f214604672a1f7d670c",
+    "independentlyDownloaded": true,
+    "schemaColumnsUnchanged": true,
+    "schemaIndexesUnchanged": true,
+    "syntheticAccessRestored": true,
+    "liveProviderCalls": false,
+    "migrationAppliedToSyntheticOnly": true,
+    "mergedTreeMatchesTestedHead": true,
+    "isolatedWorkingTreeClean": true,
+    "vercelDeploymentsSuppressed": true
   }
 }
