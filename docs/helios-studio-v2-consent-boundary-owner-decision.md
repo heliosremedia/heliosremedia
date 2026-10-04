@@ -1,12 +1,12 @@
 # Phase 1 consent boundary: owner decision
-September 30, 2026. Reviewed development base 5e62ba395a859f6771763dd28ae16ae1344b64ee and Packet 31 head cabe2ff6c8595165cf52b3002f871ca7c3206dbb. Production ON HOLD.
+October 4, 2026 live reconfirmation. Packet 36 integrated at `a1a042a28b99730497e9da7188cad4bfd02d9d5f`; Packet 37 candidate `761f43d33cfb0d506d6dadd1d552071c62c66a83` leaves these consent paths unchanged. The synthetic probe was rerun against the current checkout and again reproduced both findings below. No database, live provider or production access. Production ON HOLD.
 
 ## Verified problem
 Synthetic execution of the actual TypeScript modules, with strictly allowlisted in-memory dependencies and no provider/database connection, reproduced:
 - setMarketingPreference for an address represented by separate Company A and Company B clients changed both clients' emailSubscribed value and added both to the global MARKETING_UNSUBSCRIBED group.
 - POST /api/admin/clients/preferences accepted an A administrator with a B client ID, returned 200, and reached the preference mutation.
 
-These are executable adapter results, not hosted exploitation claims. No production records or customer data were accessed. Packet 31 does not modify these consent paths.
+These are executable adapter results, not hosted exploitation claims. No production records or customer data were accessed. Packets 31–37 do not resolve these consent semantics.
 
 Source evidence:
 - prisma/schema.prisma: MarketingEmailPreference.normalizedEmail is globally unique; CommunicationSuppression has no workspace identity; CommunicationClient can have multiple CommunicationClientWorkspace memberships.
