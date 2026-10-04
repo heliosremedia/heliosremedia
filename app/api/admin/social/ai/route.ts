@@ -27,6 +27,27 @@ function safeGenerationError(error: unknown) {
   return "AI generation failed safely. Existing content was preserved. Please try again.";
 }
 
+// Enforce the advertised grounding contract locally before any content write.
+// Provider schema configuration is not a validation boundary.
+function isGroundingReview(value: unknown, platforms: string[]): value is {
+  campaignBrief: Record<string, unknown>;
+  platforms: Record<string, Record<string, unknown>>;
+  unsupportedClaims: string[];
+} {
+  const record = (item: unknown): item is Record<string, unknown> => !!item && typeof item === "object" && !Array.isArray(item);
+  const strings = (item: unknown) => Array.isArray(item) && item.every(entry => typeof entry === "string");
+  const fields = (item: unknown, text: string[], arrays: string[]) => record(item)
+    && Object.keys(item).length === text.length + arrays.length
+    && text.every(key => Object.hasOwn(item, key) && typeof item[key] === "string")
+    && arrays.every(key => Object.hasOwn(item, key) && strings(item[key]));
+  if (!record(value) || Object.keys(value).length !== 3 || !strings(value.unsupportedClaims)
+    || !fields(value.campaignBrief, ["positioning", "cadence", "platformConsiderations", "callsToAction"], ["themes", "formats"])
+    || !record(value.platforms) || Object.keys(value.platforms).length !== platforms.length) return false;
+  const drafts = value.platforms;
+  return platforms.every(platform => Object.hasOwn(drafts, platform)
+    && fields(drafts[platform], ["caption", "openingHook", "callToAction", "onScreenText", "videoConcept", "altText"], ["hashtags"]));
+}
+
 export async function POST(request: Request) {
   const session = await getAdminSession();
   if (!session || session.role === "VIEWER") return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
@@ -154,11 +175,8 @@ export async function POST(request: Request) {
     if (!groundingResponse.ok) throw new Error(`OpenAI rejected Social Studio grounding review (${groundingResponse.status}).`);
     const groundingResult = await groundingResponse.json() as { output_text?: string; output?: Array<{ content?: Array<{ text?: string }> }> };
     const groundingOutput = groundingResult.output_text || groundingResult.output?.flatMap((item) => item.content || []).map((item) => item.text || "").join("") || "{}";
-    const groundedResult = JSON.parse(groundingOutput) as {
-      campaignBrief?: Record<string, unknown>;
-      platforms?: Record<string, Record<string, unknown>>;
-      unsupportedClaims?: string[];
-    };
+    const groundedResult: unknown = JSON.parse(groundingOutput);
+    if (!isGroundingReview(groundedResult, platforms)) throw new Error("OpenAI returned an invalid grounding review.");
     const correctedDrafts: Record<string, Record<string, unknown>> = {
       campaignBrief: groundedResult.campaignBrief || {},
       ...(groundedResult.platforms || {}),
