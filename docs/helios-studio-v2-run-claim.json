@@ -1,8 +1,8 @@
 {
-  "status": "in-progress",
+  "status": "blocked-environment",
   "runId": "atlas-packet42-consent-delivery-readers",
   "branch": "codex/v2-consent-delivery-readers",
-  "head": "b6998cd38446c80a0ea0c971e8704cd92fd1ec96",
+  "head": "b7a102653f6c77d19f219be076527b11d74c21fa",
   "pr": 349,
   "scope": "Workspace-aware campaign/referral/newsletter delivery eligibility with legacy compatibility",
   "evidence": {
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Qualify exact-head delivery readers, then integrate public company-token consumption before issuance activation. Production ON HOLD.",
+  "nextAction": "Restore execution environment; rebuild from GitHub, verify PR349 exact head and fresh CI, independently download/hash/open runtime artifact, then integrate only if all gates pass. Discard unqualified partial Packet43 local state. No new owner approval required. Production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -838,13 +838,55 @@
     "vercelDeploymentsSuppressed": true
   },
   "packet42": {
-    "head": "b6998cd38446c80a0ea0c971e8704cd92fd1ec96",
+    "head": "b7a102653f6c77d19f219be076527b11d74c21fa",
     "tree": "e48a6dd2668293f556e981e528854d98fc42fa79",
     "pr": 349,
     "localTargetedTests": 21,
     "typescript": true,
     "scopedLint": true,
     "sourcePreparation": true,
-    "ci": "in-progress"
+    "ci": "in-progress",
+    "initialCandidate": {
+      "head": "b6998cd38446c80a0ea0c971e8704cd92fd1ec96",
+      "regression": 37224469591,
+      "regressionPassed": 1670,
+      "regressionFailed": 1,
+      "reason": "Existing campaign ownership fixture mocked replaced global eligibility dependency; corrected test fixture only",
+      "runtime": 37224469593,
+      "runtimeStatus": "success",
+      "artifact": 11311049396,
+      "artifactApiSha256": "4cf1ddc9356b7dd02c21e37204a3fc082fc4bdd14cd7e20b168098a08689d816",
+      "independentlyOpened": false
+    },
+    "runs": [
+      {
+        "id": 37225018123,
+        "name": "V2 isolated runtime request isolation",
+        "status": "in_progress",
+        "conclusion": null,
+        "head": "b7a102653f6c77d19f219be076527b11d74c21fa"
+      },
+      {
+        "id": 37225018208,
+        "name": "V2 regression",
+        "status": "in_progress",
+        "conclusion": null,
+        "head": "b7a102653f6c77d19f219be076527b11d74c21fa"
+      }
+    ],
+    "fix": "Campaign ownership fixture asserts workspace-aware consent arguments; original delivery assertions retained",
+    "localAlignedToFinalHead": false,
+    "merge": null,
+    "blockedBy": "Local execution service stopped returning, including no-op; independent artifact inspection and local verification unavailable"
+  },
+  "environmentBlock": {
+    "observedAt": "2026-10-04",
+    "lastVerifiedIntegratedPacket": 41,
+    "lastVerifiedIntegratedPr": 348,
+    "lastVerifiedIntegratedHead": "366835a2f1f3979bdf98b0a1cdd9d6ec5e3b88a0",
+    "githubAccessAvailable": true,
+    "executionUnavailable": true,
+    "approvalRequired": false,
+    "partialLocalPacket43": "Unpublished route/service/UI changes; five route module tests passed before execution outage. Runtime qualification command did not return; filesystem state unverified. Discard and rebuild from verified GitHub base."
   }
 }
