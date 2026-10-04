@@ -1686,6 +1686,9 @@ model Workspace {
   projects                  Project[]
   projectAgents             ProjectAgent[]
   communicationClients      CommunicationClientWorkspace[]
+  marketingPreferences      WorkspaceMarketingPreference[]
+  marketingPreferenceEvents WorkspaceMarketingPreferenceEvent[]
+  marketingPreferenceTokens WorkspaceMarketingPreferenceToken[]
   invitations               AdminInvitation[]
   clientSyncRuns            ClientSyncRun[]
   resendWebhookEvents       ResendWebhookEvent[]
@@ -3773,4 +3776,65 @@ model WorkspaceAsset {
 
   @@unique([provider, providerNamespace, providerKey])
   @@index([workspaceId, status, createdAt])
+}
+
+// Company consent is separate from legacy global consent and platform safety.
+enum WorkspaceMarketingPreferenceStatus {
+  UNKNOWN
+  SUBSCRIBED
+  UNSUBSCRIBED
+  PENDING_CONFIRMATION
+}
+
+model WorkspaceMarketingPreference {
+  id              String @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  normalizedEmail String
+  status          WorkspaceMarketingPreferenceStatus @default(UNKNOWN)
+  effectiveAt     DateTime @default(now())
+  source          String
+  reason          String?
+  actorId         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  history         WorkspaceMarketingPreferenceEvent[]
+  tokens          WorkspaceMarketingPreferenceToken[]
+
+  @@unique([workspaceId, normalizedEmail])
+  @@unique([workspaceId, id])
+  @@index([workspaceId, status, effectiveAt])
+}
+
+model WorkspaceMarketingPreferenceEvent {
+  id             String @id @default(cuid())
+  workspaceId    String
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  preferenceId   String
+  preference     WorkspaceMarketingPreference @relation(fields: [workspaceId, preferenceId], references: [workspaceId, id], onDelete: Restrict, onUpdate: Restrict)
+  previousStatus WorkspaceMarketingPreferenceStatus?
+  status         WorkspaceMarketingPreferenceStatus
+  source         String
+  reason         String?
+  actorId        String?
+  createdAt      DateTime @default(now())
+
+  @@index([workspaceId, preferenceId, createdAt])
+}
+
+model WorkspaceMarketingPreferenceToken {
+  id           String @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  preferenceId String
+  preference   WorkspaceMarketingPreference @relation(fields: [workspaceId, preferenceId], references: [workspaceId, id], onDelete: Restrict, onUpdate: Restrict)
+  tokenHash    String @unique
+  source       String
+  messageId    String?
+  campaignId   String?
+  expiresAt    DateTime
+  lastUsedAt   DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([workspaceId, preferenceId, expiresAt])
 }
