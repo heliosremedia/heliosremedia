@@ -14,6 +14,8 @@ Require owned output, unchanged request values, independent inert replay, contin
 
 Prisma validation, generation, TypeScript, scoped lint and script syntax checks precede publication. Exact-head regression/runtime and downloaded artifact inspection are required before integration.
 
+The first candidate passed disposable runtime but failed three diagnostic tests that read the current schema while expecting the historical hosted checksum. Their success fixture now uses the exact historical schema snapshot; added negative coverage proves the current development schema and migration still fail the unchanged hosted gate. No protected schema hash, policy or admission assertion is repinned.
+
 ## Release boundary
 
 This adds a migration file but applies it only to the disposable synthetic CI database. Hosted staging and production remain unchanged. A future hosted candidate must independently qualify its schema/migration identity under its protected workflow; historical Packet 16 schema evidence does not cover this migration. Production migration requires separate owner authorization and rollback review. Reinstating global uniqueness after companies have reused IDs can fail, so rollback cannot blindly recreate the old index.

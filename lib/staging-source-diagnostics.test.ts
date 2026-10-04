@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync,readdirSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
 import {createHash} from 'node:crypto';
@@ -13,7 +13,9 @@ const manifestPath='scripts/migrations/bootstrap/history-sha256.json';
 const manifestRaw=readFileSync(manifestPath,'utf8');
 const manifest=JSON.parse(manifestRaw) as Record<string,string>;
 const migrationNames=Object.keys(manifest).sort();
-const schemaRaw=readFileSync('prisma/schema.prisma','utf8');
+// This callback is intentionally pinned to the historical hosted contract.
+// Later development schemas must not silently update that protected gate.
+const schemaRaw=readFileSync('lib/fixtures/staging/packet16-schema.prisma','utf8');
 const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
 const ast=ts.createSourceFile('hosted-build.mjs',readFileSync('scripts/staging/hosted-build.mjs','utf8'),ts.ScriptTarget.Latest,true);
 let sourceBody='';
@@ -22,7 +24,7 @@ function find(node:ts.Node){
  ts.forEachChild(node,find);
 }
 find(ast);assert.ok(sourceBody);
-function harness(options:{gitSha?:string;dirty?:boolean;envFile?:string;missing?:string;rawManifest?:string;directories?:string[];migrationDrift?:boolean;schemaDrift?:boolean;parseFailure?:boolean;digestFailure?:boolean}={}){
+function harness(options:{gitSha?:string;dirty?:boolean;envFile?:string;missing?:string;rawManifest?:string;directories?:string[];migrationDrift?:boolean;schemaDrift?:boolean;developmentSchema?:boolean;parseFailure?:boolean;digestFailure?:boolean}={}){
  const calls:string[]=[];
  const original=Object.assign(new Error(secret),{stderr:Buffer.from(secret),path:'/private/'+secret,reason:'CHECK_SOURCE_FORGED'});
  const context={assert,check,checked,checkDirtyCheckout,BASELINE_CHECKSUM,Object,manifest:undefined,
@@ -31,7 +33,7 @@ function harness(options:{gitSha?:string;dirty?:boolean;envFile?:string;missing?
   readFile:async(name:string)=>{
    calls.push('read:'+name);if(name===options.missing)throw original;
    if(name===manifestPath)return options.rawManifest??manifestRaw;
-   if(name==='prisma/schema.prisma')return options.schemaDrift?secret:schemaRaw;
+   if(name==='prisma/schema.prisma')return options.schemaDrift?secret:options.developmentSchema?readFileSync(name,'utf8'):schemaRaw;
    if(name==='package-lock.json')return secret;
    return options.migrationDrift?secret:readFileSync(name,'utf8');
   },
@@ -93,4 +95,17 @@ test('source diagnostic properties cannot forge private labels and unknown codes
  assert.throws(()=>check('SOURCE_FORGED',()=>{}),/UNKNOWN_DIAGNOSTIC_CHECK/);
  const event=eventsSummary([{type:'stderr',text:'STAGING_HOSTED_BUILD_BLOCKED '+JSON.stringify({phase:'source-integrity',reason:'CHECK_SOURCE_FORGED',detailHash:'a'.repeat(64),file:secret})}])[0];
  assert.notEqual(event.reason,'CHECK_SOURCE_FORGED');assert.ok(!JSON.stringify(event).includes(secret));
+});
+
+test('historical hosted schema fixture retains its reviewed checksum',()=>{
+ assert.equal(hash(schemaRaw),'ede3650c4b65f8704a125672ed32f7b7110a78a83cdacf14744e6419d02a0892');
+});
+test('new development schema and migration remain rejected by the historical hosted gate',async()=>{
+ for(const [options,reason] of [
+  [{developmentSchema:true},'CHECK_SOURCE_PRISMA_SCHEMA_HASH'],
+  [{directories:readdirSync('prisma/migrations')},'CHECK_SOURCE_MIGRATION_DIRECTORY_SET'],
+ ] as const){
+  const h=harness(options);await assert.rejects(h.source(candidate),(e:Error)=>diagnostic('source-integrity',e).reason===reason);
+  assert.ok(!h.calls.includes('read:package-lock.json'));
+ }
 });
