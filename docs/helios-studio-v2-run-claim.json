@@ -2,8 +2,8 @@
   "status": "in-progress",
   "runId": "atlas-packet36-social-ai-provider-failure",
   "branch": "codex/v2-social-ai-provider-failure",
-  "head": null,
-  "pr": null,
+  "head": "ad5655bd3882b26861868347d1d4ea97c063bc54",
+  "pr": 343,
   "scope": "Social AI grounding contract and provider-failure preservation",
   "evidence": {
     "run": 36217912507,
@@ -607,5 +607,19 @@
     "mergedTreeMatchesTestedHead": true,
     "isolatedWorkingTreeClean": true,
     "vercelDeploymentsSuppressed": true
+  },
+  "packet36": {
+    "head": "ad5655bd3882b26861868347d1d4ea97c063bc54",
+    "tree": "97e431522adeb0de06403731eb3c9d4948d22d93",
+    "pr": 343,
+    "localTargetedTests": 32,
+    "typescript": true,
+    "scopedLint": true,
+    "reproducedMalformedResponseSuccess": true,
+    "runs": [
+      37219078310,
+      37219078308
+    ],
+    "ci": "in-progress"
   }
 }
