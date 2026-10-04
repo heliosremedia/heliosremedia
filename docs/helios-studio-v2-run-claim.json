@@ -2,8 +2,8 @@
   "status": "in-progress",
   "runId": "atlas-packet41-consent-workspace-tokens",
   "branch": "codex/v2-consent-workspace-tokens",
-  "head": null,
-  "pr": null,
+  "head": "2990d52cd98e2bf6fc634dca429b463130bd27c4",
+  "pr": 348,
   "scope": "Inactive company-bound campaign unsubscribe token services",
   "evidence": {
     "run": 36217912507,
@@ -809,5 +809,19 @@
     "syntheticAccessRestored": true,
     "injectionRemoved": true,
     "vercelDeploymentsSuppressed": true
+  },
+  "packet41": {
+    "head": "2990d52cd98e2bf6fc634dca429b463130bd27c4",
+    "tree": "344bd00e15298c12bf91e1ffc82f7d16b86c05b4",
+    "pr": 348,
+    "localTargetedTests": 4,
+    "typescript": true,
+    "scopedLint": true,
+    "sourcePreparation": true,
+    "runs": [
+      37223795222,
+      37223795296
+    ],
+    "ci": "in-progress"
   }
 }
