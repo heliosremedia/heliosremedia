@@ -2,8 +2,8 @@
   "status": "in-progress",
   "runId": "atlas-packet39-consent-schema-expand",
   "branch": "codex/v2-consent-schema-expand",
-  "head": null,
-  "pr": null,
+  "head": "1af5c3fd15514cd22dbcdca9fb9369cb762c8c06",
+  "pr": 346,
   "scope": "Additive company consent tables and compound ownership constraints",
   "evidence": {
     "run": 36217912507,
@@ -732,5 +732,29 @@
     "syntheticAccessRestored": true,
     "mergedTreeMatchesTestedHead": true,
     "vercelDeploymentsSuppressed": true
+  },
+  "packet39": {
+    "head": "1af5c3fd15514cd22dbcdca9fb9369cb762c8c06",
+    "tree": "a7d74a71ce31b5b83f68847d26142d59aa737fd9",
+    "pr": 346,
+    "typescript": true,
+    "prismaValidation": true,
+    "runs": [
+      {
+        "id": 37221989540,
+        "name": "V2 regression",
+        "status": "in_progress",
+        "conclusion": null,
+        "head": "1af5c3fd15514cd22dbcdca9fb9369cb762c8c06"
+      },
+      {
+        "id": 37221989584,
+        "name": "V2 isolated runtime request isolation",
+        "status": "in_progress",
+        "conclusion": null,
+        "head": "1af5c3fd15514cd22dbcdca9fb9369cb762c8c06"
+      }
+    ],
+    "ci": "in-progress"
   }
 }
