@@ -42,3 +42,8 @@ export async function schemaFingerprint() {
   const columns = await prisma.$queryRaw`SELECT table_name,column_name,data_type,is_nullable,column_default FROM information_schema.columns WHERE table_schema='public' ORDER BY table_name,ordinal_position`;
   return createHash('sha256').update(JSON.stringify(columns)).digest('hex');
 }
+
+export async function schemaIndexFingerprint() {
+  const indexes = await prisma.$queryRaw`SELECT tablename,indexname,indexdef FROM pg_indexes WHERE schemaname='public' ORDER BY tablename,indexname`;
+  return createHash('sha256').update(JSON.stringify(indexes)).digest('hex');
+}

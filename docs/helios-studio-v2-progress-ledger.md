@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 4, 2026: Packet 36 qualified; Packet 37 request identity
+
+Live base `a1a042a28b99730497e9da7188cad4bfd02d9d5f` is merged PR #343. Packet 36 head `ad5655bd3882b26861868347d1d4ea97c063bc54` passed regression 37219078310 (1,630 tests, TypeScript and Chromium) and runtime 37219078308. Independently downloaded artifact 11309641569 SHA256 `f772839f8f95447027a43710413dcc8e5920f548f3a270447189f42a55c23d79` verifies 22 provider-failure cases, prior rollback/injection cleanup and schema/access postflight. Merged tree matches the tested tree; Vercel remains suppressed.
+
+Packet 37 replaces globally unique Social AI request IDs with company-scoped uniqueness and qualifies the checked-in migration in disposable PostgreSQL. [Scope, reproduction and rollback limit](helios-studio-v2-social-ai-request-scope.md). Thirty-two targeted tests, Prisma validation/generation, TypeScript, scoped lint and syntax/whitespace pass. Exact-head regression/runtime/artifact verification remains required. No hosted or production migration is authorized or performed. Phase 1 remains open; the consent probe still reproduces the separate pending architecture issue. Production ON HOLD.
+
 ## October 4, 2026: Packet 35 qualified; Packet 36 provider failures
 
 Live development base `1e551e1f73cdebc2fda1fd2601fe8b94b896f696` confirms merged PR #342. Packet 35 head `68aaa95ba23059ca174dc8a25103e1061f15b981` passed regression 37142820661 (1,619 tests, TypeScript and Chromium) and runtime 37142820660. Downloaded artifact 11280359944 SHA256 `b60ee0c1b77dca73ca10d9451735e08e70dba3ae6b66c48d432f471c8b755470` independently verified both-tenant rollback/retry, injection removal and schema/access postflight. Merged tree matched tested tree; Vercel remained suppressed.
