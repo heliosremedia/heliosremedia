@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 4, 2026: Packet 37 qualified; consent architecture approved; Packet 38 containment
+
+Live base `0b13aa489a61a91a87e5a24df725e45ec9aa0f40` confirms merged PR #344. Packet 37 final head `aa92810cccb374a7775225ff660eb627a2ad5b88` passed regression 37220132608 (1,632 tests, TypeScript and Chromium) and runtime 37220132631. Artifact 11309304185 SHA256 `da621c414adc7228c862e7289197166eba407309f6877f214604672a1f7d670c` was independently downloaded and verified, including both-direction old collisions, migration recovery, concurrent reuse and schema/index/access postflight. The historical staging diagnostic fixture was corrected without changing the protected hosted gate. Merged tree matches the tested tree; Vercel remains suppressed.
+
+Jake explicitly approved the [split consent architecture](helios-studio-v2-consent-boundary-owner-decision.md) for non-production implementation. Packet 38 contains administrator preference mutations before global writes and adds current-access/ownership/safety/audit gates. [Scope and evidence limits](helios-studio-v2-consent-admin-containment.md). Twelve focused tests, TypeScript, scoped lint and syntax/whitespace pass; exact-head CI/runtime/artifact qualification remains required. Consent schema/readers and legacy token preservation remain ahead. Phase 1 remains open. Production ON HOLD.
+
 ## October 4, 2026: Packet 36 qualified; Packet 37 request identity
 
 Live base `a1a042a28b99730497e9da7188cad4bfd02d9d5f` is merged PR #343. Packet 36 head `ad5655bd3882b26861868347d1d4ea97c063bc54` passed regression 37219078310 (1,630 tests, TypeScript and Chromium) and runtime 37219078308. Independently downloaded artifact 11309641569 SHA256 `f772839f8f95447027a43710413dcc8e5920f548f3a270447189f42a55c23d79` verifies 22 provider-failure cases, prior rollback/injection cleanup and schema/access postflight. Merged tree matches the tested tree; Vercel remains suppressed.
