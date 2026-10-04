@@ -8,6 +8,7 @@ import { createServer } from 'node:net';
 import { build } from 'esbuild';
 import { DATABASE, requireDatabase, requireOrigin } from './safety.mjs';
 import { qualify } from './http.mjs';
+import { qualifyConsentAdapters } from './consent-adapters.mjs';
 import { qualifyConsentSchema } from './consent-schema.mjs';
 import { qualifyConsentAdmin } from './consent-admin.mjs';
 import { qualifySocialAiRequestIds } from './social-ai-request-ids.mjs';
@@ -71,15 +72,22 @@ async function prepare() {
   await cp(join(root, 'scripts/rehearsal/request-isolation/social-provider.ts'), join(app, 'lib/packet34-social-provider.ts'));
   await writeFile(aiRoutePath, 'import { syntheticSocialFetch as fetch } from "@/lib/packet34-social-provider";\n' + aiRoute.replace(keyRead, "const apiKey = 'packet34-synthetic-no-provider';"));
   const bundle = join(scratch, 'driver.mjs');
-  await build({ entryPoints: [join(root, 'scripts/rehearsal/request-isolation/driver.ts')], outfile: bundle, bundle: true, platform: 'node', format: 'esm', packages: 'external' });
+  await build({ entryPoints: [join(root, 'scripts/rehearsal/request-isolation/driver.ts')], outfile: bundle, bundle: true, platform: 'node', format: 'esm', packages: 'external', plugins: [{
+    // The driver runs as Node, outside Next's server condition. This removes
+    // only the package's build-time sentinel; application guards are unchanged.
+    name: 'rehearsal-server-only', setup(build) {
+      build.onResolve({ filter: /^server-only$/ }, () => ({ path: 'server-only', namespace: 'rehearsal-server-only' }));
+      build.onLoad({ filter: /.*/, namespace: 'rehearsal-server-only' }, () => ({ contents: 'export {};', loader: 'js' }));
+    },
+  }] });
   return bundle;
 }
 try {
   const bundle = await prepare();
   if (prepareOnly) console.log('PASS isolated source preparation and driver bundle; database/server not executed');
   else {
-    // Parent driver receives only the two fixed synthetic settings it consumes.
-    process.env.PACKET19_DATABASE_URL = DATABASE; process.env.AUTH_SECRET = env.AUTH_SECRET;
+    // Parent driver receives only the fixed synthetic settings it consumes.
+    process.env.PACKET19_DATABASE_URL = DATABASE; process.env.AUTH_SECRET = env.AUTH_SECRET; process.env.STUDIO_V2_TENANT_CONTEXT_ENABLED = "true";
     driver = await import(pathToFileURL(bundle));
     await driver.requireEmpty();
     await command(process.execPath, ['node_modules/prisma/build/index.js', 'db', 'push'], app);
@@ -110,6 +118,7 @@ try {
     const socialAiRequestIds = await qualifySocialAiRequestIds(origin, driver);
     const consentAdmin = await qualifyConsentAdmin(origin, driver);
     const consentSchema = await qualifyConsentSchema(driver);
+    const consentAdapters = await qualifyConsentAdapters(driver);
     assert.equal(await driver.schemaFingerprint(), schemaBefore);
     assert.equal(await driver.schemaIndexFingerprint(), indexesBefore);
     assert.equal(await driver.prisma.workspace.count(), 2);
@@ -117,8 +126,8 @@ try {
     assert.equal(await driver.prisma.adminUser.count({ where: { sessionVersion: 1 } }), 2);
     await mkdir('release-evidence', { recursive: true });
     await writeFile('release-evidence/request-isolation.json', JSON.stringify({ version: 1, candidate: head, runtime: 'Next build/start with PrismaPg',
-      target: 'disposable-local-postgresql', sourceSubstitutions: ['PrismaNeon to PrismaPg', 'offline font variables', 'Social AI fetch to synthetic no-network provider'], result, portfolio, previewFencing,
-      webhook, socialAi, socialAiRollback, socialAiProviderFailure, socialAiRequestIds, consentAdmin, consentSchema, schemaColumnsUnchanged: true, schemaIndexesUnchanged: true, syntheticAccessRestored: true, hosted: false, deployable: false }, null, 2) + '\n');
+      target: 'disposable-local-postgresql', sourceSubstitutions: ['PrismaNeon to PrismaPg', 'offline font variables', 'Social AI fetch to synthetic no-network provider', 'server-only build sentinel removed in Node qualification driver'], result, portfolio, previewFencing,
+      webhook, socialAi, socialAiRollback, socialAiProviderFailure, socialAiRequestIds, consentAdmin, consentSchema, consentAdapters, schemaColumnsUnchanged: true, schemaIndexesUnchanged: true, syntheticAccessRestored: true, hosted: false, deployable: false }, null, 2) + '\n');
     console.log('PASS actual Next production-mode HTTP: alternating/concurrent tenants, post-write reads, foreign/stale write rejection, membership/session revocation and schema/access postflight');
     console.log('PASS both-direction portfolio published/draft/preview isolation, actual preview creation/revocation, expiry and rejected usage-write containment');
     console.log('PASS actual PostgreSQL lock-observed preview create/revoke: membership revoked after initial session, both tenants reject403 without preview/audit mutation');

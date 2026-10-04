@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 4, 2026: Packet 39 qualified; Packet 40 scoped consent adapters
+
+Live base `435dc389c75d736f44d57bfb59f92c194a601176` confirms merged PR #346. Packet 39 head `1af5c3fd15514cd22dbcdca9fb9369cb762c8c06` passed regression 37221989540 (1,644 tests, TypeScript and Chromium) and runtime 37221989584. Independently downloaded artifact 11309994151 SHA256 `c02fbd9dfa5735cc7f5a9f53a63d6351b4d5591232d3529779a70711b42bfaf7` verifies additive migration, composite ownership constraints, preserved legacy consent/safety/token rows and prior schema/index/access checks. Merged tree matches the tested tree; Vercel remains suppressed.
+
+Packet 40 adds inactive company-owned consent service/eligibility adapters with protected legacy/safety precedence, current actor/client ownership, inert replay and atomic history/audit. [Scope and runtime qualification](helios-studio-v2-consent-scoped-adapters.md). Thirteen focused tests, TypeScript, scoped lint, syntax/whitespace and driver preparation pass locally. Exact-head shared-client isolation, protected-block and observed audit rollback/retry evidence remain required. No application route/delivery reader is activated. Phase 1 remains open. Production ON HOLD.
+
 ## October 4, 2026: Packet 38 qualified; Packet 39 additive consent schema
 
 Live base `eb9cd6db3b0b234092cd60e2c86cb1dc763159ca` confirms merged PR #345. Packet 38 head `5b80154d15f561b8ea6899ec1333f6aa0cfeea88` passed regression 37221315433 (1,644 tests, TypeScript and Chromium) and runtime 37221315423. Artifact 11309548845 SHA256 `5a1ef3804d5868207d56630952c5c7d632884b8d0e925e52779b4a882fa563b4` was independently downloaded and verified: both-direction administrator containment, four observed revocation/demotion cases and column/index/access postflight passed. Merged tree matches the tested tree; Vercel remains suppressed.
