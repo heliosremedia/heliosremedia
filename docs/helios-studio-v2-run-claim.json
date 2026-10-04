@@ -2,8 +2,8 @@
   "status": "in-progress",
   "runId": "atlas-packet38-consent-admin-containment",
   "branch": "codex/v2-consent-admin-containment",
-  "head": null,
-  "pr": null,
+  "head": "5b80154d15f561b8ea6899ec1333f6aa0cfeea88",
+  "pr": 345,
   "scope": "Approved consent architecture: contain administrator mutations before global writes",
   "evidence": {
     "run": 36217912507,
@@ -695,5 +695,30 @@
     "mergedTreeMatchesTestedHead": true,
     "isolatedWorkingTreeClean": true,
     "vercelDeploymentsSuppressed": true
+  },
+  "packet38": {
+    "head": "5b80154d15f561b8ea6899ec1333f6aa0cfeea88",
+    "tree": "8963cc2c55ccba7cfbf80475a42540f3379e3ea0",
+    "pr": 345,
+    "localTargetedTests": 12,
+    "typescript": true,
+    "scopedLint": true,
+    "runs": [
+      {
+        "id": 37221315433,
+        "name": "V2 regression",
+        "status": "in_progress",
+        "conclusion": null,
+        "head": "5b80154d15f561b8ea6899ec1333f6aa0cfeea88"
+      },
+      {
+        "id": 37221315423,
+        "name": "V2 isolated runtime request isolation",
+        "status": "in_progress",
+        "conclusion": null,
+        "head": "5b80154d15f561b8ea6899ec1333f6aa0cfeea88"
+      }
+    ],
+    "ci": "in-progress"
   }
 }
