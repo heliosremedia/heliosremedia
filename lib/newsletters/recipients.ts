@@ -1,3 +1,4 @@
+import { eligibleMarketingAddresses } from "@/lib/client-communications/delivery-consent";
 import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import "server-only";
 
@@ -39,26 +40,11 @@ export async function resolveEligibleNewsletterRecipients(
     },
   });
 
-  const suppressed = await prisma.communicationSuppression.findMany({
-    where: {
-      normalizedEmail: { in: [...new Set(candidates.map((client) => client.normalizedEmail).filter(Boolean))] },
-      releasedAt: null,
-    },
-    select: { normalizedEmail: true },
-  });
-  const preferences = await prisma.marketingEmailPreference.findMany({
-    where: {
-      normalizedEmail: { in: [...new Set(candidates.map(client => client.normalizedEmail).filter(Boolean))] },
-      status: { in: ["UNSUBSCRIBED", "SUPPRESSED"] },
-    },
-    select: { normalizedEmail: true },
-  });
-  const suppressedEmails = new Set(suppressed.map((entry) => entry.normalizedEmail));
-  preferences.forEach(preference => suppressedEmails.add(preference.normalizedEmail));
+  const consentEligible = await eligibleMarketingAddresses(prisma, workspaceId, candidates.map(client => client.normalizedEmail));
   const eligibleByEmail = new Map<string, EligibleRecipient>();
   for (const client of candidates) {
     if (!client.emailSubscribed || client.archivedAt || client.emailStatus !== "VALID" ||
-        !EMAIL_PATTERN.test(client.normalizedEmail) || suppressedEmails.has(client.normalizedEmail)) continue;
+        !EMAIL_PATTERN.test(client.normalizedEmail) || !consentEligible.has(client.normalizedEmail)) continue;
     if (!eligibleByEmail.has(client.normalizedEmail)) {
       eligibleByEmail.set(client.normalizedEmail, {
         id: client.id,
