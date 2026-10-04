@@ -49,3 +49,5 @@ export async function schemaIndexFingerprint() {
 }
 
 export { readWorkspaceMarketingEligibility, setWorkspaceMarketingPreference } from "../../../lib/client-communications/workspace-consent";
+
+export { createWorkspaceCampaignPreferenceToken, consumeWorkspacePreferenceToken } from "../../../lib/client-communications/workspace-consent-tokens";

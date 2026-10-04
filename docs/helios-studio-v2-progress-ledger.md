@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 4, 2026: Packet 40 qualified; Packet 41 company-bound tokens
+
+Live base `1a50b013ba2261c6b6abe56dbb9dd050e722fbe1` confirms merged PR #347. Packet 40 head `493caa3bfff67072eb8daef2ae9fbb0870ea0c87` passed regression 37222724628 (1,657 tests, TypeScript and Chromium) and runtime 37222724623. Independently downloaded artifact 11310867112 SHA256 `77625b6be8e3f3b3fe98328a074fcbb5499d53f58d080984cdc197698803dba8` verifies both-company consent isolation, protected legacy/safety blocks, observed audit cancellation with full rollback/retry, injection removal and schema/index/access postflight. Merged tree matches the tested tree; both Vercel builds remain suppressed.
+
+Packet 41 adds inactive company-bound campaign unsubscribe token services. [Scope and qualification](helios-studio-v2-consent-workspace-tokens.md). Four focused tests, TypeScript, lint, syntax and driver preparation are local gates; exact-head CI and actual database provenance/isolation/expiry/rollback evidence remain required. No public route or delivery activation. Phase 1 remains open. Production ON HOLD.
+
 ## October 4, 2026: Packet 39 qualified; Packet 40 scoped consent adapters
 
 Live base `435dc389c75d736f44d57bfb59f92c194a601176` confirms merged PR #346. Packet 39 head `1af5c3fd15514cd22dbcdca9fb9369cb762c8c06` passed regression 37221989540 (1,644 tests, TypeScript and Chromium) and runtime 37221989584. Independently downloaded artifact 11309994151 SHA256 `c02fbd9dfa5735cc7f5a9f53a63d6351b4d5591232d3529779a70711b42bfaf7` verifies additive migration, composite ownership constraints, preserved legacy consent/safety/token rows and prior schema/index/access checks. Merged tree matches the tested tree; Vercel remains suppressed.
