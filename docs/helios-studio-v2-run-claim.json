@@ -1,10 +1,10 @@
 {
-  "status": "awaiting-owner-architecture-decision",
-  "runId": "atlas-packet37-social-ai-request-scope",
-  "branch": "codex/v2-social-ai-request-scope",
-  "head": "aa92810cccb374a7775225ff660eb627a2ad5b88",
-  "pr": 344,
-  "scope": "Company-scoped Social AI request identity",
+  "status": "in-progress",
+  "runId": "atlas-packet38-consent-admin-containment",
+  "branch": "codex/v2-consent-admin-containment",
+  "head": null,
+  "pr": null,
+  "scope": "Approved consent architecture: contain administrator mutations before global writes",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Packets 36 and 37 integrated and verified. Next selected Phase 1 gate: approve the documented company-specific marketing consent / separate platform safety suppression architecture for non-production implementation, conservatively preserving legacy opt-outs. Standing authority excludes this major architecture decision. Production ON HOLD; no hosted or production migration performed. Other open work includes AI source changes during generation and arbitrary crash recovery; this checkpoint does not claim those are qualified or that Phase 1 is complete.",
+  "nextAction": "Implement and qualify the first bounded consent containment packet, then progress under standing non-production authority.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -463,7 +463,7 @@
     "vercelDeploymentsSuppressed": true
   },
   "consentDecision": {
-    "status": "awaiting-owner-architecture-decision",
+    "status": "owner-approved-non-production",
     "document": "docs/helios-studio-v2-consent-boundary-owner-decision.md",
     "branch": "ops/v2-automation-control",
     "syntheticReproduction": "scripts/rehearsal/consent-boundary-probe.mjs",
@@ -473,7 +473,10 @@
     "reconfirmedAt": "2026-10-04",
     "reconfirmedSource": "a1a042a28b99730497e9da7188cad4bfd02d9d5f",
     "unchangedAtIntegratedHead": "0b13aa489a61a91a87e5a24df725e45ec9aa0f40",
-    "syntheticProbeRerun": true
+    "syntheticProbeRerun": true,
+    "approvedAt": "2026-10-04",
+    "approval": "Jake: I approve",
+    "productionAuthorized": false
   },
   "packet32": {
     "head": "2206f6ef968933cf829fcda14f4a4797110b98f6",
