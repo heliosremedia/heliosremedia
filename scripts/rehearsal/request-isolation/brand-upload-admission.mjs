@@ -2,25 +2,27 @@ import assert from 'node:assert/strict';
 import { setTimeout as delay } from 'node:timers/promises';
 import { http } from './http.mjs';
 
-export async function qualifyBrandUploadAdmission(origin, driver) {
+export async function qualifyBrandUploadAdmission(origin, driver, family = "brand") {
   const db = driver.prisma, cases = [];
+  assert.ok(["brand", "email-campaign"].includes(family));
+  const email = family === "email-campaign";
   const snapshot = () => db.workspaceAsset.findMany({ orderBy: { id: 'asc' } });
   for (const id of ['a', 'b']) {
     const other = id === 'a' ? 'b' : 'a';
     const where = { workspaceId_userId: { workspaceId: id, userId: `u${id}` } };
-    const post = (admin = false) => http(origin, `${other}.example.test`, admin ? '/api/admin/site-settings/brand-logo/presign' : '/api/admin/about/presign', {
+    const post = (admin = false) => http(origin, `${other}.example.test`, email ? '/api/admin/email-images/presign' : admin ? '/api/admin/site-settings/brand-logo/presign' : '/api/admin/about/presign', {
       method: 'POST', headers: { cookie: driver.cookie(id) }, body: { kind: 'hero', fileType: 'image/png', fileSize: 100, workspaceId: other, key: `workspaces/${other}/about/forged.png` },
     });
     const foreignBefore = await db.workspaceAsset.findMany({ where: { workspaceId: other }, orderBy: { id: 'asc' } });
     const success = await post(); assert.equal(success.status, 200);
     const upload = JSON.parse(success.text).upload;
-    assert.ok(upload.key.startsWith(`workspaces/${id}/about/`)); assert.equal(typeof upload.uploadUrl, 'string');
+    assert.ok(upload.key.startsWith(`workspaces/${id}/${email ? "email-campaign" : "about"}/`)); assert.equal(typeof upload.uploadUrl, 'string');
     // Signing is local with fixed synthetic R2 credentials. Never follow or record the URL.
     const asset = await db.workspaceAsset.findFirst({ where: { providerKey: upload.key } });
     assert.equal(asset.workspaceId, id); assert.equal(asset.status, 'UPLOAD_PROVISIONED'); assert.equal(asset.byteSize, 100n);
     assert.equal(asset.provenance.actorId, `u${id}`);
     assert.deepEqual(await db.workspaceAsset.findMany({ where: { workspaceId: other }, orderBy: { id: 'asc' } }), foreignBefore);
-    for (const change of ['revoked', 'viewer', 'admin-demotion', 'session-version']) {
+    for (const change of (email ? ['revoked', 'admin-demotion', 'session-version'] : ['revoked', 'viewer', 'admin-demotion', 'session-version'])) {
       const before = await snapshot(); let pending;
       try {
         await db.$transaction(async tx => {
@@ -49,9 +51,9 @@ export async function qualifyBrandUploadAdmission(origin, driver) {
     }
     try {
       await db.workspaceMembership.update({ where, data: { role: 'EDITOR' } });
-      assert.equal((await post()).status, 200); assert.equal((await post(true)).status, 403);
+      assert.equal((await post()).status, email ? 403 : 200); assert.equal((await post(true)).status, 403);
     } finally { await db.workspaceMembership.update({ where, data: { role: 'OWNER' } }); }
   }
-  assert.equal((await http(origin, 'a.example.test', '/api/admin/about/presign', { method: 'POST', body: {} })).status, 401);
-  return { cases, serverOwnedKeysBothDirections: true, editorThresholdPreserved: true, anonymousRejected: true, provider: 'local signing with synthetic credentials; no object request', hosted: false };
+  assert.equal((await http(origin, 'a.example.test', email ? '/api/admin/email-images/presign' : '/api/admin/about/presign', { method: 'POST', body: {} })).status, 401);
+  return { cases, serverOwnedKeysBothDirections: true, roleThresholdPreserved: true, anonymousRejected: true, provider: 'local signing with synthetic credentials; no object request', hosted: false };
 }

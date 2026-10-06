@@ -6,11 +6,11 @@ import { verifyContentImage } from "@/lib/content-image-storage";
 import { brandAssetPrefix, type BrandAssetKind } from "@/lib/workspace-brand-storage";
 import { tenantContextEnabled } from "@/lib/workspace-context-core";
 
-type RegisteredBrandKind = Extract<BrandAssetKind, "testimonials" | "trusted-logos" | "photo-comparison" | "site-brand" | "site-homepage" | "site-hero" | "site-featured-film" | "about" | "team" | "blog" | "newsletter" | "locations">;
+type RegisteredBrandKind = Extract<BrandAssetKind, "email-campaign" | "testimonials" | "trusted-logos" | "photo-comparison" | "site-brand" | "site-homepage" | "site-hero" | "site-featured-film" | "about" | "team" | "blog" | "newsletter" | "locations">;
 
 // Preserve the existing endpoint role thresholds for every registered family.
 const uploadAccess: Record<RegisteredBrandKind, "ADMIN" | "EDITOR"> = {
-  testimonials: "EDITOR", "trusted-logos": "EDITOR", "photo-comparison": "EDITOR",
+  "email-campaign": "ADMIN", testimonials: "EDITOR", "trusted-logos": "EDITOR", "photo-comparison": "EDITOR",
   "site-brand": "ADMIN", "site-homepage": "ADMIN", "site-hero": "ADMIN", "site-featured-film": "EDITOR",
   about: "EDITOR", team: "EDITOR", blog: "EDITOR", newsletter: "ADMIN", locations: "EDITOR",
 };

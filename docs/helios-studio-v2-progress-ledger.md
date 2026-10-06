@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 6, 2026: Packet 54 Email Studio upload ownership
+
+Packet 53 PR #360 initial candidate `a7b742965510ebf1d66b3616a7db3cc476e20228` reached all upload ownership and observed-lock denial checks, then failed runtime 37414150559 because its final anonymous assertion expected handler 403 instead of the authentication proxy's 401. The disposable service container was removed. Candidate `685b9a4a8842aed433a96380bfdf738a4e64f454` corrects only that assertion; qualification and integration remain gated on its exact-head CI.
+
+Packet 54 scopes new Email Studio direct uploads to company-owned keys and the asset registry with locked administrator admission. [Scope and evidence boundaries](helios-studio-v2-email-upload-ownership.md). Existing campaign URLs and response shape are preserved; campaign attachment validation remains separate. Local regression prior to the additional key-generator test passed 1,733 tests; TypeScript, scoped lint and source preparation passed. No provider object requests, schema changes or production operations. Phase 1 remains open; production ON HOLD.
+
 ## October 6, 2026: Packet 52 qualified; Packet 53 brand upload admission
 
 Packet 51 PR #358 completed regression 37412579449 (1,724 tests, TypeScript and Chromium) and merged at `3cf652b674a33de98fbb1c64229b5db4652a8677`. Packet 52 PR #359 is merged at `e1ad2f1a12aa51c940a826e09b60a62de3f166e4`; candidate `aa5eb1b5fd0ed8b99011c376a032effc4d8643ab` passed regression 37413225092 (1,728 tests, TypeScript and Chromium) and runtime 37413225046. Independently downloaded artifact 11389941795 SHA256 `e823ba6fd07cf75360a8e39b56f1f0c3025744ff5a025a0d72fe0882163014dc` verifies both-company dashboard redaction, revoked/anonymous rejection and schema/index/access postflight. Merged tree matches the tested candidate; both Vercel projects suppressed.
