@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Correct ownership test fixture; rerun regression and exact-head CI before integration. Production ON HOLD.",
+  "nextAction": "Complete Packet 48 browser gates and merge; independently qualify Packet 49 then retarget and integrate. Production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -1110,5 +1110,18 @@
         "status": "in_progress"
       }
     ]
+  },
+  "packet49": {
+    "head": "23a0808f7896a2c3d06772eb5ee6c9bcabf54d7e",
+    "tree": "42f7a6aec0c716a20f17fe3257529a80cb3a4594",
+    "pr": 356,
+    "branch": "codex/v2-consent-analytics-attribution",
+    "ci": "pending",
+    "localRegressionTests": 1710,
+    "typescript": true,
+    "scopedLint": true,
+    "prismaValidation": true,
+    "sourcePreparation": true,
+    "stackedOn": 355
   }
 }
