@@ -2,7 +2,7 @@
   "status": "in-progress",
   "runId": "atlas-packet53-brand-upload-admission",
   "branch": "codex/v2-brand-upload-admission",
-  "head": "a7b742965510ebf1d66b3616a7db3cc476e20228",
+  "head": "685b9a4a8842aed433a96380bfdf738a4e64f454",
   "pr": 360,
   "scope": "Brand upload current authorization at asset registration",
   "evidence": {
@@ -1239,12 +1239,22 @@
     "base": "e1ad2f1a12aa51c940a826e09b60a62de3f166e4",
     "status": "ci-pending",
     "published": true,
-    "head": "a7b742965510ebf1d66b3616a7db3cc476e20228",
-    "tree": "449d08ef1a884d5ac1b51beacdacbfdec0060b3a",
+    "head": "685b9a4a8842aed433a96380bfdf738a4e64f454",
+    "tree": "431aad6b1d5cb1f5f614f6d553ca4166dbd461ae",
     "pr": 360,
     "localRegressionTests": 1731,
     "typescript": true,
     "scopedLint": true,
-    "sourcePreparation": true
+    "sourcePreparation": true,
+    "runs": [
+      37414442165,
+      37414442110
+    ],
+    "initialCandidate": {
+      "head": "a7b742965510ebf1d66b3616a7db3cc476e20228",
+      "runtime": 37414150559,
+      "reason": "Final anonymous check expected handler403 but proxy returns401; assertion corrected, application unchanged",
+      "disposableContainerRemoved": true
+    }
   }
 }
