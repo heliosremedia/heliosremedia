@@ -1,10 +1,10 @@
 {
-  "status": "packet-complete",
-  "runId": "atlas-packet46-phase1-checkpoint",
-  "branch": "codex/v2-phase1-evidence-checkpoint",
-  "head": "af9c0256622925d6d452d7da02b97cd9d87be0af",
-  "pr": 353,
-  "scope": "Documentation-only current Phase 1 evidence and remaining work reconciliation",
+  "status": "in-progress",
+  "runId": "atlas-packet47-campaign-consent-tokens",
+  "branch": "codex/v2-campaign-consent-tokens",
+  "head": null,
+  "pr": null,
+  "scope": "Locked campaign token selection with legacy retry containment",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Packet 47: implement bounded retry-safe campaign token issuance after actual delivery-module reproduction, preserving legacy retry scope and provider identity. Phase 1 open; production ON HOLD.",
+  "nextAction": "Implement and qualify stored campaign/recipient token selection; preserve legacy links and reject protocol switches. Production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -1039,5 +1039,9 @@
   },
   "lastVerifiedIntegratedPacket": 46,
   "lastVerifiedIntegratedPr": 353,
-  "lastVerifiedIntegratedHead": "a6fd2613ad375531f18c1d1f98d32198b29710f2"
+  "lastVerifiedIntegratedHead": "a6fd2613ad375531f18c1d1f98d32198b29710f2",
+  "packet47": {
+    "base": "a6fd2613ad375531f18c1d1f98d32198b29710f2",
+    "ci": "not-published"
+  }
 }
