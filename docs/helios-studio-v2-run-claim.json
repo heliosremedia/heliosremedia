@@ -2,8 +2,8 @@
   "status": "in-progress",
   "runId": "atlas-packet47-campaign-consent-tokens",
   "branch": "codex/v2-campaign-consent-tokens",
-  "head": null,
-  "pr": null,
+  "head": "e3a3b70d245af446edaed0e57bccf63a286026fd",
+  "pr": 354,
   "scope": "Locked campaign token selection with legacy retry containment",
   "evidence": {
     "run": 36217912507,
@@ -1042,6 +1042,30 @@
   "lastVerifiedIntegratedHead": "a6fd2613ad375531f18c1d1f98d32198b29710f2",
   "packet47": {
     "base": "a6fd2613ad375531f18c1d1f98d32198b29710f2",
-    "ci": "not-published"
+    "ci": "in-progress",
+    "head": "e3a3b70d245af446edaed0e57bccf63a286026fd",
+    "tree": "2442c420740404d4fcdc1f4cd9b00188195a816d",
+    "pr": 354,
+    "localTargetedTests": 18,
+    "typescript": true,
+    "scopedLint": true,
+    "sourcePreparation": true,
+    "mutationSensitivityChecked": true,
+    "runs": [
+      {
+        "id": 37408282689,
+        "name": "V2 regression",
+        "status": "in_progress",
+        "conclusion": null,
+        "head": "e3a3b70d245af446edaed0e57bccf63a286026fd"
+      },
+      {
+        "id": 37408282743,
+        "name": "V2 isolated runtime request isolation",
+        "status": "in_progress",
+        "conclusion": null,
+        "head": "e3a3b70d245af446edaed0e57bccf63a286026fd"
+      }
+    ]
   }
 }
