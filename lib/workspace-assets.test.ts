@@ -134,16 +134,18 @@ test("media creation rejects unowned Stream IDs before creating a media row", as
   let allowed = false;
   let creates = 0;
   const api = load<{ POST: (request: Request, context: { params: Promise<{ projectId: string }> }) => Promise<Response> }>("../app/api/admin/projects/[projectId]/media/route.ts", {
-    "@/lib/workspace-write-access": {}, "@aws-sdk/client-s3": {}, "next/cache": { revalidatePath() {} }, "next/server": { NextResponse: Response },
+    "@/lib/workspace-write-access": { requireLockedWorkspaceEditor: async () => {} }, "@aws-sdk/client-s3": {}, "next/cache": { revalidatePath() {} }, "next/server": { NextResponse: Response },
     "@/lib/media-collections": { isMediaCategory: () => true }, "@/lib/cloudflare-stream": stream, "@/lib/external-media": {},
     "@/lib/r2": {}, "@/lib/r2-upload": {}, "@/lib/service-media": { mediaCategoryForServiceSlug: () => "VIDEO" }, "@/lib/project-media-upload": {},
     "@/lib/auth/session": { getAdminSession: async () => ({ role: "EDITOR", workspaceId: "a" }) },
     "@/lib/workspace-assets": { resolveStreamAssetForAttachment: async (workspaceId: string, key: string) => { assert.equal(workspaceId, "a"); assert.equal(key, uid); if (!allowed) throw new Error("INVALID_STREAM_ASSET"); return "asset"; } },
     "@/lib/prisma": { prisma: {
+      $transaction: async function (fn: (tx: unknown) => Promise<unknown>): Promise<unknown> { return fn(this); },
+      $queryRaw: async () => [], workspaceAsset: { findUnique: async () => ({ id: "asset" }) },
       project: { findFirst: async () => ({ id: "project" }) }, service: { findFirst: async () => ({ id: "service", slug: "video" }) },
       media: { findFirst: async () => null, aggregate: async () => ({ _max: { displayOrder: 0 } }), create: async ({ data }: { data: { assetId: string; projectId: string } }) => { assert.equal(data.assetId, "asset"); assert.equal(data.projectId, "project"); creates++; return { id: "media" }; } },
     } },
-  });
+  }, { process: { env: { CLOUDFLARE_STREAM_ACCOUNT_ID: "account" } } });
   const call = () => api.POST(new Request("https://example.test/api", { method: "POST", body: JSON.stringify({ streamUid: uid, originalFilename: "Video", mediaCategory: "VIDEO", workspaceId: "b" }) }), { params: Promise.resolve({ projectId: "project" }) });
   assert.equal((await call()).status, 400); assert.equal(creates, 0);
   allowed = true; assert.equal((await call()).status, 201); assert.equal(creates, 1);

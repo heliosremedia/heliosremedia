@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 6, 2026: Packet 61 qualified; Packet 63 direct Stream attachment fencing
+
+Packet 61 PR #368 merged at `d9629c5d1bfdfeed9bd8e12690db1c5c408f048e`; candidate `e428c29bebaab33fdef1a7124d7a10ae86cb6fce` passed regression 37423931336 (1,758 tests, TypeScript and Chromium) and runtime 37423931296. Independently downloaded artifact 11393579900 SHA256 `b65e1702351d87e314cb21301227b60a5ea63aa42855e6fb1735a11e48aa292d` proves twelve observed image attachment races, association-failure rollback and unchanged schema/index/access postflight. Merge tree matches; both Vercel projects suppressed. Documentation-only Packet 62 PR #369 remains under regression 37424398649 at preparation; its application/workflow/schema files are identical to Packet 61.
+
+Packet 63 fences direct Stream UID attachment and duplicate responses under current locked authority, with project serialization and transaction-bound asset resolution. [Scope and qualification](helios-studio-v2-stream-attachment-fencing.md). Both-company actual HTTP qualification observes access/service/asset races, concurrent retry deduplication, failed-insert containment and duplicate-path asset rejection. External-URL/replacement and general media mutations remain separate work. No production, schema, credentials or real provider operations. Phase 1 remains open; production ON HOLD.
+
 ## October 6, 2026: Packet 60 qualified; Packet 62 Phase 1 evidence reconciliation
 
 Packet 60 PR #367 merged at `7f6520c2098f8c25eb3cbe7c9c1dbe786cc4e15e`; candidate `9d7bdb5098efe056183aee8042acc535935f73d3` passed regression 37423263783 (1,758 tests, TypeScript and Chromium) and runtime 37423263836. Independently downloaded artifact 11394052478 SHA256 `04daf9cc294c0a71a06a1705c2993732acfb5dda3f7ac3fdef5ea8ab2d1f0449` proves sixteen registry denials across both companies, owned attachment links, retry deduplication and schema/index/access postflight. Merge tree matches; both Vercel projects suppressed. Packet 61 PR #368 remains under exact-head CI 37423931336 / 37423931296 at preparation.
