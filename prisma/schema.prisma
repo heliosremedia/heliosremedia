@@ -3817,9 +3817,9 @@ model WorkspaceMarketingPreferenceEvent {
   source         String
   reason         String?
   actorId        String?
+  createdAt      DateTime @default(now())
   campaignId     String?
   messageId      String?
-  createdAt      DateTime @default(now())
 
   @@index([workspaceId, preferenceId, createdAt])
   @@index([workspaceId, campaignId, status], map: "workspace_consent_campaign_status_idx")
