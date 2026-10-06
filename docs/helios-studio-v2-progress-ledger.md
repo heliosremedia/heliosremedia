@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 6, 2026: Packet 50 qualified; Packet 51 referral consent tokens
+
+Packet 50 PR #357 is merged at `11413470f26bedc653efb65f5c432c3238045c36`. Candidate `379237d5021b37694a822c1f74882786489e77a4` passed regression 37411907070 (1,718 tests, TypeScript and all Chromium) and runtime 37411906675. Independently downloaded artifact 11389443017 SHA256 `0661af4b64b6bfb48d526cfb76e5ab01562bc2adffbaf31e7008bf5fb8349f5e` verifies both-direction observed lease replacement, stale admission/settlement rejection, replacement-worker admission, preserved sender containment and schema/index/access postflight. Merged tree matches; both Vercel projects suppressed.
+
+Packet 51 integrates referral preparation with company-bound consent tokens under the stored source/lease guard. [Contract and evidence boundary](helios-studio-v2-referral-consent-tokens.md). Current client membership, protected opt-outs and invitation/revision binding are rechecked; incompatible legacy/company markers fail closed. Existing prepared HTML and provider identities are preserved. All 1,724 local regression tests, TypeScript, scoped lint and preparation pass; exact-head runtime/CI remain required. No schema, credential, sender activation or production change. Phase 1 open; production ON HOLD.
+
 ## October 6, 2026: Packets 48–49 qualified; Packet 50 referral preparation fencing
 
 Packet 48 PR #355 is merged at `3fada1a6f8ee55d5acb34b57f9d9ed396770cd1b`. Candidate `25c5e30706c559c5c2d82d0f4bc7cd1d007dea7f` passed regression 37410357554 (1,708 tests, TypeScript and all Chromium) and runtime 37410357728. Its independently verified artifact and retry evidence are recorded below; merged tree matches the tested head.
