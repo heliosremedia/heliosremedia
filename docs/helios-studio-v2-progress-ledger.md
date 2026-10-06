@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 6, 2026: Packet 59 qualified; Packet 61 image attachment transaction fencing
+
+Packet 59 PR #366 merged at `ad287038458eacb16d10c2549040b5d59f1aabde`; candidate `e9f3e88e7d09406fa262c158d08ddcc8537f6ab3` passed regression 37422724956 (1,756 tests, TypeScript and Chromium) and runtime 37422724883. The independently verified artifact and metadata denial evidence are recorded below. Both Vercel projects remain suppressed. Packet 60 PR #367 candidate `9d7bdb5098efe056183aee8042acc535935f73d3` passed 1,758 local tests, TypeScript, lint and source preparation; exact-head CI 37423263783 / 37423263836 remains pending at this preparation.
+
+Packet 61 rechecks current image attachment authority under locks after provider inspection and commits media plus service association together. [Scope and qualification](helios-studio-v2-project-image-attachment-fencing.md). Both-company HTTP qualification observes blocked database writes before changing membership, session, service or asset state; denied requests must leave media and service links unchanged. Other media mutation families and hosted parity remain open. No production, schema, credentials or real provider operations. Phase 1 remains open; production ON HOLD.
+
 ## October 6, 2026: Packet 60 project image attachment registry boundary
 
 Packet 59 PR #366 candidate `e9f3e88e7d09406fa262c158d08ddcc8537f6ab3` has passed runtime qualification 37422724883. Independently downloaded artifact 11394001718 SHA256 `5b32d4224a70890e718400a3ece2ca847c8056335ee12580296f474388e2bc5e` verifies twelve metadata denials, server-only constraints, preserved Stream admission races and unchanged schema/index/access postflight. Regression/browser 37422724956 remains in progress at this preparation. Both Vercel projects remain suppressed; Packet 58 remains the latest integrated packet.
