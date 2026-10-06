@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 6, 2026: Packet 47 qualified; Packet 48 newsletter token integration
+
+Live base `352468eb12cf90df02905a83e24a3c8895fe24d4` confirms merged PR #354. Candidate `e3a3b70d245af446edaed0e57bccf63a286026fd` passed regression 37408282689 (1,699 tests, TypeScript and Chromium) and runtime 37408282743. Independently downloaded artifact 11388286421 SHA256 `601495cceb7c5a3e65e392336a2a9168339f7ff0fde7df251285b17c4cbdd2e9` verifies both-direction campaign token ownership, concurrent issuance, persisted revision/signing fences, preserved legacy markers, observed source-change races and schema/index/access postflight. Merged tree matches; Vercel suppressed.
+
+Packet 48 integrates newsletter token issuance while preserving its approved payload and provider operation identity. Retry reactivation binds the existing campaign version and rejects unresolved or contradictory attempt history inside the edition claim transaction. [Scope and qualification](helios-studio-v2-newsletter-consent-tokens.md). Twenty-one focused tests pass; local TypeScript, lint, syntax and preparation precede exact-head database/CI qualification. No schema or provider changes. Referral issuance and analytics attribution remain open. Phase 1 open; production ON HOLD.
+
 ## October 6, 2026: Packet 46 qualified; Packet 47 campaign token issuance
 
 Live base `a6fd2613ad375531f18c1d1f98d32198b29710f2` confirms merged PR #353. Documentation head `af9c0256622925d6d452d7da02b97cd9d87be0af` passed regression 37400649250 (1,689 tests, TypeScript and Chromium). Merged tree matches; Vercel suppressed. Application/runtime files were unchanged from qualified Packet 45.
