@@ -61,3 +61,5 @@ export { createCampaignDeliveryPreferenceToken } from "../../../lib/client-commu
 export { prepareNewsletterCampaignRetry } from "../../../lib/newsletters/delivery-campaign";
 
 export { readCampaignUnsubscribeCounts } from "../../../lib/newsletters/unsubscribe-counts";
+
+export { lockReferralPreparationSource, lockReferralPreparationClaim, referralPreparationWhere } from "../../../lib/referrals/preparation-claim";

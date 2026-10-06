@@ -1,5 +1,13 @@
 # Helios Studio V2 progress ledger
 
+## October 6, 2026: Packets 48–49 qualified; Packet 50 referral preparation fencing
+
+Packet 48 PR #355 is merged at `3fada1a6f8ee55d5acb34b57f9d9ed396770cd1b`. Candidate `25c5e30706c559c5c2d82d0f4bc7cd1d007dea7f` passed regression 37410357554 (1,708 tests, TypeScript and all Chromium) and runtime 37410357728. Its independently verified artifact and retry evidence are recorded below; merged tree matches the tested head.
+
+Packet 49 PR #356 is merged at `6a6436f1c3739153195a81328bb5a0211b4bf92a`. Corrected candidate `1cc07232e82d39a09e63705bce821bc99b253e53` passed regression 37411091697 (1,710 tests, TypeScript and all Chromium) and runtime 37411091693. Independently downloaded artifact 11389446578 SHA256 `798619d2c29bf64764164d48060632fde6e6a26d63bba4310fcba68c964d1610` verifies old-history preservation, actual public HTTP stored attribution, both-direction scoped/deduplicated aggregates and schema/index/access postflight. The declaration was corrected to match additive column order; fingerprint checks were not relaxed. Merged tree matches; both Vercel projects suppressed.
+
+Packet 50 addresses a referral preparation prerequisite: lease/source checks now run inside the batch transaction, and renewal/completion/failure match the exact acquired lease. [Scope and evidence boundary](helios-studio-v2-referral-preparation-fencing.md). Existing single-company sender containment is rechecked inside batch admission. Token protocol, prepared payloads, provider identity and schema remain unchanged. Qualification is pending; scoped referral issuance remains subsequent work. Phase 1 open; production ON HOLD.
+
 ## October 6, 2026: Packet 49 company unsubscribe attribution
 
 Packet 48 PR #355 candidate `25c5e30706c559c5c2d82d0f4bc7cd1d007dea7f` passes all 1,708 local tests and disposable runtime 37410357728. Independently downloaded artifact 11389480154 SHA256 `cc70e2445ca4d7ad258b3b933b26c4047ae2a0dd74dd47fb7be59fd19d683c7e` verifies both-direction newsletter retry gates, stable tokens, preserved accepted receipts and schema/index/access postflight. Its exact-head regression/browser run 37410357554 is still completing at this packet's preparation; integration remains gated on success. Initial candidate's single outdated dependency fixture was corrected without weakening denial assertions.
