@@ -1,10 +1,10 @@
 {
   "status": "in-progress",
-  "runId": "atlas-packet50-referral-preparation-fencing",
-  "branch": "codex/v2-referral-preparation-fencing",
-  "head": "379237d5021b37694a822c1f74882786489e77a4",
-  "pr": 357,
-  "scope": "Referral preparation source and lease fencing; sending containment retained",
+  "runId": "atlas-packet51-referral-consent-tokens",
+  "branch": "codex/v2-referral-consent-tokens",
+  "head": "d469e7adb514bdfd5814c92e46b358ede30015fd",
+  "pr": 358,
+  "scope": "Referral preparation company consent tokens with stable stored payloads",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Finish Packet 50 regression, publish and independently qualify lease-race evidence. Production ON HOLD.",
+  "nextAction": "Independently qualify Packet 51 exact-head CI and artifact, integrate, then reconcile remaining Phase 1 families. Production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -1037,9 +1037,9 @@
     "implementationStarted": false,
     "requiredConstraint": "Preserve retry token protocol and provider identity; fail closed on ambiguous legacy attempts before replacing outgoing issuance."
   },
-  "lastVerifiedIntegratedPacket": 49,
-  "lastVerifiedIntegratedPr": 356,
-  "lastVerifiedIntegratedHead": "6a6436f1c3739153195a81328bb5a0211b4bf92a",
+  "lastVerifiedIntegratedPacket": 50,
+  "lastVerifiedIntegratedPr": 357,
+  "lastVerifiedIntegratedHead": "11413470f26bedc653efb65f5c432c3238045c36",
   "packet47": {
     "base": "a6fd2613ad375531f18c1d1f98d32198b29710f2",
     "ci": "success",
@@ -1154,7 +1154,7 @@
   },
   "packet50": {
     "base": "6a6436f1c3739153195a81328bb5a0211b4bf92a",
-    "ci": "in-progress",
+    "ci": "success",
     "localFocusedTests": 18,
     "typescript": true,
     "scopedLint": true,
@@ -1164,18 +1164,31 @@
     "pr": 357,
     "localRegressionTests": 1718,
     "runs": [
-      {
-        "id": 37411906675,
-        "name": "V2 isolated runtime request isolation",
-        "status": "in_progress",
-        "head": "379237d5021b37694a822c1f74882786489e77a4"
-      },
-      {
-        "id": 37411907070,
-        "name": "V2 regression",
-        "status": "in_progress",
-        "head": "379237d5021b37694a822c1f74882786489e77a4"
-      }
-    ]
+      37411907070,
+      37411906675
+    ],
+    "merge": "11413470f26bedc653efb65f5c432c3238045c36",
+    "regressionTests": 1718,
+    "chromium": true,
+    "runtime": "success",
+    "artifact": 11389443017,
+    "artifactSha256": "0661af4b64b6bfb48d526cfb76e5ab01562bc2adffbaf31e7008bf5fb8349f5e",
+    "independentlyDownloaded": true,
+    "mergedTreeMatchesTestedHead": true,
+    "schemaColumnsUnchanged": true,
+    "schemaIndexesUnchanged": true,
+    "syntheticAccessRestored": true,
+    "vercelDeploymentsSuppressed": true
+  },
+  "packet51": {
+    "base": "11413470f26bedc653efb65f5c432c3238045c36",
+    "head": "d469e7adb514bdfd5814c92e46b358ede30015fd",
+    "tree": "a114e5cd2524dcb18e360850343dee8b0c3e76f4",
+    "pr": 358,
+    "ci": "pending",
+    "localRegressionTests": 1724,
+    "typescript": true,
+    "scopedLint": true,
+    "sourcePreparation": true
   }
 }
