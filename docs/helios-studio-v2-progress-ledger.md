@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 6, 2026: Packet 45 qualified; Packet 46 Phase 1 evidence reconciliation
+
+Live base `91f490ba20c718425e8d7d32b1afd7e938592608` confirms merged PR #352. Packet 45 head `47cbd20245c39efcb5fddaac28c5f26477ef6db8` passed regression 37399922887 (1,689 tests, TypeScript and Chromium) and runtime 37399922907. Independently downloaded artifact 11385090867 SHA256 `d950dd175151fecbd134a098fde7a3f726a9947ace5488c63dff19727965202f` verifies company administrator writes, protected global blocks, four observed access races, both-direction required audit rollback/retry, preserved legacy/contact state and schema/index/access postflight. Injection removed; merged tree matches; Vercel suppressed.
+
+Packet 46 reconciles the historical Phase 1 matrix with completed runtime and consent work. [Current checkpoint](helios-studio-v2-phase1-checkpoint.md) distinguishes module, disposable HTTP/database and historical hosted evidence; identifies remaining token issuance, analytics attribution, family-level isolation and compatibility gaps; and bounds the next delivery-token packet around retry identity. Documentation only; links and whitespace checked. No application, workflow, schema or gate changed. Phase 1 open; production ON HOLD.
+
 ## October 6, 2026: Packet 44 qualified; Packet 45 administrator consent activation
 
 Live base `a7ef686889b0e9c8fb864e1955384589dc7da84e` confirms merged PR #351. Packet 44 head `7c9d4ea6aeafc76f94f7d776960c945a5ff8ba29` passed regression 37398937520 (1,686 tests, TypeScript and Chromium) and runtime 37398937535. Independently downloaded artifact 11384099070 SHA256 `6e922d31ef67677889b278e029930355466a390a8be0fcbd344c16c9ec1ed91e` verifies both-direction authenticated directory projection, protected metadata redaction, unchanged read snapshots and schema/index/access postflight. Merged tree matches the tested candidate; Vercel suppressed.

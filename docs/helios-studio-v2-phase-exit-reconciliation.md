@@ -1,5 +1,7 @@
 # Packet 17: Phase 1/2 exit reconciliation
 
+Historical checkpoint. The [October 6 Phase 1 checkpoint](helios-studio-v2-phase1-checkpoint.md) reconciles later runtime and consent work; the Packet 17 evidence below remains unchanged.
+
 September 26, 2026. Reviewed tree: Packet 16 merge `e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7`, with the same application/executor files as verified head `77dfe4104ad0756c1c0aedf87f78a3ece666a609`.
 
 This is an evidence and scope packet. It changes documentation only. It does not enable a feature, migrate data, deploy a Preview, call a provider or change a worker. Phase 0 is essentially complete; Phase 1 remains in final qualification; Phase 2 has partial groundwork; Phases 3–7 remain ahead. Neither Phase 1 nor Phase 2 is declared exited.
