@@ -1,10 +1,10 @@
 {
   "status": "in-progress",
   "runId": "atlas-packet58-stream-upload-admission",
-  "branch": "codex/v2-project-image-attachment-fencing",
-  "head": "e428c29bebaab33fdef1a7124d7a10ae86cb6fce",
-  "pr": 368,
-  "scope": "Packet 61 image attachment mutation-time fencing; non-production",
+  "branch": "codex/v2-phase1-storage-checkpoint",
+  "head": "8688166fb1d89289672f39a480fb1e362084e92f",
+  "pr": 369,
+  "scope": "Packet 62 Phase 1 coverage reconciliation; non-production",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Verify and integrate Packets 60 and 61 in order only after exact-head CI/artifact/suppression gates. Reconcile remaining Phase 1 family evidence before next bounded packet. Production ON HOLD.",
+  "nextAction": "Complete Packet 61 and documentation-only Packet 62 exact-head CI gates and integrate in order. Next bounded implementation: direct Stream UID attachment transaction fencing. Production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -1035,9 +1035,9 @@
     "implementationStarted": false,
     "requiredConstraint": "Preserve retry token protocol and provider identity; fail closed on ambiguous legacy attempts before replacing outgoing issuance."
   },
-  "lastVerifiedIntegratedPacket": 59,
-  "lastVerifiedIntegratedPr": 366,
-  "lastVerifiedIntegratedHead": "ad287038458eacb16d10c2549040b5d59f1aabde",
+  "lastVerifiedIntegratedPacket": 60,
+  "lastVerifiedIntegratedPr": 367,
+  "lastVerifiedIntegratedHead": "7f6520c2098f8c25eb3cbe7c9c1dbe786cc4e15e",
   "packet47": {
     "base": "a6fd2613ad375531f18c1d1f98d32198b29710f2",
     "ci": "success",
@@ -1449,7 +1449,7 @@
     "tree": "dbc45022883a0ec700ec453f7e7bd7620cc07d08",
     "pr": 367,
     "stackedOn": 366,
-    "ci": "pending",
+    "ci": "success",
     "localRegressionTests": 1758,
     "typescript": true,
     "scopedLint": true,
@@ -1465,7 +1465,11 @@
     "schemaColumnsUnchanged": true,
     "schemaIndexesUnchanged": true,
     "syntheticAccessRestored": true,
-    "vercelDeploymentsSuppressed": true
+    "vercelDeploymentsSuppressed": true,
+    "regressionTests": 1758,
+    "chromium": true,
+    "merge": "7f6520c2098f8c25eb3cbe7c9c1dbe786cc4e15e",
+    "mergedTreeMatchesTestedHead": true
   },
   "packet61": {
     "head": "e428c29bebaab33fdef1a7124d7a10ae86cb6fce",
@@ -1476,6 +1480,28 @@
     "localRegressionTests": 1758,
     "typescript": true,
     "scopedLint": true,
-    "sourcePreparation": true
+    "sourcePreparation": true,
+    "runs": [
+      37423931336,
+      37423931296
+    ],
+    "runtime": "success",
+    "artifact": 11393579900,
+    "artifactSha256": "b65e1702351d87e314cb21301227b60a5ea63aa42855e6fb1735a11e48aa292d",
+    "independentlyDownloaded": true,
+    "schemaColumnsUnchanged": true,
+    "schemaIndexesUnchanged": true,
+    "syntheticAccessRestored": true,
+    "vercelDeploymentsSuppressed": true
+  },
+  "packet62": {
+    "head": "8688166fb1d89289672f39a480fb1e362084e92f",
+    "tree": "25336937c2bf85cfca2dba00264c7d2356b67e87",
+    "pr": 369,
+    "stackedOn": 368,
+    "ci": "pending",
+    "documentationOnly": true,
+    "linksAndWhitespace": true,
+    "applicationWorkflowSchemaUnchanged": true
   }
 }
