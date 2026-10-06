@@ -1035,9 +1035,9 @@
     "implementationStarted": false,
     "requiredConstraint": "Preserve retry token protocol and provider identity; fail closed on ambiguous legacy attempts before replacing outgoing issuance."
   },
-  "lastVerifiedIntegratedPacket": 55,
-  "lastVerifiedIntegratedPr": 362,
-  "lastVerifiedIntegratedHead": "b87b79845278395ff65b59f3c8525be9053ea5bb",
+  "lastVerifiedIntegratedPacket": 56,
+  "lastVerifiedIntegratedPr": 363,
+  "lastVerifiedIntegratedHead": "0f26cc2d847546e7dc976c203e942415a7996ed3",
   "packet47": {
     "base": "a6fd2613ad375531f18c1d1f98d32198b29710f2",
     "ci": "success",
@@ -1339,7 +1339,7 @@
     "pr": 363,
     "branch": "codex/v2-series-calendar-isolation",
     "stackedOn": 362,
-    "ci": "pending",
+    "ci": "success",
     "localRegressionTests": 1744,
     "localRegressionTimezone": "Australia/Brisbane",
     "crossHostTimezoneProof": true,
@@ -1356,7 +1356,12 @@
     "independentlyDownloaded": true,
     "schemaColumnsUnchanged": true,
     "schemaIndexesUnchanged": true,
-    "syntheticAccessRestored": true
+    "syntheticAccessRestored": true,
+    "merge": "0f26cc2d847546e7dc976c203e942415a7996ed3",
+    "regressionTests": 1744,
+    "chromium": true,
+    "mergedTreeMatchesTestedHead": true,
+    "vercelDeploymentsSuppressed": true
   },
   "packet57": {
     "head": "96a86117ad75ece3916953ee03a594c5169b11a5",
@@ -1367,6 +1372,17 @@
     "localRegressionTests": 1756,
     "typescript": true,
     "scopedLint": true,
-    "localSourcePreparation": "pending exact-head fetch"
+    "localSourcePreparation": "passed",
+    "runs": [
+      37421273336,
+      37421273345
+    ],
+    "runtime": "success",
+    "artifact": 11392689430,
+    "artifactSha256": "447f20d71bd420a65e113169041d426a353368232ba3378314462075d37d12fb",
+    "independentlyDownloaded": true,
+    "schemaColumnsUnchanged": true,
+    "schemaIndexesUnchanged": true,
+    "syntheticAccessRestored": true
   }
 }
