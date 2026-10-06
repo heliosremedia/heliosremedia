@@ -88,6 +88,7 @@ export default async function ClientsPage() {
           ...client,
           lastSyncedAt: client.lastSyncedAt.toISOString(),
           groupIds: client.groupMemberships.map((membership) => membership.groupId),
+          companyConsent: consentByClient.get(client.id)?.companyConsent ?? true,
           emailSubscribed: consentByClient.get(client.id)?.marketingEligible ?? false,
           emailStatus: consentByClient.get(client.id)?.emailStatus ?? "UNKNOWN",
           emailStatusEffectiveAt: consentByClient.get(client.id)?.emailStatusEffectiveAt ?? null,

@@ -32,6 +32,7 @@ export async function readClientConsentProjection(db: Pick<PrismaClient, "$trans
       const redact = !compatibility && (protectedBlock || !client.emailSubscribed);
       return {
         id: client.id,
+        companyConsent: !compatibility,
         emailStatus: redact || suppressed.has(email) ? "SUPPRESSED" : visible?.status ?? (client.emailSubscribed ? "UNKNOWN" : "UNSUBSCRIBED"),
         emailStatusEffectiveAt: redact || suppressed.has(email) ? null : visible?.effectiveAt.toISOString() ?? null,
         emailStatusSource: redact || suppressed.has(email) ? null : visible?.source ?? null,
