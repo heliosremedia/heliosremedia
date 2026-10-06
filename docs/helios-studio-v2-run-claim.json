@@ -2,8 +2,8 @@
   "status": "in-progress",
   "runId": "atlas-packet50-referral-preparation-fencing",
   "branch": "codex/v2-referral-preparation-fencing",
-  "head": null,
-  "pr": null,
+  "head": "379237d5021b37694a822c1f74882786489e77a4",
+  "pr": 357,
   "scope": "Referral preparation source and lease fencing; sending containment retained",
   "evidence": {
     "run": 36217912507,
@@ -1154,10 +1154,28 @@
   },
   "packet50": {
     "base": "6a6436f1c3739153195a81328bb5a0211b4bf92a",
-    "ci": "not-published",
+    "ci": "in-progress",
     "localFocusedTests": 18,
     "typescript": true,
     "scopedLint": true,
-    "sourcePreparation": true
+    "sourcePreparation": true,
+    "head": "379237d5021b37694a822c1f74882786489e77a4",
+    "tree": "81d398574b28d78252b8f564dda122b724d8d469",
+    "pr": 357,
+    "localRegressionTests": 1718,
+    "runs": [
+      {
+        "id": 37411906675,
+        "name": "V2 isolated runtime request isolation",
+        "status": "in_progress",
+        "head": "379237d5021b37694a822c1f74882786489e77a4"
+      },
+      {
+        "id": 37411907070,
+        "name": "V2 regression",
+        "status": "in_progress",
+        "head": "379237d5021b37694a822c1f74882786489e77a4"
+      }
+    ]
   }
 }
