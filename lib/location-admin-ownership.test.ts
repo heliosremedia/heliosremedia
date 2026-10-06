@@ -72,7 +72,7 @@ function fixture() {
     },
     $transaction: async (fn: (tx: unknown) => Promise<unknown>) => {
       state.beforeWrite();
-      return fn({ locationPage, $queryRaw: async () => { state.events.push('lock'); return []; },
+      return fn({ locationPage, workspaceAsset: prisma.workspaceAsset, $queryRaw: async () => { state.events.push('lock'); return []; },
         adminUser: { findFirst: async () => ({ ...actor, id: actor.userId, active: state.active }) },
         workspaceMembership: { findUnique: async () => ({ userId: actor.userId, workspaceId: actor.workspaceId, status: state.membershipStatus, role: state.freshRole }) },
       });
@@ -374,3 +374,18 @@ test('location presign registers owned identity before signing and denies foreig
   assert.ok(state.events.includes('register')); assert.ok(state.events.includes('provisioned'));
   assert.equal((await response.json()).upload.key, ownKey);
 });
+
+for (const change of ["revoked", "demoted", "inactive"] as const) {
+  test(`location upload denies ${change} access after initial session lookup`, async () => {
+    const { state, presign } = fixture();
+    state.beforeWrite = () => {
+      if (change === "revoked") state.membershipStatus = "REVOKED";
+      if (change === "demoted") state.freshRole = "VIEWER";
+      if (change === "inactive") state.active = false;
+    };
+    const response = await presign.POST(request('POST', { locationId: 'location-b', fileType: 'image/webp', fileSize: 1024 }));
+    assert.equal(response.status, 403); assert.equal(state.signs, 0);
+    assert.equal(state.events.includes('register'), false);
+    assert.equal((await response.json()).upload, undefined);
+  });
+}

@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     }
 
     const key = createBrandLogoKey(session.workspaceId, fileType);
-    const uploadUrl = await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, kind: "site-brand", key, byteSize: fileSize }, () => createPresignedUploadUrl(key, fileType));
+    const uploadUrl = await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, sessionVersion: session.sessionVersion, kind: "site-brand", key, byteSize: fileSize }, () => createPresignedUploadUrl(key, fileType));
 
     return NextResponse.json({
       success: true,
@@ -47,6 +47,7 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Upload access is no longer available." }, { status: 403 });
     console.error("Unable to prepare brand logo upload:", error);
     return NextResponse.json(
       { success: false, error: "The brand logo upload could not be prepared." },

@@ -18,8 +18,9 @@ export async function POST(request: Request) {
     };
     validateImageUpload(file);
     const key = createBlogImageKey(session.workspaceId, file.type);
-    return NextResponse.json({ success: true, upload: { key, uploadUrl: await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, kind: "blog", key, byteSize: file.size }, () => createPresignedUploadUrl(key, file.type)), publicUrl: getPublicAssetUrl(key), contentType: file.type } });
+    return NextResponse.json({ success: true, upload: { key, uploadUrl: await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, sessionVersion: session.sessionVersion, kind: "blog", key, byteSize: file.size }, () => createPresignedUploadUrl(key, file.type)), publicUrl: getPublicAssetUrl(key), contentType: file.type } });
   } catch (cause) {
+    if (cause instanceof Error && cause.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Upload access is no longer available." }, { status: 403 });
     const message = cause instanceof Error ? cause.message : "Unable to prepare this image.";
     return NextResponse.json({ success: false, error: message }, { status: message.startsWith("Unsupported") || message.includes("25 MB") ? 400 : 500 });
   }

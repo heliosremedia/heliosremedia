@@ -1,11 +1,19 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { requireLockedWorkspaceAdministrator, requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
 import { r2Config } from "@/lib/r2";
 import { verifyContentImage } from "@/lib/content-image-storage";
 import { brandAssetPrefix, type BrandAssetKind } from "@/lib/workspace-brand-storage";
 import { tenantContextEnabled } from "@/lib/workspace-context-core";
 
 type RegisteredBrandKind = Extract<BrandAssetKind, "testimonials" | "trusted-logos" | "photo-comparison" | "site-brand" | "site-homepage" | "site-hero" | "site-featured-film" | "about" | "team" | "blog" | "newsletter" | "locations">;
+
+// Preserve the existing endpoint role thresholds for every registered family.
+const uploadAccess: Record<RegisteredBrandKind, "ADMIN" | "EDITOR"> = {
+  testimonials: "EDITOR", "trusted-logos": "EDITOR", "photo-comparison": "EDITOR",
+  "site-brand": "ADMIN", "site-homepage": "ADMIN", "site-hero": "ADMIN", "site-featured-film": "EDITOR",
+  about: "EDITOR", team: "EDITOR", blog: "EDITOR", newsletter: "ADMIN", locations: "EDITOR",
+};
 
 function namespace() {
   if (!r2Config.accountId || !r2Config.bucketName) throw new Error("INVALID_BRAND_IMAGE");
@@ -19,14 +27,21 @@ function assertKey(workspaceId: string, kind: RegisteredBrandKind, key: string) 
 
 /** Register identity before granting a signed URL or executing an object write. */
 export async function withBrandUploadAsset<T>(input: {
-  workspaceId: string; actorId: string; kind: RegisteredBrandKind; key: string; byteSize: number;
+  workspaceId: string; actorId: string; sessionVersion: number; kind: RegisteredBrandKind; key: string; byteSize: number;
 }, provision: () => Promise<T>): Promise<T> {
+  input = { ...input };
+  const access = uploadAccess[input.kind];
+  if (!access) throw new Error("INVALID_BRAND_IMAGE");
   assertKey(input.workspaceId, input.kind, input.key);
   if (!Number.isSafeInteger(input.byteSize) || input.byteSize <= 0) throw new Error("INVALID_BRAND_IMAGE");
-  const asset = await prisma.workspaceAsset.create({ data: {
-    workspaceId: input.workspaceId, provider: "R2", providerNamespace: namespace(), providerKey: input.key,
-    byteSize: BigInt(input.byteSize), provenance: { kind: "BRAND_UPLOAD", assetKind: input.kind, actorId: input.actorId },
-  }, select: { id: true } });
+  const asset = await prisma.$transaction(async tx => {
+    const actor = { workspaceId: input.workspaceId, userId: input.actorId, sessionVersion: input.sessionVersion };
+    await (access === "ADMIN" ? requireLockedWorkspaceAdministrator(tx, actor) : requireLockedWorkspaceEditor(tx, actor));
+    return tx.workspaceAsset.create({ data: {
+      workspaceId: input.workspaceId, provider: "R2", providerNamespace: namespace(), providerKey: input.key,
+      byteSize: BigInt(input.byteSize), provenance: { kind: "BRAND_UPLOAD", assetKind: input.kind, actorId: input.actorId },
+    }, select: { id: true } });
+  });
   try {
     const result = await provision();
     const changed = await prisma.workspaceAsset.updateMany({
