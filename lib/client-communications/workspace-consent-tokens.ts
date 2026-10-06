@@ -39,9 +39,10 @@ export async function createWorkspaceCampaignPreferenceToken(db: Database, input
 }
 
 /** The immutable stored token binding is the only public unsubscribe authority. */
-export async function consumeWorkspacePreferenceToken(db: Database, token: string) {
+export async function consumeWorkspacePreferenceToken(db: Database, token: string, reason?: string) {
   if (!validWorkspacePreferenceToken(token)) return null;
   const tokenHash = workspacePreferenceTokenHash(token);
+  const recordedReason = typeof reason === "string" ? reason.trim().slice(0, 500) || null : null;
   return db.$transaction(async tx => {
     const initial = await tx.workspaceMarketingPreferenceToken.findUnique({ where: { tokenHash }, select: { id: true, workspaceId: true, preferenceId: true } });
     if (!initial) return null;
@@ -52,8 +53,8 @@ export async function consumeWorkspacePreferenceToken(db: Database, token: strin
     const preference = await tx.workspaceMarketingPreference.findUniqueOrThrow({ where: { workspaceId_id: { workspaceId: current.workspaceId, id: current.preferenceId } } });
     const changed = preference.status !== "UNSUBSCRIBED";
     if (changed) {
-      await tx.workspaceMarketingPreference.update({ where: { workspaceId_id: { workspaceId: current.workspaceId, id: preference.id } }, data: { status: "UNSUBSCRIBED", source: "PUBLIC_WORKSPACE_TOKEN", reason: null, actorId: null, effectiveAt: new Date() } });
-      await tx.workspaceMarketingPreferenceEvent.create({ data: { workspaceId: current.workspaceId, preferenceId: preference.id, previousStatus: preference.status, status: "UNSUBSCRIBED", source: "PUBLIC_WORKSPACE_TOKEN" } });
+      await tx.workspaceMarketingPreference.update({ where: { workspaceId_id: { workspaceId: current.workspaceId, id: preference.id } }, data: { status: "UNSUBSCRIBED", source: "PUBLIC_WORKSPACE_TOKEN", reason: recordedReason, actorId: null, effectiveAt: new Date() } });
+      await tx.workspaceMarketingPreferenceEvent.create({ data: { workspaceId: current.workspaceId, preferenceId: preference.id, previousStatus: preference.status, status: "UNSUBSCRIBED", source: "PUBLIC_WORKSPACE_TOKEN", reason: recordedReason } });
       await tx.auditEvent.create({ data: { workspaceId: current.workspaceId, action: "WORKSPACE_MARKETING_TOKEN_UNSUBSCRIBED", entityType: "WorkspaceMarketingPreference", entityId: preference.id,
         summary: "Company marketing preference unsubscribed through its token.", metadata: { tokenId: current.id, campaignId: current.campaignId, messageId: current.messageId } } });
     }

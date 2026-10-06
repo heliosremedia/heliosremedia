@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 6, 2026: Packet 42 qualified; Packet 43 public company unsubscribe
+
+Live base `af7bbacda3a6753a1cad650cd386bfe113a9beda` confirms merged PR #349. Packet 42 head `b7a102653f6c77d19f219be076527b11d74c21fa` passed regression 37225018208 (1,671 tests, TypeScript and Chromium) and runtime 37225018123. Independently downloaded artifact 11311961248 SHA256 `e96a636cf8dc5b8b4d2a78c34804fb29228ca7bbea69caa0183e378e85433fb8` verifies both-direction delivery eligibility isolation, both tenant flag states, protected legacy/safety blocks, read-only snapshots and schema/index/access postflight. The old campaign fixture was corrected to assert the workspace-aware dependency; no gate was weakened. Execution recovered, clean source was rebuilt from GitHub, and the merged tree matches the tested tree. Vercel remains suppressed.
+
+Packet 43 connects versioned public unsubscribe requests to the verified company token consumer, preserving legacy token scope and recording bounded optional reasons. [Scope and verification](helios-studio-v2-consent-public-unsubscribe.md). Six route tests and local TypeScript/lint/preparation gates precede exact-head real HTTP replay/isolation/audit rollback and legacy-scope qualification. Delivery token issuance and administrator activation remain separate work. Phase 1 remains open. Production ON HOLD.
+
 ## October 4, 2026: Packet 41 qualified; Packet 42 delivery consent readers
 
 Live base `366835a2f1f3979bdf98b0a1cdd9d6ec5e3b88a0` confirms merged PR #348. Packet 41 head `2990d52cd98e2bf6fc634dca429b463130bd27c4` passed regression 37223795222 (1,661 tests, TypeScript and Chromium) and runtime 37223795296. Independently downloaded artifact 11311446279 SHA256 `f9876ada1151e321b2e01c9e60996982d8714c6db8f58b295bad570b3de1a535` verifies company token provenance/isolation, stable retry, concurrent replay, expiry after observed lock wait, atomic audit rollback/retry, preserved legacy state, injection removal and schema/index/access postflight. Merged tree matches the tested tree; Vercel remains suppressed.
