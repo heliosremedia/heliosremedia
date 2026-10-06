@@ -197,3 +197,58 @@ test("Stream external URL creation and replacement enforce registry ownership wh
   allowed = true; assert.equal((await call()).status, 200); assert.equal(writes, 2);
   const previousChecks = checks; oldUrl = url; allowed = false; assert.equal((await call()).status, 200); assert.equal(checks, previousChecks); assert.equal(writes, 3);
 });
+
+test("project images require registered company/project/status ownership with bounded legacy fallback", async () => {
+  let asset: { id: string; workspaceId: string; status: string; provenance: unknown } | null = null;
+  let enabled = true;
+  let companies = [{ id: "a" }];
+  const env = { STUDIO_V2_ASSET_OWNERSHIP_ENABLED: "false" };
+  const api = load<AssetApi>("./workspace-assets.ts", {
+    "server-only": {}, "@/lib/workspace-write-access": {}, "@/lib/cloudflare-stream": stream,
+    "@/lib/workspace-context-core": { tenantContextEnabled: () => enabled },
+    "@/lib/prisma": { prisma: {
+      workspaceAsset: { findUnique: async ({ where }: { where: { provider_providerNamespace_providerKey: unknown } }) => {
+        assert.deepEqual(JSON.parse(JSON.stringify(where.provider_providerNamespace_providerKey)), { provider: "R2", providerNamespace: '["account","bucket"]', providerKey: "projects/project/photography/image.png" }); return asset;
+      } }, workspace: { findMany: async () => companies },
+    } },
+  }, { process: { env } });
+  const call = () => api.resolveProjectImageAssetForAttachment("a", '["account","bucket"]', "projects/project/photography/image.png", "project");
+  await assert.rejects(call(), /INVALID_IMAGE_ASSET/);
+  enabled = false; assert.equal(await call(), null);
+  for (const rows of [[], [{ id: "b" }], [{ id: "a" }, { id: "b" }]]) { companies = rows; await assert.rejects(call(), /INVALID_IMAGE_ASSET/); }
+  companies = [{ id: "a" }]; env.STUDIO_V2_ASSET_OWNERSHIP_ENABLED = "true"; await assert.rejects(call(), /INVALID_IMAGE_ASSET/);
+  env.STUDIO_V2_ASSET_OWNERSHIP_ENABLED = "false";
+  asset = { id: "asset", workspaceId: "b", status: "UPLOAD_PROVISIONED", provenance: { kind: "PROJECT_IMAGE_UPLOAD", projectId: "project" } };
+  await assert.rejects(call(), /INVALID_IMAGE_ASSET/); asset.workspaceId = "a";
+  for (const status of ["UPLOAD_PENDING", "FAILED", "QUARANTINED", "RETIRED"]) { asset.status = status; await assert.rejects(call(), /INVALID_IMAGE_ASSET/); }
+  for (const status of ["UPLOAD_PROVISIONED", "READY"]) { asset.status = status; assert.equal(await call(), "asset"); }
+  for (const provenance of [null, [], "project", { kind: "BRAND_UPLOAD", projectId: "project" }, { kind: "PROJECT_IMAGE_UPLOAD", projectId: "foreign" }]) { asset.provenance = provenance; await assert.rejects(call(), /INVALID_IMAGE_ASSET/); }
+});
+
+test("image attachment checks the actual registry before R2 and stores the admitted asset link", async () => {
+  const events: string[] = [];
+  let asset: { id: string; workspaceId: string; status: string; provenance: { kind: string; projectId: string } } | null = null;
+  const db = {
+    workspaceAsset: { findUnique: async () => { events.push("registry"); return asset; } },
+    workspace: { findMany: async () => [{ id: "a" }, { id: "b" }] },
+    project: { findFirst: async () => ({ id: "project" }) },
+    service: { findFirst: async () => ({ id: "service", slug: "photography" }) },
+    media: { findFirst: async () => null, aggregate: async () => ({ _max: { displayOrder: 0 } }), create: async ({ data }: { data: { assetId: string; projectId: string } }) => { assert.equal(data.assetId, "asset"); assert.equal(data.projectId, "project"); events.push("create"); return { id: "media" }; } },
+    projectService: { createMany: async () => { events.push("service"); } },
+  };
+  const assets = load<AssetApi>("./workspace-assets.ts", { "server-only": {}, "@/lib/workspace-write-access": {}, "@/lib/cloudflare-stream": stream, "@/lib/workspace-context-core": { tenantContextEnabled: () => true }, "@/lib/prisma": { prisma: db } });
+  const api = load<{ POST: (request: Request, context: { params: Promise<{ projectId: string }> }) => Promise<Response> }>("../app/api/admin/projects/[projectId]/media/route.ts", {
+    "@aws-sdk/client-s3": { HeadObjectCommand: class {} }, "next/cache": {}, "next/server": { NextResponse: Response },
+    "@/lib/media-collections": { isMediaCategory: () => true }, "@/lib/cloudflare-stream": stream, "@/lib/external-media": {},
+    "@/lib/r2": { r2Config: { accountId: "account", bucketName: "bucket" }, r2Client: { send: async () => { events.push("provider"); return { ContentLength: 100, ContentType: "image/png" }; } } },
+    "@/lib/r2-upload": { getPublicAssetUrl: () => "https://images.invalid/image.png" }, "@/lib/service-media": { mediaCategoryForServiceSlug: () => "PHOTOGRAPHY", mediaFolderForService: () => "photography" }, "@/lib/project-media-upload": { getProjectMediaImageValidationError: () => null },
+    "@/lib/auth/session": { getAdminSession: async () => ({ role: "EDITOR", workspaceId: "a" }) },
+    "@/lib/workspace-assets": assets, "@/lib/prisma": { prisma: db },
+  });
+  const call = () => api.POST(new Request("https://example.test/api", { method: "POST", body: JSON.stringify({ key: "projects/project/photography/image.png", originalFilename: "image.png", mimeType: "image/png", fileSize: 100, serviceId: "service", workspaceId: "b" }) }), { params: Promise.resolve({ projectId: "project" }) });
+  for (const rejected of [null, { id: "asset", workspaceId: "b", status: "READY", provenance: { kind: "PROJECT_IMAGE_UPLOAD", projectId: "project" } }, { id: "asset", workspaceId: "a", status: "FAILED", provenance: { kind: "PROJECT_IMAGE_UPLOAD", projectId: "project" } }]) {
+    asset = rejected; const response = await call(); assert.equal(response.status, 400); assert.deepEqual(events.splice(0), ["registry"]);
+  }
+  asset = { id: "asset", workspaceId: "a", status: "UPLOAD_PROVISIONED", provenance: { kind: "PROJECT_IMAGE_UPLOAD", projectId: "project" } };
+  assert.equal((await call()).status, 201); assert.deepEqual(events, ["registry", "provider", "create", "service"]);
+});

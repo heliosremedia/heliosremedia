@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 6, 2026: Packet 60 project image attachment registry boundary
+
+Packet 59 PR #366 candidate `e9f3e88e7d09406fa262c158d08ddcc8537f6ab3` has passed runtime qualification 37422724883. Independently downloaded artifact 11394001718 SHA256 `5b32d4224a70890e718400a3ece2ca847c8056335ee12580296f474388e2bc5e` verifies twelve metadata denials, server-only constraints, preserved Stream admission races and unchanged schema/index/access postflight. Regression/browser 37422724956 remains in progress at this preparation. Both Vercel projects remain suppressed; Packet 58 remains the latest integrated packet.
+
+Packet 60 consumes the project image upload registry before provider object inspection and links new Media rows to the admitted asset. [Scope and qualification](helios-studio-v2-project-image-attachment-ownership.md). Tests cover exact provider namespace, company, project provenance and usable status; both-company HTTP rehearsal uses an explicit no-network HeadObject substitute. The narrow sole-workspace legacy path remains. Mutation-time fencing, object delivery/deletion and hosted parity remain separate work. No production, schema, credentials or real provider operations. Phase 1 remains open; production ON HOLD.
+
 ## October 6, 2026: Packets 57–58 qualified; Packet 59 Stream metadata authority
 
 Packet 57 PR #364 merged at `2ab5f083dd5a4ef094744860afc173381a35dd56` with candidate `96a86117ad75ece3916953ee03a594c5169b11a5`. Regression 37421273336 passed 1,756 tests, TypeScript and Chromium; runtime 37421273345 passed. Independently verified artifact 11392689430 SHA256 `447f20d71bd420a65e113169041d426a353368232ba3378314462075d37d12fb` proves both-company diagnostic denial and unchanged schema/index/access postflight. Packet 58 PR #365 merged at `6cdbe6c1254aebea06fc947dc0d046b16dd017e0`; candidate `8ebd3839bd8b026c702b61d5eba4d9cc0a1fec4f` passed regression 37421892557 (1,756 tests, TypeScript and Chromium) and runtime 37421892565. Independently verified artifact 11394045033 SHA256 `f4ac2804e40d945dd53084d309b2c2265d5d49943dd5d7f04629d64b8e3bb99f` proves six observed-lock Stream admission denials, owned UID registration and schema/index/access postflight. Both projects remain suppressed; merge trees match tested candidates.
