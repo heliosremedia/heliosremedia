@@ -59,3 +59,5 @@ export { readClientConsentProjection } from "../../../lib/client-communications/
 export { createCampaignDeliveryPreferenceToken } from "../../../lib/client-communications/campaign-consent-token";
 
 export { prepareNewsletterCampaignRetry } from "../../../lib/newsletters/delivery-campaign";
+
+export { readCampaignUnsubscribeCounts } from "../../../lib/newsletters/unsubscribe-counts";

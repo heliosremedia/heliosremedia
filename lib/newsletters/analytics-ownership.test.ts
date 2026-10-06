@@ -24,6 +24,7 @@ test("newsletter analytics excludes foreign editions and inconsistent campaign o
   const preferenceQueries: string[][] = [];
   const api = load<{ getNewsletterAnalytics: (id: string, actor: unknown) => Promise<ReturnType<typeof summarizeNewsletterCampaign> & { previous: unknown } | null> }>('./analytics.ts', {
     'server-only': {}, './analytics-core': { summarizeNewsletterCampaign },
+    './unsubscribe-counts': { readCampaignUnsubscribeCounts: async (_tx: unknown, workspaceId: string, campaignIds: string[]) => { assert.equal(workspaceId, 'a'); preferenceQueries.push(Array.from(campaignIds)); return new Map(campaignIds.map(id => [id, 1])); } },
     '@/lib/blog-ownership': { getContentOwnershipScope: async (workspaceId: string) => ({ workspaceId }) },
     '@/lib/workspace-write-access': { requireLockedWorkspaceAdministrator: async (_tx: unknown, actor: { workspaceId: string }) => { assert.equal(actor.workspaceId, 'a'); if (!allowed) throw new Error('WORKSPACE_WRITE_FORBIDDEN'); } },
     '@/lib/prisma': { prisma: { $transaction: async (fn: (tx: unknown) => Promise<unknown>, options: { isolationLevel: string }) => {
@@ -35,10 +36,6 @@ test("newsletter analytics excludes foreign editions and inconsistent campaign o
           assert.equal(select.campaign.select.recipients.select.email, undefined);
           return rows.find(item => item.edition.workspaceId === where.edition.series.workspaceId && item.campaign.workspaceId === where.campaign.workspaceId
             && (where.editionId ? item.editionId === where.editionId : item.edition.seriesId === where.edition.seriesId && item.edition.intendedSendAt < where.edition.intendedSendAt!.lt)) ?? null;
-        } },
-        marketingEmailPreferenceEvent: { findMany: async ({ where }: { where: { campaignId: { in: string[] }; status: string } }) => {
-          assert.equal(where.status, 'UNSUBSCRIBED'); preferenceQueries.push(Array.from(where.campaignId.in));
-          return where.campaignId.in.flatMap(campaignId => [{ campaignId, preferenceId: 'preference' }, { campaignId, preferenceId: 'preference' }]);
         } },
       });
     } } },
