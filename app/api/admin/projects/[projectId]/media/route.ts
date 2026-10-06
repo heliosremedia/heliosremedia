@@ -1,3 +1,4 @@
+import { requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
 import { resolveProjectImageAssetForAttachment, resolveStreamAssetForAttachment } from "@/lib/workspace-assets";
 import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { revalidatePath } from "next/cache";
@@ -711,115 +712,135 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
       );
     }
 
-    const existingMedia = await prisma.media.findFirst({
-      where: {
-        projectId,
-        storageKey: key,
-      },
-      select: {
-        id: true,
-        sourceType: true,
-        provider: true,
-        storageKey: true,
-        originalFilename: true,
-        altText: true,
-        caption: true,
-        mimeType: true,
-        externalUrl: true,
-        externalId: true,
-        fileSize: true,
-        width: true,
-        height: true,
-        aspectRatio: true,
-        mediaCategory: true,
-        serviceId: true,
-        displayOrder: true,
-        visibility: true,
-        createdAt: true,
-      },
-    });
-
-    if (existingMedia) {
-      return NextResponse.json({
-        success: true,
-        media: {
-          ...existingMedia,
-          publicUrl: getPublicAssetUrl(key),
-          isHero: existingMedia.id === project.heroMediaId,
+    return await prisma.$transaction(async tx => {
+      await requireLockedWorkspaceEditor(tx, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+      await tx.$queryRaw`SELECT id FROM "Project" WHERE id=${projectId} AND "workspaceId"=${session.workspaceId} FOR UPDATE`;
+      const project = await tx.project.findFirst({ where: { id: projectId, workspaceId: session.workspaceId }, select: { id: true, heroMediaId: true } });
+      if (!project) throw new Error("IMAGE_PROJECT_UNAVAILABLE");
+      await tx.$queryRaw`SELECT id FROM "Service" WHERE id=${selectedService.id} AND "workspaceId"=${session.workspaceId} FOR SHARE`;
+      const service = await tx.service.findFirst({ where: { id: selectedService.id, workspaceId: session.workspaceId, active: true, archivedAt: null }, select: { id: true, slug: true } });
+      if (!service || !key.startsWith(`projects/${projectId}/${mediaFolderForService(service)}/`)) throw new Error("IMAGE_SERVICE_UNAVAILABLE");
+      const providerNamespace = JSON.stringify([r2Config.accountId, r2Config.bucketName]);
+      await tx.$queryRaw`SELECT id FROM "WorkspaceAsset" WHERE provider='R2' AND "providerNamespace"=${providerNamespace} AND "providerKey"=${key} FOR SHARE`;
+      if (assetId === null) {
+        // Keep the temporary sole-workspace, unregistered legacy decision stable.
+        await tx.$queryRaw`LOCK TABLE "Workspace", "WorkspaceAsset" IN SHARE MODE`;
+      }
+      const admittedAssetId = await resolveProjectImageAssetForAttachment(session.workspaceId, providerNamespace, key, projectId, tx);
+      if (assetId !== null && admittedAssetId !== assetId) throw new Error("INVALID_IMAGE_ASSET");
+      const existingMedia = await tx.media.findFirst({
+        where: {
+          projectId,
+          storageKey: key,
+        },
+        select: {
+          id: true,
+          sourceType: true,
+          provider: true,
+          storageKey: true,
+          originalFilename: true,
+          altText: true,
+          caption: true,
+          mimeType: true,
+          externalUrl: true,
+          externalId: true,
+          fileSize: true,
+          width: true,
+          height: true,
+          aspectRatio: true,
+          mediaCategory: true,
+          serviceId: true,
+          displayOrder: true,
+          visibility: true,
+          createdAt: true,
         },
       });
-    }
 
-    const displayOrderResult = await prisma.media.aggregate({
-      where: {
-        projectId,
-        serviceId: selectedService.id,
-      },
-      _max: {
-        displayOrder: true,
-      },
-    });
+      if (existingMedia) {
+        return NextResponse.json({
+          success: true,
+          media: {
+            ...existingMedia,
+            publicUrl: getPublicAssetUrl(key),
+            isHero: existingMedia.id === project.heroMediaId,
+          },
+        });
+      }
 
-    const displayOrder = (displayOrderResult._max.displayOrder ?? -1) + 1;
-
-    const aspectRatio = width && height ? width / height : null;
-
-    const media = await prisma.media.create({
-      data: {
-        projectId,
-        sourceType: "UPLOADED_IMAGE",
-        assetId,
-        mediaCategory,
-        serviceId: selectedService.id,
-        storageKey: key,
-        originalFilename,
-        mimeType,
-        fileSize: verifiedFileSize,
-        width,
-        height,
-        aspectRatio,
-        displayOrder,
-        visibility: "VISIBLE",
-      },
-      select: {
-        id: true,
-        sourceType: true,
-        provider: true,
-        storageKey: true,
-        originalFilename: true,
-        altText: true,
-        caption: true,
-        mimeType: true,
-        externalUrl: true,
-        externalId: true,
-        fileSize: true,
-        width: true,
-        height: true,
-        aspectRatio: true,
-        mediaCategory: true,
-        serviceId: true,
-        displayOrder: true,
-        visibility: true,
-        createdAt: true,
-      },
-    });
-
-    await prisma.projectService.createMany({ data: [{ projectId, serviceId: selectedService.id }], skipDuplicates: true });
-
-    return NextResponse.json(
-      {
-        success: true,
-        media: {
-          ...media,
-          publicUrl: getPublicAssetUrl(key),
-          isHero: false,
+      const displayOrderResult = await tx.media.aggregate({
+        where: {
+          projectId,
+          serviceId: selectedService.id,
         },
-      },
-      {
-        status: 201,
-      },
-    );
+        _max: {
+          displayOrder: true,
+        },
+      });
+
+      const displayOrder = (displayOrderResult._max.displayOrder ?? -1) + 1;
+
+      const aspectRatio = width && height ? width / height : null;
+
+      const media = await tx.media.create({
+        data: {
+          projectId,
+          sourceType: "UPLOADED_IMAGE",
+          assetId: admittedAssetId,
+          mediaCategory,
+          serviceId: selectedService.id,
+          storageKey: key,
+          originalFilename,
+          mimeType,
+          fileSize: verifiedFileSize,
+          width,
+          height,
+          aspectRatio,
+          displayOrder,
+          visibility: "VISIBLE",
+        },
+        select: {
+          id: true,
+          sourceType: true,
+          provider: true,
+          storageKey: true,
+          originalFilename: true,
+          altText: true,
+          caption: true,
+          mimeType: true,
+          externalUrl: true,
+          externalId: true,
+          fileSize: true,
+          width: true,
+          height: true,
+          aspectRatio: true,
+          mediaCategory: true,
+          serviceId: true,
+          displayOrder: true,
+          visibility: true,
+          createdAt: true,
+        },
+      });
+
+      await tx.projectService.createMany({ data: [{ projectId, serviceId: selectedService.id }], skipDuplicates: true });
+
+      return NextResponse.json(
+        {
+          success: true,
+          media: {
+            ...media,
+            publicUrl: getPublicAssetUrl(key),
+            isHero: false,
+          },
+        },
+        {
+          status: 201,
+        },
+      );
+    });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Upload access is no longer available." }, { status: 403 });
+    if (error instanceof Error && error.message === "IMAGE_PROJECT_UNAVAILABLE") return NextResponse.json({ success: false, error: "Project not found." }, { status: 404 });
+    if (error instanceof Error && error.message === "IMAGE_SERVICE_UNAVAILABLE") return NextResponse.json({ success: false, error: "Select an active service collection." }, { status: 409 });
     if (error instanceof Error && error.message === "INVALID_IMAGE_ASSET") {
       return NextResponse.json({ success: false, error: "This image is not available to this company. Upload it again from this project." }, { status: 400 });
     }

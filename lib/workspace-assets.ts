@@ -65,9 +65,9 @@ export async function resolveStreamAssetForAttachment(workspaceId: string, uid: 
 }
 
 /** A project-shaped key is not proof of registered object ownership. */
-export async function resolveProjectImageAssetForAttachment(workspaceId: string, providerNamespace: string, key: string, projectId: string) {
+export async function resolveProjectImageAssetForAttachment(workspaceId: string, providerNamespace: string, key: string, projectId: string, db: Pick<typeof prisma, "workspaceAsset" | "workspace"> = prisma) {
   if (!workspaceId || !providerNamespace || !key || !projectId) throw new Error("INVALID_IMAGE_ASSET");
-  const asset = await prisma.workspaceAsset.findUnique({
+  const asset = await db.workspaceAsset.findUnique({
     where: { provider_providerNamespace_providerKey: { provider: "R2", providerNamespace, providerKey: key } },
     select: { id: true, workspaceId: true, status: true, provenance: true },
   });
@@ -80,7 +80,7 @@ export async function resolveProjectImageAssetForAttachment(workspaceId: string,
   }
   const enforced = tenantContextEnabled() || process.env.STUDIO_V2_ASSET_OWNERSHIP_ENABLED?.trim().toLowerCase() === "true";
   if (!enforced) {
-    const rows = await prisma.workspace.findMany({ take: 2, select: { id: true } });
+    const rows = await db.workspace.findMany({ take: 2, select: { id: true } });
     if (rows.length === 1 && rows[0].id === workspaceId) return null;
   }
   throw new Error("INVALID_IMAGE_ASSET");

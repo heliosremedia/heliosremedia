@@ -134,7 +134,7 @@ test("media creation rejects unowned Stream IDs before creating a media row", as
   let allowed = false;
   let creates = 0;
   const api = load<{ POST: (request: Request, context: { params: Promise<{ projectId: string }> }) => Promise<Response> }>("../app/api/admin/projects/[projectId]/media/route.ts", {
-    "@aws-sdk/client-s3": {}, "next/cache": { revalidatePath() {} }, "next/server": { NextResponse: Response },
+    "@/lib/workspace-write-access": {}, "@aws-sdk/client-s3": {}, "next/cache": { revalidatePath() {} }, "next/server": { NextResponse: Response },
     "@/lib/media-collections": { isMediaCategory: () => true }, "@/lib/cloudflare-stream": stream, "@/lib/external-media": {},
     "@/lib/r2": {}, "@/lib/r2-upload": {}, "@/lib/service-media": { mediaCategoryForServiceSlug: () => "VIDEO" }, "@/lib/project-media-upload": {},
     "@/lib/auth/session": { getAdminSession: async () => ({ role: "EDITOR", workspaceId: "a" }) },
@@ -178,7 +178,7 @@ test("Stream external URL creation and replacement enforce registry ownership wh
   const url = stream.getCloudflareStreamEmbedUrl(uid);
   const save = async ({ data }: { data: { assetId?: string } }) => { assert.equal(data.assetId, oldUrl === url && patch ? undefined : "asset"); writes++; return { id: "media" }; };
   const api = load<{ POST: (request: Request, context: { params: Promise<{ projectId: string }> }) => Promise<Response>; PATCH: (request: Request, context: { params: Promise<{ projectId: string }> }) => Promise<Response> }>("../app/api/admin/projects/[projectId]/media/route.ts", {
-    "@aws-sdk/client-s3": {}, "next/cache": { revalidatePath() {} }, "next/server": { NextResponse: Response },
+    "@/lib/workspace-write-access": {}, "@aws-sdk/client-s3": {}, "next/cache": { revalidatePath() {} }, "next/server": { NextResponse: Response },
     "@/lib/media-collections": { isMediaCategory: () => true }, "@/lib/cloudflare-stream": stream,
     "@/lib/external-media": { resolveExternalMedia: () => ({ databaseProvider: "CLOUDFLARE_STREAM", sourceType: "EXTERNAL_VIDEO", externalUrl: url, externalId: uid }) },
     "@/lib/r2": {}, "@/lib/r2-upload": {}, "@/lib/service-media": { mediaCategoryForServiceSlug: () => "VIDEO" }, "@/lib/project-media-upload": {},
@@ -229,6 +229,8 @@ test("image attachment checks the actual registry before R2 and stores the admit
   const events: string[] = [];
   let asset: { id: string; workspaceId: string; status: string; provenance: { kind: string; projectId: string } } | null = null;
   const db = {
+    $transaction: async function (fn: (tx: unknown) => Promise<unknown>): Promise<unknown> { return fn(this); },
+    $queryRaw: async () => [],
     workspaceAsset: { findUnique: async () => { events.push("registry"); return asset; } },
     workspace: { findMany: async () => [{ id: "a" }, { id: "b" }] },
     project: { findFirst: async () => ({ id: "project" }) },
@@ -238,6 +240,7 @@ test("image attachment checks the actual registry before R2 and stores the admit
   };
   const assets = load<AssetApi>("./workspace-assets.ts", { "server-only": {}, "@/lib/workspace-write-access": {}, "@/lib/cloudflare-stream": stream, "@/lib/workspace-context-core": { tenantContextEnabled: () => true }, "@/lib/prisma": { prisma: db } });
   const api = load<{ POST: (request: Request, context: { params: Promise<{ projectId: string }> }) => Promise<Response> }>("../app/api/admin/projects/[projectId]/media/route.ts", {
+    "@/lib/workspace-write-access": { requireLockedWorkspaceEditor: async () => { events.push("admission"); } },
     "@aws-sdk/client-s3": { HeadObjectCommand: class {} }, "next/cache": {}, "next/server": { NextResponse: Response },
     "@/lib/media-collections": { isMediaCategory: () => true }, "@/lib/cloudflare-stream": stream, "@/lib/external-media": {},
     "@/lib/r2": { r2Config: { accountId: "account", bucketName: "bucket" }, r2Client: { send: async () => { events.push("provider"); return { ContentLength: 100, ContentType: "image/png" }; } } },
@@ -250,5 +253,5 @@ test("image attachment checks the actual registry before R2 and stores the admit
     asset = rejected; const response = await call(); assert.equal(response.status, 400); assert.deepEqual(events.splice(0), ["registry"]);
   }
   asset = { id: "asset", workspaceId: "a", status: "UPLOAD_PROVISIONED", provenance: { kind: "PROJECT_IMAGE_UPLOAD", projectId: "project" } };
-  assert.equal((await call()).status, 201); assert.deepEqual(events, ["registry", "provider", "create", "service"]);
+  assert.equal((await call()).status, 201); assert.deepEqual(events, ["registry", "provider", "admission", "registry", "create", "service"]);
 });

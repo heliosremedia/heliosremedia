@@ -106,7 +106,7 @@ test("media mutation permissions and scoped deletion retain unverified storage r
   let deletes = 0;
   const api = load<Record<"POST" | "PATCH" | "DELETE", (request: Request, context: { params: Promise<{ projectId: string }> }) => Promise<Response>>>("../app/api/admin/projects/[projectId]/media/route.ts", {
     "@aws-sdk/client-s3": {}, "next/cache": {}, "next/server": { NextResponse: Response },
-    "@/lib/workspace-assets": {}, "@/lib/media-collections": {}, "@/lib/cloudflare-stream": {}, "@/lib/external-media": {},
+    "@/lib/workspace-write-access": {}, "@/lib/workspace-assets": {}, "@/lib/media-collections": {}, "@/lib/cloudflare-stream": {}, "@/lib/external-media": {},
     "@/lib/r2": {}, "@/lib/r2-upload": {}, "@/lib/service-media": {}, "@/lib/project-media-upload": {},
     "@/lib/auth/session": { getAdminSession: async () => ({ role, workspaceId: "a" }) },
     "@/lib/prisma": { prisma: { media: {
