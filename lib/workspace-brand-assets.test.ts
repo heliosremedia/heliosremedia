@@ -187,3 +187,58 @@ for (const [route, kind] of [["about", "about"], ["team-members", "team"]] as co
     const response = await call(); assert.equal(response.status, 500); assert.equal((await response.json()).upload, undefined); assert.equal(signed, 1);
   });
 }
+
+test("email campaign upload uses server company and administrator admission before signing", async () => {
+  let role = "OWNER", denied = false, registered = false, signs = 0;
+  const api = load<{ POST: (request: Request) => Promise<Response> }>("../app/api/admin/email-images/presign/route.ts", {
+    "next/server": { NextResponse: Response },
+    "@/lib/auth/session": { getAdminSession: async () => ({ role, userId: "actor", workspaceId: "a", sessionVersion: 7 }) },
+    "@/lib/r2-upload": {
+      validateImageUpload() {}, createEmailCampaignImageKey: (workspaceId: string) => { assert.equal(workspaceId, "a"); return "workspaces/a/email-campaign/image.png"; },
+      getPublicAssetUrl: (key: string) => `https://assets.example.test/${key}`,
+      createPresignedUploadUrl: async () => { assert.equal(registered, true); signs++; return "synthetic-url"; },
+    },
+    "@/lib/workspace-brand-assets": { withBrandUploadAsset: async (input: { workspaceId: string; actorId: string; sessionVersion: number; kind: string; key: string; byteSize: number }, fn: () => Promise<string>) => {
+      assert.equal(input.workspaceId, "a"); assert.equal(input.actorId, "actor"); assert.equal(input.sessionVersion, 7);
+      assert.equal(input.kind, "email-campaign"); assert.equal(input.key, "workspaces/a/email-campaign/image.png"); assert.equal(input.byteSize, 100);
+      if (denied) throw new Error("WORKSPACE_WRITE_FORBIDDEN"); registered = true; return fn();
+    } },
+  });
+  const call = () => api.POST(new Request("https://b.example.test/api", { method: "POST", body: JSON.stringify({ fileType: "image/png", fileSize: 100, workspaceId: "b", key: "email/campaigns/foreign.png" }) }));
+  assert.equal((await call()).status, 200); assert.equal(signs, 1);
+  denied = true; const response = await call(); assert.equal(response.status, 403); assert.equal((await response.json()).upload, undefined); assert.equal(signs, 1);
+  role = "EDITOR"; assert.equal((await call()).status, 403); assert.equal(signs, 1);
+});
+
+test("email campaign registry requires administrator guard and company key before provider work", async () => {
+  let grants = 0, creates = 0, denied = false;
+  const tx = { workspaceAsset: { create: async () => { creates++; return { id: "asset" }; } } };
+  const api = load<BrandApi>("./workspace-brand-assets.ts", {
+    "server-only": {}, "@/lib/r2": r2, "@/lib/workspace-brand-storage": policy, "@/lib/workspace-context-core": {}, "@/lib/content-image-storage": {},
+    "@/lib/workspace-write-access": {
+      requireLockedWorkspaceEditor: () => { throw new Error("Editor threshold must not admit campaign uploads"); },
+      requireLockedWorkspaceAdministrator: async (actual: unknown) => { assert.equal(actual, tx); if (denied) throw new Error("WORKSPACE_WRITE_FORBIDDEN"); },
+    },
+    "@/lib/prisma": { prisma: { $transaction: async (fn: (value: unknown) => Promise<unknown>) => fn(tx), workspaceAsset: { updateMany: async () => ({ count: 1 }) } } },
+  });
+  const input = { workspaceId: "a", actorId: "actor", sessionVersion: 7, kind: "email-campaign" as const, key: "workspaces/a/email-campaign/image.png", byteSize: 100 };
+  const provision = async () => { grants++; return "synthetic-url"; };
+  await api.withBrandUploadAsset(input, provision); assert.equal(creates, 1); assert.equal(grants, 1);
+  denied = true; await assert.rejects(api.withBrandUploadAsset(input, provision), /WORKSPACE_WRITE_FORBIDDEN/);
+  await assert.rejects(api.withBrandUploadAsset({ ...input, key: "workspaces/b/email-campaign/image.png" }, provision), /INVALID_BRAND_IMAGE/);
+  await assert.rejects(api.withBrandUploadAsset({ ...input, key: "email/campaigns/image.png" }, provision), /INVALID_BRAND_IMAGE/);
+  assert.equal(creates, 1); assert.equal(grants, 1);
+});
+
+test("actual campaign key generator partitions identical filenames by company", () => {
+  const api = load<typeof import('./r2-upload')>('./r2-upload.ts', {
+    '@/lib/workspace-brand-storage': policy, crypto: { randomUUID: () => '12345678-synthetic' },
+    '@aws-sdk/client-s3': {}, '@aws-sdk/s3-request-presigner': {}, '@/lib/r2': r2,
+  });
+  const a = api.createEmailCampaignImageKey('a', 'image/png');
+  const b = api.createEmailCampaignImageKey('b', 'image/png');
+  assert.match(a, /^workspaces\/a\/email-campaign\/[a-zA-Z0-9_-]+\.png$/);
+  assert.match(b, /^workspaces\/b\/email-campaign\/[a-zA-Z0-9_-]+\.png$/);
+  assert.notEqual(a, b);
+  assert.throws(() => api.createEmailCampaignImageKey('../b', 'image/png'), /INVALID_BRAND_IMAGE/);
+});
