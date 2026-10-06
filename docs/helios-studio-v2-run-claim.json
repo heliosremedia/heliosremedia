@@ -1,5 +1,5 @@
 {
-  "status": "in-progress",
+  "status": "blocked-execution-environment",
   "runId": "atlas-packet53-brand-upload-admission",
   "branch": "codex/v2-brand-upload-admission",
   "head": "685b9a4a8842aed433a96380bfdf738a4e64f454",
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Complete Packet53 local and exact-head runtime qualification, then continue Phase1 bounded development. Production ON HOLD.",
+  "nextAction": "Recover workspace execution; independently verify Packet53/54 exact-head CI artifacts, suppression, and tree equality before expected-head integration. Retarget PR361 after PR360 merges, then continue Phase1. No routine owner approval needed; production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -887,15 +887,12 @@
     "mergedTreeMatchesTestedHead": true
   },
   "environmentBlock": {
-    "observedAt": "2026-10-04",
-    "lastVerifiedIntegratedPacket": 41,
-    "lastVerifiedIntegratedPr": 348,
-    "lastVerifiedIntegratedHead": "366835a2f1f3979bdf98b0a1cdd9d6ec5e3b88a0",
+    "observedAt": "2026-10-06",
     "githubAccessAvailable": true,
-    "executionUnavailable": false,
+    "executionUnavailable": true,
     "approvalRequired": false,
-    "partialLocalPacket43": "Unpublished route/service/UI changes; five route module tests passed before execution outage. Runtime qualification command did not return; filesystem state unverified. Discard and rebuild from verified GitHub base.",
-    "resolvedAt": "2026-10-06"
+    "reason": "Workspace exec_command stopped returning, including independent pwd probe. GitHub remains available. Do not merge pending packets until artifact and merge-tree verification can resume.",
+    "partialLocalPacket54": "Published candidate contains all intended changes. Local fetch/alignment command did not return; rebuild from GitHub if necessary."
   },
   "packet43": {
     "head": "993eeca104b17023e7fcf4ce26de08c7d15a50e3",
@@ -1255,6 +1252,29 @@
       "runtime": 37414150559,
       "reason": "Final anonymous check expected handler403 but proxy returns401; assertion corrected, application unchanged",
       "disposableContainerRemoved": true
-    }
+    },
+    "runtime": "success",
+    "artifact": 11390677380,
+    "artifactApiSha256": "3760765b584f914f23570b4d1c07d97e6171338dd1e6d678b4d3a855cc0e5214",
+    "artifactIndependentlyDownloaded": false
+  },
+  "packet54": {
+    "head": "441e58e1424b8c3ca3ec4c171cae862834851226",
+    "tree": "b5f78502102d8723ba62efb8744151ba56da8d4e",
+    "pr": 361,
+    "branch": "codex/v2-email-upload-ownership",
+    "stackedOn": 360,
+    "runs": [
+      37414587062,
+      37414587088
+    ],
+    "runtime": "success",
+    "regression": "in-progress",
+    "localRegressionTests": 1733,
+    "additionalFocusedKeyTest": true,
+    "typescript": true,
+    "scopedLint": true,
+    "sourcePreparation": true,
+    "artifactIndependentlyDownloaded": false
   }
 }
