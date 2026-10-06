@@ -1,3 +1,4 @@
+import { readClientConsentProjection } from "@/lib/client-communications/consent-projection";
 import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
@@ -20,6 +21,7 @@ export default async function ClientsPage() {
         lastSyncedAt: true,
         normalizedEmail: true,
         emailSubscribed: true,
+        emailStatus: true,
         archivedAt: true,
         groupMemberships: { where: { group: await getContentOwnershipScope(session.workspaceId) }, select: { groupId: true } },
       },
@@ -56,11 +58,8 @@ export default async function ClientsPage() {
       },
     }),
   ]);
-  const preferences = await prisma.marketingEmailPreference.findMany({
-    where: { normalizedEmail: { in: clients.map(client => client.normalizedEmail) } },
-    select: { normalizedEmail: true, status: true, effectiveAt: true, source: true },
-  });
-  const preferenceByEmail = new Map(preferences.map(preference => [preference.normalizedEmail, preference]));
+  const consent = await readClientConsentProjection(prisma, session.workspaceId, clients);
+  const consentByClient = new Map(consent.map(row => [row.id, row]));
   const bouncedGroup = groups.find(group => group.systemKey === bouncedBackSystemKey(session.workspaceId));
   const bouncedClientIds = new Set(clients.filter(client =>
     bouncedGroup && client.groupMemberships.some(membership => membership.groupId === bouncedGroup.id)).map(client => client.id));
@@ -80,7 +79,7 @@ export default async function ClientsPage() {
         {[
           ["Total clients", clients.length],
           ["Active clients", clients.filter(client => !client.archivedAt).length],
-          ["Email eligible", clients.filter(client => client.emailSubscribed && !client.archivedAt && !bouncedClientIds.has(client.id)).length],
+          ["Email eligible", clients.filter(client => consentByClient.get(client.id)?.marketingEligible && client.emailStatus === "VALID" && !client.archivedAt && !bouncedClientIds.has(client.id)).length],
           ["Client groups", groups.length],
         ].map(([label, value]) => <div key={label} className="rounded-xl border border-white/[0.08] bg-white/[0.025] p-4"><p className="text-[0.56rem] uppercase tracking-[0.15em] text-white/30">{label}</p><p className="mt-3 text-3xl font-light text-white">{value}</p></div>)}
       </section>
@@ -89,10 +88,10 @@ export default async function ClientsPage() {
           ...client,
           lastSyncedAt: client.lastSyncedAt.toISOString(),
           groupIds: client.groupMemberships.map((membership) => membership.groupId),
-          emailStatus: preferenceByEmail.get(client.normalizedEmail)?.status
-            ?? (client.emailSubscribed ? "UNKNOWN" : "UNSUBSCRIBED"),
-          emailStatusEffectiveAt: preferenceByEmail.get(client.normalizedEmail)?.effectiveAt.toISOString() ?? null,
-          emailStatusSource: preferenceByEmail.get(client.normalizedEmail)?.source ?? null,
+          emailSubscribed: consentByClient.get(client.id)?.marketingEligible ?? false,
+          emailStatus: consentByClient.get(client.id)?.emailStatus ?? "UNKNOWN",
+          emailStatusEffectiveAt: consentByClient.get(client.id)?.emailStatusEffectiveAt ?? null,
+          emailStatusSource: consentByClient.get(client.id)?.emailStatusSource ?? null,
           groupMemberships: undefined,
           archivedAt: undefined,
         }))}

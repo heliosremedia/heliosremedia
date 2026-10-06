@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 6, 2026: Packet 43 qualified; Packet 44 directory consent projection
+
+Live base `5cf752f261af279166fb84943a47299ee00bdee0` confirms merged PR #350. Packet 43 head `993eeca104b17023e7fcf4ce26de08c7d15a50e3` passed regression 37398226624 (1,677 tests, TypeScript and Chromium) and runtime 37398226333. Independently downloaded artifact 11384522036 SHA256 `f92b47ecbfdc67f73612c519d4508e785b064cbce29ccbcc4b450da2a8d4ee89` verifies real public HTTP same-address isolation, concurrent replay, optional reasons, invalid/expired tokens, observed audit cancellation with atomic rollback/retry, one-click form, preserved legacy global scope and schema/index/access postflight. Injection removal verified; merged tree matches; Vercel suppressed.
+
+Packet 44 corrects the client directory's remaining global consent display and shared-flag eligibility count. Company preferences are projected with protected global metadata redacted; sole-company compatibility remains. [Scope and qualification](helios-studio-v2-consent-directory-projection.md). Nine module tests, TypeScript, lint, syntax and preparation pass locally; exact-head authenticated HTTP/database evidence remains required. Administrator mutations and delivery token issuance remain separate work. Phase 1 open; production ON HOLD.
+
 ## October 6, 2026: Packet 42 qualified; Packet 43 public company unsubscribe
 
 Live base `af7bbacda3a6753a1cad650cd386bfe113a9beda` confirms merged PR #349. Packet 42 head `b7a102653f6c77d19f219be076527b11d74c21fa` passed regression 37225018208 (1,671 tests, TypeScript and Chromium) and runtime 37225018123. Independently downloaded artifact 11311961248 SHA256 `e96a636cf8dc5b8b4d2a78c34804fb29228ca7bbea69caa0183e378e85433fb8` verifies both-direction delivery eligibility isolation, both tenant flag states, protected legacy/safety blocks, read-only snapshots and schema/index/access postflight. The old campaign fixture was corrected to assert the workspace-aware dependency; no gate was weakened. Execution recovered, clean source was rebuilt from GitHub, and the merged tree matches the tested tree. Vercel remains suppressed.
