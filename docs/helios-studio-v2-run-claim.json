@@ -1,10 +1,10 @@
 {
   "status": "in-progress",
-  "runId": "atlas-packet55-project-image-upload-admission",
-  "branch": "codex/v2-project-image-upload-admission",
-  "head": "6d36c84b28c2e64dfb8e8bcb481406d3de9c4d46",
-  "pr": 362,
-  "scope": "Project image upload editor admission and registration",
+  "runId": "atlas-packet57-storage-diagnostic-containment",
+  "branch": "codex/v2-storage-diagnostic-containment",
+  "head": "96a86117ad75ece3916953ee03a594c5169b11a5",
+  "pr": 364,
+  "scope": "Shared storage diagnostic containment",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -1035,9 +1035,9 @@
     "implementationStarted": false,
     "requiredConstraint": "Preserve retry token protocol and provider identity; fail closed on ambiguous legacy attempts before replacing outgoing issuance."
   },
-  "lastVerifiedIntegratedPacket": 54,
-  "lastVerifiedIntegratedPr": 361,
-  "lastVerifiedIntegratedHead": "0fe6149b4a25b8a054806601ca8e386c2587be55",
+  "lastVerifiedIntegratedPacket": 55,
+  "lastVerifiedIntegratedPr": 362,
+  "lastVerifiedIntegratedHead": "b87b79845278395ff65b59f3c8525be9053ea5bb",
   "packet47": {
     "base": "a6fd2613ad375531f18c1d1f98d32198b29710f2",
     "ci": "success",
@@ -1303,7 +1303,7 @@
     "head": "6d36c84b28c2e64dfb8e8bcb481406d3de9c4d46",
     "tree": "537effa21cfc24f5e5aa74d52bdc3cd666e5160e",
     "pr": 362,
-    "ci": "pending",
+    "ci": "success",
     "base": "0fe6149b4a25b8a054806601ca8e386c2587be55",
     "localFocusedTests": 9,
     "typescript": true,
@@ -1326,7 +1326,12 @@
     "independentlyDownloaded": true,
     "schemaColumnsUnchanged": true,
     "schemaIndexesUnchanged": true,
-    "syntheticAccessRestored": true
+    "syntheticAccessRestored": true,
+    "merge": "b87b79845278395ff65b59f3c8525be9053ea5bb",
+    "regressionTests": 1743,
+    "chromium": true,
+    "mergedTreeMatchesTestedHead": true,
+    "vercelDeploymentsSuppressed": true
   },
   "packet56": {
     "head": "1b8df1c71014726e90f16ae31ba073cd5d84de44",
@@ -1340,6 +1345,28 @@
     "crossHostTimezoneProof": true,
     "typescript": true,
     "scopedLint": true,
-    "sourcePreparation": true
+    "sourcePreparation": true,
+    "runs": [
+      37420718446,
+      37420718388
+    ],
+    "runtime": "success",
+    "artifact": 11392792925,
+    "artifactSha256": "e3566003aaab2319af97711a0d956f72de90e0e01632bfe0a9acd4550bf1a41b",
+    "independentlyDownloaded": true,
+    "schemaColumnsUnchanged": true,
+    "schemaIndexesUnchanged": true,
+    "syntheticAccessRestored": true
+  },
+  "packet57": {
+    "head": "96a86117ad75ece3916953ee03a594c5169b11a5",
+    "tree": "621791ec6b5665543cd944abca25a035ebde1ab9",
+    "pr": 364,
+    "stackedOn": 363,
+    "ci": "pending",
+    "localRegressionTests": 1756,
+    "typescript": true,
+    "scopedLint": true,
+    "localSourcePreparation": "pending exact-head fetch"
   }
 }
