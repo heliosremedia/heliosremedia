@@ -36,7 +36,8 @@ test("campaign delivery uses stored workspace and excludes foreign client member
     "@/lib/site": { getSiteUrl: () => "https://company-a.example" },
     "./bounce-core": { bouncedBackSystemKey: (id: string) => `BOUNCED_BACK:${id}` },
     "./personalization": { renderPersonalizedEmail: () => ({ subject: "Subject", body: "Copy", previewText: "Preview" }) },
-    "./preferences": { addressIsMarketingEligible: async () => true, createPreferenceToken: async ({ clientId }: { clientId: string }) => { assert.equal(clientId, "client-a"); tokens++; return "synthetic-token"; } },
+    "./delivery-consent": { workspaceAddressIsMarketingEligible: async (_db: unknown, workspaceId: string, email: string) => { assert.equal(workspaceId, "a"); assert.equal(email, "a@example.com"); return true; } },
+    "./preferences": { createPreferenceToken: async ({ clientId }: { clientId: string }) => { assert.equal(clientId, "client-a"); tokens++; return "synthetic-token"; } },
     "./email": { renderCampaignEmail: () => "<p>Test</p>", sendCampaignBatch: async ({ messages }: { messages: Array<{ to: string }> }) => { assert.equal(messages.length, 1); assert.equal(messages[0].to, "a@example.com"); sends++; return [{ id: "fake-provider-id" }]; } },
     "@/lib/prisma": { prisma: {
       emailCampaign: { findUnique: async () => ({ id: "campaign", workspaceId: "a", createdBy: { workspaceId: "b" }, status: "PROCESSING", recipients, subject: "Subject", body: "Copy", rowVersion: 1 }), update: async ({ data }: { data: { sentCount: number } }) => data },

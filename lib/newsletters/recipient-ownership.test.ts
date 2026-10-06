@@ -21,6 +21,7 @@ test("real recipient resolver intersects every selection mode with company membe
   const exports: { resolveEligibleNewsletterRecipients?: (workspaceId: string, selection: unknown) => Promise<{ eligible: Array<{ id: string }> }> } = {};
   const modules: Record<string, unknown> = {
     "server-only": {},
+    "@/lib/client-communications/delivery-consent": { eligibleMarketingAddresses: async (_db: unknown, workspaceId: string, emails: string[]) => { assert.equal(workspaceId, "company-a"); return new Set(emails.filter(email => email !== "suppressed@example.com")); } },
     "@/lib/blog-ownership": { getContentOwnershipScope: async (workspaceId: string) => ({ workspaceId }) },
     "@/lib/prisma": { prisma: {
       communicationClient: { findMany: async ({ where }: { where: { AND: SelectionWhere[]; workspaceMemberships: { some: { workspaceId: string } } } }) => clients.filter(row => row.company === where.workspaceMemberships.some.workspaceId && where.AND.every(part => selected(row, part))) },

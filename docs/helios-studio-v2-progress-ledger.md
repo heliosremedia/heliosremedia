@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 4, 2026: Packet 41 qualified; Packet 42 delivery consent readers
+
+Live base `366835a2f1f3979bdf98b0a1cdd9d6ec5e3b88a0` confirms merged PR #348. Packet 41 head `2990d52cd98e2bf6fc634dca429b463130bd27c4` passed regression 37223795222 (1,661 tests, TypeScript and Chromium) and runtime 37223795296. Independently downloaded artifact 11311446279 SHA256 `f9876ada1151e321b2e01c9e60996982d8714c6db8f58b295bad570b3de1a535` verifies company token provenance/isolation, stable retry, concurrent replay, expiry after observed lock wait, atomic audit rollback/retry, preserved legacy state, injection removal and schema/index/access postflight. Merged tree matches the tested tree; Vercel remains suppressed.
+
+Packet 42 switches campaign/referral delivery and newsletter recipient consent checks to a workspace-aware reader with conservative legacy/safety precedence and sole-company compatibility. Explicit company opt-outs also override legacy compatibility. [Scope and qualification](helios-studio-v2-consent-delivery-readers.md). Twenty-one focused tests, TypeScript, lint, syntax and source preparation pass locally; exact-head CI and actual database evidence remain required. No administrator/public writer or new token issuance is activated. Phase 1 remains open. Production ON HOLD.
+
 ## October 4, 2026: Packet 40 qualified; Packet 41 company-bound tokens
 
 Live base `1a50b013ba2261c6b6abe56dbb9dd050e722fbe1` confirms merged PR #347. Packet 40 head `493caa3bfff67072eb8daef2ae9fbb0870ea0c87` passed regression 37222724628 (1,657 tests, TypeScript and Chromium) and runtime 37222724623. Independently downloaded artifact 11310867112 SHA256 `77625b6be8e3f3b3fe98328a074fcbb5499d53f58d080984cdc197698803dba8` verifies both-company consent isolation, protected legacy/safety blocks, observed audit cancellation with full rollback/retry, injection removal and schema/index/access postflight. Merged tree matches the tested tree; both Vercel builds remain suppressed.

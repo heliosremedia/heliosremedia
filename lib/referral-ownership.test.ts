@@ -133,7 +133,7 @@ test("referral delivery rejects foreign client relationships before consent chec
     "server-only": {}, "@/lib/blog-ownership": scopeModule,
     "./ownership": { legacyReferralExecutionWorkspace: async () => "a" },
     "@/lib/prisma": { prisma: { referralCommunication: { findMany: async () => [communication] } } },
-    "@/lib/client-communications/email": {}, "@/lib/client-communications/preferences": {}, "@/lib/site": {}, "./operations": {}, "./state-machine": {},
+    "@/lib/client-communications/email": {}, "@/lib/client-communications/delivery-consent": {}, "@/lib/site": {}, "./operations": {}, "./state-machine": {},
   });
   const result = await api.processReferralCommunications();
   assert.equal(result.skipped, 1); assert.equal(result.claimed, 0); assert.equal(result.sent, 0);
@@ -153,7 +153,7 @@ test("owned legacy referral delivery retains provider behavior and rechecks appr
     "@/lib/client-communications/email": { sendCampaignBatch: async (input: { source: string; messages: Array<{ to: string }> }) => {
       assert.equal(input.source, "referral"); assert.equal(input.messages[0].to, "test@example.test"); sent++; return [{ id: "mock-provider-id" }];
     } },
-    "@/lib/client-communications/preferences": { addressIsMarketingEligible: async () => true }, "@/lib/site": {},
+    "@/lib/client-communications/delivery-consent": { workspaceAddressIsMarketingEligible: async (_db: unknown, workspaceId: string, email: string) => { assert.equal(workspaceId, "a"); assert.equal(email, "test@example.test"); return true; } }, "@/lib/site": {},
     "./operations": { referralScheduleIsRunnable: () => true }, "./state-machine": { campaignCanExecute: () => true },
     "@/lib/prisma": { prisma: {
       referralCommunication: {

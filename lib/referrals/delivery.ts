@@ -5,7 +5,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { EmailDeliveryError, sendCampaignBatch } from "@/lib/client-communications/email";
 import { campaignCanExecute, followUpShouldStop } from "./state-machine";
-import { addressIsMarketingEligible } from "@/lib/client-communications/preferences";
+import { workspaceAddressIsMarketingEligible } from "@/lib/client-communications/delivery-consent";
 import { getSiteUrl } from "@/lib/site";
 import { referralScheduleIsRunnable } from "./operations";
 
@@ -77,7 +77,7 @@ export async function processReferralCommunications(now = new Date(), limit = 50
           now,
         })
       : false;
-    const addressEligible = client ? await addressIsMarketingEligible(client.normalizedEmail) : false;
+    const addressEligible = client ? await workspaceAddressIsMarketingEligible(prisma, workspaceId, client.normalizedEmail) : false;
     const ineligible = client && (!client.emailSubscribed || !addressEligible || client.archivedAt || client.emailStatus !== "VALID" || client.newsletterSuppressions.length > 0);
     if (!campaignActive || stopFollowUp || ineligible || !communication.htmlSnapshot) {
       await prisma.referralCommunication.update({

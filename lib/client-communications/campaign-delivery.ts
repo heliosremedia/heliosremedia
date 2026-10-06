@@ -5,7 +5,8 @@ import { recordAuditEvent } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { renderCampaignEmail, sendCampaignBatch } from "./email";
 import { renderPersonalizedEmail } from "./personalization";
-import { addressIsMarketingEligible, createPreferenceToken } from "./preferences";
+import { createPreferenceToken } from "./preferences";
+import { workspaceAddressIsMarketingEligible } from "./delivery-consent";
 import { getSiteUrl } from "@/lib/site";
 import { bouncedBackSystemKey } from "./bounce-core";
 
@@ -35,7 +36,7 @@ export async function processEmailCampaign(campaignId: string) {
         recipient.client.emailStatus === "VALID" &&
         !recipient.client.groupMemberships.some(({ group }) =>
           group.systemKey === bouncedBackSystemKey(workspaceId)) &&
-        await addressIsMarketingEligible(recipient.email.trim().toLowerCase()),
+        await workspaceAddressIsMarketingEligible(prisma, workspaceId, recipient.email),
     })));
     const skipped = eligibility.filter((item) => !item.eligible).map((item) => item.recipient);
     if (skipped.length) {
