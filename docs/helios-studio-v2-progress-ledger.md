@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 6, 2026: Packets 53–54 qualified; Packet 55 project image upload admission
+
+Packet 53 PR #360 is merged at `8d3784db20ef0be349f28f0df19ee4de819b4798`; candidate `685b9a4a8842aed433a96380bfdf738a4e64f454` passed regression 37414442165 (1,731 tests, TypeScript and Chromium) and runtime 37414442110. Independently downloaded artifact 11390677380 SHA256 `3760765b584f914f23570b4d1c07d97e6171338dd1e6d678b4d3a855cc0e5214` verifies eight observed-lock upload denial cases. Packet 54 PR #361 is merged at `0fe6149b4a25b8a054806601ca8e386c2587be55`; candidate `441e58e1424b8c3ca3ec4c171cae862834851226` passed regression 37414587062 (1,734 tests, TypeScript and Chromium) and runtime 37414587088. Artifact 11390592961 SHA256 `8f15dbdcd3ffde6cf2d28163dee41169052643277d8f268ff4196d9c5a4ff75c` independently verifies six Email Studio observed-lock denial cases. Both packets preserve schema/indexes and restore synthetic access; both merge trees match tested candidates, and both Vercel projects remain suppressed. Workspace execution recovered and context was rebuilt from GitHub.
+
+Packet 55 aligns project-image upload grants with the existing editor-only media-write policy and registers owned assets before signing. [Scope and qualification](helios-studio-v2-project-upload-admission.md). Project/service ownership is verified under locks with current account/session/membership access. Existing key/response formats remain compatible. Actual runtime qualification includes service archival after an observed wait. No schema changes, provider object transfers or production operations. Phase 1 remains open; production ON HOLD.
+
 ## October 6, 2026: Packet 54 Email Studio upload ownership
 
 Packet 53 PR #360 initial candidate `a7b742965510ebf1d66b3616a7db3cc476e20228` reached all upload ownership and observed-lock denial checks, then failed runtime 37414150559 because its final anonymous assertion expected handler 403 instead of the authentication proxy's 401. The disposable service container was removed. Candidate `685b9a4a8842aed433a96380bfdf738a4e64f454` corrects only that assertion; qualification and integration remain gated on its exact-head CI.
