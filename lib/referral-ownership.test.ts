@@ -175,7 +175,7 @@ test("referral preparation rejects a foreign approval snapshot before claiming o
   const api = load<{ processReferralLaunch: (id: string, attempt: string) => Promise<unknown> }>("./referrals/launch.ts", {
     "server-only": {}, "node:crypto": crypto, "@/lib/blog-ownership": scopeModule,
     "./ownership": { legacyReferralExecutionWorkspace: async () => "a" },
-    "@/app/generated/prisma/client": {}, "@/lib/audit": {}, "@/lib/site": {}, "@/lib/client-communications/preferences": {}, "./email-renderer": {}, "./tokens": {}, "./launch-contract": {}, "./preparation-claim": {},
+    "@/app/generated/prisma/client": {}, "@/lib/audit": {}, "@/lib/site": {}, "@/lib/client-communications/preferences": {}, "./email-renderer": {}, "./tokens": {}, "./launch-contract": {}, "./preparation-claim": {}, "./preparation-consent": {},
     "@/lib/prisma": { prisma: { referralCampaign: { findUnique: async () => ({ workspaceId: "a", status: "LAUNCHING", launchAttemptId: "attempt", approvedRevision: { snapshot: { workspaceId: "b" } } }) } } },
   });
   assert.equal(await api.processReferralLaunch("campaign-a", "attempt"), null);

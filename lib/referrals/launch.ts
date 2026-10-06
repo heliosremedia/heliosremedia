@@ -8,7 +8,8 @@ import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { recordAuditEvent } from "@/lib/audit";
 import { getSiteUrl } from "@/lib/site";
-import { generatePreferenceToken, hashPreferenceToken, MARKETING_TOKEN_TTL_DAYS } from "@/lib/client-communications/preferences";
+import { createReferralPreparationPreferenceToken } from "./preparation-consent";
+import { generatePreferenceToken } from "@/lib/client-communications/preferences";
 import { personalizeReferralCopy, renderReferralInvitationEmail } from "./email-renderer";
 import { createReferralCredentials } from "./tokens";
 import {
@@ -264,16 +265,8 @@ plan: ReturnType<typeof launchPlan>, claim: ReferralPreparationClaim) {
               expiresAt: new Date(Date.now() + campaign.referralExpirationDays * 86_400_000),
             },
           });
-          const preference = await tx.marketingEmailPreference.upsert({
-            where: { normalizedEmail: item.recipient.email.trim().toLowerCase() },
-            create: { normalizedEmail: item.recipient.email.trim().toLowerCase(), status: "UNKNOWN", source: "REFERRAL_CAMPAIGN" },
-            update: {},
-          });
-          await tx.marketingEmailPreferenceToken.create({
-            data: {
-              preferenceId: preference.id, tokenHash: hashPreferenceToken(item.unsubscribeToken),
-              expiresAt: new Date(Date.now() + MARKETING_TOKEN_TTL_DAYS * 86_400_000), campaignId: campaign.id,
-            },
+          const unsubscribeToken = await createReferralPreparationPreferenceToken(tx, claim, {
+            clientId: item.recipient.id, invitationId: invitation.id, email: item.recipient.email, tokenSeed: item.unsubscribeToken,
           });
           const referralUrl = `${getSiteUrl()}/refer/${encodeURIComponent(item.credentials.token)}`;
           const variables = {
@@ -287,7 +280,7 @@ plan: ReturnType<typeof launchPlan>, claim: ReferralPreparationClaim) {
               recipientEmail: item.recipient.email, recipientName: item.recipient.displayName,
               subject: personalizeReferralCopy(invitation.subject, variables),
               htmlSnapshot: renderReferralInvitationEmail({
-                body, previewText: invitation.previewText, unsubscribeToken: item.unsubscribeToken,
+                body, previewText: invitation.previewText, unsubscribeToken,
                 referralUrl, referralCode: item.credentials.code, campaignTitle: campaign.publicTitle,
               }),
               contentHash: createHash("sha256").update(body).digest("hex"), scheduledAt: null,
@@ -302,7 +295,7 @@ plan: ReturnType<typeof launchPlan>, claim: ReferralPreparationClaim) {
                 recipientEmail: item.recipient.email, recipientName: item.recipient.displayName,
                 subject: `A gentle reminder: ${invitation.subject}`,
                 htmlSnapshot: renderReferralInvitationEmail({
-                  body: followUpBody, previewText: invitation.previewText, unsubscribeToken: item.unsubscribeToken,
+                  body: followUpBody, previewText: invitation.previewText, unsubscribeToken,
                   referralUrl, referralCode: item.credentials.code, campaignTitle: campaign.publicTitle,
                 }),
                 contentHash: createHash("sha256").update(followUpBody).digest("hex"),

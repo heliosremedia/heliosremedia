@@ -56,7 +56,7 @@ async function processorFixture(mode: "reject-batch" | "takeover" | "success") {
   const f = fixture();
   const { createHash } = await import("node:crypto");
   const contract = await import("./launch-contract.ts");
-  const snapshot = { workspaceId: "a", audience: { eligible: [{ id: "client", displayName: "Synthetic", firstName: "Synthetic", email: "synthetic@example.test" }] } };
+  const snapshot = { workspaceId: "a", campaign: { followUpConfiguration: { enabled: true, count: 1, delayDays: 2 }, communicationTemplates: { followUp: "Synthetic follow-up" } }, audience: { eligible: [{ id: "client", displayName: "Synthetic", firstName: "Synthetic", email: "synthetic@example.test" }] } };
   const campaign = { id: "campaign", workspaceId: "a", rowVersion: 4, status: "LAUNCHING", launchAttemptId: "attempt", approvedRevisionId: "revision", launchRevisionId: "revision", approvedRevision: { id: "revision", campaignId: "campaign", snapshot }, expectedAdvocateCount: 1, preparedAdvocateCount: 0, launchBatch: 0, publicTitle: "Synthetic", referralExpirationDays: 10, invitationSubject: "Synthetic", invitationBody: "Synthetic" };
   let lease: Date, tokenWrites = 0, completed = 0, failedSettlements = 0, guards = 0;
   const tx = {
@@ -77,17 +77,18 @@ async function processorFixture(mode: "reject-batch" | "takeover" | "success") {
     referralLink: { create: async () => ({}) },
     marketingEmailPreference: { upsert: async () => ({ id: "preference" }) },
     marketingEmailPreferenceToken: { create: async () => { tokenWrites++; return {}; } },
-    referralCommunication: { create: async () => ({}), count: async () => 1 },
+    referralCommunication: { create: async ({ data }: { data: { htmlSnapshot: string; idempotencyKey: string } }) => { assert.equal(data.htmlSnapshot, "synthetic html v2.synthetic"); assert.ok(["referral:invitation:invitation", "referral:invitation:follow-up:1"].includes(data.idempotencyKey)); return {}; }, count: async () => 2 },
   };
   const exports = {} as { processReferralLaunch: (id: string, attempt: string) => Promise<unknown> };
   const modules: Record<string, unknown> = {
     "server-only": {}, "node:crypto": { createHash }, "@/lib/blog-ownership": {}, "./ownership": { legacyReferralExecutionWorkspace: async () => "a" },
+    "./preparation-consent": { createReferralPreparationPreferenceToken: async (db: unknown, source: ReferralPreparationClaim, fields: { clientId: string; invitationId: string; email: string; tokenSeed: string }) => { assert.equal(db, tx); assert.equal(source.leaseExpiresAt, lease); assert.equal(source.workspaceId, "a"); assert.equal(fields.clientId, "client"); assert.equal(fields.invitationId, "invitation"); assert.equal(fields.email, "synthetic@example.test"); assert.equal(fields.tokenSeed, "synthetic"); tokenWrites++; return "v2.synthetic"; } },
     "./preparation-claim": { referralPreparationWhere: f.api.referralPreparationWhere, lockReferralPreparationClaim: async (transaction: unknown, input: ReferralPreparationClaim) => { assert.equal(transaction, tx); assert.equal(input.leaseExpiresAt, lease); guards++; if (mode === "reject-batch") throw new Error("REFERRAL_PREPARATION_CLAIM_EXPIRED"); } },
     "@/app/generated/prisma/client": { Prisma: { PrismaClientKnownRequestError: class extends Error {} } },
     "@/lib/prisma": { prisma: { ...tx, $transaction: async (fn: (db: unknown) => Promise<unknown>) => fn(tx) } },
     "@/lib/audit": {}, "@/lib/site": { getSiteUrl: () => "https://synthetic.example.test" },
     "@/lib/client-communications/preferences": { generatePreferenceToken: () => "synthetic", hashPreferenceToken: () => "hash", MARKETING_TOKEN_TTL_DAYS: 10 },
-    "./email-renderer": { personalizeReferralCopy: (body: string) => body, renderReferralInvitationEmail: () => "synthetic html" },
+    "./email-renderer": { personalizeReferralCopy: (body: string) => body, renderReferralInvitationEmail: ({ unsubscribeToken }: { unsubscribeToken: string }) => { assert.equal(unsubscribeToken, "v2.synthetic"); return `synthetic html ${unsubscribeToken}`; } },
     "./tokens": { createReferralCredentials: () => ({ token: "synthetic", tokenHash: "hash", code: "code" }) }, "./launch-contract": contract,
   };
   runInNewContext(ts.transpileModule(readFileSync(new URL("./launch.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, Date, Error, console: { info() {}, error() {} }, require: (id: string) => { assert.ok(id in modules, id); return modules[id]; } });

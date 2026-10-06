@@ -63,3 +63,5 @@ export { prepareNewsletterCampaignRetry } from "../../../lib/newsletters/deliver
 export { readCampaignUnsubscribeCounts } from "../../../lib/newsletters/unsubscribe-counts";
 
 export { lockReferralPreparationSource, lockReferralPreparationClaim, referralPreparationWhere } from "../../../lib/referrals/preparation-claim";
+
+export { createReferralPreparationPreferenceToken } from "../../../lib/referrals/preparation-consent";
