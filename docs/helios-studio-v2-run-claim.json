@@ -2,8 +2,8 @@
   "status": "in-progress",
   "runId": "atlas-packet46-phase1-checkpoint",
   "branch": "codex/v2-phase1-evidence-checkpoint",
-  "head": null,
-  "pr": null,
+  "head": "af9c0256622925d6d452d7da02b97cd9d87be0af",
+  "pr": 353,
   "scope": "Documentation-only current Phase 1 evidence and remaining work reconciliation",
   "evidence": {
     "run": 36217912507,
@@ -1005,6 +1005,18 @@
     "documentationOnly": true,
     "linksVerified": true,
     "whitespace": true,
-    "ci": "not-published"
+    "ci": "in-progress",
+    "head": "af9c0256622925d6d452d7da02b97cd9d87be0af",
+    "tree": "345ef9e9a422bf785b46606f17c55c3a21d0e30c",
+    "pr": 353,
+    "runs": [
+      {
+        "id": 37400649250,
+        "name": "V2 regression",
+        "head": "af9c0256622925d6d452d7da02b97cd9d87be0af",
+        "status": "in_progress",
+        "conclusion": null
+      }
+    ]
   }
 }
