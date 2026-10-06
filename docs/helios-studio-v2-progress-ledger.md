@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 6, 2026: Packet 52 dashboard monitor containment
+
+Packet 51 PR #358 candidate `d469e7adb514bdfd5814c92e46b358ede30015fd` has passed runtime 37412579463. Independently downloaded artifact 11389811261 SHA256 `12e2dcee527ab0e630894bd44c0ac6d7ebed320f4c9ec7a30aa98185827d0956` verifies both-direction referral token source/membership/protected-opt-out admission, rollback of rejected invitation/link creation, stable token identity, public HTTP company unsubscribe attribution and schema/index/access postflight. Its regression/browser run 37412579449 is still completing at this packet's preparation; integration remains gated on success.
+
+Packet 52 corrects a reproduced global monitor-cache boundary: the dashboard now supplies its verified company and the reader checks current sole-company compatibility before cache/credential access. [Scope and qualification](helios-studio-v2-monitor-context-containment.md). All 1,728 local regression tests, TypeScript, scoped lint and preparation pass. Actual dashboard HTTP qualification uses an explicit no-network synthetic monitor account; no live provider or credentials are changed. Existing attributable legacy cache behavior is retained. Phase 1 remains open; platform support design and remaining family qualification remain ahead. Production ON HOLD.
+
 ## October 6, 2026: Packet 50 qualified; Packet 51 referral consent tokens
 
 Packet 50 PR #357 is merged at `11413470f26bedc653efb65f5c432c3238045c36`. Candidate `379237d5021b37694a822c1f74882786489e77a4` passed regression 37411907070 (1,718 tests, TypeScript and all Chromium) and runtime 37411906675. Independently downloaded artifact 11389443017 SHA256 `0661af4b64b6bfb48d526cfb76e5ab01562bc2adffbaf31e7008bf5fb8349f5e` verifies both-direction observed lease replacement, stale admission/settlement rejection, replacement-worker admission, preserved sender containment and schema/index/access postflight. Merged tree matches; both Vercel projects suppressed.

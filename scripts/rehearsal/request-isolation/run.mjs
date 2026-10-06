@@ -1,3 +1,4 @@
+import { qualifyMonitorContainment } from "./monitor-containment.mjs";
 import { qualifyReferralConsent } from "./referral-consent.mjs";
 import { qualifyReferralPreparation } from "./referral-preparation.mjs";
 import { qualifyConsentAnalytics } from "./consent-analytics.mjs";
@@ -80,6 +81,15 @@ async function prepare() {
   assert.equal(aiRoute.split(keyRead).length, 2, 'Review changed provider key read');
   await cp(join(root, 'scripts/rehearsal/request-isolation/social-provider.ts'), join(app, 'lib/packet34-social-provider.ts'));
   await writeFile(aiRoutePath, 'import { syntheticSocialFetch as fetch } from "@/lib/packet34-social-provider";\n' + aiRoute.replace(keyRead, "const apiKey = 'packet34-synthetic-no-provider';"));
+  // The dashboard's global monitor is deliberately configured with a no-network
+  // synthetic account so a missing containment guard produces visible evidence.
+  const monitorPath = join(app, 'lib/uptimerobot.ts');
+  const monitorSource = await readFile(monitorPath, 'utf8');
+  const monitorKeyRead = 'const key = process.env.UPTIMEROBOT_API_KEY?.trim();';
+  assert.equal(monitorSource.split(monitorKeyRead).length, 2, 'Review changed monitor credential read');
+  assert.ok(!monitorSource.includes('syntheticMonitorFetch'));
+  await cp(join(root, 'scripts/rehearsal/request-isolation/monitor-provider.ts'), join(app, 'lib/packet52-monitor-provider.ts'));
+  await writeFile(monitorPath, 'import { syntheticMonitorFetch as fetch } from "@/lib/packet52-monitor-provider";\n' + monitorSource.replace(monitorKeyRead, "const key = 'packet52-synthetic-monitor-key';"));
   const bundle = join(scratch, 'driver.mjs');
   await build({ entryPoints: [join(root, 'scripts/rehearsal/request-isolation/driver.ts')], outfile: bundle, bundle: true, platform: 'node', format: 'esm', packages: 'external', plugins: [{
     // The driver runs as Node, outside Next's server condition. This removes
@@ -137,6 +147,7 @@ try {
     const consentAnalytics = await qualifyConsentAnalytics(driver);
     const referralPreparation = await qualifyReferralPreparation(driver);
     const referralConsent = await qualifyReferralConsent(origin, driver);
+    const monitorContainment = await qualifyMonitorContainment(origin, driver);
     assert.equal(await driver.schemaFingerprint(), schemaBefore);
     assert.equal(await driver.schemaIndexFingerprint(), indexesBefore);
     assert.equal(await driver.prisma.workspace.count(), 2);
@@ -144,8 +155,8 @@ try {
     assert.equal(await driver.prisma.adminUser.count({ where: { sessionVersion: 1 } }), 2);
     await mkdir('release-evidence', { recursive: true });
     await writeFile('release-evidence/request-isolation.json', JSON.stringify({ version: 1, candidate: head, runtime: 'Next build/start with PrismaPg',
-      target: 'disposable-local-postgresql', sourceSubstitutions: ['PrismaNeon to PrismaPg', 'offline font variables', 'Social AI fetch to synthetic no-network provider', 'server-only build sentinel removed in Node qualification driver'], result, portfolio, previewFencing,
-      webhook, socialAi, socialAiRollback, socialAiProviderFailure, socialAiRequestIds, consentAdmin, consentSchema, consentAdapters, consentTokens, deliveryConsent, publicConsent, consentDirectory, campaignConsent, newsletterConsent, consentAnalytics, referralPreparation, referralConsent, schemaColumnsUnchanged: true, schemaIndexesUnchanged: true, syntheticAccessRestored: true, hosted: false, deployable: false }, null, 2) + '\n');
+      target: 'disposable-local-postgresql', sourceSubstitutions: ['PrismaNeon to PrismaPg', 'offline font variables', 'Social AI fetch to synthetic no-network provider', 'UptimeRobot fetch to synthetic no-network monitor', 'server-only build sentinel removed in Node qualification driver'], result, portfolio, previewFencing,
+      webhook, socialAi, socialAiRollback, socialAiProviderFailure, socialAiRequestIds, consentAdmin, consentSchema, consentAdapters, consentTokens, deliveryConsent, publicConsent, consentDirectory, campaignConsent, newsletterConsent, consentAnalytics, referralPreparation, referralConsent, monitorContainment, schemaColumnsUnchanged: true, schemaIndexesUnchanged: true, syntheticAccessRestored: true, hosted: false, deployable: false }, null, 2) + '\n');
     console.log('PASS actual Next production-mode HTTP: alternating/concurrent tenants, post-write reads, foreign/stale write rejection, membership/session revocation and schema/access postflight');
     console.log('PASS both-direction portfolio published/draft/preview isolation, actual preview creation/revocation, expiry and rejected usage-write containment');
     console.log('PASS actual PostgreSQL lock-observed preview create/revoke: membership revoked after initial session, both tenants reject403 without preview/audit mutation');
