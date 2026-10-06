@@ -1,5 +1,5 @@
 {
-  "status": "in-progress",
+  "status": "packet-complete",
   "runId": "atlas-packet46-phase1-checkpoint",
   "branch": "codex/v2-phase1-evidence-checkpoint",
   "head": "af9c0256622925d6d452d7da02b97cd9d87be0af",
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Qualify and integrate evidence checkpoint, then implement retry-safe campaign token issuance. Production ON HOLD.",
+  "nextAction": "Packet 47: implement bounded retry-safe campaign token issuance after actual delivery-module reproduction, preserving legacy retry scope and provider identity. Phase 1 open; production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -1005,7 +1005,7 @@
     "documentationOnly": true,
     "linksVerified": true,
     "whitespace": true,
-    "ci": "in-progress",
+    "ci": "success",
     "head": "af9c0256622925d6d452d7da02b97cd9d87be0af",
     "tree": "345ef9e9a422bf785b46606f17c55c3a21d0e30c",
     "pr": 353,
@@ -1014,10 +1014,16 @@
         "id": 37400649250,
         "name": "V2 regression",
         "head": "af9c0256622925d6d452d7da02b97cd9d87be0af",
-        "status": "in_progress",
-        "conclusion": null
+        "status": "completed",
+        "conclusion": "success"
       }
-    ]
+    ],
+    "merge": "a6fd2613ad375531f18c1d1f98d32198b29710f2",
+    "regressionTests": 1689,
+    "chromium": true,
+    "mergedTreeMatchesTestedHead": true,
+    "isolatedWorkingTreeClean": true,
+    "vercelDeploymentsSuppressed": true
   },
   "nextPacketDiagnostic": {
     "observedAt": "2026-10-06",
@@ -1030,5 +1036,8 @@
     "providerCalls": false,
     "implementationStarted": false,
     "requiredConstraint": "Preserve retry token protocol and provider identity; fail closed on ambiguous legacy attempts before replacing outgoing issuance."
-  }
+  },
+  "lastVerifiedIntegratedPacket": 46,
+  "lastVerifiedIntegratedPr": 353,
+  "lastVerifiedIntegratedHead": "a6fd2613ad375531f18c1d1f98d32198b29710f2"
 }
