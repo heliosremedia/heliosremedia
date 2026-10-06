@@ -52,6 +52,6 @@ export async function qualifyBrandUploadAdmission(origin, driver) {
       assert.equal((await post()).status, 200); assert.equal((await post(true)).status, 403);
     } finally { await db.workspaceMembership.update({ where, data: { role: 'OWNER' } }); }
   }
-  assert.equal((await http(origin, 'a.example.test', '/api/admin/about/presign', { method: 'POST', body: {} })).status, 403);
+  assert.equal((await http(origin, 'a.example.test', '/api/admin/about/presign', { method: 'POST', body: {} })).status, 401);
   return { cases, serverOwnedKeysBothDirections: true, editorThresholdPreserved: true, anonymousRejected: true, provider: 'local signing with synthetic credentials; no object request', hosted: false };
 }
