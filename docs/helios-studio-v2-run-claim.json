@@ -1018,5 +1018,17 @@
         "conclusion": null
       }
     ]
+  },
+  "nextPacketDiagnostic": {
+    "observedAt": "2026-10-06",
+    "sourceHead": "af9c0256622925d6d452d7da02b97cd9d87be0af",
+    "scope": "Actual legacy/company token and provider-core functions with synthetic values only",
+    "protocolSwitchChangesPayload": true,
+    "sameRevisionKeepsProviderIdempotencyKey": true,
+    "rowVersionChangeChangesProviderIdempotencyKey": true,
+    "databaseAccess": false,
+    "providerCalls": false,
+    "implementationStarted": false,
+    "requiredConstraint": "Preserve retry token protocol and provider identity; fail closed on ambiguous legacy attempts before replacing outgoing issuance."
   }
 }
