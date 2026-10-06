@@ -12,7 +12,8 @@ import { EmailDeliveryError, sendCampaignBatch } from "@/lib/client-communicatio
 import { renderNewsletterEmail } from "@/lib/newsletters/email-renderer";
 import { resolveEligibleNewsletterRecipients } from "@/lib/newsletters/recipients";
 import type { RecipientSelection } from "@/lib/newsletters/types";
-import { createPreferenceToken } from "@/lib/client-communications/preferences";
+import { createCampaignDeliveryPreferenceToken } from "@/lib/client-communications/campaign-consent-token";
+import { prepareNewsletterCampaignRetry } from "./delivery-campaign";
 import { getSiteUrl } from "@/lib/site";
 import { verifyNewsletterRevisionIntegrity } from "@/lib/newsletters/integrity";
 
@@ -128,7 +129,10 @@ export async function deliverApprovedNewsletter(editionId: string, execution: Ne
         where: { editionId: edition.id, type: "SEND", status: "PENDING" },
         data: { status: "CANCELLED", completedAt: new Date(), lastErrorCode: "MANUAL_SEND_CLAIMED" },
       });
-      if (edition.delivery) return edition.delivery.campaign;
+      if (edition.delivery) {
+        await prepareNewsletterCampaignRetry(transaction, { editionId: edition.id, revisionId: edition.approvedRevision!.id, workspaceId, campaignId: edition.delivery.campaign.id, campaignWorkspaceId: edition.delivery.campaign.workspaceId, campaignVersion: edition.delivery.campaign.rowVersion });
+        return edition.delivery.campaign;
+      }
       const nextCampaign = await transaction.emailCampaign.create({
         data: {
           workspaceId,
@@ -207,7 +211,7 @@ export async function deliverApprovedNewsletter(editionId: string, execution: Ne
     let attemptId: string | null = null;
     try {
       const tokens = await Promise.all(batch.map(recipient =>
-        createPreferenceToken({ clientId: recipient.clientId, campaignId: campaign!.id })));
+        createCampaignDeliveryPreferenceToken(prisma, { workspaceId, campaignId: campaign.id, recipientId: recipient.id, expectedCampaignVersion: campaign.rowVersion, expectedEmail: recipient.email, signingSecret: process.env.CAMPAIGN_UNSUBSCRIBE_SECRET?.trim() || process.env.AUTH_SECRET?.trim() || "" })));
       const batchKey = createHash("sha256")
         .update(batch.map((recipient) => recipient.id).sort().join(":"))
         .digest("hex")

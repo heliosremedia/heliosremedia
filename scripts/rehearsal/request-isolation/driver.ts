@@ -57,3 +57,5 @@ export { eligibleMarketingAddresses, workspaceAddressIsMarketingEligible } from 
 export { readClientConsentProjection } from "../../../lib/client-communications/consent-projection";
 
 export { createCampaignDeliveryPreferenceToken } from "../../../lib/client-communications/campaign-consent-token";
+
+export { prepareNewsletterCampaignRetry } from "../../../lib/newsletters/delivery-campaign";
