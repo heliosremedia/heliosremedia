@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 6, 2026: Packet 60 qualified; Packet 62 Phase 1 evidence reconciliation
+
+Packet 60 PR #367 merged at `7f6520c2098f8c25eb3cbe7c9c1dbe786cc4e15e`; candidate `9d7bdb5098efe056183aee8042acc535935f73d3` passed regression 37423263783 (1,758 tests, TypeScript and Chromium) and runtime 37423263836. Independently downloaded artifact 11394052478 SHA256 `04daf9cc294c0a71a06a1705c2993732acfb5dda3f7ac3fdef5ea8ab2d1f0449` proves sixteen registry denials across both companies, owned attachment links, retry deduplication and schema/index/access postflight. Merge tree matches; both Vercel projects suppressed. Packet 61 PR #368 remains under exact-head CI 37423931336 / 37423931296 at preparation.
+
+Packet 62 updates the [Phase 1 checkpoint](helios-studio-v2-phase1-checkpoint.md), preserving the Packet 46 historical snapshot. It reconciles completed token issuance/attribution, diagnostic containment, upload admission and image attachment proofs; separates each storage family's remaining mutation/delivery/cleanup work; and bounds the next direct Stream attachment packet. Documentation only, with no application, workflow, schema or gate change. Pending qualification is not a passed exit. Phase 1 remains open; production ON HOLD.
+
 ## October 6, 2026: Packet 59 qualified; Packet 61 image attachment transaction fencing
 
 Packet 59 PR #366 merged at `ad287038458eacb16d10c2549040b5d59f1aabde`; candidate `e9f3e88e7d09406fa262c158d08ddcc8537f6ab3` passed regression 37422724956 (1,756 tests, TypeScript and Chromium) and runtime 37422724883. The independently verified artifact and metadata denial evidence are recorded below. Both Vercel projects remain suppressed. Packet 60 PR #367 candidate `9d7bdb5098efe056183aee8042acc535935f73d3` passed 1,758 local tests, TypeScript, lint and source preparation; exact-head CI 37423263783 / 37423263836 remains pending at this preparation.
