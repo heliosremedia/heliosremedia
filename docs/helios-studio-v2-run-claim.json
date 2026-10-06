@@ -1,10 +1,10 @@
 {
   "status": "in-progress",
   "runId": "atlas-packet58-stream-upload-admission",
-  "branch": "codex/v2-phase1-storage-checkpoint",
-  "head": "8688166fb1d89289672f39a480fb1e362084e92f",
-  "pr": 369,
-  "scope": "Packet 62 Phase 1 coverage reconciliation; non-production",
+  "branch": "codex/v2-stream-attachment-fencing",
+  "head": "2948b6faf366f02c071124669b9362a24ab93193",
+  "pr": 370,
+  "scope": "Packet 63 direct Stream attachment fencing; non-production",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Complete Packet 61 and documentation-only Packet 62 exact-head CI gates and integrate in order. Next bounded implementation: direct Stream UID attachment transaction fencing. Production ON HOLD.",
+  "nextAction": "Complete documentation Packet 62 regression and Packet 63 exact-head CI/runtime artifacts and suppression; integrate in order. Next reviewed boundary is external-URL media attachment. Production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -1035,9 +1035,9 @@
     "implementationStarted": false,
     "requiredConstraint": "Preserve retry token protocol and provider identity; fail closed on ambiguous legacy attempts before replacing outgoing issuance."
   },
-  "lastVerifiedIntegratedPacket": 60,
-  "lastVerifiedIntegratedPr": 367,
-  "lastVerifiedIntegratedHead": "7f6520c2098f8c25eb3cbe7c9c1dbe786cc4e15e",
+  "lastVerifiedIntegratedPacket": 61,
+  "lastVerifiedIntegratedPr": 368,
+  "lastVerifiedIntegratedHead": "d9629c5d1bfdfeed9bd8e12690db1c5c408f048e",
   "packet47": {
     "base": "a6fd2613ad375531f18c1d1f98d32198b29710f2",
     "ci": "success",
@@ -1476,7 +1476,7 @@
     "tree": "6a6418f415af5a34b2fb6f54dcd929c8fc2eff5c",
     "pr": 368,
     "stackedOn": 367,
-    "ci": "pending",
+    "ci": "success",
     "localRegressionTests": 1758,
     "typescript": true,
     "scopedLint": true,
@@ -1492,7 +1492,11 @@
     "schemaColumnsUnchanged": true,
     "schemaIndexesUnchanged": true,
     "syntheticAccessRestored": true,
-    "vercelDeploymentsSuppressed": true
+    "vercelDeploymentsSuppressed": true,
+    "regressionTests": 1758,
+    "chromium": true,
+    "merge": "d9629c5d1bfdfeed9bd8e12690db1c5c408f048e",
+    "mergedTreeMatchesTestedHead": true
   },
   "packet62": {
     "head": "8688166fb1d89289672f39a480fb1e362084e92f",
@@ -1502,6 +1506,20 @@
     "ci": "pending",
     "documentationOnly": true,
     "linksAndWhitespace": true,
-    "applicationWorkflowSchemaUnchanged": true
+    "applicationWorkflowSchemaUnchanged": true,
+    "runs": [
+      37424398649
+    ]
+  },
+  "packet63": {
+    "head": "2948b6faf366f02c071124669b9362a24ab93193",
+    "tree": "ed9267c4848c1992ad8091a3e800fc026ee9b45b",
+    "pr": 370,
+    "stackedOn": 369,
+    "ci": "pending",
+    "localRegressionTests": 1758,
+    "typescript": true,
+    "scopedLint": true,
+    "sourcePreparation": true
   }
 }
