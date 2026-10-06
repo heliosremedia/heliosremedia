@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 6, 2026: Packet 56 recurring calendar isolation
+
+Packet 55 PR #362 candidate `6d36c84b28c2e64dfb8e8bcb481406d3de9c4d46` passed all 1,743 local tests under the CI UTC timezone, TypeScript, scoped lint and source preparation. Runtime 37420342307 has produced artifact 11392124809; regression/browser 37420342308 remains in progress at preparation. Integration remains gated on complete exact-head evidence.
+
+Packet 56 fixes the independently reproduced host-timezone dependency in recurring series planning. [Calendar contract and qualification](helios-studio-v2-series-calendar-isolation.md). Actual planner, timezone conversion and creation-handler probes agree under UTC, Brisbane and Los Angeles hosts, including DST transition, month ends, retry identity and current-access denial. Stored date-only calendar arithmetic is explicit; no existing occurrences are rewritten. Actual PostgreSQL/HTTP qualification covers both companies, foreign generation rejection, retry deduplication and lock-observed revocation. No provider, schema or production operations. Phase 1 remains open; production ON HOLD.
+
 ## October 6, 2026: Packets 53–54 qualified; Packet 55 project image upload admission
 
 Packet 53 PR #360 is merged at `8d3784db20ef0be349f28f0df19ee4de819b4798`; candidate `685b9a4a8842aed433a96380bfdf738a4e64f454` passed regression 37414442165 (1,731 tests, TypeScript and Chromium) and runtime 37414442110. Independently downloaded artifact 11390677380 SHA256 `3760765b584f914f23570b4d1c07d97e6171338dd1e6d678b4d3a855cc0e5214` verifies eight observed-lock upload denial cases. Packet 54 PR #361 is merged at `0fe6149b4a25b8a054806601ca8e386c2587be55`; candidate `441e58e1424b8c3ca3ec4c171cae862834851226` passed regression 37414587062 (1,734 tests, TypeScript and Chromium) and runtime 37414587088. Artifact 11390592961 SHA256 `8f15dbdcd3ffde6cf2d28163dee41169052643277d8f268ff4196d9c5a4ff75c` independently verifies six Email Studio observed-lock denial cases. Both packets preserve schema/indexes and restore synthetic access; both merge trees match tested candidates, and both Vercel projects remain suppressed. Workspace execution recovered and context was rebuilt from GitHub.
