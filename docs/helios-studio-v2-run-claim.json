@@ -1,10 +1,10 @@
 {
   "status": "in-progress",
-  "runId": "atlas-packet44-consent-directory-projection",
-  "branch": "codex/v2-consent-directory-projection",
-  "head": "7c9d4ea6aeafc76f94f7d776960c945a5ff8ba29",
-  "pr": 351,
-  "scope": "Company-specific directory consent and protected global metadata redaction",
+  "runId": "atlas-packet45-consent-admin-activation",
+  "branch": "codex/v2-consent-admin-activation",
+  "head": null,
+  "pr": null,
+  "scope": "Company-scoped administrator consent activation",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Qualify exact-head directory HTTP/data boundaries before integration; continue approved consent implementation. Production ON HOLD.",
+  "nextAction": "Publish and qualify bounded administrator route/UI activation; production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -944,6 +944,29 @@
     "typescript": true,
     "scopedLint": true,
     "sourcePreparation": true,
-    "ci": "in-progress"
+    "ci": "success",
+    "merge": "a7ef686889b0e9c8fb864e1955384589dc7da84e",
+    "runs": [
+      37398937520,
+      37398937535
+    ],
+    "regressionTests": 1686,
+    "chromium": true,
+    "runtime": "success",
+    "artifact": 11384099070,
+    "artifactSha256": "6e922d31ef67677889b278e029930355466a390a8be0fcbd344c16c9ec1ed91e",
+    "independentlyDownloaded": true,
+    "mergedTreeMatchesTestedHead": true,
+    "schemaColumnsUnchanged": true,
+    "schemaIndexesUnchanged": true,
+    "syntheticAccessRestored": true,
+    "vercelDeploymentsSuppressed": true
+  },
+  "packet45": {
+    "localTargetedTests": 24,
+    "typescript": true,
+    "scopedLint": true,
+    "sourcePreparation": true,
+    "ci": "not-published"
   }
 }
