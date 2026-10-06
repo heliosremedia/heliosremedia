@@ -1,10 +1,10 @@
 {
   "status": "in-progress",
-  "runId": "atlas-packet57-storage-diagnostic-containment",
-  "branch": "codex/v2-storage-diagnostic-containment",
-  "head": "96a86117ad75ece3916953ee03a594c5169b11a5",
-  "pr": 364,
-  "scope": "Shared storage diagnostic containment",
+  "runId": "atlas-packet58-stream-upload-admission",
+  "branch": "codex/v2-stream-upload-admission",
+  "head": "8ebd3839bd8b026c702b61d5eba4d9cc0a1fec4f",
+  "pr": 365,
+  "scope": "Current editor/project admission before Stream provisioning",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -1035,9 +1035,9 @@
     "implementationStarted": false,
     "requiredConstraint": "Preserve retry token protocol and provider identity; fail closed on ambiguous legacy attempts before replacing outgoing issuance."
   },
-  "lastVerifiedIntegratedPacket": 56,
-  "lastVerifiedIntegratedPr": 363,
-  "lastVerifiedIntegratedHead": "0f26cc2d847546e7dc976c203e942415a7996ed3",
+  "lastVerifiedIntegratedPacket": 57,
+  "lastVerifiedIntegratedPr": 364,
+  "lastVerifiedIntegratedHead": "2ab5f083dd5a4ef094744860afc173381a35dd56",
   "packet47": {
     "base": "a6fd2613ad375531f18c1d1f98d32198b29710f2",
     "ci": "success",
@@ -1368,7 +1368,7 @@
     "tree": "621791ec6b5665543cd944abca25a035ebde1ab9",
     "pr": 364,
     "stackedOn": 363,
-    "ci": "pending",
+    "ci": "success",
     "localRegressionTests": 1756,
     "typescript": true,
     "scopedLint": true,
@@ -1383,6 +1383,26 @@
     "independentlyDownloaded": true,
     "schemaColumnsUnchanged": true,
     "schemaIndexesUnchanged": true,
-    "syntheticAccessRestored": true
+    "syntheticAccessRestored": true,
+    "merge": "2ab5f083dd5a4ef094744860afc173381a35dd56",
+    "regressionTests": 1756,
+    "chromium": true,
+    "mergedTreeMatchesTestedHead": true,
+    "vercelDeploymentsSuppressed": true
+  },
+  "packet58": {
+    "head": "8ebd3839bd8b026c702b61d5eba4d9cc0a1fec4f",
+    "tree": "12597b219398630cebfda8200aebc8034aefbf86",
+    "pr": 365,
+    "base": "2ab5f083dd5a4ef094744860afc173381a35dd56",
+    "ci": "pending",
+    "runs": [
+      37421892557,
+      37421892565
+    ],
+    "localRegressionTests": 1756,
+    "typescript": true,
+    "scopedLint": true,
+    "sourcePreparation": true
   }
 }
