@@ -1,10 +1,10 @@
 {
-  "status": "in-progress",
+  "status": "blocked",
   "runId": "atlas-packet58-stream-upload-admission",
   "branch": "codex/v2-media-update-asset-fencing",
   "head": "353d3d3d0c6f1d9653fb83b88a5f509423e540b1",
   "pr": 372,
-  "scope": "Packet 65 media update-asset fencing; non-production",
+  "scope": "Packet 65 final qualification blocked by execution workspace outage; production remains ON HOLD",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Complete Packet 64 and 65 exact-head CI/artifact/suppression and integrate in order. Review current authority in collection reorder/bulk service movement next. Production ON HOLD.",
+  "nextAction": "Restore a working execution workspace. Live-verify canonical head and PR #372, fetch clean source from GitHub, verify exact-head regression 37426084602 and runtime 37426084676. Independently download/hash/parse artifact 11394318487 before integration. Rebuild Packet 66 from GitHub; discard partial local state and rerun final gates. Do not retry hosted runs or touch production.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -887,13 +887,17 @@
     "mergedTreeMatchesTestedHead": true
   },
   "environmentBlock": {
+    "executionUnavailable": true,
     "observedAt": "2026-10-06",
-    "githubAccessAvailable": true,
-    "executionUnavailable": false,
-    "approvalRequired": false,
-    "reason": "Workspace execution recovered; rebuilt fresh worktree from GitHub, verified downloaded artifacts and merge trees.",
-    "partialLocalPacket54": "Published candidate contains all intended changes. Local fetch/alignment command did not return; rebuild from GitHub if necessary.",
-    "resolvedAt": "2026-10-06"
+    "reason": "cannot resolve workspace directory: exec-server transport closed; two subsequent minimal pwd calls hung and were terminated",
+    "githubAvailable": true,
+    "blockedActions": [
+      "independent artifact download/hash/parse",
+      "local final validation",
+      "Packet 65 integration gate",
+      "Packet 66 publication"
+    ],
+    "productionUntouched": true
   },
   "packet43": {
     "head": "993eeca104b17023e7fcf4ce26de08c7d15a50e3",
@@ -1035,9 +1039,9 @@
     "implementationStarted": false,
     "requiredConstraint": "Preserve retry token protocol and provider identity; fail closed on ambiguous legacy attempts before replacing outgoing issuance."
   },
-  "lastVerifiedIntegratedPacket": 63,
-  "lastVerifiedIntegratedPr": 370,
-  "lastVerifiedIntegratedHead": "7aa38770beba34637d2ca7b214621cb1977d58d1",
+  "lastVerifiedIntegratedPacket": 64,
+  "lastVerifiedIntegratedPr": 371,
+  "lastVerifiedIntegratedHead": "08ae30348e9befd460ad73845e596091d136e023",
   "packet47": {
     "base": "a6fd2613ad375531f18c1d1f98d32198b29710f2",
     "ci": "success",
@@ -1548,7 +1552,7 @@
     "tree": "a2dcd4cf0b3d531c0a8ad64fbe980d10c95ff5ee",
     "pr": 371,
     "stackedOn": 370,
-    "ci": "pending",
+    "ci": "success",
     "localRegressionTests": 1758,
     "typescript": true,
     "scopedLint": true,
@@ -1563,7 +1567,12 @@
     "independentlyDownloaded": true,
     "schemaColumnsUnchanged": true,
     "schemaIndexesUnchanged": true,
-    "syntheticAccessRestored": true
+    "syntheticAccessRestored": true,
+    "regressionTests": 1758,
+    "chromium": true,
+    "merge": "08ae30348e9befd460ad73845e596091d136e023",
+    "mergedTreeMatchesTestedHead": true,
+    "vercelDeploymentsSuppressed": true
   },
   "packet65": {
     "head": "353d3d3d0c6f1d9653fb83b88a5f509423e540b1",
@@ -1574,6 +1583,23 @@
     "localRegressionTests": 1758,
     "typescript": true,
     "scopedLint": true,
-    "sourcePreparation": true
+    "sourcePreparation": true,
+    "runs": [
+      37426084602,
+      37426084676
+    ],
+    "runtime": "success",
+    "artifact": 11394318487,
+    "artifactSha256": "c1f846086727c3165f60aa6623fec199d1eae42204eb4d67dd1d20dd42922a64",
+    "independentlyDownloaded": false,
+    "artifactVerification": "pending: execution workspace transport closed before independent download/hash/parse",
+    "vercelDeploymentsSuppressed": true
+  },
+  "packet66": {
+    "status": "unpublished local work; rebuild from verified GitHub before resuming",
+    "base": "353d3d3d0c6f1d9653fb83b88a5f509423e540b1",
+    "scope": "Current editor/project admission and stable media locks for reorder and bulk-update-category; recheck bulk destination service; runtime observed races, partial-write rollback, concurrent reorder and successful bulk movement.",
+    "localValidation": "Initial TypeScript caught an accidental result self-reference in bulk transaction; corrected locally. Final TypeScript/lint/regression results unavailable after execution outage. Do not count this as qualified or publish from interrupted state.",
+    "localPath": "/workspace/scratch/19d7653cdaa1/helios-resume66"
   }
 }
