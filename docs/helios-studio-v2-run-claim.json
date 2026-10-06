@@ -2,8 +2,8 @@
   "status": "in-progress",
   "runId": "atlas-packet43-consent-public-unsubscribe",
   "branch": "codex/v2-consent-public-unsubscribe",
-  "head": null,
-  "pr": null,
+  "head": "993eeca104b17023e7fcf4ce26de08c7d15a50e3",
+  "pr": 350,
   "scope": "Company-bound public unsubscribe with legacy scope preserved",
   "evidence": {
     "run": 36217912507,
@@ -896,5 +896,31 @@
     "approvalRequired": false,
     "partialLocalPacket43": "Unpublished route/service/UI changes; five route module tests passed before execution outage. Runtime qualification command did not return; filesystem state unverified. Discard and rebuild from verified GitHub base.",
     "resolvedAt": "2026-10-06"
+  },
+  "packet43": {
+    "head": "993eeca104b17023e7fcf4ce26de08c7d15a50e3",
+    "tree": "015450bc36e5518905a680a81dfbb6ccfa4d9615",
+    "pr": 350,
+    "localTargetedTests": 6,
+    "typescript": true,
+    "scopedLint": true,
+    "sourcePreparation": true,
+    "runs": [
+      {
+        "id": 37398226624,
+        "name": "V2 regression",
+        "status": "in_progress",
+        "conclusion": null,
+        "head": "993eeca104b17023e7fcf4ce26de08c7d15a50e3"
+      },
+      {
+        "id": 37398226333,
+        "name": "V2 isolated runtime request isolation",
+        "status": "in_progress",
+        "conclusion": null,
+        "head": "993eeca104b17023e7fcf4ce26de08c7d15a50e3"
+      }
+    ],
+    "ci": "in-progress"
   }
 }
