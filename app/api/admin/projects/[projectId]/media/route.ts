@@ -1,4 +1,4 @@
-import { resolveStreamAssetForAttachment } from "@/lib/workspace-assets";
+import { resolveProjectImageAssetForAttachment, resolveStreamAssetForAttachment } from "@/lib/workspace-assets";
 import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
@@ -677,6 +677,10 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
       );
     }
 
+    const assetId = await resolveProjectImageAssetForAttachment(
+      session.workspaceId, JSON.stringify([r2Config.accountId, r2Config.bucketName]), key, projectId,
+    );
+
     let verifiedFileSize = fileSize;
     try {
       const uploadedObject = await r2Client.send(
@@ -764,6 +768,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
       data: {
         projectId,
         sourceType: "UPLOADED_IMAGE",
+        assetId,
         mediaCategory,
         serviceId: selectedService.id,
         storageKey: key,
@@ -815,6 +820,9 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
       },
     );
   } catch (error) {
+    if (error instanceof Error && error.message === "INVALID_IMAGE_ASSET") {
+      return NextResponse.json({ success: false, error: "This image is not available to this company. Upload it again from this project." }, { status: 400 });
+    }
     if (error instanceof Error && error.message === "INVALID_STREAM_ASSET") {
       return NextResponse.json({ success: false, error: "This video is not available to this company. Upload it again from this project." }, { status: 400 });
     }
