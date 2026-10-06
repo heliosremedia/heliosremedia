@@ -1313,6 +1313,33 @@
       "passed": 1742,
       "failed": 1,
       "reason": "Existing recurrence host-timezone dependency reproduced; focused UTC passes"
-    }
+    },
+    "localRegressionTests": 1743,
+    "localRegressionTimezone": "UTC",
+    "runs": [
+      37420342307,
+      37420342308
+    ],
+    "runtime": "success",
+    "artifact": 11392124809,
+    "artifactSha256": "3e11c5fd92430b82643e03324cd643d930bf026937481daa68b3f22d521a3d65",
+    "independentlyDownloaded": true,
+    "schemaColumnsUnchanged": true,
+    "schemaIndexesUnchanged": true,
+    "syntheticAccessRestored": true
+  },
+  "packet56": {
+    "head": "1b8df1c71014726e90f16ae31ba073cd5d84de44",
+    "tree": "aecfee3cd50c1ebd32277309a51681891c59a99c",
+    "pr": 363,
+    "branch": "codex/v2-series-calendar-isolation",
+    "stackedOn": 362,
+    "ci": "pending",
+    "localRegressionTests": 1744,
+    "localRegressionTimezone": "Australia/Brisbane",
+    "crossHostTimezoneProof": true,
+    "typescript": true,
+    "scopedLint": true,
+    "sourcePreparation": true
   }
 }
