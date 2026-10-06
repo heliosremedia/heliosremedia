@@ -43,10 +43,10 @@ export async function failStreamUploadAsset(assetId: string, workspaceId: string
 }
 
 /** A client-supplied UID is not proof. Only the server's provider response is. */
-export async function resolveStreamAssetForAttachment(workspaceId: string, uid: string) {
+export async function resolveStreamAssetForAttachment(workspaceId: string, uid: string, db: Pick<typeof prisma, "workspaceAsset" | "workspace"> = prisma) {
   const providerNamespace = process.env.CLOUDFLARE_STREAM_ACCOUNT_ID?.trim();
   if (!workspaceId || !providerNamespace || !isCloudflareStreamUid(uid)) throw new Error("INVALID_STREAM_ASSET");
-  const asset = await prisma.workspaceAsset.findUnique({
+  const asset = await db.workspaceAsset.findUnique({
     where: { provider_providerNamespace_providerKey: { provider: "CLOUDFLARE_STREAM", providerNamespace, providerKey: uid } },
     select: { id: true, workspaceId: true, status: true },
   });
@@ -58,7 +58,7 @@ export async function resolveStreamAssetForAttachment(workspaceId: string, uid: 
   // ownership from a URL or make this fallback available to another company.
   const enforced = tenantContextEnabled() || process.env.STUDIO_V2_ASSET_OWNERSHIP_ENABLED?.trim().toLowerCase() === "true";
   if (!enforced) {
-    const rows = await prisma.workspace.findMany({ take: 2, select: { id: true } });
+    const rows = await db.workspace.findMany({ take: 2, select: { id: true } });
     if (rows.length === 1 && rows[0].id === workspaceId) return null;
   }
   throw new Error("INVALID_STREAM_ASSET");
