@@ -6,7 +6,7 @@ import ts from "typescript";
 
 function load(path: string, modules: Record<string, unknown>) {
   const exports: Record<string, (...args: unknown[]) => Promise<unknown>> = {};
-  runInNewContext(ts.transpileModule(readFileSync(new URL(path, import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, Date, require: (id: string) => modules[id] ?? {} });
+  runInNewContext(ts.transpileModule(readFileSync(new URL(path, import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, Date, process: { env: { AUTH_SECRET: "synthetic-campaign-token-signing-secret" } }, require: (id: string) => modules[id] ?? {} });
   return exports;
 }
 
@@ -37,7 +37,7 @@ test("campaign delivery uses stored workspace and excludes foreign client member
     "./bounce-core": { bouncedBackSystemKey: (id: string) => `BOUNCED_BACK:${id}` },
     "./personalization": { renderPersonalizedEmail: () => ({ subject: "Subject", body: "Copy", previewText: "Preview" }) },
     "./delivery-consent": { workspaceAddressIsMarketingEligible: async (_db: unknown, workspaceId: string, email: string) => { assert.equal(workspaceId, "a"); assert.equal(email, "a@example.com"); return true; } },
-    "./preferences": { createPreferenceToken: async ({ clientId }: { clientId: string }) => { assert.equal(clientId, "client-a"); tokens++; return "synthetic-token"; } },
+    "./campaign-consent-token": { createCampaignDeliveryPreferenceToken: async (_db: unknown, input: { workspaceId: string; campaignId: string; recipientId: string; expectedCampaignVersion: number; expectedEmail: string }) => { assert.equal(input.workspaceId, "a"); assert.equal(input.campaignId, "campaign"); assert.equal(input.recipientId, "recipient-a"); assert.equal(input.expectedCampaignVersion, 1); assert.equal(input.expectedEmail, "a@example.com"); tokens++; return "synthetic-token"; } },
     "./email": { renderCampaignEmail: () => "<p>Test</p>", sendCampaignBatch: async ({ messages }: { messages: Array<{ to: string }> }) => { assert.equal(messages.length, 1); assert.equal(messages[0].to, "a@example.com"); sends++; return [{ id: "fake-provider-id" }]; } },
     "@/lib/prisma": { prisma: {
       emailCampaign: { findUnique: async () => ({ id: "campaign", workspaceId: "a", createdBy: { workspaceId: "b" }, status: "PROCESSING", recipients, subject: "Subject", body: "Copy", rowVersion: 1 }), update: async ({ data }: { data: { sentCount: number } }) => data },

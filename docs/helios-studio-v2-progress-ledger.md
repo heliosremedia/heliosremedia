@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 6, 2026: Packet 46 qualified; Packet 47 campaign token issuance
+
+Live base `a6fd2613ad375531f18c1d1f98d32198b29710f2` confirms merged PR #353. Documentation head `af9c0256622925d6d452d7da02b97cd9d87be0af` passed regression 37400649250 (1,689 tests, TypeScript and Chromium). Merged tree matches; Vercel suppressed. Application/runtime files were unchanged from qualified Packet 45.
+
+Packet 47 selects company-bound outgoing campaign tokens from stored source authority and retains only attributable legacy compatibility. Existing legacy protocol markers and incompatible company execution/signing identities fail closed. [Scope and qualification](helios-studio-v2-campaign-consent-tokens.md). Eighteen focused tests pass, including an actual-worker uncertain-failure/reclaim regression whose duplicate-send sensitivity was verified by temporarily removing the binding fences. Source restored. TypeScript, lint, syntax and preparation are local gates; exact-head database and CI evidence remains required. Newsletter/referral issuance and full delivery uncertainty reconciliation remain open. Phase 1 open; production ON HOLD.
+
 ## October 6, 2026: Packet 45 qualified; Packet 46 Phase 1 evidence reconciliation
 
 Live base `91f490ba20c718425e8d7d32b1afd7e938592608` confirms merged PR #352. Packet 45 head `47cbd20245c39efcb5fddaac28c5f26477ef6db8` passed regression 37399922887 (1,689 tests, TypeScript and Chromium) and runtime 37399922907. Independently downloaded artifact 11385090867 SHA256 `d950dd175151fecbd134a098fde7a3f726a9947ace5488c63dff19727965202f` verifies company administrator writes, protected global blocks, four observed access races, both-direction required audit rollback/retry, preserved legacy/contact state and schema/index/access postflight. Injection removed; merged tree matches; Vercel suppressed.

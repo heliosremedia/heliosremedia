@@ -16,7 +16,7 @@ for (const workspaceId of ["a", "b"]) test(`campaign ${workspaceId} excludes a c
   const api = load<{ processEmailCampaign: (id: string) => Promise<unknown> }>("./client-communications/campaign-delivery.ts", {
     "server-only": {}, "./campaign-ownership": { resolveCampaignWorkspace: async (id: string) => id }, "@/lib/prisma": { prisma: db }, "@/lib/audit": { recordAuditEvent: async () => {} },
     "./delivery-consent": { workspaceAddressIsMarketingEligible: async (reader: unknown, id: string, email: string) => { assert.equal(reader, db); assert.equal(id, workspaceId); assert.equal(email, "shared@example.test"); checked++; return false; } },
-    "./preferences": { createPreferenceToken: () => assert.fail("Opt-out reached token issuance") }, "./email": { sendCampaignBatch: () => assert.fail("Opt-out reached provider") }, "./personalization": {}, "@/lib/site": {}, "./bounce-core": { bouncedBackSystemKey: () => "bounce" },
+    "./campaign-consent-token": { createCampaignDeliveryPreferenceToken: () => assert.fail("Opt-out reached token issuance") }, "./email": { sendCampaignBatch: () => assert.fail("Opt-out reached provider") }, "./personalization": {}, "@/lib/site": {}, "./bounce-core": { bouncedBackSystemKey: () => "bounce" },
   });
   await api.processEmailCampaign("campaign"); assert.equal(checked, 1); assert.equal(skipped, 1);
 });

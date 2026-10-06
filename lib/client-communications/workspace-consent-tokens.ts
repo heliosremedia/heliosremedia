@@ -23,11 +23,15 @@ export async function createWorkspaceCampaignPreferenceToken(db: Database, input
     if (!recipient || normalizeEmail(recipient.email) !== normalizedEmail) throw new Error("CONSENT_TOKEN_SOURCE_INVALID");
     await tx.$queryRaw`SELECT id FROM "CommunicationClient" WHERE id=${recipient.clientId} FOR SHARE`;
     await tx.$queryRaw`SELECT id FROM "CommunicationClientWorkspace" WHERE "clientId"=${recipient.clientId} AND "workspaceId"=${input.workspaceId} FOR SHARE`;
-    const client = await tx.communicationClient.findFirst({ where: { id: recipient.clientId, normalizedEmail, archivedAt: null, workspaceMemberships: { some: { workspaceId: input.workspaceId } } }, select: { id: true } });
+    const client = await tx.communicationClient.findFirst({ where: { id: recipient.clientId, normalizedEmail, archivedAt: null, emailSubscribed: true, emailStatus: "VALID", workspaceMemberships: { some: { workspaceId: input.workspaceId } } }, select: { id: true } });
     if (!client || !(await readWorkspaceMarketingEligibility(tx, input.workspaceId, normalizedEmail)).eligible) throw new Error("CONSENT_TOKEN_SOURCE_INVALID");
     const preference = await tx.workspaceMarketingPreference.findUniqueOrThrow({ where: { workspaceId_normalizedEmail: { workspaceId: input.workspaceId, normalizedEmail } }, select: { id: true } });
+    // Do not change the payload protocol of an already-issued legacy campaign.
+    if (await tx.marketingEmailPreferenceToken.findFirst({ where: { campaignId: campaign.id }, select: { id: true } })) throw new Error("CONSENT_TOKEN_LEGACY_RETRY_REVIEW_REQUIRED");
     const tokenHash = workspacePreferenceTokenHash(token);
-    const binding = { workspaceId: input.workspaceId, preferenceId: preference.id, source: "CAMPAIGN_RECIPIENT", campaignId: campaign.id, messageId: recipient.id };
+    const binding = { workspaceId: input.workspaceId, preferenceId: preference.id, source: `CAMPAIGN_RECIPIENT_REVISION_${input.expectedCampaignVersion}`, campaignId: campaign.id, messageId: recipient.id };
+    const incompatible = await tx.workspaceMarketingPreferenceToken.findFirst({ where: { campaignId: campaign.id, OR: [{ workspaceId: { not: input.workspaceId } }, { source: { not: binding.source } }, { messageId: recipient.id, tokenHash: { not: tokenHash } }] }, select: { id: true } });
+    if (incompatible) throw new Error("CONSENT_TOKEN_RETRY_REVIEW_REQUIRED");
     const previous = await tx.workspaceMarketingPreferenceToken.findUnique({ where: { tokenHash } });
     if (previous && Object.entries(binding).some(([key,value]) => previous[key as keyof typeof binding] !== value)) throw new Error("CONSENT_TOKEN_SOURCE_INVALID");
     await tx.workspaceMarketingPreferenceToken.upsert({ where: { tokenHash, ...binding },
