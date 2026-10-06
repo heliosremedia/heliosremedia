@@ -25,14 +25,14 @@ export async function POST(request: Request) {
   try {
     preference = await updateAdminMarketingPreference(session, {
       clientId: input.clientId, action: input.action as "unsubscribe" | "resubscribe",
-      reason: input.reason, consentSource: input.consentSource,
+      reason: input.reason, consentSource: input.consentSource, confirmation: input.confirmation,
     });
   } catch (error) {
     const code = error instanceof Error ? error.message : "";
     if (code === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Your administrator access changed. Sign in again." }, { status: 403 });
     if (code === "CONSENT_CLIENT_NOT_FOUND") return NextResponse.json({ success: false, error: "Client not found." }, { status: 404 });
     if (code === "CONSENT_COMPANY_MIGRATION_REQUIRED") return NextResponse.json({ success: false, error: "Preference changes are unavailable until company-specific consent is configured." }, { status: 409 });
-    if (code === "CONSENT_SAFETY_BLOCK") return NextResponse.json({ success: false, error: "This address has a safety block that cannot be lifted here." }, { status: 409 });
+    if (code === "CONSENT_SAFETY_BLOCK" || code === "CONSENT_PROTECTED_BLOCK") return NextResponse.json({ success: false, error: "This address has a protected opt-out or safety block that cannot be lifted here." }, { status: 409 });
     return NextResponse.json({ success: false, error: "The preference change could not be saved." }, { status: 500 });
   }
   revalidatePath("/admin/clients");

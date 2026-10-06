@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 6, 2026: Packet 44 qualified; Packet 45 administrator consent activation
+
+Live base `a7ef686889b0e9c8fb864e1955384589dc7da84e` confirms merged PR #351. Packet 44 head `7c9d4ea6aeafc76f94f7d776960c945a5ff8ba29` passed regression 37398937520 (1,686 tests, TypeScript and Chromium) and runtime 37398937535. Independently downloaded artifact 11384099070 SHA256 `6e922d31ef67677889b278e029930355466a390a8be0fcbd344c16c9ec1ed91e` verifies both-direction authenticated directory projection, protected metadata redaction, unchanged read snapshots and schema/index/access postflight. Merged tree matches the tested candidate; Vercel suppressed.
+
+Packet 45 activates the verified company-scoped writer through the administrator route and directory consent controls. Confirmed source evidence remains required; protected global opt-outs cannot be lifted here. [Scope and qualification](helios-studio-v2-consent-admin-activation.md). Twenty-four focused module tests (including nine existing projection tests), TypeScript, lint, syntax and preparation pass locally. Exact-head HTTP/database access-race and audit-rollback qualification remains required. Delivery token issuance and analytics attribution remain separate work. Phase 1 open; production ON HOLD.
+
 ## October 6, 2026: Packet 43 qualified; Packet 44 directory consent projection
 
 Live base `5cf752f261af279166fb84943a47299ee00bdee0` confirms merged PR #350. Packet 43 head `993eeca104b17023e7fcf4ce26de08c7d15a50e3` passed regression 37398226624 (1,677 tests, TypeScript and Chromium) and runtime 37398226333. Independently downloaded artifact 11384522036 SHA256 `f92b47ecbfdc67f73612c519d4508e785b064cbce29ccbcc4b450da2a8d4ee89` verifies real public HTTP same-address isolation, concurrent replay, optional reasons, invalid/expired tokens, observed audit cancellation with atomic rollback/retry, one-click form, preserved legacy global scope and schema/index/access postflight. Injection removal verified; merged tree matches; Vercel suppressed.

@@ -2,20 +2,23 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { tenantContextEnabled } from "@/lib/workspace-context-core";
 import { requireLockedWorkspaceAdministrator, type WorkspaceWriteActor } from "@/lib/workspace-write-access";
+import { setWorkspaceMarketingPreference } from "./workspace-consent";
 import { setMarketingPreference } from "./preferences";
 
-type PreferenceAction = { clientId: string; action: "unsubscribe" | "resubscribe"; reason?: string; consentSource?: string };
+type PreferenceAction = { clientId: string; action: "unsubscribe" | "resubscribe"; reason?: string; consentSource?: string; confirmation?: boolean };
 
-/** Transitional containment until company-owned consent readers and writers ship. */
+/** Route company consent to the scoped writer; preserve only attributable legacy compatibility. */
 export async function updateAdminMarketingPreference(actor: WorkspaceWriteActor & { email: string }, input: PreferenceAction) {
-  return prisma.$transaction(async tx => {
+  const legacy = await prisma.$transaction(async tx => {
     await requireLockedWorkspaceAdministrator(tx, actor);
     const client = await tx.communicationClient.findFirst({
       where: { id: input.clientId, workspaceMemberships: { some: { workspaceId: actor.workspaceId } } },
       select: { id: true, displayName: true, email: true, normalizedEmail: true },
     });
     if (!client) throw new Error("CONSENT_CLIENT_NOT_FOUND");
-    if (tenantContextEnabled()) throw new Error("CONSENT_COMPANY_MIGRATION_REQUIRED");
+    if (tenantContextEnabled() || await tx.workspaceMarketingPreference.findUnique({
+      where: { workspaceId_normalizedEmail: { workspaceId: actor.workspaceId, normalizedEmail: client.normalizedEmail } }, select: { id: true },
+    })) return null;
     // The legacy writer changes shared address projections. Serialize its short
     // compatibility transaction against company provisioning and client changes.
     await tx.$executeRaw`LOCK TABLE "Workspace", "CommunicationClient", "CommunicationClientWorkspace" IN SHARE ROW EXCLUSIVE MODE`;
@@ -50,5 +53,12 @@ export async function updateAdminMarketingPreference(actor: WorkspaceWriteActor 
       metadata: { normalizedEmail: preference.normalizedEmail, ...(resubscribing ? { consentSource: input.consentSource! } : {}) },
     } });
     return preference;
+  });
+  if (legacy) return legacy;
+  // The read/selection transaction has ended. The company writer owns a fresh
+  // transaction and rechecks current actor/client authority before any mutation.
+  return setWorkspaceMarketingPreference(prisma, actor, {
+    clientId: input.clientId, status: input.action === "resubscribe" ? "SUBSCRIBED" : "UNSUBSCRIBED",
+    confirmation: input.confirmation, consentSource: input.consentSource, reason: input.reason,
   });
 }

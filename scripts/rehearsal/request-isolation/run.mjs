@@ -120,8 +120,8 @@ try {
     const socialAiRollback = await qualifySocialAiRollback(origin, driver);
     const socialAiProviderFailure = await qualifySocialAiProviderFailure(origin, driver);
     const socialAiRequestIds = await qualifySocialAiRequestIds(origin, driver);
-    const consentAdmin = await qualifyConsentAdmin(origin, driver);
     const consentSchema = await qualifyConsentSchema(driver);
+    const consentAdmin = await qualifyConsentAdmin(origin, driver);
     const consentAdapters = await qualifyConsentAdapters(driver);
     const consentTokens = await qualifyConsentTokens(driver);
     const deliveryConsent = await qualifyDeliveryConsent(driver);
