@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 6, 2026: Packet 62 qualified; Packet 64 external media creation fencing
+
+Documentation-only Packet 62 PR #369 merged at `d1c3cf7e761221a4bacf0215d83f251b1aad3abf`; candidate `8688166fb1d89289672f39a480fb1e362084e92f` passed regression 37424398649 (1,758 tests, TypeScript and Chromium). Only three documentation files differ from qualified Packet 61; application, workflow and schema remain unchanged. Merge tree matches; both Vercel projects suppressed. Packet 63 PR #370 candidate `2948b6faf366f02c071124669b9362a24ab93193` passed 1,758 local tests, TypeScript, lint and source preparation. Runtime 37424940686 has completed successfully; its artifact review and regression 37424940710 remain pending at preparation.
+
+Packet 64 fences the external-URL POST branch under current locked editor/project/service authority and Stream registry state before duplicate lookup or creation. [Scope and qualification](helios-studio-v2-external-media-creation-fencing.md). Actual HTTP qualification covers the alternate Stream URL entry point plus non-Stream YouTube access races and concurrent retries, without following links. Replacement and other mutation actions remain separate work. No production, schema, credentials or real provider operations. Phase 1 remains open; production ON HOLD.
+
 ## October 6, 2026: Packet 61 qualified; Packet 63 direct Stream attachment fencing
 
 Packet 61 PR #368 merged at `d9629c5d1bfdfeed9bd8e12690db1c5c408f048e`; candidate `e428c29bebaab33fdef1a7124d7a10ae86cb6fce` passed regression 37423931336 (1,758 tests, TypeScript and Chromium) and runtime 37423931296. Independently downloaded artifact 11393579900 SHA256 `b65e1702351d87e314cb21301227b60a5ea63aa42855e6fb1735a11e48aa292d` proves twelve observed image attachment races, association-failure rollback and unchanged schema/index/access postflight. Merge tree matches; both Vercel projects suppressed. Documentation-only Packet 62 PR #369 remains under regression 37424398649 at preparation; its application/workflow/schema files are identical to Packet 61.
