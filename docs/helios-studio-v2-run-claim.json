@@ -1,10 +1,10 @@
 {
-  "status": "blocked-execution-environment",
-  "runId": "atlas-packet53-brand-upload-admission",
-  "branch": "codex/v2-brand-upload-admission",
-  "head": "685b9a4a8842aed433a96380bfdf738a4e64f454",
-  "pr": 360,
-  "scope": "Brand upload current authorization at asset registration",
+  "status": "in-progress",
+  "runId": "atlas-packet55-project-image-upload-admission",
+  "branch": "codex/v2-project-image-upload-admission",
+  "head": null,
+  "pr": null,
+  "scope": "Project image upload editor admission and registration",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Recover workspace execution; independently verify Packet53/54 exact-head CI artifacts, suppression, and tree equality before expected-head integration. Retarget PR361 after PR360 merges, then continue Phase1. No routine owner approval needed; production ON HOLD.",
+  "nextAction": "Implement and qualify bounded project image upload admission; production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -889,10 +889,11 @@
   "environmentBlock": {
     "observedAt": "2026-10-06",
     "githubAccessAvailable": true,
-    "executionUnavailable": true,
+    "executionUnavailable": false,
     "approvalRequired": false,
-    "reason": "Workspace exec_command stopped returning, including independent pwd probe. GitHub remains available. Do not merge pending packets until artifact and merge-tree verification can resume.",
-    "partialLocalPacket54": "Published candidate contains all intended changes. Local fetch/alignment command did not return; rebuild from GitHub if necessary."
+    "reason": "Workspace execution recovered; rebuilt fresh worktree from GitHub, verified downloaded artifacts and merge trees.",
+    "partialLocalPacket54": "Published candidate contains all intended changes. Local fetch/alignment command did not return; rebuild from GitHub if necessary.",
+    "resolvedAt": "2026-10-06"
   },
   "packet43": {
     "head": "993eeca104b17023e7fcf4ce26de08c7d15a50e3",
@@ -1034,9 +1035,9 @@
     "implementationStarted": false,
     "requiredConstraint": "Preserve retry token protocol and provider identity; fail closed on ambiguous legacy attempts before replacing outgoing issuance."
   },
-  "lastVerifiedIntegratedPacket": 52,
-  "lastVerifiedIntegratedPr": 359,
-  "lastVerifiedIntegratedHead": "e1ad2f1a12aa51c940a826e09b60a62de3f166e4",
+  "lastVerifiedIntegratedPacket": 54,
+  "lastVerifiedIntegratedPr": 361,
+  "lastVerifiedIntegratedHead": "0fe6149b4a25b8a054806601ca8e386c2587be55",
   "packet47": {
     "base": "a6fd2613ad375531f18c1d1f98d32198b29710f2",
     "ci": "success",
@@ -1256,7 +1257,17 @@
     "runtime": "success",
     "artifact": 11390677380,
     "artifactApiSha256": "3760765b584f914f23570b4d1c07d97e6171338dd1e6d678b4d3a855cc0e5214",
-    "artifactIndependentlyDownloaded": false
+    "artifactIndependentlyDownloaded": true,
+    "ci": "success",
+    "merge": "8d3784db20ef0be349f28f0df19ee4de819b4798",
+    "regressionTests": 1731,
+    "chromium": true,
+    "artifactSha256": "3760765b584f914f23570b4d1c07d97e6171338dd1e6d678b4d3a855cc0e5214",
+    "mergedTreeMatchesTestedHead": true,
+    "vercelDeploymentsSuppressed": true,
+    "schemaColumnsUnchanged": true,
+    "schemaIndexesUnchanged": true,
+    "syntheticAccessRestored": true
   },
   "packet54": {
     "head": "441e58e1424b8c3ca3ec4c171cae862834851226",
@@ -1275,6 +1286,17 @@
     "typescript": true,
     "scopedLint": true,
     "sourcePreparation": true,
-    "artifactIndependentlyDownloaded": false
+    "artifactIndependentlyDownloaded": true,
+    "ci": "success",
+    "merge": "0fe6149b4a25b8a054806601ca8e386c2587be55",
+    "regressionTests": 1734,
+    "chromium": true,
+    "artifact": 11390592961,
+    "artifactSha256": "8f15dbdcd3ffde6cf2d28163dee41169052643277d8f268ff4196d9c5a4ff75c",
+    "mergedTreeMatchesTestedHead": true,
+    "vercelDeploymentsSuppressed": true,
+    "schemaColumnsUnchanged": true,
+    "schemaIndexesUnchanged": true,
+    "syntheticAccessRestored": true
   }
 }
