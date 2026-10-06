@@ -1,3 +1,4 @@
+import { qualifyStorageDiagnostic } from "./storage-diagnostic.mjs";
 import { qualifySeriesCalendar } from "./series-calendar.mjs";
 import { qualifyProjectUploadAdmission } from "./project-upload-admission.mjs";
 import { qualifyBrandUploadAdmission } from "./brand-upload-admission.mjs";
@@ -93,6 +94,12 @@ async function prepare() {
   assert.ok(!monitorSource.includes('syntheticMonitorFetch'));
   await cp(join(root, 'scripts/rehearsal/request-isolation/monitor-provider.ts'), join(app, 'lib/packet52-monitor-provider.ts'));
   await writeFile(monitorPath, 'import { syntheticMonitorFetch as fetch } from "@/lib/packet52-monitor-provider";\n' + monitorSource.replace(monitorKeyRead, "const key = 'packet52-synthetic-monitor-key';"));
+  const diagnosticPath = join(app, 'app/api/admin/r2/verify/route.ts');
+  const diagnosticSource = await readFile(diagnosticPath, 'utf8');
+  const diagnosticImport = 'await import("@/lib/r2")';
+  assert.equal(diagnosticSource.split(diagnosticImport).length, 2, 'Review changed diagnostic provider import');
+  await cp(join(root, 'scripts/rehearsal/request-isolation/storage-diagnostic-provider.ts'), join(app, 'lib/packet57-storage-diagnostic-provider.ts'));
+  await writeFile(diagnosticPath, diagnosticSource.replace(diagnosticImport, 'await import("@/lib/packet57-storage-diagnostic-provider")'));
   const bundle = join(scratch, 'driver.mjs');
   await build({ entryPoints: [join(root, 'scripts/rehearsal/request-isolation/driver.ts')], outfile: bundle, bundle: true, platform: 'node', format: 'esm', packages: 'external', plugins: [{
     // The driver runs as Node, outside Next's server condition. This removes
@@ -155,6 +162,7 @@ try {
     const emailUploadAdmission = await qualifyBrandUploadAdmission(origin, driver, "email-campaign");
     const projectUploadAdmission = await qualifyProjectUploadAdmission(origin, driver);
     const seriesCalendar = await qualifySeriesCalendar(origin, driver);
+    const storageDiagnostic = await qualifyStorageDiagnostic(origin, driver);
     assert.equal(await driver.schemaFingerprint(), schemaBefore);
     assert.equal(await driver.schemaIndexFingerprint(), indexesBefore);
     assert.equal(await driver.prisma.workspace.count(), 2);
@@ -162,8 +170,8 @@ try {
     assert.equal(await driver.prisma.adminUser.count({ where: { sessionVersion: 1 } }), 2);
     await mkdir('release-evidence', { recursive: true });
     await writeFile('release-evidence/request-isolation.json', JSON.stringify({ version: 1, candidate: head, runtime: 'Next build/start with PrismaPg',
-      target: 'disposable-local-postgresql', sourceSubstitutions: ['PrismaNeon to PrismaPg', 'offline font variables', 'Social AI fetch to synthetic no-network provider', 'UptimeRobot fetch to synthetic no-network monitor', 'server-only build sentinel removed in Node qualification driver'], result, portfolio, previewFencing,
-      webhook, socialAi, socialAiRollback, socialAiProviderFailure, socialAiRequestIds, consentAdmin, consentSchema, consentAdapters, consentTokens, deliveryConsent, publicConsent, consentDirectory, campaignConsent, newsletterConsent, consentAnalytics, referralPreparation, referralConsent, monitorContainment, brandUploadAdmission, emailUploadAdmission, projectUploadAdmission, seriesCalendar, schemaColumnsUnchanged: true, schemaIndexesUnchanged: true, syntheticAccessRestored: true, hosted: false, deployable: false }, null, 2) + '\n');
+      target: 'disposable-local-postgresql', sourceSubstitutions: ['PrismaNeon to PrismaPg', 'offline font variables', 'Social AI fetch to synthetic no-network provider', 'UptimeRobot fetch to synthetic no-network monitor', 'R2 diagnostic import to synthetic no-network provider', 'server-only build sentinel removed in Node qualification driver'], result, portfolio, previewFencing,
+      webhook, socialAi, socialAiRollback, socialAiProviderFailure, socialAiRequestIds, consentAdmin, consentSchema, consentAdapters, consentTokens, deliveryConsent, publicConsent, consentDirectory, campaignConsent, newsletterConsent, consentAnalytics, referralPreparation, referralConsent, monitorContainment, brandUploadAdmission, emailUploadAdmission, projectUploadAdmission, seriesCalendar, storageDiagnostic, schemaColumnsUnchanged: true, schemaIndexesUnchanged: true, syntheticAccessRestored: true, hosted: false, deployable: false }, null, 2) + '\n');
     console.log('PASS actual Next production-mode HTTP: alternating/concurrent tenants, post-write reads, foreign/stale write rejection, membership/session revocation and schema/access postflight');
     console.log('PASS both-direction portfolio published/draft/preview isolation, actual preview creation/revocation, expiry and rejected usage-write containment');
     console.log('PASS actual PostgreSQL lock-observed preview create/revoke: membership revoked after initial session, both tenants reject403 without preview/audit mutation');
