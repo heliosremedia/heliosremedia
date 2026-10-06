@@ -1,10 +1,10 @@
 {
   "status": "in-progress",
-  "runId": "atlas-packet48-newsletter-consent-tokens",
-  "branch": "codex/v2-newsletter-consent-tokens",
-  "head": "25c5e30706c559c5c2d82d0f4bc7cd1d007dea7f",
-  "pr": 355,
-  "scope": "Newsletter token issuance with approval and attempt-history retry fencing",
+  "runId": "atlas-packet49-consent-analytics-attribution",
+  "branch": "codex/v2-consent-analytics-attribution",
+  "head": "23a0808f7896a2c3d06772eb5ee6c9bcabf54d7e",
+  "pr": 356,
+  "scope": "Stored company unsubscribe attribution and authorized newsletter aggregates",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Complete Packet 48 browser gates and merge; independently qualify Packet 49 then retarget and integrate. Production ON HOLD.",
+  "nextAction": "Verify Packet 49 exact-head CI and artifact, integrate, then continue bounded referral preparation work. Production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -1037,9 +1037,9 @@
     "implementationStarted": false,
     "requiredConstraint": "Preserve retry token protocol and provider identity; fail closed on ambiguous legacy attempts before replacing outgoing issuance."
   },
-  "lastVerifiedIntegratedPacket": 47,
-  "lastVerifiedIntegratedPr": 354,
-  "lastVerifiedIntegratedHead": "352468eb12cf90df02905a83e24a3c8895fe24d4",
+  "lastVerifiedIntegratedPacket": 48,
+  "lastVerifiedIntegratedPr": 355,
+  "lastVerifiedIntegratedHead": "3fada1a6f8ee55d5acb34b57f9d9ed396770cd1b",
   "packet47": {
     "base": "a6fd2613ad375531f18c1d1f98d32198b29710f2",
     "ci": "success",
@@ -1084,7 +1084,7 @@
   },
   "packet48": {
     "base": "352468eb12cf90df02905a83e24a3c8895fe24d4",
-    "ci": "in-progress",
+    "ci": "success",
     "head": "25c5e30706c559c5c2d82d0f4bc7cd1d007dea7f",
     "pr": 355,
     "initialCandidate": {
@@ -1099,29 +1099,39 @@
     "tree": "e0ca32d2c72b35feb30e202902dd97cc0d35dc8d",
     "localRegressionTests": 1708,
     "runs": [
-      {
-        "id": 37410357728,
-        "head": "25c5e30706c559c5c2d82d0f4bc7cd1d007dea7f",
-        "status": "in_progress"
-      },
-      {
-        "id": 37410357554,
-        "head": "25c5e30706c559c5c2d82d0f4bc7cd1d007dea7f",
-        "status": "in_progress"
-      }
-    ]
+      37410357554,
+      37410357728
+    ],
+    "merge": "3fada1a6f8ee55d5acb34b57f9d9ed396770cd1b",
+    "regressionTests": 1708,
+    "chromium": true,
+    "typescript": true,
+    "runtime": "success",
+    "artifact": 11389480154,
+    "artifactSha256": "cc70e2445ca4d7ad258b3b933b26c4047ae2a0dd74dd47fb7be59fd19d683c7e",
+    "independentlyDownloaded": true,
+    "mergedTreeMatchesTestedHead": true,
+    "schemaColumnsUnchanged": true,
+    "schemaIndexesUnchanged": true,
+    "syntheticAccessRestored": true,
+    "vercelDeploymentsSuppressed": true
   },
   "packet49": {
     "head": "23a0808f7896a2c3d06772eb5ee6c9bcabf54d7e",
     "tree": "42f7a6aec0c716a20f17fe3257529a80cb3a4594",
     "pr": 356,
     "branch": "codex/v2-consent-analytics-attribution",
-    "ci": "pending",
+    "ci": "in-progress",
     "localRegressionTests": 1710,
     "typescript": true,
     "scopedLint": true,
     "prismaValidation": true,
     "sourcePreparation": true,
-    "stackedOn": 355
+    "stackedOn": 355,
+    "runs": [
+      37410780142,
+      37410779823
+    ],
+    "base": "3fada1a6f8ee55d5acb34b57f9d9ed396770cd1b"
   }
 }
