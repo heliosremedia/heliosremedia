@@ -18,7 +18,7 @@ export async function qualifyPublicConsent(origin, driver) {
   }
   const scoped = async workspaceId => ({ preferences: await db.workspaceMarketingPreference.findMany({ where: { workspaceId }, orderBy: { id: 'asc' } }), events: await db.workspaceMarketingPreferenceEvent.findMany({ where: { workspaceId }, orderBy: { id: 'asc' } }), tokens: await db.workspaceMarketingPreferenceToken.findMany({ where: { workspaceId }, orderBy: { id: 'asc' } }), audit: await db.auditEvent.findMany({ where: { workspaceId }, orderBy: { id: 'asc' } }) });
   const legacy = async () => { const rows = {}; for (const model of ['marketingEmailPreference','marketingEmailPreferenceEvent','marketingEmailPreferenceToken','communicationSuppression','communicationClient','communicationGroupMembership']) rows[model] = await db[model].findMany({ orderBy: { id: 'asc' } }); return rows; };
-  const send = (id, token = tokens[id]) => http(origin, `${id === 'a' ? 'b' : 'a'}.example.test`, '/api/unsubscribe', { method: 'POST', body: { token, reason: '  Synthetic reason  ', workspaceId: id === 'a' ? 'b' : 'a', email: 'foreign@example.test', clientId: 'foreign' } });
+  const send = (id, token = tokens[id]) => http(origin, `${id === 'a' ? 'b' : 'a'}.example.test`, '/api/unsubscribe', { method: 'POST', body: { token, reason: '  Synthetic reason  ', workspaceId: id === 'a' ? 'b' : 'a', email: 'foreign@example.test', clientId: 'foreign', campaignId: 'forged-campaign', messageId: 'forged-message' } });
   const old = await legacy();
   const absent = async () => { const [row] = await db.$queryRaw`SELECT to_regprocedure('packet43_public_audit()')::text AS fn,(SELECT count(*)::integer FROM pg_trigger WHERE tgname='packet43_public_audit') AS triggers`; assert.equal(row.fn, null); assert.equal(row.triggers, 0); };
   await absent();
@@ -26,6 +26,8 @@ export async function qualifyPublicConsent(origin, driver) {
     const other = id === 'a' ? 'b' : 'a', foreign = await scoped(other), before = await scoped(id);
     for (const reply of await Promise.all([send(id), send(id)])) { assert.equal(reply.status, 200, reply.text); assert.deepEqual(JSON.parse(reply.text), { success: true }); }
     const after = await scoped(id); assert.equal(after.events.length, before.events.length + 1); assert.equal(after.audit.length, before.audit.length + 1);
+    const attributed = after.events.filter(event => !before.events.some(old => old.id === event.id));
+    assert.equal(attributed.length, 1); assert.equal(attributed[0].campaignId, `public-campaign-${id}`); assert.equal(attributed[0].messageId, `public-recipient-${id}`);
     assert.equal(after.preferences.find(p => p.normalizedEmail === email).reason, 'Synthetic reason');
     assert.equal(await driver.workspaceAddressIsMarketingEligible(db, id, email), false); assert.equal(await driver.workspaceAddressIsMarketingEligible(db, other, email), true);
     assert.deepEqual(await scoped(other), foreign); assert.deepEqual(await legacy(), old);
@@ -47,7 +49,7 @@ export async function qualifyPublicConsent(origin, driver) {
     } finally { await pending; await db.$executeRawUnsafe('DROP TRIGGER IF EXISTS packet43_public_audit ON "AuditEvent"'); await db.$executeRawUnsafe('DROP FUNCTION IF EXISTS packet43_public_audit()'); }
     await absent(); assert.deepEqual(await scoped(id), rollbackBefore); assert.deepEqual(await scoped(other), foreign); assert.deepEqual(await legacy(),old);
     assert.equal((await send(id)).status,200); const retry = await scoped(id); assert.equal(retry.events.length,rollbackBefore.events.length+1); assert.equal(retry.audit.length,rollbackBefore.audit.length+1); await subscribe(id);
-    cases.push({tenant:id,forgedHostAndSelectorsIgnored:true,concurrentReplayOneEvent:true,reasonRecorded:true,deliveryReaderHonorsOptOut:true,invalidUnknownExpired400:true,auditWaitObserved:true,onlyObservedQueryCancelled:true,safeFailure400:true,preferenceHistoryLastUseAuditRolledBack:true,retry200:true,foreignAndLegacyUnchanged:true});
+    cases.push({tenant:id,forgedHostAndSelectorsIgnored:true,concurrentReplayOneEvent:true,reasonRecorded:true,storedTokenAttribution:true,deliveryReaderHonorsOptOut:true,invalidUnknownExpired400:true,auditWaitObserved:true,onlyObservedQueryCancelled:true,safeFailure400:true,preferenceHistoryLastUseAuditRolledBack:true,retry200:true,foreignAndLegacyUnchanged:true});
   }
   const form = 'List-Unsubscribe=One-Click';
   const status = await new Promise((resolve,reject) => { const req = request(`${origin}/api/unsubscribe?token=${encodeURIComponent(tokens.a)}`, { method:'POST', headers:{host:'a.example.test','content-type':'application/x-www-form-urlencoded','content-length':Buffer.byteLength(form)}, timeout:60000 }, res => {res.resume();res.on('end',()=>resolve(res.statusCode));});req.on('error',reject);req.on('timeout',()=>req.destroy(new Error('Synthetic one-click timeout')));req.end(form); });

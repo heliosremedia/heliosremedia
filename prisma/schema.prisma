@@ -3818,8 +3818,11 @@ model WorkspaceMarketingPreferenceEvent {
   reason         String?
   actorId        String?
   createdAt      DateTime @default(now())
+  campaignId     String?
+  messageId      String?
 
   @@index([workspaceId, preferenceId, createdAt])
+  @@index([workspaceId, campaignId, status], map: "workspace_consent_campaign_status_idx")
 }
 
 model WorkspaceMarketingPreferenceToken {

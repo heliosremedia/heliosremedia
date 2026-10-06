@@ -58,7 +58,7 @@ export async function consumeWorkspacePreferenceToken(db: Database, token: strin
     const changed = preference.status !== "UNSUBSCRIBED";
     if (changed) {
       await tx.workspaceMarketingPreference.update({ where: { workspaceId_id: { workspaceId: current.workspaceId, id: preference.id } }, data: { status: "UNSUBSCRIBED", source: "PUBLIC_WORKSPACE_TOKEN", reason: recordedReason, actorId: null, effectiveAt: new Date() } });
-      await tx.workspaceMarketingPreferenceEvent.create({ data: { workspaceId: current.workspaceId, preferenceId: preference.id, previousStatus: preference.status, status: "UNSUBSCRIBED", source: "PUBLIC_WORKSPACE_TOKEN", reason: recordedReason } });
+      await tx.workspaceMarketingPreferenceEvent.create({ data: { workspaceId: current.workspaceId, preferenceId: preference.id, previousStatus: preference.status, status: "UNSUBSCRIBED", source: "PUBLIC_WORKSPACE_TOKEN", reason: recordedReason, campaignId: current.campaignId, messageId: current.messageId } });
       await tx.auditEvent.create({ data: { workspaceId: current.workspaceId, action: "WORKSPACE_MARKETING_TOKEN_UNSUBSCRIBED", entityType: "WorkspaceMarketingPreference", entityId: preference.id,
         summary: "Company marketing preference unsubscribed through its token.", metadata: { tokenId: current.id, campaignId: current.campaignId, messageId: current.messageId } } });
     }

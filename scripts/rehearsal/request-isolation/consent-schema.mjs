@@ -26,6 +26,13 @@ export async function qualifyConsentSchema(driver) {
     await client.query('BEGIN; DROP TABLE "WorkspaceMarketingPreferenceToken"; DROP TABLE "WorkspaceMarketingPreferenceEvent"; DROP TABLE "WorkspaceMarketingPreference"; DROP TYPE "WorkspaceMarketingPreferenceStatus"; COMMIT;');
     const migration = await readFile(new URL('../../../prisma/migrations/20261004180000_workspace_marketing_consent_expand/migration.sql', import.meta.url), 'utf8');
     await client.query(migration);
+    await client.query(`INSERT INTO "WorkspaceMarketingPreference" (id,"workspaceId","normalizedEmail",source,"updatedAt") VALUES ('attribution-pref','a','old-attribution@example.test','SYNTHETIC',NOW())`);
+    await client.query(`INSERT INTO "WorkspaceMarketingPreferenceEvent" (id,"workspaceId","preferenceId",status,source) VALUES ('attribution-event','a','attribution-pref','UNSUBSCRIBED','SYNTHETIC')`);
+    const historical = (await client.query(`SELECT * FROM "WorkspaceMarketingPreferenceEvent" WHERE id='attribution-event'`)).rows[0];
+    await client.query(await readFile(new URL('../../../prisma/migrations/20261006040000_workspace_consent_event_attribution/migration.sql', import.meta.url), 'utf8'));
+    const expanded = (await client.query(`SELECT * FROM "WorkspaceMarketingPreferenceEvent" WHERE id='attribution-event'`)).rows[0];
+    assert.deepEqual(expanded, { ...historical, campaignId: null, messageId: null });
+    await client.query(`DELETE FROM "WorkspaceMarketingPreferenceEvent" WHERE id='attribution-event'; DELETE FROM "WorkspaceMarketingPreference" WHERE id='attribution-pref'`);
     assert.deepEqual(await constraints(), constraintsBefore);
     assert.equal(await driver.schemaFingerprint(), schemaBefore); assert.equal(await driver.schemaIndexFingerprint(), indexesBefore);
     assert.deepEqual(await legacySnapshot(), before);
@@ -48,7 +55,7 @@ export async function qualifyConsentSchema(driver) {
       cases.push({ tenant: id, foreignHistoryRejected: true, foreignTokenRejected: true, sameCompanyDuplicateRejected: true, ownedHistoryAndTokenCreated: true, ownershipTransferAndParentDeletionRejected: true, foreignPreferenceUnchanged: true });
     }
     assert.deepEqual(await legacySnapshot(), before);
-    return { cases, sameAddressSeparateCompanyPreferences: true, checkedInMigrationApplied: true, declaredColumnsIndexesAndConstraintsMatched: true,
+    return { cases, sameAddressSeparateCompanyPreferences: true, checkedInMigrationApplied: true, historicalAttributionRemainsNull: true, declaredColumnsIndexesAndConstraintsMatched: true,
       legacyPreferencesHistoryTokensAndSafetyUnchanged: true, applicationReadersActivated: false, syntheticDatabaseOnly: true };
   } finally { await client.end(); }
 }
