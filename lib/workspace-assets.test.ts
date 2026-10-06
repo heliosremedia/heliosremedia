@@ -180,18 +180,20 @@ test("Stream external URL creation and replacement enforce registry ownership wh
   const url = stream.getCloudflareStreamEmbedUrl(uid);
   const save = async ({ data }: { data: { assetId?: string } }) => { assert.equal(data.assetId, oldUrl === url && patch ? undefined : "asset"); writes++; return { id: "media" }; };
   const api = load<{ POST: (request: Request, context: { params: Promise<{ projectId: string }> }) => Promise<Response>; PATCH: (request: Request, context: { params: Promise<{ projectId: string }> }) => Promise<Response> }>("../app/api/admin/projects/[projectId]/media/route.ts", {
-    "@/lib/workspace-write-access": {}, "@aws-sdk/client-s3": {}, "next/cache": { revalidatePath() {} }, "next/server": { NextResponse: Response },
+    "@/lib/workspace-write-access": { requireLockedWorkspaceEditor: async () => {} }, "@aws-sdk/client-s3": {}, "next/cache": { revalidatePath() {} }, "next/server": { NextResponse: Response },
     "@/lib/media-collections": { isMediaCategory: () => true }, "@/lib/cloudflare-stream": stream,
     "@/lib/external-media": { resolveExternalMedia: () => ({ databaseProvider: "CLOUDFLARE_STREAM", sourceType: "EXTERNAL_VIDEO", externalUrl: url, externalId: uid }) },
     "@/lib/r2": {}, "@/lib/r2-upload": {}, "@/lib/service-media": { mediaCategoryForServiceSlug: () => "VIDEO" }, "@/lib/project-media-upload": {},
     "@/lib/auth/session": { getAdminSession: async () => ({ role: "EDITOR", workspaceId: "a" }), requireAdminSession: async () => ({ role: "EDITOR", workspaceId: "a" }) },
     "@/lib/workspace-assets": { resolveStreamAssetForAttachment: async (workspaceId: string, key: string) => { checks++; assert.equal(workspaceId, "a"); assert.equal(key, uid); if (!allowed) throw new Error("INVALID_STREAM_ASSET"); return "asset"; } },
     "@/lib/prisma": { prisma: {
+      $transaction: async function (fn: (tx: unknown) => Promise<unknown>): Promise<unknown> { return fn(this); },
+      $queryRaw: async () => [], workspaceAsset: { findUnique: async () => ({ id: "asset" }) },
       project: { findFirst: async () => ({ id: "project" }) }, service: { findFirst: async () => ({ id: "service", slug: "video" }) },
       projectMediaCollectionHero: { findUnique: async () => null },
       media: { findFirst: async () => patch ? { id: "media", serviceId: "service", externalUrl: oldUrl } : null, aggregate: async () => ({ _max: { displayOrder: 0 } }), create: save, update: save },
     } },
-  });
+  }, { process: { env: { CLOUDFLARE_STREAM_ACCOUNT_ID: "account" } } });
   const call = () => api[patch ? "PATCH" : "POST"](new Request("https://example.test/api", { method: patch ? "PATCH" : "POST", body: JSON.stringify({ action: "update-asset", mediaId: "media", externalUrl: url, originalFilename: "Video", mediaCategory: "VIDEO", serviceId: "service", visibility: "VISIBLE", workspaceId: "b" }) }), { params: Promise.resolve({ projectId: "project" }) });
   assert.equal((await call()).status, 400); assert.equal(writes, 0);
   allowed = true; assert.equal((await call()).status, 201); assert.equal(writes, 1);
