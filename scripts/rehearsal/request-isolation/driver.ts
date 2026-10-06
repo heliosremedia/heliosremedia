@@ -55,3 +55,5 @@ export { createWorkspaceCampaignPreferenceToken, consumeWorkspacePreferenceToken
 export { eligibleMarketingAddresses, workspaceAddressIsMarketingEligible } from "../../../lib/client-communications/delivery-consent";
 
 export { readClientConsentProjection } from "../../../lib/client-communications/consent-projection";
+
+export { createCampaignDeliveryPreferenceToken } from "../../../lib/client-communications/campaign-consent-token";

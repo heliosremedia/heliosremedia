@@ -5,7 +5,7 @@ import { recordAuditEvent } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { renderCampaignEmail, sendCampaignBatch } from "./email";
 import { renderPersonalizedEmail } from "./personalization";
-import { createPreferenceToken } from "./preferences";
+import { createCampaignDeliveryPreferenceToken } from "./campaign-consent-token";
 import { workspaceAddressIsMarketingEligible } from "./delivery-consent";
 import { getSiteUrl } from "@/lib/site";
 import { bouncedBackSystemKey } from "./bounce-core";
@@ -49,7 +49,7 @@ export async function processEmailCampaign(campaignId: string) {
     if (!batch.length) continue;
     try {
       const tokens = await Promise.all(batch.map((recipient) =>
-        createPreferenceToken({ clientId: recipient.clientId, campaignId: campaign.id })));
+        createCampaignDeliveryPreferenceToken(prisma, { workspaceId, campaignId: campaign.id, recipientId: recipient.id, expectedCampaignVersion: campaign.rowVersion, expectedEmail: recipient.email, signingSecret: process.env.CAMPAIGN_UNSUBSCRIBE_SECRET?.trim() || process.env.AUTH_SECRET?.trim() || "" })));
       const messages = batch.map((recipient, offset) => {
         const personalized = renderPersonalizedEmail({
           subject: campaign.subject,

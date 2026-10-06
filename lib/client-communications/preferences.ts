@@ -127,13 +127,13 @@ export async function createPreferenceToken(input: {
   clientId: string;
   campaignId?: string | null;
   messageId?: string | null;
-}) {
-  const client = await prisma.communicationClient.findUnique({
+}, transaction: Prisma.TransactionClient = prisma) {
+  const client = await transaction.communicationClient.findUnique({
     where: { id: input.clientId },
     select: { normalizedEmail: true },
   });
   if (!client?.normalizedEmail) throw new Error("Recipient preference record is unavailable.");
-  const preference = await prisma.marketingEmailPreference.upsert({
+  const preference = await transaction.marketingEmailPreference.upsert({
     where: { normalizedEmail: client.normalizedEmail },
     create: { normalizedEmail: client.normalizedEmail, status: "UNKNOWN", source: "LEGACY_CLIENT" },
     update: {},
@@ -143,7 +143,7 @@ export async function createPreferenceToken(input: {
     ? campaignPreferenceToken({ campaignId: input.campaignId, clientId: input.clientId, secret: tokenSecret })
     : generatePreferenceToken();
   const expiresAt = new Date(Date.now() + MARKETING_TOKEN_TTL_DAYS * 86_400_000);
-  await prisma.marketingEmailPreferenceToken.upsert({
+  await transaction.marketingEmailPreferenceToken.upsert({
     where: { tokenHash: hashPreferenceToken(token) },
     create: {
       preferenceId: preference.id,
