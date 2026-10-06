@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 6, 2026: Packets 55–56 qualified; Packet 58 Stream upload admission
+
+Packet 55 PR #362 is merged at `b87b79845278395ff65b59f3c8525be9053ea5bb`; candidate `6d36c84b28c2e64dfb8e8bcb481406d3de9c4d46` passed regression 37420342308 (1,743 tests, TypeScript and Chromium) and runtime 37420342307. Independently downloaded artifact 11392124809 SHA256 `3e11c5fd92430b82643e03324cd643d930bf026937481daa68b3f22d521a3d65` verifies all eight observed-lock project-upload denials. Packet 56 PR #363 is merged at `0f26cc2d847546e7dc976c203e942415a7996ed3`; regression 37420718446 passed 1,744 tests, TypeScript and Chromium. Its previously recorded runtime artifact verifies both-company calendar isolation. Both merge trees match tested candidates, both Vercel projects are suppressed, and schema/index/access postflight passes.
+
+Packet 57 PR #364 remains under exact-head qualification; its runtime 37421273345 passed and regression/browser 37421273336 is still completing at this preparation. Packet 58 adds current locked editor/project admission to Stream upload intent creation, preserving provider UID binding and attachment rules. [Scope and qualification](helios-studio-v2-stream-upload-admission.md). Actual HTTP/PostgreSQL qualification uses synthetic no-network provisioning and observes access changes after a database lock wait. No provider transfers, schema changes or production operations. Phase 1 remains open; production ON HOLD.
+
 ## October 6, 2026: Packet 57 shared storage diagnostic containment
 
 Packet 56 PR #363 candidate `1b8df1c71014726e90f16ae31ba073cd5d84de44` passed 1,744 local tests without a timezone override, TypeScript, lint and preparation. Runtime 37420718388 passed; independently downloaded artifact 11392792925 SHA256 `e3566003aaab2319af97711a0d956f72de90e0e01632bfe0a9acd4550bf1a41b` verifies both-company exact local schedules, foreign/revoked generation denial, retry deduplication and schema/index/access postflight. Regression/browser 37420718446 remains in progress at this preparation; integration is still gated on full exact-head success.
