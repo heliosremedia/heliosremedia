@@ -92,6 +92,7 @@ test("provisioning returns an upload URL only after its server-received ID is du
   let providerId: string | null = uid;
   let bindingFails = false;
   let admitted = true;
+  let forwardedMetadata = "";
   const api = load<{ POST: (request: Request, context: { params: Promise<{ projectId: string }> }) => Promise<Response> }>("../app/api/admin/projects/[projectId]/stream-upload/route.ts", {
     "next/server": { NextResponse: Response }, "@/lib/cloudflare-stream": stream,
     "@/lib/auth/session": { getAdminSession: async () => ({ role: "EDITOR", workspaceId: "a", userId: "actor", sessionVersion: 7 }) },
@@ -103,11 +104,25 @@ test("provisioning returns an upload URL only after its server-received ID is du
     },
   }, {
     Buffer, process: { env: { CLOUDFLARE_STREAM_ACCOUNT_ID: "account", CLOUDFLARE_STREAM_API_TOKEN: "fake-token" } }, console: { error() {} },
-    fetch: async () => { events.push("provider"); return new Response(null, { status: 201, headers: { Location: "https://upload.example.test/not-the-video-id", ...(providerId ? { "stream-media-id": providerId } : {}) } }); },
+    fetch: async (_url: string, init: RequestInit) => { forwardedMetadata = new Headers(init.headers).get("Upload-Metadata") ?? ""; events.push("provider"); return new Response(null, { status: 201, headers: { Location: "https://upload.example.test/not-the-video-id", ...(providerId ? { "stream-media-id": providerId } : {}) } }); },
   });
-  const call = () => api.POST(new Request("https://example.test/api", { method: "POST", headers: { "upload-length": "100", "tus-resumable": "1.0.0" } }), { params: Promise.resolve({ projectId: "project" }) });
+  const call = (metadata?: string) => api.POST(new Request("https://example.test/api", { method: "POST", headers: { "upload-length": "100", "tus-resumable": "1.0.0", ...(metadata === undefined ? {} : { "upload-metadata": metadata }) } }), { params: Promise.resolve({ projectId: "project" }) });
   let response = await call(); assert.equal(response.status, 201); assert.equal(response.headers.get("stream-media-id"), uid);
   assert.deepEqual(events.splice(0), ["intent", "provider", "bind"]);
+  const description = `filename ${Buffer.from("café.mp4").toString("base64")},filetype dmlkZW8vbXA0,name,uploadPolicy c3RhbmRhcmQ=`;
+  response = await call(description); assert.equal(response.status, 201);
+  const pairs = forwardedMetadata.split(",").map(entry => entry.split(" "));
+  assert.equal(pairs.length, 6); assert.equal(new Set(pairs.map(([key]) => key)).size, 6);
+  assert.ok(forwardedMetadata.startsWith(description + ","));
+  assert.equal(Buffer.from(pairs.find(([key]) => key === "maxDurationSeconds")![1], "base64").toString(), "180");
+  const expiry = Buffer.from(pairs.find(([key]) => key === "expiry")![1], "base64").toString();
+  assert.ok(Math.abs(Date.parse(expiry) - Date.now() - 6 * 3600000) < 5000);
+  assert.deepEqual(events.splice(0), ["intent", "provider", "bind"]);
+  for (const metadata of ["maxDurationSeconds OTk5", "expiry eA==", "requiresignedurls", "allowedOrigins eA==", "filename YQ==,filename Yg==", "Filename YQ==", "name !!!", "name YQ", "name YR==", "name YQ==,", "name  YQ==", "name " + "YQ==".repeat(2049)]) {
+    response = await call(metadata); assert.equal(response.status, 400, metadata.slice(0, 80));
+    assert.equal(response.headers.get("location"), null); assert.deepEqual(events, []);
+    assert.deepEqual(await response.json(), { success: false, error: "Upload metadata is invalid." });
+  }
   providerId = null; response = await call(); assert.equal(response.status, 502); assert.equal(response.headers.get("location"), null);
   assert.deepEqual(events.splice(0), ["intent", "provider", "failed"]);
   providerId = uid; bindingFails = true; response = await call(); assert.equal(response.status, 500); assert.equal(response.headers.get("location"), null);

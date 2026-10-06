@@ -3,14 +3,22 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { http } from './http.mjs';
 
 export async function qualifyStreamUploadAdmission(origin, driver) {
-  const db = driver.prisma, cases = [];
+  const db = driver.prisma, cases = [], metadataCases = [];
   const snapshot = () => db.workspaceAsset.findMany({ orderBy: { id: 'asc' } });
   for (const id of ['a', 'b']) {
     const other = id === 'a' ? 'b' : 'a';
     const where = { workspaceId_userId: { workspaceId: id, userId: `u${id}` } };
-    const post = (projectId = `p${id}`) => http(origin, `${other}.example.test`, `/api/admin/projects/${projectId}/stream-upload`, {
-      method: 'POST', headers: { cookie: driver.cookie(id), 'upload-length': '100', 'tus-resumable': '1.0.0', 'x-workspace-id': other },
+    const post = (projectId = `p${id}`, metadata) => http(origin, `${other}.example.test`, `/api/admin/projects/${projectId}/stream-upload`, {
+      method: 'POST', headers: { cookie: driver.cookie(id), 'upload-length': '100', 'tus-resumable': '1.0.0', 'x-workspace-id': other, ...(metadata === undefined ? {} : { 'upload-metadata': metadata }) },
     });
+    for (const metadata of ['maxDurationSeconds OTk5', 'expiry eA==', 'requiresignedurls', 'allowedOrigins eA==', 'filename YQ==,filename Yg==', 'name !!!']) {
+      const before = await snapshot(); const response = await post(`p${id}`, metadata);
+      assert.equal(response.status, 400); assert.equal(response.headers.location, undefined);
+      assert.deepEqual(await snapshot(), before);
+      metadataCases.push({ tenant: id, rejected: metadata.split(' ')[0], status: 400, noAssetRegistered: true });
+    }
+    const descriptive = 'filename Y2Fmw6kubXA0,filetype dmlkZW8vbXA0,name,uploadPolicy c3RhbmRhcmQ=';
+    assert.equal((await post(`p${id}`, descriptive)).status, 201);
     const deniedBefore = await snapshot();
     assert.equal((await post(`p${other}`)).status, 404);
     assert.deepEqual(await snapshot(), deniedBefore);
@@ -59,5 +67,5 @@ export async function qualifyStreamUploadAdmission(origin, driver) {
     } finally { await db.workspaceMembership.update({ where, data: { role: 'OWNER' } }); }
   }
   assert.equal((await http(origin, 'a.example.test', '/api/admin/projects/pa/stream-upload', { method: 'POST', body: {} })).status, 401);
-  return { cases, serverOwnedKeysBothDirections: true, roleThresholdPreserved: true, anonymousRejected: true, provider: 'explicit no-network Stream provisioning substitute; no object transfer', hosted: false };
+  return { cases, metadataCases, serverMetadataConstraintsVerified: true, serverOwnedKeysBothDirections: true, roleThresholdPreserved: true, anonymousRejected: true, provider: 'explicit no-network Stream provisioning substitute; no object transfer', hosted: false };
 }
