@@ -1066,6 +1066,15 @@
         "conclusion": null,
         "head": "e3a3b70d245af446edaed0e57bccf63a286026fd"
       }
-    ]
+    ],
+    "runtime": "success",
+    "artifact": 11388286421,
+    "artifactSha256": "601495cceb7c5a3e65e392336a2a9168339f7ff0fde7df251285b17c4cbdd2e9",
+    "independentlyDownloaded": true,
+    "runtimeQualified": true,
+    "schemaColumnsUnchanged": true,
+    "schemaIndexesUnchanged": true,
+    "syntheticAccessRestored": true,
+    "vercelDeploymentsSuppressed": true
   }
 }
