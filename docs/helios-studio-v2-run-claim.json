@@ -2,8 +2,8 @@
   "status": "in-progress",
   "runId": "atlas-packet45-consent-admin-activation",
   "branch": "codex/v2-consent-admin-activation",
-  "head": null,
-  "pr": null,
+  "head": "47cbd20245c39efcb5fddaac28c5f26477ef6db8",
+  "pr": 352,
   "scope": "Company-scoped administrator consent activation",
   "evidence": {
     "run": 36217912507,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Publish and qualify bounded administrator route/UI activation; production ON HOLD.",
+  "nextAction": "Inspect exact-head CI and artifact for PR 352 before integration; continue bounded Phase 1 work. Production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -967,6 +967,25 @@
     "typescript": true,
     "scopedLint": true,
     "sourcePreparation": true,
-    "ci": "not-published"
+    "ci": "in-progress",
+    "head": "47cbd20245c39efcb5fddaac28c5f26477ef6db8",
+    "tree": "bf5be769412c6cbd195bb2c4b11cc2e7c1c4f940",
+    "pr": 352,
+    "runs": [
+      {
+        "id": 37399922907,
+        "name": "V2 isolated runtime request isolation",
+        "status": "in_progress",
+        "head": "47cbd20245c39efcb5fddaac28c5f26477ef6db8",
+        "conclusion": null
+      },
+      {
+        "id": 37399922887,
+        "name": "V2 regression",
+        "status": "in_progress",
+        "head": "47cbd20245c39efcb5fddaac28c5f26477ef6db8",
+        "conclusion": null
+      }
+    ]
   }
 }
