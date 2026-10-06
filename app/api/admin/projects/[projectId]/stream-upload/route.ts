@@ -78,7 +78,7 @@ export async function POST(
 
     const expiresAt = new Date(Date.now() + UPLOAD_EXPIRY_HOURS * 60 * 60 * 1000);
     const asset = await beginStreamUploadAsset({
-      workspaceId: session.workspaceId, projectId, actorId: session.userId,
+      workspaceId: session.workspaceId, projectId, actorId: session.userId, sessionVersion: session.sessionVersion,
       providerNamespace: accountId, byteSize: uploadLength, expiresAt,
     });
     pendingAsset = { id: asset.id, workspaceId: session.workspaceId };
@@ -142,6 +142,8 @@ export async function POST(
         console.error("Unable to record failed Stream upload intent:", failure);
       });
     }
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Upload access is no longer available." }, { status: 403 });
+    if (error instanceof Error && error.message === "INVALID_ASSET_UPLOAD") return NextResponse.json({ success: false, error: "The project is no longer available for this upload." }, { status: 404 });
     console.error("Unable to prepare Cloudflare Stream upload:", error);
     return NextResponse.json(
       {

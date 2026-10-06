@@ -1,21 +1,27 @@
 import "server-only";
+import { requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
 import { prisma } from "@/lib/prisma";
 import { isCloudflareStreamUid } from "@/lib/cloudflare-stream";
 import { tenantContextEnabled } from "@/lib/workspace-context-core";
 
 export async function beginStreamUploadAsset(input: {
-  workspaceId: string; projectId: string; actorId: string;
+  workspaceId: string; projectId: string; actorId: string; sessionVersion: number;
   providerNamespace: string; byteSize: number; expiresAt: Date;
 }) {
+  input = { ...input };
   if (!input.workspaceId || !input.providerNamespace || !Number.isSafeInteger(input.byteSize) || input.byteSize <= 0) throw new Error("INVALID_ASSET_UPLOAD");
-  const project = await prisma.project.findFirst({ where: { id: input.projectId, workspaceId: input.workspaceId }, select: { id: true } });
-  if (!project) throw new Error("INVALID_ASSET_UPLOAD");
-  return prisma.workspaceAsset.create({
-    data: {
-      workspaceId: input.workspaceId, provider: "CLOUDFLARE_STREAM", providerNamespace: input.providerNamespace,
-      byteSize: BigInt(input.byteSize), uploadExpiresAt: input.expiresAt,
-      provenance: { kind: "PROJECT_UPLOAD", projectId: input.projectId, actorId: input.actorId },
-    }, select: { id: true },
+  return prisma.$transaction(async tx => {
+    await requireLockedWorkspaceEditor(tx, { workspaceId: input.workspaceId, userId: input.actorId, sessionVersion: input.sessionVersion });
+    await tx.$queryRaw`SELECT id FROM "Project" WHERE id=${input.projectId} AND "workspaceId"=${input.workspaceId} FOR SHARE`;
+    const project = await tx.project.findFirst({ where: { id: input.projectId, workspaceId: input.workspaceId }, select: { id: true } });
+    if (!project) throw new Error("INVALID_ASSET_UPLOAD");
+    return tx.workspaceAsset.create({
+      data: {
+        workspaceId: input.workspaceId, provider: "CLOUDFLARE_STREAM", providerNamespace: input.providerNamespace,
+        byteSize: BigInt(input.byteSize), uploadExpiresAt: input.expiresAt,
+        provenance: { kind: "PROJECT_UPLOAD", projectId: input.projectId, actorId: input.actorId },
+      }, select: { id: true },
+    });
   });
 }
 

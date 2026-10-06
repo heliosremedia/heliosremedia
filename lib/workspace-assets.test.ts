@@ -22,7 +22,7 @@ test("Stream attachment trusts stored owner and status, never a submitted UID al
   let companies = [{ id: "a" }];
   const env = { CLOUDFLARE_STREAM_ACCOUNT_ID: "account", STUDIO_V2_ASSET_OWNERSHIP_ENABLED: "false" };
   const api = load<AssetApi>("./workspace-assets.ts", {
-    "server-only": {}, "@/lib/cloudflare-stream": stream,
+    "server-only": {}, "@/lib/workspace-write-access": {}, "@/lib/cloudflare-stream": stream,
     "@/lib/workspace-context-core": { tenantContextEnabled: () => enabled },
     "@/lib/prisma": { prisma: {
       workspaceAsset: { findUnique: async ({ where }: { where: { provider_providerNamespace_providerKey: { providerNamespace: string; providerKey: string } } }) => {
@@ -57,9 +57,12 @@ test("upload intents verify the project and bind a provider ID only once", async
   let created = 0;
   let row = { providerKey: null as string | null, status: "UPLOAD_PENDING" };
   let stale = false;
+  let allowed = true;
   const api = load<AssetApi>("./workspace-assets.ts", {
-    "server-only": {}, "@/lib/cloudflare-stream": stream, "@/lib/workspace-context-core": {},
+    "server-only": {}, "@/lib/workspace-write-access": { requireLockedWorkspaceEditor: async (_tx: unknown, actor: { workspaceId: string; userId: string; sessionVersion: number }) => { assert.equal(actor.workspaceId, "a"); assert.equal(actor.userId, "actor"); assert.equal(actor.sessionVersion, 7); if (!allowed) throw new Error("WORKSPACE_WRITE_FORBIDDEN"); } }, "@/lib/cloudflare-stream": stream, "@/lib/workspace-context-core": {},
     "@/lib/prisma": { prisma: {
+      $transaction: async function (fn: (tx: unknown) => Promise<unknown>): Promise<unknown> { return fn(this); },
+      $queryRaw: async () => [],
       project: { findFirst: async ({ where }: { where: { workspaceId: string } }) => { assert.equal(where.workspaceId, "a"); return own ? { id: "project" } : null; } },
       workspaceAsset: {
         create: async ({ data }: { data: { workspaceId: string; byteSize: bigint; provenance: { projectId: string; actorId: string } } }) => {
@@ -73,9 +76,10 @@ test("upload intents verify the project and bind a provider ID only once", async
       },
     } },
   });
-  const input = { workspaceId: "a", projectId: "project", actorId: "actor", providerNamespace: "account", byteSize: 100, expiresAt: new Date() };
+  const input = { workspaceId: "a", projectId: "project", actorId: "actor", sessionVersion: 7, providerNamespace: "account", byteSize: 100, expiresAt: new Date() };
   await assert.rejects(api.beginStreamUploadAsset(input), /INVALID_ASSET_UPLOAD/); assert.equal(created, 0);
   own = true; await api.beginStreamUploadAsset(input); assert.equal(created, 1);
+  allowed = false; await assert.rejects(api.beginStreamUploadAsset(input), /WORKSPACE_WRITE_FORBIDDEN/); assert.equal(created, 1);
   const binding = { assetId: "asset", workspaceId: "a", providerNamespace: "account", uid };
   await api.bindStreamUploadAsset(binding); await api.bindStreamUploadAsset(binding);
   await assert.rejects(api.bindStreamUploadAsset({ ...binding, uid: "b".repeat(32) }), /INVALID_STREAM_ASSET/);
@@ -87,12 +91,13 @@ test("provisioning returns an upload URL only after its server-received ID is du
   const events: string[] = [];
   let providerId: string | null = uid;
   let bindingFails = false;
+  let admitted = true;
   const api = load<{ POST: (request: Request, context: { params: Promise<{ projectId: string }> }) => Promise<Response> }>("../app/api/admin/projects/[projectId]/stream-upload/route.ts", {
     "next/server": { NextResponse: Response }, "@/lib/cloudflare-stream": stream,
-    "@/lib/auth/session": { getAdminSession: async () => ({ role: "EDITOR", workspaceId: "a", userId: "actor" }) },
+    "@/lib/auth/session": { getAdminSession: async () => ({ role: "EDITOR", workspaceId: "a", userId: "actor", sessionVersion: 7 }) },
     "@/lib/prisma": { prisma: { project: { findFirst: async () => ({ id: "project" }) } } },
     "@/lib/workspace-assets": {
-      beginStreamUploadAsset: async ({ workspaceId }: { workspaceId: string }) => { assert.equal(workspaceId, "a"); events.push("intent"); return { id: "asset" }; },
+      beginStreamUploadAsset: async ({ workspaceId, sessionVersion }: { workspaceId: string; sessionVersion: number }) => { assert.equal(workspaceId, "a"); assert.equal(sessionVersion, 7); if (!admitted) throw new Error("WORKSPACE_WRITE_FORBIDDEN"); events.push("intent"); return { id: "asset" }; },
       bindStreamUploadAsset: async (input: { uid: string; assetId: string }) => { assert.equal(input.uid, uid); assert.equal(input.assetId, "asset"); events.push("bind"); if (bindingFails) throw new Error("binding failed"); },
       failStreamUploadAsset: async () => { events.push("failed"); },
     },
@@ -107,6 +112,7 @@ test("provisioning returns an upload URL only after its server-received ID is du
   assert.deepEqual(events.splice(0), ["intent", "provider", "failed"]);
   providerId = uid; bindingFails = true; response = await call(); assert.equal(response.status, 500); assert.equal(response.headers.get("location"), null);
   assert.deepEqual(events, ["intent", "provider", "bind", "failed"]);
+  events.length = 0; admitted = false; response = await call(); assert.equal(response.status, 403); assert.equal(response.headers.get("location"), null); assert.deepEqual(events, []);
 });
 
 test("media creation rejects unowned Stream IDs before creating a media row", async () => {
