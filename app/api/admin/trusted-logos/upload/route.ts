@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     const key = createTrustedLogoKey(session.workspaceId, image.type);
     const body = Buffer.from(await image.arrayBuffer());
 
-    await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, kind: "trusted-logos", key, byteSize: image.size }, () => r2Client.send(
+    await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, sessionVersion: session.sessionVersion, kind: "trusted-logos", key, byteSize: image.size }, () => r2Client.send(
       new PutObjectCommand({
         Bucket: r2Config.bucketName,
         Key: key,
@@ -67,6 +67,7 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Upload access is no longer available." }, { status: 403 });
     const message =
       error instanceof Error ? error.message : "Unable to upload this logo.";
     const validation =

@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 6, 2026: Packet 52 qualified; Packet 53 brand upload admission
+
+Packet 51 PR #358 completed regression 37412579449 (1,724 tests, TypeScript and Chromium) and merged at `3cf652b674a33de98fbb1c64229b5db4652a8677`. Packet 52 PR #359 is merged at `e1ad2f1a12aa51c940a826e09b60a62de3f166e4`; candidate `aa5eb1b5fd0ed8b99011c376a032effc4d8643ab` passed regression 37413225092 (1,728 tests, TypeScript and Chromium) and runtime 37413225046. Independently downloaded artifact 11389941795 SHA256 `e823ba6fd07cf75360a8e39b56f1f0c3025744ff5a025a0d72fe0882163014dc` verifies both-company dashboard redaction, revoked/anonymous rejection and schema/index/access postflight. Merged tree matches the tested candidate; both Vercel projects suppressed.
+
+Packet 53 adds current locked authorization before shared brand-asset registration, preserving endpoint role thresholds and provider settlement. [Scope and evidence boundaries](helios-studio-v2-brand-upload-admission.md). Local regression: 1,731 passed; TypeScript and isolated source preparation passed. Actual PostgreSQL/HTTP qualification requires observed lock waits before revocation, demotion and session invalidation in both directions. No provider object requests, schema changes or production operations. Phase 1 remains open; production ON HOLD.
+
 ## October 6, 2026: Packet 52 dashboard monitor containment
 
 Packet 51 PR #358 candidate `d469e7adb514bdfd5814c92e46b358ede30015fd` has passed runtime 37412579463. Independently downloaded artifact 11389811261 SHA256 `12e2dcee527ab0e630894bd44c0ac6d7ebed320f4c9ec7a30aa98185827d0956` verifies both-direction referral token source/membership/protected-opt-out admission, rollback of rejected invitation/link creation, stable token identity, public HTTP company unsubscribe attribution and schema/index/access postflight. Its regression/browser run 37412579449 is still completing at this packet's preparation; integration remains gated on success.

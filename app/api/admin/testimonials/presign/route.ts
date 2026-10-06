@@ -24,13 +24,14 @@ export async function POST(request: Request) {
 
     validateImageUpload({ name: fileName, type: fileType, size: fileSize });
     const key = createTestimonialImageKey(session.workspaceId, fileType);
-    const uploadUrl = await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, kind: "testimonials", key, byteSize: fileSize }, () => createPresignedUploadUrl(key, fileType));
+    const uploadUrl = await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, sessionVersion: session.sessionVersion, kind: "testimonials", key, byteSize: fileSize }, () => createPresignedUploadUrl(key, fileType));
 
     return NextResponse.json({
       success: true,
       upload: { key, uploadUrl, publicUrl: getPublicAssetUrl(key), contentType: fileType },
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Upload access is no longer available." }, { status: 403 });
     const message = error instanceof Error ? error.message : "Unable to prepare this upload.";
     const validation = message === "INVALID_BRAND_IMAGE" || message === "Unsupported image type." || message === "Images must be smaller than 25 MB.";
     console.error("Unable to prepare testimonial photo upload:", error);

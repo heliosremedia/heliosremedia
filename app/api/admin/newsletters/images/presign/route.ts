@@ -31,13 +31,14 @@ export async function POST(request: Request) {
       upload: {
         key,
         uploadUrl: await withBrandUploadAsset({
-          workspaceId: session.workspaceId, actorId: session.userId, kind: "newsletter", key, byteSize: file.size,
+          workspaceId: session.workspaceId, actorId: session.userId, sessionVersion: session.sessionVersion, kind: "newsletter", key, byteSize: file.size,
         }, () => createPresignedUploadUrl(key, file.type)),
         publicUrl: getPublicAssetUrl(key),
         contentType: file.type,
       },
     });
   } catch (cause) {
+    if (cause instanceof Error && cause.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Upload access is no longer available." }, { status: 403 });
     const message = cause instanceof Error ? cause.message : "Unable to prepare this image.";
     const status = message.startsWith("Unsupported") || message.includes("25 MB") ? 400 : 500;
     return NextResponse.json({ success: false, error: message }, { status });

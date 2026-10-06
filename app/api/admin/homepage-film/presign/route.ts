@@ -28,11 +28,12 @@ export async function POST(request: Request) {
 
     await getSiteSettingsWriteTarget(session.workspaceId);
     const key = createFeaturedFilmKey(session.workspaceId, kind, fileType);
-    const uploadUrl = await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, kind: "site-featured-film", key, byteSize: fileSize }, () => createPresignedUploadUrl(key, fileType));
+    const uploadUrl = await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, sessionVersion: session.sessionVersion, kind: "site-featured-film", key, byteSize: fileSize }, () => createPresignedUploadUrl(key, fileType));
     return NextResponse.json({ success: true, upload: { key, uploadUrl, publicUrl: getPublicAssetUrl(key), contentType: fileType }, ...(version ? { acknowledgement: {
       protocol: 1, requestId: body.requestId, workspaceId: session.workspaceId, kind, key, publicUrl: getPublicAssetUrl(key), registered: true,
     } } : {}) });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Upload access is no longer available." }, { status: 403 });
     console.error("Unable to prepare featured film upload", { category: "request_failed" });
     return NextResponse.json({ success: false, error: "The featured film upload could not be prepared." }, { status: 500 });
   }

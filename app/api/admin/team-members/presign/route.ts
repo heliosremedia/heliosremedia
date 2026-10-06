@@ -17,8 +17,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Upload a JPG, PNG, WebP, or AVIF portrait under 25 MB." }, { status: 400 });
     }
     const key = createTeamMemberPortraitKey(session.workspaceId, fileType);
-    return NextResponse.json({ success: true, upload: { key, uploadUrl: await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, kind: "team", key, byteSize: fileSize }, () => createPresignedUploadUrl(key, fileType)), publicUrl: getPublicAssetUrl(key), contentType: fileType } });
+    return NextResponse.json({ success: true, upload: { key, uploadUrl: await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, sessionVersion: session.sessionVersion, kind: "team", key, byteSize: fileSize }, () => createPresignedUploadUrl(key, fileType)), publicUrl: getPublicAssetUrl(key), contentType: fileType } });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Upload access is no longer available." }, { status: 403 });
     console.error("Unable to prepare team portrait upload:", error);
     return NextResponse.json({ success: false, error: "The team portrait upload could not be prepared." }, { status: 500 });
   }
