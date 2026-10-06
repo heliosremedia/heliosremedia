@@ -2,8 +2,8 @@
   "status": "in-progress",
   "runId": "atlas-packet48-newsletter-consent-tokens",
   "branch": "codex/v2-newsletter-consent-tokens",
-  "head": null,
-  "pr": null,
+  "head": "b143f856c8fb46568f6a2e875a1765d90f25a605",
+  "pr": 355,
   "scope": "Newsletter token issuance with approval and attempt-history retry fencing",
   "evidence": {
     "run": 36217912507,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Implement and qualify newsletter token integration; preserve uncertain outcomes and payload identity. Production ON HOLD.",
+  "nextAction": "Correct ownership test fixture; rerun regression and exact-head CI before integration. Production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -1084,6 +1084,17 @@
   },
   "packet48": {
     "base": "352468eb12cf90df02905a83e24a3c8895fe24d4",
-    "ci": "not-published"
+    "ci": "correction-in-progress",
+    "head": "b143f856c8fb46568f6a2e875a1765d90f25a605",
+    "pr": 355,
+    "initialCandidate": {
+      "head": "b143f856c8fb46568f6a2e875a1765d90f25a605",
+      "regression": 37409991187,
+      "passed": 1707,
+      "failed": 1,
+      "reason": "Existing ownership test fixture lacked new token and retry module dependencies",
+      "runtime": 37409991224,
+      "runtimeStatus": "success"
+    }
   }
 }
