@@ -1,10 +1,10 @@
 {
   "status": "in-progress",
   "runId": "atlas-packet58-stream-upload-admission",
-  "branch": "codex/v2-project-image-attachment-ownership",
-  "head": "9d7bdb5098efe056183aee8042acc535935f73d3",
-  "pr": 367,
-  "scope": "Packet 60 project image attachment ownership; non-production",
+  "branch": "codex/v2-project-image-attachment-fencing",
+  "head": "e428c29bebaab33fdef1a7124d7a10ae86cb6fce",
+  "pr": 368,
+  "scope": "Packet 61 image attachment mutation-time fencing; non-production",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Complete Packet 59 and 60 exact-head CI/artifact/suppression gates, integrate in order, then fence image attachment mutation-time authorization.",
+  "nextAction": "Verify and integrate Packets 60 and 61 in order only after exact-head CI/artifact/suppression gates. Reconcile remaining Phase 1 family evidence before next bounded packet. Production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -1035,9 +1035,9 @@
     "implementationStarted": false,
     "requiredConstraint": "Preserve retry token protocol and provider identity; fail closed on ambiguous legacy attempts before replacing outgoing issuance."
   },
-  "lastVerifiedIntegratedPacket": 58,
-  "lastVerifiedIntegratedPr": 365,
-  "lastVerifiedIntegratedHead": "6cdbe6c1254aebea06fc947dc0d046b16dd017e0",
+  "lastVerifiedIntegratedPacket": 59,
+  "lastVerifiedIntegratedPr": 366,
+  "lastVerifiedIntegratedHead": "ad287038458eacb16d10c2549040b5d59f1aabde",
   "packet47": {
     "base": "a6fd2613ad375531f18c1d1f98d32198b29710f2",
     "ci": "success",
@@ -1422,7 +1422,7 @@
     "tree": "3dc850c80574222abc304501e0ea2d597a7ae84f",
     "pr": 366,
     "base": "6cdbe6c1254aebea06fc947dc0d046b16dd017e0",
-    "ci": "pending",
+    "ci": "success",
     "localRegressionTests": 1756,
     "typescript": true,
     "scopedLint": true,
@@ -1438,13 +1438,40 @@
     "schemaColumnsUnchanged": true,
     "schemaIndexesUnchanged": true,
     "syntheticAccessRestored": true,
-    "vercelDeploymentsSuppressed": true
+    "vercelDeploymentsSuppressed": true,
+    "regressionTests": 1756,
+    "chromium": true,
+    "merge": "ad287038458eacb16d10c2549040b5d59f1aabde",
+    "mergedTreeMatchesTestedHead": true
   },
   "packet60": {
     "head": "9d7bdb5098efe056183aee8042acc535935f73d3",
     "tree": "dbc45022883a0ec700ec453f7e7bd7620cc07d08",
     "pr": 367,
     "stackedOn": 366,
+    "ci": "pending",
+    "localRegressionTests": 1758,
+    "typescript": true,
+    "scopedLint": true,
+    "sourcePreparation": true,
+    "runs": [
+      37423263783,
+      37423263836
+    ],
+    "runtime": "success",
+    "artifact": 11394052478,
+    "artifactSha256": "04daf9cc294c0a71a06a1705c2993732acfb5dda3f7ac3fdef5ea8ab2d1f0449",
+    "independentlyDownloaded": true,
+    "schemaColumnsUnchanged": true,
+    "schemaIndexesUnchanged": true,
+    "syntheticAccessRestored": true,
+    "vercelDeploymentsSuppressed": true
+  },
+  "packet61": {
+    "head": "e428c29bebaab33fdef1a7124d7a10ae86cb6fce",
+    "tree": "6a6418f415af5a34b2fb6f54dcd929c8fc2eff5c",
+    "pr": 368,
+    "stackedOn": 367,
     "ci": "pending",
     "localRegressionTests": 1758,
     "typescript": true,
