@@ -1,10 +1,10 @@
 {
   "status": "in-progress",
-  "runId": "atlas-packet43-consent-public-unsubscribe",
-  "branch": "codex/v2-consent-public-unsubscribe",
-  "head": "993eeca104b17023e7fcf4ce26de08c7d15a50e3",
-  "pr": 350,
-  "scope": "Company-bound public unsubscribe with legacy scope preserved",
+  "runId": "atlas-packet44-consent-directory-projection",
+  "branch": "codex/v2-consent-directory-projection",
+  "head": "7c9d4ea6aeafc76f94f7d776960c945a5ff8ba29",
+  "pr": 351,
+  "scope": "Company-specific directory consent and protected global metadata redaction",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Rebuild Packet43 from verified Packet42 integration, qualify real public HTTP isolation/rollback and legacy preservation. Production ON HOLD.",
+  "nextAction": "Qualify exact-head directory HTTP/data boundaries before integration; continue approved consent implementation. Production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -909,18 +909,41 @@
       {
         "id": 37398226624,
         "name": "V2 regression",
-        "status": "in_progress",
-        "conclusion": null,
+        "status": "completed",
+        "conclusion": "success",
         "head": "993eeca104b17023e7fcf4ce26de08c7d15a50e3"
       },
       {
         "id": 37398226333,
         "name": "V2 isolated runtime request isolation",
-        "status": "in_progress",
-        "conclusion": null,
+        "status": "completed",
+        "conclusion": "success",
         "head": "993eeca104b17023e7fcf4ce26de08c7d15a50e3"
       }
     ],
+    "ci": "success",
+    "regressionTests": 1677,
+    "chromium": true,
+    "runtime": "success",
+    "artifact": 11384522036,
+    "artifactSha256": "f92b47ecbfdc67f73612c519d4508e785b064cbce29ccbcc4b450da2a8d4ee89",
+    "independentlyDownloaded": true,
+    "merge": "5cf752f261af279166fb84943a47299ee00bdee0",
+    "mergedTreeMatchesTestedHead": true,
+    "schemaColumnsUnchanged": true,
+    "schemaIndexesUnchanged": true,
+    "syntheticAccessRestored": true,
+    "injectionRemoved": true,
+    "vercelDeploymentsSuppressed": true
+  },
+  "packet44": {
+    "head": "7c9d4ea6aeafc76f94f7d776960c945a5ff8ba29",
+    "tree": "502009adbc0e8877461d715c38f0cae9ea6ac363",
+    "pr": 351,
+    "localTargetedTests": 9,
+    "typescript": true,
+    "scopedLint": true,
+    "sourcePreparation": true,
     "ci": "in-progress"
   }
 }
