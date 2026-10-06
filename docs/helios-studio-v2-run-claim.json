@@ -2,8 +2,8 @@
   "status": "in-progress",
   "runId": "atlas-packet55-project-image-upload-admission",
   "branch": "codex/v2-project-image-upload-admission",
-  "head": null,
-  "pr": null,
+  "head": "6d36c84b28c2e64dfb8e8bcb481406d3de9c4d46",
+  "pr": 362,
   "scope": "Project image upload editor admission and registration",
   "evidence": {
     "run": 36217912507,
@@ -1298,5 +1298,21 @@
     "schemaColumnsUnchanged": true,
     "schemaIndexesUnchanged": true,
     "syntheticAccessRestored": true
+  },
+  "packet55": {
+    "head": "6d36c84b28c2e64dfb8e8bcb481406d3de9c4d46",
+    "tree": "537effa21cfc24f5e5aa74d52bdc3cd666e5160e",
+    "pr": 362,
+    "ci": "pending",
+    "base": "0fe6149b4a25b8a054806601ca8e386c2587be55",
+    "localFocusedTests": 9,
+    "typescript": true,
+    "scopedLint": true,
+    "sourcePreparation": true,
+    "localInitialRegression": {
+      "passed": 1742,
+      "failed": 1,
+      "reason": "Existing recurrence host-timezone dependency reproduced; focused UTC passes"
+    }
   }
 }
