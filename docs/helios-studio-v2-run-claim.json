@@ -1,5 +1,5 @@
 {
-  "status": "in-progress",
+  "status": "packet-complete",
   "runId": "atlas-packet47-campaign-consent-tokens",
   "branch": "codex/v2-campaign-consent-tokens",
   "head": "e3a3b70d245af446edaed0e57bccf63a286026fd",
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Implement and qualify stored campaign/recipient token selection; preserve legacy links and reject protocol switches. Production ON HOLD.",
+  "nextAction": "Packet 48: adapt newsletter outgoing token issuance under locked approval and existing delivery-attempt uncertainty gates. Preserve approved revision/payload identity and historical legacy link scope; do not enable automatic reconciliation or providers. Phase 1 open; production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -1037,12 +1037,12 @@
     "implementationStarted": false,
     "requiredConstraint": "Preserve retry token protocol and provider identity; fail closed on ambiguous legacy attempts before replacing outgoing issuance."
   },
-  "lastVerifiedIntegratedPacket": 46,
-  "lastVerifiedIntegratedPr": 353,
-  "lastVerifiedIntegratedHead": "a6fd2613ad375531f18c1d1f98d32198b29710f2",
+  "lastVerifiedIntegratedPacket": 47,
+  "lastVerifiedIntegratedPr": 354,
+  "lastVerifiedIntegratedHead": "352468eb12cf90df02905a83e24a3c8895fe24d4",
   "packet47": {
     "base": "a6fd2613ad375531f18c1d1f98d32198b29710f2",
-    "ci": "in-progress",
+    "ci": "success",
     "head": "e3a3b70d245af446edaed0e57bccf63a286026fd",
     "tree": "2442c420740404d4fcdc1f4cd9b00188195a816d",
     "pr": 354,
@@ -1055,15 +1055,15 @@
       {
         "id": 37408282689,
         "name": "V2 regression",
-        "status": "in_progress",
-        "conclusion": null,
+        "status": "completed",
+        "conclusion": "success",
         "head": "e3a3b70d245af446edaed0e57bccf63a286026fd"
       },
       {
         "id": 37408282743,
         "name": "V2 isolated runtime request isolation",
-        "status": "in_progress",
-        "conclusion": null,
+        "status": "completed",
+        "conclusion": "success",
         "head": "e3a3b70d245af446edaed0e57bccf63a286026fd"
       }
     ],
@@ -1075,6 +1075,11 @@
     "schemaColumnsUnchanged": true,
     "schemaIndexesUnchanged": true,
     "syntheticAccessRestored": true,
-    "vercelDeploymentsSuppressed": true
+    "vercelDeploymentsSuppressed": true,
+    "merge": "352468eb12cf90df02905a83e24a3c8895fe24d4",
+    "regressionTests": 1699,
+    "chromium": true,
+    "mergedTreeMatchesTestedHead": true,
+    "isolatedWorkingTreeClean": true
   }
 }
