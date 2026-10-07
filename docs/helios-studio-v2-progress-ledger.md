@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 7, 2026: Packet 77 runtime verified; Packet 78 featured-film attachments
+
+Packet 77 PR #385 candidate `6cb138c6a8b7d240a67154822a464f4ab0ac4821` passed isolated runtime 37635574038. Artifact 11489621406 SHA256 `bdd6b8c801014ee496a26ae2f72ebe13d54cd95ef88ee3806adc76d1f39a69eb` was independently downloaded, hashed and parsed: both-direction consent/audit enforcement, twenty observed revocation races, migration parity, reciprocal concurrent access and schema/access postflight passed. Regression 37635573932 remains pending at preparation; Packet 77 is not yet integrated. No real operator is enrolled.
+
+Packet 78 reproduces video/poster registry changes being accepted after provider inspection and adds the smallest transaction-time recheck. [Scope and qualification](helios-studio-v2-featured-film-fencing.md). Its planned eighteen observed races and compatibility/rollback/concurrency checks require its own published-head gates. Phase 1 remains OPEN; production ON HOLD.
+
 ## October 7, 2026: approved support policy; Packet 77 diagnostics foundation
 
 Packets 75–76 are integrated through PR #383 at `4e34a90829be30f58ecce0567b6c1c56c1d706d7`. Packet 76 regression 37629908372 passed 1,804 tests/TypeScript/Chromium; runtime 37629908370 passed. Artifact 11486141442 SHA256 `02e1349d8faa237b386c0dd36d60ffe2907a891655d788e113e58dfac70c37c0` was independently downloaded, hashed and parsed for 22 About-page races, rollback and schema/access postflight. Merge trees match tested candidates; Vercel deployments remained suppressed. Jake approved the bounded non-production support policy; PR #384 integrated at `c73a3c52841c278c2f1be926d7a9afb2840aac51` with reviewed-tree equality.
