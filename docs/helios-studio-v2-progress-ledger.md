@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 7, 2026: Packet 72 integrated; Packet 74 photo-comparison authority
+
+Packet 72 PR #379 integrated at `b13729d379f892f5b6adbe41df6d4cd9f7c185c3`, matching candidate `a095f14654b4f49c6432ef1bafa820a1c394d6f1` tree `683e38d68b2085ecbd58a21934ed4dd341f01b2f`. Regression 37625062034 passed 1,771 tests/TypeScript/Chromium; runtime 37625062095 passed. Artifact 11483783689 SHA256 `cde87b7712462a3102d9692c4234bf93649edf208ac9070a78676bfe75e91892` independently downloaded, hashed and parsed for 24 races, rollback/compatibility/retention and schema/index/access postflight. Both Vercel projects suppressed. Packet 73 PR #380 candidate `1bdcf264048368ece739c24578e9d2a2e55f8d74` has successful runtime 37625709017; artifact 11484500824 SHA256 `ca1bfaea4fb1d98584ff4ad8b5a3cb998547a0841cd3d710fab55f9f2b522734` independently verified for 50 races and postflight. Its regression 37625708986 remains pending at preparation.
+
+Packet 74 fixes three reproduced photo-comparison save authority/reference failures. [Scope and qualification](helios-studio-v2-photo-comparison-fencing.md). Local 1,788 tests pass; twenty observed runtime races, concurrent saves, page/pair rollback and legacy compatibility require published-head qualification. The checkpoint explicitly closes only testimonial route mutation admission/atomicity through Packet 72; other writers and hosted parity remain open. Phase 1 remains open; production ON HOLD.
+
 ## October 7, 2026: Packet 73 trusted-logo mutation authority
 
 Packet 72 PR #379 is under qualification at candidate `a095f14654b4f49c6432ef1bafa820a1c394d6f1`, tree `683e38d68b2085ecbd58a21934ed4dd341f01b2f`. Its first runtime run 37624690045 rejected a double-encoded rehearsal request at parsing; disposable container removal was independently confirmed in job logs. The HTTP driver now passes a structured body to its existing serializer. Application gates are unchanged. Fresh regression 37625062034 and runtime 37625062095 are pending at preparation; no unpassed evidence is credited. Latest verified integration remains Packet 71 at `18b348a9975000d5053feacfd6623f1145b96bd7`.

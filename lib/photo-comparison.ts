@@ -88,9 +88,11 @@ export const emptyPhotoComparisonContent = Object.fromEntries(
   Object.entries(defaultPhotoComparisonContent).map(([key, value]) => [key, Array.isArray(value) ? [] : ""]),
 ) as unknown as PhotoComparisonContent;
 
-export async function canUseLegacyPhotoComparison(workspaceId: string) {
+type PhotoComparisonReader = Pick<Prisma.TransactionClient, "workspace" | "photoComparisonPage">;
+
+export async function canUseLegacyPhotoComparison(workspaceId: string, db: PhotoComparisonReader = prisma) {
   if (tenantContextEnabled()) return false;
-  const companies = await prisma.workspace.findMany({ take: 2, select: { id: true } });
+  const companies = await db.workspace.findMany({ take: 2, select: { id: true } });
   return companies.length === 1 && companies[0].id === workspaceId;
 }
 
@@ -103,10 +105,10 @@ function contentFromJson(value: Prisma.JsonValue, defaults: PhotoComparisonConte
   })) as PhotoComparisonContent;
 }
 
-export async function getPhotoComparisonPage(workspaceId?: string) {
+export async function getPhotoComparisonPage(workspaceId?: string, db: PhotoComparisonReader = prisma) {
   const resolvedWorkspaceId = workspaceId || await getPublicWorkspaceId();
-  const page = await prisma.photoComparisonPage.findUnique({ where: { workspaceId: resolvedWorkspaceId }, include: { pairs: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] } } });
-  const legacy = await canUseLegacyPhotoComparison(resolvedWorkspaceId);
+  const page = await db.photoComparisonPage.findUnique({ where: { workspaceId: resolvedWorkspaceId }, include: { pairs: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] } } });
+  const legacy = await canUseLegacyPhotoComparison(resolvedWorkspaceId, db);
   const detailOwned = photoComparisonImageMatchesWorkspace(resolvedWorkspaceId, { key: page?.detailImageStorageKey ?? null, url: page?.detailImageUrl ?? null });
   const ownedPairs = page?.pairs.filter((pair) =>
     photoComparisonImageMatchesWorkspace(resolvedWorkspaceId, { key: pair.standardImageStorageKey, url: pair.standardImageUrl })
