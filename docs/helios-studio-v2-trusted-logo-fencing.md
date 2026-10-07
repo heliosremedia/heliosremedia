@@ -1,0 +1,11 @@
+# Packet 73: Trusted-logo mutation authority
+
+Nine actual-handler denial tests fail before this change: create/update accept actor or asset authority invalidated after provider inspection; update accepts a changed image reference; publish, reorder and delete accept revoked access; reorder accepts a changed collection. Four success tests preserve the existing route contracts. All thirteen targeted tests pass after the correction.
+
+All five write branches use current locked editor/session authority and transaction-owned content scope. Reorder validates the complete current collection after stable row locks and checks each scoped update count; sole-workspace null-owner compatibility holds collection/table protection. Publication and deletion lock the selected row; response readback and delete metadata come from the same transaction. Create/update reuse the commit-time image registry validator while provider inspection remains outside the transaction. Update returns 409 if its original image reference changed during inspection.
+
+The existing logo API has no row-version reorder precondition. Concurrent valid orders remain accepted and serialize as complete orders; this packet does not invent a new concurrency UX or schema. Ordinals, response shapes, required logo image, exact unchanged legacy references, display treatment and retained provider objects remain compatible.
+
+Both-company disposable HTTP/PostgreSQL qualification covers 50 observed races: publication 8, reorder 10, deletion 8, create/update 24. It also checks foreign/unowned records and images, duplicate order entries, injected rollback in every branch, serialized complete orders, single-winner deletion and inert retry, preserved foreign content and asset registrations, valid create/replacement, and unchanged legacy/missing-image behavior. The strict no-network image inspection adapter admits only the two qualified content families; signed upload URLs are never followed. Schema/index/access postflight and independent artifact verification remain mandatory.
+
+This closes no hosted/CDN/provider parity or whole Phase 1 requirement by itself. No migration, credentials, real-content deletion or production operation. Production ON HOLD.

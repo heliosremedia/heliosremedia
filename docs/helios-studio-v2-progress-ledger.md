@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 7, 2026: Packet 73 trusted-logo mutation authority
+
+Packet 72 PR #379 is under qualification at candidate `a095f14654b4f49c6432ef1bafa820a1c394d6f1`, tree `683e38d68b2085ecbd58a21934ed4dd341f01b2f`. Its first runtime run 37624690045 rejected a double-encoded rehearsal request at parsing; disposable container removal was independently confirmed in job logs. The HTTP driver now passes a structured body to its existing serializer. Application gates are unchanged. Fresh regression 37625062034 and runtime 37625062095 are pending at preparation; no unpassed evidence is credited. Latest verified integration remains Packet 71 at `18b348a9975000d5053feacfd6623f1145b96bd7`.
+
+Packet 73 fixes nine reproduced trusted-logo authority/collection defects across the route's five write branches. [Scope and qualification](helios-studio-v2-trusted-logo-fencing.md). Thirteen targeted tests pass. Fifty planned observed races plus rollback, concurrency, image compatibility and retention cases require published-head runtime/artifact qualification before integration. No schema, role expansion, provider deletion or production operation. Phase 1 remains open; production ON HOLD.
+
 ## October 7, 2026: Packets 70–71 integrated; Packet 72 testimonial write authority
 
 Packet 70 PR #377 integrated at `41ec68eef3b574ae9533863c71dda092572401bc`, tree `893f2ad503d763106b4e2b4766c2a29782c9ad6e`, matching candidate `5c129b0be163a12054bae60e44e556f309aef8c4`. Regression 37622222978 passed 1,761 tests/TypeScript/Chromium; runtime 37622223032 passed. Artifact 11482109358 SHA256 `1bfbe0e8fc2221fcb82fdcc8f0acf4d2acfc5372ca172ffb1957bd421e9f5c5c` independently verified. Packet 71 PR #378 integrated at `18b348a9975000d5053feacfd6623f1145b96bd7`, tree `5d9717b3f3cb7d20b323c4fe7ec6df86ebd8e750`, matching candidate `0e4d42914bbd003960a0c87f804d0a1503ecc7fd`. Regression 37623011216 passed 1,763 tests/TypeScript/Chromium; runtime 37623011233 passed. Artifact 11482852724 SHA256 `0089f3c1018eaca7c87c4b7871041845770a688fe1d1b211df09c3fb597186c8` independently downloaded, hashed and parsed. Both artifacts confirm observed races, rollback, retention/retry contracts and unchanged schema/indexes/restored synthetic access. Both Vercel projects stayed suppressed.
