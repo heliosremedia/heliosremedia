@@ -1,10 +1,12 @@
+import { requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
+import { tenantContextEnabled } from "@/lib/workspace-context-core";
 import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { resolveBrandImage, brandImageCleanupPending } from "@/lib/workspace-brand-storage";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
-import { verifyRegisteredBrandImage } from "@/lib/workspace-brand-assets";
+import { verifyRegisteredBrandImage, lockRegisteredBrandImage } from "@/lib/workspace-brand-assets";
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/auth/session";
 
@@ -51,15 +53,24 @@ export async function POST(request: Request) {
   try {
     const session = await getAdminSession();
     if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
-    const scope = await getContentOwnershipScope(session.workspaceId);
     const body = (await request.json()) as Record<string, unknown>;
     const data = validate(body, session.workspaceId);
     await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "trusted-logos", key: data.logoStorageKey });
-    const order = await prisma.trustedLogo.aggregate({ where: { ...scope }, _max: { displayOrder: true } });
-    const logo = await prisma.trustedLogo.create({ data: { ...data, workspaceId: session.workspaceId, displayOrder: (order._max.displayOrder ?? -1) + 1, published: body.published === true }, select: logoSelect });
+    const logo = await prisma.$transaction(async tx => {
+      await requireLockedWorkspaceEditor(tx, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+      if (!tenantContextEnabled()) await tx.$queryRaw`LOCK TABLE "Workspace" IN SHARE MODE`;
+      const scope = await getContentOwnershipScope(session.workspaceId, tx);
+      if ("OR" in scope) await tx.$queryRaw`LOCK TABLE "TrustedLogo" IN SHARE ROW EXCLUSIVE MODE`;
+      await lockRegisteredBrandImage(tx, { workspaceId: session.workspaceId, kind: "trusted-logos", key: data.logoStorageKey });
+      const order = await tx.trustedLogo.aggregate({ where: { ...scope }, _max: { displayOrder: true } });
+      return tx.trustedLogo.create({ data: { ...data, workspaceId: session.workspaceId, displayOrder: (order._max.displayOrder ?? -1) + 1, published: body.published === true }, select: logoSelect });
+    });
     refresh();
     return NextResponse.json({ success: true, logo }, { status: 201 });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Logo access is no longer available." }, { status: 403 });
+    if (error instanceof Error && error.message === "LOGO_UNAVAILABLE") return NextResponse.json({ success: false, error: "The logo was not found." }, { status: 404 });
+    if (error instanceof Error && ["LOGO_REORDER_CONFLICT", "LOGO_IMAGE_CONFLICT", "LOGO_DELETE_CONFLICT"].includes(error.message)) return NextResponse.json({ success: false, error: "The logo changed. Refresh and try again." }, { status: 409 });
     const message = validationMessage(error);
     if (message) return NextResponse.json({ success: false, error: message }, { status: 400 });
     console.error("Unable to create trusted logo:", error);
@@ -76,9 +87,20 @@ export async function PATCH(request: Request) {
     const action = typeof body.action === "string" ? body.action : "";
     if (action === "reorder") {
       const ids = Array.isArray(body.logoIds) ? body.logoIds.filter((id): id is string => typeof id === "string") : [];
-      const current = await prisma.trustedLogo.findMany({ where: { ...scope }, select: { id: true } });
-      if (ids.length !== current.length || new Set(ids).size !== ids.length || current.some(({ id }) => !ids.includes(id))) return NextResponse.json({ success: false, error: "The logo list changed before the order was saved. Refresh and try again." }, { status: 409 });
-      await prisma.$transaction(ids.map((id, displayOrder) => prisma.trustedLogo.updateMany({ where: { id, ...scope }, data: { displayOrder } })));
+      await prisma.$transaction(async tx => {
+        await requireLockedWorkspaceEditor(tx, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+        if (!tenantContextEnabled()) await tx.$queryRaw`LOCK TABLE "Workspace" IN SHARE MODE`;
+        const currentScope = await getContentOwnershipScope(session.workspaceId, tx);
+        const includesLegacy = "OR" in currentScope;
+        if (includesLegacy) await tx.$queryRaw`LOCK TABLE "TrustedLogo" IN SHARE ROW EXCLUSIVE MODE`;
+        await tx.$queryRaw`SELECT id FROM "TrustedLogo" WHERE "workspaceId"=${session.workspaceId} OR (${includesLegacy} AND "workspaceId" IS NULL) ORDER BY id FOR UPDATE`;
+        const current = await tx.trustedLogo.findMany({ where: { ...currentScope }, select: { id: true } });
+        if (ids.length !== current.length || new Set(ids).size !== ids.length || current.some(({ id }) => !ids.includes(id))) throw new Error("LOGO_REORDER_CONFLICT");
+        for (const [displayOrder, id] of ids.entries()) {
+          const changed = await tx.trustedLogo.updateMany({ where: { id, ...currentScope }, data: { displayOrder } });
+          if (changed.count !== 1) throw new Error("LOGO_REORDER_CONFLICT");
+        }
+      });
       refresh();
       return NextResponse.json({ success: true, logoIds: ids });
     }
@@ -87,9 +109,15 @@ export async function PATCH(request: Request) {
     if (!logoId) return NextResponse.json({ success: false, error: "A logo ID is required." }, { status: 400 });
     if (action === "set-published") {
       if (typeof body.published !== "boolean") return NextResponse.json({ success: false, error: "A valid publishing status is required." }, { status: 400 });
-      const changed = await prisma.trustedLogo.updateMany({ where: { id: logoId, ...scope }, data: { published: body.published } });
-      if (changed.count !== 1) return NextResponse.json({ success: false, error: "The logo was not found." }, { status: 404 });
-      const logo = await prisma.trustedLogo.findFirstOrThrow({ where: { id: logoId, ...scope }, select: logoSelect });
+      const logo = await prisma.$transaction(async tx => {
+        await requireLockedWorkspaceEditor(tx, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+        if (!tenantContextEnabled()) await tx.$queryRaw`LOCK TABLE "Workspace" IN SHARE MODE`;
+        const currentScope = await getContentOwnershipScope(session.workspaceId, tx);
+        await tx.$queryRaw`SELECT id FROM "TrustedLogo" WHERE id=${logoId} FOR UPDATE`;
+        const changed = await tx.trustedLogo.updateMany({ where: { id: logoId, ...currentScope }, data: { published: body.published as boolean } });
+        if (changed.count !== 1) throw new Error("LOGO_UNAVAILABLE");
+        return tx.trustedLogo.findFirstOrThrow({ where: { id: logoId, ...currentScope }, select: logoSelect });
+      });
       refresh();
       return NextResponse.json({ success: true, logo });
     }
@@ -98,15 +126,28 @@ export async function PATCH(request: Request) {
       if (!existing) return NextResponse.json({ success: false, error: "The logo was not found." }, { status: 404 });
       const data = validate(body, session.workspaceId, existing);
       await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "trusted-logos", key: data.logoStorageKey, existingKey: existing.logoStorageKey });
-      const changed = await prisma.trustedLogo.updateMany({ where: { id: logoId, ...scope }, data: { ...data, ...(typeof body.published === "boolean" ? { published: body.published } : {}) } });
-      if (changed.count !== 1) return NextResponse.json({ success: false, error: "The logo was not found." }, { status: 404 });
-      const logo = await prisma.trustedLogo.findFirstOrThrow({ where: { id: logoId, ...scope }, select: logoSelect });
-      const storageCleanupPending = data.logoStorageKey !== existing.logoStorageKey ? brandImageCleanupPending(existing.logoStorageKey) : false;
+      const result = await prisma.$transaction(async tx => {
+        await requireLockedWorkspaceEditor(tx, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+        if (!tenantContextEnabled()) await tx.$queryRaw`LOCK TABLE "Workspace" IN SHARE MODE`;
+        const currentScope = await getContentOwnershipScope(session.workspaceId, tx);
+        await tx.$queryRaw`SELECT id FROM "TrustedLogo" WHERE id=${logoId} FOR UPDATE`;
+        const current = await tx.trustedLogo.findFirst({ where: { id: logoId, ...currentScope }, select: { logoStorageKey: true, logoUrl: true } });
+        if (!current) throw new Error("LOGO_UNAVAILABLE");
+        if (current.logoStorageKey !== existing.logoStorageKey || current.logoUrl !== existing.logoUrl) throw new Error("LOGO_IMAGE_CONFLICT");
+        await lockRegisteredBrandImage(tx, { workspaceId: session.workspaceId, kind: "trusted-logos", key: data.logoStorageKey, existingKey: current.logoStorageKey });
+        const changed = await tx.trustedLogo.updateMany({ where: { id: logoId, ...currentScope }, data: { ...data, ...(typeof body.published === "boolean" ? { published: body.published } : {}) } });
+        if (changed.count !== 1) throw new Error("LOGO_UNAVAILABLE");
+        const logo = await tx.trustedLogo.findFirstOrThrow({ where: { id: logoId, ...currentScope }, select: logoSelect });
+        return { logo, storageCleanupPending: data.logoStorageKey !== current.logoStorageKey ? brandImageCleanupPending(current.logoStorageKey) : false };
+      });
       refresh();
-      return NextResponse.json({ success: true, logo, storageCleanupPending });
+      return NextResponse.json({ success: true, ...result });
     }
     return NextResponse.json({ success: false, error: "Unsupported logo action." }, { status: 400 });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Logo access is no longer available." }, { status: 403 });
+    if (error instanceof Error && error.message === "LOGO_UNAVAILABLE") return NextResponse.json({ success: false, error: "The logo was not found." }, { status: 404 });
+    if (error instanceof Error && ["LOGO_REORDER_CONFLICT", "LOGO_IMAGE_CONFLICT", "LOGO_DELETE_CONFLICT"].includes(error.message)) return NextResponse.json({ success: false, error: "The logo changed. Refresh and try again." }, { status: 409 });
     const message = validationMessage(error);
     if (message) return NextResponse.json({ success: false, error: message }, { status: 400 });
     console.error("Unable to update trusted logo:", error);
@@ -118,17 +159,25 @@ export async function DELETE(request: Request) {
   try {
     const session = await getAdminSession();
     if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
-    const scope = await getContentOwnershipScope(session.workspaceId);
     const logoId = new URL(request.url).searchParams.get("logoId")?.trim();
     if (!logoId) return NextResponse.json({ success: false, error: "A logo ID is required." }, { status: 400 });
-    const logo = await prisma.trustedLogo.findFirst({ where: { id: logoId, ...scope }, select: { id: true, logoStorageKey: true } });
-    if (!logo) return NextResponse.json({ success: false, error: "The logo was not found." }, { status: 404 });
-    const deleted = await prisma.trustedLogo.deleteMany({ where: { id: logo.id, ...scope } });
-    if (deleted.count !== 1) return NextResponse.json({ success: false, error: "The logo changed before deletion." }, { status: 409 });
-    const storageCleanupPending = brandImageCleanupPending(logo.logoStorageKey);
+    const result = await prisma.$transaction(async tx => {
+      await requireLockedWorkspaceEditor(tx, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+      if (!tenantContextEnabled()) await tx.$queryRaw`LOCK TABLE "Workspace" IN SHARE MODE`;
+      const scope = await getContentOwnershipScope(session.workspaceId, tx);
+      await tx.$queryRaw`SELECT id FROM "TrustedLogo" WHERE id=${logoId} FOR UPDATE`;
+      const logo = await tx.trustedLogo.findFirst({ where: { id: logoId, ...scope }, select: { id: true, logoStorageKey: true } });
+      if (!logo) throw new Error("LOGO_UNAVAILABLE");
+      const deleted = await tx.trustedLogo.deleteMany({ where: { id: logo.id, ...scope } });
+      if (deleted.count !== 1) throw new Error("LOGO_DELETE_CONFLICT");
+      return { deletedLogoId: logo.id, storageCleanupPending: brandImageCleanupPending(logo.logoStorageKey) };
+    });
     refresh();
-    return NextResponse.json({ success: true, deletedLogoId: logo.id, storageCleanupPending });
+    return NextResponse.json({ success: true, ...result });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Logo access is no longer available." }, { status: 403 });
+    if (error instanceof Error && error.message === "LOGO_UNAVAILABLE") return NextResponse.json({ success: false, error: "The logo was not found." }, { status: 404 });
+    if (error instanceof Error && ["LOGO_REORDER_CONFLICT", "LOGO_IMAGE_CONFLICT", "LOGO_DELETE_CONFLICT"].includes(error.message)) return NextResponse.json({ success: false, error: "The logo changed. Refresh and try again." }, { status: 409 });
     console.error("Unable to delete trusted logo:", error);
     return NextResponse.json({ success: false, error: "The trusted logo could not be deleted." }, { status: 500 });
   }
