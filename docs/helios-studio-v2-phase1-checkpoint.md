@@ -1,3 +1,20 @@
+# Phase 1 checkpoint through integrated Packet 74
+
+October 7, 2026. PR #381 integrated at `2ae6d76a44c1e11209e269db2a9c342f9a1890ed`; tested candidate `96911445b71e896198d7ac55d2e1e0c6ad5799d4` has the identical tree `346fd17c7fe17bd14104162b6980c40096166e19`. Regression 37627920999 passed 1,788 tests/TypeScript/Chromium. Runtime 37627920882 and independently hash/parse-verified artifact 11485655730 (SHA256 `e54a70d65a2792354e55f7758000396a4e117aa0c9e6435c2ec3c032e876bae0`) retain earlier families and add photo-comparison authority/replacement evidence. Schema/indexes unchanged, synthetic access restored and both Vercel projects suppressed.
+
+## Additional isolated sub-surfaces now closed
+
+- **Trusted-logo route mutations:** create, update, publication, reorder and reference deletion, through Packet 73 PR #380. Its 50 observed races, branch rollback, complete ordering, concurrent deletion/retry, image/legacy retention and foreign-content checks are retained in Packet 74 runtime. Original API ordering semantics remain unchanged.
+- **Photo-comparison page mutation:** initial creation and page/pair replacement, through Packet 74. Twenty observed races qualify current actor, all image positions, page/pair references and revision checks, with concurrent single-winner saves, page/deleted-pair rollback, stale retry and unchanged legacy references.
+
+Previously recorded project-media and testimonial route mutation closures remain credited. These are bounded request/database conclusions. Hosted transport/provider/CDN parity, other route and scheduled writers, lifecycle/support policy and the complete Helios compatibility verdict remain open. Team-member Packet 75 has independent runtime evidence but is pending final regression/integration at preparation. About Packet 76 remains pending qualification.
+
+Phase 1 remains OPEN. No Phase 2 entry, production deployment or migration is authorized.
+
+## Historical Packet 72 checkpoint
+
+The following checkpoint preserves earlier preparation states; this current reconciliation supersedes its pending trusted-logo/photo-comparison entries.
+
 # Phase 1 checkpoint through integrated Packet 72
 
 October 7, 2026. PR #379 integrated at `b13729d379f892f5b6adbe41df6d4cd9f7c185c3`; its tree `683e38d68b2085ecbd58a21934ed4dd341f01b2f` matches tested candidate `a095f14654b4f49c6432ef1bafa820a1c394d6f1`. Exact-head regression 37625062034 passed 1,771 tests/TypeScript/Chromium. Runtime 37625062095 and independently verified artifact 11483783689 (SHA256 `cde87b7712462a3102d9692c4234bf93649edf208ac9070a78676bfe75e91892`) retain all prior families plus testimonial create/update proof. Schema/indexes unchanged, synthetic access restored, both Vercel projects suppressed.

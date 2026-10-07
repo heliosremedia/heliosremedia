@@ -1,0 +1,9 @@
+# Packet 76: About-page commit authority
+
+Three actual-handler failures reproduce stale actor/asset/image authority after inspection. The existing About upsert used an earlier singleton target and image snapshot without a current transaction admission check. The new denial tests fail before the fix; all nine focused/ownership tests pass afterward.
+
+The save now locks current editor/session authority, recalculates the singleton target inside the transaction, locks the candidate content row and compares the image snapshot. Changed record identity or image references return 409. All five image positions revalidate locked registry owner/status; provider inspection remains before the transaction. The upsert and cleanup-pending metadata use current content. Sole-workspace fallback is protected while evaluated. Existing copy, optional images, legacy references, response and object-retention contracts remain unchanged.
+
+Twenty-two observed both-company runtime races cover access/session changes, quarantine of every image position, transferred asset, lost content ownership and changed current image. Foreign image keys are denied. Injected INSERT and UPDATE failures roll back; a valid five-image replacement retains prior objects/registrations; concurrent copy-only saves remain complete serialized writes; exact unchanged legacy images and clearing stay supported. The harness uses plain synthetic content and the strict no-network HeadObject adapter, never real uploads or provider deletion.
+
+All 1,804 local tests, TypeScript and scoped lint pass at preparation. Published-head regression/Chromium, independently downloaded/hash-parsed runtime artifact, schema/index/access postflight and merge-tree equality remain integration gates. Whole Phase 1 and hosted parity remain open. No schema, credentials or production operations. Production ON HOLD.
