@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 6, 2026: Packet 65 media update-asset transaction fencing
+
+Packet 63 PR #370 runtime 37424940686 passed at candidate `2948b6faf366f02c071124669b9362a24ab93193`. Independently downloaded artifact 11394896516 SHA256 `4eeb736298be677bb4778af872ddc516de80e9bd703f5c76bae7219f79c27bf4` verifies twelve observed direct Stream races, concurrent retry single-row persistence, duplicate quarantine denial, failed-insert containment and schema/index/access postflight. Its regression 37424940710 is still completing at preparation. Packet 64 PR #371 candidate `e2c772b5f2176319a78a209afa4fbbbbc2352a3b` passed 1,758 local tests, TypeScript, lint and source preparation; CI 37425489184 / 37425489117 remains pending. Packet 62 remains the latest integrated packet at this preparation.
+
+Packet 65 puts PATCH update-asset current authority, replacement Stream ownership, hero cleanup and media mutation in one transaction. [Scope and qualification](helios-studio-v2-media-update-asset-fencing.md). Actual HTTP tests exercise both-company access and replacement races, foreign IDs, service-move rollback after forced update failure, valid replacements and exact unchanged legacy URL compatibility. Other media actions and hosted parity remain open. No production, schema, credentials or real provider operations. Phase 1 remains open; production ON HOLD.
+
 ## October 6, 2026: Packet 62 qualified; Packet 64 external media creation fencing
 
 Documentation-only Packet 62 PR #369 merged at `d1c3cf7e761221a4bacf0215d83f251b1aad3abf`; candidate `8688166fb1d89289672f39a480fb1e362084e92f` passed regression 37424398649 (1,758 tests, TypeScript and Chromium). Only three documentation files differ from qualified Packet 61; application, workflow and schema remain unchanged. Merge tree matches; both Vercel projects suppressed. Packet 63 PR #370 candidate `2948b6faf366f02c071124669b9362a24ab93193` passed 1,758 local tests, TypeScript, lint and source preparation. Runtime 37424940686 has completed successfully; its artifact review and regression 37424940710 remain pending at preparation.
