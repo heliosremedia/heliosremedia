@@ -1,10 +1,10 @@
 {
-  "status": "active",
-  "runId": "atlas-packet66-media-collection-fencing",
+  "status": "integrated",
+  "runId": "atlas-packet69-testimonial-status-fencing",
   "branch": "codex/v2-testimonial-status-fencing",
   "head": "f873460ba11fa61581eadd9f229f5e2fa9f22810",
   "pr": 376,
-  "scope": "Packet 68 integrated; Packet 69 runtime/artifact verified, regression pending",
+  "scope": "Packets 65–69 independently qualified and integrated into non-production; no unpublished partial packet",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Finish Packet 69 exact-head regression/Chromium and merge if all gates pass; continue from verified roadmap. Production ON HOLD.",
+  "nextAction": "Live-verify integration 9ce9b41d11dcde7ca05f5566f90916b5a2a8e878 and current roadmap. Next bounded Phase 1 candidate: testimonial reorder current-access/current-collection fencing, preserving complete ID/version and legacy ownership contracts. Create/update/attachment/delete and hosted parity remain separate. Production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -1027,9 +1027,9 @@
     "implementationStarted": false,
     "requiredConstraint": "Preserve retry token protocol and provider identity; fail closed on ambiguous legacy attempts before replacing outgoing issuance."
   },
-  "lastVerifiedIntegratedPacket": 68,
-  "lastVerifiedIntegratedPr": 375,
-  "lastVerifiedIntegratedHead": "c38c9263bcab463b3c4ea32c45045346675bbbb3",
+  "lastVerifiedIntegratedPacket": 69,
+  "lastVerifiedIntegratedPr": 376,
+  "lastVerifiedIntegratedHead": "9ce9b41d11dcde7ca05f5566f90916b5a2a8e878",
   "packet47": {
     "base": "a6fd2613ad375531f18c1d1f98d32198b29710f2",
     "ci": "success",
@@ -1674,15 +1674,34 @@
     "typescript": true,
     "scopedLint": true,
     "sourcePreparation": true,
-    "ci": "pending",
+    "ci": "success",
     "runtime": "success",
     "artifact": 11458848702,
     "artifactSha256": "4ac9a4bc325bff0eeff7983d6bb46cc40e8cd916a620cfe423830360a010b5e7",
     "independentlyDownloaded": true,
-    "regression": "pending",
+    "regression": "success",
     "vercelDeploymentsSuppressed": true,
     "schemaColumnsUnchanged": true,
     "schemaIndexesUnchanged": true,
-    "syntheticAccessRestored": true
+    "syntheticAccessRestored": true,
+    "merge": "9ce9b41d11dcde7ca05f5566f90916b5a2a8e878",
+    "regressionTests": 1758,
+    "chromium": true,
+    "mergedTreeMatchesTestedHead": true
+  },
+  "recoveryOctober7": {
+    "packet65ArtifactGateRecovered": true,
+    "partialLocalPacket66Found": false,
+    "rebuiltFromGitHub": true,
+    "integratedPackets": [
+      65,
+      66,
+      67,
+      68,
+      69
+    ],
+    "allCandidateAndMergeTreesMatch": true,
+    "allRuntimeArtifactsIndependentlyHashedAndParsed": true,
+    "productionTouched": false
   }
 }
