@@ -1,10 +1,10 @@
 {
-  "status": "blocked-owner-decision",
-  "runId": "atlas-phase1-support-policy-decision",
-  "branch": "codex/v2-support-access-decision",
-  "head": "9c100116c0bac3f47df69fd2b96ae4d5cdfeecf8",
-  "pr": 384,
-  "scope": "Packets 70–76 fully qualified and integrated. Draft support-consent policy requires owner security/architecture decision; no support access implemented.",
+  "status": "in-progress",
+  "runId": "atlas-packet77-support-diagnostics",
+  "branch": "codex/v2-support-diagnostics-foundation",
+  "head": "c73a3c52841c278c2f1be926d7a9afb2840aac51",
+  "pr": null,
+  "scope": "Approved support diagnostics boundary: implementation and synthetic qualification in progress.",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Owner reviews draft PR #384 consent/scope policy. Keep it unmerged until accepted/amended. Then implement approved bounded non-production support boundary under standing authority. Phase 1 remains open; production ON HOLD.",
+  "nextAction": "Qualify Packet 77 with regression, TypeScript, Chromium, isolated runtime and independent artifact verification before integration.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -1872,10 +1872,12 @@
     "ownerDecision": {
       "pr": 384,
       "head": "9c100116c0bac3f47df69fd2b96ae4d5cdfeecf8",
-      "status": "draft-unmerged-proposal",
+      "status": "approved-policy-merged",
       "reason": "New cross-workspace platform-support authority requires owner consent/access-policy decision; charter leaves issuer, duration and first capability unspecified.",
       "proposal": "Separate current tenant OWNER consents to named operator; maximum 30-minute revocable audited diagnostic-only grant; no self-grant, content browsing, impersonation, writes, exports, credentials or emergency bypass.",
-      "implementationAuthorized": false
+      "implementationAuthorized": true,
+      "approval": "Owner October 7 continue in response to policy approval question; non-production only",
+      "merge": "c73a3c52841c278c2f1be926d7a9afb2840aac51"
     }
   }
 }
