@@ -59,6 +59,7 @@ function fixture() {
     $transaction: async (fn: (tx: unknown) => Promise<void>) => {
       state.beforeWrite();
       const tx = {
+        workspaceAsset: prisma.workspaceAsset,
         workspace: { findMany: async () => state.companies },
         $queryRaw: async () => { state.events.push('lock'); return []; },
         adminUser: { findFirst: async () => ({ id: actor.userId, active: true, workspaceId: 'b', role: 'OWNER', sessionVersion: 7 }) },
@@ -115,7 +116,7 @@ test('featured-film mutation requires local editor access and retains replaced s
   assert.equal(saved.featuredFilmPosterUrl, publicUrl(posterKey));
   assert.equal(Object.keys(saved).length, 6, 'no full settings row returned');
   assert.equal(f.state.headChecks, 2);
-  assert.equal(f.state.events.filter(event => event === 'lock').length, 3);
+  assert.equal(f.state.events.filter(event => event === 'lock').length, 7, 'actor locks plus registry row/absence locks for both attachments');
   // No delete dependency is provided. Any cleanup provider call fails this test.
 });
 
@@ -242,4 +243,11 @@ test('film holds failed readback and post-commit invalidation without returning 
   // These delegates establish response containment, not hosted rollback/concurrency.
   assert.equal(f.state.writes, 1);
  }
+});
+
+for (const position of ['video', 'poster'] as const) test(`featured film rejects ${position} registry changes after inspection`, async () => {
+  const f = fixture();
+  f.state.beforeWrite = () => { f.state.assetStatus = 'QUARANTINED'; };
+  const input = position === 'video' ? { ...body, featuredFilmPosterStorageKey: null, featuredFilmPosterUrl: null } : { ...body, featuredFilmEnabled: false, featuredFilmVideoStorageKey: null, featuredFilmVideoUrl: null };
+  const response = await f.route.PATCH(request(input)); assert.equal(response.status, 400); assert.equal(f.state.writes, 0);
 });
