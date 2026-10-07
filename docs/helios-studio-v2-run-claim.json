@@ -1,10 +1,10 @@
 {
   "status": "active",
-  "runId": "atlas-packet70-testimonial-reorder",
-  "branch": "codex/v2-testimonial-reorder-fencing",
-  "head": "5c129b0be163a12054bae60e44e556f309aef8c4",
-  "pr": 377,
-  "scope": "Packet 70 runtime artifact verified; regression pending; Packet 71 deletion under local validation",
+  "runId": "atlas-packet72-testimonial-write",
+  "branch": "codex/v2-testimonial-write-fencing",
+  "head": "18b348a9975000d5053feacfd6623f1145b96bd7",
+  "pr": null,
+  "scope": "Packet 72 current testimonial create/update authority; local tests complete, preparing publication",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Complete exact-head Packet 70 gates, integrate after tree comparison; qualify Packet 71 and continue remaining Phase 1 scope. Production ON HOLD.",
+  "nextAction": "Publish bounded Packet 72 fix, qualify exact head and independently verify runtime artifact; continue Phase 1. Production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -1027,9 +1027,9 @@
     "implementationStarted": false,
     "requiredConstraint": "Preserve retry token protocol and provider identity; fail closed on ambiguous legacy attempts before replacing outgoing issuance."
   },
-  "lastVerifiedIntegratedPacket": 69,
-  "lastVerifiedIntegratedPr": 376,
-  "lastVerifiedIntegratedHead": "9ce9b41d11dcde7ca05f5566f90916b5a2a8e878",
+  "lastVerifiedIntegratedPacket": 71,
+  "lastVerifiedIntegratedPr": 378,
+  "lastVerifiedIntegratedHead": "18b348a9975000d5053feacfd6623f1145b96bd7",
   "packet47": {
     "base": "a6fd2613ad375531f18c1d1f98d32198b29710f2",
     "ci": "success",
@@ -1724,6 +1724,28 @@
     "schemaColumnsUnchanged": true,
     "schemaIndexesUnchanged": true,
     "syntheticAccessRestored": true,
-    "regression": "pending"
+    "regression": "37622222978 SUCCESS",
+    "integrated": true,
+    "merge": "41ec68eef3b574ae9533863c71dda092572401bc",
+    "mergeTreeMatchesCandidate": true,
+    "productionSuppressed": true,
+    "stagingSuppressed": true
+  },
+  "packet71": {
+    "pr": 378,
+    "candidate": "0e4d42914bbd003960a0c87f804d0a1503ecc7fd",
+    "merge": "18b348a9975000d5053feacfd6623f1145b96bd7",
+    "tree": "5d9717b3f3cb7d20b323c4fe7ec6df86ebd8e750",
+    "mergeTreeMatchesCandidate": true,
+    "regression": "37623011216 SUCCESS",
+    "runtime": "37623011233 SUCCESS",
+    "tests": 1763,
+    "artifact": 11482852724,
+    "sha256": "0089f3c1018eaca7c87c4b7871041845770a688fe1d1b211df09c3fb597186c8",
+    "independentlyDownloadedHashParsed": true,
+    "races": 8,
+    "postflight": true,
+    "productionSuppressed": true,
+    "stagingSuppressed": true
   }
 }
