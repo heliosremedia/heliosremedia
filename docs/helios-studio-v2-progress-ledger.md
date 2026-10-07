@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 7, 2026: Packets 77–78 integrated; Packet 79 settings attachments
+
+Packet 77 PR #385 integrated at `ec3a055ee8cdb16d1da3c0d33f3ea77a9abf5ec0`, with tested tree `f20e313447efc77a0ffa9d88c8d48d2a6792cbe1`. Regression 37635573932 passed 1,816 tests/TypeScript/Chromium; runtime 37635574038 and artifact 11489621406 SHA256 `bdd6b8c801014ee496a26ae2f72ebe13d54cd95ef88ee3806adc76d1f39a69eb` independently verify the approved diagnostic scope. Packet 78 PR #386 integrated at `e9171e698e0fb92b99519d0a5cbcf83de7c7a359`, matching tested tree `35fccfd7ea365d2c45cd67672351ef3dc5550a74`; regression 37636588189 passed 1,818 tests/TypeScript/Chromium. Runtime 37636588265 artifact 11489532629 SHA256 `bc55f7a2627257ca8a8369d72d522998ff514eedc6e300119337f7f0c61eacc7` independently confirms eighteen film races plus inherited support and postflight. Both Vercel projects remain suppressed.
+
+Packet 79 fixes eight reproduced site-settings attachment authority gaps. [Scope and qualification](helios-studio-v2-settings-attachment-fencing.md). All 1,826 local tests, TypeScript and lint pass; published-head runtime/regression/Chromium and independent artifact verification remain pending. The Phase 1 checkpoint credits only qualified support diagnostics and content sub-surfaces; workspace lifecycle, hosted parity and remaining families remain open. Production ON HOLD.
+
 ## October 7, 2026: Packet 77 runtime verified; Packet 78 featured-film attachments
 
 Packet 77 PR #385 candidate `6cb138c6a8b7d240a67154822a464f4ab0ac4821` passed isolated runtime 37635574038. Artifact 11489621406 SHA256 `bdd6b8c801014ee496a26ae2f72ebe13d54cd95ef88ee3806adc76d1f39a69eb` was independently downloaded, hashed and parsed: both-direction consent/audit enforcement, twenty observed revocation races, migration parity, reciprocal concurrent access and schema/access postflight passed. Regression 37635573932 remains pending at preparation; Packet 77 is not yet integrated. No real operator is enrolled.

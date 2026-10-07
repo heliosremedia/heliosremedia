@@ -83,7 +83,7 @@ function fixture() {
   const actor = { userId: 'operator', workspaceId: 'b', sessionVersion: 7, role: 'ADMIN' };
   const state = { session: actor as typeof actor | null, role: 'ADMIN', status: 'ACTIVE', active: true, version: 7,
     tenant: true, companies: [{ id: 'a' }, { id: 'b' }], owner: 'b' as string | null, exists: true,
-    revision: 1000, writes: 0, locks: 0, invalidations: 0, failInvalidation: false, beforeWrite: () => {}, result: {} as Record<string, unknown> };
+    assetRejected: false, revision: 1000, writes: 0, locks: 0, invalidations: 0, failInvalidation: false, beforeWrite: () => {}, result: {} as Record<string, unknown> };
   const row = (): Record<string, unknown> & { id: string; workspaceId: string | null; updatedAt: Date } => ({ id: state.tenant ? 'workspace:b' : 'default', workspaceId: state.owner, updatedAt: new Date(state.revision), ...state.result });
   const matches = (where: Record<string, unknown>): boolean => {
     if (Array.isArray(where.AND)) return where.AND.every(matches);
@@ -122,7 +122,7 @@ function fixture() {
     './workspace-context-core.ts': { tenantContextEnabled: () => state.tenant },
     './workspace-membership-core.ts': load('./workspace-membership-core.ts', {}),
     '@/lib/r2-upload': { getPublicAssetUrl: (key: string) => `https://assets.example/${key}` },
-    '@/lib/workspace-brand-assets': { verifyRegisteredBrandImage: async () => {} },
+    '@/lib/workspace-brand-assets': { verifyRegisteredBrandImage: async () => {}, lockRegisteredBrandImage: async (_tx: unknown, input: { key: string | null }) => { if (input.key && state.assetRejected) throw new Error('INVALID_BRAND_IMAGE'); } },
   };
   const policy = load('./workspace-brand-storage.ts', {});
   modules['@/lib/workspace-brand-storage'] = policy;
@@ -292,4 +292,12 @@ test('actual settings route executes locked authorization and scoped CAS with is
     assert.equal((await f.route.PATCH(request(full))).status, 403);
     assert.deepEqual((await snapshot())[0], initial[0]);
   } finally { await db.close(); }
+});
+
+for (const field of ['brandLogo', 'brandMonogram', 'favicon', 'defaultSocialImage', 'heliosStandardImage', 'primaryConversionImage', 'heroVideo', 'heroPoster']) test(`settings fences ${field} registry authority after inspection`, async () => {
+  const f = fixture(); f.state.beforeWrite = () => { f.state.assetRejected = true; };
+  const hero = field.startsWith('hero'); const kind = hero ? 'site-hero' : ['heliosStandardImage', 'primaryConversionImage'].includes(field) ? 'site-homepage' : 'site-brand';
+  const key = `workspaces/b/${kind}/${hero ? field === 'heroVideo' ? 'video-new.mp4' : 'poster-new.png' : 'new.png'}`;
+  const body = { ...full, [field + 'Url']: `https://assets.example/${key}`, ...(!hero ? { [field + 'StorageKey']: key } : {}) };
+  const response = await f.route.PATCH(request(body)); assert.equal(response.status, 400); assert.equal(f.state.writes, 0);
 });
