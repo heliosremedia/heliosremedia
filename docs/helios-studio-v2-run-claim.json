@@ -1,10 +1,10 @@
 {
   "status": "active",
-  "runId": "atlas-packet72-testimonial-write",
-  "branch": "codex/v2-testimonial-write-fencing",
-  "head": "18b348a9975000d5053feacfd6623f1145b96bd7",
-  "pr": null,
-  "scope": "Packet 72 current testimonial create/update authority; local tests complete, preparing publication",
+  "runId": "atlas-packet74-photo-comparison",
+  "branch": "codex/v2-trusted-logo-fencing",
+  "head": "1bdcf264048368ece739c24578e9d2a2e55f8d74",
+  "pr": 380,
+  "scope": "Packets 72–73 runtime qualified; published-head regressions pending. Packet 74 photo comparison local reproduction and fix.",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Publish bounded Packet 72 fix, qualify exact head and independently verify runtime artifact; continue Phase 1. Production ON HOLD.",
+  "nextAction": "Finish exact-head 72/73 gates and independent artifacts, merge with tree equality, then qualify photo comparison. Production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -1747,5 +1747,30 @@
     "postflight": true,
     "productionSuppressed": true,
     "stagingSuppressed": true
+  },
+  "packet72": {
+    "pr": 379,
+    "candidate": "a095f14654b4f49c6432ef1bafa820a1c394d6f1",
+    "tree": "683e38d68b2085ecbd58a21934ed4dd341f01b2f",
+    "regression": 37625062034,
+    "runtime": 37625062095,
+    "runtimeStatus": "success",
+    "artifact": 11483783689,
+    "sha256": "cde87b7712462a3102d9692c4234bf93649edf208ac9070a78676bfe75e91892",
+    "independentlyDownloadedHashParsed": true,
+    "races": 24,
+    "postflight": true,
+    "firstRuntimeFailure": "Double-encoded rehearsal body; disposable container cleanup confirmed; corrected driver only"
+  },
+  "packet73": {
+    "pr": 380,
+    "candidate": "1bdcf264048368ece739c24578e9d2a2e55f8d74",
+    "tree": "0524487c3ed45b2cd086a1792afa1ecfeb108b78",
+    "regression": 37625708986,
+    "runtime": 37625709017,
+    "runtimeStatus": "success",
+    "localTests": 1784,
+    "artifact": 11484500824,
+    "sha256": "sha256:ca1bfaea4fb1d98584ff4ad8b5a3cb998547a0841cd3d710fab55f9f2b522734"
   }
 }
