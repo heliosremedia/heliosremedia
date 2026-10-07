@@ -4,7 +4,7 @@
   "branch": "codex/v2-media-delete-fencing",
   "head": "6710eca8fc77590069d1875fc94824ec2be1094d",
   "pr": 375,
-  "scope": "Packet 67 integrated; Packet 68 artifact verified, regression pending; Packet 69 testimonial-status implementation",
+  "scope": "Packet 67 integrated; Packet 68 independently verified runtime, regression pending; Packet 69 published under qualification",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Complete Packet 68 exact-head CI and integration; publish/qualify bounded Packet 69. Production ON HOLD.",
+  "nextAction": "Verify exact-head Packet 68 and 69 CI/artifacts and integrate sequentially only when gates pass. Production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -1652,5 +1652,19 @@
     "artifactSha256": "77d8a918ca0caffc4a1f3000e46d7a2a77fb4326b6ee2344bdab856c8bc99da0",
     "independentlyDownloaded": true,
     "regression": "pending"
+  },
+  "packet69": {
+    "head": "f873460ba11fa61581eadd9f229f5e2fa9f22810",
+    "tree": "1af34f4677f5859ad550963c964a960eea54ac9a",
+    "pr": 376,
+    "runs": [
+      37567256593,
+      37567256627
+    ],
+    "localRegressionTests": 1758,
+    "typescript": true,
+    "scopedLint": true,
+    "sourcePreparation": true,
+    "ci": "pending"
   }
 }
