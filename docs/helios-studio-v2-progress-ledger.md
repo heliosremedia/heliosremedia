@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 7, 2026: Packet 71 testimonial deletion fencing
+
+Packet 70 PR #377 candidate `5c129b0be163a12054bae60e44e556f309aef8c4` passed 1,761 local tests, TypeScript, lint and source preparation. Runtime 37622223032 passed; independently downloaded artifact 11482109358 SHA256 `1bfbe0e8fc2221fcb82fdcc8f0acf4d2acfc5372ca172ffb1957bd421e9f5c5c` verifies twelve observed races, partial-write rollback, concurrent single-winner ordering, stale replay and schema/index/access postflight. Regression/Chromium 37622222978 remains pending at preparation. The latest verified integration remains Packet 69 until those gates and independent artifact verification pass.
+
+Packet 71 reproduces and fixes testimonial deletion after editor revocation. [Scope and qualification](helios-studio-v2-testimonial-delete-fencing.md). Current locked access, transaction-owned scope and selected-row locking preserve existing deletion/retained-image contracts. Runtime covers eight observed races, foreign/unowned denial, rollback, concurrent single-winner deletion and inert retries. Qualification is pending at preparation. No real data deletion, schema, credentials or provider operations. Phase 1 remains open; production ON HOLD.
+
 ## October 7, 2026: Packets 68–69 integrated; Packet 70 testimonial reorder fencing
 
 Packet 68 PR #375 merged at `c38c9263bcab463b3c4ea32c45045346675bbbb3`; regression 37566789862 and runtime 37566789884 passed, including 1,758 tests, TypeScript and Chromium. Packet 69 PR #376 merged at `9ce9b41d11dcde7ca05f5566f90916b5a2a8e878`; regression 37567256593 and runtime 37567256627 passed with the same regression count. Artifact 11458848702 SHA256 `4ac9a4bc325bff0eeff7983d6bb46cc40e8cd916a620cfe423830360a010b5e7` was independently downloaded and parsed for eight status races, rollback, foreign/unowned denial and schema/index/access postflight. Both merge trees match tested candidates and both Vercel projects remain suppressed. The live base and exact-head CI were reverified before Packet 70 work.

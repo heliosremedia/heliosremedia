@@ -27,14 +27,15 @@ for (const kind of ["testimonials", "trusted-logos"] as const) {
       aggregate: async () => ({ _max: { displayOrder: 0 } }),
       create: async ({ data }: { data: Record<string, unknown> }) => { created++; return data; },
     };
+    const tx = { testimonial: model, trustedLogo: model, $queryRaw: async () => [] };
     const modules: Record<string, unknown> = {
-      "@/lib/workspace-write-access": {},
-      "@/lib/workspace-context-core": {},
+      "@/lib/workspace-write-access": { requireLockedWorkspaceEditor: async () => {} },
+      "@/lib/workspace-context-core": { tenantContextEnabled: () => true },
       "next/cache": { revalidatePath() {} },
       "next/server": { NextResponse: Response },
       "@/lib/auth/session": { getAdminSession: async () => ({ workspaceId: "company-a", role }) },
       "@/lib/blog-ownership": { getContentOwnershipScope: async (workspaceId: string) => ({ workspaceId }) },
-      "@/lib/prisma": { prisma: { testimonial: model, trustedLogo: model } },
+      "@/lib/prisma": { prisma: { ...tx, $transaction: (fn: (client: typeof tx) => unknown) => fn(tx) } },
       "@/lib/testimonials": { TESTIMONIAL_CHARACTER_LIMIT: 1000 },
       "@/lib/workspace-brand-storage": policy,
       "@/lib/r2-upload": { getPublicAssetUrl: (key: string) => `https://assets.example/${key}` },

@@ -209,17 +209,25 @@ export async function DELETE(request: Request) {
   const session = await getAdminSession();
   if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
   try {
-    const scope = await getContentOwnershipScope(session.workspaceId);
     const testimonialId = new URL(request.url).searchParams.get("testimonialId")?.trim();
     if (!testimonialId) return NextResponse.json({ success: false, error: "A testimonial ID is required." }, { status: 400 });
-    const testimonial = await prisma.testimonial.findFirst({ where: { id: testimonialId, ...scope }, select: { id: true, photoStorageKey: true } });
-    if (!testimonial) return NextResponse.json({ success: false, error: "The testimonial was not found." }, { status: 404 });
-    const deleted = await prisma.testimonial.deleteMany({ where: { id: testimonial.id, ...scope } });
-    if (deleted.count !== 1) return NextResponse.json({ success: false, error: "The testimonial changed before deletion." }, { status: 409 });
-    const storageCleanupPending = brandImageCleanupPending(testimonial.photoStorageKey);
+    const result = await prisma.$transaction(async tx => {
+      await requireLockedWorkspaceEditor(tx, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+      if (!tenantContextEnabled()) await tx.$queryRaw`LOCK TABLE "Workspace" IN SHARE MODE`;
+      const scope = await getContentOwnershipScope(session.workspaceId, tx);
+      await tx.$queryRaw`SELECT id FROM "Testimonial" WHERE id=${testimonialId} FOR UPDATE`;
+      const testimonial = await tx.testimonial.findFirst({ where: { id: testimonialId, ...scope }, select: { id: true, photoStorageKey: true } });
+      if (!testimonial) throw new Error("TESTIMONIAL_UNAVAILABLE");
+      const deleted = await tx.testimonial.deleteMany({ where: { id: testimonial.id, ...scope } });
+      if (deleted.count !== 1) throw new Error("TESTIMONIAL_DELETE_CONFLICT");
+      return { deletedTestimonialId: testimonial.id, storageCleanupPending: brandImageCleanupPending(testimonial.photoStorageKey) };
+    });
     refreshTestimonials();
-    return NextResponse.json({ success: true, deletedTestimonialId: testimonial.id, storageCleanupPending });
+    return NextResponse.json({ success: true, ...result });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Testimonial access is no longer available." }, { status: 403 });
+    if (error instanceof Error && error.message === "TESTIMONIAL_UNAVAILABLE") return NextResponse.json({ success: false, error: "The testimonial was not found." }, { status: 404 });
+    if (error instanceof Error && error.message === "TESTIMONIAL_DELETE_CONFLICT") return NextResponse.json({ success: false, error: "The testimonial changed before deletion." }, { status: 409 });
     console.error("Unable to delete testimonial:", error);
     return NextResponse.json({ success: false, error: "The testimonial could not be deleted." }, { status: 500 });
   }
