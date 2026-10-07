@@ -6,7 +6,7 @@ import { getSiteSettingsWriteTarget } from "@/lib/site-settings-ownership";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyRegisteredBrandImage } from "@/lib/workspace-brand-assets";
+import { lockRegisteredBrandImage, verifyRegisteredBrandImage } from "@/lib/workspace-brand-assets";
 import { getAdminSession } from "@/lib/auth/session";
 import { requireLockedWorkspaceAdministrator } from "@/lib/workspace-write-access";
 import type { Prisma } from "@/app/generated/prisma/client";
@@ -102,10 +102,12 @@ export async function PATCH(request: Request) {
     } : {};
     // Provider verification stays outside the transaction. Fence the exact row
     // used for validation and revalidate current authority at the write boundary.
+    const verifiedImages: Array<Parameters<typeof lockRegisteredBrandImage>[1]> = [];
     const persist = (data: Omit<Prisma.SiteSettingsUncheckedCreateInput, "id" | "workspaceId">, allowCreate = false) => prisma.$transaction(async tx => {
       await requireLockedWorkspaceAdministrator(tx, session);
       const currentTarget = await getSiteSettingsWriteTarget(session.workspaceId, tx);
       if (JSON.stringify(currentTarget) !== JSON.stringify(target)) throw new Error("SETTINGS_CHANGED");
+      for (const image of verifiedImages) await lockRegisteredBrandImage(tx, image);
       if (!existing) {
         if (!allowCreate) throw new Error("SETTINGS_CHANGED");
         return tx.siteSettings.create({ data: { ...currentTarget.createIdentity, ...data } });
@@ -156,14 +158,17 @@ export async function PATCH(request: Request) {
     const primaryConversionImage = resolveBrandImage(session.workspaceId, "site-homepage", { key: primaryConversionImageStorageKey, url: assetUrl(body.primaryConversionImageUrl) }, existing ? { key: existing.primaryConversionImageStorageKey, url: existing.primaryConversionImageUrl } : null, getPublicAssetUrl);
     const heroVideo = resolveSiteHeroUrl(session.workspaceId, "video", assetUrl(body.heroVideoUrl), existing?.heroVideoUrl ?? null, getPublicAssetUrl);
     const heroPoster = resolveSiteHeroUrl(session.workspaceId, "poster", assetUrl(body.heroPosterUrl), existing?.heroPosterUrl ?? (!tenantContextEnabled() ? "/work/featured-estate.jpg" : null), getPublicAssetUrl);
-    await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "site-hero", key: heroVideo.key, existingKey: heroVideo.url === existing?.heroVideoUrl ? heroVideo.key : undefined });
-    await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "site-hero", key: heroPoster.key, existingKey: heroPoster.url === existing?.heroPosterUrl ? heroPoster.key : undefined });
-    await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "site-brand", key: brandLogoStorageKey, existingKey: existing?.brandLogoStorageKey });
-    await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "site-brand", key: brandMonogramStorageKey, existingKey: existing?.brandMonogramStorageKey });
-    await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "site-brand", key: faviconStorageKey, existingKey: existing?.faviconStorageKey });
-    await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "site-brand", key: defaultSocialImageStorageKey, existingKey: existing?.defaultSocialImageStorageKey });
-    await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "site-homepage", key: heliosStandardImageStorageKey, existingKey: existing?.heliosStandardImageStorageKey });
-    await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "site-homepage", key: primaryConversionImageStorageKey, existingKey: existing?.primaryConversionImageStorageKey });
+    verifiedImages.push(
+      { workspaceId: session.workspaceId, kind: "site-hero", key: heroVideo.key, existingKey: heroVideo.url === existing?.heroVideoUrl ? heroVideo.key : undefined },
+      { workspaceId: session.workspaceId, kind: "site-hero", key: heroPoster.key, existingKey: heroPoster.url === existing?.heroPosterUrl ? heroPoster.key : undefined },
+      { workspaceId: session.workspaceId, kind: "site-brand", key: brandLogoStorageKey, existingKey: existing?.brandLogoStorageKey },
+      { workspaceId: session.workspaceId, kind: "site-brand", key: brandMonogramStorageKey, existingKey: existing?.brandMonogramStorageKey },
+      { workspaceId: session.workspaceId, kind: "site-brand", key: faviconStorageKey, existingKey: existing?.faviconStorageKey },
+      { workspaceId: session.workspaceId, kind: "site-brand", key: defaultSocialImageStorageKey, existingKey: existing?.defaultSocialImageStorageKey },
+      { workspaceId: session.workspaceId, kind: "site-homepage", key: heliosStandardImageStorageKey, existingKey: existing?.heliosStandardImageStorageKey },
+      { workspaceId: session.workspaceId, kind: "site-homepage", key: primaryConversionImageStorageKey, existingKey: existing?.primaryConversionImageStorageKey },
+    );
+    for (const image of verifiedImages) await verifyRegisteredBrandImage(image);
     const data = {
       businessName: text(body.businessName, 160, true)!, phoneDisplay: text(body.phoneDisplay, 40, true)!, phoneE164, email,
       bookingUrl: url(body.bookingUrl), bookingMode: bookingMode(body.bookingMode),

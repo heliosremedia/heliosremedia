@@ -1,3 +1,21 @@
+# Phase 1 checkpoint through integrated Packet 78
+
+October 7, 2026. Non-production integration `e9171e698e0fb92b99519d0a5cbcf83de7c7a359` / PR #386 matches Packet 78 candidate `67424571d522b8d7a3786faebdfacae6729f8d0c`, tree `35fccfd7ea365d2c45cd67672351ef3dc5550a74`. Regression 37636588189 passed 1,818 tests, TypeScript and Chromium. Runtime 37636588265 and independently downloaded/hash/parse-verified artifact 11489532629 (SHA256 `bc55f7a2627257ca8a8369d72d522998ff514eedc6e300119337f7f0c61eacc7`) retain prior families and qualify eighteen featured-film races, rollback, revision concurrency and compatibility. Schema/access postflight passed. Vercel deployment suppression remains in force.
+
+## Newly qualified bounded surfaces
+
+- Team-member create/update/reorder/reference-delete and About-page singleton upsert, through Packets 75–76: 42 and 22 observed races, rollback, retained assets and compatibility.
+- Approved platform-support diagnostics, through Packet 77 / PR #385: separate empty-by-default operator registry; current OWNER consent; no self-grants; maximum 30-minute revocable grants; current authority, fixed count projection and fail-closed auditing. Twenty observed races, migration parity, both-tenant negative cases and audit rollback passed. The feature is disabled by default, no real operator is enrolled, and no production migration occurred. General impersonation, emergency access and real enrollment are not included in this approved scope; they are not silently required or authorized by this closure.
+- Featured-film video/poster attachment admission at settings commit, through Packet 78: registry state/owner fenced alongside existing actor/settings/revision checks. Hosted provider delivery remains unqualified.
+
+Site-settings Packet 79 is a candidate, not yet credited. Other content/import/scheduled writers, remaining job/AI/analytics families, cached readers/hosted parity, workspace lifecycle and the final Helios compatibility/second-company isolation verdict remain open. The roadmap explicitly requires workspace lifecycle states; current Workspace has no lifecycle state or enforced transition policy. That remains distinct from membership revocation and support grants.
+
+Phase 1 remains OPEN. No Phase 2 entry. Production ON HOLD.
+
+## Historical Packet 74 checkpoint
+
+The following retains earlier preparation states; the current reconciliation above supersedes its pending Packet 75–76/support entries.
+
 # Phase 1 checkpoint through integrated Packet 74
 
 October 7, 2026. PR #381 integrated at `2ae6d76a44c1e11209e269db2a9c342f9a1890ed`; tested candidate `96911445b71e896198d7ac55d2e1e0c6ad5799d4` has the identical tree `346fd17c7fe17bd14104162b6980c40096166e19`. Regression 37627920999 passed 1,788 tests/TypeScript/Chromium. Runtime 37627920882 and independently hash/parse-verified artifact 11485655730 (SHA256 `e54a70d65a2792354e55f7758000396a4e117aa0c9e6435c2ec3c032e876bae0`) retain earlier families and add photo-comparison authority/replacement evidence. Schema/indexes unchanged, synthetic access restored and both Vercel projects suppressed.
