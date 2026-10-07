@@ -1,10 +1,10 @@
 {
-  "status": "integrated",
-  "runId": "atlas-packet69-testimonial-status-fencing",
-  "branch": "codex/v2-testimonial-status-fencing",
-  "head": "f873460ba11fa61581eadd9f229f5e2fa9f22810",
-  "pr": 376,
-  "scope": "Packets 65–69 independently qualified and integrated into non-production; no unpublished partial packet",
+  "status": "active",
+  "runId": "atlas-packet70-testimonial-reorder",
+  "branch": "codex/v2-testimonial-reorder-fencing",
+  "head": "5c129b0be163a12054bae60e44e556f309aef8c4",
+  "pr": 377,
+  "scope": "Packet 70 runtime artifact verified; regression pending; Packet 71 deletion under local validation",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Live-verify integration 9ce9b41d11dcde7ca05f5566f90916b5a2a8e878 and current roadmap. Next bounded Phase 1 candidate: testimonial reorder current-access/current-collection fencing, preserving complete ID/version and legacy ownership contracts. Create/update/attachment/delete and hosted parity remain separate. Production ON HOLD.",
+  "nextAction": "Complete exact-head Packet 70 gates, integrate after tree comparison; qualify Packet 71 and continue remaining Phase 1 scope. Production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -1703,5 +1703,27 @@
     "allCandidateAndMergeTreesMatch": true,
     "allRuntimeArtifactsIndependentlyHashedAndParsed": true,
     "productionTouched": false
+  },
+  "packet70": {
+    "head": "5c129b0be163a12054bae60e44e556f309aef8c4",
+    "tree": "893f2ad503d763106b4e2b4766c2a29782c9ad6e",
+    "pr": 377,
+    "runs": [
+      37622222978,
+      37622223032
+    ],
+    "localRegressionTests": 1761,
+    "typescript": true,
+    "scopedLint": true,
+    "sourcePreparation": true,
+    "reproductionsFailedOnBase": 2,
+    "runtime": "success",
+    "artifact": 11482109358,
+    "artifactSha256": "1bfbe0e8fc2221fcb82fdcc8f0acf4d2acfc5372ca172ffb1957bd421e9f5c5c",
+    "independentlyDownloaded": true,
+    "schemaColumnsUnchanged": true,
+    "schemaIndexesUnchanged": true,
+    "syntheticAccessRestored": true,
+    "regression": "pending"
   }
 }
