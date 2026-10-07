@@ -1388,34 +1388,27 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
         );
       }
 
-      const media = await prisma.media.findFirst({
-        where: {
-          id: mediaId,
-          projectId,
-        },
-        select: {
-          id: true,
-          sourceType: true,
-          storageKey: true,
-          mediaCategory: true,
-          serviceId: true,
-          displayOrder: true,
-        },
-      });
-
-      if (!media || media.sourceType !== "UPLOADED_IMAGE" || !media.storageKey) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Only uploaded images can be used as the project hero.",
+      const media = await prisma.$transaction(async (transaction) => {
+        await requireLockedWorkspaceEditor(transaction, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+        await transaction.$queryRaw`SELECT id FROM "Project" WHERE id=${projectId} AND "workspaceId"=${session.workspaceId} FOR UPDATE`;
+        if (!await transaction.project.findFirst({ where: { id: projectId, workspaceId: session.workspaceId }, select: { id: true } })) throw new Error("MEDIA_PROJECT_UNAVAILABLE");
+        await transaction.$queryRaw`SELECT id FROM "Media" WHERE "projectId"=${projectId} ORDER BY id FOR UPDATE`;
+        const media = await transaction.media.findFirst({
+          where: {
+            id: mediaId,
+            projectId,
           },
-          {
-            status: 404,
+          select: {
+            id: true,
+            sourceType: true,
+            storageKey: true,
+            mediaCategory: true,
+            serviceId: true,
+            displayOrder: true,
           },
-        );
-      }
+        });
 
-      await prisma.$transaction(async (transaction) => {
+        if (!media || media.sourceType !== "UPLOADED_IMAGE" || !media.storageKey) throw new Error("MEDIA_HERO_UNAVAILABLE");
         const collectionMedia = await transaction.media.findMany({
           where: { projectId, serviceId: media.serviceId },
           orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
@@ -1453,6 +1446,7 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
             data: { heroMediaId: media.id },
           });
         }
+        return media;
       });
 
       revalidatePath("/services");
@@ -1468,34 +1462,28 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
     }
 
     if (action === "set-social-image") {
-      const ownedProject = await prisma.project.findFirst({
-        where: { id: projectId, workspaceId: session.workspaceId },
-        select: { id: true },
-      });
-      if (!ownedProject) {
-        return NextResponse.json({ success: false, error: "Project not found." }, { status: 404 });
-      }
       const mediaId = typeof body.mediaId === "string" ? body.mediaId.trim() : "";
-      if (!mediaId) {
-        await prisma.project.update({ where: { id: projectId }, data: { socialImageMediaId: null } });
-        revalidatePath("/portfolio");
-        revalidatePath("/portfolio/[slug]", "page");
-        return NextResponse.json({ success: true, socialImageMediaId: null });
-      }
-      const media = await prisma.media.findFirst({
-        where: {
-          id: mediaId, projectId, sourceType: "UPLOADED_IMAGE", storageKey: { not: null },
-          visibility: "VISIBLE", mimeType: { in: ["image/jpeg", "image/png", "image/webp"] },
-        },
-        select: { id: true },
+      const socialImageMediaId = await prisma.$transaction(async (transaction) => {
+        await requireLockedWorkspaceEditor(transaction, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+        await transaction.$queryRaw`SELECT id FROM "Project" WHERE id=${projectId} AND "workspaceId"=${session.workspaceId} FOR UPDATE`;
+        if (!await transaction.project.findFirst({ where: { id: projectId, workspaceId: session.workspaceId }, select: { id: true } })) throw new Error("MEDIA_PROJECT_UNAVAILABLE");
+        if (mediaId) {
+          await transaction.$queryRaw`SELECT id FROM "Media" WHERE id=${mediaId} AND "projectId"=${projectId} FOR UPDATE`;
+          const media = await transaction.media.findFirst({
+            where: {
+              id: mediaId, projectId, sourceType: "UPLOADED_IMAGE", storageKey: { not: null },
+              visibility: "VISIBLE", mimeType: { in: ["image/jpeg", "image/png", "image/webp"] },
+            },
+            select: { id: true },
+          });
+          if (!media) throw new Error("MEDIA_SOCIAL_IMAGE_UNAVAILABLE");
+        }
+        await transaction.project.update({ where: { id: projectId }, data: { socialImageMediaId: mediaId || null } });
+        return mediaId || null;
       });
-      if (!media) {
-        return NextResponse.json({ success: false, error: "Choose a visible JPEG, PNG, or WebP project image." }, { status: 400 });
-      }
-      await prisma.project.update({ where: { id: projectId }, data: { socialImageMediaId: media.id } });
       revalidatePath("/portfolio");
       revalidatePath("/portfolio/[slug]", "page");
-      return NextResponse.json({ success: true, socialImageMediaId: media.id });
+      return NextResponse.json({ success: true, socialImageMediaId });
     }
 
     return NextResponse.json(
@@ -1508,6 +1496,8 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
       },
     );
   } catch (error) {
+    if (error instanceof Error && error.message === "MEDIA_HERO_UNAVAILABLE") return NextResponse.json({ success: false, error: "Only uploaded images can be used as the project hero." }, { status: 404 });
+    if (error instanceof Error && error.message === "MEDIA_SOCIAL_IMAGE_UNAVAILABLE") return NextResponse.json({ success: false, error: "Choose a visible JPEG, PNG, or WebP project image." }, { status: 400 });
     if (error instanceof Error && error.message === "BULK_MEDIA_NOT_FOUND") return NextResponse.json({ success: false, error: "The selected assets were not found." }, { status: 404 });
     if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Media access is no longer available." }, { status: 403 });
     if (error instanceof Error && error.message === "MEDIA_PROJECT_UNAVAILABLE") return NextResponse.json({ success: false, error: "Project not found." }, { status: 404 });
