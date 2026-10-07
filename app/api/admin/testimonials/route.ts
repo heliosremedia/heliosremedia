@@ -1,3 +1,5 @@
+import { requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
+import { tenantContextEnabled } from "@/lib/workspace-context-core";
 import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { resolveBrandImage, brandImageCleanupPending } from "@/lib/workspace-brand-storage";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
@@ -153,9 +155,15 @@ export async function PATCH(request: Request) {
       if (typeof body.published === "boolean") update.published = body.published;
       if (typeof body.featured === "boolean") update.featured = body.featured;
       if (Object.keys(update).length === 0) return NextResponse.json({ success: false, error: "A publishing or featured status is required." }, { status: 400 });
-      const changed = await prisma.testimonial.updateMany({ where: { id: testimonialId, ...scope }, data: update });
-      if (changed.count !== 1) return NextResponse.json({ success: false, error: "The testimonial was not found." }, { status: 404 });
-      const testimonial = await prisma.testimonial.findFirstOrThrow({ where: { id: testimonialId, ...scope }, select: testimonialSelect });
+      const testimonial = await prisma.$transaction(async tx => {
+        await requireLockedWorkspaceEditor(tx, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+        if (!tenantContextEnabled()) await tx.$queryRaw`LOCK TABLE "Workspace" IN SHARE MODE`;
+        const currentScope = await getContentOwnershipScope(session.workspaceId, tx);
+        await tx.$queryRaw`SELECT id FROM "Testimonial" WHERE id=${testimonialId} FOR UPDATE`;
+        const changed = await tx.testimonial.updateMany({ where: { id: testimonialId, ...currentScope }, data: update });
+        if (changed.count !== 1) throw new Error("TESTIMONIAL_UNAVAILABLE");
+        return tx.testimonial.findFirstOrThrow({ where: { id: testimonialId, ...currentScope }, select: testimonialSelect });
+      });
       refreshTestimonials();
       return NextResponse.json({ success: true, testimonial });
     }
@@ -182,6 +190,8 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ success: false, error: "Unsupported testimonial action." }, { status: 400 });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Testimonial access is no longer available." }, { status: 403 });
+    if (error instanceof Error && error.message === "TESTIMONIAL_UNAVAILABLE") return NextResponse.json({ success: false, error: "The testimonial was not found." }, { status: 404 });
     const message = validationResponse(error);
     if (message) return NextResponse.json({ success: false, error: message }, { status: 400 });
     console.error("Unable to update testimonial:", error);
