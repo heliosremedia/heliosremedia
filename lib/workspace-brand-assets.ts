@@ -1,3 +1,4 @@
+import type { Prisma } from "@/app/generated/prisma/client";
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { requireLockedWorkspaceAdministrator, requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
@@ -57,16 +58,16 @@ export async function withBrandUploadAsset<T>(input: {
   }
 }
 
-/** Call after validating the complete submitted image against its scoped record. */
-export async function verifyRegisteredBrandImage(input: {
-  workspaceId: string; kind: RegisteredBrandKind; key: string | null; existingKey?: string | null;
-}) {
+type BrandImageInput = { workspaceId: string; kind: RegisteredBrandKind; key: string | null; existingKey?: string | null };
+type BrandImageReader = Pick<Prisma.TransactionClient, "workspaceAsset" | "workspace">;
+
+async function checkRegisteredBrandImage(input: BrandImageInput, db: BrandImageReader) {
   if (!input.key) return;
   const unchanged = input.existingKey === input.key;
   // Exact legacy references can remain on the same authorized record. A foreign
   // workspace prefix is never accepted even if that record already contains it.
   if (!unchanged || input.key.startsWith("workspaces/")) assertKey(input.workspaceId, input.kind, input.key);
-  const asset = await prisma.workspaceAsset.findUnique({
+  const asset = await db.workspaceAsset.findUnique({
     where: { provider_providerNamespace_providerKey: { provider: "R2", providerNamespace: namespace(), providerKey: input.key } },
     select: { id: true, workspaceId: true, status: true },
   });
@@ -75,10 +76,25 @@ export async function verifyRegisteredBrandImage(input: {
   } else if (!unchanged) {
     const enforced = tenantContextEnabled() || process.env.STUDIO_V2_ASSET_OWNERSHIP_ENABLED?.trim().toLowerCase() === "true";
     if (enforced) throw new Error("INVALID_BRAND_IMAGE");
-    const companies = await prisma.workspace.findMany({ take: 2, select: { id: true } });
+    const companies = await db.workspace.findMany({ take: 2, select: { id: true } });
     if (companies.length !== 1 || companies[0].id !== input.workspaceId) throw new Error("INVALID_BRAND_IMAGE");
   }
-  // Preserve existing images without a provider round trip on unrelated edits.
-  // A known disallowed registry status was checked above, including unchanged IDs.
-  if (!unchanged) await verifyContentImage(input.key);
+}
+
+/** Call after validating the complete submitted image against its scoped record. */
+export async function verifyRegisteredBrandImage(input: BrandImageInput) {
+  await checkRegisteredBrandImage(input, prisma);
+  // Provider inspection stays outside the caller's content transaction.
+  if (input.key && input.existingKey !== input.key) await verifyContentImage(input.key);
+}
+
+/** Recheck registry authority at content commit without another provider request. */
+export async function lockRegisteredBrandImage(tx: Prisma.TransactionClient, input: BrandImageInput) {
+  if (!input.key) return;
+  const providerNamespace = namespace();
+  const locked = await tx.$queryRaw<Array<{ id: string }>>`SELECT id FROM "WorkspaceAsset" WHERE provider='R2' AND "providerNamespace"=${providerNamespace} AND "providerKey"=${input.key} FOR SHARE`;
+  // Protect absence too: an unchanged legacy key must not gain a forbidden
+  // registry owner/status between validation and content commit.
+  if (locked.length === 0) await tx.$queryRaw`LOCK TABLE "Workspace", "WorkspaceAsset" IN SHARE MODE`;
+  await checkRegisteredBrandImage(input, tx);
 }
