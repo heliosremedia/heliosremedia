@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 7, 2026: Packet 65 recovered and integrated; Packet 66 collection mutation fencing
+
+Packet 65 PR #372 merged at `8b5ae436a3e18767e002fd75b0f13af3877fd0b5` after fresh GitHub verification and recovery of the outstanding artifact gate. Candidate `353d3d3d0c6f1d9653fb83b88a5f509423e540b1` passed regression 37426084602 (1,758 tests, TypeScript and Chromium) and runtime 37426084676. Artifact 11394318487 was independently downloaded, SHA256 checked (`c1f846086727c3165f60aa6623fec199d1eae42204eb4d67dd1d20dd42922a64`) and parsed for candidate identity, twelve observed races, hero rollback, replacement/legacy behavior and unchanged schema/index/access postflight. The merged tree matches the tested candidate; both Vercel projects remain suppressed.
+
+Packet 66 is rebuilt from that verified integration, with no interrupted local work reused. It adds current locked authority and stable media locking to reorder and bulk moves, rechecks the bulk destination and returns safe missing-media denial. [Scope and qualification](helios-studio-v2-media-collection-fencing.md) includes fourteen observed races, partial-write rollback, concurrent reorder and both-company bulk success. Qualification is pending at preparation. Explicit hero/social-image and deletion remain separate work. No production, schema, credentials or provider operations. Phase 1 remains open; production ON HOLD.
+
 ## October 6, 2026: Packet 65 media update-asset transaction fencing
 
 Packet 63 PR #370 runtime 37424940686 passed at candidate `2948b6faf366f02c071124669b9362a24ab93193`. Independently downloaded artifact 11394896516 SHA256 `4eeb736298be677bb4778af872ddc516de80e9bd703f5c76bae7219f79c27bf4` verifies twelve observed direct Stream races, concurrent retry single-row persistence, duplicate quarantine denial, failed-insert containment and schema/index/access postflight. Its regression 37424940710 is still completing at preparation. Packet 64 PR #371 candidate `e2c772b5f2176319a78a209afa4fbbbbc2352a3b` passed 1,758 local tests, TypeScript, lint and source preparation; CI 37425489184 / 37425489117 remains pending. Packet 62 remains the latest integrated packet at this preparation.

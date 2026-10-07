@@ -1,3 +1,4 @@
+import { qualifyMediaCollection } from "./media-collection.mjs";
 import { qualifyMediaUpdateAsset } from "./media-update-asset.mjs";
 import { qualifyStreamAttachment } from "./stream-attachment.mjs";
 import { qualifyProjectImageAttachment } from "./project-image-attachment.mjs";
@@ -188,6 +189,7 @@ try {
     const streamAttachment = await qualifyStreamAttachment(origin, driver);
     const externalMediaCreation = await qualifyStreamAttachment(origin, driver, "external");
     const mediaUpdateAsset = await qualifyMediaUpdateAsset(origin, driver);
+    const mediaCollection = await qualifyMediaCollection(origin, driver);
     assert.equal(await driver.schemaFingerprint(), schemaBefore);
     assert.equal(await driver.schemaIndexFingerprint(), indexesBefore);
     assert.equal(await driver.prisma.workspace.count(), 2);
@@ -196,7 +198,7 @@ try {
     await mkdir('release-evidence', { recursive: true });
     await writeFile('release-evidence/request-isolation.json', JSON.stringify({ version: 1, candidate: head, runtime: 'Next build/start with PrismaPg',
       target: 'disposable-local-postgresql', sourceSubstitutions: ['PrismaNeon to PrismaPg', 'offline font variables', 'Social AI fetch to synthetic no-network provider', 'UptimeRobot fetch to synthetic no-network monitor', 'R2 diagnostic import to synthetic no-network provider', 'Stream provisioning fetch to synthetic no-network provider', 'Project media HeadObject to synthetic no-network provider', 'server-only build sentinel removed in Node qualification driver'], result, portfolio, previewFencing,
-      webhook, socialAi, socialAiRollback, socialAiProviderFailure, socialAiRequestIds, consentAdmin, consentSchema, consentAdapters, consentTokens, deliveryConsent, publicConsent, consentDirectory, campaignConsent, newsletterConsent, consentAnalytics, referralPreparation, referralConsent, monitorContainment, brandUploadAdmission, emailUploadAdmission, projectUploadAdmission, seriesCalendar, storageDiagnostic, streamUploadAdmission, projectImageAttachment, streamAttachment, externalMediaCreation, mediaUpdateAsset, schemaColumnsUnchanged: true, schemaIndexesUnchanged: true, syntheticAccessRestored: true, hosted: false, deployable: false }, null, 2) + '\n');
+      webhook, socialAi, socialAiRollback, socialAiProviderFailure, socialAiRequestIds, consentAdmin, consentSchema, consentAdapters, consentTokens, deliveryConsent, publicConsent, consentDirectory, campaignConsent, newsletterConsent, consentAnalytics, referralPreparation, referralConsent, monitorContainment, brandUploadAdmission, emailUploadAdmission, projectUploadAdmission, seriesCalendar, storageDiagnostic, streamUploadAdmission, projectImageAttachment, streamAttachment, externalMediaCreation, mediaUpdateAsset, mediaCollection, schemaColumnsUnchanged: true, schemaIndexesUnchanged: true, syntheticAccessRestored: true, hosted: false, deployable: false }, null, 2) + '\n');
     console.log('PASS actual Next production-mode HTTP: alternating/concurrent tenants, post-write reads, foreign/stale write rejection, membership/session revocation and schema/access postflight');
     console.log('PASS both-direction portfolio published/draft/preview isolation, actual preview creation/revocation, expiry and rejected usage-write containment');
     console.log('PASS actual PostgreSQL lock-observed preview create/revoke: membership revoked after initial session, both tenants reject403 without preview/audit mutation');
