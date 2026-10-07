@@ -1591,6 +1591,9 @@ model CtaPlacement {
 }
 
 model AdminUser {
+  platformSupportOperator PlatformSupportOperator?
+  supportGrantsIssued SupportAccessGrant[] @relation("SupportGrantIssuer")
+  supportGrantsRevoked SupportAccessGrant[] @relation("SupportGrantRevoker")
   id String @id @default(cuid())
 
   email                       String             @unique
@@ -1666,6 +1669,7 @@ model AdminUser {
 }
 
 model Workspace {
+  supportAccessGrants SupportAccessGrant[]
   id   String @id @default(cuid())
   name String
   slug String @unique
@@ -3840,4 +3844,37 @@ model WorkspaceMarketingPreferenceToken {
   createdAt    DateTime @default(now())
 
   @@index([workspaceId, preferenceId, expiresAt])
+}
+
+// Empty by default. No tenant API may enroll platform operators.
+model PlatformSupportOperator {
+  userId String @id
+  user AdminUser @relation(fields: [userId], references: [id], onDelete: Restrict)
+  enabled Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  grants SupportAccessGrant[]
+}
+
+enum SupportAccessScope {
+  DIAGNOSTICS
+}
+
+model SupportAccessGrant {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  operatorId String
+  operator PlatformSupportOperator @relation(fields: [operatorId], references: [userId], onDelete: Restrict)
+  grantedById String
+  grantedBy AdminUser @relation("SupportGrantIssuer", fields: [grantedById], references: [id], onDelete: Restrict)
+  reason String @db.VarChar(600)
+  scope SupportAccessScope
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
+  revokedById String?
+  revokedBy AdminUser? @relation("SupportGrantRevoker", fields: [revokedById], references: [id], onDelete: Restrict)
+  @@index([workspaceId, createdAt])
+  @@index([operatorId, expiresAt])
 }

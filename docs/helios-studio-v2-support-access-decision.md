@@ -1,6 +1,8 @@
 # Phase 1 owner decision: platform support access
 
-Status: **PROPOSED — owner decision required; no access capability or enrollment authorized.**
+Status: **APPROVED for bounded non-production implementation on October 7, 2026. Real operator enrollment and production remain owner gates.**
+
+Jake responded “continue” to the explicit policy approval question. Policy PR #384 was integrated at `c73a3c52841c278c2f1be926d7a9afb2840aac51`; its merge tree matches the reviewed policy candidate. The proposal below records the accepted boundary; it does not authorize production or real enrollment.
 
 This proposal is not a completed packet or a Phase 1 exit report. Production remains ON HOLD. It grants nobody access and changes no application, schema, credentials, provider or deployment configuration.
 

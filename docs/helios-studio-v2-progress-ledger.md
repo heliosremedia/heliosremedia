@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 7, 2026: approved support policy; Packet 77 diagnostics foundation
+
+Packets 75–76 are integrated through PR #383 at `4e34a90829be30f58ecce0567b6c1c56c1d706d7`. Packet 76 regression 37629908372 passed 1,804 tests/TypeScript/Chromium; runtime 37629908370 passed. Artifact 11486141442 SHA256 `02e1349d8faa237b386c0dd36d60ffe2907a891655d788e113e58dfac70c37c0` was independently downloaded, hashed and parsed for 22 About-page races, rollback and schema/access postflight. Merge trees match tested candidates; Vercel deployments remained suppressed. Jake approved the bounded non-production support policy; PR #384 integrated at `c73a3c52841c278c2f1be926d7a9afb2840aac51` with reviewed-tree equality.
+
+Packet 77 implements the [approved consented diagnostics boundary](helios-studio-v2-support-diagnostics.md) with empty operator registry, default-off activation, owner consent, 30-minute maximum grants and transactional auditing. Local and published-head qualification must pass before integration; no pending runtime evidence is credited. Phase 1 remains OPEN. Real operator enrollment remains an owner action. Production ON HOLD.
+
 ## October 7, 2026: Packet 74 integrated; Packet 76 About-page authority
 
 Packet 74 PR #381 integrated at `2ae6d76a44c1e11209e269db2a9c342f9a1890ed`, matching candidate `96911445b71e896198d7ac55d2e1e0c6ad5799d4` tree `346fd17c7fe17bd14104162b6980c40096166e19`. Regression 37627920999 passed 1,788 tests/TypeScript/Chromium; runtime 37627920882 passed. Artifact 11485655730 SHA256 `e54a70d65a2792354e55f7758000396a4e117aa0c9e6435c2ec3c032e876bae0` independently downloaded, hashed and parsed for 20 races, concurrent saves, page/pair rollback, compatibility and schema/index/access postflight. Both Vercel projects suppressed. Packet 75 PR #382 candidate `82dae5f33799714ed50c5859b74cb90bfb14098d` has successful runtime 37628365564; artifact 11485251935 SHA256 `b0cc7ef2861d859b635ef97d6d6ddaaa88801352d1a977bb8d8167f8ee72ce45` independently verified for 42 races and postflight. Regression 37628365659 remains pending at preparation.
