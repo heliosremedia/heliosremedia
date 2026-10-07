@@ -1,10 +1,10 @@
 {
-  "status": "blocked",
-  "runId": "atlas-packet58-stream-upload-admission",
+  "status": "active",
+  "runId": "atlas-packet66-media-collection-fencing",
   "branch": "codex/v2-media-update-asset-fencing",
   "head": "353d3d3d0c6f1d9653fb83b88a5f509423e540b1",
   "pr": 372,
-  "scope": "Packet 65 final qualification blocked by execution workspace outage; production remains ON HOLD",
+  "scope": "Packet 65 recovered and integrated; Packet 66 rebuilt from verified GitHub",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Restore a working execution workspace. Live-verify canonical head and PR #372, fetch clean source from GitHub, reconfirm successful exact-head regression 37426084602 and runtime 37426084676. Independently download/hash/parse artifact 11394318487 before integration. Rebuild Packet 66 from GitHub; discard partial local state and rerun final gates. Do not retry hosted runs or touch production.",
+  "nextAction": "Implement and qualify current access and collection mutation fencing for reorder and bulk category moves; production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -886,19 +886,7 @@
     "independentlyDownloaded": true,
     "mergedTreeMatchesTestedHead": true
   },
-  "environmentBlock": {
-    "executionUnavailable": true,
-    "observedAt": "2026-10-06",
-    "reason": "cannot resolve workspace directory: exec-server transport closed; two subsequent minimal pwd calls hung and were terminated",
-    "githubAvailable": true,
-    "blockedActions": [
-      "independent artifact download/hash/parse",
-      "local final validation",
-      "Packet 65 integration gate",
-      "Packet 66 publication"
-    ],
-    "productionUntouched": true
-  },
+  "environmentBlock": null,
   "packet43": {
     "head": "993eeca104b17023e7fcf4ce26de08c7d15a50e3",
     "tree": "015450bc36e5518905a680a81dfbb6ccfa4d9615",
@@ -1039,9 +1027,9 @@
     "implementationStarted": false,
     "requiredConstraint": "Preserve retry token protocol and provider identity; fail closed on ambiguous legacy attempts before replacing outgoing issuance."
   },
-  "lastVerifiedIntegratedPacket": 64,
-  "lastVerifiedIntegratedPr": 371,
-  "lastVerifiedIntegratedHead": "08ae30348e9befd460ad73845e596091d136e023",
+  "lastVerifiedIntegratedPacket": 65,
+  "lastVerifiedIntegratedPr": 372,
+  "lastVerifiedIntegratedHead": "8b5ae436a3e18767e002fd75b0f13af3877fd0b5",
   "packet47": {
     "base": "a6fd2613ad375531f18c1d1f98d32198b29710f2",
     "ci": "success",
@@ -1591,18 +1579,21 @@
     "runtime": "success",
     "artifact": 11394318487,
     "artifactSha256": "c1f846086727c3165f60aa6623fec199d1eae42204eb4d67dd1d20dd42922a64",
-    "independentlyDownloaded": false,
-    "artifactVerification": "pending: execution workspace transport closed before independent download/hash/parse",
+    "independentlyDownloaded": true,
+    "artifactVerification": "SHA256 and parsed candidate/races/rollback/postflight independently verified October 7",
     "vercelDeploymentsSuppressed": true,
     "regressionTests": 1758,
     "chromium": true,
-    "integration": "blocked: independent artifact verification pending; PR remains draft/unmerged"
+    "integration": "merged",
+    "merge": "8b5ae436a3e18767e002fd75b0f13af3877fd0b5",
+    "mergedTreeMatchesTestedHead": true,
+    "schemaColumnsUnchanged": true,
+    "schemaIndexesUnchanged": true,
+    "syntheticAccessRestored": true
   },
   "packet66": {
-    "status": "unpublished local work; rebuild from verified GitHub before resuming",
-    "base": "353d3d3d0c6f1d9653fb83b88a5f509423e540b1",
-    "scope": "Current editor/project admission and stable media locks for reorder and bulk-update-category; recheck bulk destination service; runtime observed races, partial-write rollback, concurrent reorder and successful bulk movement.",
-    "localValidation": "Initial TypeScript caught an accidental result self-reference in bulk transaction; corrected locally. Final TypeScript/lint/regression results unavailable after execution outage. Do not count this as qualified or publish from interrupted state.",
-    "localPath": "/workspace/scratch/19d7653cdaa1/helios-resume66"
+    "status": "fresh implementation",
+    "base": "8b5ae436a3e18767e002fd75b0f13af3877fd0b5",
+    "scope": "Implement and qualify current access and collection mutation fencing for reorder and bulk category moves; production ON HOLD."
   }
 }
