@@ -1246,6 +1246,11 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
       }
 
       const savedMediaIds = await prisma.$transaction(async (transaction) => {
+        await requireLockedWorkspaceEditor(transaction, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+        await transaction.$queryRaw`SELECT id FROM "Project" WHERE id=${projectId} AND "workspaceId"=${session.workspaceId} FOR UPDATE`;
+        if (!await transaction.project.findFirst({ where: { id: projectId, workspaceId: session.workspaceId }, select: { id: true } })) throw new Error("MEDIA_PROJECT_UNAVAILABLE");
+        await transaction.$queryRaw`SELECT id FROM "Media" WHERE "projectId"=${projectId} ORDER BY id FOR UPDATE`;
+
         const collectionMedia = await transaction.media.findMany({
           where: {
             projectId,
@@ -1315,7 +1320,6 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
       const requestedServiceId = typeof body.serviceId === "string" ? body.serviceId.trim() : "";
       const destinationService = await prisma.service.findFirst({ where: { id: requestedServiceId, workspaceId: session.workspaceId, active: true, archivedAt: null }, select: { id: true, name: true, slug: true } });
       if (!destinationService) return NextResponse.json({ success: false, error: "Select an active destination service." }, { status: 409 });
-      const destinationCategory = mediaCategoryForServiceSlug(destinationService.slug);
 
       if (!isMediaCategory(requestedMediaCategory)) {
         return NextResponse.json({ success: false, error: "Select a valid destination collection." }, { status: 400 });
@@ -1325,6 +1329,15 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
       }
 
       const result = await prisma.$transaction(async (transaction) => {
+        await requireLockedWorkspaceEditor(transaction, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+        await transaction.$queryRaw`SELECT id FROM "Project" WHERE id=${projectId} AND "workspaceId"=${session.workspaceId} FOR UPDATE`;
+        if (!await transaction.project.findFirst({ where: { id: projectId, workspaceId: session.workspaceId }, select: { id: true } })) throw new Error("MEDIA_PROJECT_UNAVAILABLE");
+        await transaction.$queryRaw`SELECT id FROM "Service" WHERE id=${requestedServiceId} AND "workspaceId"=${session.workspaceId} FOR SHARE`;
+        const destinationService = await transaction.service.findFirst({ where: { id: requestedServiceId, workspaceId: session.workspaceId, active: true, archivedAt: null }, select: { id: true, name: true, slug: true } });
+        if (!destinationService) throw new Error("MEDIA_SERVICE_UNAVAILABLE");
+        const destinationCategory = mediaCategoryForServiceSlug(destinationService.slug);
+        await transaction.$queryRaw`SELECT id FROM "Media" WHERE "projectId"=${projectId} ORDER BY id FOR UPDATE`;
+
         const selectedMedia = await transaction.media.findMany({
           where: { projectId, id: { in: mediaIds } },
           select: { id: true, mediaCategory: true, serviceId: true },
@@ -1346,15 +1359,15 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
           data: { mediaCategory: destinationCategory, serviceId: destinationService.id, displayOrder: startingDisplayOrder + index },
         })));
         await transaction.projectService.createMany({ data: [{ projectId, serviceId: destinationService.id }], skipDuplicates: true });
-        return { startingDisplayOrder };
+        return { startingDisplayOrder, destinationService, destinationCategory };
       });
 
       return NextResponse.json({
         success: true,
         mediaIds,
-        mediaCategory: destinationCategory,
-        serviceId: destinationService.id,
-        message: `${mediaIds.length} ${mediaIds.length === 1 ? "asset" : "assets"} moved to ${destinationService.name}`,
+        mediaCategory: result.destinationCategory,
+        serviceId: result.destinationService.id,
+        message: `${mediaIds.length} ${mediaIds.length === 1 ? "asset" : "assets"} moved to ${result.destinationService.name}`,
         startingDisplayOrder: result.startingDisplayOrder,
       });
     }
@@ -1495,6 +1508,7 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
       },
     );
   } catch (error) {
+    if (error instanceof Error && error.message === "BULK_MEDIA_NOT_FOUND") return NextResponse.json({ success: false, error: "The selected assets were not found." }, { status: 404 });
     if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Media access is no longer available." }, { status: 403 });
     if (error instanceof Error && error.message === "MEDIA_PROJECT_UNAVAILABLE") return NextResponse.json({ success: false, error: "Project not found." }, { status: 404 });
     if (error instanceof Error && error.message === "MEDIA_SERVICE_UNAVAILABLE") return NextResponse.json({ success: false, error: "Select an active service destination." }, { status: 409 });
