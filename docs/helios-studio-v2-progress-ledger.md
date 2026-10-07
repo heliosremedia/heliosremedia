@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 7, 2026: Packet 68 media reference deletion fencing
+
+Packet 66 PR #373 merged at `539d7fc6404a98b38ff17312046888c85553c99e` after regression 37566004377 passed 1,758 tests, TypeScript and Chromium, plus the independently verified runtime artifact below. Merge tree matches candidate `69b0c4250b6e0c6d6111a1308e5cc17969badc5c`; both Vercel projects remain suppressed. Packet 67 PR #374 candidate `ba118ddda6d47a733a207d606ac4e8ed58795c95` passed runtime 37566323743. Independently downloaded artifact 11458901755 SHA256 `d3db11e31b9f412d4f4bc4d0e176c5f437fd16b131c39f820b9d1c2ccf6ddb9e` proves twenty-two observed access/media races, rollback, concurrent hero coherence, social set/clear and unchanged schema/index/access postflight. Its regression/Chromium 37566323724 remains pending at preparation.
+
+Packet 68 fences application media reference deletion with current locked editor/session and owned project/media authority. [Scope and qualification](helios-studio-v2-media-delete-fencing.md) includes both-company foreign denial, six observed access races, failed-delete rollback, concurrent deletion, pointer cleanup and retained R2/Stream registry entries. Shared provider objects remain untouched. Qualification is pending at preparation. No production, schema, credentials or provider operations. Phase 1 remains open; production ON HOLD.
+
 ## October 7, 2026: Packet 66 runtime qualified; Packet 67 presentation mutation fencing
 
 Packet 66 PR #373 candidate `69b0c4250b6e0c6d6111a1308e5cc17969badc5c` passed 1,758 local tests, TypeScript, lint and published-source preparation. Runtime 37566004374 passed. Independently downloaded artifact 11457963885 SHA256 `e73d831c5cda4bb22b68732177184107a03e61b81b93e0171e0d7ad3fd064fdc` proves fourteen observed collection races, foreign denial, partial-write rollback, concurrent reorder, bulk movement and unchanged schema/index/access postflight. Regression/Chromium 37566004377 remains in progress at preparation; both Vercel projects are suppressed. Packet 65 remains the latest integrated packet until all Packet 66 gates pass.

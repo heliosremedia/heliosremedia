@@ -1562,47 +1562,55 @@ export async function DELETE(request: Request, { params }: MediaRouteProps) {
       );
     }
 
-    const media = await prisma.media.findFirst({
-      where: {
-        id: mediaId,
-        projectId,
-        project: { workspaceId: session.workspaceId },
-      },
-      select: {
-        id: true,
-        storageKey: true,
-        provider: true,
-        externalId: true,
-      },
-    });
-
-    if (!media) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "The selected asset was not found.",
+    return await prisma.$transaction(async (transaction) => {
+      await requireLockedWorkspaceEditor(transaction, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+      await transaction.$queryRaw`SELECT id FROM "Project" WHERE id=${projectId} AND "workspaceId"=${session.workspaceId} FOR UPDATE`;
+      if (!await transaction.project.findFirst({ where: { id: projectId, workspaceId: session.workspaceId }, select: { id: true } })) throw new Error("MEDIA_PROJECT_UNAVAILABLE");
+      await transaction.$queryRaw`SELECT id FROM "Media" WHERE id=${mediaId} AND "projectId"=${projectId} FOR UPDATE`;
+      const media = await transaction.media.findFirst({
+        where: {
+          id: mediaId,
+          projectId,
+          project: { workspaceId: session.workspaceId },
         },
-        {
-          status: 404,
+        select: {
+          id: true,
+          storageKey: true,
+          provider: true,
+          externalId: true,
         },
-      );
-    }
+      });
 
-    const deleted = await prisma.media.deleteMany({
-      where: { id: media.id, projectId, project: { workspaceId: session.workspaceId } },
-    });
-    if (deleted.count !== 1) return NextResponse.json({ success: false, error: "The selected asset changed before deletion." }, { status: 409 });
+      if (!media) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "The selected asset was not found.",
+          },
+          {
+            status: 404,
+          },
+        );
+      }
 
-    // Database ownership does not prove exclusive ownership of an R2 key or
-    // provider ID. Retain objects until the shared asset registry can verify it.
-    const storageCleanupPending = Boolean(media.storageKey || (media.provider === "CLOUDFLARE_STREAM" && media.externalId));
+      const deleted = await transaction.media.deleteMany({
+        where: { id: media.id, projectId, project: { workspaceId: session.workspaceId } },
+      });
+      if (deleted.count !== 1) return NextResponse.json({ success: false, error: "The selected asset changed before deletion." }, { status: 409 });
 
-    return NextResponse.json({
-      success: true,
-      deletedMediaId: media.id,
-      storageCleanupPending,
+      // Database ownership does not prove exclusive ownership of an R2 key or
+      // provider ID. Retain objects until the shared asset registry can verify it.
+      const storageCleanupPending = Boolean(media.storageKey || (media.provider === "CLOUDFLARE_STREAM" && media.externalId));
+
+      return NextResponse.json({
+        success: true,
+        deletedMediaId: media.id,
+        storageCleanupPending,
+      });
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Media access is no longer available." }, { status: 403 });
+    if (error instanceof Error && error.message === "MEDIA_PROJECT_UNAVAILABLE") return NextResponse.json({ success: false, error: "Project not found." }, { status: 404 });
     console.error("Unable to delete project media:", error);
 
     return NextResponse.json(
