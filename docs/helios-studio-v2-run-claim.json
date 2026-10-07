@@ -1,10 +1,10 @@
 {
-  "status": "active",
-  "runId": "atlas-packet75-team-member",
-  "branch": "codex/v2-photo-comparison-fencing",
-  "head": "f611d9499b1d56e2d674ef3679f331491fce9828",
-  "pr": 381,
-  "scope": "Packet 74 published qualification; next bounded team-member mutation authority investigation",
+  "status": "blocked-owner-decision",
+  "runId": "atlas-phase1-support-policy-decision",
+  "branch": "codex/v2-support-access-decision",
+  "head": "9c100116c0bac3f47df69fd2b96ae4d5cdfeecf8",
+  "pr": 384,
+  "scope": "Packets 70–76 fully qualified and integrated. Draft support-consent policy requires owner security/architecture decision; no support access implemented.",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Qualify Packet 74 exact-head CI/artifact; continue remaining Phase 1 authority gaps. Production ON HOLD.",
+  "nextAction": "Owner reviews draft PR #384 consent/scope policy. Keep it unmerged until accepted/amended. Then implement approved bounded non-production support boundary under standing authority. Phase 1 remains open; production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -1027,9 +1027,9 @@
     "implementationStarted": false,
     "requiredConstraint": "Preserve retry token protocol and provider identity; fail closed on ambiguous legacy attempts before replacing outgoing issuance."
   },
-  "lastVerifiedIntegratedPacket": 73,
-  "lastVerifiedIntegratedPr": 380,
-  "lastVerifiedIntegratedHead": "1c6f569ad1a2ca46fcca8894a33f00188049d7eb",
+  "lastVerifiedIntegratedPacket": 76,
+  "lastVerifiedIntegratedPr": 383,
+  "lastVerifiedIntegratedHead": "4e34a90829be30f58ecce0567b6c1c56c1d706d7",
   "packet47": {
     "base": "a6fd2613ad375531f18c1d1f98d32198b29710f2",
     "ci": "success",
@@ -1790,11 +1790,92 @@
   },
   "packet74": {
     "pr": 381,
-    "candidate": "f611d9499b1d56e2d674ef3679f331491fce9828",
-    "tree": "226f6a3790dd654934bf3eb033c4946c45e528f5",
+    "candidate": "96911445b71e896198d7ac55d2e1e0c6ad5799d4",
+    "tree": "346fd17c7fe17bd14104162b6980c40096166e19",
     "localTests": 1788,
     "targeted": 9,
     "preFixFailures": 3,
-    "status": "published-qualification-pending"
+    "status": "integrated",
+    "merge": "2ae6d76a44c1e11209e269db2a9c342f9a1890ed",
+    "integrated": true,
+    "mergeTreeMatchesCandidate": true,
+    "regression": 37627920999,
+    "regressionStatus": "success",
+    "runtime": 37627920882,
+    "runtimeStatus": "success",
+    "artifact": 11485655730,
+    "sha256": "e54a70d65a2792354e55f7758000396a4e117aa0c9e6435c2ec3c032e876bae0",
+    "independentlyDownloadedHashParsed": true,
+    "races": 20,
+    "postflight": true,
+    "productionSuppressed": true,
+    "stagingSuppressed": true
+  },
+  "packet75": {
+    "pr": 382,
+    "candidate": "82dae5f33799714ed50c5859b74cb90bfb14098d",
+    "tree": "8bb377d6d1b5c334b47b69a57e6f5c4177db13af",
+    "merge": "7475f116cdd31039fdca415f5a768fdf6314be98",
+    "integrated": true,
+    "mergeTreeMatchesCandidate": true,
+    "regression": 37628365659,
+    "regressionStatus": "success",
+    "runtime": 37628365564,
+    "runtimeStatus": "success",
+    "tests": 1800,
+    "artifact": 11485251935,
+    "sha256": "b0cc7ef2861d859b635ef97d6d6ddaaa88801352d1a977bb8d8167f8ee72ce45",
+    "independentlyDownloadedHashParsed": true,
+    "races": 42,
+    "postflight": true,
+    "productionSuppressed": true,
+    "stagingSuppressed": true
+  },
+  "packet76": {
+    "pr": 383,
+    "candidate": "fee7325d36da838798183c33dc10744f03174c87",
+    "tree": "0dbef51761ecd0fb32104a5026c9f90332cc0e70",
+    "merge": "4e34a90829be30f58ecce0567b6c1c56c1d706d7",
+    "integrated": true,
+    "mergeTreeMatchesCandidate": true,
+    "regression": 37629908372,
+    "regressionStatus": "success",
+    "runtime": 37629908370,
+    "runtimeStatus": "success",
+    "tests": 1804,
+    "artifact": 11486141442,
+    "sha256": "02e1349d8faa237b386c0dd36d60ffe2907a891655d788e113e58dfac70c37c0",
+    "independentlyDownloadedHashParsed": true,
+    "races": 22,
+    "postflight": true,
+    "productionSuppressed": true,
+    "stagingSuppressed": true
+  },
+  "phase1ReconciliationOctober7": {
+    "status": "OPEN",
+    "latestEvidenceCandidate": "fee7325d36da838798183c33dc10744f03174c87",
+    "qualifiedIsolatedMutationSubsurfaces": [
+      "enumerated project-media route writes",
+      "testimonial route create/update/status/reorder/reference-delete",
+      "trusted-logo route create/update/publication/reorder/reference-delete",
+      "photo-comparison page create and pair replacement",
+      "team-member route create/update/reorder/reference-delete",
+      "About-page singleton upsert"
+    ],
+    "notClaimed": [
+      "other content/import/scheduled writers",
+      "hosted provider/CDN parity",
+      "full Helios compatibility and second-company isolation verdict",
+      "workspace lifecycle",
+      "platform support/impersonation"
+    ],
+    "ownerDecision": {
+      "pr": 384,
+      "head": "9c100116c0bac3f47df69fd2b96ae4d5cdfeecf8",
+      "status": "draft-unmerged-proposal",
+      "reason": "New cross-workspace platform-support authority requires owner consent/access-policy decision; charter leaves issuer, duration and first capability unspecified.",
+      "proposal": "Separate current tenant OWNER consents to named operator; maximum 30-minute revocable audited diagnostic-only grant; no self-grant, content browsing, impersonation, writes, exports, credentials or emergency bypass.",
+      "implementationAuthorized": false
+    }
   }
 }
