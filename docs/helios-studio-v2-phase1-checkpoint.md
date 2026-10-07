@@ -1,3 +1,19 @@
+# Phase 1 checkpoint through integrated Packet 72
+
+October 7, 2026. PR #379 integrated at `b13729d379f892f5b6adbe41df6d4cd9f7c185c3`; its tree `683e38d68b2085ecbd58a21934ed4dd341f01b2f` matches tested candidate `a095f14654b4f49c6432ef1bafa820a1c394d6f1`. Exact-head regression 37625062034 passed 1,771 tests/TypeScript/Chromium. Runtime 37625062095 and independently verified artifact 11483783689 (SHA256 `cde87b7712462a3102d9692c4234bf93649edf208ac9070a78676bfe75e91892`) retain all prior families plus testimonial create/update proof. Schema/indexes unchanged, synthetic access restored, both Vercel projects suppressed.
+
+## Newly closed isolated sub-surface
+
+**Testimonial route mutation admission and atomicity:** POST create; PATCH update, set-status and reorder; DELETE reference. Packets 69–72 qualify current authority, owned content and attachment registry at commit as applicable; both-company foreign denial and observed races; rollback; response/order/version contracts; image retention, unchanged legacy images and clearing. This closes the named testimonial route writes in the storage/brand map. It does not qualify testimonial import/scheduled-review writers, provider-object delivery, hosted parity or every content family.
+
+The project-media mutation closure from Packet 70 remains credited. Trusted-logo PR #380 has independent runtime evidence but awaits its final regression/merge gates at this checkpoint. Photo-comparison Packet 74 is pending qualification. Shared validators never substitute for caller-specific evidence.
+
+Whole Phase 1 remains OPEN. The remaining matrix below still requires other content writers; job/AI/analytics family coverage and persisted recovery; cached readers and hosted variation; lifecycle/support boundary; and complete Helios compatibility/second-company isolation evidence. No Phase 2 entry or production operation is authorized.
+
+## Historical Packet 69 checkpoint
+
+The following records preserve earlier preparation state; the current integration and testimonial closure above supersede their pending testimonial route entries.
+
 # Phase 1 checkpoint through integrated Packet 69
 
 October 7, 2026. Live integration `9ce9b41d11dcde7ca05f5566f90916b5a2a8e878`, PR #376. Its tree matches candidate `f873460ba11fa61581eadd9f229f5e2fa9f22810`. Exact-head regression 37567256593 passed 1,758 tests, TypeScript and Chromium; runtime 37567256627 passed. Artifact 11458848702 was independently downloaded, SHA256 checked (`4ac9a4bc325bff0eeff7983d6bb46cc40e8cd916a620cfe423830360a010b5e7`) and parsed. Schema columns/indexes unchanged, synthetic access restored, both Vercel projects suppressed. The recovery checkpoint and finalized PRs hold integration evidence; historical preparation-time entries below are not current blockers.
