@@ -242,3 +242,37 @@ test("actual campaign key generator partitions identical filenames by company", 
   assert.notEqual(a, b);
   assert.throws(() => api.createEmailCampaignImageKey('../b', 'image/png'), /INVALID_BRAND_IMAGE/);
 });
+
+test("commit image validation locks current registry authority without provider work, including an absent legacy row", async () => {
+  let asset: { id: string; workspaceId: string; status: string } | null = { id: "asset", workspaceId: "a", status: "READY" };
+  let insertAfterMiss = false;
+  const locks: string[] = [];
+  const tx = {
+    $queryRaw: async (parts: TemplateStringsArray) => {
+      const sql = parts.join("?"); locks.push(sql);
+      if (sql.startsWith("SELECT")) {
+        const result = asset ? [{ id: asset.id }] : [];
+        if (insertAfterMiss) asset = { id: "inserted", workspaceId: "b", status: "READY" };
+        return result;
+      }
+      return [];
+    },
+    workspaceAsset: { findUnique: async () => asset },
+    workspace: { findMany: async () => [{ id: "a" }] },
+  };
+  const api = load<BrandApi>("./workspace-brand-assets.ts", {
+    "server-only": {}, "@/lib/workspace-write-access": {}, "@/lib/r2": r2, "@/lib/workspace-brand-storage": policy,
+    "@/lib/workspace-context-core": { tenantContextEnabled: () => true },
+    "@/lib/content-image-storage": { verifyContentImage: () => { throw new Error("Provider forbidden in transaction"); } },
+    "@/lib/prisma": { prisma: { workspaceAsset: { findUnique: () => { throw new Error("Must use transaction"); } } } },
+  });
+  const input = { workspaceId: "a", kind: "testimonials" as const, key };
+  const locked = tx as unknown as Parameters<BrandApi['lockRegisteredBrandImage']>[0];
+  await api.lockRegisteredBrandImage(locked, input); assert.match(locks.pop()!, /FOR SHARE/);
+  asset.status = "QUARANTINED"; await assert.rejects(api.lockRegisteredBrandImage(locked, input), /INVALID_BRAND_IMAGE/);
+  asset.status = "READY"; asset.workspaceId = "b"; await assert.rejects(api.lockRegisteredBrandImage(locked, input), /INVALID_BRAND_IMAGE/);
+  asset = null; const legacy = { ...input, key: "testimonials/legacy.webp", existingKey: "testimonials/legacy.webp" };
+  await api.lockRegisteredBrandImage(locked, legacy); assert.match(locks.pop()!, /LOCK TABLE "Workspace", "WorkspaceAsset" IN SHARE MODE/);
+  insertAfterMiss = true; await assert.rejects(api.lockRegisteredBrandImage(locked, legacy), /INVALID_BRAND_IMAGE/);
+  assert.match(locks.pop()!, /LOCK TABLE/);
+});

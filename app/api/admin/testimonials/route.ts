@@ -6,7 +6,7 @@ import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
-import { verifyRegisteredBrandImage } from "@/lib/workspace-brand-assets";
+import { verifyRegisteredBrandImage, lockRegisteredBrandImage } from "@/lib/workspace-brand-assets";
 import { prisma } from "@/lib/prisma";
 import { TESTIMONIAL_CHARACTER_LIMIT } from "@/lib/testimonials";
 import { getAdminSession } from "@/lib/auth/session";
@@ -98,18 +98,25 @@ export async function POST(request: Request) {
   const session = await getAdminSession();
   if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
   try {
-    const scope = await getContentOwnershipScope(session.workspaceId);
     const body = (await request.json()) as Record<string, unknown>;
     const data = validateBody(body, session.workspaceId);
     await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "testimonials", key: data.photoStorageKey });
-    const order = await prisma.testimonial.aggregate({ where: { ...scope }, _max: { displayOrder: true } });
-    const testimonial = await prisma.testimonial.create({
-      data: { ...data, workspaceId: session.workspaceId, displayOrder: (order._max.displayOrder ?? -1) + 1, published: body.published === true, featured: body.featured === true },
-      select: testimonialSelect,
+    const testimonial = await prisma.$transaction(async tx => {
+      await requireLockedWorkspaceEditor(tx, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+      if (!tenantContextEnabled()) await tx.$queryRaw`LOCK TABLE "Workspace" IN SHARE MODE`;
+      const scope = await getContentOwnershipScope(session.workspaceId, tx);
+      if ("OR" in scope) await tx.$queryRaw`LOCK TABLE "Testimonial" IN SHARE ROW EXCLUSIVE MODE`;
+      await lockRegisteredBrandImage(tx, { workspaceId: session.workspaceId, kind: "testimonials", key: data.photoStorageKey });
+      const order = await tx.testimonial.aggregate({ where: { ...scope }, _max: { displayOrder: true } });
+      return tx.testimonial.create({
+        data: { ...data, workspaceId: session.workspaceId, displayOrder: (order._max.displayOrder ?? -1) + 1, published: body.published === true, featured: body.featured === true },
+        select: testimonialSelect,
+      });
     });
     refreshTestimonials();
     return NextResponse.json({ success: true, testimonial }, { status: 201 });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Testimonial access is no longer available." }, { status: 403 });
     if (error instanceof Error && error.message === "REORDER_CONFLICT") return NextResponse.json({ success: false, error: "Another administrator changed the testimonial list. Refresh and try again." }, { status: 409 });
     const message = validationResponse(error);
     if (message) return NextResponse.json({ success: false, error: message }, { status: 400 });
@@ -178,23 +185,30 @@ export async function PATCH(request: Request) {
       if (!existing) return NextResponse.json({ success: false, error: "The testimonial was not found." }, { status: 404 });
       const data = validateBody(body, session.workspaceId, existing);
       await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "testimonials", key: data.photoStorageKey, existingKey: existing.photoStorageKey });
-      const changed = await prisma.testimonial.updateMany({
-        where: { id: testimonialId, ...scope },
-        data: {
-          ...data,
-          ...(typeof body.published === "boolean" ? { published: body.published } : {}),
-          ...(typeof body.featured === "boolean" ? { featured: body.featured } : {}),
-        },
+      const result = await prisma.$transaction(async tx => {
+        await requireLockedWorkspaceEditor(tx, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+        if (!tenantContextEnabled()) await tx.$queryRaw`LOCK TABLE "Workspace" IN SHARE MODE`;
+        const currentScope = await getContentOwnershipScope(session.workspaceId, tx);
+        await tx.$queryRaw`SELECT id FROM "Testimonial" WHERE id=${testimonialId} FOR UPDATE`;
+        const current = await tx.testimonial.findFirst({ where: { id: testimonialId, ...currentScope }, select: { photoStorageKey: true, photoUrl: true } });
+        if (!current) throw new Error("TESTIMONIAL_UNAVAILABLE");
+        if (current.photoStorageKey !== existing.photoStorageKey || current.photoUrl !== existing.photoUrl) throw new Error("TESTIMONIAL_IMAGE_CONFLICT");
+        await lockRegisteredBrandImage(tx, { workspaceId: session.workspaceId, kind: "testimonials", key: data.photoStorageKey, existingKey: current.photoStorageKey });
+        const changed = await tx.testimonial.updateMany({
+          where: { id: testimonialId, ...currentScope },
+          data: { ...data, ...(typeof body.published === "boolean" ? { published: body.published } : {}), ...(typeof body.featured === "boolean" ? { featured: body.featured } : {}) },
+        });
+        if (changed.count !== 1) throw new Error("TESTIMONIAL_UNAVAILABLE");
+        const testimonial = await tx.testimonial.findFirstOrThrow({ where: { id: testimonialId, ...currentScope }, select: testimonialSelect });
+        return { testimonial, storageCleanupPending: data.photoStorageKey !== current.photoStorageKey ? brandImageCleanupPending(current.photoStorageKey) : false };
       });
-      if (changed.count !== 1) return NextResponse.json({ success: false, error: "The testimonial was not found." }, { status: 404 });
-      const testimonial = await prisma.testimonial.findFirstOrThrow({ where: { id: testimonialId, ...scope }, select: testimonialSelect });
-      const storageCleanupPending = data.photoStorageKey !== existing.photoStorageKey ? brandImageCleanupPending(existing.photoStorageKey) : false;
       refreshTestimonials();
-      return NextResponse.json({ success: true, testimonial, storageCleanupPending });
+      return NextResponse.json({ success: true, ...result });
     }
 
     return NextResponse.json({ success: false, error: "Unsupported testimonial action." }, { status: 400 });
   } catch (error) {
+    if (error instanceof Error && error.message === "TESTIMONIAL_IMAGE_CONFLICT") return NextResponse.json({ success: false, error: "The testimonial image changed before the update was saved. Refresh and try again." }, { status: 409 });
     if (error instanceof Error && error.message === "REORDER_CONFLICT") return NextResponse.json({ success: false, error: "The testimonial list changed before the order was saved. Refresh and try again." }, { status: 409 });
     if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Testimonial access is no longer available." }, { status: 403 });
     if (error instanceof Error && error.message === "TESTIMONIAL_UNAVAILABLE") return NextResponse.json({ success: false, error: "The testimonial was not found." }, { status: 404 });

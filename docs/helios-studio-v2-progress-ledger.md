@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 7, 2026: Packets 70–71 integrated; Packet 72 testimonial write authority
+
+Packet 70 PR #377 integrated at `41ec68eef3b574ae9533863c71dda092572401bc`, tree `893f2ad503d763106b4e2b4766c2a29782c9ad6e`, matching candidate `5c129b0be163a12054bae60e44e556f309aef8c4`. Regression 37622222978 passed 1,761 tests/TypeScript/Chromium; runtime 37622223032 passed. Artifact 11482109358 SHA256 `1bfbe0e8fc2221fcb82fdcc8f0acf4d2acfc5372ca172ffb1957bd421e9f5c5c` independently verified. Packet 71 PR #378 integrated at `18b348a9975000d5053feacfd6623f1145b96bd7`, tree `5d9717b3f3cb7d20b323c4fe7ec6df86ebd8e750`, matching candidate `0e4d42914bbd003960a0c87f804d0a1503ecc7fd`. Regression 37623011216 passed 1,763 tests/TypeScript/Chromium; runtime 37623011233 passed. Artifact 11482852724 SHA256 `0089f3c1018eaca7c87c4b7871041845770a688fe1d1b211df09c3fb597186c8` independently downloaded, hashed and parsed. Both artifacts confirm observed races, rollback, retention/retry contracts and unchanged schema/indexes/restored synthetic access. Both Vercel projects stayed suppressed.
+
+Packet 72 closes reproduced create/update commit-authority gaps. [Scope and qualification](helios-studio-v2-testimonial-write-fencing.md). Five denial tests failed before the fix; 1,771 local tests, TypeScript and scoped lint pass after it. Published-head regression/Chromium and runtime/artifact qualification remain pending. Provider inspection remains outside the transaction; current image registry/actor authority is checked inside it. No Phase 1 exit, production operations, schema or credential changes.
+
 ## October 7, 2026: Packet 71 testimonial deletion fencing
 
 Packet 70 PR #377 candidate `5c129b0be163a12054bae60e44e556f309aef8c4` passed 1,761 local tests, TypeScript, lint and source preparation. Runtime 37622223032 passed; independently downloaded artifact 11482109358 SHA256 `1bfbe0e8fc2221fcb82fdcc8f0acf4d2acfc5372ca172ffb1957bd421e9f5c5c` verifies twelve observed races, partial-write rollback, concurrent single-winner ordering, stale replay and schema/index/access postflight. Regression/Chromium 37622222978 remains pending at preparation. The latest verified integration remains Packet 69 until those gates and independent artifact verification pass.

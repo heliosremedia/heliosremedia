@@ -39,7 +39,7 @@ for (const kind of ["testimonials", "trusted-logos"] as const) {
       "@/lib/testimonials": { TESTIMONIAL_CHARACTER_LIMIT: 1000 },
       "@/lib/workspace-brand-storage": policy,
       "@/lib/r2-upload": { getPublicAssetUrl: (key: string) => `https://assets.example/${key}` },
-      "@/lib/workspace-brand-assets": { verifyRegisteredBrandImage: async () => { verified++; } },
+      "@/lib/workspace-brand-assets": { lockRegisteredBrandImage: async () => {}, verifyRegisteredBrandImage: async () => { verified++; } },
     };
     runInNewContext(compiled, { exports, require: (name: string) => {
       if (!(name in modules)) throw new Error(`Unexpected module ${name}`);

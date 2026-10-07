@@ -1,3 +1,4 @@
+import { qualifyTestimonialWrite } from "./testimonial-write.mjs";
 import { qualifyTestimonialDelete } from "./testimonial-delete.mjs";
 import { qualifyTestimonialReorder } from "./testimonial-reorder.mjs";
 import { qualifyTestimonialStatus } from "./testimonial-status.mjs";
@@ -118,6 +119,12 @@ async function prepare() {
   assert.equal((imageSource.match(/r2Client.send\(/g) || []).length, 1);
   await cp(join(root, 'scripts/rehearsal/request-isolation/project-image-provider.ts'), join(app, 'lib/packet60-project-image-provider.ts'));
   await writeFile(imagePath, imageSource.replace(imageImport, 'import { r2Config } from "@/lib/r2";\nimport { syntheticImageClient as r2Client } from "@/lib/packet60-project-image-provider";'));
+  const brandImagePath = join(app, 'lib/content-image-storage.ts');
+  const brandImageSource = await readFile(brandImagePath, 'utf8');
+  assert.equal(brandImageSource.split(imageImport).length, 2);
+  assert.equal((brandImageSource.match(/r2Client.send\(/g) || []).length, 2);
+  await cp(join(root, 'scripts/rehearsal/request-isolation/brand-image-provider.ts'), join(app, 'lib/packet72-brand-image-provider.ts'));
+  await writeFile(brandImagePath, brandImageSource.replace(imageImport, 'import { r2Config } from "@/lib/r2";\nimport { syntheticBrandImageClient as r2Client } from "@/lib/packet72-brand-image-provider";'));
   const streamPath = join(app, 'app/api/admin/projects/[projectId]/stream-upload/route.ts');
   const streamSource = await readFile(streamPath, 'utf8');
   const streamAccount = 'const accountId = process.env.CLOUDFLARE_STREAM_ACCOUNT_ID?.trim();';
@@ -200,6 +207,7 @@ try {
     const testimonialStatus = await qualifyTestimonialStatus(origin, driver);
     const testimonialReorder = await qualifyTestimonialReorder(origin, driver);
     const testimonialDelete = await qualifyTestimonialDelete(origin, driver);
+    const testimonialWrite = await qualifyTestimonialWrite(origin, driver);
     assert.equal(await driver.schemaFingerprint(), schemaBefore);
     assert.equal(await driver.schemaIndexFingerprint(), indexesBefore);
     assert.equal(await driver.prisma.workspace.count(), 2);
@@ -207,8 +215,8 @@ try {
     assert.equal(await driver.prisma.adminUser.count({ where: { sessionVersion: 1 } }), 2);
     await mkdir('release-evidence', { recursive: true });
     await writeFile('release-evidence/request-isolation.json', JSON.stringify({ version: 1, candidate: head, runtime: 'Next build/start with PrismaPg',
-      target: 'disposable-local-postgresql', sourceSubstitutions: ['PrismaNeon to PrismaPg', 'offline font variables', 'Social AI fetch to synthetic no-network provider', 'UptimeRobot fetch to synthetic no-network monitor', 'R2 diagnostic import to synthetic no-network provider', 'Stream provisioning fetch to synthetic no-network provider', 'Project media HeadObject to synthetic no-network provider', 'server-only build sentinel removed in Node qualification driver'], result, portfolio, previewFencing,
-      webhook, socialAi, socialAiRollback, socialAiProviderFailure, socialAiRequestIds, consentAdmin, consentSchema, consentAdapters, consentTokens, deliveryConsent, publicConsent, consentDirectory, campaignConsent, newsletterConsent, consentAnalytics, referralPreparation, referralConsent, monitorContainment, brandUploadAdmission, emailUploadAdmission, projectUploadAdmission, seriesCalendar, storageDiagnostic, streamUploadAdmission, projectImageAttachment, streamAttachment, externalMediaCreation, mediaUpdateAsset, mediaCollection, mediaPresentation, mediaDelete, testimonialStatus, testimonialReorder, testimonialDelete, schemaColumnsUnchanged: true, schemaIndexesUnchanged: true, syntheticAccessRestored: true, hosted: false, deployable: false }, null, 2) + '\n');
+      target: 'disposable-local-postgresql', sourceSubstitutions: ['PrismaNeon to PrismaPg', 'offline font variables', 'Social AI fetch to synthetic no-network provider', 'UptimeRobot fetch to synthetic no-network monitor', 'R2 diagnostic import to synthetic no-network provider', 'Stream provisioning fetch to synthetic no-network provider', 'Project media HeadObject to synthetic no-network provider', 'Brand content HeadObject to synthetic no-network provider', 'server-only build sentinel removed in Node qualification driver'], result, portfolio, previewFencing,
+      webhook, socialAi, socialAiRollback, socialAiProviderFailure, socialAiRequestIds, consentAdmin, consentSchema, consentAdapters, consentTokens, deliveryConsent, publicConsent, consentDirectory, campaignConsent, newsletterConsent, consentAnalytics, referralPreparation, referralConsent, monitorContainment, brandUploadAdmission, emailUploadAdmission, projectUploadAdmission, seriesCalendar, storageDiagnostic, streamUploadAdmission, projectImageAttachment, streamAttachment, externalMediaCreation, mediaUpdateAsset, mediaCollection, mediaPresentation, mediaDelete, testimonialStatus, testimonialReorder, testimonialDelete, testimonialWrite, schemaColumnsUnchanged: true, schemaIndexesUnchanged: true, syntheticAccessRestored: true, hosted: false, deployable: false }, null, 2) + '\n');
     console.log('PASS actual Next production-mode HTTP: alternating/concurrent tenants, post-write reads, foreign/stale write rejection, membership/session revocation and schema/access postflight');
     console.log('PASS both-direction portfolio published/draft/preview isolation, actual preview creation/revocation, expiry and rejected usage-write containment');
     console.log('PASS actual PostgreSQL lock-observed preview create/revoke: membership revoked after initial session, both tenants reject403 without preview/audit mutation');
