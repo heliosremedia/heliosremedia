@@ -128,16 +128,21 @@ export async function PATCH(request: Request) {
 
     if (action === "reorder") {
       const ids = Array.isArray(body.testimonialIds) ? body.testimonialIds.filter((id): id is string => typeof id === "string") : [];
-      const current = await prisma.testimonial.findMany({ where: { ...scope }, select: { id: true, rowVersion: true } });
       const versions = body.versions && typeof body.versions === "object" ? body.versions as Record<string, unknown> : {};
-      if (ids.length !== current.length || new Set(ids).size !== ids.length || current.some(({ id }) => !ids.includes(id))) {
-        return NextResponse.json({ success: false, error: "The testimonial list changed before the order was saved. Refresh and try again." }, { status: 409 });
-      }
-      if (current.some((item) => Number(versions[item.id]) !== item.rowVersion)) return NextResponse.json({ success: false, error: "Another administrator changed the testimonial list. Refresh and try again." }, { status: 409 });
       const updated = await prisma.$transaction(async (tx) => {
+        await requireLockedWorkspaceEditor(tx, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+        if (!tenantContextEnabled()) await tx.$queryRaw`LOCK TABLE "Workspace" IN SHARE MODE`;
+        const currentScope = await getContentOwnershipScope(session.workspaceId, tx);
+        const includesLegacy = "OR" in currentScope;
+        // Owned inserts require the locked Workspace FK; legacy null-owner rows do not.
+        if (includesLegacy) await tx.$queryRaw`LOCK TABLE "Testimonial" IN SHARE ROW EXCLUSIVE MODE`;
+        await tx.$queryRaw`SELECT id FROM "Testimonial" WHERE "workspaceId"=${session.workspaceId} OR (${includesLegacy} AND "workspaceId" IS NULL) ORDER BY id FOR UPDATE`;
+        const current = await tx.testimonial.findMany({ where: { ...currentScope }, select: { id: true, rowVersion: true } });
+        if (ids.length !== current.length || new Set(ids).size !== ids.length || current.some(({ id }) => !ids.includes(id))) throw new Error("REORDER_CONFLICT");
+        if (current.some((item) => Number(versions[item.id]) !== item.rowVersion)) throw new Error("REORDER_CONFLICT");
         const results: Array<{ id: string; rowVersion: number }> = [];
         for (const [displayOrder, id] of ids.entries()) {
-          const result = await tx.testimonial.updateMany({ where: { id, ...scope, rowVersion: Number(versions[id]) }, data: { displayOrder: displayOrder * 1000, rowVersion: { increment: 1 } } });
+          const result = await tx.testimonial.updateMany({ where: { id, ...currentScope, rowVersion: Number(versions[id]) }, data: { displayOrder: displayOrder * 1000, rowVersion: { increment: 1 } } });
           if (result.count !== 1) throw new Error("REORDER_CONFLICT");
           results.push({ id, rowVersion: Number(versions[id]) + 1 });
         }
@@ -190,6 +195,7 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ success: false, error: "Unsupported testimonial action." }, { status: 400 });
   } catch (error) {
+    if (error instanceof Error && error.message === "REORDER_CONFLICT") return NextResponse.json({ success: false, error: "The testimonial list changed before the order was saved. Refresh and try again." }, { status: 409 });
     if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Testimonial access is no longer available." }, { status: 403 });
     if (error instanceof Error && error.message === "TESTIMONIAL_UNAVAILABLE") return NextResponse.json({ success: false, error: "The testimonial was not found." }, { status: 404 });
     const message = validationResponse(error);

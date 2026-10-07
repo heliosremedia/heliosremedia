@@ -1,3 +1,30 @@
+# Phase 1 checkpoint through integrated Packet 69
+
+October 7, 2026. Live integration `9ce9b41d11dcde7ca05f5566f90916b5a2a8e878`, PR #376. Its tree matches candidate `f873460ba11fa61581eadd9f229f5e2fa9f22810`. Exact-head regression 37567256593 passed 1,758 tests, TypeScript and Chromium; runtime 37567256627 passed. Artifact 11458848702 was independently downloaded, SHA256 checked (`4ac9a4bc325bff0eeff7983d6bb46cc40e8cd916a620cfe423830360a010b5e7`) and parsed. Schema columns/indexes unchanged, synthetic access restored, both Vercel projects suppressed. The recovery checkpoint and finalized PRs hold integration evidence; historical preparation-time entries below are not current blockers.
+
+## Explicitly closed sub-surface
+
+**Isolated project-media mutation admission and atomicity is qualified for the enumerated route branches:** image, direct Stream and external URL POST; update-asset, reorder, bulk-update-category, set-hero and set-social-image PATCH; and Media-reference DELETE. Packets 61 and 63–68 cover those branches with current actor/project/asset checks as applicable, both-company negative HTTP cases, observed database-wait races, rollback and preserved compatibility contracts. The final Packet 69 runtime retains all these checks. Packet 65's interrupted artifact gate was recovered before integration; no unfinished gate is being credited.
+
+This closes that bounded item from the historical storage map. It does **not** close the entire storage surface: object delivery/CDN behavior, cross-family usage/lifecycle, other attachment writers and hosted parity remain open. Provider objects are retained on reference deletion. Synthetic HTTP/PostgreSQL evidence is not a Helios production compatibility verdict.
+
+## Remaining exit work and next bounded scope
+
+| Surface | Current reconciliation | Still open |
+| --- | --- | --- |
+| Project media mutations | Enumerated branches above qualified in isolated runtime | Hosted transport/delivery parity and complete Helios compatibility |
+| Brand/content writes | Upload admission qualified; testimonial status qualified through Packet 69 | Reorder/create/update/delete and final attachment authority by family; shared upload checks do not qualify callers |
+| Jobs, AI, analytics | Existing family-specific checks in the historical matrix remain credited | Remaining families and persisted overlap/recovery evidence |
+| Cache and public delivery | Alternating-host/read-after-write application proof retained | Remaining readers and hosted cache/CDN variation |
+| Identity, lifecycle, support | Current-session and mutation denial evidence retained | Full lifecycle compatibility and explicit time-limited audited platform support boundary |
+| Whole Phase 1 | Negative evidence across named surfaces has advanced | Complete coverage inventory, Helios compatibility and synthetic second-company isolation from Helios records |
+
+Packet 70 addresses reproduced testimonial reorder admission defects; its new evidence remains pending until its own CI and artifact gates pass. No whole Phase 1 exit or transition into Phase 2 is authorized by this checkpoint. Production remains ON HOLD.
+
+## Historical Packet 62 checkpoint
+
+The following preparation-time matrix is retained for traceability. The reconciliation above supersedes its pending project-media entries.
+
 # Packet 62: Phase 1 evidence checkpoint after storage admission work
 
 October 6, 2026. This replaces the current checkpoint, preserving the [Packet 46 snapshot](helios-studio-v2-phase1-checkpoint-packet46.md). Phase 0 is essentially complete; Phase 1 remains open; Phase 2 has groundwork; Phases 3–7 remain ahead. No completion percentage or phase exit is asserted.
