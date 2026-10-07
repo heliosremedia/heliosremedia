@@ -1,10 +1,10 @@
 {
   "status": "active",
-  "runId": "atlas-packet74-photo-comparison",
-  "branch": "codex/v2-trusted-logo-fencing",
-  "head": "1bdcf264048368ece739c24578e9d2a2e55f8d74",
-  "pr": 380,
-  "scope": "Packets 72–73 runtime qualified; published-head regressions pending. Packet 74 photo comparison local reproduction and fix.",
+  "runId": "atlas-packet75-team-member",
+  "branch": "codex/v2-photo-comparison-fencing",
+  "head": "f611d9499b1d56e2d674ef3679f331491fce9828",
+  "pr": 381,
+  "scope": "Packet 74 published qualification; next bounded team-member mutation authority investigation",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Finish exact-head 72/73 gates and independent artifacts, merge with tree equality, then qualify photo comparison. Production ON HOLD.",
+  "nextAction": "Qualify Packet 74 exact-head CI/artifact; continue remaining Phase 1 authority gaps. Production ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -1027,9 +1027,9 @@
     "implementationStarted": false,
     "requiredConstraint": "Preserve retry token protocol and provider identity; fail closed on ambiguous legacy attempts before replacing outgoing issuance."
   },
-  "lastVerifiedIntegratedPacket": 71,
-  "lastVerifiedIntegratedPr": 378,
-  "lastVerifiedIntegratedHead": "18b348a9975000d5053feacfd6623f1145b96bd7",
+  "lastVerifiedIntegratedPacket": 73,
+  "lastVerifiedIntegratedPr": 380,
+  "lastVerifiedIntegratedHead": "1c6f569ad1a2ca46fcca8894a33f00188049d7eb",
   "packet47": {
     "base": "a6fd2613ad375531f18c1d1f98d32198b29710f2",
     "ci": "success",
@@ -1760,7 +1760,13 @@
     "independentlyDownloadedHashParsed": true,
     "races": 24,
     "postflight": true,
-    "firstRuntimeFailure": "Double-encoded rehearsal body; disposable container cleanup confirmed; corrected driver only"
+    "firstRuntimeFailure": "Double-encoded rehearsal body; disposable container cleanup confirmed; corrected driver only",
+    "integrated": true,
+    "merge": "b13729d379f892f5b6adbe41df6d4cd9f7c185c3",
+    "mergeTreeMatchesCandidate": true,
+    "regressionStatus": "success",
+    "productionSuppressed": true,
+    "stagingSuppressed": true
   },
   "packet73": {
     "pr": 380,
@@ -1771,6 +1777,24 @@
     "runtimeStatus": "success",
     "localTests": 1784,
     "artifact": 11484500824,
-    "sha256": "sha256:ca1bfaea4fb1d98584ff4ad8b5a3cb998547a0841cd3d710fab55f9f2b522734"
+    "sha256": "sha256:ca1bfaea4fb1d98584ff4ad8b5a3cb998547a0841cd3d710fab55f9f2b522734",
+    "integrated": true,
+    "merge": "1c6f569ad1a2ca46fcca8894a33f00188049d7eb",
+    "mergeTreeMatchesCandidate": true,
+    "regressionStatus": "success",
+    "independentlyDownloadedHashParsed": true,
+    "races": 50,
+    "postflight": true,
+    "productionSuppressed": true,
+    "stagingSuppressed": true
+  },
+  "packet74": {
+    "pr": 381,
+    "candidate": "f611d9499b1d56e2d674ef3679f331491fce9828",
+    "tree": "226f6a3790dd654934bf3eb033c4946c45e528f5",
+    "localTests": 1788,
+    "targeted": 9,
+    "preFixFailures": 3,
+    "status": "published-qualification-pending"
   }
 }
