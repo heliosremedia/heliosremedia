@@ -28,6 +28,8 @@ for (const kind of ["testimonials", "trusted-logos"] as const) {
       create: async ({ data }: { data: Record<string, unknown> }) => { created++; return data; },
     };
     const modules: Record<string, unknown> = {
+      "@/lib/workspace-write-access": {},
+      "@/lib/workspace-context-core": {},
       "next/cache": { revalidatePath() {} },
       "next/server": { NextResponse: Response },
       "@/lib/auth/session": { getAdminSession: async () => ({ workspaceId: "company-a", role }) },
