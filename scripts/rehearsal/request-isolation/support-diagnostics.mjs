@@ -93,6 +93,31 @@ export async function qualifySupportDiagnostics(origin, driver) {
           assert.deepEqual(await db.supportAccessGrant.findMany({ orderBy: { id: 'asc' } }), before);
         } finally { await client.query('DROP TRIGGER synthetic_support_audit_failure ON "AuditEvent"; DROP FUNCTION synthetic_support_audit_failure();'); }
       }
+      for (const method of ['POST', 'DELETE']) {
+        let pending;
+        const before = await db.supportAccessGrant.findMany({ orderBy: { id: 'asc' } });
+        try {
+          await db.$transaction(async tx => {
+            await tx.$queryRaw`SELECT id FROM "Workspace" WHERE id=${id} FOR UPDATE`;
+            const [{ pid }] = await tx.$queryRaw`SELECT pg_backend_pid() AS pid`;
+            pending = request(id, '/api/admin/support-grants', method, method === 'POST' ? grantBody(other) : { grantId: grant.id }).then(response => ({ response }), error => ({ error }));
+            const deadline = Date.now() + 8000; let blocked = false;
+            while (Date.now() < deadline) {
+              const rows = await db.$queryRaw`SELECT pid FROM pg_stat_activity WHERE datname=current_database() AND ${pid}=ANY(pg_blocking_pids(pid))`;
+              if (rows.length) { blocked = true; break; } await delay(25);
+            }
+            assert.equal(blocked, true);
+            await tx.workspaceMembership.update({ where: { workspaceId_userId: { workspaceId: id, userId: `u${id}` } }, data: { role: 'ADMIN' } });
+          }, { timeout: 15000 });
+          const outcome = await pending; if (outcome.error) throw outcome.error;
+          assert.equal(outcome.response.status, 403);
+          assert.deepEqual(await db.supportAccessGrant.findMany({ orderBy: { id: 'asc' } }), before);
+          races.push({ tenant: id, change: `consent-${method}-owner-demoted`, databaseWaitObserved: true, status: 403 });
+        } finally {
+          await pending;
+          await db.workspaceMembership.update({ where: { workspaceId_userId: { workspaceId: id, userId: `u${id}` } }, data: { role: 'OWNER' } });
+        }
+      }
       assert.equal((await request(id, '/api/admin/support-grants', 'DELETE', { grantId: grant.id })).status, 200);
       assert.equal((await read(other, grant.id)).status, 403);
       for (const action of ['GRANTED', 'READ', 'REVOKED']) assert.ok(await db.auditEvent.count({ where: { entityId: grant.id, action: `SUPPORT_${action}`, workspaceId: id } }));

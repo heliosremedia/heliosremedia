@@ -37,7 +37,7 @@ async function operator(tx: Prisma.TransactionClient, userId: string) {
 }
 async function audit(tx: Prisma.TransactionClient, actorId: string, workspaceId: string | null, grantId: string | null, outcome: string, identities?: { operatorId: string; grantedById: string }) {
   await tx.auditEvent.create({ data: { actorId, workspaceId, action: `SUPPORT_${outcome}`, entityType: "SupportAccessGrant", entityId: grantId,
-    summary: `Support ${outcome.toLowerCase()}`, metadata: { requestId: randomUUID(), scope: SCOPE, outcome, grantId, ...(identities ?? {}) } } });
+    summary: `Support ${outcome.toLowerCase()}`, metadata: { requestId: randomUUID(), scope: SCOPE, outcome, grantId, ...(identities ? { operatorId: identities.operatorId, grantedById: identities.grantedById } : {}) } } });
 }
 async function deniedAudit(actor: WorkspaceWriteActor, grantId: string | null) {
   // No target discovery or attacker-supplied reason is recorded on denial.
