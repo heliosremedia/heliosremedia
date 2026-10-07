@@ -65,5 +65,3 @@ export { readCampaignUnsubscribeCounts } from "../../../lib/newsletters/unsubscr
 export { lockReferralPreparationSource, lockReferralPreparationClaim, referralPreparationWhere } from "../../../lib/referrals/preparation-claim";
 
 export { createReferralPreparationPreferenceToken } from "../../../lib/referrals/preparation-consent";
-
-export { defaultPhotoComparisonContent } from "../../../lib/photo-comparison";
