@@ -8,7 +8,7 @@ export async function qualifyTestimonialWrite(origin, driver) {
   for (const id of ['a', 'b']) {
     const other = id === 'a' ? 'b' : 'a';
     const request = (method, body, path = '/api/admin/testimonials') => http(origin, `${other}.example.test`, path, {
-      method, headers: { cookie: driver.cookie(id), 'content-type': 'application/json', 'x-workspace-id': other }, body: JSON.stringify({ ...body, workspaceId: other }),
+      method, headers: { cookie: driver.cookie(id), 'content-type': 'application/json', 'x-workspace-id': other }, body: { ...body, workspaceId: other },
     });
     const keys = [];
     for (let n = 0; n < 2; n++) {
