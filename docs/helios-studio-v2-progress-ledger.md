@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 7, 2026: Packet 66 runtime qualified; Packet 67 presentation mutation fencing
+
+Packet 66 PR #373 candidate `69b0c4250b6e0c6d6111a1308e5cc17969badc5c` passed 1,758 local tests, TypeScript, lint and published-source preparation. Runtime 37566004374 passed. Independently downloaded artifact 11457963885 SHA256 `e73d831c5cda4bb22b68732177184107a03e61b81b93e0171e0d7ad3fd064fdc` proves fourteen observed collection races, foreign denial, partial-write rollback, concurrent reorder, bulk movement and unchanged schema/index/access postflight. Regression/Chromium 37566004377 remains in progress at preparation; both Vercel projects are suppressed. Packet 65 remains the latest integrated packet until all Packet 66 gates pass.
+
+Packet 67 applies current locked authority to hero and social-image set/clear actions, keeping selection and project/collection/order writes together. [Scope and qualification](helios-studio-v2-media-presentation-fencing.md) covers twenty-two observed access/media races, failure rollback and coherent concurrent hero selection. Qualification is pending at preparation. Deletion and hosted parity remain open. No production, schema, credentials or provider operations. Phase 1 remains open; production ON HOLD.
+
 ## October 7, 2026: Packet 65 recovered and integrated; Packet 66 collection mutation fencing
 
 Packet 65 PR #372 merged at `8b5ae436a3e18767e002fd75b0f13af3877fd0b5` after fresh GitHub verification and recovery of the outstanding artifact gate. Candidate `353d3d3d0c6f1d9653fb83b88a5f509423e540b1` passed regression 37426084602 (1,758 tests, TypeScript and Chromium) and runtime 37426084676. Artifact 11394318487 was independently downloaded, SHA256 checked (`c1f846086727c3165f60aa6623fec199d1eae42204eb4d67dd1d20dd42922a64`) and parsed for candidate identity, twelve observed races, hero rollback, replacement/legacy behavior and unchanged schema/index/access postflight. The merged tree matches the tested candidate; both Vercel projects remain suppressed.
