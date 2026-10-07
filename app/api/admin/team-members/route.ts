@@ -1,3 +1,5 @@
+import { requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
+import { tenantContextEnabled } from "@/lib/workspace-context-core";
 import { getAdminSession } from "@/lib/auth/session";
 import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { resolveBrandImage, brandImageCleanupPending } from "@/lib/workspace-brand-storage";
@@ -6,7 +8,7 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import type { TeamMemberCategory } from "@/app/generated/prisma/client";
-import { verifyRegisteredBrandImage } from "@/lib/workspace-brand-assets";
+import { verifyRegisteredBrandImage, lockRegisteredBrandImage } from "@/lib/workspace-brand-assets";
 import { prisma } from "@/lib/prisma";
 import { teamMemberCategories, teamMemberSelect } from "@/lib/team-members";
 
@@ -53,15 +55,24 @@ export async function POST(request: Request) {
   try {
     const session = await getAdminSession();
     if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
-    const scope = await getContentOwnershipScope(session.workspaceId);
     const body = (await request.json()) as Record<string, unknown>;
     const validated = data(body, session.workspaceId);
     await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "team", key: validated.portraitStorageKey });
-    const order = await prisma.teamMember.aggregate({ where: scope, _max: { displayOrder: true } });
-    const teamMember = await prisma.teamMember.create({ data: { workspaceId: session.workspaceId, ...validated, displayOrder: (order._max.displayOrder ?? -1) + 1 }, select: teamMemberSelect });
+    const teamMember = await prisma.$transaction(async tx => {
+      await requireLockedWorkspaceEditor(tx, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+      if (!tenantContextEnabled()) await tx.$queryRaw`LOCK TABLE "Workspace" IN SHARE MODE`;
+      const scope = await getContentOwnershipScope(session.workspaceId, tx);
+      if ("OR" in scope) await tx.$queryRaw`LOCK TABLE "TeamMember" IN SHARE ROW EXCLUSIVE MODE`;
+      await lockRegisteredBrandImage(tx, { workspaceId: session.workspaceId, kind: "team", key: validated.portraitStorageKey });
+      const order = await tx.teamMember.aggregate({ where: scope, _max: { displayOrder: true } });
+      return tx.teamMember.create({ data: { workspaceId: session.workspaceId, ...validated, displayOrder: (order._max.displayOrder ?? -1) + 1 }, select: teamMemberSelect });
+    });
     refresh();
     return NextResponse.json({ success: true, teamMember }, { status: 201 });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Team access is no longer available." }, { status: 403 });
+    if (error instanceof Error && error.message === "TEAM_UNAVAILABLE") return NextResponse.json({ success: false, error: "The team member was not found." }, { status: 404 });
+    if (error instanceof Error && ["TEAM_REORDER_CONFLICT", "TEAM_IMAGE_CONFLICT", "TEAM_DELETE_CONFLICT"].includes(error.message)) return NextResponse.json({ success: false, error: "The team member changed. Refresh and try again." }, { status: 409 });
     if (bad(error)) return NextResponse.json({ success: false, error: "Complete the team member fields with valid text and portrait details." }, { status: 400 });
     console.error("Unable to create team member:", error);
     return NextResponse.json({ success: false, error: "The team member could not be created." }, { status: 500 });
@@ -76,9 +87,20 @@ export async function PATCH(request: Request) {
     const body = (await request.json()) as Record<string, unknown>;
     if (body.action === "reorder") {
       const ids = Array.isArray(body.teamMemberIds) ? body.teamMemberIds.filter((id): id is string => typeof id === "string") : [];
-      const current = await prisma.teamMember.findMany({ where: scope, select: { id: true } });
-      if (ids.length !== current.length || new Set(ids).size !== ids.length || current.some(({ id }) => !ids.includes(id))) return NextResponse.json({ success: false, error: "The team list changed. Refresh and try again." }, { status: 409 });
-      await prisma.$transaction(ids.map((id, displayOrder) => prisma.teamMember.update({ where: { id, AND: [scope] }, data: { displayOrder } })));
+      await prisma.$transaction(async tx => {
+        await requireLockedWorkspaceEditor(tx, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+        if (!tenantContextEnabled()) await tx.$queryRaw`LOCK TABLE "Workspace" IN SHARE MODE`;
+        const currentScope = await getContentOwnershipScope(session.workspaceId, tx);
+        const includesLegacy = "OR" in currentScope;
+        if (includesLegacy) await tx.$queryRaw`LOCK TABLE "TeamMember" IN SHARE ROW EXCLUSIVE MODE`;
+        await tx.$queryRaw`SELECT id FROM "TeamMember" WHERE "workspaceId"=${session.workspaceId} OR (${includesLegacy} AND "workspaceId" IS NULL) ORDER BY id FOR UPDATE`;
+        const current = await tx.teamMember.findMany({ where: currentScope, select: { id: true } });
+        if (ids.length !== current.length || new Set(ids).size !== ids.length || current.some(({ id }) => !ids.includes(id))) throw new Error("TEAM_REORDER_CONFLICT");
+        for (const [displayOrder, id] of ids.entries()) {
+          const changed = await tx.teamMember.updateMany({ where: { id, ...currentScope }, data: { displayOrder } });
+          if (changed.count !== 1) throw new Error("TEAM_REORDER_CONFLICT");
+        }
+      });
       refresh(); return NextResponse.json({ success: true, teamMemberIds: ids });
     }
     const teamMemberId = typeof body.teamMemberId === "string" ? body.teamMemberId : "";
@@ -87,11 +109,26 @@ export async function PATCH(request: Request) {
     if (!existing) return NextResponse.json({ success: false, error: "The team member was not found." }, { status: 404 });
     const validated = data(body, session.workspaceId, existing);
     await verifyRegisteredBrandImage({ workspaceId: session.workspaceId, kind: "team", key: validated.portraitStorageKey, existingKey: existing.portraitStorageKey });
-    const teamMember = await prisma.teamMember.update({ where: { id: teamMemberId, AND: [scope] }, data: validated, select: teamMemberSelect });
-    const storageCleanupPending = validated.portraitStorageKey !== existing.portraitStorageKey ? brandImageCleanupPending(existing.portraitStorageKey) : false;
+    const result = await prisma.$transaction(async tx => {
+      await requireLockedWorkspaceEditor(tx, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+      if (!tenantContextEnabled()) await tx.$queryRaw`LOCK TABLE "Workspace" IN SHARE MODE`;
+      const currentScope = await getContentOwnershipScope(session.workspaceId, tx);
+      await tx.$queryRaw`SELECT id FROM "TeamMember" WHERE id=${teamMemberId} FOR UPDATE`;
+      const current = await tx.teamMember.findFirst({ where: { id: teamMemberId, ...currentScope }, select: { portraitStorageKey: true, portraitUrl: true } });
+      if (!current) throw new Error("TEAM_UNAVAILABLE");
+      if (current.portraitStorageKey !== existing.portraitStorageKey || current.portraitUrl !== existing.portraitUrl) throw new Error("TEAM_IMAGE_CONFLICT");
+      await lockRegisteredBrandImage(tx, { workspaceId: session.workspaceId, kind: "team", key: validated.portraitStorageKey, existingKey: current.portraitStorageKey });
+      const changed = await tx.teamMember.updateMany({ where: { id: teamMemberId, ...currentScope }, data: validated });
+      if (changed.count !== 1) throw new Error("TEAM_UNAVAILABLE");
+      const teamMember = await tx.teamMember.findFirstOrThrow({ where: { id: teamMemberId, ...currentScope }, select: teamMemberSelect });
+      return { teamMember, storageCleanupPending: validated.portraitStorageKey !== current.portraitStorageKey ? brandImageCleanupPending(current.portraitStorageKey) : false };
+    });
     refresh();
-    return NextResponse.json({ success: true, teamMember, storageCleanupPending });
+    return NextResponse.json({ success: true, ...result });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Team access is no longer available." }, { status: 403 });
+    if (error instanceof Error && error.message === "TEAM_UNAVAILABLE") return NextResponse.json({ success: false, error: "The team member was not found." }, { status: 404 });
+    if (error instanceof Error && ["TEAM_REORDER_CONFLICT", "TEAM_IMAGE_CONFLICT", "TEAM_DELETE_CONFLICT"].includes(error.message)) return NextResponse.json({ success: false, error: "The team member changed. Refresh and try again." }, { status: 409 });
     if (bad(error)) return NextResponse.json({ success: false, error: "Complete the team member fields with valid text and portrait details." }, { status: 400 });
     console.error("Unable to update team member:", error);
     return NextResponse.json({ success: false, error: "The team member could not be updated." }, { status: 500 });
@@ -102,14 +139,25 @@ export async function DELETE(request: Request) {
   try {
     const session = await getAdminSession();
     if (!session || !["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
-    const scope = await getContentOwnershipScope(session.workspaceId);
     const teamMemberId = new URL(request.url).searchParams.get("teamMemberId")?.trim();
     if (!teamMemberId) return NextResponse.json({ success: false, error: "A team member ID is required." }, { status: 400 });
-    const deleted = await prisma.teamMember.delete({ where: { id: teamMemberId, AND: [scope] }, select: { id: true, portraitStorageKey: true } });
-    const storageCleanupPending = brandImageCleanupPending(deleted.portraitStorageKey);
+    const result = await prisma.$transaction(async tx => {
+      await requireLockedWorkspaceEditor(tx, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+      if (!tenantContextEnabled()) await tx.$queryRaw`LOCK TABLE "Workspace" IN SHARE MODE`;
+      const scope = await getContentOwnershipScope(session.workspaceId, tx);
+      await tx.$queryRaw`SELECT id FROM "TeamMember" WHERE id=${teamMemberId} FOR UPDATE`;
+      const existing = await tx.teamMember.findFirst({ where: { id: teamMemberId, ...scope }, select: { id: true, portraitStorageKey: true } });
+      if (!existing) throw new Error("TEAM_UNAVAILABLE");
+      const deleted = await tx.teamMember.deleteMany({ where: { id: teamMemberId, ...scope } });
+      if (deleted.count !== 1) throw new Error("TEAM_DELETE_CONFLICT");
+      return { deletedTeamMemberId: existing.id, storageCleanupPending: brandImageCleanupPending(existing.portraitStorageKey) };
+    });
     refresh();
-    return NextResponse.json({ success: true, deletedTeamMemberId: deleted.id, storageCleanupPending });
+    return NextResponse.json({ success: true, ...result });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Team access is no longer available." }, { status: 403 });
+    if (error instanceof Error && error.message === "TEAM_UNAVAILABLE") return NextResponse.json({ success: false, error: "The team member was not found." }, { status: 404 });
+    if (error instanceof Error && ["TEAM_REORDER_CONFLICT", "TEAM_IMAGE_CONFLICT", "TEAM_DELETE_CONFLICT"].includes(error.message)) return NextResponse.json({ success: false, error: "The team member changed. Refresh and try again." }, { status: 409 });
     console.error("Unable to delete team member:", error);
     return NextResponse.json({ success: false, error: "The team member could not be deleted." }, { status: 500 });
   }
