@@ -13,7 +13,7 @@ function load<T>(path: string, modules: Record<string, unknown>) {
 }
 
 test("job health reauthorizes before scoped reads and projects bounded operational evidence without credentials", async () => {
-  let authorized = true, checked = false, reads = 0;
+  let authorized = true, checked = false, reads = 0, cutoff: Date | null = null;
   const now = new Date();
   const jobs = Array.from({ length: 51 }, (_, index) => ({
     id: `job-${index}`, editionId: 'edition-a', type: 'GENERATE', status: index === 3 ? 'FAILED' : index === 4 ? 'PENDING' : 'CLAIMED',
@@ -22,14 +22,14 @@ test("job health reauthorizes before scoped reads and projects bounded operation
     edition: { subject: 'Stored edition', cycleKey: 'cycle', status: 'GENERATING', series: { name: 'Series A', status: 'ACTIVE' } },
   }));
   const modules: Record<string, unknown> = {
-    'server-only': {}, '@/lib/blog-ownership': { getContentOwnershipScope: async (id: string) => { assert.equal(id, 'a'); return { workspaceId: 'a' }; } },
+    'server-only': {}, '@/lib/workspace-lifecycle/state': { lifecycleEnabled: () => true }, '@/lib/blog-ownership': { getContentOwnershipScope: async (id: string) => { assert.equal(id, 'a'); return { workspaceId: 'a' }; } },
     '@/lib/workspace-write-access': { requireLockedWorkspaceAdministrator: async (_tx: unknown, actor: { workspaceId: string }) => {
       assert.equal(actor.workspaceId, 'a'); if (!authorized) throw new Error('WORKSPACE_WRITE_FORBIDDEN'); checked = true;
     } },
     '@/lib/prisma': { prisma: { $transaction: async (callback: (tx: unknown) => Promise<unknown>, options: { isolationLevel: string }) => {
       assert.equal(options.isolationLevel, 'RepeatableRead');
       const scope = (where: { edition: { series: { workspaceId: string } } }) => { assert.equal(checked, true); assert.equal(where.edition.series.workspaceId, 'a'); reads++; };
-      return callback({ newsletterJob: {
+      return callback({ workspace: { findUnique: async ({ where }: { where: { id: string } }) => { assert.equal(checked, true); assert.equal(where.id, "a"); return { lastReactivatedAt: cutoff }; } }, newsletterJob: {
         count: async ({ where }: { where: { edition: { series: { workspaceId: string } }; status: string; OR?: unknown[] } }) => { scope(where); if (where.OR) assert.equal(where.OR.length, 2); return 1; },
         findMany: async (query: { where: { edition: { series: { workspaceId: string } } }; take: number; select: Record<string, unknown> }) => {
           scope(query.where); assert.equal(query.take, 51); assert.equal(query.select.claimToken, undefined); assert.equal(query.select.lastErrorMessage, undefined); return jobs;
@@ -37,14 +37,19 @@ test("job health reauthorizes before scoped reads and projects bounded operation
       } });
     } } },
   };
-  const api = load<{ getNewsletterJobHealth: (actor: unknown) => Promise<{ jobs: Array<{ state: string }>; truncated: boolean; automaticRetryAllowed: boolean }> }>('./job-health.ts', modules);
+  const api = load<{ getNewsletterJobHealth: (actor: unknown) => Promise<{ jobs: Array<{ state: string; heldForReactivation: boolean }>; truncated: boolean; automaticRetryAllowed: boolean }> }>('./job-health.ts', modules);
   const result = await api.getNewsletterJobHealth({ workspaceId: 'a', userId: 'admin', sessionVersion: 1 });
   assert.equal(reads, 5); assert.equal(result.jobs.length, 50); assert.equal(result.truncated, true); assert.equal(result.automaticRetryAllowed, false);
   assert.deepEqual(Array.from(result.jobs.slice(0, 5), row => row.state), ['ACTIVE', 'REVIEW', 'REVIEW', 'FAILED', 'PENDING']);
   assert.equal(JSON.stringify(result).includes('secret-token'), false); assert.equal(JSON.stringify(result).includes('private-provider-error'), false);
+  assert.ok(result.jobs.every(job => job.heldForReactivation === false));
+  cutoff = new Date(now.getTime() - 1);
+  assert.ok((await api.getNewsletterJobHealth({ workspaceId: 'a', userId: 'admin', sessionVersion: 1 })).jobs.every(job => job.heldForReactivation === false));
+  cutoff = now;
+  assert.ok((await api.getNewsletterJobHealth({ workspaceId: 'a', userId: 'admin', sessionVersion: 1 })).jobs.every(job => job.heldForReactivation === true));
   authorized = false; checked = false;
   await assert.rejects(api.getNewsletterJobHealth({ workspaceId: 'a', userId: 'admin', sessionVersion: 1 }), /FORBIDDEN/);
-  assert.equal(reads, 5);
+  assert.equal(reads, 15);
 });
 
 test("job health GET takes ownership only from the current administrator and bounds all failures", async () => {
@@ -71,5 +76,11 @@ test("job health client makes only uncached GET requests and rejects malformed s
   for (const patch of [{ observedAt: 'bad' }, { counts: {} }, { counts: { ...valid.counts, failed: -1 } }, { jobs: [null] }, { jobs: [{}] }, { automaticRetryAllowed: true }]) {
     await assert.rejects(api.requestNewsletterJobHealth(undefined, async () => Response.json({ success: true, health: { ...valid, ...patch } })), /unavailable/);
   }
+  const job = { id: 'job', editionId: 'edition', editionLabel: 'Edition', type: 'SEND', state: 'PENDING', dueAt: valid.observedAt, attempts: 0, editionStatus: 'SCHEDULED', seriesStatus: 'ACTIVE' };
+  for (const row of [job, { ...job, heldForReactivation: true }, { ...job, heldForReactivation: false }]) {
+    const snapshot = { ...valid, jobs: [row] };
+    assert.deepEqual(await api.requestNewsletterJobHealth(undefined, async () => Response.json({ success: true, health: snapshot })), snapshot);
+  }
+  await assert.rejects(api.requestNewsletterJobHealth(undefined, async () => Response.json({ success: true, health: { ...valid, jobs: [{ ...job, heldForReactivation: 'true' }] } })), /unavailable/);
   for (const status of [403, 503]) await assert.rejects(api.requestNewsletterJobHealth(undefined, async () => new Response('private detail', { status })), status === 403 ? /Administrator/ : /unavailable/);
 });

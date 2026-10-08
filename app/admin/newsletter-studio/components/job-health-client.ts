@@ -14,6 +14,7 @@ export async function requestNewsletterJobHealth(signal?: AbortSignal, transport
     || !Array.isArray(health.jobs) || health.jobs.length > 50 || health.jobs.some(job => !job || typeof job.id !== "string" || !job.id
       || typeof job.editionId !== "string" || !job.editionId || typeof job.editionLabel !== "string"
       || !["GENERATE", "SEND", "MISSED_APPROVAL", "NOTIFY"].includes(job.type) || !["PENDING", "ACTIVE", "REVIEW", "FAILED"].includes(job.state)
+      || (job.heldForReactivation !== undefined && typeof job.heldForReactivation !== "boolean")
       || !date(job.dueAt) || !integer(job.attempts) || typeof job.editionStatus !== "string" || typeof job.seriesStatus !== "string")) throw new Error(failure);
   return health;
 }

@@ -16,6 +16,11 @@ const bundle = await build({ entryPoints: ['scripts/browser/studio-command-cente
 const css = await postcss([tailwind()]).process(await readFile('app/globals.css', 'utf8'), { from: 'app/globals.css' });
 const files = {
   '/': ['text/html', '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Studio synthetic qualification</title><link rel="stylesheet" href="/style.css"></head><body><div id="root"></div><script src="/fixture.js"></script></body></html>'],
+  '/api/admin/newsletters/jobs/health': ['application/json', JSON.stringify({ success: true, health: {
+    observedAt: '2026-10-08T15:00:00Z', counts: { pending: 1, active: 0, review: 0, failed: 0 }, truncated: false, automaticRetryAllowed: false,
+    jobs: [{ id: 'held-job', editionId: 'held-edition', type: 'SEND', state: 'PENDING', dueAt: '2026-10-07T15:00:00Z', attempts: 0,
+      heldForReactivation: true, editionLabel: 'Held autumn newsletter', editionStatus: 'SCHEDULED', seriesStatus: 'ACTIVE' }],
+  } })],
   '/fixture.js': ['text/javascript', bundle.outputFiles[0].contents],
   '/style.css': ['text/css', css.css],
 };
@@ -55,6 +60,10 @@ try {
     }
     await page.getByRole('button', { name: 'Refresh', exact: true }).click();
     assert.equal(await page.evaluate(() => window.studioRefreshCount), 1);
+    await page.getByRole('button', { name: 'Refresh job status', exact: true }).click();
+    await page.getByText('Held after reactivation.', { exact: true }).waitFor();
+    assert.equal(await page.getByRole('link', { name: 'Open edition review for Held autumn newsletter' }).getAttribute('href'), '/admin/newsletter-studio/editions/held-edition#delivery-review-title');
+    assert.equal(await page.getByRole('button', { name: /retry|resend|publish/i }).count(), 0);
     await page.screenshot({ path: `release-evidence/studio-command-center-${width}.png`, fullPage: true });
     await page.goto(`${origin}/?mode=unavailable`);
     await page.getByText('Attention data is unavailable.', { exact: false }).waitFor();
@@ -65,6 +74,6 @@ try {
     assert.equal(await page.getByText('No upcoming items were returned by the connected modules.').count(), 1);
     assert.deepEqual(errors, []);
     await page.close();
-    console.log(`PASS Studio shell and Command Center ${width}px: navigation, skip link, real module links, refresh, unavailable and empty states`);
+    console.log(`PASS Studio shell and Command Center ${width}px: navigation, skip link, real module links, refresh, held-job review, unavailable and empty states`);
   }
 } finally { if (browser) await browser.close(); await new Promise(resolve => server.close(resolve)); }

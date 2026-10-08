@@ -1,4 +1,5 @@
 import Link from "next/link";
+import NewsletterJobHealthPanel from "../newsletter-studio/components/NewsletterJobHealthPanel";
 import DashboardRefresh from "../components/DashboardRefresh";
 import type { StudioOverview } from "@/lib/studio-overview";
 
@@ -39,6 +40,7 @@ export default function CommandCenter({ data }: { data: StudioOverview }) {
           </li>)}</ul>}
       </section>
     </div>
+    <NewsletterJobHealthPanel />
     <section aria-labelledby="projects-heading" className={panel}>
       <div className="flex flex-wrap items-center justify-between gap-3"><h2 id="projects-heading" className="text-lg font-medium">Recent projects</h2><Link href="/admin/projects" className={linkStyle}>All projects →</Link></div>
       {!website.available ? <p role="status" className="mt-4 text-sm text-amber-100">Project data is unavailable. Open Projects to try again.</p>
