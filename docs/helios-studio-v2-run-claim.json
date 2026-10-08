@@ -1,10 +1,10 @@
 {
-  "status": "in-progress",
-  "runId": "atlas-packet84-profile",
-  "branch": "codex/v2-profile-write-fencing",
-  "head": "eddfbf94a20b3f8ef1f33e34e228ec338c01b87a",
-  "pr": null,
-  "scope": "Packets 82–83 integrated. Profile transaction authority, credential snapshot and owned atomic audit correction prepared.",
+  "status": "blocked-owner-decision",
+  "runId": "atlas-worker-reactivation-choice",
+  "branch": "codex/v2-worker-reactivation-decision",
+  "head": "64e3878c827ba4e84dcb391c52fedd3fc96ed2f7",
+  "pr": 394,
+  "scope": "Packets 80–84 integrated and independently verified. Worker future-schedule recovery rule awaits owner product choice.",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Publish and independently qualify Packet 84; keep Phase 1 open and real lifecycle activation off.",
+  "nextAction": "Owner selects future-schedule rule in PR #394. Then verify proposal exact-head CI, integrate approved policy and continue bounded non-production worker lifecycle implementation. No routine development reapproval needed; production remains ON HOLD.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -2039,5 +2039,44 @@
     "independentlyDownloadedHashParsed": true,
     "races": 14,
     "postflight": true
+  },
+  "packet84": {
+    "pr": 393,
+    "candidate": "3f39c5cb4a1b56c9a4023792c1feb7dda5130e0a",
+    "tree": "2421cd5a8c881a006eb70c7fa075dbab22604665",
+    "merge": "96b92a3aec8e9c80d96e1be7b2fa48c6f5252f5f",
+    "integrated": true,
+    "mergeTreeMatchesCandidate": true,
+    "regression": 37782163933,
+    "runtime": 37782164067,
+    "tests": 1840,
+    "artifact": 11552492702,
+    "sha256": "1a568add9e0affcb646126864464bf2faceb3ec629ac4142c0f51b21e25591d0",
+    "independentlyDownloadedHashParsed": true,
+    "races": 14,
+    "postflight": true,
+    "syntheticCredentialsRestored": true,
+    "productionSuppressed": true,
+    "stagingSuppressed": true
+  },
+  "workerReactivationDecision": {
+    "pr": 394,
+    "candidate": "64e3878c827ba4e84dcb391c52fedd3fc96ed2f7",
+    "tree": "770f5878d374c6a8b07933b21e6340c4496d716e",
+    "status": "owner-choice-pending",
+    "implementationAuthorized": false,
+    "proposal": "Preserve still-future schedules with current valid approval; hold overdue work for explicit rescheduling/reapproval; keep PREPARED/UNCERTAIN review-only.",
+    "alternative": "Require renewed approval of every pre-suspension queued schedule, including still-future commitments.",
+    "reason": "Significant product choice reserved by standing authorization: approved suspension policy forbids overdue replay but does not explicitly settle future calendar approval retention.",
+    "syntheticProbeExecuted": true,
+    "providersCalled": false,
+    "ci": [
+      {
+        "id": 37783615970,
+        "name": "V2 regression",
+        "status": "in_progress",
+        "conclusion": null
+      }
+    ]
   }
 }
