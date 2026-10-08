@@ -2,16 +2,20 @@
 
 Owner-approved direction, October 8, 2026. Production ON HOLD.
 
-## Live recovery
+## Original live recovery
 
 Fresh GitHub clone; integration branch `codex/v2-hosted-access-owner-action` resolves to `96b92a3aec8e9c80d96e1be7b2fa48c6f5252f5f`. PR #393 is merged and its candidate tree equals the integration tree. PR #394 is open/draft at `64e3878c827ba4e84dcb391c52fedd3fc96ed2f7`; no later PR found in the live listing. Prior 1,840-test/runtime/Chromium artifact evidence is recorded in the existing checkpoint; this recovery does not claim a fresh execution of those historical checks.
+
+## Current capability progress
+
+Read `helios-studio-v2-recovery-checkpoint.md` for current verified SHAs and evidence. Policy, bounded newsletter scheduling safeguards, the workspace shell, Command Center and held-work review are integrated through PR #398. The next product slice exposes deliberate edition date changes through the existing module with reviewed-version protection. Whole lifecycle activation and hosted owner access remain bounded dependencies, not reasons to pause safe product implementation.
 
 ## Bounded foundation-readiness assessment
 
 | Classification | Source-backed finding | Required action / feature boundary |
 | --- | --- | --- |
 | Critical defect before lifecycle worker activation | `newsletters/scheduler.ts` claims work without workspace lifecycle or reactivation cutoff; PR #394 reproduces suspended and overdue claims | Persist atomic database-clock reactivation cutoff; enforce claim and last pre-provider admission; retain uncertainty and settlement rules. Keep lifecycle rollout disabled until family coverage qualifies |
-| Feature dependency | Newsletter, social, email, referral, AI and notification paths have separate execution and settlement contracts | Qualify each as its scheduling/recovery feature is integrated. A newsletter helper does not certify other callers |
+| Feature dependency | Newsletter Studio HTTP admission remains single-company; its recipient/delivery/asset isolation must qualify before multi-workspace module activation. Newsletter, social, email, referral, AI and notification paths have separate execution and settlement contracts | Qualify each as its scheduling/recovery feature is integrated. A newsletter helper does not certify other callers |
 | Feature dependency | Existing `AdminShell`, current-session authorization, scoped `getDashboardData`, and functional `/admin` modules provide reusable product architecture | Build a default-off V2 entry and navigation over these modules. Authorize every server page; retain V1 routes; qualify both-company data and role boundaries |
 | Feature dependency | Existing dashboard uses section availability markers, persisted attention and schedule records | Reuse records for Command Center; surface unavailable sections explicitly; do not label absent data healthy or fabricate counts |
 | Release dependency, not shell blocker | Hosted provider/CDN parity, final Helios compatibility, remaining writer race coverage and complete lifecycle activation remain open in phase checkpoint | Keep deployment/provider gates; qualify alongside affected features before enabling them |

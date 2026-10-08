@@ -10,10 +10,18 @@ export async function requireEmpty() {
   const identity = await prisma.$queryRaw<{ name: string }[]>`SELECT current_database() AS name`;
   assert.equal(identity[0].name, 'helios_packet19');
 }
-export async function seed() {
+export async function seed(singleCompany = false) {
+  assert.equal(typeof singleCompany, 'boolean');
   assert.equal(await prisma.workspace.count(), 0);
+  await seedSyntheticWorkspaces(singleCompany ? ['a'] : ['a', 'b']);
+}
+export async function seedSecondWorkspace() {
+  assert.deepEqual(await prisma.workspace.findMany({ select: { id: true } }), [{ id: 'a' }]);
+  await seedSyntheticWorkspaces(['b']);
+}
+async function seedSyntheticWorkspaces(ids: string[]) {
   await prisma.$transaction(async tx => {
-    for (const id of ['a', 'b']) {
+    for (const id of ids) {
       await tx.workspace.create({ data: { id, slug: `packet19-${id}`, name: `Synthetic ${id}` } });
       await tx.adminUser.create({ data: { id: `u${id}`, workspaceId: id, email: `${id}@example.test`, displayName: `Synthetic ${id}`, role: 'OWNER', disciplines: [], sessionVersion: 1 } });
       await tx.workspaceMembership.create({ data: { workspaceId: id, userId: `u${id}`, role: 'OWNER', status: 'ACTIVE' } });

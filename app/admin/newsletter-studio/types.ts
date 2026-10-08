@@ -32,6 +32,7 @@ export type NewsletterGalleryImage = {
 };
 
 export type NewsletterEdition = {
+  rowVersion?: number;
   id: string; seriesId: string; seriesName: string; subject: string; previewText: string;
   senderName?: string; replyTo?: string;
   status: NewsletterStatus; generationAt?: string | null; intendedSendAt?: string | null;

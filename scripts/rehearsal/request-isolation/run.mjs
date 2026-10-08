@@ -1,3 +1,4 @@
+import { qualifyNewsletterScheduleEditor, qualifyNewsletterMultiWorkspaceHold } from "./newsletter-schedule-editor.mjs";
 import { qualifyStudioCommandCenter } from "./studio-command-center.mjs";
 import { qualifyNewsletterReactivation } from "./newsletter-reactivation.mjs";
 import { qualifyProfileWrite } from "./profile-write.mjs";
@@ -175,9 +176,9 @@ try {
     driver = await import(pathToFileURL(bundle));
     await driver.requireEmpty();
     await command(process.execPath, ['node_modules/prisma/build/index.js', 'db', 'push'], app);
-    await driver.seed(); const schemaBefore = await driver.schemaFingerprint();
+    await driver.seed(true); const schemaBefore = await driver.schemaFingerprint();
     const indexesBefore = await driver.schemaIndexFingerprint();
-    console.log('PASS empty disposable database admission and synthetic two-tenant seed');
+    console.log('PASS empty disposable database admission and initial synthetic single-company seed');
     console.log((await command(process.execPath, ['node_modules/next/dist/bin/next', 'build', '--webpack'], app)).slice(-1000));
     const socket = createServer(); await new Promise(resolve => socket.listen(0, '127.0.0.1', resolve));
     const port = socket.address().port; await new Promise(resolve => socket.close(resolve));
@@ -192,6 +193,10 @@ try {
       child.once('exit', code => { clearTimeout(timer); reject(new Error(`Next exited ${code}`)); });
     });
     const origin = requireOrigin(`http://127.0.0.1:${port}`);
+    const newsletterScheduleEditor = await qualifyNewsletterScheduleEditor(origin, driver);
+    await driver.seedSecondWorkspace();
+    newsletterScheduleEditor.multiWorkspaceHold = await qualifyNewsletterMultiWorkspaceHold(origin, driver);
+    console.log('PASS supported single-company schedule editor HTTP, then existing two-company module hold');
     const result = await qualify(origin, driver);
     const portfolio = await qualifyPortfolio(origin, driver);
     const previewFencing = await qualifyPreviewFencing(origin, driver);
@@ -259,7 +264,7 @@ try {
     await mkdir('release-evidence', { recursive: true });
     await writeFile('release-evidence/request-isolation.json', JSON.stringify({ version: 1, candidate: head, runtime: 'Next build/start with PrismaPg',
       target: 'disposable-local-postgresql', sourceSubstitutions: ['PrismaNeon to PrismaPg', 'offline font variables', 'Social AI fetch to synthetic no-network provider', 'UptimeRobot fetch to synthetic no-network monitor', 'R2 diagnostic import to synthetic no-network provider', 'Stream provisioning fetch to synthetic no-network provider', 'Project media HeadObject to synthetic no-network provider', 'Brand content HeadObject to synthetic no-network provider', 'server-only build sentinel removed in Node qualification driver'], result, portfolio, previewFencing,
-      studioCommandCenter, newsletterReactivation, webhook, socialAi, socialAiRollback, socialAiProviderFailure, socialAiRequestIds, consentAdmin, consentSchema, consentAdapters, consentTokens, deliveryConsent, publicConsent, consentDirectory, campaignConsent, newsletterConsent, consentAnalytics, referralPreparation, referralConsent, monitorContainment, brandUploadAdmission, emailUploadAdmission, projectUploadAdmission, seriesCalendar, storageDiagnostic, streamUploadAdmission, projectImageAttachment, streamAttachment, externalMediaCreation, mediaUpdateAsset, mediaCollection, mediaPresentation, mediaDelete, testimonialStatus, testimonialReorder, testimonialDelete, testimonialWrite, trustedLogoStatus, trustedLogoReorder, trustedLogoDelete, trustedLogoWrite, photoComparison, teamMemberReorder, teamMemberDelete, teamMemberWrite, aboutPage, supportDiagnostics, featuredFilm, settingsAttachments, workspaceLifecycle, workspaceLifecycleAdmission, workspaceLifecyclePublic, workspaceInvitations, profileWrite, schemaColumnsUnchanged: true, schemaIndexesUnchanged: true, syntheticAccessRestored: true, hosted: false, deployable: false }, null, 2) + '\n');
+      newsletterScheduleEditor, studioCommandCenter, newsletterReactivation, webhook, socialAi, socialAiRollback, socialAiProviderFailure, socialAiRequestIds, consentAdmin, consentSchema, consentAdapters, consentTokens, deliveryConsent, publicConsent, consentDirectory, campaignConsent, newsletterConsent, consentAnalytics, referralPreparation, referralConsent, monitorContainment, brandUploadAdmission, emailUploadAdmission, projectUploadAdmission, seriesCalendar, storageDiagnostic, streamUploadAdmission, projectImageAttachment, streamAttachment, externalMediaCreation, mediaUpdateAsset, mediaCollection, mediaPresentation, mediaDelete, testimonialStatus, testimonialReorder, testimonialDelete, testimonialWrite, trustedLogoStatus, trustedLogoReorder, trustedLogoDelete, trustedLogoWrite, photoComparison, teamMemberReorder, teamMemberDelete, teamMemberWrite, aboutPage, supportDiagnostics, featuredFilm, settingsAttachments, workspaceLifecycle, workspaceLifecycleAdmission, workspaceLifecyclePublic, workspaceInvitations, profileWrite, schemaColumnsUnchanged: true, schemaIndexesUnchanged: true, syntheticAccessRestored: true, hosted: false, deployable: false }, null, 2) + '\n');
     console.log('PASS actual Next production-mode HTTP: alternating/concurrent tenants, post-write reads, foreign/stale write rejection, membership/session revocation and schema/access postflight');
     console.log('PASS both-direction portfolio published/draft/preview isolation, actual preview creation/revocation, expiry and rejected usage-write containment');
     console.log('PASS actual PostgreSQL lock-observed preview create/revoke: membership revoked after initial session, both tenants reject403 without preview/audit mutation');
