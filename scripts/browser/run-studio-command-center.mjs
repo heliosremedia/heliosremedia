@@ -44,6 +44,9 @@ try {
     assert.equal(await page.getByRole('link', { name: 'Review delivery →' }).getAttribute('href'), '/admin/newsletter-studio/editions/synthetic');
     assert.equal(await page.getByRole('link', { name: 'Stonewater Sanctuary' }).getAttribute('href'), '/admin/projects/synthetic');
     assert.equal(await page.getByRole('link', { name: 'New project', exact: true }).getAttribute('href'), '/admin/projects/new');
+    const projectButton = page.getByRole('link', { name: 'New project', exact: true });
+    const foreground = await projectButton.evaluate(element => getComputedStyle(element).color);
+    assert.ok(foreground === 'oklch(0.147 0.004 49.25)' || foreground === 'rgb(28, 25, 23)', `New project must use dark text, received ${foreground}`);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.keyboard.press('Tab');
     assert.equal(await page.locator(':focus').textContent(), 'Skip to content');

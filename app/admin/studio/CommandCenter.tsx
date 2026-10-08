@@ -12,7 +12,7 @@ export default function CommandCenter({ data }: { data: StudioOverview }) {
   return <div className="space-y-8">
     <div className="flex flex-wrap items-end justify-between gap-5">
       <div><p className="text-xs uppercase tracking-[.18em] text-amber-200/80">Studio V2</p><h1 className="mt-3 text-3xl font-light tracking-tight sm:text-4xl">Command Center</h1><p className="mt-3 max-w-xl text-sm leading-6 text-stone-400">Know what needs you. See what’s next. Keep your work moving.</p></div>
-      <Link href="/admin/projects/new" className="rounded-lg bg-amber-100 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-amber-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-200">New project</Link>
+      <Link href="/admin/projects/new" className="rounded-lg bg-amber-100 px-5 py-3 text-sm font-semibold text-stone-950! transition hover:bg-amber-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-200">New project</Link>
     </div>
     <dl className="grid gap-3 sm:grid-cols-3">
       {[
