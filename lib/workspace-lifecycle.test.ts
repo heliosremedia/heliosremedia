@@ -7,10 +7,13 @@ import { PGlite } from '@electric-sql/pglite';
 import type * as Api from './workspace-lifecycle/core.ts';
 const migration = readFileSync(new URL('../prisma/migrations/20261008123000_workspace_lifecycle_foundation/migration.sql', import.meta.url), 'utf8');
 function load(state: { enabled: boolean; tenant: boolean }) {
-  const exports = {};
   const modules: Record<string, unknown> = { 'server-only': {}, 'node:crypto': { randomUUID: () => 'request' }, '../workspace-context-core.ts': { tenantContextEnabled: () => state.tenant } };
-  runInNewContext(ts.transpileModule(readFileSync(new URL('./workspace-lifecycle/core.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, Error, process: { env: new Proxy({}, { get: () => state.enabled ? 'true' : undefined }) }, require: (id: string) => { assert.ok(id in modules, id); return modules[id]; } });
-  return exports as typeof Api;
+  function source(path: string) {
+    const exports = {};
+    runInNewContext(ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, Error, process: { env: new Proxy({}, { get: () => state.enabled ? 'true' : undefined }) }, require: (id: string) => { if (id === './state.ts') return source('./workspace-lifecycle/state.ts'); assert.ok(id in modules, id); return modules[id]; } });
+    return exports;
+  }
+  return source('./workspace-lifecycle/core.ts') as typeof Api;
 }
 const actor = { userId: 'ub', workspaceId: 'b', sessionVersion: 1 };
 const input = { workspaceId: 'a', expectedRevision: 0, state: 'SUSPENDED' as const, reason: 'Synthetic qualification' };

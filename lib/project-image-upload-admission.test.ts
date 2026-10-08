@@ -28,6 +28,7 @@ function fixture() {
   const modules: Record<string, unknown> = {
     'next/server': { NextResponse: Response }, '@/lib/r2': { r2Config: { accountId: 'synthetic', bucketName: 'synthetic' } },
     '@/lib/auth/session': { getAdminSession: async () => ({ workspaceId: 'a', userId: 'ua', role: state.initialRole, sessionVersion: 7 }) },
+    './workspace-lifecycle/state.ts': { workspaceIsActive: async () => true },
     './workspace-context-core.ts': { tenantContextEnabled: () => true }, './workspace-membership-core.ts': { resolveMembershipAccess },
     '@/lib/prisma': { prisma: { $transaction: async (fn: (value: typeof tx) => Promise<unknown>) => { const result = await fn(tx); state.events.push('commit'); return result; }, workspaceAsset: { updateMany: async ({ where, data }: { where: { id: string; workspaceId: string; status: string }; data: { status: string } }) => { assert.equal(where.id, 'asset'); assert.equal(where.workspaceId, 'a'); assert.equal(where.status, 'UPLOAD_PENDING'); state.events.push(data.status); return { count: 1 }; } } } },
     '@/lib/r2-upload': {

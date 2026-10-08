@@ -84,6 +84,10 @@ test('rollback candidate preflight accepts retained bundle and rejects historica
   const manifest=JSON.parse(readFileSync('scripts/rehearsal/homepage-writer-bundle.json','utf8'));
   for(const file of manifest.files){mkdirSync(dirname(join(root,file.path)),{recursive:true});copyFileSync(file.path,join(root,file.path));}
   assert.equal(checkHomepageRollback(root).safe,true);
+  for (const path of ['lib/workspace-lifecycle/state.ts', 'lib/workspace-memberships.ts']) {
+    rmSync(join(root,path)); assert.equal(checkHomepageRollback(root).safe,false);
+    copyFileSync(path,join(root,path)); assert.equal(checkHomepageRollback(root).safe,true);
+  }
   copyFileSync(history+'curation-write-314.txt',join(root,'lib/homepage-curation-write.ts'));assert.equal(checkHomepageRollback(root).safe,false);
   copyFileSync('lib/homepage-curation-write.ts',join(root,'lib/homepage-curation-write.ts'));
   copyFileSync(history+'layout-route-313.txt',join(root,'app/api/admin/homepage-layout/route.ts'));assert.equal(checkHomepageRollback(root).safe,false);

@@ -119,6 +119,7 @@ function fixture() {
     'server-only': {}, 'next/server': { NextResponse: Response }, 'next/cache': { revalidatePath() { state.invalidations++; if (state.failInvalidation) throw new Error('PRIVATE invalidation failure'); } },
     '@/lib/prisma': { prisma }, '@/lib/auth/session': { getAdminSession: async () => state.session },
     '@/lib/workspace-context-core': { tenantContextEnabled: () => state.tenant },
+    './workspace-lifecycle/state.ts': { workspaceIsActive: async () => true },
     './workspace-context-core.ts': { tenantContextEnabled: () => state.tenant },
     './workspace-membership-core.ts': load('./workspace-membership-core.ts', {}),
     '@/lib/r2-upload': { getPublicAssetUrl: (key: string) => `https://assets.example/${key}` },

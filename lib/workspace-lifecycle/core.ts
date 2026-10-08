@@ -1,22 +1,13 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import type { Prisma, PrismaClient } from "@/app/generated/prisma/client";
-import { tenantContextEnabled } from "../workspace-context-core.ts";
+import type { PrismaClient } from "@/app/generated/prisma/client";
+import { lifecycleEnabled, workspaceIsActive } from "./state.ts";
+export { lifecycleEnabled, workspaceIsActive } from "./state.ts";
 import type { WorkspaceWriteActor } from "../workspace-write-access.ts";
 
-export function lifecycleEnabled() {
-  return tenantContextEnabled() && process.env.STUDIO_V2_WORKSPACE_LIFECYCLE_ENABLED?.trim().toLowerCase() === "true";
-}
 export class LifecycleDenied extends Error {}
 export class LifecycleInvalid extends Error {}
 export class LifecycleConflict extends Error {}
-
-/** Default-off compatibility gate. Callers must retain their own authorization. */
-export async function workspaceIsActive(db: Pick<Prisma.TransactionClient, "workspace">, workspaceId: string) {
-  if (!lifecycleEnabled()) return true;
-  const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { lifecycleState: true } });
-  return workspace?.lifecycleState === "ACTIVE";
-}
 
 /** Internal control-plane core. No public/tenant transition or enrollment API. */
 export async function transitionWorkspaceLifecycle(db: Pick<PrismaClient, "$transaction">, actor: WorkspaceWriteActor, input: {

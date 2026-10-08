@@ -52,7 +52,8 @@ async function fixture() {
     } },
   };
   const modules: Record<string, unknown> = {
-    'server-only': {}, '@/lib/prisma': { prisma },
+    'server-only': {}, '@/lib/workspace-lifecycle/state': { workspaceIsActive: async () => true },
+    '@/lib/prisma': { prisma },
     '@/lib/workspace-context-core': { tenantContextEnabled: () => state.tenant },
     '@/lib/public-workspace': { getPublicWorkspaceId: async () => { state.publicReads++; return state.publicWorkspace; } },
     '@/lib/google-business-public': { normalizeGoogleReviewDisplayMode: (value: unknown) => value },
@@ -240,6 +241,7 @@ test('Google review admin display policy cannot select another company default i
       ...f.modules,
       '@/lib/google-business-reviews': { googleOAuthConfiguration: () => { configurationReads++; return { configured: true }; } },
       '@/lib/google-business-public': load('./google-business-public.ts', {}),
+      '@/lib/workspace-lifecycle/state': { workspaceIsActive: async () => true },
       '@/lib/prisma': { prisma: {
         googleBusinessConnection: { findUnique: async (input: { where: { workspaceId: string } }) => { assertWorkspace(input); return { status: 'CONNECTED' }; } },
         googleBusinessReview: {
