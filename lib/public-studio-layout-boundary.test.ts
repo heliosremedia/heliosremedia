@@ -112,7 +112,10 @@ test('route grouping preserves every existing public page URL without placing St
     '/locations/[city]', '/photo-finishes', '/portfolio', '/portfolio/[slug]', '/portfolio/films', '/portfolio/gallery', '/privacy',
     '/refer/[token]', '/refer/test/[token]', '/reviews', '/services', '/services/[slug]', '/terms'].sort());
   for (const path of ['app/admin/layout.tsx', 'app/login/page.tsx', 'app/accept-invite/page.tsx', 'app/unsubscribe/page.tsx']) assert.ok(readFileSync(path, 'utf8'));
-  const optout = readFileSync('app/unsubscribe/page.tsx', 'utf8');
+  const optoutPage = readFileSync('app/unsubscribe/page.tsx', 'utf8');
+  assert.match(optoutPage, /await connection\(\)/);
+  assert.doesNotMatch(optoutPage, /getSiteSettings|getPublicWorkspaceId/);
+  const optout = readFileSync('app/unsubscribe/UnsubscribeForm.tsx', 'utf8');
   assert.match(optout, /fetch\("\/api\/unsubscribe"/);
   assert.doesNotMatch(optout, /getSiteSettings|getPublicWorkspaceId|Navbar|Footer/);
   const admin = readFileSync('app/admin/layout.tsx', 'utf8');
