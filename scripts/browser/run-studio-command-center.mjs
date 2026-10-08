@@ -16,7 +16,7 @@ const bundle = await build({ entryPoints: ['scripts/browser/studio-command-cente
 const css = await postcss([tailwind()]).process(await readFile('app/globals.css', 'utf8'), { from: 'app/globals.css' });
 const files = {
   '/': ['text/html', '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Studio synthetic qualification</title><link rel="stylesheet" href="/style.css"></head><body><div id="root"></div><script src="/fixture.js"></script></body></html>'],
-  '/api/admin/newsletters/jobs/health': ['application/json', JSON.stringify({ success: true, health: {
+  '/api/admin/studio/newsletter-jobs': ['application/json', JSON.stringify({ success: true, health: {
     observedAt: '2026-10-08T15:00:00Z', counts: { pending: 1, active: 0, review: 0, failed: 0 }, truncated: false, automaticRetryAllowed: false,
     jobs: [{ id: 'held-job', editionId: 'held-edition', type: 'SEND', state: 'PENDING', dueAt: '2026-10-07T15:00:00Z', attempts: 0,
       heldForReactivation: true, editionLabel: 'Held autumn newsletter', editionStatus: 'SCHEDULED', seriesStatus: 'ACTIVE' }],
@@ -76,6 +76,15 @@ try {
     await page.goto(`${origin}/?mode=empty`);
     await page.getByText('Your projects will appear here as you create them.').waitFor();
     assert.equal(await page.getByText('No upcoming items were returned by the connected modules.').count(), 1);
+    await page.route('**/api/admin/studio/newsletter-jobs', async route => {
+      const payload = JSON.parse(files['/api/admin/studio/newsletter-jobs'][1]);
+      payload.health.editionReviewAvailable = false;
+      await route.fulfill({ contentType: 'application/json', body: JSON.stringify(payload) });
+    });
+    await page.goto(origin);
+    await page.getByRole('button', { name: 'Refresh job status', exact: true }).click();
+    await page.getByText('Status review is available.', { exact: false }).waitFor();
+    assert.equal(await page.getByRole('link', { name: 'Open edition review for Held autumn newsletter' }).count(), 0);
     await page.goto(`${origin}/?mode=schedule-change`);
     await page.getByRole('button', { name: 'Change send date', exact: true }).click();
     const dialog = page.getByRole('dialog');

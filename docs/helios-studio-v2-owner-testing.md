@@ -9,7 +9,7 @@ Production ON HOLD. This guide describes the next non-production owner-testing p
 - Read-only newsletter job review distinguishes jobs held after reactivation and links to edition generation/delivery review.
 - Valid unchanged future newsletter schedules survive reactivation; overdue work is held. SEND, GENERATE and approval-deadline admission are checked under workspace locks. Uncertain provider outcomes retain their separate review rules.
 
-Newsletter Studio retains its existing single-company HTTP admission guard. In a multi-workspace environment its routes, including job-health refresh, remain unavailable pending module qualification. Do not remove that guard just to expose the new controls.
+Newsletter Studio retains its existing single-company HTTP admission guard. In a multi-workspace environment its routes remain unavailable pending module qualification. A separate Studio read-only job projection is in qualification; it does not admit edition mutations and clearly hides unavailable edition-action links. Do not remove that guard just to expose the new controls.
 
 ## Safe test environment
 
