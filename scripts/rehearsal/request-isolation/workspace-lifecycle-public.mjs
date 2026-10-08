@@ -8,6 +8,8 @@ export async function qualifyWorkspaceLifecyclePublic(origin, driver) {
   const db = driver.prisma, cases = [];
   assert.equal(await db.platformLifecycleOperator.count(), 0);
   const projects = await db.project.findMany({ orderBy: { id: 'asc' } });
+  const companyNames = Object.fromEntries((await db.siteSettings.findMany({ select: { workspaceId: true, businessName: true } })).map(row => [row.workspaceId, row.businessName]));
+  assert.ok(companyNames.a && companyNames.b && companyNames.a !== companyNames.b);
   const pages = ['/', '/about', '/portfolio', '/portfolio/gallery', '/portfolio/films', '/services', '/privacy', '/sitemap.xml'];
   const apis = ['/api/portfolio/gallery', '/api/portfolio/films', '/api/inquiries', '/api/client-portal/register', '/api/client-portal/challenge', '/api/client-portal/verify'];
   for (const id of ['a', 'b']) {
@@ -38,10 +40,10 @@ export async function qualifyWorkspaceLifecyclePublic(origin, driver) {
       const flight = await read('/portfolio', 'GET', undefined, { rsc: '1', 'next-router-prefetch': '1' });
       assert.equal(flight.status, 503); assert.equal(flight.text, 'This site is temporarily unavailable.');
       const active = await http(origin, `${other}.example.test`, '/');
-      assert.equal(active.status, 200); assert.ok(active.text.includes(`PACKET19 COMPANY ${other}`));
+      assert.equal(active.status, 200); assert.ok(active.text.includes(companyNames[other]));
       assert.equal((await read('/login')).status, 200);
       const form = await read('/unsubscribe'); assert.equal(form.status, 200);
-      assert.ok(form.text.includes('Email preferences')); assert.ok(!form.text.includes('PACKET19 COMPANY'));
+      assert.ok(form.text.includes('Email preferences')); assert.ok(!form.text.includes(companyNames.a) && !form.text.includes(companyNames.b));
       // Authority remains the stored signed-token binding, even with a forged
       // company selector or attempted resubscribe in the public request body.
       const optout = await read('/api/unsubscribe', 'POST', { token, workspaceId: other, status: 'SUBSCRIBED' });
@@ -53,7 +55,7 @@ export async function qualifyWorkspaceLifecyclePublic(origin, driver) {
       assert.equal((await read('/api/unsubscribe', 'POST', { token })).status, 200);
       assert.equal(await db.workspaceMarketingPreferenceEvent.count({ where: { preferenceId: preference.id } }), events);
       await transition('ACTIVE');
-      const resumed = await read('/'); assert.equal(resumed.status, 200); assert.ok(resumed.text.includes(`PACKET19 COMPANY ${id}`));
+      const resumed = await read('/'); assert.equal(resumed.status, 200); assert.ok(resumed.text.includes(companyNames[id]));
       assert.equal((await db.workspaceMarketingPreference.findUniqueOrThrow({ where: { id: preference.id } })).status, 'UNSUBSCRIBED');
       cases.push({ tenant: id, paths503: [...pages, ...apis], noStore: true, noTenantContent: true, forgedSelectorsIgnored: true,
         headAndRsc503: true, otherTenant200: true, loginAndOptoutPage200: true, scopedOptout200: true, foreignPreferenceUnchanged: true,
