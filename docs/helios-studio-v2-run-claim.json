@@ -1,10 +1,10 @@
 {
-  "status": "blocked-owner-decision",
-  "runId": "atlas-workspace-lifecycle-policy-decision",
-  "branch": "codex/v2-workspace-lifecycle-decision",
-  "head": "295cdf6283a24fd6ecfe4faa1ed6f14ee4a8916f",
-  "pr": 388,
-  "scope": "Packets 77–79 independently qualified and integrated; concrete workspace lifecycle availability/security policy awaits owner decision.",
+  "status": "in-progress",
+  "runId": "atlas-packet80-lifecycle",
+  "branch": "codex/v2-workspace-lifecycle-foundation",
+  "head": "aa3457bca84d402cae01fbe85f78e32335995d3a",
+  "pr": null,
+  "scope": "Owner approved PR #388 lifecycle policy October 8; bounded non-production foundation in development.",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Owner accepts/amends draft PR #388 ACTIVE/SUSPENDED policy. Keep proposal unmerged and lifecycle unimplemented until decision. Then continue bounded synthetic-first non-production implementation under standing authorization. Production ON HOLD.",
+  "nextAction": "Implement and independently qualify the default-off lifecycle foundation using synthetic operators/workspaces.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -1890,10 +1890,12 @@
     "lifecycleOwnerDecision": {
       "pr": 388,
       "head": "295cdf6283a24fd6ecfe4faa1ed6f14ee4a8916f",
-      "status": "draft-unmerged-proposal",
-      "implementationAuthorized": false,
+      "status": "approved-policy-merged",
+      "implementationAuthorized": true,
       "proposal": "ACTIVE/SUSPENDED reversible platform-controlled pause; deny normal access/new outbound work; preserve data, opt-out/safety settlement and uncertain outcome evidence; no self-reactivation or automatic backlog replay.",
-      "reason": "Roadmap requires workspace lifecycle but suspension availability, jobs and transition authority policy are unspecified. Consequential owner policy decision under standing authorization."
+      "reason": "Roadmap requires workspace lifecycle but suspension availability, jobs and transition authority policy are unspecified. Consequential owner policy decision under standing authorization.",
+      "approval": "Jake explicitly approved October 8, 2026",
+      "merge": "aa3457bca84d402cae01fbe85f78e32335995d3a"
     }
   },
   "packet77": {
