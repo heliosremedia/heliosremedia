@@ -1,0 +1,15 @@
+# Packet 82: host-owned public suspension responses
+
+The approved policy calls for a generic 503 when a workspace is suspended. Packet 81 fences signed sessions and common private writes; its public pages still render. This packet adds a default-off, uncached domain/workspace check before rendering the enumerated host-owned public pages and APIs. The existing public data resolver independently checks ACTIVE state, so rendering does not trust a proxy-injected workspace header. Host normalization remains authoritative; forwarded host and workspace selectors cannot choose the company.
+
+The Next 16 Proxy response contains only a fixed unavailable message, status 503, no-store and Retry-After. The enabled path performs one indexed domain lookup including workspace lifecycle state. A database lookup error fails closed. Flag-off behavior does not load Prisma or query a database through this new path. Unknown active-domain resolution remains with the existing fail-closed resolver. No process cache or request-global workspace state is introduced.
+
+The matcher covers the homepage, sitemap, About/blog/booking/client portal/contact/FAQ/films/inquiry/location/photo-finish/portfolio/privacy/review/service/terms pages and the portfolio, inquiries and client-portal API families. This is a named host-owned scope; token-owned referrals, analytics ingestion, other endpoints, cached provider objects and workers are not credited. An in-flight response already admitted cannot be recalled. Hosted routing/CDN behavior remains a separate measurement gate.
+
+The unsubscribe page moves outside the public layout while retaining its URL and form. It no longer loads tenant metadata or location/site settings. Global sign-in and the existing stored-token opt-out API remain reachable; no arbitrary browsing or resubscribe exception is added. Verified provider safety callbacks keep their existing own authority checks and are not intercepted by this host-owned matcher.
+
+## Required qualification
+
+Module tests exercise both host directions, fresh state, generic/no-store response, failed database lookup, flag-off behavior, unknown-host compatibility and excluded safety paths. Composed public resolver tests reject a suspended workspace. Real Next/disposable PostgreSQL qualification warms the homepage before suspension, requires generic 503 for fourteen page/API paths plus HEAD and RSC/prefetch, verifies the active other company, global login, metadata-free opt-out page, current token-authorized opt-out, invalid token denial, idempotent replay and preserved suppression after reactivation. Both workspaces must end ACTIVE and synthetic transition operators must be removed.
+
+Exact-head regression/TypeScript/Chromium, isolated runtime, independent artifact hash/parse and matching merge tree are required before integration. Preparation is not an exit claim. Phase 1 remains OPEN; lifecycle activation remains off outside synthetic qualification. Production ON HOLD.

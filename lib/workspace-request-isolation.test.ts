@@ -154,6 +154,7 @@ test('current signed sessions deny suspension and missing workspace in both dire
     const cookie = f.token(id);
     assert.ok(await f.run(`${id}.example.test`, f.sessionApi.getAdminSession, cookie));
     f.workspaces.set(id, { lifecycleState: 'SUSPENDED' });
+    await assert.rejects(f.run(`${id}.example.test`, f.publicApi.getSiteSettings), /Public workspace is unavailable/);
     assert.equal(await f.run(`${other}.example.test`, f.sessionApi.getAdminSession, cookie), null);
     assert.ok(await f.run(`${id}.example.test`, f.sessionApi.getAdminSession, f.token(other)));
     f.workspaces.delete(id);

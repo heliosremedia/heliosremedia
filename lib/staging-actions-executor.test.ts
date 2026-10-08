@@ -8,7 +8,7 @@ import * as token from './auth/token.ts';
 const require=createRequire(import.meta.url);
 const nextServer=require('next/server');
 const proxyExports:{proxy?:(request:unknown)=>Response}={};
-runInNewContext(ts.transpileModule(readFileSync('proxy.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports:proxyExports,URL,require:(name:string)=>{if(name==='next/server')return nextServer;if(name==='@/lib/auth/token')return token;throw Error('Unexpected proxy dependency');}});
+runInNewContext(ts.transpileModule(readFileSync('proxy.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports:proxyExports,URL,require:(name:string)=>{if(name==='@/lib/workspace-lifecycle/public-response')return {isPublicLifecyclePath:()=>false};if(name==='next/server')return nextServer;if(name==='@/lib/auth/token')return token;throw Error('Unexpected proxy dependency');}});
 function anonymousProxy(){return proxyExports.proxy!(new nextServer.NextRequest('https://synthetic.example.test/api/admin/homepage-projects',{method:'PATCH'}));}
 test('actual application proxy denies anonymous API mutations with401',async()=>{const r=anonymousProxy();assert.equal(r.status,401);assert.deepEqual(await r.json(),{success:false,error:'Authentication required.'});assert.equal(r.headers.get('location'),null);});
 import {execute} from '../scripts/staging/actions/executor.mjs';

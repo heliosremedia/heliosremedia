@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 8, 2026: Packet 81 integrated; Packet 82 public suspension admission
+
+Packet 81 PR #390 candidate `44468c9af5b8130b3a3709cc434571f310cf0d97` passed runtime 37777680618. Artifact 11551461007 SHA256 `a77cc5c4d4e7df66f628cbe6a3f157fda879403697793c4e4e4932db0b44763f` was independently downloaded, hashed and parsed: both-direction session/write/account/support denial, twelve observed lock races, business/grant preservation, same-cookie reactivation and schema/access restoration passed. Regression/Chromium 37777680712 passed 1,831 tests and TypeScript. PR #390 integrated at `8f1c03a7940559fccae08d775d8389f6b519d8bf`; its merge tree matches the tested candidate. Both Vercel projects remain suppressed.
+
+Packet 82 adds [host-owned public suspension admission](helios-studio-v2-workspace-lifecycle-public.md) and separates opt-out from the public layout. Runtime/regression and independent artifact gates remain pending. Token-owned referrals, analytics/other endpoints, provider workers, hosted CDN and final compatibility remain open. Production ON HOLD.
+
 ## October 8, 2026: Packet 80 integrated; Packet 81 lifecycle admission
 
 Packet 80 PR #389 integrated at `f016b4cce898ae9b379a485359c1b34e09a72a91`, matching tested candidate `d40b003aef4f37b6a5d734ed0c18643e205777e9` and tree `3b546cd171b7f5f5d2432d14e736652489e69e7c`. Regression 37775917835 passed 1,829 tests/TypeScript/Chromium. Runtime 37775917780 artifact 11550225321 SHA256 `51d9a2172cd33001e177076d21e30bc19ebf1f9bd1717b9795ac6c9ea489d7a4` independently verifies migration parity, both-direction transitions, ten observed revocation races, audit rollback and schema/access restoration. Both Vercel projects remain suppressed.
