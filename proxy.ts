@@ -1,7 +1,9 @@
+import { isPublicLifecyclePath, publicLifecycleResponse } from "@/lib/workspace-lifecycle/public-response";
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/token";
 
 export function proxy(request: NextRequest) {
+  if (isPublicLifecyclePath(request.nextUrl.pathname)) return publicLifecycleResponse(request);
   if (request.nextUrl.pathname === "/api/admin/auth/login") return NextResponse.next();
   const session = verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value);
   if (session) {
@@ -16,4 +18,4 @@ export function proxy(request: NextRequest) {
   return NextResponse.redirect(login);
 }
 
-export const config = { matcher: ["/admin/:path*", "/api/admin/:path*"] };
+export const config = { matcher: ["/admin/:path*", "/api/admin/:path*", "/", "/sitemap.xml", "/about/:path*", "/blog/:path*", "/book/:path*", "/client-portal/:path*", "/contact/:path*", "/faq/:path*", "/films/:path*", "/google-business-integration/:path*", "/inquire/:path*", "/locations/:path*", "/photo-finishes/:path*", "/portfolio/:path*", "/privacy/:path*", "/reviews/:path*", "/services/:path*", "/terms/:path*", "/api/portfolio/:path*", "/api/inquiries/:path*", "/api/client-portal/:path*"] };

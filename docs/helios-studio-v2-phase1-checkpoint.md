@@ -1,3 +1,11 @@
+# Phase 1 checkpoint through integrated Packet 81
+
+October 8, 2026. PR #390 integrated at `8f1c03a7940559fccae08d775d8389f6b519d8bf`, matching tested candidate `44468c9af5b8130b3a3709cc434571f310cf0d97` and tree `d131db5a3ae02747cbc5cc0d9b7d7c97f2efe6c5`. Regression 37777680712 passed 1,831 tests, TypeScript and Chromium. Runtime 37777680618 artifact 11551461007 SHA256 `a77cc5c4d4e7df66f628cbe6a3f157fda879403697793c4e4e4932db0b44763f` independently verifies both-direction current-session/common-write/account-edit/support suspension admission, twelve observed database-lock races, unchanged denied writes and schema/access restoration.
+
+That bounded admission surface is credited. Public admission Packet 82 remains pending; other private writers, token-owned referrals, analytics, jobs/provider work, safety settlement, reactivation backlog, cached/hosted parity and the final Helios compatibility/second-company isolation verdict remain open. Lifecycle activation remains off outside the disposable synthetic harness. Phase 1 OPEN; production ON HOLD.
+
+## Historical Packet 80 checkpoint
+
 # Phase 1 checkpoint through integrated Packet 80
 
 October 8, 2026. Non-production integration `f016b4cce898ae9b379a485359c1b34e09a72a91` / PR #389 matches tested lifecycle candidate `d40b003aef4f37b6a5d734ed0c18643e205777e9`, tree `3b546cd171b7f5f5d2432d14e736652489e69e7c`. Regression 37775917835 passed 1,829 tests/TypeScript/Chromium; runtime 37775917780 artifact 11550225321 SHA256 `51d9a2172cd33001e177076d21e30bc19ebf1f9bd1717b9795ac6c9ea489d7a4` was independently downloaded, hashed and parsed. Ten transition revocation races, audit rollback, migration parity, empty lifecycle registry and schema/access postflight passed.
