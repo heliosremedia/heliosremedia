@@ -1,3 +1,4 @@
+import { qualifyNewsletterReactivation } from "./newsletter-reactivation.mjs";
 import { qualifyProfileWrite } from "./profile-write.mjs";
 import { qualifyWorkspaceInvitations } from "./workspace-invitations.mjs";
 import { qualifyWorkspaceLifecyclePublic } from "./workspace-lifecycle-public.mjs";
@@ -155,6 +156,8 @@ async function prepare() {
     // The driver runs as Node, outside Next's server condition. This removes
     // only the package's build-time sentinel; application guards are unchanged.
     name: 'rehearsal-server-only', setup(build) {
+      // Match only the application's canonical Prisma import inside the driver bundle.
+      build.onResolve({ filter: /^@\/lib\/prisma$/ }, () => ({ path: join(root, 'scripts/rehearsal/request-isolation/database.ts') }));
       build.onResolve({ filter: /^server-only$/ }, () => ({ path: 'server-only', namespace: 'rehearsal-server-only' }));
       build.onLoad({ filter: /.*/, namespace: 'rehearsal-server-only' }, () => ({ contents: 'export {};', loader: 'js' }));
     },
@@ -237,6 +240,7 @@ try {
     const supportDiagnostics = await qualifySupportDiagnostics(origin, driver);
     const featuredFilm = await qualifyFeaturedFilm(origin, driver);
     const settingsAttachments = await qualifySettingsAttachments(origin, driver);
+    const newsletterReactivation = await qualifyNewsletterReactivation(driver);
     const workspaceLifecycle = await qualifyWorkspaceLifecycle(driver);
     const workspaceLifecycleAdmission = await qualifyWorkspaceLifecycleAdmission(origin, driver);
     const workspaceLifecyclePublic = await qualifyWorkspaceLifecyclePublic(origin, driver);
@@ -252,7 +256,7 @@ try {
     await mkdir('release-evidence', { recursive: true });
     await writeFile('release-evidence/request-isolation.json', JSON.stringify({ version: 1, candidate: head, runtime: 'Next build/start with PrismaPg',
       target: 'disposable-local-postgresql', sourceSubstitutions: ['PrismaNeon to PrismaPg', 'offline font variables', 'Social AI fetch to synthetic no-network provider', 'UptimeRobot fetch to synthetic no-network monitor', 'R2 diagnostic import to synthetic no-network provider', 'Stream provisioning fetch to synthetic no-network provider', 'Project media HeadObject to synthetic no-network provider', 'Brand content HeadObject to synthetic no-network provider', 'server-only build sentinel removed in Node qualification driver'], result, portfolio, previewFencing,
-      webhook, socialAi, socialAiRollback, socialAiProviderFailure, socialAiRequestIds, consentAdmin, consentSchema, consentAdapters, consentTokens, deliveryConsent, publicConsent, consentDirectory, campaignConsent, newsletterConsent, consentAnalytics, referralPreparation, referralConsent, monitorContainment, brandUploadAdmission, emailUploadAdmission, projectUploadAdmission, seriesCalendar, storageDiagnostic, streamUploadAdmission, projectImageAttachment, streamAttachment, externalMediaCreation, mediaUpdateAsset, mediaCollection, mediaPresentation, mediaDelete, testimonialStatus, testimonialReorder, testimonialDelete, testimonialWrite, trustedLogoStatus, trustedLogoReorder, trustedLogoDelete, trustedLogoWrite, photoComparison, teamMemberReorder, teamMemberDelete, teamMemberWrite, aboutPage, supportDiagnostics, featuredFilm, settingsAttachments, workspaceLifecycle, workspaceLifecycleAdmission, workspaceLifecyclePublic, workspaceInvitations, profileWrite, schemaColumnsUnchanged: true, schemaIndexesUnchanged: true, syntheticAccessRestored: true, hosted: false, deployable: false }, null, 2) + '\n');
+      newsletterReactivation, webhook, socialAi, socialAiRollback, socialAiProviderFailure, socialAiRequestIds, consentAdmin, consentSchema, consentAdapters, consentTokens, deliveryConsent, publicConsent, consentDirectory, campaignConsent, newsletterConsent, consentAnalytics, referralPreparation, referralConsent, monitorContainment, brandUploadAdmission, emailUploadAdmission, projectUploadAdmission, seriesCalendar, storageDiagnostic, streamUploadAdmission, projectImageAttachment, streamAttachment, externalMediaCreation, mediaUpdateAsset, mediaCollection, mediaPresentation, mediaDelete, testimonialStatus, testimonialReorder, testimonialDelete, testimonialWrite, trustedLogoStatus, trustedLogoReorder, trustedLogoDelete, trustedLogoWrite, photoComparison, teamMemberReorder, teamMemberDelete, teamMemberWrite, aboutPage, supportDiagnostics, featuredFilm, settingsAttachments, workspaceLifecycle, workspaceLifecycleAdmission, workspaceLifecyclePublic, workspaceInvitations, profileWrite, schemaColumnsUnchanged: true, schemaIndexesUnchanged: true, syntheticAccessRestored: true, hosted: false, deployable: false }, null, 2) + '\n');
     console.log('PASS actual Next production-mode HTTP: alternating/concurrent tenants, post-write reads, foreign/stale write rejection, membership/session revocation and schema/access postflight');
     console.log('PASS both-direction portfolio published/draft/preview isolation, actual preview creation/revocation, expiry and rejected usage-write containment');
     console.log('PASS actual PostgreSQL lock-observed preview create/revoke: membership revoked after initial session, both tenants reject403 without preview/audit mutation');

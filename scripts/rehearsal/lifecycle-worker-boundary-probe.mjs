@@ -1,14 +1,14 @@
 // Read-only source inspection executed against a fresh in-memory PostgreSQL engine.
 // This reproduces a known gap; it is not a production or lifecycle qualification.
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
 import { PGlite } from '@electric-sql/pglite';
 if (process.argv[2] !== '--synthetic-only') throw new Error('Explicit --synthetic-only is required');
 const db = new PGlite(), now = new Date('2026-10-08T12:00:00Z');
-const source = readFileSync(new URL('../../lib/newsletters/scheduler.ts', import.meta.url), 'utf8');
+const source = execFileSync('git', ['show', '96b92a3aec8e9c80d96e1be7b2fa48c6f5252f5f:lib/newsletters/scheduler.ts'], { encoding: 'utf8' });
 try {
   await db.exec(`
     CREATE TABLE "Workspace" (id TEXT PRIMARY KEY, "lifecycleState" TEXT, "lifecycleRevision" INT);

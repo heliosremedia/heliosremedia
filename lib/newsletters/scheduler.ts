@@ -1,6 +1,8 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
+import type { Prisma } from "@/app/generated/prisma/client";
+import { lifecycleEnabled, workspaceIsActive } from "@/lib/workspace-lifecycle/state";
 import { prisma } from "@/lib/prisma";
 import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { resolveNewsletterWorkspace } from "./ownership";
@@ -89,6 +91,7 @@ export async function ensureUpcomingNewsletterEditions(now = new Date()) {
     const workspaceId = await resolveNewsletterWorkspace(candidate.workspaceId);
     const added = await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM "Workspace" WHERE id = ${workspaceId} FOR UPDATE`;
+      if (!await workspaceIsActive(tx, workspaceId)) return 0;
       const scope = await getContentOwnershipScope(workspaceId);
       const legacyAllowed = "OR" in scope;
       const locked = await tx.$queryRaw<Array<{ id: string }>>`
@@ -254,7 +257,14 @@ export async function claimDueNewsletterJobs(input?: { now?: Date; limit?: numbe
   const limit = Math.max(1, Math.min(input?.limit ?? 20, 100));
   const leaseSeconds = Math.max(30, Math.min(input?.leaseSeconds ?? 300, 1_800));
   const claimToken = randomUUID();
-  const rows = await prisma.$queryRaw<ClaimedNewsletterJob[]>`
+  const enabled = lifecycleEnabled();
+  const claim = async (db: Pick<Prisma.TransactionClient, "$queryRaw">, workspaceId: string | null, remaining: number) => {
+    if (enabled) {
+      // Workspace first, then this family's series/edition/job locks. Never lock
+      // unrelated companies together for a worker poll.
+      await db.$queryRaw`SELECT id FROM "Workspace" WHERE id = ${workspaceId} FOR UPDATE`;
+    }
+    return db.$queryRaw<ClaimedNewsletterJob[]>`
     WITH candidates AS (
       SELECT job."id"
       FROM "NewsletterJob" AS job
@@ -265,6 +275,12 @@ export async function claimDueNewsletterJobs(input?: { now?: Date; limit?: numbe
         OR (job."status" = 'CLAIMED' AND job."leaseExpiresAt" < ${now})
       )
       AND series."status" = 'ACTIVE'
+      AND (NOT ${enabled} OR (series."workspaceId" = ${workspaceId} AND EXISTS (
+        SELECT 1 FROM "Workspace" AS workspace
+        WHERE workspace.id = series."workspaceId"
+          AND workspace."lifecycleState" = 'ACTIVE'
+          AND (workspace."lastReactivatedAt" IS NULL OR job."dueAt" > workspace."lastReactivatedAt")
+      )))
       AND job."type" IN ('GENERATE', 'SEND', 'MISSED_APPROVAL')
       AND (
         job."type" <> 'SEND'
@@ -297,7 +313,7 @@ export async function claimDueNewsletterJobs(input?: { now?: Date; limit?: numbe
         )
       )
       ORDER BY job."dueAt" ASC
-      LIMIT ${limit}
+      LIMIT ${remaining}
       FOR UPDATE SKIP LOCKED
     )
     UPDATE "NewsletterJob" AS job
@@ -312,6 +328,27 @@ export async function claimDueNewsletterJobs(input?: { now?: Date; limit?: numbe
     WHERE job."id" = candidates."id"
     RETURNING job."id", job."editionId", job."type", job."claimToken", job."attempts"
   `;
+  };
+  if (!enabled) return claim(prisma, null, limit);
+  // Discovery is only a hint; the transaction rechecks lifecycle, cutoff and all
+  // approval/attempt predicates after its workspace lock.
+  const candidates = await prisma.$queryRaw<Array<{ workspaceId: string }>>`
+    SELECT series."workspaceId" AS "workspaceId"
+    FROM "NewsletterJob" job
+    JOIN "NewsletterEdition" edition ON edition.id = job."editionId"
+    JOIN "NewsletterSeries" series ON series.id = edition."seriesId"
+    JOIN "Workspace" workspace ON workspace.id = series."workspaceId"
+    WHERE workspace."lifecycleState" = 'ACTIVE' AND series.status = 'ACTIVE'
+      AND (workspace."lastReactivatedAt" IS NULL OR job."dueAt" > workspace."lastReactivatedAt")
+      AND ((job.status = 'PENDING' AND job."dueAt" <= ${now})
+        OR (job.status = 'CLAIMED' AND job."leaseExpiresAt" < ${now}))
+    GROUP BY series."workspaceId" ORDER BY MIN(job."dueAt"), series."workspaceId"
+  `;
+  const rows: ClaimedNewsletterJob[] = [];
+  for (const candidate of candidates) {
+    rows.push(...await prisma.$transaction(tx => claim(tx, candidate.workspaceId, limit - rows.length)));
+    if (rows.length >= limit) break;
+  }
   return rows;
 }
 

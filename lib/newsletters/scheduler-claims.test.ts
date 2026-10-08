@@ -10,6 +10,7 @@ test("scheduler SQL preserves held sends and stale schedules while claiming elig
   const now = new Date("2026-09-12T12:00:00Z");
   try {
     await db.exec(`
+      CREATE TABLE "Workspace" (id TEXT PRIMARY KEY, "lifecycleState" TEXT, "lastReactivatedAt" TIMESTAMPTZ);
       CREATE TABLE "NewsletterSeries" (id TEXT PRIMARY KEY, status TEXT, "workspaceId" TEXT);
       CREATE TABLE "NewsletterEdition" (id TEXT PRIMARY KEY, "seriesId" TEXT, status TEXT, "approvedRevisionId" TEXT, "intendedSendAt" TIMESTAMPTZ, "generationDueAt" TIMESTAMPTZ);
       CREATE TABLE "NewsletterJob" (id TEXT PRIMARY KEY, "editionId" TEXT, type TEXT, status TEXT, "dueAt" TIMESTAMPTZ, "leaseExpiresAt" TIMESTAMPTZ, "claimToken" TEXT, "claimedAt" TIMESTAMPTZ, attempts INT DEFAULT 0, "updatedAt" TIMESTAMPTZ);
@@ -48,7 +49,7 @@ test("scheduler SQL preserves held sends and stale schedules while claiming elig
     }
     const exports: { claimDueNewsletterJobs?: (input: unknown) => Promise<Array<{ id: string; claimToken: string; attempts: number }>> } = {};
     const modules: Record<string, unknown> = {
-      'server-only': {}, 'node:crypto': { randomUUID: () => 'new-token' }, './recurrence': {},
+      'server-only': {}, "@/lib/workspace-lifecycle/state": { lifecycleEnabled: () => false, workspaceIsActive: async () => true, requireWorkspaceScheduledAction: async () => {} }, 'node:crypto': { randomUUID: () => 'new-token' }, './recurrence': {},
       '@/lib/blog-ownership': {}, './ownership': {},
       '@/lib/prisma': { prisma: { $queryRaw: async (parts: TemplateStringsArray, ...values: unknown[]) => {
         const sql = parts.reduce((query, part, index) => query + (index ? `$${index}` : '') + part, '');

@@ -1730,6 +1730,7 @@ model Workspace {
   updatedAt DateTime @updatedAt
   lifecycleState WorkspaceLifecycleState @default(ACTIVE)
   lifecycleRevision Int @default(0)
+  lastReactivatedAt DateTime? @db.Timestamptz(3)
 }
 
 model WorkspaceMembership {

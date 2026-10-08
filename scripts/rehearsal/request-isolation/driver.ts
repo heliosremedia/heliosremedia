@@ -1,11 +1,9 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { PrismaClient } from '../../../app/generated/prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
 import { createSessionToken, SESSION_COOKIE } from '../../../lib/auth/token';
-import { requireDatabase } from './safety.mjs';
+import { prisma } from './database';
+export { prisma } from './database';
 
-export const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: requireDatabase(process.env.PACKET19_DATABASE_URL) }) });
 export async function requireEmpty() {
   const rows = await prisma.$queryRaw<{ tablename: string }[]>`SELECT tablename FROM pg_tables WHERE schemaname='public'`;
   assert.equal(rows.length, 0, 'Refuse populated databases; never reset or repair');
@@ -69,3 +67,7 @@ export { createReferralPreparationPreferenceToken } from "../../../lib/referrals
 export { transitionWorkspaceLifecycle, workspaceIsActive } from "../../../lib/workspace-lifecycle/core";
 
 export { hashPassword, verifyPassword } from "../../../lib/auth/password";
+
+export { claimDueNewsletterJobs, completeNewsletterJob } from "../../../lib/newsletters/scheduler";
+export { requireNewsletterDeliveryAccess } from "../../../lib/newsletters/delivery-access";
+export { requireNewsletterGenerationAccess } from "../../../lib/newsletters/generation-access";
