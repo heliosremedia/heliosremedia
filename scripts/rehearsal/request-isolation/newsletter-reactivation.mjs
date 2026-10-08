@@ -37,6 +37,9 @@ export async function qualifyNewsletterReactivation(driver) {
         ? driver.requireNewsletterDeliveryAccess(tx, job.editionId, id, due, { kind: 'BACKGROUND', jobId: job.id, claimToken: job.claimToken })
         : driver.requireNewsletterGenerationAccess(tx, job.editionId, id, { kind: 'BACKGROUND', jobId: job.id, claimToken: job.claimToken }));
       await admission(send); await admission(generate);
+      const actor = { userId: `u${id}`, workspaceId: id, sessionVersion: 1 };
+      const initialHealth = await driver.getNewsletterJobHealth(actor);
+      assert.equal(initialHealth.jobs.find(job => job.id === send.id)?.heldForReactivation, false);
       for (const job of [send, generate]) {
         let pending;
         try {
@@ -61,6 +64,10 @@ export async function qualifyNewsletterReactivation(driver) {
         }
       }
       await db.workspace.update({ where: { id }, data: { lastReactivatedAt: now } });
+      const heldHealth = await driver.getNewsletterJobHealth(actor);
+      assert.equal(heldHealth.jobs.find(job => job.id === send.id)?.heldForReactivation, true);
+      assert.equal(heldHealth.jobs.find(job => job.id === generate.id)?.heldForReactivation, true);
+      assert.ok(!heldHealth.jobs.some(job => job.id.startsWith(`${prefix}${other}`)));
       await assert.rejects(admission(send), /RECOVERY_REQUIRED/);
       await assert.rejects(admission(generate), /RECOVERY_REQUIRED/);
       // Settlement remains possible for the original claim despite lifecycle denial.
@@ -68,7 +75,7 @@ export async function qualifyNewsletterReactivation(driver) {
       assert.equal(await driver.completeNewsletterJob(send), true);
       assert.equal(await driver.completeNewsletterJob(send), false);
       assert.deepEqual(await db.newsletterJob.findMany({ where: { edition: { series: { workspaceId: other } } }, orderBy: { id: 'asc' } }), foreign);
-      cases.push({ tenant: id, futureApprovalRetained: true, overdueAndEqualityHeld: true, generationAndSendAdmission: true, reactivationInvalidatesMissedClaim: true, suspendedSettlementAllowed: true, duplicateSettlementInert: true, otherCompanyUnchanged: true });
+      cases.push({ tenant: id, heldJobsVisibleInOwnedReview: true, futureApprovalRetained: true, overdueAndEqualityHeld: true, generationAndSendAdmission: true, reactivationInvalidatesMissedClaim: true, suspendedSettlementAllowed: true, duplicateSettlementInert: true, otherCompanyUnchanged: true });
       await db.workspace.update({ where: { id }, data: { lifecycleState: 'ACTIVE' } });
     }
     return { cases, races, providerCalls: false, scope: 'newsletter-claim-and-execution-admission; other families and notifications remain open' };
