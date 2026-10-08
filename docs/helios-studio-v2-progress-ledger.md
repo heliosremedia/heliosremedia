@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 8, 2026: Packet 82 qualification correction; Packet 83 invitation fencing
+
+Packet 82 PR #391 candidate `1e5931fa6aaada6d2af20d6ddc41a034212b3468` corrects the stale company-name assertion from isolated run 37778938638. The failed run passed the new generic 503 checks before encountering the fixture expectation; independent logs confirm disposable database/network removal. No hosted staging or production database was used. New exact-head gates remain pending; Packet 82 is not yet integrated.
+
+Packet 83 closes reproduced [invitation transaction admission gaps](helios-studio-v2-workspace-invitation-fencing.md): creation/revocation now recheck locked current authority, replacement is atomic, and acceptance rereads the token binding under an ACTIVE workspace lock. All three focused tests fail against the previous routes and pass with the corrections. Qualification remains pending; other lifecycle callers and Phase 1 remain OPEN. Production ON HOLD.
+
 ## October 8, 2026: Packet 81 integrated; Packet 82 public suspension admission
 
 Packet 81 PR #390 candidate `44468c9af5b8130b3a3709cc434571f310cf0d97` passed runtime 37777680618. Artifact 11551461007 SHA256 `a77cc5c4d4e7df66f628cbe6a3f157fda879403697793c4e4e4932db0b44763f` was independently downloaded, hashed and parsed: both-direction session/write/account/support denial, twelve observed lock races, business/grant preservation, same-cookie reactivation and schema/access restoration passed. Regression/Chromium 37777680712 passed 1,831 tests and TypeScript. PR #390 integrated at `8f1c03a7940559fccae08d775d8389f6b519d8bf`; its merge tree matches the tested candidate. Both Vercel projects remain suppressed.
