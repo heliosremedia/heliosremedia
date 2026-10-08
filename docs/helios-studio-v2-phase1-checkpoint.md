@@ -1,3 +1,11 @@
+# Phase 1 checkpoint through integrated Packet 84
+
+October 8, 2026. Non-production base `96b92a3aec8e9c80d96e1be7b2fa48c6f5252f5f` / PR #393 matches tested candidate `3f39c5cb4a1b56c9a4023792c1feb7dda5130e0a`, tree `2421cd5a8c881a006eb70c7fa075dbab22604665`. Regression 37782163933 passed 1,840 tests/TypeScript/Chromium. Runtime 37782164067 artifact 11552492702 SHA256 `1a568add9e0affcb646126864464bf2faceb3ec629ac4142c0f51b21e25591d0` was independently downloaded/hash/parse-verified: fourteen observed profile races, owned atomic audit rollback, actual synthetic password verification, session revocation and restored original identity/membership/credential/schema state.
+
+Self-profile transaction admission and security audit ownership are now credited alongside the earlier bounded lifecycle, public and invitation surfaces. No lifecycle activation or provider-worker closure is claimed. The [current worker recovery proposal](helios-studio-v2-worker-reactivation-decision.md) records the remaining future-schedule policy choice and an actual scheduler probe. Other private/public writers, job/provider and analytics families, safety settlement, overdue recovery, cached/hosted delivery and the final Helios compatibility/second-company isolation verdict remain open. Phase 1 OPEN; production ON HOLD.
+
+## Historical Packet 83 checkpoint
+
 # Phase 1 checkpoint through integrated Packet 83
 
 October 8, 2026. PR #392 integrated at `eddfbf94a20b3f8ef1f33e34e228ec338c01b87a`, matching tested candidate `565b810934a6cf81fa60cb22626e61bf6aef666a` and tree `f252fd757bd0dd5b9de99c3db1e667bcb08e3ef0`. Regression 37780644935 passed 1,837 tests/TypeScript/Chromium. Runtime 37780644804 artifact 11552345770 SHA256 `6add66aa1eb5f06cbf01fb66548ba3317d267c3ed46cbf2c1227ddab825f46a7` was independently downloaded, hashed and parsed; original identity/membership rows and schema/access postflight passed. Packet 82's merge `4dec899a1e7f27de0b1fe2949499b18c7fb5f2f4` also matches its independently qualified public-response candidate.
