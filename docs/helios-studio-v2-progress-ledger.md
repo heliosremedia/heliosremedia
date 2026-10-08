@@ -1,5 +1,9 @@
 # Helios Studio V2 progress ledger
 
+## October 8 recovery: approved direction and usable product work
+
+Live recovery verified Packet 84. PR #394 now records the approved future-schedule policy and bounded readiness/product plan, passed regression 37844736236 and merged at `ed6c71fb4a12ef4170c558c1ac48ea33787afccf`. Newsletter safeguard PR #395 has independently verified runtime artifact evidence; full regression is pending. Studio shell/Command Center PR #396 implements real workspace-aware navigation and existing operational data; HTTP/Chromium qualification is underway. Current SHA/evidence/next-task details are in the [recovery checkpoint](helios-studio-v2-recovery-checkpoint.md). No phase closure or production readiness is inferred; production ON HOLD.
+
 ## October 8, 2026: Packet 84 integrated; worker reactivation choice prepared
 
 Packet 84 PR #393 integrated at `96b92a3aec8e9c80d96e1be7b2fa48c6f5252f5f`, matching tested candidate `3f39c5cb4a1b56c9a4023792c1feb7dda5130e0a` and tree `2421cd5a8c881a006eb70c7fa075dbab22604665`. Regression 37782163933 passed 1,840 tests/TypeScript/Chromium. Runtime 37782164067 artifact 11552492702 SHA256 `1a568add9e0affcb646126864464bf2faceb3ec629ac4142c0f51b21e25591d0` independently verifies fourteen profile races, credential/audit rollback, old-session rejection and full identity/membership/credential/schema postflight. Both Vercel projects remain suppressed.
