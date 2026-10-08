@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 8, 2026: Packet 84 integrated; worker reactivation choice prepared
+
+Packet 84 PR #393 integrated at `96b92a3aec8e9c80d96e1be7b2fa48c6f5252f5f`, matching tested candidate `3f39c5cb4a1b56c9a4023792c1feb7dda5130e0a` and tree `2421cd5a8c881a006eb70c7fa075dbab22604665`. Regression 37782163933 passed 1,840 tests/TypeScript/Chromium. Runtime 37782164067 artifact 11552492702 SHA256 `1a568add9e0affcb646126864464bf2faceb3ec629ac4142c0f51b21e25591d0` independently verifies fourteen profile races, credential/audit rollback, old-session rejection and full identity/membership/credential/schema postflight. Both Vercel projects remain suppressed.
+
+The actual scheduler [synthetic probe](helios-studio-v2-worker-reactivation-probe.json) confirms missing suspension and overdue-replay admission boundaries while retaining its UNCERTAIN guard. The [worker reactivation proposal](helios-studio-v2-worker-reactivation-decision.md) isolates a significant product choice: preserve still-future valid schedules, or require renewed approval for all pre-pause queued work. The existing owner-approved policy prohibits overdue catch-up but does not explicitly select between those future-calendar behaviors. This proposal makes no application/schema/provider changes. Phase 1 OPEN; production ON HOLD.
+
 ## October 8, 2026: Packets 82–83 integrated; Packet 84 self-profile fencing
 
 Packet 82 PR #391 integrated at `4dec899a1e7f27de0b1fe2949499b18c7fb5f2f4`, matching tested tree `835677e06d00f0a2452bdd0600de4d7d5a449cba`. Regression 37780493228 passed 1,834 tests/TypeScript/Chromium; runtime 37780493413 artifact 11551722360 SHA256 `2490813f8aae6f14901fd65c47440e6b6bbd098fe229f1406477fbe55dda4706` independently verifies host-owned public 503, opt-out and restoration. Packet 83 PR #392 integrated at `eddfbf94a20b3f8ef1f33e34e228ec338c01b87a`, matching tested tree `f252fd757bd0dd5b9de99c3db1e667bcb08e3ef0`; regression 37780644935 passed 1,837 tests/TypeScript/Chromium. Runtime 37780644804 artifact 11552345770 SHA256 `6add66aa1eb5f06cbf01fb66548ba3317d267c3ed46cbf2c1227ddab825f46a7` independently verifies fourteen invitation races, rollback, owned acceptance and restored identity/membership/schema postflight. Both Vercel projects remain suppressed.
