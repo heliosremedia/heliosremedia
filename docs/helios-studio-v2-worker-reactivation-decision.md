@@ -1,10 +1,10 @@
 # Owner decision: future schedules after workspace reactivation
 
-Status: **PROPOSED — NOT IMPLEMENTED.** This asks for scheduling semantics only. Production stays ON HOLD; no provider publishing, cron activation, real transition, credential operation or customer onboarding is authorized.
+Status: **APPROVED October 8, 2026; implementation in progress.** Jake explicitly approved preservation of unchanged, valid future schedules in the development recovery directive. Production stays ON HOLD; no provider publishing, cron activation, real transition, credential operation or customer onboarding is authorized.
 
-## Concrete decision
+## Approved decision
 
-Approve this recovery rule: **preserve still-future schedules whose existing approvals remain valid; hold overdue work for explicit rescheduling/reapproval; keep PREPARED/UNCERTAIN outcomes review-only.**
+The approved recovery rule is: **preserve still-future schedules whose existing approvals remain valid; hold overdue work for explicit rescheduling/reapproval; keep PREPARED/UNCERTAIN outcomes review-only.**
 
 A schedule is still-future if its next intended provider action is after the actual reactivation boundary. A job that became due during suspension is overdue. A scheduled item being in the future when the pause began is insufficient if that time passed before reactivation. Existing ownership, approval revision, lease, consent and provider uncertainty checks continue to apply. Reactivation never manufactures a new approval.
 
@@ -17,7 +17,7 @@ Example: a company is paused Monday and reactivated Wednesday. Monday/Tuesday se
 
 The first choice is recommended because the charter preserves schedules while the already-approved suspension policy specifically prohibits overdue catch-up. The distinction is significant product behavior across newsletter, email, referral, social and AI scheduling. It should not be silently decided by a timestamp predicate, nor should implementation of a new shared worker engine be smuggled into Phase 1.
 
-## Why the previous approval does not settle this choice
+## Historical reason this decision was requested
 
 The [approved lifecycle policy](helios-studio-v2-workspace-lifecycle-decision.md) establishes ACTIVE/SUSPENDED, no new outbound work during suspension, necessary settlement/safety exceptions, no automatic overdue replay and preservation of existing family-specific claim/recovery rules. It does not explicitly say whether a pre-pause approval for a still-future action remains valid after reactivation. The [charter](helios-studio-v2-charter.md) requires schedule compatibility and family-specific approval semantics. Both choices above satisfy the no-overdue-replay rule but behave differently for a real company's future calendar.
 
@@ -39,4 +39,4 @@ Source review also finds newsletter cron notifications after generation/delivery
 4. Keep already-started outcome/audit settlement and verified opt-out/bounce/complaint safety paths narrowly available. Follow-up notifications, fresh provider operations and uncertain retries are new work and do not inherit a settlement exception.
 5. Qualify each family with a real disposable database and no-network providers: suspend between discovery/claim/provider admission, pause through a due time, reactivate before/after a future due time, explicit recovery, uncertain outcomes, both tenant directions, rollback and restoration. Preserve all current CI/artifact/merge-tree gates.
 
-No production migration, real operator enrollment, lifecycle activation or Phase 2 entry follows from approving this scheduling choice. Phase 1 remains OPEN.
+No production migration, real operator enrollment or lifecycle activation follows from this decision. Foundation qualification remains OPEN. The October 8 recovery directive separately authorizes concurrent product development; historical phase-order restrictions no longer block safe non-production shell and Command Center work.

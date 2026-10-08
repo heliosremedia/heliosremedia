@@ -1,5 +1,11 @@
 # Helios Studio V2 Delivery Roadmap
 
+## Active delivery direction: October 8, 2026
+
+Owner directive: protect the existing foundation while building the production-intended application. Phase numbers describe capability areas, not a requirement to finish every hardening item before starting product work. All existing qualification and release gates remain. Production ON HOLD.
+
+Current milestones and bounded readiness assessment: [product delivery plan](helios-studio-v2-product-delivery-plan.md). Normal reversible non-production implementation, tests, qualified PR merges, staging and progression between milestones are authorized without routine approval. No artificial deadline or packet-count target.
+
 ## Phase 0: baseline and containment
 
 Deliverables:
