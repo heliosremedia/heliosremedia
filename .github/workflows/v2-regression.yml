@@ -68,7 +68,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: studio-command-center-${{ github.sha }}
-          path: release-evidence/studio-command-center-*.png
+          path: release-evidence/studio-*.png
           if-no-files-found: error
       - name: Check patch whitespace
         run: git show --format= --check HEAD

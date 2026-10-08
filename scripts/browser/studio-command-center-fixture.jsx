@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import ScheduleChangeDialog from '../../app/admin/newsletter-studio/components/ScheduleChangeDialog';
 import { createRoot } from 'react-dom/client';
 import StudioShell from '../../app/admin/components/StudioShell';
 import CommandCenter from '../../app/admin/studio/CommandCenter';
@@ -13,4 +14,8 @@ const data = {
   } },
   website: { available: mode !== 'unavailable', data: { totalProjects: empty ? 0 : 12, recentProjects: empty ? [] : [{ id: 'synthetic', title: 'Stonewater Sanctuary', status: 'DRAFT', city: 'Fort Collins', state: 'CO', updatedAt: new Date() }] } },
 };
-createRoot(document.getElementById('root')).render(<StudioShell businessName="Synthetic Northern Colorado Media" session={{ workspaceId: 'synthetic', role: 'OWNER', displayName: 'Synthetic owner' }}><CommandCenter data={data}/></StudioShell>);
+function ScheduleFixture() {
+  const [open, setOpen] = useState(false), [result, setResult] = useState('');
+  return <><button onClick={() => setOpen(true)}>Change send date</button><output>{result}</output>{open && <ScheduleChangeDialog currentDate="2026-10-08T15:00:00Z" busy={false} onClose={() => setOpen(false)} onConfirm={async date => { setResult(date); return mode !== 'schedule-failure'; }} />}</>;
+}
+createRoot(document.getElementById('root')).render(mode?.startsWith('schedule-') ? <ScheduleFixture/> : <StudioShell businessName="Synthetic Northern Colorado Media" session={{ workspaceId: 'synthetic', role: 'OWNER', displayName: 'Synthetic owner' }}><CommandCenter data={data}/></StudioShell>);

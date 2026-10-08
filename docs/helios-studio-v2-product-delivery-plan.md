@@ -2,9 +2,13 @@
 
 Owner-approved direction, October 8, 2026. Production ON HOLD.
 
-## Live recovery
+## Original live recovery
 
 Fresh GitHub clone; integration branch `codex/v2-hosted-access-owner-action` resolves to `96b92a3aec8e9c80d96e1be7b2fa48c6f5252f5f`. PR #393 is merged and its candidate tree equals the integration tree. PR #394 is open/draft at `64e3878c827ba4e84dcb391c52fedd3fc96ed2f7`; no later PR found in the live listing. Prior 1,840-test/runtime/Chromium artifact evidence is recorded in the existing checkpoint; this recovery does not claim a fresh execution of those historical checks.
+
+## Current capability progress
+
+Read `helios-studio-v2-recovery-checkpoint.md` for current verified SHAs and evidence. Policy, bounded newsletter scheduling safeguards, the workspace shell, Command Center and held-work review are integrated through PR #398. The next product slice exposes deliberate edition date changes through the existing module with reviewed-version protection. Whole lifecycle activation and hosted owner access remain bounded dependencies, not reasons to pause safe product implementation.
 
 ## Bounded foundation-readiness assessment
 

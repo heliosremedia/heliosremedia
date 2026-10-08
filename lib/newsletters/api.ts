@@ -90,6 +90,7 @@ export function serializeSeries(series: {
 }
 
 export async function serializeEdition(edition: {
+  rowVersion?: number;
   id: string; seriesId: string; status: string; subject: string | null;
   previewText: string | null; intendedSendAt: Date; generationDueAt: Date | null;
   contentNotes: unknown; internalNotes: string | null; warnings: unknown;
@@ -105,6 +106,7 @@ export async function serializeEdition(edition: {
     ? edition.contentNotes as Record<string, unknown> : {};
   return {
     id: edition.id,
+    rowVersion: edition.rowVersion,
     seriesId: edition.seriesId,
     seriesName: edition.series.name,
     senderName: edition.series.senderName ?? "Helios Real Estate Media",
