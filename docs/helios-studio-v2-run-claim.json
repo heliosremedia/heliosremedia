@@ -1,10 +1,10 @@
 {
   "status": "in-progress",
-  "runId": "atlas-packet82-lifecycle-public",
-  "branch": "codex/v2-workspace-invitation-fencing",
-  "head": "565b810934a6cf81fa60cb22626e61bf6aef666a",
-  "pr": 392,
-  "scope": "Packets 82 and 83 qualifying corrected prerequisite; Packet 84 profile write authority being reviewed.",
+  "runId": "atlas-packet84-profile",
+  "branch": "codex/v2-profile-write-fencing",
+  "head": "eddfbf94a20b3f8ef1f33e34e228ec338c01b87a",
+  "pr": null,
+  "scope": "Packets 82–83 integrated. Profile transaction authority, credential snapshot and owned atomic audit correction prepared.",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Verify exact-head runtime artifacts and regression before ordered integration; keep all real lifecycle activation off.",
+  "nextAction": "Publish and independently qualify Packet 84; keep Phase 1 open and real lifecycle activation off.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -2000,7 +2000,7 @@
     "localTests": 1834,
     "runtime": 37780493413,
     "regression": 37780493228,
-    "status": "qualifying",
+    "status": "integrated",
     "priorRuntimeFailure": {
       "run": 37778938638,
       "reason": "Stale original company label after preceding settings qualification; corrected to current distinct database names",
@@ -2013,7 +2013,13 @@
       "reason": "Unsubscribe lost request-time rendering outside public layout; added server connection wrapper without weakening HTML assertion",
       "disposableContainerAndNetworkRemovalVerified": true,
       "finalPostflightReached": false
-    }
+    },
+    "merge": "4dec899a1e7f27de0b1fe2949499b18c7fb5f2f4",
+    "mergeTreeMatchesCandidate": true,
+    "artifact": 11551722360,
+    "sha256": "2490813f8aae6f14901fd65c47440e6b6bbd098fe229f1406477fbe55dda4706",
+    "independentlyDownloadedHashParsed": true,
+    "postflight": true
   },
   "packet83": {
     "pr": 392,
@@ -2023,8 +2029,15 @@
     "regression": 37780644935,
     "localTests": 1837,
     "preFixReproductions": 3,
-    "status": "qualifying",
+    "status": "integrated",
     "priorRun": 37780057660,
-    "priorFailure": "Inherited unsubscribe HTML assertion; did not reach invitation cases; disposable container/network cleanup verified; prerequisite corrected"
+    "priorFailure": "Inherited unsubscribe HTML assertion; did not reach invitation cases; disposable container/network cleanup verified; prerequisite corrected",
+    "merge": "eddfbf94a20b3f8ef1f33e34e228ec338c01b87a",
+    "mergeTreeMatchesCandidate": true,
+    "artifact": 11552345770,
+    "sha256": "6add66aa1eb5f06cbf01fb66548ba3317d267c3ed46cbf2c1227ddab825f46a7",
+    "independentlyDownloadedHashParsed": true,
+    "races": 14,
+    "postflight": true
   }
 }
