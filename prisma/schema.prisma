@@ -1591,6 +1591,7 @@ model CtaPlacement {
 }
 
 model AdminUser {
+  platformLifecycleOperator PlatformLifecycleOperator?
   platformSupportOperator PlatformSupportOperator?
   supportGrantsIssued SupportAccessGrant[] @relation("SupportGrantIssuer")
   supportGrantsRevoked SupportAccessGrant[] @relation("SupportGrantRevoker")
@@ -1727,6 +1728,8 @@ model Workspace {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  lifecycleState WorkspaceLifecycleState @default(ACTIVE)
+  lifecycleRevision Int @default(0)
 }
 
 model WorkspaceMembership {
@@ -3877,4 +3880,17 @@ model SupportAccessGrant {
   revokedBy AdminUser? @relation("SupportGrantRevoker", fields: [revokedById], references: [id], onDelete: Restrict)
   @@index([workspaceId, createdAt])
   @@index([operatorId, expiresAt])
+}
+
+// Empty on migration. Tenant/support roles never imply transition authority.
+enum WorkspaceLifecycleState {
+  ACTIVE
+  SUSPENDED
+}
+model PlatformLifecycleOperator {
+  userId String @id
+  user AdminUser @relation(fields: [userId], references: [id], onDelete: Restrict)
+  enabled Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
