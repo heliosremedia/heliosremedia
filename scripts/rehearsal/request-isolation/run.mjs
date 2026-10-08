@@ -156,6 +156,8 @@ async function prepare() {
     // The driver runs as Node, outside Next's server condition. This removes
     // only the package's build-time sentinel; application guards are unchanged.
     name: 'rehearsal-server-only', setup(build) {
+      // Match only the application's canonical Prisma import inside the driver bundle.
+      build.onResolve({ filter: /^@\/lib\/prisma$/ }, () => ({ path: join(root, 'scripts/rehearsal/request-isolation/database.ts') }));
       build.onResolve({ filter: /^server-only$/ }, () => ({ path: 'server-only', namespace: 'rehearsal-server-only' }));
       build.onLoad({ filter: /.*/, namespace: 'rehearsal-server-only' }, () => ({ contents: 'export {};', loader: 'js' }));
     },
