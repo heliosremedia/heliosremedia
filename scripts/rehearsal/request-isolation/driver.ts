@@ -67,3 +67,5 @@ export { lockReferralPreparationSource, lockReferralPreparationClaim, referralPr
 export { createReferralPreparationPreferenceToken } from "../../../lib/referrals/preparation-consent";
 
 export { transitionWorkspaceLifecycle, workspaceIsActive } from "../../../lib/workspace-lifecycle/core";
+
+export { hashPassword, verifyPassword } from "../../../lib/auth/password";

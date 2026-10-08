@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 8, 2026: Packets 82–83 integrated; Packet 84 self-profile fencing
+
+Packet 82 PR #391 integrated at `4dec899a1e7f27de0b1fe2949499b18c7fb5f2f4`, matching tested tree `835677e06d00f0a2452bdd0600de4d7d5a449cba`. Regression 37780493228 passed 1,834 tests/TypeScript/Chromium; runtime 37780493413 artifact 11551722360 SHA256 `2490813f8aae6f14901fd65c47440e6b6bbd098fe229f1406477fbe55dda4706` independently verifies host-owned public 503, opt-out and restoration. Packet 83 PR #392 integrated at `eddfbf94a20b3f8ef1f33e34e228ec338c01b87a`, matching tested tree `f252fd757bd0dd5b9de99c3db1e667bcb08e3ef0`; regression 37780644935 passed 1,837 tests/TypeScript/Chromium. Runtime 37780644804 artifact 11552345770 SHA256 `6add66aa1eb5f06cbf01fb66548ba3317d267c3ed46cbf2c1227ddab825f46a7` independently verifies fourteen invitation races, rollback, owned acceptance and restored identity/membership/schema postflight. Both Vercel projects remain suppressed.
+
+Packet 84 fixes two reproduced [self-profile transaction and audit gaps](helios-studio-v2-profile-write-fencing.md). All 1,840 local tests, TypeScript and lint pass; exact-head qualification remains pending. The current checkpoint credits only the integrated bounded surfaces. Other writers, jobs/provider work, safety settlement, reactivation backlog, hosted parity and the complete compatibility verdict remain open. Phase 1 OPEN; production ON HOLD.
+
 ## October 8, 2026: Packet 82 qualification correction; Packet 83 invitation fencing
 
 Packet 82 PR #391 candidate `1e5931fa6aaada6d2af20d6ddc41a034212b3468` corrects the stale company-name assertion from isolated run 37778938638. The failed run passed the new generic 503 checks before encountering the fixture expectation; independent logs confirm disposable database/network removal. No hosted staging or production database was used. New exact-head gates remain pending; Packet 82 is not yet integrated.
