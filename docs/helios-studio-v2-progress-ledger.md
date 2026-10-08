@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 8, 2026: approved lifecycle policy; Packet 80 transition foundation
+
+Packet 79 PR #387 integrated at `aed5f90f9da49ed446fbc62f882761ae5634579f`, matching tested tree `d654281f00fde87e445ba44dfee708b163697c50`. Regression 37638269422 passed 1,826 tests/TypeScript/Chromium; runtime 37638269393 artifact 11491208228 SHA256 `36af52cc71f377482878e2f8b04640d7ee7c6879ad36e07152a9eb6b39dbb983` independently verified 28 settings races plus prior film/support and schema/access postflight. Jake approved lifecycle policy PR #388 on October 8; its exact-head regression 37639023296 passed and its integration `aa3457bca84d402cae01fbe85f78e32335995d3a` matches the reviewed policy tree.
+
+Packet 80 adds the [default-off persisted lifecycle transition foundation](helios-studio-v2-workspace-lifecycle-foundation.md). Existing workspaces remain ACTIVE; independent operators start empty/disabled. Request/public/support/worker enforcement remains unqualified until subsequent caller-specific packets. Exact-head CI/runtime and independent artifact gates remain pending at preparation. Phase 1 OPEN; production ON HOLD.
+
 ## October 7, 2026: Packets 77–78 integrated; Packet 79 settings attachments
 
 Packet 77 PR #385 integrated at `ec3a055ee8cdb16d1da3c0d33f3ea77a9abf5ec0`, with tested tree `f20e313447efc77a0ffa9d88c8d48d2a6792cbe1`. Regression 37635573932 passed 1,816 tests/TypeScript/Chromium; runtime 37635574038 and artifact 11489621406 SHA256 `bdd6b8c801014ee496a26ae2f72ebe13d54cd95ef88ee3806adc76d1f39a69eb` independently verify the approved diagnostic scope. Packet 78 PR #386 integrated at `e9171e698e0fb92b99519d0a5cbcf83de7c7a359`, matching tested tree `35fccfd7ea365d2c45cd67672351ef3dc5550a74`; regression 37636588189 passed 1,818 tests/TypeScript/Chromium. Runtime 37636588265 artifact 11489532629 SHA256 `bc55f7a2627257ca8a8369d72d522998ff514eedc6e300119337f7f0c61eacc7` independently confirms eighteen film races plus inherited support and postflight. Both Vercel projects remain suppressed.

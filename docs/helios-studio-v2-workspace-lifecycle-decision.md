@@ -1,6 +1,6 @@
 # Phase 1 owner decision: workspace suspension
 
-Status: **PROPOSED — consequential availability/security policy requires owner decision before implementation.** Production ON HOLD. This document authorizes no state change, migration, enrollment, provider call or deployment.
+Status: **APPROVED for bounded non-production implementation on October 8, 2026.** Jake explicitly approved the policy. PR #388 integrated at `aa3457bca84d402cae01fbe85f78e32335995d3a`. Real operator enrollment and real workspace transitions remain separately owner-gated. Production ON HOLD. The proposal below records the accepted policy; no production migration, provider activation or real suspension is authorized.
 
 ## Decision to approve
 
