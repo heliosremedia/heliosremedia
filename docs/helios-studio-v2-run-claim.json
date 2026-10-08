@@ -1,10 +1,10 @@
 {
   "status": "in-progress",
-  "runId": "atlas-packet81-lifecycle-admission",
-  "branch": "codex/v2-workspace-lifecycle-admission",
-  "head": "44468c9af5b8130b3a3709cc434571f310cf0d97",
-  "pr": 390,
-  "scope": "Packet 80 integrated; implementing bounded session/write/account/support lifecycle admission.",
+  "runId": "atlas-packet82-lifecycle-public",
+  "branch": "codex/v2-workspace-lifecycle-public",
+  "head": "8f1c03a7940559fccae08d775d8389f6b519d8bf",
+  "pr": null,
+  "scope": "Packet 81 integrated; bounded host-owned public 503 response and preserved opt-out in development.",
   "evidence": {
     "run": 36217912507,
     "reason": null,
@@ -50,7 +50,7 @@
     "packet16Merged": "e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7"
   },
   "production": "ON HOLD",
-  "nextAction": "Qualify default-off admission gates in both tenant directions with current-state lock races. Public delivery and worker closure remain open.",
+  "nextAction": "Qualify enumerated public pages/APIs, HEAD/RSC, opt-out, reactivation and default-off compatibility before merge.",
   "packet17": {
     "pr": 324,
     "head": "208d19c5ae0bc5ca894290732282cc2b3bf3cd07",
@@ -1981,7 +1981,16 @@
     "tree": "d131db5a3ae02747cbc5cc0d9b7d7c97f2efe6c5",
     "regression": 37777680712,
     "runtime": 37777680618,
-    "status": "qualifying",
-    "localTests": 1831
+    "status": "integrated",
+    "localTests": 1831,
+    "merge": "8f1c03a7940559fccae08d775d8389f6b519d8bf",
+    "mergeTreeMatchesCandidate": true,
+    "artifact": 11551461007,
+    "sha256": "a77cc5c4d4e7df66f628cbe6a3f157fda879403697793c4e4e4932db0b44763f",
+    "independentlyDownloadedHashParsed": true,
+    "races": 12,
+    "postflight": true,
+    "productionSuppressed": true,
+    "stagingSuppressed": true
   }
 }
