@@ -2,8 +2,8 @@
   "status": "in-progress",
   "runId": "atlas-packet82-lifecycle-public",
   "branch": "codex/v2-workspace-lifecycle-public",
-  "head": "8f1c03a7940559fccae08d775d8389f6b519d8bf",
-  "pr": null,
+  "head": "1e5931fa6aaada6d2af20d6ddc41a034212b3468",
+  "pr": 391,
   "scope": "Packet 81 integrated; bounded host-owned public 503 response and preserved opt-out in development.",
   "evidence": {
     "run": 36217912507,
@@ -1992,5 +1992,21 @@
     "postflight": true,
     "productionSuppressed": true,
     "stagingSuppressed": true
+  },
+  "packet82": {
+    "pr": 391,
+    "candidate": "1e5931fa6aaada6d2af20d6ddc41a034212b3468",
+    "tree": "321684ab267f0ad006ec692726a7f56556265f83",
+    "localTests": 1834,
+    "runtime": 37779670457,
+    "regression": 37779670574,
+    "status": "qualifying",
+    "priorRuntimeFailure": {
+      "run": 37778938638,
+      "reason": "Stale original company label after preceding settings qualification; corrected to current distinct database names",
+      "disposableContainerAndNetworkRemovalVerified": true,
+      "hostedDatabaseUsed": false,
+      "finalPostflightReached": false
+    }
   }
 }
