@@ -1,3 +1,13 @@
+# Phase 1 checkpoint through integrated Packet 83
+
+October 8, 2026. PR #392 integrated at `eddfbf94a20b3f8ef1f33e34e228ec338c01b87a`, matching tested candidate `565b810934a6cf81fa60cb22626e61bf6aef666a` and tree `f252fd757bd0dd5b9de99c3db1e667bcb08e3ef0`. Regression 37780644935 passed 1,837 tests/TypeScript/Chromium. Runtime 37780644804 artifact 11552345770 SHA256 `6add66aa1eb5f06cbf01fb66548ba3317d267c3ed46cbf2c1227ddab825f46a7` was independently downloaded, hashed and parsed; original identity/membership rows and schema/access postflight passed. Packet 82's merge `4dec899a1e7f27de0b1fe2949499b18c7fb5f2f4` also matches its independently qualified public-response candidate.
+
+Newly credited bounds: host-owned public pages/listed APIs return generic no-store 503 during suspension, HEAD/RSC are denied, opt-out renders without tenant metadata and stored-token suppression remains available; invitation create/revoke/accept now have current-state transaction admission, fourteen observed races, atomic replacement rollback and owned identity/membership creation. Those supplement Packet 81 session/common-write/account-edit/support admission and Packet 80 transition foundation. The two earlier public qualification failures were diagnosed and corrected without relaxing assertions; disposable cleanup was independently verified before new runs.
+
+Workspace-wide lifecycle remains OPEN: other private writers (Packet 84 profile candidate pending), referral and analytics writes, job/provider admission/settlement, reactivation backlog, cached/hosted delivery and complete Helios compatibility/second-company isolation still require evidence. Real activation remains off, no real operators are enrolled, and production is ON HOLD. No Phase 2 entry.
+
+## Historical Packet 81 checkpoint
+
 # Phase 1 checkpoint through integrated Packet 81
 
 October 8, 2026. PR #390 integrated at `8f1c03a7940559fccae08d775d8389f6b519d8bf`, matching tested candidate `44468c9af5b8130b3a3709cc434571f310cf0d97` and tree `d131db5a3ae02747cbc5cc0d9b7d7c97f2efe6c5`. Regression 37777680712 passed 1,831 tests, TypeScript and Chromium. Runtime 37777680618 artifact 11551461007 SHA256 `a77cc5c4d4e7df66f628cbe6a3f157fda879403697793c4e4e4932db0b44763f` independently verifies both-direction current-session/common-write/account-edit/support suspension admission, twelve observed database-lock races, unchanged denied writes and schema/access restoration.
