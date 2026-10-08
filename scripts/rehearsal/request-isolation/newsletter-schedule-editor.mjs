@@ -5,13 +5,13 @@ export async function qualifyNewsletterScheduleEditor(origin, driver) {
   const db = driver.prisma, cases = [], prefix = 'studio-date-';
   const memberships = await db.workspaceMembership.findMany({ orderBy: { id: 'asc' } });
   const workspaces = await db.workspace.findMany({ orderBy: { id: 'asc' } });
-  const ids = ['a', 'b'].map(id => `${prefix}${id}`);
+  const ids = ['a'].map(id => `${prefix}${id}`);
   const originalDate = new Date(Date.now() + 86400000), changedDate = new Date(Date.now() + 172800000);
   const post = (actor, edition, version, headers = { cookie: driver.cookie(actor) }) => http(origin, `${actor === 'a' ? 'b' : 'a'}.example.test`, `/api/admin/newsletters/editions/${edition}`, {
     method: 'POST', headers: { ...headers, 'x-workspace-id': 'foreign' }, body: { action: 'reschedule', expectedVersion: version, intendedSendAt: changedDate.toISOString(), workspaceId: 'foreign' },
   });
   try {
-    for (const id of ['a', 'b']) {
+    for (const id of ['a']) {
       const key = `${prefix}${id}`;
       await db.newsletterSeries.create({ data: { id: key, workspaceId: id, name: 'Synthetic reviewed schedule', sendRecurrenceKind: 'DAY_OF_MONTH', sendLocalTime: '09:00', generationMode: 'MANUAL', createdById: `u${id}` } });
       await db.newsletterEdition.create({ data: { id: key, seriesId: key, cycleKey: key, intendedSendAt: originalDate, status: 'SCHEDULED', createdById: `u${id}` } });
@@ -20,10 +20,10 @@ export async function qualifyNewsletterScheduleEditor(origin, driver) {
       await db.newsletterApproval.create({ data: { id: key, editionId: key, revisionId: key, approvedById: `u${id}`, approvedSendAt: originalDate, estimatedEligibleCount: 0, estimatedExcludedCount: 0, recipientSelectionSnapshot: {} } });
       await db.newsletterJob.create({ data: { id: key, editionId: key, type: 'SEND', dueAt: originalDate, idempotencyKey: key } });
     }
-    for (const id of ['a', 'b']) {
+    for (const id of ['a']) {
       const key = `${prefix}${id}`, foreignKey = `${prefix}${id === 'a' ? 'b' : 'a'}`;
       const before = await db.newsletterEdition.findUniqueOrThrow({ where: { id: key } });
-      const foreign = await db.newsletterEdition.findUniqueOrThrow({ where: { id: foreignKey } });
+      assert.equal(await db.workspace.count(), 1, 'Successful HTTP paths require the existing single-company module gate');
       assert.equal((await post(id, key, before.rowVersion, {})).status, 401);
       assert.equal((await post(id, foreignKey, before.rowVersion)).status, 404);
       assert.equal((await post(id, key, before.rowVersion + 1)).status, 409);
@@ -48,10 +48,10 @@ export async function qualifyNewsletterScheduleEditor(origin, driver) {
       assert.equal((await db.newsletterJob.findUniqueOrThrow({ where: { id: key } })).status, 'CANCELLED');
       assert.equal((await post(id, key, before.rowVersion)).status, 409);
       assert.deepEqual(await db.newsletterEdition.findUniqueOrThrow({ where: { id: key } }), after);
-      assert.deepEqual(await db.newsletterEdition.findUniqueOrThrow({ where: { id: foreignKey } }), foreign);
-      cases.push({ tenant: id, reviewedVersionRequired: true, foreignAnonymousViewerSuspendedDenied: true, activeClaimRollsBack: true, changedDateRequiresNewApproval: true, priorSendJobCancelled: true, staleReplayInert: true, otherCompanyUnchanged: true });
+      assert.equal(await db.newsletterEdition.count({ where: { id: foreignKey } }), 0);
+      cases.push({ tenant: id, reviewedVersionRequired: true, foreignAnonymousViewerSuspendedDenied: true, activeClaimRollsBack: true, changedDateRequiresNewApproval: true, priorSendJobCancelled: true, staleReplayInert: true, foreignEditionUnavailable: true });
     }
-    return { cases, actualNextHttp: true, providerCalls: false, scope: 'explicit reviewed reschedule only; no approval or send activation' };
+    return { cases, actualNextHttp: true, singleCompanyGatePreserved: true, providerCalls: false, scope: 'supported single-company HTTP reschedule; no approval or send activation' };
   } finally {
     await db.auditEvent.deleteMany({ where: { entityId: { in: ids } } });
     await db.newsletterApproval.deleteMany({ where: { editionId: { in: ids } } });
@@ -63,4 +63,17 @@ export async function qualifyNewsletterScheduleEditor(origin, driver) {
     assert.deepEqual(await db.workspaceMembership.findMany({ orderBy: { id: 'asc' } }), memberships);
     assert.deepEqual(await db.workspace.findMany({ orderBy: { id: 'asc' } }), workspaces);
   }
+}
+
+export async function qualifyNewsletterMultiWorkspaceHold(origin, driver) {
+  assert.equal(await driver.prisma.workspace.count(), 2);
+  const before = await driver.prisma.newsletterEdition.findMany({ orderBy: { id: 'asc' } });
+  for (const id of ['a', 'b']) {
+    const reply = await http(origin, `${id}.example.test`, '/api/admin/newsletters/editions/not-created', {
+      method: 'POST', headers: { cookie: driver.cookie(id) }, body: { action: 'reschedule', expectedVersion: 0, intendedSendAt: '2100-01-02T12:30:00Z' },
+    });
+    assert.equal(reply.status, 403, 'Existing multi-workspace newsletter module hold must remain enforced');
+  }
+  assert.deepEqual(await driver.prisma.newsletterEdition.findMany({ orderBy: { id: 'asc' } }), before);
+  return { bothCompaniesDenied: true, noEditionMutation: true };
 }

@@ -9,6 +9,8 @@ Production ON HOLD. This guide describes the next non-production owner-testing p
 - Read-only newsletter job review distinguishes jobs held after reactivation and links to edition generation/delivery review.
 - Valid unchanged future newsletter schedules survive reactivation; overdue work is held. SEND, GENERATE and approval-deadline admission are checked under workspace locks. Uncertain provider outcomes retain their separate review rules.
 
+Newsletter Studio retains its existing single-company HTTP admission guard. In a multi-workspace environment its routes, including job-health refresh, remain unavailable pending module qualification. Do not remove that guard just to expose the new controls.
+
 ## Safe test environment
 
 Use the existing isolated non-production process and synthetic companies. The shell requires tenant mode, `STUDIO_V2_SHELL_ENABLED=true`, an exact `STUDIO_V2_SHELL_WORKSPACE_IDS` allowlist and a current OWNER/ADMIN membership. Do not turn on whole-workspace lifecycle rollout solely to test the shell. Other outbound families remain unqualified for that rollout.

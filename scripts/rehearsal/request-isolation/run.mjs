@@ -1,4 +1,4 @@
-import { qualifyNewsletterScheduleEditor } from "./newsletter-schedule-editor.mjs";
+import { qualifyNewsletterScheduleEditor, qualifyNewsletterMultiWorkspaceHold } from "./newsletter-schedule-editor.mjs";
 import { qualifyStudioCommandCenter } from "./studio-command-center.mjs";
 import { qualifyNewsletterReactivation } from "./newsletter-reactivation.mjs";
 import { qualifyProfileWrite } from "./profile-write.mjs";
@@ -176,9 +176,9 @@ try {
     driver = await import(pathToFileURL(bundle));
     await driver.requireEmpty();
     await command(process.execPath, ['node_modules/prisma/build/index.js', 'db', 'push'], app);
-    await driver.seed(); const schemaBefore = await driver.schemaFingerprint();
+    await driver.seed(true); const schemaBefore = await driver.schemaFingerprint();
     const indexesBefore = await driver.schemaIndexFingerprint();
-    console.log('PASS empty disposable database admission and synthetic two-tenant seed');
+    console.log('PASS empty disposable database admission and initial synthetic single-company seed');
     console.log((await command(process.execPath, ['node_modules/next/dist/bin/next', 'build', '--webpack'], app)).slice(-1000));
     const socket = createServer(); await new Promise(resolve => socket.listen(0, '127.0.0.1', resolve));
     const port = socket.address().port; await new Promise(resolve => socket.close(resolve));
@@ -193,6 +193,10 @@ try {
       child.once('exit', code => { clearTimeout(timer); reject(new Error(`Next exited ${code}`)); });
     });
     const origin = requireOrigin(`http://127.0.0.1:${port}`);
+    const newsletterScheduleEditor = await qualifyNewsletterScheduleEditor(origin, driver);
+    await driver.seedSecondWorkspace();
+    newsletterScheduleEditor.multiWorkspaceHold = await qualifyNewsletterMultiWorkspaceHold(origin, driver);
+    console.log('PASS supported single-company schedule editor HTTP, then existing two-company module hold');
     const result = await qualify(origin, driver);
     const portfolio = await qualifyPortfolio(origin, driver);
     const previewFencing = await qualifyPreviewFencing(origin, driver);
@@ -249,7 +253,6 @@ try {
     const workspaceLifecyclePublic = await qualifyWorkspaceLifecyclePublic(origin, driver);
     const workspaceInvitations = await qualifyWorkspaceInvitations(origin, driver);
     const profileWrite = await qualifyProfileWrite(origin, driver);
-    const newsletterScheduleEditor = await qualifyNewsletterScheduleEditor(origin, driver);
     const studioCommandCenter = await qualifyStudioCommandCenter(origin, driver);
 
 
