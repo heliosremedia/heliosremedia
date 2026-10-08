@@ -69,3 +69,7 @@ export { createReferralPreparationPreferenceToken } from "../../../lib/referrals
 export { transitionWorkspaceLifecycle, workspaceIsActive } from "../../../lib/workspace-lifecycle/core";
 
 export { hashPassword, verifyPassword } from "../../../lib/auth/password";
+
+export { claimDueNewsletterJobs, completeNewsletterJob } from "../../../lib/newsletters/scheduler";
+export { requireNewsletterDeliveryAccess } from "../../../lib/newsletters/delivery-access";
+export { requireNewsletterGenerationAccess } from "../../../lib/newsletters/generation-access";

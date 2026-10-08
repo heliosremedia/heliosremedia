@@ -32,13 +32,14 @@ test('lifecycle migration and actual transition core preserve identity and requi
   try {
     await db.exec(`CREATE TABLE "Workspace" (id TEXT PRIMARY KEY); CREATE TABLE "AdminUser" (id TEXT PRIMARY KEY, "workspaceId" TEXT, active BOOLEAN, "sessionVersion" INTEGER); CREATE TABLE "WorkspaceMembership" (id TEXT PRIMARY KEY, "workspaceId" TEXT, "userId" TEXT, status TEXT); CREATE TABLE "AuditEvent" (id SERIAL PRIMARY KEY, metadata JSONB); INSERT INTO "Workspace" VALUES ('a'),('b'); INSERT INTO "AdminUser" VALUES ('ua','a',true,1),('ub','b',true,1); INSERT INTO "WorkspaceMembership" VALUES ('ma','a','ua','ACTIVE'),('mb','b','ub','ACTIVE');`);
     await db.exec(migration);
+    await db.exec(readFileSync(new URL("../prisma/migrations/20261008211000_workspace_reactivation_cutoff/migration.sql", import.meta.url), "utf8"));
     assert.deepEqual((await db.query('SELECT "lifecycleState", "lifecycleRevision" FROM "Workspace" ORDER BY id')).rows, [{ lifecycleState: 'ACTIVE', lifecycleRevision: 0 }, { lifecycleState: 'ACTIVE', lifecycleRevision: 0 }]);
     assert.equal((await db.query('SELECT * FROM "PlatformLifecycleOperator"')).rows.length, 0);
     const adapter = { $transaction: async (fn: (tx: unknown) => Promise<unknown>) => db.transaction(async sql => {
       const find = (table: string, where: Record<string, unknown>) => sql.query(`SELECT * FROM "${table}" WHERE ${Object.keys(where).map((key, i) => `"${key}"=$${i+1}`).join(' AND ')}`, Object.values(where)).then(r => r.rows[0]);
       return fn({
         $queryRaw: (parts: TemplateStringsArray, ...values: unknown[]) => sql.query(parts.reduce((s, part, i) => s + (i ? `$${i}` : '') + part, ''), values).then(r => r.rows),
-        workspace: { findUnique: ({ where }: { where: Record<string, unknown> }) => find('Workspace', where), update: ({ where, data }: { where: { id: string }; data: { lifecycleState: string } }) => sql.query('UPDATE "Workspace" SET "lifecycleState"=$1,"lifecycleRevision"="lifecycleRevision"+1 WHERE id=$2 RETURNING *', [data.lifecycleState, where.id]).then(r => r.rows[0]) },
+        workspace: { findUnique: ({ where }: { where: Record<string, unknown> }) => find('Workspace', where), update: ({ where, data }: { where: { id: string }; data: { lifecycleState: string; lastReactivatedAt?: Date } }) => sql.query('UPDATE "Workspace" SET "lifecycleState"=$1,"lifecycleRevision"="lifecycleRevision"+1,"lastReactivatedAt"=COALESCE($3,"lastReactivatedAt") WHERE id=$2 RETURNING *', [data.lifecycleState, where.id, data.lastReactivatedAt ?? null]).then(r => r.rows[0]) },
         adminUser: { findUnique: ({ where }: { where: Record<string, unknown> }) => find('AdminUser', where) },
         workspaceMembership: { findUnique: ({ where }: { where: { workspaceId_userId: Record<string, unknown> } }) => find('WorkspaceMembership', where.workspaceId_userId) },
         platformLifecycleOperator: { findUnique: ({ where }: { where: Record<string, unknown> }) => find('PlatformLifecycleOperator', where) },
@@ -57,7 +58,15 @@ test('lifecycle migration and actual transition core preserve identity and requi
     await assert.rejects(transition(), api.LifecycleConflict);
     await assert.rejects(transition({ expectedRevision: 1 }), api.LifecycleConflict);
     await assert.rejects(api.transitionWorkspaceLifecycle(adapter, { ...actor, sessionVersion: 2 }, { ...input, expectedRevision: 1, state: 'ACTIVE' }), api.LifecycleDenied);
+    auditFails = true;
+    await assert.rejects(transition({ expectedRevision: 1, state: 'ACTIVE' }));
+    auditFails = false;
+    assert.equal((await db.query<{ lastReactivatedAt: Date | null }>(`SELECT "lastReactivatedAt" FROM "Workspace" WHERE id='a'`)).rows[0].lastReactivatedAt, null);
     await transition({ expectedRevision: 1, state: 'ACTIVE' });
+    const reactivated = (await db.query<{ lastReactivatedAt: Date }>(`SELECT "lastReactivatedAt" FROM "Workspace" WHERE id='a'`)).rows[0].lastReactivatedAt;
+    assert.ok(reactivated instanceof Date);
+    const audit = (await db.query<{ metadata: { reactivatedAt: string } }>('SELECT metadata FROM "AuditEvent" ORDER BY id DESC LIMIT 1')).rows[0];
+    assert.equal(audit.metadata.reactivatedAt, reactivated.toISOString());
     assert.equal((await db.query('SELECT * FROM "AuditEvent"')).rows.length, 2);
     await db.exec(`UPDATE "Workspace" SET "lifecycleState"='SUSPENDED' WHERE id='b'`);
     await assert.rejects(transition({ expectedRevision: 2 }), api.LifecycleDenied);

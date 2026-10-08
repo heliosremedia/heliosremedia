@@ -16,8 +16,9 @@ export async function qualifyWorkspaceLifecycle(driver) {
     const constraints = async () => (await client.query(`SELECT conname,pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conrelid='"PlatformLifecycleOperator"'::regclass ORDER BY conname`)).rows;
     const expectedConstraints = await constraints();
     // Only the fixed disposable database with pristine new state is admitted.
-    await client.query('DROP TABLE "PlatformLifecycleOperator"; ALTER TABLE "Workspace" DROP COLUMN "lifecycleState", DROP COLUMN "lifecycleRevision"; DROP TYPE "WorkspaceLifecycleState";');
+    await client.query('DROP TABLE "PlatformLifecycleOperator"; ALTER TABLE "Workspace" DROP COLUMN "lifecycleState", DROP COLUMN "lifecycleRevision", DROP COLUMN "lastReactivatedAt"; DROP TYPE "WorkspaceLifecycleState";');
     await client.query(await readFile(new URL('../../../prisma/migrations/20261008123000_workspace_lifecycle_foundation/migration.sql', import.meta.url), 'utf8'));
+    await client.query(await readFile(new URL('../../../prisma/migrations/20261008211000_workspace_reactivation_cutoff/migration.sql', import.meta.url), 'utf8'));
     assert.equal(await driver.schemaFingerprint(), beforeSchema); assert.equal(await driver.schemaIndexFingerprint(), beforeIndexes);
     assert.deepEqual(await constraints(), expectedConstraints);
     assert.deepEqual(await db.adminUser.findMany({ orderBy: { id: 'asc' } }), people);

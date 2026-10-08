@@ -32,9 +32,14 @@ export async function transitionWorkspaceLifecycle(db: Pick<PrismaClient, "$tran
     const current = await tx.workspace.findUnique({ where: { id: target }, select: { lifecycleState: true, lifecycleRevision: true } });
     if (!current) throw new LifecycleDenied();
     if (current.lifecycleRevision !== revision || current.lifecycleState === state) throw new LifecycleConflict();
-    const result = await tx.workspace.update({ where: { id: target }, data: { lifecycleState: state, lifecycleRevision: { increment: 1 } }, select: { id: true, lifecycleState: true, lifecycleRevision: true } });
+    // Capture the database clock AFTER obtaining the workspace lock. Transaction-start
+    // timestamps could precede a long wait and incorrectly admit missed schedules.
+    const cutoff = state === "ACTIVE"
+      ? (await tx.$queryRaw<Array<{ at: Date }>>`SELECT date_trunc('milliseconds', clock_timestamp()) AS at`)[0].at
+      : undefined;
+    const result = await tx.workspace.update({ where: { id: target }, data: { lifecycleState: state, lifecycleRevision: { increment: 1 }, ...(cutoff ? { lastReactivatedAt: cutoff } : {}) }, select: { id: true, lifecycleState: true, lifecycleRevision: true } });
     await tx.auditEvent.create({ data: { workspaceId: target, actorId: actor.userId, action: "WORKSPACE_LIFECYCLE_CHANGED", entityType: "Workspace", entityId: target,
-      summary: "Workspace lifecycle changed", metadata: { requestId: randomUUID(), reason, from: current.lifecycleState, to: state, previousRevision: revision, revision: result.lifecycleRevision } } });
+      summary: "Workspace lifecycle changed", metadata: { requestId: randomUUID(), reason, from: current.lifecycleState, to: state, previousRevision: revision, revision: result.lifecycleRevision, ...(cutoff ? { reactivatedAt: cutoff.toISOString() } : {}) } } });
     return result;
   });
 }

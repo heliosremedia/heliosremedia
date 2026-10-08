@@ -26,7 +26,7 @@ test("background generation requires the owned edition's current unexpired GENER
     } },
   };
   const api = load<{ requireNewsletterGenerationAccess: (tx: unknown, editionId: string, workspaceId: string, context: unknown) => Promise<void> }>("./generation-access.ts", {
-    "server-only": {}, "@/lib/blog-ownership": { getBlogOwnershipScope: async (workspaceId: string) => ({ workspaceId }) },
+    "server-only": {}, "@/lib/workspace-lifecycle/state": { lifecycleEnabled: () => false, workspaceIsActive: async () => true, requireWorkspaceScheduledAction: async () => {} }, "@/lib/blog-ownership": { getBlogOwnershipScope: async (workspaceId: string) => ({ workspaceId }) },
     "@/lib/workspace-write-access": { requireLockedWorkspaceAdministrator: async () => { adminChecks++; } },
   });
   const background = { kind: "BACKGROUND", jobId: "job", claimToken: "claim" };
@@ -67,7 +67,7 @@ test("generation claims before AI, captures its actor and rechecks access before
     };
     const api = load<{ generateNewsletterEdition: (id: string, context: unknown) => Promise<unknown> }>("./generation.ts", {
       "./block-source-context": {},
-      "server-only": {}, "@/lib/workspace-write-access": {},
+      "server-only": {}, "@/lib/workspace-lifecycle/state": { lifecycleEnabled: () => false, workspaceIsActive: async () => true, requireWorkspaceScheduledAction: async () => {} }, "@/lib/workspace-write-access": {},
       "./generation-access": { requireNewsletterGenerationAccess: async (_tx: unknown, id: string, workspaceId: string, context: { actor: { workspaceId: string } }) => {
         checks++; events.push("authorize"); assert.equal(id, "edition"); assert.equal(workspaceId, "a"); assert.equal(context.actor.workspaceId, "a"); if (!allowed) throw new Error("WORKSPACE_WRITE_FORBIDDEN");
       } },
@@ -109,7 +109,7 @@ test("background runs record execution identity without claim tokens and late er
       } },
     };
     const api = load<{ generateNewsletterEdition: (id: string, context: unknown) => Promise<unknown> }>("./generation.ts", {
-      "./block-source-context": {}, "server-only": {}, "@/lib/workspace-write-access": {},
+      "./block-source-context": {}, "server-only": {}, "@/lib/workspace-lifecycle/state": { lifecycleEnabled: () => false, workspaceIsActive: async () => true, requireWorkspaceScheduledAction: async () => {} }, "@/lib/workspace-write-access": {},
       "./generation-access": { requireNewsletterGenerationAccess: async (_tx: unknown, _id: string, workspace: string, captured: typeof context) => {
         assert.equal(workspace, "a"); assert.equal(captured.jobId, "job"); assert.equal(captured.claimToken, "private-claim-token"); context.jobId = "changed";
       } },
