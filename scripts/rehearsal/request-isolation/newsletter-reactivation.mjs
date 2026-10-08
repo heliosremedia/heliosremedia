@@ -16,31 +16,33 @@ export async function qualifyNewsletterReactivation(driver) {
       await db.workspace.update({ where: { id }, data: { lifecycleState: 'ACTIVE', lastReactivatedAt: cutoff } });
       const seriesId = `${prefix}${id}`;
       await db.newsletterSeries.create({ data: { id: seriesId, workspaceId: id, name: 'Synthetic reactivation', sendRecurrenceKind: 'DAY_OF_MONTH', sendLocalTime: '09:00', generationMode: 'MANUAL', createdById: `u${id}` } });
-      for (const kind of ['future', 'overdue', 'boundary', 'generation']) {
+      for (const kind of ['future', 'overdue', 'boundary', 'generation', 'deadline']) {
         const editionId = `${seriesId}-${kind}`, date = kind === 'overdue' ? new Date(cutoff.getTime() - 1) : kind === 'boundary' ? cutoff : due;
-        await db.newsletterEdition.create({ data: { id: editionId, seriesId, cycleKey: kind, intendedSendAt: date, generationDueAt: date, status: kind === 'generation' ? 'AWAITING_GENERATION' : 'SCHEDULED', createdById: `u${id}` } });
-        if (kind !== 'generation') {
+        await db.newsletterEdition.create({ data: { id: editionId, seriesId, cycleKey: kind, intendedSendAt: date, generationDueAt: date, status: kind === 'generation' ? 'AWAITING_GENERATION' : kind === 'deadline' ? 'NEEDS_REVIEW' : 'SCHEDULED', createdById: `u${id}` } });
+        if (!['generation', 'deadline'].includes(kind)) {
           await db.newsletterRevision.create({ data: { id: editionId, editionId, revisionNumber: 1, subject: 'Synthetic', blocksSnapshot: [], contentHash: 'synthetic', createdById: `u${id}` } });
           await db.newsletterEdition.update({ where: { id: editionId }, data: { approvedRevisionId: editionId } });
         }
-        await db.newsletterJob.create({ data: { id: editionId, editionId, type: kind === 'generation' ? 'GENERATE' : 'SEND', dueAt: date, idempotencyKey: editionId } });
+        await db.newsletterJob.create({ data: { id: editionId, editionId, type: kind === 'generation' ? 'GENERATE' : kind === 'deadline' ? 'MISSED_APPROVAL' : 'SEND', dueAt: date, idempotencyKey: editionId } });
       }
     }
     let claimed = await driver.claimDueNewsletterJobs({ now, limit: 100 });
     const own = claimed.filter(job => job.id.startsWith(prefix));
-    assert.deepEqual(own.map(job => job.id).sort(), ['a', 'b'].flatMap(id => ['future', 'generation'].map(kind => `${prefix}${id}-${kind}`)).sort());
+    assert.deepEqual(own.map(job => job.id).sort(), ['a', 'b'].flatMap(id => ['future', 'generation', 'deadline'].map(kind => `${prefix}${id}-${kind}`)).sort());
     for (const id of ['a', 'b']) {
       const other = id === 'a' ? 'b' : 'a';
       const foreign = await db.newsletterJob.findMany({ where: { edition: { series: { workspaceId: other } } }, orderBy: { id: 'asc' } });
       const send = own.find(job => job.id === `${prefix}${id}-future`), generate = own.find(job => job.id === `${prefix}${id}-generation`);
-      const admission = job => db.$transaction(tx => job.type === 'SEND'
+      const deadline = own.find(job => job.id === `${prefix}${id}-deadline`);
+      const beforeDeadline = await db.newsletterEdition.findUniqueOrThrow({ where: { id: deadline.editionId } });
+      const admission = job => job.type === 'MISSED_APPROVAL' ? driver.markNewsletterApprovalMissed(job) : db.$transaction(tx => job.type === 'SEND'
         ? driver.requireNewsletterDeliveryAccess(tx, job.editionId, id, due, { kind: 'BACKGROUND', jobId: job.id, claimToken: job.claimToken })
         : driver.requireNewsletterGenerationAccess(tx, job.editionId, id, { kind: 'BACKGROUND', jobId: job.id, claimToken: job.claimToken }));
       await admission(send); await admission(generate);
       const actor = { userId: `u${id}`, workspaceId: id, sessionVersion: 1 };
       const initialHealth = await driver.getNewsletterJobHealth(actor);
       assert.equal(initialHealth.jobs.find(job => job.id === send.id)?.heldForReactivation, false);
-      for (const job of [send, generate]) {
+      for (const job of [send, generate, deadline]) {
         let pending;
         try {
           await db.$transaction(async tx => {
@@ -70,12 +72,15 @@ export async function qualifyNewsletterReactivation(driver) {
       assert.ok(!heldHealth.jobs.some(job => job.id.startsWith(`${prefix}${other}`)));
       await assert.rejects(admission(send), /RECOVERY_REQUIRED/);
       await assert.rejects(admission(generate), /RECOVERY_REQUIRED/);
+      await assert.rejects(admission(deadline), /RECOVERY_REQUIRED/);
+      assert.deepEqual(await db.newsletterEdition.findUniqueOrThrow({ where: { id: deadline.editionId } }), beforeDeadline);
+      assert.equal(await db.auditEvent.count({ where: { entityId: deadline.editionId } }), 0);
       // Settlement remains possible for the original claim despite lifecycle denial.
       await db.workspace.update({ where: { id }, data: { lifecycleState: 'SUSPENDED' } });
       assert.equal(await driver.completeNewsletterJob(send), true);
       assert.equal(await driver.completeNewsletterJob(send), false);
       assert.deepEqual(await db.newsletterJob.findMany({ where: { edition: { series: { workspaceId: other } } }, orderBy: { id: 'asc' } }), foreign);
-      cases.push({ tenant: id, heldJobsVisibleInOwnedReview: true, futureApprovalRetained: true, overdueAndEqualityHeld: true, generationAndSendAdmission: true, reactivationInvalidatesMissedClaim: true, suspendedSettlementAllowed: true, duplicateSettlementInert: true, otherCompanyUnchanged: true });
+      cases.push({ tenant: id, approvalDeadlineHeldWithoutMutation: true, heldJobsVisibleInOwnedReview: true, futureApprovalRetained: true, overdueAndEqualityHeld: true, generationAndSendAdmission: true, reactivationInvalidatesMissedClaim: true, suspendedSettlementAllowed: true, duplicateSettlementInert: true, otherCompanyUnchanged: true });
       await db.workspace.update({ where: { id }, data: { lifecycleState: 'ACTIVE' } });
     }
     return { cases, races, providerCalls: false, scope: 'newsletter-claim-and-execution-admission; other families and notifications remain open' };

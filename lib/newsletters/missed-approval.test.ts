@@ -5,7 +5,7 @@ import { runInNewContext } from "node:vm";
 import ts from "typescript";
 
 function harness() {
-  let validClaim = true, owned = true, changed = 1, auditFails = false, approvalsFail = false;
+  let validClaim = true, owned = true, changed = 1, auditFails = false, approvalsFail = false, lifecycleFailure = "";
   const writes: string[] = [];
   const edition = { status: "NEEDS_REVIEW", rowVersion: 7, intendedSendAt: new Date("2026-01-01T00:00:00Z"), series: { status: "ACTIVE" } };
   const context = { id: "job", editionId: "edition", claimToken: "token" };
@@ -29,6 +29,7 @@ function harness() {
     auditEvent: { create: async ({ data }: { data: { workspaceId: string; metadata: { jobId: string; providerCalled: boolean } } }) => { assert.equal(data.workspaceId, "a"); assert.equal(data.metadata.jobId, "job"); assert.equal(data.metadata.providerCalled, false); writes.push("audit"); if (auditFails) throw new Error("Audit unavailable"); } },
   };
   const modules: Record<string, unknown> = {
+    "@/lib/workspace-lifecycle/state": { requireWorkspaceScheduledAction: async (db: unknown, id: string, dueAt: Date) => { assert.equal(db, tx); assert.equal(id, "a"); assert.equal(dueAt, edition.intendedSendAt); assert.equal(writes.length, 0); if (lifecycleFailure) throw new Error(lifecycleFailure); } },
     "server-only": {}, "@/lib/blog-ownership": { getContentOwnershipScope: async () => ({ workspaceId: "a" }) },
     "./ownership": { resolveNewsletterWorkspace: async (id: string) => { assert.equal(id, "a"); context.claimToken = "changed"; return id; } },
     "@/lib/prisma": { prisma: {
@@ -41,6 +42,7 @@ function harness() {
     exports, Date, Error, require: (id: string) => { assert.ok(id in modules, id); return modules[id]; },
   });
   return { edition, writes, call: () => { context.claimToken = "token"; return exports.markNewsletterApprovalMissed!(context); },
+    denyLifecycle: (reason: string) => { lifecycleFailure = reason; },
     denyClaim: () => { validClaim = false; }, denyOwner: () => { owned = false; }, conflict: () => { changed = 0; }, failAudit: () => { auditFails = true; }, failApprovals: () => { approvalsFail = true; } };
 }
 
@@ -56,4 +58,10 @@ test("missed approval refuses stale claims and foreign ownership and preserves s
 
 test("missed approval propagates conflicts and transaction failures without reporting success", async () => {
   for (const fail of ['conflict', 'failApprovals', 'failAudit'] as const) { const h = harness(); h[fail](); await assert.rejects(h.call()); assert.equal(h.writes.length, 0); }
+});
+
+ test("missed approval holds suspended and overdue reactivation claims before status, approval or audit writes", async () => {
+  for (const reason of ["WORKSPACE_SCHEDULE_SUSPENDED", "WORKSPACE_SCHEDULE_RECOVERY_REQUIRED"]) {
+    const h = harness(); h.denyLifecycle(reason); await assert.rejects(h.call(), new RegExp(reason)); assert.deepEqual(h.writes, []);
+  }
 });
