@@ -2,8 +2,8 @@
   "status": "in-progress",
   "runId": "atlas-packet81-lifecycle-admission",
   "branch": "codex/v2-workspace-lifecycle-admission",
-  "head": "f016b4cce898ae9b379a485359c1b34e09a72a91",
-  "pr": null,
+  "head": "44468c9af5b8130b3a3709cc434571f310cf0d97",
+  "pr": 390,
   "scope": "Packet 80 integrated; implementing bounded session/write/account/support lifecycle admission.",
   "evidence": {
     "run": 36217912507,
@@ -1974,5 +1974,14 @@
     "postflight": true,
     "productionSuppressed": true,
     "stagingSuppressed": true
+  },
+  "packet81": {
+    "pr": 390,
+    "candidate": "44468c9af5b8130b3a3709cc434571f310cf0d97",
+    "tree": "d131db5a3ae02747cbc5cc0d9b7d7c97f2efe6c5",
+    "regression": 37777680712,
+    "runtime": 37777680618,
+    "status": "qualifying",
+    "localTests": 1831
   }
 }
