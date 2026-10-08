@@ -62,5 +62,13 @@ jobs:
         run: node scripts/browser/run-layout-editor.mjs
       - name: Check isolated Studio layout with real Next.js HTTP and Chromium
         run: npm run test:studio-layout
+      - name: Check Studio V2 shell and Command Center in Chromium
+        run: node scripts/browser/run-studio-command-center.mjs
+      - name: Preserve Studio V2 responsive screenshots
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: studio-command-center-${{ github.sha }}
+          path: release-evidence/studio-command-center-*.png
+          if-no-files-found: error
       - name: Check patch whitespace
         run: git show --format= --check HEAD

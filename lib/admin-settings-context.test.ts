@@ -184,7 +184,7 @@ test('Admin shell resolves branding from authenticated workspace and stops on re
   try {
     const shell = Symbol('AdminShell');
     const layout = load<{ default(input: { children: string }): Promise<{ type: unknown; props: Record<string, unknown> }> }>('../app/admin/layout.tsx', {
-      ...f.modules, './components/AdminShell': { default: shell },
+      ...f.modules, './components/AdminShell': { default: shell }, './components/StudioShell': { default: Symbol('StudioShell') }, '@/lib/studio-access': { studioEnabledFor: () => false },
       'react/jsx-runtime': { jsx: (type: unknown, props: unknown) => ({ type, props }) },
     });
     const rendered = await layout.default({ children: 'Studio' });
