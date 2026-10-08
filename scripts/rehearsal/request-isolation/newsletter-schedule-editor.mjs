@@ -24,7 +24,7 @@ export async function qualifyNewsletterScheduleEditor(origin, driver) {
       const key = `${prefix}${id}`, foreignKey = `${prefix}${id === 'a' ? 'b' : 'a'}`;
       const before = await db.newsletterEdition.findUniqueOrThrow({ where: { id: key } });
       const foreign = await db.newsletterEdition.findUniqueOrThrow({ where: { id: foreignKey } });
-      assert.equal((await post(id, key, before.rowVersion, {})).status, 403);
+      assert.equal((await post(id, key, before.rowVersion, {})).status, 401);
       assert.equal((await post(id, foreignKey, before.rowVersion)).status, 404);
       assert.equal((await post(id, key, before.rowVersion + 1)).status, 409);
       const where = { workspaceId_userId: { workspaceId: id, userId: `u${id}` } };
