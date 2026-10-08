@@ -62,5 +62,7 @@ jobs:
         run: node scripts/browser/run-layout-editor.mjs
       - name: Check isolated Studio layout with real Next.js HTTP and Chromium
         run: npm run test:studio-layout
+      - name: Check Studio V2 shell and Command Center in Chromium
+        run: node scripts/browser/run-studio-command-center.mjs
       - name: Check patch whitespace
         run: git show --format= --check HEAD

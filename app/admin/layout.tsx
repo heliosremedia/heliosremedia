@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 
 import AdminShell from "./components/AdminShell";
+import StudioShell from "./components/StudioShell";
+import { studioEnabledFor } from "@/lib/studio-access";
 import { requireAdminSession } from "@/lib/auth/session";
 import { getSiteSettings } from "@/lib/site-settings";
 
@@ -17,13 +19,14 @@ export default async function AdminLayout({
 }>) {
   const session = await requireAdminSession();
   const settings = await getSiteSettings(session.workspaceId);
+  const Shell = studioEnabledFor(session) ? StudioShell : AdminShell;
   return (
-    <AdminShell
+    <Shell
       session={session}
       businessName={settings.businessName || "Your business"}
       initialNavigationFavorites={session.navigationFavorites}
     >
       {children}
-    </AdminShell>
+    </Shell>
   );
 }
