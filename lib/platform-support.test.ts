@@ -16,7 +16,8 @@ function fixture() {
     auditEvent: { create: async () => { if (state.auditFails) throw new Error('private audit error'); if (state.expiryDuringAudit) state.clock = 60001; } },
   };
   const prisma = { supportAccessGrant: tx.supportAccessGrant, $transaction: async (fn: (tx: unknown) => Promise<unknown>) => { state.transactions++; const result = await fn(tx); state.committed++; return result; } };
-  const modules: Record<string, unknown> = { 'server-only': {}, 'node:crypto': { randomUUID: () => 'request' }, '@/lib/prisma': { prisma }, '@/lib/workspace-context-core': { tenantContextEnabled: () => state.tenant }, '@/lib/workspace-write-access': { requireLockedWorkspaceEditor: async () => ({ role: 'OWNER' }) } };
+  const modules: Record<string, unknown> = { 'server-only': {}, 'node:crypto': { randomUUID: () => 'request' }, '@/lib/workspace-lifecycle/state': { workspaceIsActive: async () => true },
+    '@/lib/prisma': { prisma }, '@/lib/workspace-context-core': { tenantContextEnabled: () => state.tenant }, '@/lib/workspace-write-access': { requireLockedWorkspaceEditor: async () => ({ role: 'OWNER' }) } };
   const exports = {};
   runInNewContext(ts.transpileModule(readFileSync(new URL('./platform-support/access.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, Date, Error, process: { env: new Proxy({}, { get: () => state.enabled }) }, require: (id: string) => { assert.ok(id in modules, id); return modules[id]; } });
   const api = exports as { readSupportDiagnostics: (actor: unknown, id: unknown) => Promise<unknown>; createSupportGrant: (actor: unknown, body: unknown) => Promise<unknown> };

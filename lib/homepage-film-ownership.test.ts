@@ -42,6 +42,7 @@ function fixture() {
     '@/lib/r2': { r2Config: { accountId: 'account', bucketName: 'bucket' } },
     '@/lib/content-image-storage': { verifyContentImage: async () => { state.headChecks++; } },
     '@/lib/workspace-context-core': { tenantContextEnabled: () => state.tenant },
+    './workspace-lifecycle/state.ts': { workspaceIsActive: async () => true },
     './workspace-context-core.ts': { tenantContextEnabled: () => state.tenant },
     './workspace-membership-core.ts': load('./workspace-membership-core.ts', {}),
   };

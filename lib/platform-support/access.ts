@@ -1,3 +1,4 @@
+import { workspaceIsActive } from "@/lib/workspace-lifecycle/state";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import type { Prisma } from "@/app/generated/prisma/client";
@@ -21,7 +22,7 @@ async function databaseTime(tx: Prisma.TransactionClient) {
   return row.now;
 }
 async function lockUsers(tx: Prisma.TransactionClient, ids: string[]) {
-  // All support operations take target Workspace first, then users in ID order.
+  // Workspace locks precede users; diagnostics lock target and operator home in ID order.
   for (const id of [...new Set(ids)].sort()) await tx.$queryRaw`SELECT id FROM "AdminUser" WHERE id=${id} FOR UPDATE`;
 }
 async function owner(tx: Prisma.TransactionClient, actor: WorkspaceWriteActor) {
@@ -88,7 +89,8 @@ export async function readSupportDiagnostics(actor: WorkspaceWriteActor, grantId
     const hint = await prisma.supportAccessGrant.findUnique({ where: { id }, select: { workspaceId: true, operatorId: true, grantedById: true } });
     if (!hint || hint.operatorId !== actor.userId) throw new SupportDenied();
     return await prisma.$transaction(async tx => {
-      await tx.$queryRaw`SELECT id FROM "Workspace" WHERE id=${hint.workspaceId} FOR UPDATE`;
+      for (const id of [...new Set([hint.workspaceId, actor.workspaceId])].sort()) await tx.$queryRaw`SELECT id FROM "Workspace" WHERE id=${id} FOR UPDATE`;
+      if (!await workspaceIsActive(tx, hint.workspaceId) || !await workspaceIsActive(tx, actor.workspaceId)) throw new SupportDenied();
       await lockUsers(tx, [actor.userId, hint.grantedById]);
       const user = await operator(tx, actor.userId);
       if (user.sessionVersion !== actor.sessionVersion || user.workspaceId !== actor.workspaceId) throw new SupportDenied();

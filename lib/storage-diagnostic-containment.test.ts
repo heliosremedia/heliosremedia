@@ -23,7 +23,8 @@ function fixture() {
     'next/server': { NextResponse: Response }, '@aws-sdk/client-s3': { S3ServiceException, ListObjectsV2Command },
     '@/lib/auth/session': { getAdminSession: async () => state.signedIn ? { userId: 'ua', workspaceId: 'a', role: state.initialRole, sessionVersion: 1 } : null },
     '@/lib/prisma': { prisma: { $transaction: async (fn: (value: unknown) => Promise<unknown>) => { if (state.failDb) throw new Error('PRIVATE_DATABASE_ERROR'); return fn(tx); } } },
-    '@/lib/workspace-context-core': { tenantContextEnabled: () => state.tenant }, './workspace-context-core.ts': { tenantContextEnabled: () => state.tenant }, './workspace-membership-core.ts': { resolveMembershipAccess },
+    '@/lib/workspace-context-core': { tenantContextEnabled: () => state.tenant }, './workspace-lifecycle/state.ts': { workspaceIsActive: async () => true },
+    './workspace-context-core.ts': { tenantContextEnabled: () => state.tenant }, './workspace-membership-core.ts': { resolveMembershipAccess },
     '@/lib/r2': { r2Config: { publicUrl: 'https://assets.example.test', bucketName: 'synthetic' }, r2Client: { send: async (command: ListObjectsV2Command) => { assert.equal(command.input.Bucket, 'synthetic'); assert.equal(command.input.MaxKeys, 1); state.calls++; if (state.providerError) throw state.providerError; return { Contents: [{ Key: 'PRIVATE_OBJECT_KEY' }] }; } } },
   };
   modules['@/lib/workspace-write-access'] = load('./workspace-write-access.ts', modules);

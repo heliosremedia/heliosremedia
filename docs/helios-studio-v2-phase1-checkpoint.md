@@ -1,3 +1,13 @@
+# Phase 1 checkpoint through integrated Packet 80
+
+October 8, 2026. Non-production integration `f016b4cce898ae9b379a485359c1b34e09a72a91` / PR #389 matches tested lifecycle candidate `d40b003aef4f37b6a5d734ed0c18643e205777e9`, tree `3b546cd171b7f5f5d2432d14e736652489e69e7c`. Regression 37775917835 passed 1,829 tests/TypeScript/Chromium; runtime 37775917780 artifact 11550225321 SHA256 `51d9a2172cd33001e177076d21e30bc19ebf1f9bd1717b9795ac6c9ea489d7a4` was independently downloaded, hashed and parsed. Ten transition revocation races, audit rollback, migration parity, empty lifecycle registry and schema/access postflight passed.
+
+Packet 79 / PR #387 also integrated: eight site-settings attachment fields now have qualified current registry owner/state fencing, twenty-eight observed races, rollback and concurrency evidence. Its runtime 37638269393 artifact 11491208228 SHA256 `36af52cc71f377482878e2f8b04640d7ee7c6879ad36e07152a9eb6b39dbb983` was independently verified; its merge matches the tested candidate.
+
+The approved ACTIVE/SUSPENDED policy and persisted transition core close the previously missing state-machine foundation only. Request/public/support/worker lifecycle enforcement is not yet credited; Packet 81 session/common-write/account/support admission is in qualification. Real feature activation remains off and no real operators are enrolled. Other content/import/scheduled writers, job/AI/analytics families, cached/hosted parity and the final Helios compatibility/second-company isolation verdict remain open. Phase 1 OPEN; production ON HOLD.
+
+## Historical Packet 78 checkpoint
+
 # Phase 1 checkpoint through integrated Packet 78
 
 October 7, 2026. Non-production integration `e9171e698e0fb92b99519d0a5cbcf83de7c7a359` / PR #386 matches Packet 78 candidate `67424571d522b8d7a3786faebdfacae6729f8d0c`, tree `35fccfd7ea365d2c45cd67672351ef3dc5550a74`. Regression 37636588189 passed 1,818 tests, TypeScript and Chromium. Runtime 37636588265 and independently downloaded/hash/parse-verified artifact 11489532629 (SHA256 `bc55f7a2627257ca8a8369d72d522998ff514eedc6e300119337f7f0c61eacc7`) retain prior families and qualify eighteen featured-film races, rollback, revision concurrency and compatibility. Schema/access postflight passed. Vercel deployment suppression remains in force.

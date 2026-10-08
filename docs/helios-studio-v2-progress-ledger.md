@@ -1,5 +1,11 @@
 # Helios Studio V2 progress ledger
 
+## October 8, 2026: Packet 80 integrated; Packet 81 lifecycle admission
+
+Packet 80 PR #389 integrated at `f016b4cce898ae9b379a485359c1b34e09a72a91`, matching tested candidate `d40b003aef4f37b6a5d734ed0c18643e205777e9` and tree `3b546cd171b7f5f5d2432d14e736652489e69e7c`. Regression 37775917835 passed 1,829 tests/TypeScript/Chromium. Runtime 37775917780 artifact 11550225321 SHA256 `51d9a2172cd33001e177076d21e30bc19ebf1f9bd1717b9795ac6c9ea489d7a4` independently verifies migration parity, both-direction transitions, ten observed revocation races, audit rollback and schema/access restoration. Both Vercel projects remain suppressed.
+
+Packet 81 connects [session/common-write/account/support admission](helios-studio-v2-workspace-lifecycle-admission.md) to suspension. Qualification remains pending at preparation. The [Phase 1 checkpoint](helios-studio-v2-phase1-checkpoint.md) credits only integrated evidence; public delivery, other callers/workers, hosted parity and compatibility remain open. Production ON HOLD.
+
 ## October 8, 2026: approved lifecycle policy; Packet 80 transition foundation
 
 Packet 79 PR #387 integrated at `aed5f90f9da49ed446fbc62f882761ae5634579f`, matching tested tree `d654281f00fde87e445ba44dfee708b163697c50`. Regression 37638269422 passed 1,826 tests/TypeScript/Chromium; runtime 37638269393 artifact 11491208228 SHA256 `36af52cc71f377482878e2f8b04640d7ee7c6879ad36e07152a9eb6b39dbb983` independently verified 28 settings races plus prior film/support and schema/access postflight. Jake approved lifecycle policy PR #388 on October 8; its exact-head regression 37639023296 passed and its integration `aa3457bca84d402cae01fbe85f78e32335995d3a` matches the reviewed policy tree.

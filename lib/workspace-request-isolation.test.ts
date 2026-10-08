@@ -13,10 +13,11 @@ import type { AdminSession } from './auth/token';
 // Executes one shared instance of the real resolver/settings/session module graph.
 // Only request storage and database delegates are adapted. This is not a Next
 // server, PostgreSQL, CDN, browser-cache, or hosted qualification test.
-function fixture() {
+function fixture(lifecycle = false) {
   const root = fileURLToPath(new URL('../', import.meta.url));
   const requests = new AsyncLocalStorage<{ headers: Headers; token?: string }>();
   const env = { NODE_ENV: 'production', STUDIO_V2_TENANT_CONTEXT_ENABLED: 'true',
+    STUDIO_V2_WORKSPACE_LIFECYCLE_ENABLED: String(lifecycle),
     AUTH_SECRET: 'synthetic-request-isolation-secret-only-00000000' };
   const domains = new Map(['a', 'b'].map(id => [`${id}.example.test`, { workspaceId: id, purpose: 'PUBLIC_SITE', status: 'ACTIVE' }]));
   const settings = new Map(['a', 'b'].map(id => [id, { id: `settings-${id}`, businessName: `Company ${id}`, heroHeadlineLineOne: 'Shared heading' }]));
@@ -25,7 +26,9 @@ function fixture() {
   const memberships = new Map(['a', 'b'].map(id => [id, { userId: id, workspaceId: id, role: 'EDITOR', status: 'ACTIVE' }]));
   const settingsReads: string[] = [];
   let beforeDomainRead: (host: string) => Promise<void> = async () => {};
+  const workspaces = new Map(['a', 'b'].map(id => [id, { lifecycleState: 'ACTIVE' }]));
   const prisma = {
+    workspace: { findUnique: async ({ where }: { where: { id: string } }) => workspaces.get(where.id) ?? null },
     workspaceDomain: { findUnique: async ({ where }: { where: { hostname: string } }) => {
       await beforeDomainRead(where.hostname);
       return domains.get(where.hostname) ?? null;
@@ -48,7 +51,7 @@ function fixture() {
   const modules = new Map<string, Record<string, unknown>>();
   const allowed = new Set(['lib/site-settings.ts', 'lib/public-workspace.ts', 'lib/workspace-context-core.ts',
     'lib/workspace-settings-core.ts', 'lib/google-business-public.ts', 'lib/auth/session.ts', 'lib/auth/token.ts',
-    'lib/workspace-memberships.ts', 'lib/workspace-membership-core.ts'].map(path => resolve(root, path)));
+    'lib/workspace-lifecycle/state.ts', 'lib/workspace-memberships.ts', 'lib/workspace-membership-core.ts'].map(path => resolve(root, path)));
   function load(path: string): Record<string, unknown> {
     assert.ok(allowed.has(path), `Unreviewed module: ${path}`);
     const cached = modules.get(path); if (cached) return cached;
@@ -68,7 +71,7 @@ function fixture() {
       };
       if (id === 'next/navigation') return { redirect: () => { throw new Error('Unexpected redirect'); } };
       if (id.startsWith('@/')) return load(resolve(root, `${id.slice(2)}.ts`));
-      if (id.startsWith('.')) return load(resolve(dirname(path), `${id}.ts`));
+      if (id.startsWith('.')) return load(resolve(dirname(path), id.endsWith(".ts") ? id : `${id}.ts`));
       throw new Error(`Unexpected dependency: ${id}`);
     } }, { filename: path });
     return exports;
@@ -83,7 +86,7 @@ function fixture() {
   function run<T>(host: string, fn: () => Promise<T>, cookie?: string) {
     return requests.run({ headers: new Headers({ host, 'x-forwarded-host': 'b.example.test', 'x-workspace-id': 'b' }), token: cookie }, fn);
   }
-  return { domains, settings, users, memberships, settingsReads, token, run, publicApi, sessionApi,
+  return { workspaces, domains, settings, users, memberships, settingsReads, token, run, publicApi, sessionApi,
     setDomainBarrier: (callback: typeof beforeDomainRead) => { beforeDomainRead = callback; } };
 }
 
@@ -141,4 +144,28 @@ test('signed sessions recheck membership, role and session version on every requ
   assert.equal(await f.run('a.example.test', f.sessionApi.getAdminSession, a), null);
   assert.equal(await f.run('a.example.test', f.sessionApi.getAdminSession, `${b}corrupt`), null);
   assert.equal(await f.run('a.example.test', f.sessionApi.getAdminSession), null);
+});
+
+
+test('current signed sessions deny suspension and missing workspace in both directions, then allow explicit reactivation', async () => {
+  const f = fixture(true);
+  for (const id of ['a', 'b']) {
+    const other = id === 'a' ? 'b' : 'a';
+    const cookie = f.token(id);
+    assert.ok(await f.run(`${id}.example.test`, f.sessionApi.getAdminSession, cookie));
+    f.workspaces.set(id, { lifecycleState: 'SUSPENDED' });
+    assert.equal(await f.run(`${other}.example.test`, f.sessionApi.getAdminSession, cookie), null);
+    assert.ok(await f.run(`${id}.example.test`, f.sessionApi.getAdminSession, f.token(other)));
+    f.workspaces.delete(id);
+    assert.equal(await f.run(`${id}.example.test`, f.sessionApi.getAdminSession, cookie), null);
+    f.workspaces.set(id, { lifecycleState: 'ACTIVE' });
+    assert.ok(await f.run(`${id}.example.test`, f.sessionApi.getAdminSession, cookie));
+  }
+});
+
+test('lifecycle flag off retains session compatibility without changing membership authority', async () => {
+  const f = fixture(); f.workspaces.clear();
+  assert.ok(await f.run('a.example.test', f.sessionApi.getAdminSession, f.token('a')));
+  f.memberships.get('a')!.status = 'REVOKED';
+  assert.equal(await f.run('a.example.test', f.sessionApi.getAdminSession, f.token('a')), null);
 });

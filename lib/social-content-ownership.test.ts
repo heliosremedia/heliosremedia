@@ -26,6 +26,7 @@ test("transaction editor authorization rechecks membership, session version and 
     workspaceMembership: { findUnique: async () => ({ userId: "actor", workspaceId: "a", status, role }) },
   };
   const api = load<{ requireLockedWorkspaceEditor: (client: typeof tx, actor: { userId: string; workspaceId: string; sessionVersion: number }) => Promise<void> }>("./workspace-write-access.ts", {
+    './workspace-lifecycle/state.ts': { workspaceIsActive: async () => true },
     "./workspace-context-core.ts": { tenantContextEnabled: () => enabled }, "./workspace-membership-core.ts": { resolveMembershipAccess },
   });
   const actor = { userId: "actor", workspaceId: "a", sessionVersion: 1 };

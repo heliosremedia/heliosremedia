@@ -30,7 +30,8 @@ for (const change of ['revoked', 'viewer', 'session-version', 'account-disabled'
       projectPreviewLink: { create: async () => { writes++; return { id: 'preview' }; }, updateMany: async () => { writes++; return { count: 1 }; } },
     };
     const policy = load('./workspace-write-access.ts', {
-      './workspace-context-core.ts': { tenantContextEnabled: () => true }, './workspace-membership-core.ts': membership,
+      './workspace-lifecycle/state.ts': { workspaceIsActive: async () => true },
+    './workspace-context-core.ts': { tenantContextEnabled: () => true }, './workspace-membership-core.ts': membership,
     });
     type Route = (request: Request, context: { params: Promise<{ projectId: string }> }) => Promise<Response>;
     const route = load<Record<'POST' | 'DELETE', Route>>('../app/api/admin/projects/[projectId]/previews/route.ts', {

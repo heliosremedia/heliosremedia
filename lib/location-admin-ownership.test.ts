@@ -57,6 +57,7 @@ function fixture() {
     '@/lib/location-page-content': load('./location-page-content.ts', {}),
     '@/lib/r2-upload': { getPublicAssetUrl: publicUrl, createLocationFeatureImageKey: () => ownKey,
       validateImageUpload() {}, createPresignedUploadUrl: async () => { state.signs++; return 'https://upload.example.test/synthetic'; } },
+    './workspace-lifecycle/state.ts': { workspaceIsActive: async () => true },
     './workspace-context-core.ts': { tenantContextEnabled: () => true }, '@/lib/workspace-context-core': { tenantContextEnabled: () => true },
     './workspace-membership-core.ts': load('./workspace-membership-core.ts', {}),
     '@/lib/r2': { r2Config: { accountId: 'synthetic-account', bucketName: 'synthetic-bucket' } },
