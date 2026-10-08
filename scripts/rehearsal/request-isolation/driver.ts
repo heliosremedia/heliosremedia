@@ -73,3 +73,5 @@ export { requireNewsletterDeliveryAccess } from "../../../lib/newsletters/delive
 export { requireNewsletterGenerationAccess } from "../../../lib/newsletters/generation-access";
 
 export { getNewsletterJobHealth } from "../../../lib/newsletters/job-health";
+
+export { markNewsletterApprovalMissed } from "@/lib/newsletters/missed-approval";
