@@ -32,12 +32,12 @@ Viewing these surfaces does not send, approve, retry or replay work. Existing mo
 
 ## Next product slice
 
-Projects and Media are the active product milestone. The workspace library candidate scopes list/search/counts and selected projects to the current session, distinguishes empty workspaces from empty search results, and links selected projects directly to media controls. Qualification covers actual two-company HTTP and responsive page rendering; complete its gates before owner use.
+Projects and Media are the active product milestone. The integrated workspace library scopes list/search/counts and selected projects to the current session, distinguishes empty workspaces from empty search results, and links selected projects directly to media controls. Qualification covers actual two-company HTTP and responsive page rendering; isolated qualification and screenshot gates are complete; hosted access remains separate.
 
 The newsletter date-change editor is integrated. It carries a reviewed row version, rejects stale edits, explains UTC and approval revocation, and requires new approval. Existing single-company admission and uncertain-delivery rules remain.
 
-The project-detail editor candidate preserves unsaved text after conflicts and uncertain saves, requires an explicit reload before another save, and retains the existing dialog with keyboard focus containment. Concurrent stale edits are rejected under an owned project lock and fresh workspace authorization. Qualify before owner use.
+The integrated project-detail editor preserves unsaved text after conflicts and uncertain saves, requires an explicit reload before another save, and retains the existing dialog with keyboard focus containment. Concurrent stale edits are rejected under an owned project lock and fresh workspace authorization. Its two-company runtime, regression and responsive browser gates are complete.
 
 The draft-creation candidate preserves fields on validation/transport failure, pauses uncertain creation for review, and uses a stable owned submission identity to avoid duplicate drafts on replay. Actual Next form submission and two-company permission races must qualify before owner use.
 
-Next: complete media additions and metadata editing using the existing upload/provider containment. Resolve demonstrated dependencies alongside these workflows. No hosted owner URL or broader rollout is claimed.
+PR #405 is qualifying reviewed media metadata saves and draft recovery. Next: complete media additions and metadata editing using the existing upload/provider containment. Resolve demonstrated dependencies alongside these workflows. No hosted owner URL or broader rollout is claimed.
