@@ -68,6 +68,8 @@ jobs:
         run: node scripts/browser/run-studio-media-library.mjs
       - name: Check reviewed project detail editing in Chromium
         run: node scripts/browser/run-studio-project-editor.mjs
+      - name: Check draft project creation recovery in Chromium
+        run: node scripts/browser/run-studio-project-create.mjs
       - name: Preserve Studio V2 responsive screenshots
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
