@@ -42,6 +42,9 @@ try {
     await page.getByRole('heading', { name: 'Add your first project media.' }).waitFor();
     assert.equal(await page.getByRole('link', { name: 'Create a project', exact: true }).getAttribute('href'), '/admin/projects/new');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    const supportingText = page.getByText('Media belongs to a project.', { exact: false });
+    const color = await supportingText.evaluate(element => getComputedStyle(element).color);
+    assert.ok(color.includes('0.65') || color.includes('65%'), `Supporting text must retain readable opacity: ${color}`);
     await page.screenshot({ path: `release-evidence/studio-media-empty-${width}.png`, fullPage: true });
     await page.goto(`${origin}/?mode=selected`);
     assert.equal(await page.getByRole('link', { name: 'Manage project media', exact: true }).getAttribute('href'), '/admin/projects/synthetic-project#project-media');
