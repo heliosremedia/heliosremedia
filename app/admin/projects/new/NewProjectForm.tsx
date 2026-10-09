@@ -86,7 +86,7 @@ export default function NewProjectForm({ requestId }: { requestId: string }) {
       {state.projectId && <p role="status">Draft created. <Link href={`/admin/projects/${state.projectId}`}>Open project</Link></p>}
       {state.requiresReview && <p role="status" className="mb-5 text-sm text-amber-100">Creation is paused. Copy any text you need, then <Link href="/admin/projects" className="underline">check Projects</Link>.</p>}
       <fieldset disabled={pending || Boolean(state.projectId)} className="min-w-0">
-      <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_19rem]">
+      <div className="grid min-w-0 grid-cols-1 gap-7 xl:grid-cols-[minmax(0,1fr)_19rem]">
         <div className="space-y-6">
           {state.error ? (
             <div
@@ -108,8 +108,8 @@ export default function NewProjectForm({ requestId }: { requestId: string }) {
               </p>
             </div>
 
-            <div className="grid gap-5 p-5 sm:p-6">
-              <label>
+            <div className="grid min-w-0 grid-cols-1 gap-5 p-5 sm:p-6">
+              <label className="min-w-0">
                 <span className={labelClasses}>
                   Project title
                   <span className="ml-1 text-[var(--helios-orange)]">*</span>
@@ -128,7 +128,7 @@ export default function NewProjectForm({ requestId }: { requestId: string }) {
                 />
               </label>
 
-              <label>
+              <label className="min-w-0">
                 <span className={labelClasses}>Portfolio URL</span>
 
                 <div className="mt-2 flex min-h-12 overflow-hidden rounded-xl border border-white/[0.08] bg-black/20 transition focus-within:border-[var(--helios-orange)]/45">
@@ -156,7 +156,7 @@ export default function NewProjectForm({ requestId }: { requestId: string }) {
                 </p>
               </label>
 
-              <div>
+              <div className="min-w-0">
                 <label htmlFor="new-project-short-description" className={labelClasses}>Short description</label>
 
                 <textarea
@@ -181,8 +181,8 @@ export default function NewProjectForm({ requestId }: { requestId: string }) {
               </p>
             </div>
 
-            <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-6">
-              <label>
+            <div className="grid min-w-0 grid-cols-1 gap-5 p-5 sm:grid-cols-2 sm:p-6">
+              <label className="min-w-0">
                 <span className={labelClasses}>City</span>
 
                 <input
@@ -195,7 +195,7 @@ export default function NewProjectForm({ requestId }: { requestId: string }) {
                 />
               </label>
 
-              <label>
+              <label className="min-w-0">
                 <span className={labelClasses}>State</span>
 
                 <input
@@ -240,8 +240,8 @@ export default function NewProjectForm({ requestId }: { requestId: string }) {
               </p>
             </div>
 
-            <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-6">
-              <label>
+            <div className="grid min-w-0 grid-cols-1 gap-5 p-5 sm:grid-cols-2 sm:p-6">
+              <label className="min-w-0">
                 <span className={labelClasses}>Project type</span>
 
                 <select
@@ -258,7 +258,7 @@ export default function NewProjectForm({ requestId }: { requestId: string }) {
                 </select>
               </label>
 
-              <label>
+              <label className="min-w-0">
                 <span className={labelClasses}>Property type</span>
 
                 <select
