@@ -66,16 +66,17 @@ test("job health GET takes ownership only from the current administrator and bou
 });
 
 test("job health client makes only uncached GET requests and rejects malformed status snapshots", async () => {
-  const api = load<{ requestNewsletterJobHealth: (signal: AbortSignal | undefined, transport: typeof fetch) => Promise<unknown> }>('../../app/admin/newsletter-studio/components/job-health-client.ts', {});
+  const api = load<{ requestNewsletterJobHealth: (signal: AbortSignal | undefined, transport: typeof fetch, source?: "studio") => Promise<unknown> }>('../../app/admin/newsletter-studio/components/job-health-client.ts', {});
   const valid = { observedAt: new Date().toISOString(), counts: { pending: 0, active: 0, review: 0, failed: 0 }, truncated: false, jobs: [], automaticRetryAllowed: false };
   const signal = new AbortController().signal;
   assert.deepEqual(await api.requestNewsletterJobHealth(signal, async (url, options) => {
     assert.equal(url, '/api/admin/newsletters/jobs/health'); assert.equal(options?.method, 'GET'); assert.equal(options?.body, undefined); assert.equal(options?.cache, 'no-store'); assert.equal(options?.signal, signal);
     return Response.json({ success: true, health: valid });
   }), valid);
-  for (const patch of [{ observedAt: 'bad' }, { counts: {} }, { counts: { ...valid.counts, failed: -1 } }, { jobs: [null] }, { jobs: [{}] }, { automaticRetryAllowed: true }]) {
+  for (const patch of [{ observedAt: 'bad' }, { counts: {} }, { counts: { ...valid.counts, failed: -1 } }, { jobs: [null] }, { jobs: [{}] }, { automaticRetryAllowed: true }, { editionReviewAvailable: 'true' }]) {
     await assert.rejects(api.requestNewsletterJobHealth(undefined, async () => Response.json({ success: true, health: { ...valid, ...patch } })), /unavailable/);
   }
+  await api.requestNewsletterJobHealth(undefined, async url => { assert.equal(url, '/api/admin/studio/newsletter-jobs'); return Response.json({ success: true, health: { ...valid, editionReviewAvailable: false } }); }, 'studio');
   const job = { id: 'job', editionId: 'edition', editionLabel: 'Edition', type: 'SEND', state: 'PENDING', dueAt: valid.observedAt, attempts: 0, editionStatus: 'SCHEDULED', seriesStatus: 'ACTIVE' };
   for (const row of [job, { ...job, heldForReactivation: true }, { ...job, heldForReactivation: false }]) {
     const snapshot = { ...valid, jobs: [row] };
@@ -83,4 +84,24 @@ test("job health client makes only uncached GET requests and rejects malformed s
   }
   await assert.rejects(api.requestNewsletterJobHealth(undefined, async () => Response.json({ success: true, health: { ...valid, jobs: [{ ...job, heldForReactivation: 'true' }] } })), /unavailable/);
   for (const status of [403, 503]) await assert.rejects(api.requestNewsletterJobHealth(undefined, async () => new Response('private detail', { status })), status === 403 ? /Administrator/ : /unavailable/);
+});
+
+test("Studio job projection requires current allowlisted authority and preserves independent module admission", async () => {
+  let actor: { workspaceId: string; userId: string; role: string; sessionVersion: number } | null = { workspaceId: 'a', userId: 'admin', role: 'OWNER', sessionVersion: 1 };
+  let enabled = true, calls = 0, failure = '', companies = [{ id: 'a' }, { id: 'b' }];
+  const api = load<{ GET: (request?: Request) => Promise<Response>; POST?: unknown }>('../../app/api/admin/studio/newsletter-jobs/route.ts', {
+    'next/server': { NextResponse: Response }, '@/lib/auth/session': { getAdminSession: async () => actor },
+    '@/lib/studio-access': { studioEnabledFor: (current: unknown) => { assert.equal(current, actor); return enabled; } },
+    '@/lib/newsletters/job-health': { getNewsletterJobHealth: async (current: unknown) => { assert.equal(current, actor); calls++; if (failure) throw new Error(failure); return { jobs: [], automaticRetryAllowed: false }; } },
+    '@/lib/prisma': { prisma: { workspace: { findMany: async (query: { take: number }) => { assert.equal(query.take, 2); return companies; } } } },
+  });
+  const request = new Request('https://synthetic.invalid/api/admin/studio/newsletter-jobs?workspaceId=foreign', { headers: { 'x-workspace-id': 'foreign' } });
+  const response = await api.GET(request); assert.equal(response.status, 200); assert.equal(response.headers.get('cache-control'), 'private, no-store');
+  assert.equal((await response.json()).health.editionReviewAvailable, false); assert.equal(api.POST, undefined);
+  companies = [{ id: 'a' }]; assert.equal((await (await api.GET()).json()).health.editionReviewAvailable, true);
+  enabled = false; assert.equal((await api.GET()).status, 403); assert.equal(calls, 2);
+  actor = null; assert.equal((await api.GET()).status, 403); assert.equal(calls, 2);
+  actor = { workspaceId: 'a', userId: 'admin', role: 'OWNER', sessionVersion: 1 }; enabled = true;
+  failure = 'WORKSPACE_WRITE_FORBIDDEN'; assert.equal((await api.GET()).status, 403);
+  failure = 'private database credentials'; const failed = await api.GET(); assert.equal(failed.status, 503); assert.equal((await failed.text()).includes(failure), false);
 });
