@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 
 import { PROJECT_TYPES } from "@/lib/project-types";
@@ -21,13 +22,13 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-function SubmitButton() {
+function SubmitButton({ paused }: { paused: boolean }) {
   const { pending } = useFormStatus();
 
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={pending || paused}
       className="admin-btn-primary"
     >
       {pending ? (
@@ -59,13 +60,21 @@ function SubmitButton() {
 }
 
 const inputClasses =
-  "mt-2 min-h-12 w-full rounded-xl border border-white/[0.08] bg-black/20 px-4 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-[var(--helios-orange)]/45 focus:bg-black/30";
+  "mt-2 min-h-12 w-full rounded-xl border border-white/[0.08] bg-black/20 px-4 text-sm text-white outline-none transition placeholder:text-white/65 focus:border-[var(--helios-orange)]/45 focus:bg-black/30";
 
 const labelClasses =
-  "text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/45";
+  "text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/65";
 
-export default function NewProjectForm() {
-  const [state, formAction] = useActionState(createProject, initialState);
+export default function NewProjectForm({ requestId }: { requestId: string }) {
+  const router = useRouter();
+  const [submissionId] = useState(requestId);
+  const [state, formAction, pending] = useActionState(async (previous: CreateProjectState, data: FormData) => {
+    try { return await createProject(previous, data); }
+    catch { return { error: "The creation result could not be confirmed. Your form is preserved. Check Projects before starting another draft.", requiresReview: true }; }
+  }, initialState);
+  useEffect(() => { if (state.projectId) router.push(`/admin/projects/${state.projectId}`); }, [router, state.projectId]);
+  const [fields, setFields] = useState({ shortDescription: "", city: "", state: "Colorado", locationLabel: "", projectType: "Listing Media", propertyType: "" });
+  const field = (name: keyof typeof fields) => ({ value: fields[name], onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => setFields(current => ({ ...current, [name]: event.target.value })) });
 
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -73,7 +82,11 @@ export default function NewProjectForm() {
 
   return (
     <form action={formAction}>
-      <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_19rem]">
+      <input type="hidden" name="requestId" value={submissionId} />
+      {state.projectId && <p role="status">Draft created. <Link href={`/admin/projects/${state.projectId}`}>Open project</Link></p>}
+      {state.requiresReview && <p role="status" className="mb-5 text-sm text-amber-100">Creation is paused. Copy any text you need, then <Link href="/admin/projects" className="underline">check Projects</Link>.</p>}
+      <fieldset disabled={pending || Boolean(state.projectId)} className="min-w-0">
+      <div className="grid min-w-0 grid-cols-1 gap-7 xl:grid-cols-[minmax(0,1fr)_19rem]">
         <div className="space-y-6">
           {state.error ? (
             <div
@@ -90,13 +103,13 @@ export default function NewProjectForm() {
                 Project identity
               </h2>
 
-              <p className="mt-1 text-sm leading-6 text-white/35">
+              <p className="mt-1 text-sm leading-6 text-white/65">
                 Give the project a clear title and website address.
               </p>
             </div>
 
-            <div className="grid gap-5 p-5 sm:p-6">
-              <label>
+            <div className="grid min-w-0 grid-cols-1 gap-5 p-5 sm:p-6">
+              <label className="min-w-0">
                 <span className={labelClasses}>
                   Project title
                   <span className="ml-1 text-[var(--helios-orange)]">*</span>
@@ -107,6 +120,7 @@ export default function NewProjectForm() {
                   autoFocus
                   type="text"
                   name="title"
+                  maxLength={120}
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   placeholder="Mountain Modern in Fort Collins"
@@ -114,43 +128,47 @@ export default function NewProjectForm() {
                 />
               </label>
 
-              <label>
+              <label className="min-w-0">
                 <span className={labelClasses}>Portfolio URL</span>
 
                 <div className="mt-2 flex min-h-12 overflow-hidden rounded-xl border border-white/[0.08] bg-black/20 transition focus-within:border-[var(--helios-orange)]/45">
-                  <span className="flex items-center border-r border-white/[0.08] px-4 text-sm text-white/25">
+                  <span className="flex items-center border-r border-white/[0.08] px-4 text-sm text-white/65">
                     /portfolio/
                   </span>
 
                   <input
                     type="text"
                     name="slug"
+                  maxLength={140}
                     value={slugEdited ? slug : slugify(title)}
                     onChange={(event) => {
                       setSlugEdited(true);
                       setSlug(slugify(event.target.value));
                     }}
                     placeholder="mountain-modern-fort-collins"
-                    className="min-w-0 flex-1 border-0 bg-transparent px-4 text-sm text-white outline-none placeholder:text-white/20"
+                    className="min-w-0 flex-1 border-0 bg-transparent px-4 text-sm text-white outline-none placeholder:text-white/65"
                   />
                 </div>
 
-                <p className="mt-2 text-xs leading-5 text-white/25">
+                <p className="mt-2 text-xs leading-5 text-white/65">
                   We will automatically make this unique if another project
                   already uses it.
                 </p>
               </label>
 
-              <label>
-                <span className={labelClasses}>Short description</span>
+              <div className="min-w-0">
+                <label htmlFor="new-project-short-description" className={labelClasses}>Short description</label>
 
                 <textarea
+                  id="new-project-short-description"
                   name="shortDescription"
+                  maxLength={320}
+                  {...field("shortDescription")}
                   rows={4}
                   placeholder="A concise introduction for project cards and portfolio previews."
                   className={`${inputClasses} resize-y py-3`}
                 />
-              </label>
+              </div>
             </div>
           </section>
 
@@ -158,30 +176,33 @@ export default function NewProjectForm() {
             <div className="border-b border-white/[0.08] px-5 py-5 sm:px-6">
               <h2 className="text-2xl font-normal text-white">Location</h2>
 
-              <p className="mt-1 text-sm leading-6 text-white/35">
+              <p className="mt-1 text-sm leading-6 text-white/65">
                 Add the location information visitors should see.
               </p>
             </div>
 
-            <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-6">
-              <label>
+            <div className="grid min-w-0 grid-cols-1 gap-5 p-5 sm:grid-cols-2 sm:p-6">
+              <label className="min-w-0">
                 <span className={labelClasses}>City</span>
 
                 <input
                   type="text"
                   name="city"
+                  maxLength={120}
+                  {...field("city")}
                   placeholder="Fort Collins"
                   className={inputClasses}
                 />
               </label>
 
-              <label>
+              <label className="min-w-0">
                 <span className={labelClasses}>State</span>
 
                 <input
                   type="text"
                   name="state"
-                  defaultValue="Colorado"
+                  maxLength={120}
+                  {...field("state")}
                   placeholder="Colorado"
                   className={inputClasses}
                 />
@@ -193,11 +214,13 @@ export default function NewProjectForm() {
                 <input
                   type="text"
                   name="locationLabel"
+                  maxLength={180}
+                  {...field("locationLabel")}
                   placeholder="Old Town Fort Collins, Colorado"
                   className={inputClasses}
                 />
 
-                <p className="mt-2 text-xs leading-5 text-white/25">
+                <p className="mt-2 text-xs leading-5 text-white/65">
                   Optional. This replaces the city and state wherever the
                   project location is displayed publicly.
                 </p>
@@ -211,19 +234,19 @@ export default function NewProjectForm() {
                 Classification
               </h2>
 
-              <p className="mt-1 text-sm leading-6 text-white/35">
+              <p className="mt-1 text-sm leading-6 text-white/65">
                 Organize the project for future filtering and portfolio
                 categories.
               </p>
             </div>
 
-            <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-6">
-              <label>
+            <div className="grid min-w-0 grid-cols-1 gap-5 p-5 sm:grid-cols-2 sm:p-6">
+              <label className="min-w-0">
                 <span className={labelClasses}>Project type</span>
 
                 <select
                   name="projectType"
-                  defaultValue="Listing Media"
+                  {...field("projectType")}
                   className={inputClasses}
                 >
                   <option value="">Select project type</option>
@@ -235,12 +258,12 @@ export default function NewProjectForm() {
                 </select>
               </label>
 
-              <label>
+              <label className="min-w-0">
                 <span className={labelClasses}>Property type</span>
 
                 <select
                   name="propertyType"
-                  defaultValue=""
+                  {...field("propertyType")}
                   className={inputClasses}
                 >
                   <option value="">Select property type</option>
@@ -268,7 +291,7 @@ export default function NewProjectForm() {
               Project details
             </h2>
 
-            <p className="mt-3 text-sm leading-6 text-white/40">
+            <p className="mt-3 text-sm leading-6 text-white/65">
               This creates a private draft. Nothing will appear on the public
               website until you publish it.
             </p>
@@ -285,7 +308,7 @@ export default function NewProjectForm() {
                     className={`flex h-7 w-7 items-center justify-center rounded-full border text-[0.58rem] font-semibold ${
                       active
                         ? "border-[var(--helios-orange)]/40 bg-[var(--helios-orange)]/10 text-[var(--helios-orange-hover)]"
-                        : "border-white/[0.08] text-white/25"
+                        : "border-white/[0.08] text-white/65"
                     }`}
                   >
                     {number}
@@ -293,7 +316,7 @@ export default function NewProjectForm() {
 
                   <span
                     className={`text-xs ${
-                      active ? "text-white/75" : "text-white/30"
+                      active ? "text-white/75" : "text-white/65"
                     }`}
                   >
                     {label}
@@ -303,7 +326,7 @@ export default function NewProjectForm() {
             </div>
 
             <div className="mt-7 flex flex-col gap-3">
-              <SubmitButton />
+              <SubmitButton paused={Boolean(state.requiresReview || state.projectId)} />
 
               <Link
                 href="/admin/projects"
@@ -315,6 +338,7 @@ export default function NewProjectForm() {
           </div>
         </aside>
       </div>
+      </fieldset>
     </form>
   );
 }

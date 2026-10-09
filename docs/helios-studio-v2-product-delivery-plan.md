@@ -8,7 +8,9 @@ Fresh GitHub clone; integration branch `codex/v2-hosted-access-owner-action` res
 
 ## Current capability progress
 
-Read `helios-studio-v2-recovery-checkpoint.md` for current verified SHAs and evidence. Policy, bounded newsletter scheduling safeguards, the workspace shell, Command Center and held-work review are integrated through PR #398. The next product slice exposes deliberate edition date changes through the existing module with reviewed-version protection. Whole lifecycle activation and hosted owner access remain bounded dependencies, not reasons to pause safe product implementation.
+Read `helios-studio-v2-recovery-checkpoint.md` for current verified SHAs and evidence. Policy, bounded newsletter safeguards, workspace shell, Command Center, date changes and scoped job review are integrated through #400; #401 reconciles recovery. Current product work connects workspace Media Library discovery, reviewed project-detail editing and recoverable draft creation. Fixes are tied to observed workflow defects: unscoped library/count reads, stale edit overwrite, uncertain-save retries, and creation authorization/form recovery. Whole lifecycle activation and hosted access remain bounded dependencies.
+
+Next capability milestone: create a private draft, edit its details, add and organize synthetic media, then reach review/publishing controls with explicit readiness limits. Complete each workflow's tenant, revision, storage and provider checks alongside its UI. Do not measure progress by packet count.
 
 ## Bounded foundation-readiness assessment
 

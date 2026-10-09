@@ -1,111 +1,28 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-
-import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/auth/session";
+import { createProjectDraft, type ProjectDraftInput } from "@/lib/project-draft";
 
-export type CreateProjectState = {
-  error: string | null;
-};
+export type CreateProjectState = { error: string | null; projectId?: string; requiresReview?: boolean };
 
-function getString(formData: FormData, field: string) {
-  const value = formData.get(field);
-
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function slugify(value: string) {
-  return value
-    .normalize("NFKD")
-    .toLowerCase()
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-async function createUniqueSlug(value: string) {
-  const baseSlug = slugify(value) || "project";
-
-  let candidate = baseSlug;
-  let suffix = 2;
-
-  while (
-    await prisma.project.findUnique({
-      where: {
-        slug: candidate,
-      },
-      select: {
-        id: true,
-      },
-    })
-  ) {
-    candidate = `${baseSlug}-${suffix}`;
-    suffix += 1;
-  }
-
-  return candidate;
-}
-
-export async function createProject(
-  _previousState: CreateProjectState,
-  formData: FormData,
-): Promise<CreateProjectState> {
+export async function createProject(_previousState: CreateProjectState, formData: FormData): Promise<CreateProjectState> {
   const session = await requireAdminSession();
-  const title = getString(formData, "title");
-  const requestedSlug = getString(formData, "slug");
-  const shortDescription = getString(
-    formData,
-    "shortDescription",
-  );
-  const city = getString(formData, "city");
-  const state = getString(formData, "state");
-  const locationLabel = getString(formData, "locationLabel");
-  const projectType = getString(formData, "projectType");
-  const propertyType = getString(formData, "propertyType");
-
-  if (!title) {
-    return {
-      error: "Enter a project title before continuing.",
-    };
-  }
-
-  const slug = await createUniqueSlug(requestedSlug || title);
-
-  let projectId: string;
-
+  if (!["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return { error: "Editor access is required.", requiresReview: true };
+  const get = (field: string) => typeof formData.get(field) === "string" ? (formData.get(field) as string).trim() : "";
+  const input: ProjectDraftInput = { title: get('title'), slug: get('slug'), shortDescription: get('shortDescription'), city: get('city'), state: get('state'), locationLabel: get('locationLabel'), projectType: get('projectType'), propertyType: get('propertyType') };
   try {
-    const project = await prisma.project.create({
-      data: {
-        title,
-        workspaceId: session.workspaceId,
-        slug,
-        shortDescription: shortDescription || null,
-        city: city || null,
-        state: state || null,
-        locationLabel: locationLabel || null,
-        projectType: projectType || null,
-        propertyType: propertyType || null,
-        status: "DRAFT",
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    projectId = project.id;
+    const result = await createProjectDraft(session, get('requestId'), input);
+    revalidatePath('/admin'); revalidatePath('/admin/projects'); revalidatePath('/admin/studio');
+    return { error: null, projectId: result.id };
   } catch (error) {
-    console.error("Unable to create project:", error);
-
-    return {
-      error:
-        "The project could not be created. Please try again.",
-    };
+    if (error instanceof Error) {
+      if (error.message === 'PROJECT_DRAFT_TITLE_REQUIRED') return { error: 'Enter a project title before continuing.' };
+      if (error.message === 'PROJECT_DRAFT_INPUT_INVALID') return { error: 'One or more project fields exceed their allowed length. Review the form and try again.' };
+      if (error.message === 'WORKSPACE_WRITE_FORBIDDEN') return { error: 'Your workspace access changed. Check your access before creating a project.', requiresReview: true };
+      if (error.message === 'PROJECT_DRAFT_REQUEST_INVALID') return { error: 'Reload this form before creating a project. Copy any text you need first.', requiresReview: true };
+    }
+    console.error('Unable to confirm project creation:', error);
+    return { error: 'The creation result could not be confirmed. Your form is preserved. Check Projects before starting another draft.', requiresReview: true };
   }
-
-  revalidatePath("/admin");
-  revalidatePath("/admin/projects");
-
-  redirect(`/admin/projects/${projectId}`);
 }
