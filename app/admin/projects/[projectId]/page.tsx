@@ -269,6 +269,7 @@ export default async function ProjectEditorPage({
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <ProjectDetailsEditor
           projectId={project.id}
+          initialUpdatedAt={project.updatedAt.toISOString()}
           statusLabel={formatStatus(project.status)}
           initialAgents={project.agents.map((agent) => ({ ...agent, brokerageSnapshot: agent.brokerageSnapshot || "" }))}
           clientOptions={clientMemberships.map(({ client, brokerage }) => ({ ...client, brokerage }))}

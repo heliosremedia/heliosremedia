@@ -46,7 +46,9 @@ PR #400 supplies a separate GET-only Studio job projection using current-session
 
 Documentation integration #401: `52fd4aa841c1b8d098ceaa9819f58f0bfd20622f`, tree `d78122a094437a646ae78b472462f0550d9ebff3`. Application tree is unchanged from #400.
 
-**Active candidate:** `codex/v2-studio-project-media` corrects demonstrated unscoped Media Library queries and project summary counts. Adds useful empty/search states and direct selected-project media links. Focused tests, actual two-company HTTP, responsive Chromium and independent artifact gates must pass before merge.
+**Prior candidate, PR #402:** `codex/v2-studio-project-media` corrects demonstrated unscoped Media Library queries and project summary counts. Adds useful empty/search states and direct selected-project media links. Focused tests, actual two-company HTTP, responsive Chromium and independent artifact gates must pass before merge.
+
+**Active candidate:** `codex/v2-studio-project-editor`, stacked on #402. The existing project-details UI sends its reviewed updatedAt revision, keeps drafts on conflict/uncertainty and pauses saves until reload. Existing workspace/account/membership lock admission now fences the same transaction as owned project locking, current revision validation, agent checks and details writes. Qualify exact-head regression, Chromium and two-company concurrent/lock-observed runtime plus independent artifacts before merging. No schema or provider change.
 
 **Active milestone and next safe task:** validate and improve Projects and Media create/edit workflows under the Studio shell using synthetic owned records and existing upload/provider containment. Resolve concrete usability or state-recovery defects with tenant/revision qualification alongside the affected feature. Maintain the existing owner-testing guide and this checkpoint. Do not add speculative hardening packets or parallel continuity systems.
 

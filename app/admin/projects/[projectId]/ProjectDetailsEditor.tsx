@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import {
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -13,6 +12,8 @@ import {
 
 export type ProjectAgentDraft = { id?: string; clientId: string | null; displayNameSnapshot: string; brokerageSnapshot: string };
 export type AgentClientOption = { id: string; firstName: string; lastName: string; displayName: string; email: string; brokerage: string | null };
+
+import AccessibleDialog from "@/app/admin/newsletter-studio/components/AccessibleDialog";
 
 import { PROJECT_TYPES } from "@/lib/project-types";
 
@@ -45,6 +46,7 @@ export type ProjectDetailsDraft = {
 type ProjectDetailsEditorProps = {
   projectId: string;
   initialData: ProjectDetailsDraft;
+  initialUpdatedAt: string;
   statusLabel: string;
   initialAgents: ProjectAgentDraft[];
   clientOptions: AgentClientOption[];
@@ -53,10 +55,12 @@ type ProjectDetailsEditorProps = {
 type ProjectDetailsResponse = {
   success: boolean;
   error?: string;
+  reloadRequired?: boolean;
   project?: {
     id: string;
     title: string;
     slug: string;
+    updatedAt: string;
   };
 };
 
@@ -153,6 +157,7 @@ function AgentSelector({ clients, agents, onChange, legacyName, legacyBrokerage 
 export default function ProjectDetailsEditor({
   projectId,
   initialData,
+  initialUpdatedAt,
   statusLabel,
   initialAgents,
   clientOptions,
@@ -162,6 +167,9 @@ export default function ProjectDetailsEditor({
   const [draft, setDraft] = useState(initialData);
   const [savedAgents, setSavedAgents] = useState(initialAgents);
   const [draftAgents, setDraftAgents] = useState(initialAgents);
+  const [savedVersion, setSavedVersion] = useState(initialUpdatedAt);
+  const [reloadRequired, setReloadRequired] = useState(false);
+  const savingRef = useRef(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -185,6 +193,7 @@ export default function ProjectDetailsEditor({
   );
 
   const closeEditor = useCallback(() => {
+    if (savingRef.current) return;
     if (
       isDirty &&
       !window.confirm("Discard the unsaved project detail changes?")
@@ -194,36 +203,16 @@ export default function ProjectDetailsEditor({
 
     setDraft(savedData);
     setDraftAgents(savedAgents);
-    setError(null);
+    if (!reloadRequired) setError(null);
     setIsOpen(false);
-  }, [isDirty, savedAgents, savedData]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !isSaving) {
-        closeEditor();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [closeEditor, isOpen, isSaving]);
+  }, [isDirty, savedAgents, savedData, reloadRequired]);
 
   const saveDetails = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-
+      if (savingRef.current || reloadRequired) return;
+      savingRef.current = true;
+      let confirmedRejection = false;
       try {
         setIsSaving(true);
         setError(null);
@@ -233,17 +222,20 @@ export default function ProjectDetailsEditor({
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...draft, agents: draftAgents }),
+            body: JSON.stringify({ ...draft, agents: draftAgents, expectedUpdatedAt: savedVersion }),
           },
         );
         const data = (await response.json()) as ProjectDetailsResponse;
 
         if (!response.ok || !data.success || !data.project) {
+          confirmedRejection = response.status >= 400 && response.status < 500;
+          if (data.reloadRequired || [401, 403, 404].includes(response.status)) setReloadRequired(true);
           throw new Error(
             data.error || "The project details could not be saved.",
           );
         }
 
+        if (data.project.id !== projectId || typeof data.project.title !== "string" || typeof data.project.slug !== "string" || typeof data.project.updatedAt !== "string" || !Number.isFinite(Date.parse(data.project.updatedAt)) || Date.parse(data.project.updatedAt) <= Date.parse(savedVersion)) throw new Error("The save result could not be confirmed.");
         const nextData = {
           ...draft,
           title: data.project.title,
@@ -252,21 +244,24 @@ export default function ProjectDetailsEditor({
 
         setDraft(nextData);
         setSavedData(nextData);
+        setSavedVersion(data.project.updatedAt);
         setSavedAgents(draftAgents);
         setIsOpen(false);
         router.refresh();
       } catch (saveError) {
         console.error("Unable to save project details:", saveError);
+        if (!confirmedRejection) setReloadRequired(true);
         setError(
-          saveError instanceof Error
+          !confirmedRejection ? "The save result could not be confirmed. Copy any unsaved text, then reload to check the saved project before trying again." : saveError instanceof Error
             ? saveError.message
             : "The project details could not be saved.",
         );
       } finally {
+        savingRef.current = false;
         setIsSaving(false);
       }
     },
-    [draft, draftAgents, projectId, router],
+    [draft, draftAgents, projectId, router, reloadRequired, savedVersion],
   );
 
   return (
@@ -290,7 +285,7 @@ export default function ProjectDetailsEditor({
             onClick={() => {
               setDraft(savedData);
               setDraftAgents(savedAgents);
-              setError(null);
+              if (!reloadRequired) setError(null);
               setIsOpen(true);
             }}
             className="admin-btn-secondary"
@@ -330,13 +325,7 @@ export default function ProjectDetailsEditor({
       </div>
 
       {isOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="project-details-title"
-          className="fixed inset-0 z-[100] overflow-y-auto bg-black/88 p-3 backdrop-blur-xl sm:p-6"
-        >
-          <div className="mx-auto my-3 max-w-6xl overflow-hidden rounded-3xl border border-white/[0.1] bg-[#101011] shadow-[0_40px_120px_rgba(0,0,0,0.75)] sm:my-8">
+        <AccessibleDialog open={isOpen} onClose={closeEditor} labelledBy="project-details-title" size="max-w-6xl">
             <div className="sticky top-0 z-10 flex items-center justify-between gap-5 border-b border-white/[0.08] bg-[#101011]/95 px-5 py-5 backdrop-blur-xl sm:px-7">
               <div>
                 <p className="text-[0.56rem] font-semibold uppercase tracking-[0.18em] text-[var(--helios-orange)]">
@@ -374,7 +363,7 @@ export default function ProjectDetailsEditor({
             </div>
 
             <form onSubmit={(event) => void saveDetails(event)}>
-              <div className="space-y-5 p-4 sm:p-6">
+              <fieldset disabled={isSaving} className="space-y-5 p-4 sm:p-6">
                 {error && (
                   <div
                     role="alert"
@@ -383,6 +372,7 @@ export default function ProjectDetailsEditor({
                     {error}
                   </div>
                 )}
+                {reloadRequired && <p role="status" className="text-sm text-amber-100">Saving is paused. Your draft remains here for copying. <button type="button" className="underline" onClick={() => { if (window.confirm("Reload and discard the local draft? Copy any text you need first.")) window.location.reload(); }}>Reload saved project</button></p>}
 
                 <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.015]">
                   <SectionHeading
@@ -709,7 +699,7 @@ export default function ProjectDetailsEditor({
                     </Field>
                   </div>
                 </section>
-              </div>
+              </fieldset>
 
               <div className="sticky bottom-0 flex flex-col gap-4 border-t border-white/[0.08] bg-[#101011]/95 px-5 py-5 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:px-7">
                 <p className="text-xs text-white/25">
@@ -728,7 +718,7 @@ export default function ProjectDetailsEditor({
                   <button
                     type="submit"
                     disabled={
-                      isSaving || !isDirty || !draft.title || !draft.slug
+                      isSaving || reloadRequired || !isDirty || !draft.title || !draft.slug
                     }
                     className="admin-btn-primary"
                   >
@@ -740,8 +730,7 @@ export default function ProjectDetailsEditor({
                 </div>
               </div>
             </form>
-          </div>
-        </div>
+        </AccessibleDialog>
       )}
     </>
   );

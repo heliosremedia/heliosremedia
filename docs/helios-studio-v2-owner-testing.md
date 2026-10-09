@@ -36,4 +36,6 @@ Projects and Media are the active product milestone. The workspace library candi
 
 The newsletter date-change editor is integrated. It carries a reviewed row version, rejects stale edits, explains UTC and approval revocation, and requires new approval. Existing single-company admission and uncertain-delivery rules remain.
 
-Next: complete draft creation and project-detail editing recovery under the Studio shell, then media additions and metadata editing using the existing upload/provider containment. Resolve demonstrated dependencies alongside these workflows. No hosted owner URL or broader rollout is claimed.
+The project-detail editor candidate preserves unsaved text after conflicts and uncertain saves, requires an explicit reload before another save, and retains the existing dialog with keyboard focus containment. Concurrent stale edits are rejected under an owned project lock and fresh workspace authorization. Qualify before owner use.
+
+Next: complete draft creation under the Studio shell, then media additions and metadata editing using the existing upload/provider containment. Resolve demonstrated dependencies alongside these workflows. No hosted owner URL or broader rollout is claimed.
