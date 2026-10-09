@@ -44,6 +44,10 @@ PR #399 screenshot artifact 11582811831 was independently verified against SHA25
 
 PR #400 supplies a separate GET-only Studio job projection using current-session, explicit workspace rollout and existing locked owned-service admission. When the original newsletter module is unavailable, the panel explains this and hides edition-action links. No send, retry, replay or provider action is introduced.
 
+Documentation integration #401: `52fd4aa841c1b8d098ceaa9819f58f0bfd20622f`, tree `d78122a094437a646ae78b472462f0550d9ebff3`. Application tree is unchanged from #400.
+
+**Active candidate:** `codex/v2-studio-project-media` corrects demonstrated unscoped Media Library queries and project summary counts. Adds useful empty/search states and direct selected-project media links. Focused tests, actual two-company HTTP, responsive Chromium and independent artifact gates must pass before merge.
+
 **Active milestone and next safe task:** validate and improve Projects and Media create/edit workflows under the Studio shell using synthetic owned records and existing upload/provider containment. Resolve concrete usability or state-recovery defects with tenant/revision qualification alongside the affected feature. Maintain the existing owner-testing guide and this checkpoint. Do not add speculative hardening packets or parallel continuity systems.
 
 Recovery overhead: one fresh clone, live reads of both PRs and project-lead comments, exact-head CI and integration verification, and one 445,661-byte screenshot artifact download. No test suite rerun or hosted operation replay was required. Exact recovery wall time was not instrumented. GitHub checkpoints do not restart Work sessions; autonomous progression occurs only while an execution session is active.
