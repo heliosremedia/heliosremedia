@@ -1,12 +1,12 @@
 # Studio V2 live recovery checkpoint
 
-Updated October 8, 2026. Production ON HOLD. Resume from live GitHub, not interrupted local files.
+Updated October 9, 2026. Production ON HOLD. Resume from live GitHub, not interrupted local files.
 
 ## Verified integration
 
 Branch: `codex/v2-hosted-access-owner-action`.
-Latest verified application integration: `73348157c4b05dc1865e8aac47b8130f6717a0ac` (PR #399).
-Tree: `3272f9374464b71316ce966b0a3646b35b14e559`, independently verified equal to qualified candidate `6483f35ce50225b3412ee19423404e5b4d6eab72`. Live GitHub ref reverified after the execution environment disconnected.
+Latest verified application integration: `cc1b502d4f67a5f87a45fd56a3c8e578482684dc` (PR #400).
+Tree: `fb5ce59f9391d70f0e9c5884a3f18b30b9140148`, independently verified equal to qualified candidate `9c39efa5a3dd139d1aadfbc65da35bf3135a0d0a`. Fresh live recovery and post-merge tree verification completed October 9.
 
 | Completed capability | PR / integrated SHA | Qualification |
 | --- | --- | --- |
@@ -30,41 +30,29 @@ Artifacts were downloaded separately, ZIP SHA256 matched to GitHub metadata, JSO
 | 11580672168 | `771cec6591ea58c5f716c2906cb102b4d7c8d026` | `3c855dc20ddf15aba17eae8cd74b78b1cb00cbf6dfd1c140bd9674f87f1a62ec` |
 | 11581686010 | `cebbfa354a22fdae35232db5126df19d5697ceff` | `d96caf42c37ef9d99d3a6e4dc6ac2b2564bfc5e24c40a65b016230092045c9bd` |
 | 11583075130 | `6483f35ce50225b3412ee19423404e5b4d6eab72` | `9d46da3e80e6e405eb9bef21dfa84b812d438c9cc1e91170dbbf2a1bef55395a` |
-| 11582716612 (pending PR #400) | `9c39efa5a3dd139d1aadfbc65da35bf3135a0d0a` | `29b7beb050bcde8d2c831b89c9c288051e793b9105ac8a84aee233418ab59ab7` |
+| 11582716612 | `9c39efa5a3dd139d1aadfbc65da35bf3135a0d0a` | `29b7beb050bcde8d2c831b89c9c288051e793b9105ac8a84aee233418ab59ab7` |
 
 Screenshot artifacts: 11581027188 (`69819f6722336a75ade93ad19b8d5abe839b71e88ceb63d42b105838ed0d058a`) and 11580952281 (`b2b0013e5a03d4597c78686d1a9136cd0b7f59b2b7e72fc5058d3fdd5eae9bbe`). Mobile and desktop images inspected. Inspection found and corrected global link-reset interference with primary action contrast; a computed-color browser assertion now guards it. Local Chromium installation failed with an invalid downloaded archive; browser passes come from CI.
 
 ## Active work and immediate next action
 
-The execution environment disconnected after all implementation CI completed. The exec server returned `409 Conflict, environment_offline: Environment is not connected`. GitHub remained available, so this checkpoint is committed remotely. Do not use the interrupted local workspace as authority.
+Recovery completed from live GitHub under the project-lead direction in PR #401, comment 6072876581. PR #400 is integrated. Its regression 37852201803 (1,847 tests, TypeScript and all Chromium) and runtime 37852201829 remain successful for the unchanged exact candidate. Runtime artifact 11582716612 was independently verified in the prior session; cleanup and schema/access restoration were verified. No mutating or hosted operation was replayed.
 
-**PR #399 is merged and complete.** The editor exposes deliberate UTC date changes through the existing reschedule operation, carries the reviewed row version, rejects stale edits and requires new approval. Unconfirmed results require reload. Runtime first qualifies the supported single-company HTTP flow, then adds the second synthetic workspace and proves the existing module hold before the full two-tenant suite. No reset or guard substitution is used. Screenshot artifact 11582811831 was independently verified against SHA256 `06d6d15b194d6fc984f54c2fa6aa2471dff2a95923dd04e2cc078bcd12d197e1`; mobile and desktop dialog images were inspected.
+The remaining screenshot gate is complete: independently downloaded artifact 11582228840, matched ZIP SHA256 `79af4e2da5cfa31e2fbed69113a471fe40c74b9bfbc4529c1a913671f302ffe0`, and inspected all four Command Center/date-dialog images at 390px and 1440px. Text and controls are readable with no clipping. Both prospective and integrated trees equal the qualified candidate. No duplicate full qualification was run.
 
-**PR #400 remains draft with one final gate.**
+PR #399 screenshot artifact 11582811831 was independently verified against SHA256 `06d6d15b194d6fc984f54c2fa6aa2471dff2a95923dd04e2cc078bcd12d197e1`; mobile and desktop dialog images were inspected.
 
-- Branch: `codex/v2-studio-job-review`.
-- Candidate: `9c39efa5a3dd139d1aadfbc65da35bf3135a0d0a`.
-- Tree: `fb5ce59f9391d70f0e9c5884a3f18b30b9140148`.
-- Regression 37852201803, job 113567620886: all 1,847 tests, TypeScript and every Chromium step passed.
-- Runtime 37852201829: passed. Artifact 11582716612 was independently downloaded/hash-verified and parsed; both-company owned held jobs, forged selectors, role/revocation/suspension denial, private no-store, preserved original module gate and schema/access restoration were verified.
-- Screenshot artifact **11582228840** still needs independent download/hash verification and visual inspection. Expected ZIP SHA256: `79af4e2da5cfa31e2fbed69113a471fe40c74b9bfbc4529c1a913671f302ffe0`. Do not merge before completing that inspection.
-- Prospective merge tree against integration 73348157 was verified equal to the candidate tree. Reverify live integration and PR head before merge.
+PR #400 supplies a separate GET-only Studio job projection using current-session, explicit workspace rollout and existing locked owned-service admission. When the original newsletter module is unavailable, the panel explains this and hides edition-action links. No send, retry, replay or provider action is introduced.
 
-PR #400 supplies a separate GET-only Studio job projection using current-session, explicit workspace rollout and the existing locked owned-service admission. The original newsletter module HTTP guard and mutation routes are unchanged. When the module is unavailable, the panel explains this and hides edition-action links. No send, retry, replay or provider action is introduced. This closes the observed Command Center refresh limitation without activating the broader newsletter module.
+**Active milestone and next safe task:** validate and improve Projects and Media create/edit workflows under the Studio shell using synthetic owned records and existing upload/provider containment. Resolve concrete usability or state-recovery defects with tenant/revision qualification alongside the affected feature. Maintain the existing owner-testing guide and this checkpoint. Do not add speculative hardening packets or parallel continuity systems.
 
-**Resume sequence**
-
-1. Fresh clone/live GitHub verification; inspect any newer work first.
-2. Download artifact 11582228840, verify its exact digest and inspect the 390px/1440px images. Confirm #400's head and all current checks; verify matching merge tree, mark ready and merge only into the non-production integration branch.
-3. This recovery-only branch is stacked on #400. Do not merge it into integration ahead of #400, because its parent contains that pending implementation. After #400 qualifies, retarget the checkpoint PR, update its verified integrated SHA and merge the documentation through the normal process.
-4. Continue the next product milestone: validate Projects and Media create/edit workflows under the Studio shell using synthetic owned records and existing upload/provider containment. Resolve concrete usability or state-recovery defects, with tenant/revision qualification alongside the feature. Hosted access diagnosis can proceed when the correct provider connection is available.
-5. Maintain the owner-testing guide and next recovery checkpoint. Do not manufacture unrelated hardening packets.
+Recovery overhead: one fresh clone, live reads of both PRs and project-lead comments, exact-head CI and integration verification, and one 445,661-byte screenshot artifact download. No test suite rerun or hosted operation replay was required. Exact recovery wall time was not instrumented. GitHub checkpoints do not restart Work sessions; autonomous progression occurs only while an execution session is active.
 
 Initial schedule-runtime failures were qualification assumptions: 37850304377 expected route-level 403 instead of proxy 401; 37850807028 attempted positive newsletter HTTP with two workspaces despite the existing module hold. Corrected qualification setup; failed-run logs confirmed container/network cleanup. No access rule was weakened.
 
 ## Risks and boundaries
 
-- Newsletter Studio retains its existing single-company HTTP guard. The integrated Command Center job-health refresh still inherits that restriction until PR #400 finishes its final gate and merges. Direct scoped-service evidence does not qualify the broader module for multi-workspace HTTP use. This is an explicit feature dependency before broader newsletter owner testing.
+- Newsletter Studio retains its existing single-company HTTP guard. The integrated Command Center has separately qualified read-only status for two workspaces; edition actions retain that restriction. Direct scoped-service evidence does not qualify the broader module for multi-workspace HTTP use. This is an explicit feature dependency before broader newsletter owner testing.
 - Whole lifecycle activation remains disabled. Newsletter notifications and other email/referral/social/AI/provider families need their own admission and settlement qualification alongside their features.
 - Hosted Neon/Vercel/CDN parity and complete Helios/second-company compatibility remain release dependencies. Synthetic PostgreSQL/Next proof does not close them.
 - Vercel connector inspection returned 404 for both known project IDs under the known team. Live Vercel bot comments on #396, #398 and #399 report two skipped/ignored automatic deployments. Settings were not changed. No newly qualified hosted owner-testing URL exists.
