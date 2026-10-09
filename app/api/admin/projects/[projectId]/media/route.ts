@@ -40,6 +40,7 @@ type CreateMediaRequestBody = {
 };
 
 type UpdateMediaRequestBody = {
+  expectedUpdatedAt?: unknown;
   action?: unknown;
   mediaId?: unknown;
   externalUrl?: unknown;
@@ -151,6 +152,7 @@ export async function GET(_request: Request, { params }: MediaRouteProps) {
         displayOrder: true,
         visibility: true,
         createdAt: true,
+        updatedAt: true,
       },
     });
 
@@ -346,6 +348,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
             displayOrder: true,
             visibility: true,
             createdAt: true,
+            updatedAt: true,
           },
         });
 
@@ -396,6 +399,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
             displayOrder: true,
             visibility: true,
             createdAt: true,
+            updatedAt: true,
           },
         });
 
@@ -531,6 +535,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
             displayOrder: true,
             visibility: true,
             createdAt: true,
+            updatedAt: true,
           },
         });
 
@@ -591,6 +596,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
             displayOrder: true,
             visibility: true,
             createdAt: true,
+            updatedAt: true,
           },
         });
 
@@ -772,6 +778,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
           displayOrder: true,
           visibility: true,
           createdAt: true,
+          updatedAt: true,
         },
       });
 
@@ -837,6 +844,7 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
           displayOrder: true,
           visibility: true,
           createdAt: true,
+          updatedAt: true,
         },
       });
 
@@ -904,6 +912,11 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
     }
 
     if (action === "update-asset") {
+      const expectedUpdatedAt = typeof body.expectedUpdatedAt === "string" ? body.expectedUpdatedAt : "";
+      const expectedTime = Date.parse(expectedUpdatedAt);
+      if (!Number.isFinite(expectedTime) || new Date(expectedTime).toISOString() !== expectedUpdatedAt) {
+        return NextResponse.json({ success: false, error: "Reload this asset before saving. A reviewed revision is required.", reloadRequired: true }, { status: 409 });
+      }
       const mediaId =
         typeof body.mediaId === "string" ? body.mediaId.trim() : "";
       const originalFilename =
@@ -1014,6 +1027,7 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
             mediaCategory: true,
             serviceId: true,
             sourceType: true,
+            updatedAt: true,
             externalUrl: true,
           },
         });
@@ -1028,6 +1042,10 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
               status: 404,
             },
           );
+        }
+
+        if (existingMedia.updatedAt.toISOString() !== expectedUpdatedAt) {
+          return NextResponse.json({ success: false, error: "This asset changed after you opened it. Copy your draft and reload the saved media before editing again.", reloadRequired: true }, { status: 409 });
         }
 
         let displayOrder: number | undefined;
@@ -1099,6 +1117,7 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
             id: mediaId, projectId, project: { workspaceId: session.workspaceId },
           },
           data: {
+            updatedAt: new Date(Math.max(Date.now(), existingMedia.updatedAt.getTime() + 1)),
             ...(externalAssetId === undefined ? {} : { assetId: externalAssetId }),
             originalFilename,
             altText,
@@ -1140,6 +1159,7 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
           displayOrder: true,
             visibility: true,
             createdAt: true,
+            updatedAt: true,
           },
         });
 

@@ -18,7 +18,9 @@ export async function qualifyMediaUpdateAsset(origin, driver) {
     const created = await http(origin, `${other}.example.test`, `/api/admin/projects/p${id}/media`, { method: 'POST', headers: { cookie: driver.cookie(id) }, body: { streamUid: originalUid, originalFilename: 'Before', mediaCategory: 'PHOTOGRAPHY', serviceId: `s${id}` } });
     assert.equal(created.status, 201); const mediaId = JSON.parse(created.text).media.id;
     await db.projectMediaCollectionHero.upsert({ where: { projectId_serviceId: { projectId: `p${id}`, serviceId: `s${id}` } }, create: { projectId: `p${id}`, serviceId: `s${id}`, mediaCategory: 'PHOTOGRAPHY', mediaId }, update: { mediaId } });
-    const patch = (changes = {}) => http(origin, `${other}.example.test`, `/api/admin/projects/p${id}/media`, { method: 'PATCH', headers: { cookie: driver.cookie(id), 'x-workspace-id': other }, body: { action: 'update-asset', mediaId, serviceId, externalUrl: `https://iframe.videodelivery.net/${replacementUid}`, originalFilename: 'After', mediaCategory: 'OTHER', visibility: 'VISIBLE', workspaceId: other, ...changes } });
+    let reviewedVersion = JSON.parse(created.text).media.updatedAt;
+    assert.ok(reviewedVersion);
+    const patch = (changes = {}) => http(origin, `${other}.example.test`, `/api/admin/projects/p${id}/media`, { method: 'PATCH', headers: { cookie: driver.cookie(id), 'x-workspace-id': other }, body: { action: 'update-asset', expectedUpdatedAt: reviewedVersion, mediaId, serviceId, externalUrl: `https://iframe.videodelivery.net/${replacementUid}`, originalFilename: 'After', mediaCategory: 'OTHER', visibility: 'VISIBLE', workspaceId: other, ...changes } });
     const initial = await snapshot();
     const foreignMedia = await db.media.findFirst({ where: { project: { workspaceId: other } } });
     assert.ok(foreignMedia);
@@ -68,7 +70,11 @@ export async function qualifyMediaUpdateAsset(origin, driver) {
       await db.$executeRawUnsafe(`DROP FUNCTION packet65_reject_update()`);
     }
     const foreignBefore = await db.media.findMany({ where: { project: { workspaceId: other } }, orderBy: { id: 'asc' } });
-    assert.equal((await patch()).status, 200);
+    const concurrent = await Promise.all([patch(), patch()]);
+    assert.deepEqual(concurrent.map(response => response.status).sort(), [200, 409]);
+    const savedSnapshot = await snapshot();
+    assert.equal((await patch()).status, 409);
+    assert.deepEqual(await snapshot(), savedSnapshot);
     const media = await db.media.findUnique({ where: { id: mediaId } });
     assert.equal(media.assetId, asset.id); assert.equal(media.externalId, replacementUid); assert.equal(media.serviceId, serviceId); assert.equal(media.originalFilename, 'After');
     assert.equal(await db.projectMediaCollectionHero.count({ where: { mediaId } }), 0);
@@ -76,8 +82,9 @@ export async function qualifyMediaUpdateAsset(origin, driver) {
     // An unchanged URL does not require retroactive registration; this preserves the existing compatibility rule.
     const legacy = `https://iframe.videodelivery.net/${(id === 'a' ? 'c' : 'd').repeat(32)}`;
     await db.media.update({ where: { id: mediaId }, data: { externalUrl: legacy, externalId: (id === 'a' ? 'c' : 'd').repeat(32), assetId: null } });
+    reviewedVersion = (await db.media.findUnique({ where: { id: mediaId } })).updatedAt.toISOString();
     assert.equal((await patch({ externalUrl: legacy })).status, 200);
     assert.equal((await db.media.findUnique({ where: { id: mediaId } })).assetId, null);
   }
-  return { races, foreignMediaAndServiceDenied: true, heroRollbackOnUpdateFailure: true, replacementAssetLinkedBothDirections: true, unchangedLegacyPreserved: true, provider: 'synthetic Stream provisioning; update makes no provider request', hosted: false };
+  return { reviewedConcurrentSingleWinner: true, staleReplayUnchanged: true, races, foreignMediaAndServiceDenied: true, heroRollbackOnUpdateFailure: true, replacementAssetLinkedBothDirections: true, unchangedLegacyPreserved: true, provider: 'synthetic Stream provisioning; update makes no provider request', hosted: false };
 }

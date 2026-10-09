@@ -191,10 +191,10 @@ test("Stream external URL creation and replacement enforce registry ownership wh
       $queryRaw: async () => [], workspaceAsset: { findUnique: async () => ({ id: "asset" }) },
       project: { findFirst: async () => ({ id: "project" }) }, service: { findFirst: async () => ({ id: "service", slug: "video" }) },
       projectMediaCollectionHero: { findUnique: async () => null },
-      media: { findFirst: async () => patch ? { id: "media", serviceId: "service", externalUrl: oldUrl } : null, aggregate: async () => ({ _max: { displayOrder: 0 } }), create: save, update: save },
+      media: { findFirst: async () => patch ? { id: "media", serviceId: "service", updatedAt: new Date("2026-01-01T00:00:00.000Z"), externalUrl: oldUrl } : null, aggregate: async () => ({ _max: { displayOrder: 0 } }), create: save, update: save },
     } },
   }, { process: { env: { CLOUDFLARE_STREAM_ACCOUNT_ID: "account" } } });
-  const call = () => api[patch ? "PATCH" : "POST"](new Request("https://example.test/api", { method: patch ? "PATCH" : "POST", body: JSON.stringify({ action: "update-asset", mediaId: "media", externalUrl: url, originalFilename: "Video", mediaCategory: "VIDEO", serviceId: "service", visibility: "VISIBLE", workspaceId: "b" }) }), { params: Promise.resolve({ projectId: "project" }) });
+  const call = () => api[patch ? "PATCH" : "POST"](new Request("https://example.test/api", { method: patch ? "PATCH" : "POST", body: JSON.stringify({ action: "update-asset", expectedUpdatedAt: "2026-01-01T00:00:00.000Z", mediaId: "media", externalUrl: url, originalFilename: "Video", mediaCategory: "VIDEO", serviceId: "service", visibility: "VISIBLE", workspaceId: "b" }) }), { params: Promise.resolve({ projectId: "project" }) });
   assert.equal((await call()).status, 400); assert.equal(writes, 0);
   allowed = true; assert.equal((await call()).status, 201); assert.equal(writes, 1);
   patch = true; allowed = false; assert.equal((await call()).status, 400); assert.equal(writes, 1);
