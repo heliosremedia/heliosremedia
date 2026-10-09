@@ -363,7 +363,7 @@ export default function ProjectDetailsEditor({
             </div>
 
             <form onSubmit={(event) => void saveDetails(event)}>
-              <fieldset disabled={isSaving} className="space-y-5 p-4 sm:p-6">
+              <fieldset disabled={isSaving} className="min-w-0 space-y-5 p-4 sm:p-6">
                 {error && (
                   <div
                     role="alert"
