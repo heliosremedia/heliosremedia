@@ -54,7 +54,15 @@ try {
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
       assert.equal(await page.getByRole('dialog').locator('form').evaluate(el=>el.scrollWidth<=el.clientWidth),true);
       page.once('dialog',dialog=>dialog.dismiss());await page.keyboard.press('Escape');assert.equal(await page.getByRole('dialog').count(),1);
-      if(failure==='conflict') await page.screenshot({path:`release-evidence/studio-media-editor-${width}.png`,fullPage:true});
+      if(failure==='conflict') {
+        await page.screenshot({path:`release-evidence/studio-media-editor-${width}.png`,fullPage:false});
+        const reload = page.getByRole('button',{name:'Reload saved media',exact:true});
+        await reload.scrollIntoViewIfNeeded();
+        assert.equal(await reload.evaluate(el=>{const r=el.getBoundingClientRect();return r.top>=0 && r.bottom<=innerHeight}),true,'Recovery control is reachable inside the dialog');
+        page.once('dialog',dialog=>dialog.dismiss());await reload.click();
+        assert.equal(await page.getByLabel('Asset filename',{exact:true}).inputValue(),'Keep this draft filename');
+        await page.screenshot({path:`release-evidence/studio-media-recovery-${width}.png`,fullPage:false});
+      }
     }
     assert.deepEqual(errors,[]);await page.close();
   }
