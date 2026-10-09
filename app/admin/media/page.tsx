@@ -250,7 +250,7 @@ export default async function MediaLibraryPage({
           <h1 className="mt-3 text-3xl font-light tracking-[-0.03em] text-white sm:text-4xl">
             Media library
           </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/40">
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/65">
             Search and inspect assets in your current workspace. Open a project
             to add media or edit its details.
           </p>
@@ -293,14 +293,14 @@ export default async function MediaLibraryPage({
             key={stat.label}
             className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5"
           >
-            <p className="text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-white/30">
+            <p className="text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-white/65">
               {stat.label}
             </p>
             <div className="mt-5 flex items-end justify-between gap-4">
               <p className="font-display text-4xl font-light leading-none text-white">
                 {formatNumber(stat.value)}
               </p>
-              <p className="text-right text-[0.65rem] text-white/25">
+              <p className="text-right text-[0.65rem] text-white/65">
                 {stat.detail}
               </p>
             </div>
@@ -327,7 +327,7 @@ export default async function MediaLibraryPage({
                 aria-hidden="true"
                 viewBox="0 0 24 24"
                 fill="none"
-                className="h-4 w-4 shrink-0 text-white/25"
+                className="h-4 w-4 shrink-0 text-white/65"
               >
                 <circle
                   cx="11"
@@ -348,7 +348,7 @@ export default async function MediaLibraryPage({
                 name="search"
                 defaultValue={search}
                 placeholder="Search filename, metadata, project, or location"
-                className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/20"
+                className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/65"
               />
             </label>
 
@@ -371,7 +371,7 @@ export default async function MediaLibraryPage({
         </div>
 
         <div className="border-t border-white/[0.07] px-4 py-4 sm:px-5">
-          <p className="mb-3 text-[0.52rem] font-semibold uppercase tracking-[0.17em] text-white/20">
+          <p className="mb-3 text-[0.52rem] font-semibold uppercase tracking-[0.17em] text-white/65">
             Collection
           </p>
           <div className="flex gap-2 overflow-x-auto pb-1">
@@ -379,8 +379,8 @@ export default async function MediaLibraryPage({
               href={buildLibraryUrl(filters, { category: "ALL" })}
               className={`shrink-0 rounded-full border px-3.5 py-2 text-[0.52rem] font-semibold uppercase tracking-[0.13em] transition ${
                 category === "ALL"
-                  ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] text-black"
-                  : "border-white/10 text-white/35 hover:border-white/25 hover:text-white"
+                  ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] text-black!"
+                  : "border-white/10 text-white/65 hover:border-white/25 hover:text-white"
               }`}
             >
               All collections
@@ -391,8 +391,8 @@ export default async function MediaLibraryPage({
                 href={buildLibraryUrl(filters, { category: collection.value })}
                 className={`shrink-0 rounded-full border px-3.5 py-2 text-[0.52rem] font-semibold uppercase tracking-[0.13em] transition ${
                   category === collection.value
-                    ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] text-black"
-                    : "border-white/10 text-white/35 hover:border-white/25 hover:text-white"
+                    ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] text-black!"
+                    : "border-white/10 text-white/65 hover:border-white/25 hover:text-white"
                 }`}
               >
                 {collection.label}
@@ -410,7 +410,7 @@ export default async function MediaLibraryPage({
                 className={`rounded-full border px-3.5 py-2 text-[0.52rem] font-semibold uppercase tracking-[0.13em] transition ${
                   visibility === option
                     ? "border-white/25 bg-white/[0.08] text-white"
-                    : "border-white/10 text-white/30 hover:border-white/20 hover:text-white/65"
+                    : "border-white/10 text-white/65 hover:border-white/20 hover:text-white/65"
                 }`}
               >
                 {option === "ALL" ? "All visibility" : option.toLowerCase()}
@@ -431,7 +431,7 @@ export default async function MediaLibraryPage({
             )}
           </div>
 
-          <p className="text-xs text-white/25">
+          <p className="text-xs text-white/65">
             {formatNumber(firstResult)}–{formatNumber(lastResult)} of{" "}
             {formatNumber(resultCount)}
           </p>
@@ -445,7 +445,7 @@ export default async function MediaLibraryPage({
           <h2 className="font-display text-3xl font-light text-white">
             {hasFilters ? "No assets match these filters." : "Add your first project media."}
           </h2>
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/35">
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/65">
             {hasFilters
               ? "Adjust the filters, or open the project to add media."
               : "Media belongs to a project. Choose an existing project or create a draft to get started."}
@@ -475,7 +475,7 @@ export default async function MediaLibraryPage({
             <span />
           )}
 
-          <p className="text-xs text-white/30">
+          <p className="text-xs text-white/65">
             Page {page} of {totalPages}
           </p>
 

@@ -65,9 +65,9 @@ type ProjectDetailsResponse = {
 };
 
 const inputClasses =
-  "mt-2 min-h-12 w-full rounded-xl border border-white/[0.08] bg-black/25 px-4 text-sm text-white outline-none transition placeholder:text-white/18 focus:border-[var(--helios-orange)]/45 focus:bg-black/35";
+  "mt-2 min-h-12 w-full rounded-xl border border-white/[0.08] bg-black/25 px-4 text-sm text-white outline-none transition placeholder:text-white/65 focus:border-[var(--helios-orange)]/45 focus:bg-black/35";
 const labelClasses =
-  "text-[0.58rem] font-semibold uppercase tracking-[0.17em] text-white/35";
+  "text-[0.58rem] font-semibold uppercase tracking-[0.17em] text-white/65";
 
 function slugify(value: string) {
   return value
@@ -94,7 +94,7 @@ function Field({
       <span className={labelClasses}>{label}</span>
       {children}
       {detail && (
-        <span className="mt-2 block text-xs text-white/22">{detail}</span>
+        <span className="mt-2 block text-xs text-white/65">{detail}</span>
       )}
     </label>
   );
@@ -117,7 +117,7 @@ function SectionHeading({
         </span>
         <div>
           <h3 className="text-xl font-normal text-white">{title}</h3>
-          <p className="mt-1 text-xs leading-5 text-white/30">{description}</p>
+          <p className="mt-1 text-xs leading-5 text-white/65">{description}</p>
         </div>
       </div>
     </div>
@@ -142,15 +142,15 @@ function AgentSelector({ clients, agents, onChange, legacyName, legacyBrokerage 
   const move = (index: number, direction: -1 | 1) => { const next = [...agents]; const target = index + direction; if (target < 0 || target >= next.length) return; [next[index], next[target]] = [next[target], next[index]]; onChange(next); };
   return <div>
     <p className={labelClasses}>Agents and brokerages</p>
-    {agents.length === 0 && legacyName && <div className="mt-3 rounded-xl border border-amber-200/15 bg-amber-200/[0.04] px-4 py-3"><p className="text-sm text-white/65">Current published credit: {legacyName}{legacyBrokerage ? ` · ${legacyBrokerage}` : ""}</p><p className="mt-1 text-xs text-white/30">Preserved as entered. Connect it manually only when you are ready.</p></div>}
+    {agents.length === 0 && legacyName && <div className="mt-3 rounded-xl border border-amber-200/15 bg-amber-200/[0.04] px-4 py-3"><p className="text-sm text-white/65">Current published credit: {legacyName}{legacyBrokerage ? ` · ${legacyBrokerage}` : ""}</p><p className="mt-1 text-xs text-white/65">Preserved as entered. Connect it manually only when you are ready.</p></div>}
     <div className="relative mt-3">
       <label className="sr-only" htmlFor="agent-client-search">Search existing clients</label>
       <input ref={inputRef} id="agent-client-search" type="search" role="combobox" aria-autocomplete="list" aria-expanded={open} aria-controls="agent-client-results" aria-activedescendant={open && results[activeIndex] ? `agent-client-${results[activeIndex].id}` : undefined} value={query} onFocus={() => setOpen(true)} onChange={(event) => { setQuery(event.target.value); setOpen(true); setActiveIndex(0); }} onKeyDown={(event) => { if (event.key === "ArrowDown") { event.preventDefault(); setOpen(true); setActiveIndex((current) => Math.min(current + 1, Math.max(0, results.length - 1))); } else if (event.key === "ArrowUp") { event.preventDefault(); setActiveIndex((current) => Math.max(0, current - 1)); } else if (event.key === "Enter" && open && results[activeIndex]) { event.preventDefault(); addClient(results[activeIndex]); } else if (event.key === "Escape") setOpen(false); }} placeholder="Search name, email, or brokerage" className={inputClasses} />
-      {open && <div id="agent-client-results" role="listbox" className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-xl border border-white/10 bg-[#171718] p-1 shadow-2xl">{results.map((client, index) => <button id={`agent-client-${client.id}`} role="option" aria-selected={index === activeIndex} key={client.id} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => addClient(client)} className={`block w-full rounded-lg px-3 py-3 text-left focus-visible:outline-2 focus-visible:outline-[var(--helios-orange)] ${index === activeIndex ? "bg-white/[0.07]" : "hover:bg-white/[0.04]"}`}><span className="block text-sm text-white/75">{client.displayName}</span><span className="mt-1 block text-xs text-white/35">{[client.brokerage, client.email].filter(Boolean).join(" · ")}</span></button>)}{results.length === 0 && <p className="px-3 py-4 text-sm text-white/35">No matching clients.</p>}</div>}
+      {open && <div id="agent-client-results" role="listbox" className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-xl border border-white/10 bg-[#171718] p-1 shadow-2xl">{results.map((client, index) => <button id={`agent-client-${client.id}`} role="option" aria-selected={index === activeIndex} key={client.id} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => addClient(client)} className={`block w-full rounded-lg px-3 py-3 text-left focus-visible:outline-2 focus-visible:outline-[var(--helios-orange)] ${index === activeIndex ? "bg-white/[0.07]" : "hover:bg-white/[0.04]"}`}><span className="block text-sm text-white/75">{client.displayName}</span><span className="mt-1 block text-xs text-white/65">{[client.brokerage, client.email].filter(Boolean).join(" · ")}</span></button>)}{results.length === 0 && <p className="px-3 py-4 text-sm text-white/65">No matching clients.</p>}</div>}
     </div>
     <button type="button" onClick={() => setManual((value) => !value)} className="admin-btn-link mt-3">Enter agent manually</button>
     {manual && <div className="mt-3 grid gap-3 rounded-xl border border-white/[0.08] p-4 sm:grid-cols-2"><Field label="Agent display name"><input value={manualName} onChange={(event) => setManualName(event.target.value)} maxLength={160} className={inputClasses} /></Field><Field label="Brokerage"><input value={manualBrokerage} onChange={(event) => setManualBrokerage(event.target.value)} maxLength={160} className={inputClasses} /></Field><div className="sm:col-span-2"><button type="button" disabled={!manualName.trim()} onClick={() => { onChange([...agents, { clientId: null, displayNameSnapshot: manualName.trim(), brokerageSnapshot: manualBrokerage.trim() }]); setManualName(""); setManualBrokerage(""); setManual(false); }} className="admin-btn-secondary">Add manual agent</button></div></div>}
-    <div className="mt-4 space-y-3">{agents.map((agent, index) => <div key={agent.id || `${agent.clientId || "manual"}-${index}`} className="rounded-xl border border-white/[0.08] bg-black/20 p-4"><div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"><Field label="Display name"><input value={agent.displayNameSnapshot} onChange={(event) => update(index, "displayNameSnapshot", event.target.value)} maxLength={160} className={inputClasses} /></Field><Field label="Brokerage override"><input value={agent.brokerageSnapshot} onChange={(event) => update(index, "brokerageSnapshot", event.target.value)} maxLength={160} className={inputClasses} /></Field><div className="flex items-end gap-1"><button type="button" aria-label={`Move ${agent.displayNameSnapshot} up`} disabled={index === 0} onClick={() => move(index, -1)} className="admin-btn-link min-h-11 min-w-11">↑</button><button type="button" aria-label={`Move ${agent.displayNameSnapshot} down`} disabled={index === agents.length - 1} onClick={() => move(index, 1)} className="admin-btn-link min-h-11 min-w-11">↓</button><button type="button" aria-label={`Remove ${agent.displayNameSnapshot}`} onClick={() => onChange(agents.filter((_, agentIndex) => agentIndex !== index))} className="admin-btn-link min-h-11">Remove</button></div></div>{agent.clientId && <div className="mt-3 flex flex-wrap items-center justify-between gap-2"><p className="text-xs text-white/25">Client linked. These are project snapshots and will not change automatically.</p><button type="button" onClick={() => { const client = clients.find((item) => item.id === agent.clientId); if (client) onChange(agents.map((item, agentIndex) => agentIndex === index ? { ...item, displayNameSnapshot: client.displayName, brokerageSnapshot: client.brokerage || "" } : item)); }} className="admin-btn-link">Refresh from client record</button></div>}</div>)}</div>
+    <div className="mt-4 space-y-3">{agents.map((agent, index) => <div key={agent.id || `${agent.clientId || "manual"}-${index}`} className="rounded-xl border border-white/[0.08] bg-black/20 p-4"><div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"><Field label="Display name"><input value={agent.displayNameSnapshot} onChange={(event) => update(index, "displayNameSnapshot", event.target.value)} maxLength={160} className={inputClasses} /></Field><Field label="Brokerage override"><input value={agent.brokerageSnapshot} onChange={(event) => update(index, "brokerageSnapshot", event.target.value)} maxLength={160} className={inputClasses} /></Field><div className="flex items-end gap-1"><button type="button" aria-label={`Move ${agent.displayNameSnapshot} up`} disabled={index === 0} onClick={() => move(index, -1)} className="admin-btn-link min-h-11 min-w-11">↑</button><button type="button" aria-label={`Move ${agent.displayNameSnapshot} down`} disabled={index === agents.length - 1} onClick={() => move(index, 1)} className="admin-btn-link min-h-11 min-w-11">↓</button><button type="button" aria-label={`Remove ${agent.displayNameSnapshot}`} onClick={() => onChange(agents.filter((_, agentIndex) => agentIndex !== index))} className="admin-btn-link min-h-11">Remove</button></div></div>{agent.clientId && <div className="mt-3 flex flex-wrap items-center justify-between gap-2"><p className="text-xs text-white/65">Client linked. These are project snapshots and will not change automatically.</p><button type="button" onClick={() => { const client = clients.find((item) => item.id === agent.clientId); if (client) onChange(agents.map((item, agentIndex) => agentIndex === index ? { ...item, displayNameSnapshot: client.displayName, brokerageSnapshot: client.brokerage || "" } : item)); }} className="admin-btn-link">Refresh from client record</button></div>}</div>)}</div>
   </div>;
 }
 
@@ -275,7 +275,7 @@ export default function ProjectDetailsEditor({
             <h2 className="mt-3 text-2xl font-normal text-white">
               Project details
             </h2>
-            <p className="mt-1 text-sm text-white/35">
+            <p className="mt-1 text-sm text-white/65">
               Identity, story, property facts, credits, and search metadata.
             </p>
           </div>
@@ -313,7 +313,7 @@ export default function ProjectDetailsEditor({
             ],
           ].map(([label, value]) => (
             <div key={label} className="bg-[#0c0c0d] px-5 py-5 sm:px-6">
-              <dt className="text-[0.58rem] font-semibold uppercase tracking-[0.17em] text-white/23">
+              <dt className="text-[0.58rem] font-semibold uppercase tracking-[0.17em] text-white/65">
                 {label}
               </dt>
               <dd className="mt-2 truncate text-sm leading-6 text-white/62">
@@ -416,7 +416,7 @@ export default function ProjectDetailsEditor({
                       detail="Changing this updates the public project address."
                     >
                       <div className="mt-2 flex min-h-12 overflow-hidden rounded-xl border border-white/[0.08] bg-black/25 transition focus-within:border-[var(--helios-orange)]/45">
-                        <span className="flex items-center border-r border-white/[0.08] px-3 text-xs text-white/22">
+                        <span className="flex items-center border-r border-white/[0.08] px-3 text-xs text-white/65">
                           /portfolio/
                         </span>
                         <input
@@ -702,7 +702,7 @@ export default function ProjectDetailsEditor({
               </fieldset>
 
               <div className="sticky bottom-0 flex flex-col gap-4 border-t border-white/[0.08] bg-[#101011]/95 px-5 py-5 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:px-7">
-                <p className="text-xs text-white/25">
+                <p className="text-xs text-white/65">
                   {isDirty ? "Unsaved changes" : "All changes saved"}
                 </p>
 
