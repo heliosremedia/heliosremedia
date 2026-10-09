@@ -6,6 +6,9 @@ Production ON HOLD. This guide describes the next non-production owner-testing p
 
 - `/admin/studio`: workspace identity, responsive navigation, attention items, upcoming work and recent projects from existing scoped services.
 - Existing module destinations remain integrated under the V2 shell for eligible administrators.
+- Workspace Media Library search/counts and project media links are scoped to the current company.
+- Private draft creation preserves form state and prevents duplicate drafts on replay.
+- Project details and media metadata use reviewed revisions and preserve unsaved drafts during conflict or uncertainty.
 - Read-only newsletter job review distinguishes jobs held after reactivation and links to edition generation/delivery review.
 - Valid unchanged future newsletter schedules survive reactivation; overdue work is held. SEND, GENERATE and approval-deadline admission are checked under workspace locks. Uncertain provider outcomes retain their separate review rules.
 
@@ -25,6 +28,9 @@ Do not infer provider readiness from dashboard counts. Do not use production rec
 | Navigate Projects, Media, Clients and marketing modules | Existing working module routes, correct active navigation | Missing destinations or labels that do not match your workflow |
 | Open attention and upcoming items | Direct path to existing review/editing screens | Whether the linked screen makes the next action clear |
 | Inspect newsletter jobs | Explicit refresh, bounded status snapshot and held-work explanation | Whether held, claimed and uncertain work are distinguishable |
+| Create a private project draft  | Entered fields survive validation; confirmed creation opens the owned draft; uncertain creation pauses for Projects review | Any lost fields, duplicate draft or unclear next step |
+| Edit project details | Save the reviewed record; a competing edit preserves local text and requires reload | Whether conflict recovery is understandable |
+| Edit media metadata  | Preserve filename, alt text and caption on conflict; review saved media before another edit | Whether the recovery control is reachable on mobile |
 | Use mobile and keyboard navigation | Disclosure menu, skip link, visible focus and readable controls without horizontal overflow | Any inaccessible or awkward control |
 | Refresh a temporarily unavailable section | Unavailable state remains distinct from an empty result | Wording that suggests a false success or hidden work |
 
@@ -32,12 +38,12 @@ Viewing these surfaces does not send, approve, retry or replay work. Existing mo
 
 ## Next product slice
 
-Projects and Media are the active product milestone. The workspace library candidate scopes list/search/counts and selected projects to the current session, distinguishes empty workspaces from empty search results, and links selected projects directly to media controls. Qualification covers actual two-company HTTP and responsive page rendering; complete its gates before owner use.
+Projects and Media are the active product milestone. The integrated workspace library scopes list/search/counts and selected projects to the current session, distinguishes empty workspaces from empty search results, and links selected projects directly to media controls. Qualification covers actual two-company HTTP and responsive page rendering; isolated qualification and screenshot gates are complete; hosted access remains separate.
 
 The newsletter date-change editor is integrated. It carries a reviewed row version, rejects stale edits, explains UTC and approval revocation, and requires new approval. Existing single-company admission and uncertain-delivery rules remain.
 
-The project-detail editor candidate preserves unsaved text after conflicts and uncertain saves, requires an explicit reload before another save, and retains the existing dialog with keyboard focus containment. Concurrent stale edits are rejected under an owned project lock and fresh workspace authorization. Qualify before owner use.
+The integrated project-detail editor preserves unsaved text after conflicts and uncertain saves, requires an explicit reload before another save, and retains the existing dialog with keyboard focus containment. Concurrent stale edits are rejected under an owned project lock and fresh workspace authorization. Its two-company runtime, regression and responsive browser gates are complete.
 
-The draft-creation candidate preserves fields on validation/transport failure, pauses uncertain creation for review, and uses a stable owned submission identity to avoid duplicate drafts on replay. Actual Next form submission and two-company permission races must qualify before owner use.
+The integrated draft-creation workflow preserves fields on validation/transport failure, pauses uncertain creation for review, and uses a stable owned submission identity to avoid duplicate drafts on replay. Actual Next form submission/replay, two-company permission races and responsive recovery are qualified in isolation.
 
-Next: complete media additions and metadata editing using the existing upload/provider containment. Resolve demonstrated dependencies alongside these workflows. No hosted owner URL or broader rollout is claimed.
+PR #405 integrates reviewed media metadata saves and draft recovery; exact-head regression, two-company runtime and responsive recovery gates are complete. Next: complete media additions and metadata editing using the existing upload/provider containment. Resolve demonstrated dependencies alongside these workflows. No hosted owner URL or broader rollout is claimed.
