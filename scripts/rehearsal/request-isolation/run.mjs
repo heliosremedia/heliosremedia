@@ -261,7 +261,7 @@ try {
     const studioCommandCenter = await qualifyStudioCommandCenter(origin, driver);
     const studioProjectMedia = await qualifyStudioProjectMedia(origin, driver);
     const studioProjectEditor = await qualifyStudioProjectEditor(origin, driver);
-    const studioProjectCreate = await qualifyStudioProjectCreate(origin, driver);
+    const studioProjectCreate = await qualifyStudioProjectCreate(origin, driver, JSON.parse(await readFile(join(app, '.next/server/server-reference-manifest.json'), 'utf8')));
 
 
     assert.equal(await driver.schemaFingerprint(), schemaBefore);

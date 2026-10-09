@@ -2,33 +2,28 @@ import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 import { http } from './http.mjs';
+import { createRequire } from 'node:module';
+const { encodeReply } = createRequire(import.meta.url)('next/dist/compiled/react-server-dom-webpack/client.node');
 import { requireOrigin } from './safety.mjs';
 
-export async function qualifyStudioProjectCreate(origin, driver) {
+export async function qualifyStudioProjectCreate(origin, driver, actionManifest) {
   requireOrigin(origin);
   const db = driver.prisma, cases = [], races = [], createdIds = [];
   const memberships = await db.workspaceMembership.findMany({ orderBy: { id: 'asc' } });
   const workspaces = await db.workspace.findMany({ orderBy: { id: 'asc' } });
-  const decode = value => value.replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
   const identity = (id, requestId) => `draft_${createHash('sha256').update(JSON.stringify(['studio-draft-v1', id, `u${id}`, requestId])).digest('hex')}`;
+  const actionIds = Object.entries(actionManifest.node).filter(([, entry]) => Object.keys(entry.workers).some(worker => worker.endsWith('/admin/projects/new/page'))).map(([id]) => id);
+  assert.equal(actionIds.length, 1, 'Use the single actual compiled create-project action');
   async function prepare(id) {
     const page = await http(origin, 'a.example.test', '/admin/projects/new', { headers: { cookie: driver.cookie(id) } });
-    assert.equal(page.status, 200);
-    const form = [...page.text.matchAll(/<form\b[^>]*>([\s\S]*?)<\/form>/g)].map(m=>m[1]).find(value=>value.includes('name="requestId"'));
-    assert.ok(form, 'Actual server-action form must be present');
-    const fields = [];
-    for (const match of form.matchAll(/<input\b[^>]*>/g)) {
-      const name=match[0].match(/\bname="([^"]*)"/)?.[1], value=match[0].match(/\bvalue="([^"]*)"/)?.[1];
-      if(name?.startsWith('$ACTION_')) fields.push([decode(name),decode(value||'')]);
-    }
-    assert.ok(fields.some(([name])=>name.startsWith('$ACTION_REF_')||name.startsWith('$ACTION_ID_')), 'Use the emitted Next action identity');
-    return fields;
+    assert.equal(page.status, 200); assert.ok(page.text.includes('name="requestId"'));
+    return actionIds[0];
   }
-  async function send(id, fields, requestId, title='Synthetic draft') {
-    const form = new FormData(); for(const [key,value] of fields) form.append(key,value);
+  async function send(id, actionId, requestId, title='Synthetic draft') {
+    const form = new FormData();
     for(const [key,value] of Object.entries({requestId,title,slug:`studio-create-${id}-${requestId}`,shortDescription:'Synthetic creation test',city:'Fort Collins',state:'Colorado',locationLabel:'',projectType:'Listing Media',propertyType:''})) form.set(key,value);
     const host = `${id==='a'?'b':'a'}.example.test`;
-    const response=await fetch(`${origin}/admin/projects/new`,{method:'POST',headers:{host,origin:`http://${host}`,cookie:driver.cookie(id)},body:form,redirect:'manual'});
+    const response=await fetch(`${origin}/admin/projects/new`,{method:'POST',headers:{host,origin:`http://${host}`,cookie:driver.cookie(id),'Next-Action':actionId,accept:'text/x-component'},body:await encodeReply([{error:null},form]),redirect:'manual'});
     return {status:response.status,text:await response.text()};
   }
   try {
