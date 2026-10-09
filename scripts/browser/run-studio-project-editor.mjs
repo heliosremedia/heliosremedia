@@ -38,6 +38,7 @@ try {
     await open();
     await page.getByRole('dialog').getByLabel('Project title',{exact:true}).fill('Reviewed project title');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+    assert.equal(await page.getByRole('dialog').evaluate(element=>element.scrollWidth<=element.clientWidth),true,'Dialog content must fit its own width');
     await page.getByRole('button',{name:'Save project',exact:true}).focus();await page.keyboard.press('Tab');
     assert.equal(await page.locator(':focus').getAttribute('aria-label'),'Close project details editor');
     await page.screenshot({path:`release-evidence/studio-project-editor-${width}.png`,fullPage:true});
