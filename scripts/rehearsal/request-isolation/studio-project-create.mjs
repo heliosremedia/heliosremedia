@@ -23,7 +23,7 @@ export async function qualifyStudioProjectCreate(origin, driver, actionManifest)
     const form = new FormData();
     for(const [key,value] of Object.entries({requestId,title,slug:`studio-create-${id}-${requestId}`,shortDescription:'Synthetic creation test',city:'Fort Collins',state:'Colorado',locationLabel:'',projectType:'Listing Media',propertyType:''})) form.set(key,value);
     const host = `${id==='a'?'b':'a'}.example.test`;
-    const response=await fetch(`${origin}/admin/projects/new`,{method:'POST',headers:{host,origin:`http://${host}`,cookie:driver.cookie(id),'Next-Action':actionId,accept:'text/x-component'},body:await encodeReply([{error:null},form]),redirect:'manual'});
+    const response=await fetch(`${origin}/admin/projects/new`,{method:'POST',headers:{host,'x-forwarded-host':host,origin:`http://${host}`,cookie:driver.cookie(id),'Next-Action':actionId,accept:'text/x-component'},body:await encodeReply([{error:null},form]),redirect:'manual'});
     return {status:response.status,text:await response.text()};
   }
   try {
