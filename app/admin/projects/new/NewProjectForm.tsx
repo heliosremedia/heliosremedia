@@ -156,10 +156,11 @@ export default function NewProjectForm({ requestId }: { requestId: string }) {
                 </p>
               </label>
 
-              <label>
-                <span className={labelClasses}>Short description</span>
+              <div>
+                <label htmlFor="new-project-short-description" className={labelClasses}>Short description</label>
 
                 <textarea
+                  id="new-project-short-description"
                   name="shortDescription"
                   maxLength={320}
                   {...field("shortDescription")}
@@ -167,7 +168,7 @@ export default function NewProjectForm({ requestId }: { requestId: string }) {
                   placeholder="A concise introduction for project cards and portfolio previews."
                   className={`${inputClasses} resize-y py-3`}
                 />
-              </label>
+              </div>
             </div>
           </section>
 
