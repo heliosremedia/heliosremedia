@@ -90,7 +90,7 @@ function Field({
   detail?: string;
 }) {
   return (
-    <label className={className}>
+    <label className={`min-w-0 ${className}`}>
       <span className={labelClasses}>{label}</span>
       {children}
       {detail && (
