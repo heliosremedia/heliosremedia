@@ -45,6 +45,8 @@ try {
     assert.equal(await page.getByLabel('City',{exact:true}).inputValue(),'Fort Collins');
     assert.equal(await page.getByLabel('Short description',{exact:true}).inputValue(),'Keep this description');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+    assert.equal(await page.locator('form').evaluate(el=>el.getBoundingClientRect().right<=innerWidth && el.scrollWidth<=el.clientWidth),true,'Creation form fits the viewport');
+    assert.equal(await page.locator('form section').evaluateAll(elements=>elements.every(el=>el.scrollWidth<=el.clientWidth)),true,'Creation fields fit their sections');
     await page.screenshot({path:`release-evidence/studio-project-create-${width}.png`,fullPage:true});
     mode='success';await page.getByRole('button',{name:'Create draft',exact:true}).click();await page.waitForFunction(()=>window.pushed==='/admin/projects/synthetic-created');
     assert.equal(await page.getByRole('button',{name:'Create draft',exact:true}).isDisabled(),true);
