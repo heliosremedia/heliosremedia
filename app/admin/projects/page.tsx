@@ -114,7 +114,7 @@ export default async function ProjectsPage({
   };
   const [totalProjects, statusCounts, allOrderedProjects, discoverySettings, featuredOrder, curationProjects, curationMedia] = await Promise.all([
     prisma.project.count({ where }),
-    prisma.project.groupBy({ by: ["status"], _count: { _all: true } }),
+    prisma.project.groupBy({ where: { workspaceId: session.workspaceId }, by: ["status"], _count: { _all: true } }),
     prisma.project.findMany({ where: { workspaceId: session.workspaceId }, orderBy: [{ displayOrder: "asc" }, { updatedAt: "desc" }, { title: "asc" }], select: { id: true } }),
     getPortfolioDiscoverySettings(session.workspaceId),
     getFeaturedProjectOrder(session.workspaceId),

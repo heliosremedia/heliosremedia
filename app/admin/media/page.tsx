@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { requireAdminSession } from "@/lib/auth/session";
 
 import type { Prisma } from "@/app/generated/prisma/client";
 import {
@@ -8,6 +10,7 @@ import {
   type MediaCategory,
 } from "@/lib/media-collections";
 import { prisma } from "@/lib/prisma";
+import { publishingStorageReferenceMatches } from "@/lib/social/publishing-payload";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 
 import MediaLibraryGrid, { type LibraryMediaItem } from "./MediaLibraryGrid";
@@ -80,6 +83,7 @@ function formatNumber(value: number) {
 export default async function MediaLibraryPage({
   searchParams,
 }: MediaLibraryPageProps) {
+  const session = await requireAdminSession();
   const params = await searchParams;
   const search = getParam(params.search);
   const requestedCategory = getParam(params.category).toUpperCase();
@@ -100,7 +104,16 @@ export default async function MediaLibraryPage({
     projectId,
   };
 
+  const activeProject = projectId
+    ? await prisma.project.findFirst({
+        where: { id: projectId, workspaceId: session.workspaceId },
+        select: { id: true, title: true },
+      })
+    : null;
+  if (projectId && !activeProject) notFound();
+  const ownedMedia = { project: { workspaceId: session.workspaceId } };
   const where: Prisma.MediaWhereInput = {
+    ...ownedMedia,
     ...(category !== "ALL" ? { mediaCategory: category } : {}),
     ...(visibility !== "ALL" ? { visibility } : {}),
     ...(projectId ? { projectId } : {}),
@@ -158,10 +171,10 @@ export default async function MediaLibraryPage({
 
   const [totalAssets, visibleAssets, hiddenAssets, projectCount, resultCount] =
     await Promise.all([
-      prisma.media.count(),
-      prisma.media.count({ where: { visibility: "VISIBLE" } }),
-      prisma.media.count({ where: { visibility: "HIDDEN" } }),
-      prisma.project.count({ where: { media: { some: {} } } }),
+      prisma.media.count({ where: ownedMedia }),
+      prisma.media.count({ where: { ...ownedMedia, visibility: "VISIBLE" } }),
+      prisma.media.count({ where: { ...ownedMedia, visibility: "HIDDEN" } }),
+      prisma.project.count({ where: { workspaceId: session.workspaceId, media: { some: {} } } }),
       prisma.media.count({ where }),
     ]);
   const totalPages = Math.max(1, Math.ceil(resultCount / PAGE_SIZE));
@@ -186,6 +199,7 @@ export default async function MediaLibraryPage({
       externalUrl: true,
       createdAt: true,
       heroForProject: {
+        where: { workspaceId: session.workspaceId },
         select: {
           id: true,
         },
@@ -200,12 +214,6 @@ export default async function MediaLibraryPage({
       },
     },
   });
-  const activeProject = projectId
-    ? await prisma.project.findUnique({
-        where: { id: projectId },
-        select: { id: true, title: true },
-      })
-    : null;
   const items: LibraryMediaItem[] = media.map((item) => ({
     id: item.id,
     originalFilename: item.originalFilename,
@@ -219,7 +227,8 @@ export default async function MediaLibraryPage({
     collectionLabel: getMediaCollection(item.mediaCategory).label,
     visibility: item.visibility,
     createdAt: item.createdAt.toISOString(),
-    publicUrl: item.storageKey ? getPublicAssetUrl(item.storageKey) : null,
+    publicUrl: item.storageKey && publishingStorageReferenceMatches(session.workspaceId, item.project.id, item.storageKey)
+      ? getPublicAssetUrl(item.storageKey) : null,
     externalUrl: item.externalUrl,
     isHero: Boolean(item.heroForProject),
     projectFilterUrl: buildLibraryUrl(filters, {
@@ -242,16 +251,16 @@ export default async function MediaLibraryPage({
             Media library
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/40">
-            Search, inspect, and trace every project asset from one global DAM
-            workspace.
+            Search and inspect assets in your current workspace. Open a project
+            to add media or edit its details.
           </p>
         </div>
 
         <Link
-          href="/admin/projects"
+          href={activeProject ? `/admin/projects/${activeProject.id}#project-media` : "/admin/projects"}
           className="admin-btn-link"
         >
-          Upload through a project
+          {activeProject ? "Manage project media" : "Choose a project to add media"}
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
@@ -274,7 +283,7 @@ export default async function MediaLibraryPage({
           {
             label: "Total assets",
             value: totalAssets,
-            detail: "Across the DAM",
+            detail: "In this workspace",
           },
           { label: "Visible", value: visibleAssets, detail: "Portfolio ready" },
           { label: "Hidden", value: hiddenAssets, detail: "Internal only" },
@@ -434,17 +443,18 @@ export default async function MediaLibraryPage({
       ) : (
         <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02] px-6 py-20 text-center">
           <h2 className="font-display text-3xl font-light text-white">
-            No assets match these filters.
+            {hasFilters ? "No assets match these filters." : "Add your first project media."}
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/35">
-            Adjust the collection, visibility, or search terms to broaden the
-            library view.
+            {hasFilters
+              ? "Adjust the filters, or open the project to add media."
+              : "Media belongs to a project. Choose an existing project or create a draft to get started."}
           </p>
           <Link
-            href="/admin/media"
+            href={activeProject ? `/admin/projects/${activeProject.id}#project-media` : hasFilters ? "/admin/media" : "/admin/projects/new"}
             className="mt-6 admin-btn-secondary"
           >
-            View all assets
+            {activeProject ? "Add project media" : hasFilters ? "View all assets" : "Create a project"}
           </Link>
         </section>
       )}

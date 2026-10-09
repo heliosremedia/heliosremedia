@@ -9,7 +9,7 @@ Production ON HOLD. This guide describes the next non-production owner-testing p
 - Read-only newsletter job review distinguishes jobs held after reactivation and links to edition generation/delivery review.
 - Valid unchanged future newsletter schedules survive reactivation; overdue work is held. SEND, GENERATE and approval-deadline admission are checked under workspace locks. Uncertain provider outcomes retain their separate review rules.
 
-Newsletter Studio retains its existing single-company HTTP admission guard. In a multi-workspace environment its routes remain unavailable pending module qualification. A separate Studio read-only job projection is in qualification; it does not admit edition mutations and clearly hides unavailable edition-action links. Do not remove that guard just to expose the new controls.
+Newsletter Studio retains its existing single-company HTTP admission guard. In a multi-workspace environment its routes remain unavailable pending module qualification. A separately qualified Studio read-only job projection is integrated; it does not admit edition mutations and clearly hides unavailable edition-action links. Do not remove that guard just to expose the new controls.
 
 ## Safe test environment
 
@@ -32,6 +32,8 @@ Viewing these surfaces does not send, approve, retry or replay work. Existing mo
 
 ## Next product slice
 
-The active schedule-editor candidate exposes deliberate edition date changes in the existing editor; qualify it before owner use. The server already implements rescheduling, but the editor has no visible date-change control. The implementation must carry a reviewed row version, reject stale edits, show the scheduling timezone, explain that existing approval is revoked, and require new approval before sending. Active claims and uncertain delivery evidence must continue to block unsafe recovery. Qualify actual owner workflow behavior alongside tenant, lifecycle and revision boundaries.
+Projects and Media are the active product milestone. The workspace library candidate scopes list/search/counts and selected projects to the current session, distinguishes empty workspaces from empty search results, and links selected projects directly to media controls. Qualification covers actual two-company HTTP and responsive page rendering; complete its gates before owner use.
 
-Use owner feedback to choose the next functional module integration. Do not create unrelated hardening packets as a prerequisite for this read-only Studio experience.
+The newsletter date-change editor is integrated. It carries a reviewed row version, rejects stale edits, explains UTC and approval revocation, and requires new approval. Existing single-company admission and uncertain-delivery rules remain.
+
+Next: complete draft creation and project-detail editing recovery under the Studio shell, then media additions and metadata editing using the existing upload/provider containment. Resolve demonstrated dependencies alongside these workflows. No hosted owner URL or broader rollout is claimed.
