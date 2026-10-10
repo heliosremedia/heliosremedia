@@ -21,7 +21,7 @@ test('scope inspection uses only fixed GET requests and emits no provider config
 });
 test('foreign Vercel identity is never accepted as the staging project', async () => {
   const rows = await inspectVercelScopes('synthetic', async () => new Response(JSON.stringify({ id: HOSTED.project, accountId: 'foreign', link: { secret: 'private' } })));
-  assert.ok(rows.every((r: { expectedTeam: boolean; gitConnected?: boolean }) => r.expectedTeam === false && r.gitConnected === undefined));
+  assert.deepEqual(rows, ['default', 'expected-team'].map(scope => ({ scope, httpStatus: 200, expectedProject: true, expectedTeam: false })));
 });
 function database(name = 'helios_v2_staging', readOnly = 'on') {
   const sql: string[] = [];
@@ -37,7 +37,7 @@ function database(name = 'helios_v2_staging', readOnly = 'on') {
 test('database snapshot is repeatable, read-only and rolled back, with only hashes/counts exported', async () => {
   const db = database(); const result = await inspectDatabase(db);
   assert.equal(db.sql[0], 'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY'); assert.equal(db.sql.at(-1), 'ROLLBACK');
-  assert.match(result.schemaHash, /^[a-f0-9]{64}$/); assert.equal(result.ledgerEntries, 0); assert.equal(result.readOnlyTransaction, true); assert.equal(result.schema, undefined); assert.equal(result.ledger, undefined);
+  assert.match(result.schemaHash, /^[a-f0-9]{64}$/); assert.equal(result.ledgerEntries, 0); assert.equal(result.readOnlyTransaction, true); assert.equal('schema' in result, false); assert.equal('ledger' in result, false);
 });
 test('wrong database or writable transaction stops before schema inspection and rolls back', async () => {
   for (const db of [database('production'), database('helios_v2_staging', 'off')]) {
