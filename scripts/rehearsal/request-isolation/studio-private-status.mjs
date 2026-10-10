@@ -11,10 +11,10 @@ export async function qualifyStudioPrivateStatus(origin, driver) {
   const send = (id, target, body) => http(origin, `${id === 'a' ? 'b' : 'a'}.example.test`, `/api/admin/projects/${target}/workflow`, { method: 'PATCH', headers: { cookie: driver.cookie(id), 'x-workspace-id': id === 'a' ? 'b' : 'a' }, body });
   try {
     for (const id of ['a', 'b']) await db.project.create({ data: { id: `studio-status-${id}`, workspaceId: id, slug: `studio-status-${id}`, title: `Retained ${id}`, shortDescription: 'Retain project content', status: 'PUBLISHED', featured: true, publishedAt: new Date('2026-01-01T00:00:00Z') } });
-    for (const id of ['a', 'b']) for (const action of ['unpublish', 'archive']) {
+    for (const id of ['a', 'b']) for (const [action, sourceStatus] of [['unpublish', 'PUBLISHED'], ['archive', 'PUBLISHED'], ['unpublish', 'ARCHIVED']]) {
       const projectId = `studio-status-${id}`, other = id === 'a' ? 'b' : 'a';
-      const row = await db.project.update({ where: { id: projectId }, data: { status: 'PUBLISHED', featured: true, publishedAt: new Date('2026-01-01T00:00:00Z'), archivedAt: null } });
-      const body = { action, expectedUpdatedAt: row.updatedAt.toISOString(), expectedStatus: 'PUBLISHED' };
+      const row = await db.project.update({ where: { id: projectId }, data: { status: sourceStatus, featured: sourceStatus === 'PUBLISHED', publishedAt: sourceStatus === 'PUBLISHED' ? new Date('2026-01-01T00:00:00Z') : null, archivedAt: sourceStatus === 'ARCHIVED' ? new Date('2026-01-02T00:00:00Z') : null } });
+      const body = { action, expectedUpdatedAt: row.updatedAt.toISOString(), expectedStatus: sourceStatus };
       const before = await snapshot();
       for (const [target, patch, status] of [[`studio-status-${other}`, body, 404], [projectId, { ...body, expectedUpdatedAt: null }, 409], [projectId, { ...body, expectedStatus: 'DRAFT' }, 409]]) {
         assert.equal((await send(id, target, patch)).status, status); assert.deepEqual(await snapshot(), before);
@@ -41,8 +41,8 @@ export async function qualifyStudioPrivateStatus(origin, driver) {
           const reply = await pending; assert.equal(reply.error, undefined); assert.equal(reply.value.status, change === 'project-owner' ? 404 : 403);
           assert.deepEqual(await snapshot(), afterChange);
           if (change !== 'project-owner') assert.deepEqual(afterChange, before);
-          else { const moved = afterChange.find(p => p.id === projectId); assert.equal(moved.status, 'PUBLISHED'); assert.equal(moved.featured, true); assert.equal(moved.publishedAt.toISOString(), row.publishedAt.toISOString()); }
-          races.push({ tenant: id, action, change, databaseWaitObserved: true, deniedStatusWriteUnchanged: true });
+          else { const moved = afterChange.find(p => p.id === projectId); assert.equal(moved.status, sourceStatus); assert.equal(moved.featured, row.featured); assert.deepEqual(moved.publishedAt, row.publishedAt); }
+          races.push({ tenant: id, action, sourceStatus, change, databaseWaitObserved: true, deniedStatusWriteUnchanged: true });
         } finally {
           await pending;
           await db.project.update({ where: { id: projectId }, data: row });
@@ -59,9 +59,9 @@ export async function qualifyStudioPrivateStatus(origin, driver) {
       assert.equal(receipt.updatedAt, saved.updatedAt.toISOString()); assert.equal(receipt.project.id, projectId); assert.equal(receipt.project.status, saved.status);
       const after = await snapshot(); assert.equal((await send(id, projectId, body)).status, 409); assert.deepEqual(await snapshot(), after);
       assert.deepEqual(after.find(p => p.id === `studio-status-${other}`), before.find(p => p.id === `studio-status-${other}`));
-      cases.push({ tenant: id, action, foreignDenied: true, missingRevisionAndWrongStatusDenied: true, concurrentSingleWinner: true, staleReplayUnchanged: true, contentRetained: true, otherWorkspaceUnchanged: true, unpublishedAndUnfeatured: true });
+      cases.push({ tenant: id, action, sourceStatus, foreignDenied: true, missingRevisionAndWrongStatusDenied: true, concurrentSingleWinner: true, staleReplayUnchanged: true, contentRetained: true, otherWorkspaceUnchanged: true, unpublishedAndUnfeatured: true });
     }
-    return { cases, races, actualNextHttp: true, liveProviderCalls: false, scope: 'reviewed unpublish/archive only; publish and featured writers remain separate dependencies' };
+    return { cases, races, actualNextHttp: true, liveProviderCalls: false, scope: 'reviewed unpublish/archive and private draft restoration; publish and featured writers remain separate dependencies' };
   } finally {
     await db.project.deleteMany({ where: { id: { in: ids } } });
     for (const row of memberships) await db.workspaceMembership.update({ where: { id: row.id }, data: row });

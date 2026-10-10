@@ -16,7 +16,7 @@ const files = {
   '/': ['text/html','<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Project editor qualification</title><link rel="stylesheet" href="/style.css"></head><body><div id="root"></div><script src="/fixture.js"></script></body></html>'],
   '/style.css': ['text/css',css.css], '/fixture.js': ['text/javascript',bundle.outputFiles[0].contents],
 };
-const server = createServer((req,res) => { const file = files[req.url]; if (!file || req.method !== 'GET') {res.writeHead(404);res.end();return;} res.setHeader('content-type',file[0]);res.end(file[1]); });
+const server = createServer((req,res) => { const file = files[req.url.split('?')[0]]; if (!file || req.method !== 'GET') {res.writeHead(404);res.end();return;} res.setHeader('content-type',file[0]);res.end(file[1]); });
 let browser;
 try {
   await new Promise(resolve => server.listen(0,'127.0.0.1',resolve));
@@ -39,7 +39,7 @@ try {
       revision=updatedAt;status=target;
       return route.fulfill({contentType:'application/json',body:JSON.stringify(receipt)});
     });
-    const open=async()=>{revision='2026-01-01T00:00:00.000Z';status='PUBLISHED';await page.goto('about:blank');await page.goto(origin+'/#project-publishing');await page.getByRole('button',{name:'Move to draft',exact:true}).waitFor();};
+    const open=async(initial='PUBLISHED')=>{revision='2026-01-01T00:00:00.000Z';status=initial;await page.goto('about:blank');await page.goto(origin+(initial==='ARCHIVED'?'/?archived=1':'/')+'#project-publishing');await page.getByRole('button',{name:initial==='ARCHIVED'?'Restore to draft':'Move to draft',exact:true}).waitFor();};
     const move=()=>page.getByRole('button',{name:'Move to draft',exact:true});
     const archive=()=>page.getByRole('button',{name:'Archive project',exact:true});
     await open();mode='pending';const before=calls;
@@ -71,6 +71,35 @@ try {
     // A refreshed details revision is usable while the reviewed status is unchanged.
     await open();mode='success';revision='2026-01-03T00:00:00.000Z';await page.evaluate(value=>window.refreshProjectProps(value),revision);await page.waitForFunction(value=>window.renderedRevision===value,revision);
     await move().click();await page.getByText('Project moved to draft.',{exact:true}).waitFor();
+    // An incomplete archived project can return to draft without becoming public.
+    await open('ARCHIVED'); mode='pending'; release=undefined; const restoreCalls=calls;
+    const restore=()=>page.getByRole('button',{name:'Restore to draft',exact:true});
+    assert.equal(await page.getByRole('button',{name:'Publish project',exact:true}).isDisabled(),true);
+    await restore().evaluate(button=>{button.click();button.click()});
+    await page.getByRole('button',{name:'Restoring to draft',exact:true}).waitFor();
+    assert.equal(await page.getByLabel('Featured project duration').isDisabled(),true);
+    while(!release)await new Promise(resolve=>setTimeout(resolve,10)); release();
+    await page.getByText('Project restored to draft. Its content remains private.',{exact:true}).waitFor();
+    assert.equal(calls,restoreCalls+1); assert.equal(await restore().count(),0);
+    assert.equal(await page.getByRole('link',{name:'View live project',exact:true}).count(),0);
+    assert.equal(await page.getByRole('button',{name:'Publish project',exact:true}).isDisabled(),true);
+    assert.equal(await archive().isEnabled(),true);
+    await page.screenshot({path:`release-evidence/studio-restore-draft-${width}.png`,fullPage:true});
+    for(const failure of ['conflict','forbidden','server','uncertain','json','stale-receipt','wrong-status']) {
+      await open('ARCHIVED'); mode=failure;
+      await page.getByRole('button',{name:'Expand Project details',exact:true}).click();
+      await page.getByLabel('Project introduction').fill('Retain restored project notes');
+      await restore().click(); await page.getByRole('heading',{name:'Review saved status',exact:true}).waitFor();
+      assert.equal(await restore().isDisabled(),true);
+      assert.equal(await page.getByRole('button',{name:'Publish project',exact:true}).isDisabled(),true);
+      const reload=page.getByRole('button',{name:'Review saved project status',exact:true});
+      await reload.scrollIntoViewIfNeeded();
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+      if(failure==='conflict') await page.screenshot({path:`release-evidence/studio-restore-draft-recovery-${width}.png`});
+      page.once('dialog',dialog=>dialog.dismiss()); await reload.click();
+      assert.equal(await page.getByLabel('Project introduction').inputValue(),'Retain restored project notes');
+      assert.equal(await restore().isDisabled(),true);
+    }
     assert.deepEqual(errors,[]);await page.close();
   }
   console.log('PASS reviewed unpublish/archive at 390/1440: version/status receipts, duplicate/pending guards, cancellation, seven held outcomes, paused controls and explicit saved-state review; synthetic transport only');

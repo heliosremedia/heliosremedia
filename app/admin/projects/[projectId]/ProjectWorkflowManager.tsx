@@ -264,7 +264,7 @@ export default function ProjectWorkflowManager({
       }
       updateProjectFromResponse(data);
       setStatusRevision(data.updatedAt); setServiceRevision(data.updatedAt);
-      setStatusNotice(action === "archive" ? "Project archived. Its content is retained." : "Project moved to draft.");
+      setStatusNotice(action === "archive" ? "Project archived. Its content is retained." : status === "ARCHIVED" ? "Project restored to draft. Its content remains private." : "Project moved to draft.");
       router.refresh();
     } catch {
       statusReviewRef.current = true; setStatusReviewRequired(true);
@@ -627,6 +627,20 @@ export default function ProjectWorkflowManager({
                     ? "Publishing"
                     : "Publish project"}
                 </button>
+              )}
+
+              {status === "ARCHIVED" && (
+                <div className="mt-5 border-t border-white/[0.08] pt-5">
+                  <p className="mb-3 text-sm leading-6 text-white/65">Restore this project to a private draft to continue preparing it. Publishing is a separate action.</p>
+                  <button
+                    type="button"
+                    onClick={() => void runPrivateStatusAction("unpublish")}
+                    disabled={isSavingServices || serviceReviewRequired || statusReviewRequired || serviceSelectionChanged || workflowAction !== null}
+                    className="!w-full admin-btn-secondary"
+                  >
+                    {workflowAction === "unpublish" ? "Restoring to draft" : "Restore to draft"}
+                  </button>
+                </div>
               )}
 
               {status !== "ARCHIVED" && (
