@@ -2,14 +2,21 @@ import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { http } from './http.mjs';
-import { requireOrigin } from './safety.mjs';
+import { requireOrigin, requireDatabase } from './safety.mjs';
+import { SESSION_COOKIE } from '../../../lib/auth/token.ts';
 const { encodeReply } = createRequire(import.meta.url)('next/dist/compiled/react-server-dom-webpack/client.node');
 
 // Compose the actual application entry points on one newly created private project.
 // Provider provisioning is the existing no-network synthetic runtime substitution.
 export async function qualifyStudioPrivateProjectFlow(origin, driver, actionManifest) {
   requireOrigin(origin);
+  requireDatabase(process.env.PACKET19_DATABASE_URL);
   const db = driver.prisma, cases = [], projects = [], assets = [];
+  const originalUsers = await db.adminUser.findMany({ orderBy: { id: 'asc' } });
+  const authActions = ['AUTH_LOGIN_FAILED', 'AUTH_LOGIN_SUCCEEDED', 'AUTH_LOGOUT'];
+  const priorAuth = await db.auditEvent.findMany({ where: { action: { in: authActions } }, select: { id: true } });
+  const priorAuthIds = new Set(priorAuth.map(row => row.id));
+  const signInCookies = new Map();
   const actions = Object.entries(actionManifest.node).filter(([, entry]) => Object.keys(entry.workers).some(worker => worker.endsWith('/admin/projects/new/page'))).map(([id]) => id);
   assert.equal(actions.length, 1);
   try {
@@ -17,7 +24,27 @@ export async function qualifyStudioPrivateProjectFlow(origin, driver, actionMani
       const other = id === 'a' ? 'b' : 'a', requestId = randomUUID();
       const projectId = `draft_${createHash('sha256').update(JSON.stringify(['studio-draft-v1', id, `u${id}`, requestId])).digest('hex')}`;
       projects.push(projectId);
-      const headers = { cookie: driver.cookie(id), 'x-workspace-id': other };
+      const originalUser = originalUsers.find(user => user.id === `u${id}`);
+      assert.ok(originalUser);
+      const password = `Synthetic-only-${randomUUID()}`;
+      await db.adminUser.update({ where: { id: originalUser.id }, data: { passwordHash: await driver.hashPassword(password), failedLoginCount: 0, lockedUntil: null } });
+      assert.equal((await http(origin, `${other}.example.test`, '/admin/studio')).status, 307);
+      const login = value => http(origin, `${other}.example.test`, '/api/admin/auth/login', { method: 'POST', headers: { 'x-workspace-id': other }, body: { email: originalUser.email, password: value } });
+      const rejected = await login('Incorrect synthetic password');
+      assert.equal(rejected.status, 401);
+      assert.ok(!(rejected.headers['set-cookie'] ?? []).some(value => value.startsWith(SESSION_COOKIE + '=')));
+      const signedIn = await login(password);
+      assert.equal(signedIn.status, 200, signedIn.text);
+      const issued = signedIn.headers['set-cookie']?.filter(value => value.startsWith(SESSION_COOKIE + '='));
+      assert.equal(issued?.length, 1);
+      assert.match(issued[0], /; HttpOnly/i); assert.match(issued[0], /; SameSite=Lax/i); assert.match(issued[0], /; Secure/i);
+      const cookie = issued[0].split(';')[0];
+      signInCookies.set(id, cookie);
+      const headers = { cookie, 'x-workspace-id': other };
+      const signedInUser = await db.adminUser.findUniqueOrThrow({ where: { id: originalUser.id } });
+      assert.equal(signedInUser.failedLoginCount, 0); assert.equal(signedInUser.lockedUntil, null); assert.ok(signedInUser.lastLoginAt);
+      const center = await http(origin, `${other}.example.test`, '/admin/studio?workspaceId=' + other, { headers });
+      assert.equal(center.status, 200); assert.ok(center.text.includes('Command Center'));
       const route = `/api/admin/projects/${projectId}`;
       const send = (suffix, method, body) => http(origin, `${other}.example.test`, route + suffix, { method, headers, body });
       const form = new FormData();
@@ -58,15 +85,22 @@ export async function qualifyStudioPrivateProjectFlow(origin, driver, actionMani
       const own = await http(origin, `${id}.example.test`, previewPath);
       assert.equal(own.status, 200); assert.ok(own.text.includes(title)); assert.ok(own.text.includes('Private preview')); assert.match(own.text, /name="robots" content="noindex, nofollow"/);
       assert.equal((await http(origin, `${other}.example.test`, previewPath)).status, 404);
-      assert.equal((await http(origin, `${other}.example.test`, route + '/media', { headers: { cookie: driver.cookie(other) } })).status, 404);
+      assert.equal((await http(origin, `${other}.example.test`, route + '/media', { headers: { cookie: signInCookies.get(other) ?? driver.cookie(other) } })).status, 404);
       const revoked = await send(`/previews?previewId=${encodeURIComponent(preview.id)}`, 'DELETE');
       assert.equal(revoked.status, 200);
       assert.equal((await http(origin, `${id}.example.test`, previewPath)).status, 404);
       project = await db.project.findUniqueOrThrow({ where: { id: projectId } });
       assert.equal(project.status, 'DRAFT'); assert.equal(project.publishedAt, null);
-      cases.push({ tenant: id, actualDraftAction: true, detailsSaved: true, registeredSyntheticMediaAttachedAndEdited: true, serviceSelectionSaved: true, editorReadyAndPrivateReviewLinked: true, mediaLibraryDiscovery: true, privatePreview200: true, foreignPreviewAndMedia404: true, revokedPreview404: true, remainedUnpublished: true });
+      const logout = await http(origin, host, '/api/admin/auth/logout', { method: 'POST', headers });
+      assert.equal(logout.status, 200);
+      assert.ok(logout.headers['set-cookie']?.some(value => value.startsWith(SESSION_COOKIE + '=;') && /Max-Age=0/i.test(value)));
+      assert.equal((await http(origin, host, '/admin/studio')).status, 307);
+      const auth = await db.auditEvent.findMany({ where: { actorId: originalUser.id, action: { in: authActions }, id: { notIn: [...priorAuthIds] } } });
+      assert.deepEqual(auth.map(row => row.action).sort(), [...authActions].sort());
+      assert.ok(auth.every(row => row.workspaceId === id));
+      cases.push({ tenant: id, ordinaryPasswordSignIn: true, incorrectPasswordDenied: true, issuedCookieUsedForEntirePrivateFlow: true, commandCenterReachable: true, logoutClearsCookie: true, ownedAuthAudit: true, actualDraftAction: true, detailsSaved: true, registeredSyntheticMediaAttachedAndEdited: true, serviceSelectionSaved: true, editorReadyAndPrivateReviewLinked: true, mediaLibraryDiscovery: true, privatePreview200: true, foreignPreviewAndMedia404: true, revokedPreview404: true, remainedUnpublished: true });
     }
-    return { cases, actualNextHttpAndServerAction: true, liveProviderCalls: false, hosted: false, scope: 'complete private-project HTTP workflow with synthetic Stream provisioning; browser interactions qualified separately' };
+    return { cases, actualNextHttpAndServerAction: true, liveProviderCalls: false, hosted: false, scope: 'ordinary password sign-in through complete private-project HTTP workflow and logout with synthetic Stream provisioning; browser interactions qualified separately' };
   } finally {
     await db.projectPreviewLink.deleteMany({ where: { projectId: { in: projects } } });
     await db.media.deleteMany({ where: { projectId: { in: projects } } });
@@ -76,5 +110,10 @@ export async function qualifyStudioPrivateProjectFlow(origin, driver, actionMani
     await db.workspaceAsset.deleteMany({ where: { id: { in: assets } } });
     assert.equal(await db.project.count({ where: { id: { in: projects } } }), 0);
     assert.equal(await db.workspaceAsset.count({ where: { id: { in: assets } } }), 0);
+    const createdAuth = await db.auditEvent.findMany({ where: { action: { in: authActions }, actorId: { in: originalUsers.map(row => row.id) }, id: { notIn: [...priorAuthIds] } }, select: { id: true } });
+    await db.auditEvent.deleteMany({ where: { id: { in: createdAuth.map(row => row.id) } } });
+    for (const row of originalUsers) await db.adminUser.update({ where: { id: row.id }, data: { passwordHash: row.passwordHash, failedLoginCount: row.failedLoginCount, lockedUntil: row.lockedUntil, lastLoginAt: row.lastLoginAt, updatedAt: row.updatedAt } });
+    assert.deepEqual(await db.adminUser.findMany({ orderBy: { id: 'asc' } }), originalUsers);
+    assert.deepEqual(new Set((await db.auditEvent.findMany({ where: { action: { in: authActions } }, select: { id: true } })).map(row => row.id)), priorAuthIds);
   }
 }
