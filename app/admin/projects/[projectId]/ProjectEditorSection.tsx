@@ -22,9 +22,18 @@ export default function ProjectEditorSection({
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    if (window.location.hash !== `#${id}`) return;
-    const frame = requestAnimationFrame(() => setExpanded(true));
-    return () => cancelAnimationFrame(frame);
+    let frame: number | undefined;
+    const revealLinkedSection = () => {
+      if (window.location.hash !== `#${id}`) return;
+      if (frame !== undefined) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => setExpanded(true));
+    };
+    revealLinkedSection();
+    window.addEventListener("hashchange", revealLinkedSection);
+    return () => {
+      window.removeEventListener("hashchange", revealLinkedSection);
+      if (frame !== undefined) cancelAnimationFrame(frame);
+    };
   }, [id]);
 
   return (
@@ -42,7 +51,7 @@ export default function ProjectEditorSection({
         <div className="min-w-0 flex-1 pr-1">
           {eyebrow ? <p className="text-[0.62rem] font-semibold uppercase tracking-[0.19em] text-[var(--helios-orange)]">{eyebrow}</p> : null}
           <h2 className={`${eyebrow ? "mt-3" : ""} text-2xl font-normal text-white sm:text-3xl`}>{title}</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-white/35">{summary}</p>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-white/65">{summary}</p>
           {status ? <div className="mt-3">{status}</div> : null}
         </div>
         <button

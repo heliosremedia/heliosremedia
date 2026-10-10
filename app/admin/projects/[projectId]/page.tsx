@@ -14,6 +14,7 @@ import { requireAdminSession } from "@/lib/auth/session";
 import AdminSectionNavigator from "@/app/admin/components/AdminSectionNavigator";
 import { getProjectProgressState } from "@/lib/project-progress";
 import ProjectProgressCard from "./ProjectProgressCard";
+import ProjectSectionLink from "./ProjectSectionLink";
 import FilmComparisonClassifier from "./FilmComparisonClassifier";
 
 export const dynamic = "force-dynamic";
@@ -324,12 +325,12 @@ export default async function ProjectEditorPage({
             </p>
           </div>
 
-          <a
+          <ProjectSectionLink
             href="#project-media"
-            className="mt-5 w-full admin-btn-primary"
+            className="mt-5 w-full admin-btn-primary text-[#171515]! hover:text-[#f5f1ea]!"
           >
             {project._count.media > 0 ? "Manage assets" : "Upload media"}
-          </a>
+          </ProjectSectionLink>
         </aside>
       </div>
       </ProjectEditorSection>
