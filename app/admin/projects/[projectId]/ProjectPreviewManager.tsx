@@ -104,7 +104,7 @@ export default function ProjectPreviewManager({ projectId, initialPreviews }: { 
       return <article key={item.id} aria-label={item.label || "Untitled preview"} className="min-w-0 rounded-xl border border-white/15 bg-black/15 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="min-w-0 break-words text-sm text-white/85">{item.label || "Untitled preview"}</h3>
-          <span className="text-xs text-white/65">{active ? "Active" : item.revokedAt ? "Revoked" : "Expired"}</span>
+          <span className="text-xs text-white/65">{reviewRequired ? "Needs review" : active ? "Active" : item.revokedAt ? "Revoked" : "Expired"}</span>
         </div>
         <p className="mt-2 text-xs leading-5 text-white/65">Expires {new Date(item.expiresAt).toLocaleString()}{item.lastUsedAt ? ` · Last opened ${new Date(item.lastUsedAt).toLocaleString()}` : " · Not opened yet"}</p>
         {item.url && active && !reviewRequired && <>
@@ -116,11 +116,11 @@ export default function ProjectPreviewManager({ projectId, initialPreviews }: { 
             <button type="button" onClick={() => void copy(item)} className="text-sm underline">{copied === item.id ? "Copied" : "Copy link"}</button>
           </div>
         </>}
-        {!item.url && active && <p className="mt-3 text-xs leading-5 text-white/65">The address is only shown when a link is created. Revoke an unused link before creating a replacement.</p>}
+        {!item.url && active && !reviewRequired && <p className="mt-3 text-xs leading-5 text-white/65">The address is only shown when a link is created. Revoke an unused link before creating a replacement.</p>}
         {active && <button type="button" disabled={busy || reviewRequired} onClick={() => void revoke(item.id)} className="mt-4 text-sm text-red-200 underline disabled:opacity-50">Revoke link</button>}
       </article>;
     })}
-    {items.length === 0 && <p className="py-8 text-center text-sm text-white/65">No private review links yet. Create one when you are ready to review this draft.</p>}
+    {items.length === 0 && <p className="py-8 text-center text-sm text-white/65">{reviewRequired ? "Reload saved links to confirm the current link list." : "No private review links yet. Create one when you are ready to review this draft."}</p>}
     </div>
   </section>;
 }

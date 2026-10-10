@@ -65,6 +65,7 @@ try {
       assert.equal(await page.getByLabel('Link label',{exact:true}).inputValue(),'Owner review');
       assert.equal(await create.isDisabled(),failure!=='validation');
       if(failure==='validation')continue;
+      assert.equal(await page.getByText(/No private review links yet/).count(),0,'Unknown creation must not claim an empty saved list');
       const reload=page.getByRole('button',{name:'Reload saved links',exact:true});await reload.scrollIntoViewIfNeeded();
       if(failure==='uncertain')await page.screenshot({path:`release-evidence/studio-project-private-review-recovery-${width}.png`,fullPage:true});
       const count=creates;page.once('dialog',dialog=>dialog.dismiss());await reload.click();assert.equal(creates,count);assert.equal(await create.isDisabled(),true);
@@ -73,6 +74,7 @@ try {
     mode='revoke-uncertain';page.once('dialog',dialog=>dialog.accept());await page.getByRole('button',{name:'Revoke link',exact:true}).click();await page.getByRole('alert').waitFor();
     assert.equal(await create.isDisabled(),true);assert.equal(await page.getByRole('button',{name:'Revoke link',exact:true}).isDisabled(),true);
     assert.equal(await page.getByRole('link',{name:'Open private review',exact:true}).count(),0);
+    assert.equal(await page.getByText('Needs review',{exact:true}).count(),1,'Unconfirmed revocation must not claim the link is active');
     assert.deepEqual(errors,[]);await page.close();
   }
   console.log('PASS private preview creation, clipboard fallback without duplicate POST, busy guard, explicit revoke, uncertain creation/revocation pause and preserved inputs at 390/1440');
