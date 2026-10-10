@@ -355,6 +355,14 @@ export default function ProjectWorkflowManager({
                 type="button"
                 disabled={unavailable || isSavingServices || serviceReviewRequired || workflowAction !== null}
                 onClick={() => {
+                  if (serviceSaveRef.current || serviceReviewRef.current) return;
+                  // A new edit can use refreshed details only while its saved service
+                  // selection is unchanged. Never rebase an in-progress selection.
+                  if (!serviceSelectionChanged && Date.parse(initialUpdatedAt) > Date.parse(serviceRevision)
+                    && initialServiceIds.length === savedServiceIds.size
+                    && initialServiceIds.every(id => savedServiceIds.has(id))) {
+                    setServiceRevision(initialUpdatedAt);
+                  }
                   setServiceSaved(false);
                   setSelectedServiceIds((current) => {
                     if (serviceSaveRef.current || serviceReviewRef.current) return current;

@@ -67,6 +67,22 @@ try {
       if(failure==='conflict') await page.screenshot({path:`release-evidence/studio-project-services-recovery-${width}.png`});
       const count=calls;page.once('dialog',dialog=>dialog.dismiss());await reload.click();assert.equal(calls,count);assert.equal(await photo.getAttribute('aria-pressed'),'true');
     }
+    // Details refresh before an edit must not cause a false service conflict.
+    await open();mode='success';
+    revision='2026-01-03T00:00:00.000Z';
+    await page.evaluate(value=>window.refreshProjectProps(value),revision);
+    await page.waitForFunction(value=>window.renderedRevision===value,revision);
+    await photo.click();await save.click();await page.getByText('Services saved.',{exact:true}).waitFor();
+    // A refresh after selection starts must not silently rebase that draft.
+    await open();mode='conflict';await photo.click();
+    await page.evaluate(()=>window.refreshProjectProps('2026-01-04T00:00:00.000Z'));
+    await page.waitForFunction(()=>window.renderedRevision==='2026-01-04T00:00:00.000Z');
+    await save.click();await page.getByRole('alert').waitFor();assert.equal(await photo.getAttribute('aria-pressed'),'true');assert.equal(await save.isDisabled(),true);
+    // A refreshed service set is not equivalent to the old visible selection.
+    await open();mode='conflict';
+    await page.evaluate(()=>window.refreshProjectProps('2026-01-05T00:00:00.000Z',['film']));
+    await page.waitForFunction(()=>window.renderedRevision==='2026-01-05T00:00:00.000Z');
+    await photo.click();await save.click();await page.getByRole('alert').waitFor();assert.equal(await save.isDisabled(),true);
     assert.deepEqual(errors,[]);await page.close();
   }
   console.log('PASS services reviewed revision, busy freeze, validation recovery, conflict/uncertain/invalid receipt holds, retained selection and actionable requirements at 390/1440');
