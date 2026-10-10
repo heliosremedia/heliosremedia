@@ -2,6 +2,11 @@ name: V2 manual protected staging Preview qualification
 on:
   workflow_dispatch:
     inputs:
+      inspect_only:
+        description: Read-only scope/database inspection; no Preview deployment or configuration changes
+        required: false
+        type: boolean
+        default: false
       executor_sha:
         description: Exact reviewed executor branch head (not the deployed source)
         required: true
@@ -26,7 +31,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   qualify:
-    if: github.repository == 'heliosremedia/heliosremedia' && github.ref == 'refs/heads/codex/v2-neon-staging-bootstrap' && github.sha == inputs.executor_sha && inputs.candidate_sha == '2999055b2b59467fcfef446c33a47212e72d4712'
+    if: ${{ !inputs.inspect_only && github.repository == 'heliosremedia/heliosremedia' && github.ref == 'refs/heads/codex/v2-neon-staging-bootstrap' && github.sha == inputs.executor_sha && inputs.candidate_sha == '2999055b2b59467fcfef446c33a47212e72d4712' }}
     environment: helios-v2-staging-bootstrap
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -75,3 +80,38 @@ jobs:
           path: staging-evidence/hosted-actions.json
           if-no-files-found: warn
           retention-days: 30
+
+  inspect:
+    if: inputs.inspect_only && github.repository == 'heliosremedia/heliosremedia' && github.ref == 'refs/heads/codex/v2-neon-staging-bootstrap' && github.sha == inputs.executor_sha
+    environment: helios-v2-staging-bootstrap
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Test read-only inspection without provider credentials
+        run: node --experimental-strip-types --test lib/staging-readonly-inspection.test.ts
+      - name: Inspect exact staging identities and read-only database snapshot
+        env:
+          STAGING_INSPECT_ONLY: 'true'
+          STAGING_EXECUTOR_SHA: ${{ inputs.executor_sha }}
+          STAGING_CONFIRMATION: ${{ inputs.confirmation }}
+          GITHUB_TOKEN: ${{ github.token }}
+          STAGING_GITHUB_READ_TOKEN: ${{ secrets.STAGING_GITHUB_READ_TOKEN }}
+          STAGING_VERCEL_TOKEN: ${{ secrets.STAGING_VERCEL_TOKEN }}
+          STAGING_NEON_API_KEY: ${{ secrets.STAGING_NEON_API_KEY }}
+          STAGING_DIRECT_URL: ${{ secrets.STAGING_DIRECT_URL }}
+        run: node scripts/staging/readonly-inspection.mjs
+      - name: Retain sanitized read-only evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: staging-readonly-${{ github.sha }}
+          path: staging-evidence/readonly-inspection.json
+          if-no-files-found: warn
