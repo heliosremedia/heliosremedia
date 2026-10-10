@@ -78,6 +78,8 @@ jobs:
         run: node scripts/browser/run-studio-project-services.mjs
       - name: Check private project review in Chromium
         run: node scripts/browser/run-studio-project-review.mjs
+      - name: Check reviewed unpublish and archive recovery in Chromium
+        run: node scripts/browser/run-studio-private-status.mjs
       - name: Preserve Studio V2 responsive screenshots
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:

@@ -89,6 +89,12 @@ export default function ProjectWorkflowManager({
   initialServiceIds,
 }: ProjectWorkflowManagerProps) {
   const router = useRouter();
+  const [statusRevision, setStatusRevision] = useState(initialUpdatedAt);
+  const workflowBusyRef = useRef(false);
+  const statusReviewRef = useRef(false);
+  const [statusReviewRequired, setStatusReviewRequired] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [statusNotice, setStatusNotice] = useState<string | null>(null);
   const [serviceRevision, setServiceRevision] = useState(initialUpdatedAt);
   const serviceSaveRef = useRef(false);
   const serviceReviewRef = useRef(false);
@@ -205,7 +211,7 @@ export default function ProjectWorkflowManager({
   }, []);
 
   const saveServices = useCallback(async () => {
-    if (serviceSaveRef.current || serviceReviewRef.current || workflowAction) return;
+    if (serviceSaveRef.current || serviceReviewRef.current || workflowBusyRef.current || statusReviewRef.current || workflowAction) return;
     serviceSaveRef.current = true;
     setIsSavingServices(true);
     setServiceError(null);
@@ -236,11 +242,43 @@ export default function ProjectWorkflowManager({
     } finally { serviceSaveRef.current = false; setIsSavingServices(false); }
   }, [projectId, router, selectedServiceIds, savedServiceIds, serviceRevision, workflowAction]);
 
+  const runPrivateStatusAction = useCallback(async (action: "unpublish" | "archive") => {
+    if (workflowBusyRef.current || statusReviewRef.current || serviceSaveRef.current || serviceReviewRef.current || serviceSelectionChanged) return;
+    const expectedUpdatedAt = [statusRevision, serviceRevision, ...(initialStatus === status ? [initialUpdatedAt] : [])]
+      .sort((a, b) => Date.parse(b) - Date.parse(a))[0];
+    workflowBusyRef.current = true;
+    setWorkflowAction(action); setStatusError(null); setStatusNotice(null);
+    try {
+      const response = await fetch(`/api/admin/projects/${projectId}/workflow`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, expectedUpdatedAt, expectedStatus: status }),
+      });
+      const data = await response.json();
+      const targetStatus = action === "archive" ? "ARCHIVED" : "DRAFT";
+      const validDate = (value: unknown) => value === null || (typeof value === "string" && Number.isFinite(Date.parse(value)));
+      if (!response.ok || data.success !== true || data.project?.id !== projectId || data.project.status !== targetStatus || data.project.featured !== false || data.project.publishedAt !== null
+        || !validDate(data.project.featuredStartedAt) || !validDate(data.project.featuredExpiresAt)
+        || typeof data.updatedAt !== "string" || !Number.isFinite(Date.parse(data.updatedAt)) || new Date(data.updatedAt).toISOString() !== data.updatedAt || Date.parse(data.updatedAt) <= Date.parse(expectedUpdatedAt)) {
+        throw new Error("Unconfirmed project status");
+      }
+      updateProjectFromResponse(data);
+      setStatusRevision(data.updatedAt); setServiceRevision(data.updatedAt);
+      setStatusNotice(action === "archive" ? "Project archived. Its content is retained." : "Project moved to draft.");
+      router.refresh();
+    } catch {
+      statusReviewRef.current = true; setStatusReviewRequired(true);
+      setStatusError("The saved project status needs review. Changes are paused. Reload the saved project before another status change.");
+      revealSection("project-publishing");
+    } finally { workflowBusyRef.current = false; setWorkflowAction(null); }
+  }, [initialStatus, initialUpdatedAt, projectId, router, serviceRevision, serviceSelectionChanged, status, statusRevision, updateProjectFromResponse]);
+
   const runWorkflowAction = useCallback(
-    async (action: "publish" | "unpublish" | "archive" | "set-featured", featuredDuration?: string) => {
-      if (serviceSaveRef.current || serviceReviewRef.current || serviceSelectionChanged) return;
+    async (action: "publish" | "set-featured", featuredDuration?: string) => {
+      if (workflowBusyRef.current || statusReviewRef.current || serviceSaveRef.current || serviceReviewRef.current || serviceSelectionChanged) return;
+      workflowBusyRef.current = true;
       try {
         setWorkflowAction(action);
+        setStatusNotice(null);
         setError(null);
         setServerBlockers([]);
 
@@ -281,6 +319,7 @@ export default function ProjectWorkflowManager({
             : "The project status could not be saved.",
         );
       } finally {
+        workflowBusyRef.current = false;
         setWorkflowAction(null);
       }
     },
@@ -325,7 +364,7 @@ export default function ProjectWorkflowManager({
             <button
               type="button"
               onClick={() => void saveServices()}
-              disabled={isSavingServices || serviceReviewRequired || workflowAction !== null || !serviceSelectionChanged}
+              disabled={isSavingServices || serviceReviewRequired || statusReviewRequired || workflowAction !== null || !serviceSelectionChanged}
               className="admin-btn-primary"
             >
               {isSavingServices && (
@@ -353,9 +392,9 @@ export default function ProjectWorkflowManager({
               <button
                 key={service.id}
                 type="button"
-                disabled={unavailable || isSavingServices || serviceReviewRequired || workflowAction !== null}
+                disabled={unavailable || isSavingServices || serviceReviewRequired || statusReviewRequired || workflowAction !== null}
                 onClick={() => {
-                  if (serviceSaveRef.current || serviceReviewRef.current) return;
+                  if (workflowBusyRef.current || statusReviewRef.current || serviceSaveRef.current || serviceReviewRef.current) return;
                   // A new edit can use refreshed details only while its saved service
                   // selection is unchanged. Never rebase an in-progress selection.
                   if (!serviceSelectionChanged && Date.parse(initialUpdatedAt) > Date.parse(serviceRevision)
@@ -365,7 +404,7 @@ export default function ProjectWorkflowManager({
                   }
                   setServiceSaved(false);
                   setSelectedServiceIds((current) => {
-                    if (serviceSaveRef.current || serviceReviewRef.current) return current;
+                    if (workflowBusyRef.current || statusReviewRef.current || serviceSaveRef.current || serviceReviewRef.current) return current;
                     const next = new Set(current);
 
                     if (next.has(service.id)) {
@@ -439,7 +478,7 @@ export default function ProjectWorkflowManager({
               status,
             )}`}
           >
-            {formatStatus(status)}
+            {statusReviewRequired ? "Needs review" : formatStatus(status)}
           </span>}>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
@@ -505,7 +544,7 @@ export default function ProjectWorkflowManager({
                   aria-label="Featured project duration"
                   value={!featured ? "NONE" : featuredExpiresAt ? "TIMED" : "ALWAYS"}
                   onChange={(event) => event.target.value !== "TIMED" && void runWorkflowAction("set-featured", event.target.value)}
-                  disabled={isSavingServices || serviceReviewRequired || serviceSelectionChanged || workflowAction !== null || status !== "PUBLISHED"}
+                  disabled={isSavingServices || serviceReviewRequired || statusReviewRequired || serviceSelectionChanged || workflowAction !== null || status !== "PUBLISHED"}
                   className="min-h-11 rounded-xl border border-white/10 bg-[#111] px-4 text-sm text-white disabled:opacity-35"
                 >
                   <option value="NONE">Not Featured</option>
@@ -532,7 +571,7 @@ export default function ProjectWorkflowManager({
             </p>
 
             <h3 className="mt-3 text-2xl font-normal text-white">
-              {status === "PUBLISHED"
+              {statusReviewRequired ? "Review saved status" : status === "PUBLISHED"
                 ? "Project is live"
                 : canPublish
                   ? "Ready to publish"
@@ -540,7 +579,7 @@ export default function ProjectWorkflowManager({
             </h3>
 
             <p className="mt-3 text-sm leading-6 text-white/40">
-              {status === "PUBLISHED"
+              {statusReviewRequired ? "The previous status is unconfirmed until you review the saved project." : status === "PUBLISHED"
                 ? `Published${
                     publishedAt
                       ? ` ${new Intl.DateTimeFormat("en-US", {
@@ -553,6 +592,11 @@ export default function ProjectWorkflowManager({
                 : "Publishing makes this project available to the public portfolio."}
             </p>
 
+            {statusError && <div role="alert" className="mt-4 rounded-xl border border-amber-200/30 p-4 text-sm text-amber-100">
+              <p>{statusError}</p>
+              <button type="button" className="mt-3 underline" onClick={() => { if (window.confirm("Reload the saved project? Note any unsaved details, media or service selections first.")) window.location.reload(); }}>Review saved project status</button>
+            </div>}
+            {statusNotice && <p role="status" className="mt-4 text-sm text-emerald-200">{statusNotice}</p>}
             <div className="mt-5 rounded-xl border border-white/15 p-4">
               <p className="text-sm text-white/75">Review this draft before making it public.</p>
               <ProjectSectionLink href="#project-previews" className="mt-2 inline-block text-sm underline">Review privately</ProjectSectionLink>
@@ -560,17 +604,17 @@ export default function ProjectWorkflowManager({
             <div className="mt-5">
               {status === "PUBLISHED" ? (
                 <div className="space-y-3">
-                  <Link
+                  {!statusReviewRequired && <Link
                     href={`/portfolio/${projectSlug}`}
                     className="!w-full admin-btn-primary"
                   >
                     View live project
-                  </Link>
+                  </Link>}
 
                   <button
                     type="button"
-                    onClick={() => void runWorkflowAction("unpublish")}
-                    disabled={isSavingServices || serviceReviewRequired || serviceSelectionChanged || workflowAction !== null}
+                    onClick={() => void runPrivateStatusAction("unpublish")}
+                    disabled={isSavingServices || serviceReviewRequired || statusReviewRequired || serviceSelectionChanged || workflowAction !== null}
                     className="!w-full admin-btn-secondary"
                   >
                     {workflowAction === "unpublish"
@@ -582,7 +626,7 @@ export default function ProjectWorkflowManager({
                 <button
                   type="button"
                   onClick={() => void runWorkflowAction("publish")}
-                  disabled={isSavingServices || serviceReviewRequired || serviceSelectionChanged || workflowAction !== null || !canPublish}
+                  disabled={isSavingServices || serviceReviewRequired || statusReviewRequired || serviceSelectionChanged || workflowAction !== null || !canPublish}
                   className="!w-full admin-btn-primary"
                 >
                   {workflowAction === "publish" && (
@@ -604,10 +648,10 @@ export default function ProjectWorkflowManager({
                           "Archive this project? It will be removed from the public portfolio.",
                         )
                       ) {
-                        void runWorkflowAction("archive");
+                        void runPrivateStatusAction("archive");
                       }
                     }}
-                    disabled={isSavingServices || serviceReviewRequired || serviceSelectionChanged || workflowAction !== null}
+                    disabled={isSavingServices || serviceReviewRequired || statusReviewRequired || serviceSelectionChanged || workflowAction !== null}
                     className="!w-full admin-btn-destructive"
                   >
                     {workflowAction === "archive"
