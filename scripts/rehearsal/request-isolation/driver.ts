@@ -1,3 +1,4 @@
+export { getProjectOrderReview } from "@/lib/project-order-review";
 export { getFeaturedProjectReview } from "@/lib/project-featured-review";
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
