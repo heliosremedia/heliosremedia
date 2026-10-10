@@ -1,5 +1,14 @@
 # Helios Studio V2 progress ledger
 
+
+## October 10 — integrated private workflow and staging recovery
+
+Application integration through PR #413: `fdce01115bf8c5b45a13603888792ad4aad5371c`, verified tree `1fc093107c250b41e511f4ac03c6782beb1f3bba`. Creation, information, registered synthetic media, reviewed services, setup navigation, private review and reviewed unpublish/archive are integrated. Current qualification: 1,856 tests, TypeScript, all Chromium and isolated runtime passed; independent current ZIP hashes, four responsive status screenshots, two-tenant authorization races, cleanup and merge-tree equality verified. Exact evidence lives in the canonical recovery checkpoint.
+
+Staging is present in the expected Vercel account when queried without an explicit scope selector. Historical September protected hosted qualification was independently recovered, superseding the missing-project interpretation. Current Studio is not hosted-qualified: source/schema admission is pinned to the older baseline, six October migrations require an upgrade rehearsal, and Neon connector discovery currently fails authorization. No infrastructure recreation, settings change, live migration or production operation occurred.
+
+Active milestone: qualify current source/schema and ordinary owner access through the existing staging process. Continue bounded publishing/featured product dependencies if live access remains blocked. First Light and production remain unachieved/on hold. This entry supersedes older active-work descriptions; historical evidence below is retained.
+
 ## October 8 recovery: approved direction and usable product work
 
 Live recovery verified Packet 84. PR #394 now records the approved future-schedule policy and bounded readiness/product plan, passed regression 37844736236 and merged at `ed6c71fb4a12ef4170c558c1ac48ea33787afccf`. Newsletter safeguard PR #395 has independently verified runtime artifact evidence; full regression is pending. Studio shell/Command Center PR #396 implements real workspace-aware navigation and existing operational data; HTTP/Chromium qualification is underway. Current SHA/evidence/next-task details are in the [recovery checkpoint](helios-studio-v2-recovery-checkpoint.md). No phase closure or production readiness is inferred; production ON HOLD.

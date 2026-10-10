@@ -11,6 +11,7 @@ Production ON HOLD. This guide describes the next non-production owner-testing p
 - Progress cards and media links open the corresponding setup panel while preserving mounted local fields.
 - Project details, media metadata and service selections use reviewed revisions and preserve unsaved work during conflict or uncertainty.
 - Unmet setup requirements lead directly to the appropriate panel. Saved details can flow into a fresh service edit without rebasing an already-started selection.
+- Reviewed Move to draft and Archive actions retain project content, reject stale/current-access changes and pause for explicit saved-state review after an uncertain response.
 - Private review creates an expiring link without publishing. Opening, copying, manual-copy fallback and deliberate revocation are separate actions; uncertain outcomes require saved-state review.
 - Read-only newsletter job review distinguishes jobs held after reactivation and links to edition generation/delivery review.
 - Valid unchanged future newsletter schedules survive reactivation; overdue work is held. SEND, GENERATE and approval-deadline admission are checked under workspace locks. Uncertain provider outcomes retain their separate review rules.
@@ -21,7 +22,7 @@ Newsletter Studio retains its existing single-company HTTP admission guard. In a
 
 Use the existing isolated non-production process and synthetic companies. The shell requires tenant mode, `STUDIO_V2_SHELL_ENABLED=true`, an exact `STUDIO_V2_SHELL_WORKSPACE_IDS` allowlist and a current OWNER/ADMIN membership. Do not turn on whole-workspace lifecycle rollout solely to test the shell. Other outbound families remain unqualified for that rollout.
 
-Do not infer provider readiness from dashboard counts. Do not use production records, real recipients or active provider credentials in the initial owner pass. Hosted project identity, access and existing deployment guards must be verified before staging publication. Current Vercel connector inspection returns 404; GitHub Vercel bot evidence reports skipped automatic deployments. There is no newly qualified hosted owner-testing URL.
+Do not infer provider readiness from dashboard counts. Do not use production records, real recipients or active provider credentials in the initial owner pass. Hosted project identity, access and existing deployment guards must be verified before staging publication. Default-scope Vercel discovery now confirms the existing staging project; explicit scope selectors return empty/404. The last independently recovered hosted success is September source, not current Studio. No current hosted owner-testing URL is qualified.
 
 ## Owner tasks and useful feedback
 
@@ -54,7 +55,7 @@ The integrated draft-creation workflow preserves fields on validation/transport 
 
 The private-project pass composes the actual draft Server Action and existing details, registered synthetic media upload/attachment, media edit, service assignment, workspace library, review page, private preview and revocation routes on one new project in each of two companies. Both projects remain unpublished. Responsive actual-component Chromium separately checks owner controls, retained drafts, clipboard fallback, explicit labels, uncertain states and recovery at 390px and 1440px. Exact candidates, artifacts and integrated commits are in the canonical recovery checkpoint.
 
-This evidence is isolated Next/PostgreSQL and synthetic provider qualification. It is not hosted owner access, live-provider parity, public publishing qualification or First Light. The October 10 read-only Vercel check still finds the Helios team but no project for the repository, and the known staging project returns 404. No new hosted testing URL has been qualified.
+This evidence is isolated Next/PostgreSQL and synthetic provider qualification. It is not hosted owner access, live-provider parity, public publishing qualification or First Light. October 10 discovery confirms the staging project and connected Git integration. Current source/schema admission, persistent owner login and shell rollout still require qualification; Neon metadata discovery currently fails with an internal authorization error. No new hosted testing URL has been qualified.
 
 ## Private-project test sequence
 
@@ -65,4 +66,4 @@ This evidence is isolated Next/PostgreSQL and synthetic provider qualification. 
 5. Create a short-lived private review link. Open it and inspect the draft. If clipboard access is unavailable, copy the visible address manually; creating another link is unnecessary.
 6. Revoke the review link deliberately, then confirm that it no longer grants access. The project should still be a draft.
 
-Public publishing/status transitions remain the next bounded qualification dependency. This private pass does not invoke them. Production remains ON HOLD; no real customer onboarding or live provider activation is authorized.
+Reviewed unpublish/archive controls are integrated and independently qualified. Public publishing and featured placement remain bounded qualification dependencies. This private pass does not invoke them. Production remains ON HOLD; no real customer onboarding or live provider activation is authorized.
