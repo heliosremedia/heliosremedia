@@ -94,7 +94,7 @@ export async function qualifyStudioProjectPublishing(origin, driver) {
       const loser = contenders[replies.findIndex(r => r.status === 409)];
       assert.deepEqual(await db.project.findUnique({ where: { id: loser.id } }), loser);
       const selected = (await db.project.findMany({ where: { workspaceId: id, status: 'PUBLISHED', featured: true, OR: [{ featuredExpiresAt: null }, { featuredExpiresAt: { gt: new Date() } }] }, orderBy: { id: 'asc' } })).map(p => p.id);
-      const finalize = projectIds => http(origin, `${id}.example.test`, '/api/admin/projects/featured', { method: 'PATCH', headers: { cookie: driver.cookie(id) }, body: { projectIds } });
+      const finalize = async projectIds => http(origin, `${id}.example.test`, '/api/admin/projects/featured', { method: 'PATCH', headers: { cookie: driver.cookie(id) }, body: { projectIds, expectedRevision: (await driver.getFeaturedProjectReview(id)).revision } });
       // Finalization and renewal serialize through the same workspace lock.
       const competing = await Promise.all([finalize(selected), send(id, loser.id, { action: 'set-featured', featuredDuration: 'ALWAYS', expectedUpdatedAt: loser.updatedAt.toISOString(), expectedStatus: loser.status })]);
       assert.equal(competing[0].status, 200); assert.equal(competing[1].status, 409); assert.equal(await active(), 6);

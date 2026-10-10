@@ -9,8 +9,8 @@ import AdminSummaryCards from "@/app/admin/components/AdminSummaryCards";
 import AdminPageLayout, { AdminPageHeader } from "@/app/admin/components/AdminPageLayout";
 import ThumbnailRepairButton from "./ThumbnailRepairButton";
 import { requireAdminSession } from "@/lib/auth/session";
-import { isActivelyFeatured } from "@/lib/featured-project";
-import { getFeaturedProjectOrder, getPortfolioDiscoverySettings } from "@/lib/portfolio-discovery-settings";
+import { getPortfolioDiscoverySettings } from "@/lib/portfolio-discovery-settings";
+import { getFeaturedProjectReview } from "@/lib/project-featured-review";
 import FeaturedProjectsManager from "./FeaturedProjectsManager";
 import PortfolioDiscoverySettingsManager from "./PortfolioDiscoverySettingsManager";
 
@@ -112,15 +112,16 @@ export default async function ProjectsPage({
         }
       : {}),
   };
-  const [totalProjects, statusCounts, allOrderedProjects, discoverySettings, featuredOrder, curationProjects, curationMedia] = await Promise.all([
+  const [totalProjects, statusCounts, allOrderedProjects, discoverySettings, featuredReview, curationMedia] = await Promise.all([
     prisma.project.count({ where }),
     prisma.project.groupBy({ where: { workspaceId: session.workspaceId }, by: ["status"], _count: { _all: true } }),
     prisma.project.findMany({ where: { workspaceId: session.workspaceId }, orderBy: [{ displayOrder: "asc" }, { updatedAt: "desc" }, { title: "asc" }], select: { id: true } }),
     getPortfolioDiscoverySettings(session.workspaceId),
-    getFeaturedProjectOrder(session.workspaceId),
-    prisma.project.findMany({ where: { workspaceId: session.workspaceId, status: "PUBLISHED" }, orderBy: [{ displayOrder: "asc" }, { title: "asc" }], select: { id: true, title: true, slug: true, featured: true, featuredExpiresAt: true } }),
+    getFeaturedProjectReview(session.workspaceId),
     prisma.media.findMany({ where: { project: { workspaceId: session.workspaceId, status: "PUBLISHED" }, visibility: "VISIBLE", sourceType: { in: ["UPLOADED_IMAGE", "UPLOADED_VIDEO", "VIDEO_EMBED"] } }, orderBy: [{ project: { displayOrder: "asc" } }, { displayOrder: "asc" }], take: 1000, select: { id: true, originalFilename: true, altText: true, project: { select: { title: true } } } }),
   ]);
+  const curationProjects = featuredReview.projects;
+  const featuredOrder = featuredReview.order;
   const countFor = (status: "PUBLISHED"|"DRAFT"|"ARCHIVED") => statusCounts.find(item=>item.status===status)?._count._all || 0;
   const totalPages = Math.max(1, Math.ceil(totalProjects / pageSize));
   const currentPage = Math.min(requestedPage, totalPages);
@@ -213,7 +214,7 @@ export default async function ProjectsPage({
   });
   const firstShown = totalProjects === 0 ? 0 : pageStart + 1;
   const lastShown = Math.min(pageStart + items.length, totalProjects);
-  const activeFeatured = curationProjects.filter((project) => isActivelyFeatured(project)).toSorted((a, b) => {
+  const activeFeatured = curationProjects.filter((project) => featuredReview.activeIds.includes(project.id)).toSorted((a, b) => {
     const aOrder = featuredOrder.indexOf(a.id); const bOrder = featuredOrder.indexOf(b.id);
     if (aOrder >= 0 || bOrder >= 0) return (aOrder < 0 ? Number.MAX_SAFE_INTEGER : aOrder) - (bOrder < 0 ? Number.MAX_SAFE_INTEGER : bOrder);
     return curationProjects.indexOf(a) - curationProjects.indexOf(b);
@@ -231,7 +232,7 @@ export default async function ProjectsPage({
       ]}/>}
     >
       <div className="space-y-7">
-      <FeaturedProjectsManager initialFeatured={activeFeatured.map(({ id, title, slug }) => ({ id, title, slug }))} candidates={featuredOptions} overLimitCount={activeFeatured.length} />
+      <FeaturedProjectsManager workspaceId={session.workspaceId} initialRevision={featuredReview.revision} initialFeatured={activeFeatured.map(({ id, title, slug }) => ({ id, title, slug }))} candidates={featuredOptions} overLimitCount={activeFeatured.length} />
       <PortfolioDiscoverySettingsManager initialSettings={discoverySettings} projects={curationProjects.map(({ id, title }) => ({ id, label: title }))} media={curationMedia.map((item) => ({ id: item.id, label: `${item.project.title} · ${item.altText || item.originalFilename || "Untitled asset"}` }))} />
       <ThumbnailRepairButton />
 
