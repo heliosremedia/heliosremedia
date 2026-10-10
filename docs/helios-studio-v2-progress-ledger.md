@@ -1,6 +1,14 @@
 # Helios Studio V2 progress ledger
 
 
+## October 10 — private restoration, responsive Projects and reviewed ordering
+
+#422 integrated at `14fe732dd936fa8c570256ac4f3fcbf95212b0be`: archived projects can return to private draft through the reviewed lifecycle operation, including incomplete projects. #423 integrated at `a03ee33d198c2bbb3fdffe649ae59b456b818e2d`: phone browsing shows status/location/media/date and edit controls without requiring the desktop table width; title links retain return filters and sticky actions remain. #424 integrated at `bb5c9c5ac2e69f89091d02eaff92b00f8a5e9f06`: project ordering now rejects stale lists, rechecks editor access/ownership under existing locks and preserves attempted order/selection after uncertain saves.
+
+Each final candidate passed 1,859 tests, TypeScript and all configured Chromium. #422 runtime 38076985691 covers six two-company status cases/24 observed races; #424 runtime 38078068060 adds two order cases/ten observed races, with exact fixture restoration and schema/access postflight. Ten responsive images across the three candidates were visually inspected; all five ZIP artifacts were independently downloaded/hash-matched. Prospective/integrated trees equal each qualified candidate. Exact SHAs, runs, artifact IDs and hashes are in the canonical recovery checkpoint.
+
+One #423 regression correction retained the established sticky-actions requirement; its test was not weakened. No historical suite was rerun for recovery; #423 reused unchanged #422 runtime evidence. Current staging inspection was checked again and has not been dispatched. Existing protected owner review and unavailable connector dispatch remain the concrete next hosted-access gate. No deployment, live migration, credential/provider activation, billing or production work occurred. Owner-accessible hosting and First Light remain unqualified. This entry supersedes older active-work descriptions below.
+
 ## October 10 — reviewed project publication and featured-list editing
 
 PR #418 integrated reviewed publishing and featured placement at `e4aa3031dc74eef476c935807c1ab8821aaa7099`, qualified tree `3cef159d8ffa75e78b2e0e7d323d4e2603a795fb`. Current administrator access, project revision/status and publishing requirements are checked under locks. Both featured writers share capacity serialization; expired renewals consume a slot. The editor confirms receipts and pauses uncertain changes for explicit review. Regression 38063753494 passed 1,856 tests, TypeScript and all Chromium; runtime 38063753495 passed both companies, six cases and 22 observed races. Independent runtime/screenshot hashes, four responsive images, cleanup and prospective/integrated trees verified.

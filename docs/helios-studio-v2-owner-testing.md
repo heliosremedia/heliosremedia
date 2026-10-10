@@ -40,6 +40,9 @@ Do not infer provider readiness from dashboard counts. Do not use production rec
 | Configure services | Saved selection survives concurrent changes and uncertain responses; media-added assignments are retained | Whether selections and reload controls remain readable |
 | Review privately | Create an expiring link, open the private preview, copy its address and revoke deliberately; the project remains a draft | Any false success, duplicate creation after clipboard failure or ambiguous link status |
 | Move between setup steps | Progress cards, requirement links and the media action open the appropriate panel without dropping local fields | Whether the next task is clear |
+| Restore an archived project | Use Restore to draft to resume private preparation; incomplete publishing requirements do not prevent restoration | Whether the private/public distinction and recovery path are clear |
+| Browse Projects on a phone | Read status, location and media count and open the editor without horizontal scrolling; return with filters retained | Any truncated titles or unreachable actions |
+| Arrange projects | Selection and keyboard moves save a reviewed order; stale/uncertain saves retain the attempt and pause changes until saved-list review | Whether recovery preserves enough context to retry deliberately |
 | Use mobile and keyboard navigation | Disclosure menu, skip link, visible focus and readable controls without horizontal overflow | Any inaccessible or awkward control |
 | Refresh a temporarily unavailable section | Unavailable state remains distinct from an empty result | Wording that suggests a false success or hidden work |
 
@@ -69,3 +72,5 @@ This evidence is isolated Next/PostgreSQL and synthetic provider qualification. 
 6. Revoke the review link deliberately, then confirm that it no longer grants access. The project should still be a draft.
 
 Reviewed publishing, featured placement, unpublish and archive have separate isolated qualification. After the private pass, synthetic administrators can exercise Publish, a timed feature, expiry renewal/capacity conflict, featured-list replacement and deliberate return to draft/archive. Verify retained local input and explicit review after uncertain saves. Existing hosted Preview restrictions remain; the featured-list route is still read-only on Vercel Preview. Do not infer hosted availability from isolated qualification. Production remains ON HOLD; no real customer onboarding or live provider activation is authorized.
+
+October 10 continuation: #422–#424 add private restoration from archive, responsive Projects browsing and reviewed project ordering. Test ordering with a second synthetic editor: after one editor saves, the older list must request saved-order review without silently replacing that order. Viewer access remains read-only for ordering. Use the checkpoint for exact isolated evidence; hosted owner access is still unqualified.
