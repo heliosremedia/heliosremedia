@@ -374,7 +374,7 @@ export default function ProjectWorkflowManager({
                   selected
                     ? "border-[var(--helios-orange)]/50 bg-[var(--helios-orange)]/[0.08] shadow-[0_15px_40px_rgba(217,107,43,0.06)]"
                     : "border-white/[0.08] bg-black/20 hover:border-white/20 hover:bg-white/[0.025]"
-                } disabled:cursor-not-allowed disabled:opacity-35`}
+                } disabled:cursor-not-allowed ${unavailable ? "disabled:opacity-50" : "disabled:opacity-100"}`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
