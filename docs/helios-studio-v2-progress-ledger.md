@@ -1,6 +1,13 @@
 # Helios Studio V2 progress ledger
 
 
+## October 10 — reviewed project publication and featured-list editing
+
+PR #418 integrated reviewed publishing and featured placement at `e4aa3031dc74eef476c935807c1ab8821aaa7099`, qualified tree `3cef159d8ffa75e78b2e0e7d323d4e2603a795fb`. Current administrator access, project revision/status and publishing requirements are checked under locks. Both featured writers share capacity serialization; expired renewals consume a slot. The editor confirms receipts and pauses uncertain changes for explicit review. Regression 38063753494 passed 1,856 tests, TypeScript and all Chromium; runtime 38063753495 passed both companies, six cases and 22 observed races. Independent runtime/screenshot hashes, four responsive images, cleanup and prospective/integrated trees verified.
+
+Featured-list revision/recovery #419 integrated at `8bf2729fab0e6309ec1e8d7275e741334daa7c1d`; 1,859 tests, TypeScript, all Chromium including keyboard sorting, runtime two-company cases/eight observed races, independent artifacts/screenshots and matching merge trees passed. Read-only staging inspection #420 integrated separately at `d65a1c98675c123d5b710dbf70cdcd3554f5b869` on the existing protected executor branch; its 1,571-test baseline regression/TypeScript/Chromium and exact tree passed. Canonical recovery checkpoint contains exact candidates, digests and owner-run inputs. No staging inspection, deployment, data/configuration mutation or infrastructure creation has occurred. Existing Preview read-only restrictions and owner environment review remain. Owner-accessible hosting and First Light are not claimed. This entry supersedes older active-work descriptions below.
+
+
 ## October 10 — integrated private workflow and staging recovery
 
 Application integration through PR #413: `fdce01115bf8c5b45a13603888792ad4aad5371c`, verified tree `1fc093107c250b41e511f4ac03c6782beb1f3bba`. Creation, information, registered synthetic media, reviewed services, setup navigation, private review and reviewed unpublish/archive are integrated. Current qualification: 1,856 tests, TypeScript, all Chromium and isolated runtime passed; independent current ZIP hashes, four responsive status screenshots, two-tenant authorization races, cleanup and merge-tree equality verified. Exact evidence lives in the canonical recovery checkpoint.

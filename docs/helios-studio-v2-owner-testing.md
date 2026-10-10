@@ -11,6 +11,8 @@ Production ON HOLD. This guide describes the next non-production owner-testing p
 - Progress cards and media links open the corresponding setup panel while preserving mounted local fields.
 - Project details, media metadata and service selections use reviewed revisions and preserve unsaved work during conflict or uncertainty.
 - Unmet setup requirements lead directly to the appropriate panel. Saved details can flow into a fresh service edit without rebasing an already-started selection.
+- Reviewed publishing rechecks owned visible media and active services; featured placement respects the six-project limit, including expired placements.
+- Featured-list editing retains local order after an uncertain save and requires saved-list review before another change.
 - Reviewed Move to draft and Archive actions retain project content, reject stale/current-access changes and pause for explicit saved-state review after an uncertain response.
 - Private review creates an expiring link without publishing. Opening, copying, manual-copy fallback and deliberate revocation are separate actions; uncertain outcomes require saved-state review.
 - Read-only newsletter job review distinguishes jobs held after reactivation and links to edition generation/delivery review.
@@ -55,7 +57,7 @@ The integrated draft-creation workflow preserves fields on validation/transport 
 
 The private-project pass starts with ordinary password sign-in through the actual login endpoint, rejects an incorrect password, opens Command Center with the issued cookie, and composes the actual draft Server Action and existing details, registered synthetic media upload/attachment, media edit, service assignment, workspace library, review page, private preview and revocation routes on one new project in each of two companies. Both projects remain unpublished. Logout clears the session cookie, and synthetic credentials/login metadata and owned auth audit fixtures are restored exactly. Responsive actual-component Chromium separately checks owner controls, retained drafts, clipboard fallback, explicit labels, uncertain states and recovery at 390px and 1440px. Exact candidates, artifacts and integrated commits are in the canonical recovery checkpoint.
 
-This evidence is isolated Next/PostgreSQL and synthetic provider qualification. It is not hosted owner access, live-provider parity, public publishing qualification or First Light. October 10 discovery confirms the staging project and connected Git integration. Current source/schema admission, persistent owner login and shell rollout still require qualification; Neon metadata discovery currently fails with an internal authorization error. No new hosted testing URL has been qualified.
+This evidence is isolated Next/PostgreSQL and synthetic provider qualification. It is not hosted owner access, live-provider parity or First Light. Publishing/featured controls have separate isolated qualification recorded in the checkpoint. October 10 discovery confirms the staging project and connected Git integration. Current source/schema admission, persistent owner login and shell rollout still require qualification; Neon metadata discovery currently fails with an internal authorization error. No new hosted testing URL has been qualified.
 
 ## Private-project test sequence
 
@@ -66,4 +68,4 @@ This evidence is isolated Next/PostgreSQL and synthetic provider qualification. 
 5. Create a short-lived private review link. Open it and inspect the draft. If clipboard access is unavailable, copy the visible address manually; creating another link is unnecessary.
 6. Revoke the review link deliberately, then confirm that it no longer grants access. The project should still be a draft.
 
-Reviewed unpublish/archive controls are integrated and independently qualified. Public publishing and featured placement remain bounded qualification dependencies. This private pass does not invoke them. Production remains ON HOLD; no real customer onboarding or live provider activation is authorized.
+Reviewed publishing, featured placement, unpublish and archive have separate isolated qualification. After the private pass, synthetic administrators can exercise Publish, a timed feature, expiry renewal/capacity conflict, featured-list replacement and deliberate return to draft/archive. Verify retained local input and explicit review after uncertain saves. Existing hosted Preview restrictions remain; the featured-list route is still read-only on Vercel Preview. Do not infer hosted availability from isolated qualification. Production remains ON HOLD; no real customer onboarding or live provider activation is authorized.
