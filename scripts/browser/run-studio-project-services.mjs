@@ -39,7 +39,7 @@ try {
       revision = new Date(Date.parse(revision)+1000).toISOString();
       return route.fulfill({contentType:'application/json',body:JSON.stringify({success:true,serviceIds:body.serviceIds,updatedAt:revision})});
     });
-    const open = async () => {savedSelection=[];revision='2026-01-01T00:00:00.000Z';await page.goto(origin+'/#project-services');await page.getByRole('button',{name:/Service Photography/}).waitFor();};
+    const open = async () => {savedSelection=[];revision='2026-01-01T00:00:00.000Z';await page.goto('about:blank');await page.goto(origin+'/#project-services');await page.getByRole('button',{name:/Service Photography/}).waitFor();};
     const photo=page.getByRole('button',{name:/Service Photography/}),film=page.getByRole('button',{name:/Service Property film/}),save=page.getByRole('button',{name:'Save services',exact:true});
     await open();
     assert.equal(await page.getByRole('button',{name:/Service Retired service/}).isDisabled(),true);
