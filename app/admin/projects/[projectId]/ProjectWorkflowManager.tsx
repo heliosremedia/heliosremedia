@@ -42,6 +42,7 @@ type WorkflowResponse = {
   updatedAt?: string;
   reloadRequired?: boolean;
   project?: {
+    id: string;
     status: ProjectStatus;
     featured: boolean;
     featuredStartedAt: string | null;
@@ -275,55 +276,44 @@ export default function ProjectWorkflowManager({
   const runWorkflowAction = useCallback(
     async (action: "publish" | "set-featured", featuredDuration?: string) => {
       if (workflowBusyRef.current || statusReviewRef.current || serviceSaveRef.current || serviceReviewRef.current || serviceSelectionChanged) return;
+      const expectedUpdatedAt = [statusRevision, serviceRevision, ...(initialStatus === status ? [initialUpdatedAt] : [])]
+        .sort((a, b) => Date.parse(b) - Date.parse(a))[0];
+      const duration = featuredDuration || (featured ? "NONE" : "ALWAYS");
       workflowBusyRef.current = true;
+      setWorkflowAction(action); setStatusNotice(null); setStatusError(null); setError(null); setServerBlockers([]);
       try {
-        setWorkflowAction(action);
-        setStatusNotice(null);
-        setError(null);
-        setServerBlockers([]);
-
-        const response = await fetch(
-          `/api/admin/projects/${projectId}/workflow`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              action,
-              ...(action === "set-featured"
-                ? {
-                    featuredDuration: featuredDuration || (featured ? "NONE" : "ALWAYS"),
-                  }
-                : {}),
-            }),
-          },
-        );
-        const data = (await response.json()) as WorkflowResponse;
-
-        if (!response.ok || !data.success || !data.project) {
-          setServerBlockers(data.blockers || []);
-          throw new Error(
-            data.error || "The project status could not be saved.",
-          );
+        const response = await fetch(`/api/admin/projects/${projectId}/workflow`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, expectedUpdatedAt, expectedStatus: status, ...(action === "set-featured" ? { featuredDuration: duration } : {}) }),
+        });
+        const data = await response.json() as WorkflowResponse;
+        if (Array.isArray(data.blockers) && data.blockers.every(item => typeof item === "string")) { setServerBlockers(data.blockers); if (data.blockers.length) setError("Publishing requirements need review."); }
+        const project = data.project;
+        const validDate = (value: unknown) => value === null || (typeof value === "string" && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value);
+        if (!response.ok || data.success !== true || !project || project.id !== projectId
+          || project.status !== (action === "publish" ? "PUBLISHED" : status)
+          || typeof project.featured !== "boolean" || !validDate(project.publishedAt)
+          || (project.status === "PUBLISHED" && project.publishedAt === null)
+          || !validDate(project.featuredStartedAt) || !validDate(project.featuredExpiresAt)
+          || (action === "set-featured" && (project.featured !== (duration !== "NONE")
+            || (duration === "NONE" && (project.featuredStartedAt !== null || project.featuredExpiresAt !== null))
+            || (duration !== "NONE" && project.featuredStartedAt === null)
+            || (duration === "ALWAYS" && project.featuredExpiresAt !== null)
+            || (!["NONE", "ALWAYS"].includes(duration) && (project.featuredExpiresAt === null || Date.parse(project.featuredExpiresAt) - Date.parse(project.featuredStartedAt!) !== Number(duration.split("_")[0]) * 86_400_000))))
+          || typeof data.updatedAt !== "string" || !validDate(data.updatedAt) || Date.parse(data.updatedAt) <= Date.parse(expectedUpdatedAt)) {
+          throw new Error("Unconfirmed publishing receipt");
         }
-
         updateProjectFromResponse(data);
+        setStatusRevision(data.updatedAt); setServiceRevision(data.updatedAt);
+        setStatusNotice(action === "publish" ? "Project published." : "Featured placement saved.");
         router.refresh();
-      } catch (workflowError) {
+      } catch {
+        statusReviewRef.current = true; setStatusReviewRequired(true);
+        setStatusError("The saved project status needs review. Changes are paused. Reload the saved project before another status change.");
         revealSection("project-publishing");
-        console.error("Unable to update project workflow:", workflowError);
-        setError(
-          workflowError instanceof Error
-            ? workflowError.message
-            : "The project status could not be saved.",
-        );
-      } finally {
-        workflowBusyRef.current = false;
-        setWorkflowAction(null);
-      }
+      } finally { workflowBusyRef.current = false; setWorkflowAction(null); }
     },
-    [featured, projectId, router, updateProjectFromResponse, serviceSelectionChanged],
+    [featured, initialStatus, initialUpdatedAt, projectId, router, serviceRevision, serviceSelectionChanged, status, statusRevision, updateProjectFromResponse],
   );
 
   return (
