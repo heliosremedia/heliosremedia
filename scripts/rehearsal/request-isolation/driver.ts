@@ -1,3 +1,4 @@
+export { getFeaturedProjectReview } from "@/lib/project-featured-review";
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createSessionToken, SESSION_COOKIE } from '../../../lib/auth/token';
