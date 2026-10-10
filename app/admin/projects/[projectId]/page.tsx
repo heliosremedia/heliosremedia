@@ -369,7 +369,7 @@ export default async function ProjectEditorPage({
           (projectService) => projectService.serviceId,
         )}
       /></div>
-      <div id="project-previews" className="scroll-mt-28"><ProjectPreviewManager projectId={project.id} initialPreviews={project.previewLinks.map((item) => ({ ...item, expiresAt: item.expiresAt.toISOString(), createdAt: item.createdAt.toISOString(), lastUsedAt: item.lastUsedAt?.toISOString() ?? null, revokedAt: item.revokedAt?.toISOString() ?? null }))} /></div>
+      <div id="project-previews" tabIndex={-1} className="scroll-mt-28"><ProjectPreviewManager projectId={project.id} initialPreviews={project.previewLinks.map((item) => ({ ...item, expiresAt: item.expiresAt.toISOString(), createdAt: item.createdAt.toISOString(), lastUsedAt: item.lastUsedAt?.toISOString() ?? null, revokedAt: item.revokedAt?.toISOString() ?? null }))} /></div>
     </div>
   );
 }
