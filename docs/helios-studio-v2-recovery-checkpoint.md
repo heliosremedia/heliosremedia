@@ -6,7 +6,7 @@ Updated October 10, 2026. **Production ON HOLD.** Recover from live GitHub befor
 
 | Scope | Branch | Verified integration | Qualified candidate / tree |
 | --- | --- | --- | --- |
-| Studio application through #419 | `codex/v2-hosted-access-owner-action` | `8bf2729fab0e6309ec1e8d7275e741334daa7c1d` | Candidate `99b620b51903abf1221140d756a8476d8101188a`; tree `890846bedc04d010a76af2d88913d6b566876942` |
+| Studio application through #424 | `codex/v2-hosted-access-owner-action` | `bb5c9c5ac2e69f89091d02eaff92b00f8a5e9f06` | Candidate `6299c358352de91675cecf14a50412ca8bd2eaba`; tree `9af174c9f9ab9fc3e6be3d7889e5ec25a20e75d6` |
 | Protected read-only staging inspector #420 | `codex/v2-neon-staging-bootstrap` | `d65a1c98675c123d5b710dbf70cdcd3554f5b869` | Candidate `aa792c212d18a24593ba93d5128331b056fc33d2`; tree `8139278ebc86b630c30f5bc150a0f37c402e598e` |
 
 Prospective and post-merge trees were independently compared with each qualified candidate. The documentation-only update carrying this checkpoint leaves application/runtime source unchanged; always inspect the live branch for that documentation commit or newer work. Main and production were not changed. #420 modifies only the existing protected workflow, a read-only diagnostic script and its tests; it does not merge the older executor application into the Studio integration branch.
@@ -17,6 +17,8 @@ Prospective and post-merge trees were independently compared with each qualified
 - Ordinary password sign-in through the complete private project workflow on two synthetic companies, including logout and exact credential/audit restoration.
 - Reviewed publish, unpublish and archive with current administrator authorization, project revision/status checks and explicit uncertainty recovery. Publishing rechecks owned active services and visible/playable media under locks.
 - Featured placement preserves the six-project cap across both writers. Expired renewals consume capacity. The featured-list editor binds candidates, placement windows and saved order to a workspace-specific revision, preserves local selections after uncertain saves, and requires explicit review before retry. Keyboard sorting and replacement are qualified.
+- Archived projects can return to a private draft without meeting publication requirements. The Projects list keeps status and edit controls visible on phones and preserves return filters.
+- Project ordering binds the complete owned list to a reviewed revision and fresh editor authorization under locks. Exact receipts, duplicate-save guards and retained attempted order/selection support explicit recovery after uncertain saves.
 - Existing Preview read-only restrictions remain. Isolated qualification does **not** establish hosted publishing, owner access, live providers or First Light.
 
 ## Current qualification evidence
@@ -40,23 +42,25 @@ All listed runtime/screenshot ZIPs were separately downloaded and SHA256 matched
 
 Earlier evidence remains valid: #415 current-schema upgrade rehearsal integrated at `b231046863a341c198e80d65aac139ec82ca95c5`; runs `38060380830`/`38060380786`; artifact `11672438840` SHA256 `ce7cd03e3bacb03f75c246875f321f035feb621faa262733550f2f9d29aa927c`. It proves six existing migrations, retained ledger/private data, current Prisma equivalence and repeated-deploy no-op in disposable PostgreSQL. #416 sign-in/private workflow integrated at `bec844bea9898227fe49cd605ecce1060978ca84`; runs `38060682561`/`38060682637`; artifact `11672254799` SHA256 `e68550273b538fe2f0b033551576b344ca8db799c9f2d6d0f0b02dda5e662223`. Historical detail is retained in the existing progress ledger and Git history.
 
-## October 10 continuation: private restoration and mobile Projects
+## October 10 continuation: qualified project lifecycle and browsing
 
-PR #422 is integrated at `14fe732dd936fa8c570256ac4f3fcbf95212b0be`, exact tree `78623720b604921bb5caa24011d4439f1f48cfa4`, candidate `f3ac5c278be9ee9be786d1f875042acc9e68350f`. Archived projects now have **Restore to draft**, reusing the reviewed status operation. Incomplete projects can resume private preparation; publishing remains separate. Existing authorization, revision/status checks and uncertainty holds remain.
+| Change | Integrated commit / candidate tree | Qualification |
+| --- | --- | --- |
+| #422 restore archived project to draft | Integration `14fe732dd936fa8c570256ac4f3fcbf95212b0be`; candidate `f3ac5c278be9ee9be786d1f875042acc9e68350f`; tree `78623720b604921bb5caa24011d4439f1f48cfa4` | Regression `38076985735`: 1,859 tests, TypeScript, all Chromium. Runtime `38076985691`: six two-company status cases and 24 observed authority/ownership races, including restoration, stale/concurrent requests and retained content. Four responsive success/recovery images inspected |
+| #423 responsive project list | Integration `a03ee33d198c2bbb3fdffe649ae59b456b818e2d`; candidate `c957976a13e1cc244ca7fc0db3a748be2ebb65c4`; tree `342708485a98e8461202c5fb2eec9188683061bf` | Corrected regression `38077562965`: 1,859 tests, TypeScript, all Chromium, including selection moves, keyboard ordering, phone visibility and retained filters. Two responsive images inspected. #422 runtime evidence reused for unchanged backend/runtime code |
+| #424 reviewed project ordering | Integration `bb5c9c5ac2e69f89091d02eaff92b00f8a5e9f06`; candidate `6299c358352de91675cecf14a50412ca8bd2eaba`; tree `9af174c9f9ab9fc3e6be3d7889e5ec25a20e75d6` | Regression `38078067769`: 1,859 tests, TypeScript, all Chromium including pending and six held ordering outcomes. Runtime `38078068060`: two company cases and ten observed viewer/revocation/suspension/ownership/content races, stale/concurrent rejection, ordered receipts, editor allowance and retained fields. Four responsive normal/recovery images inspected |
 
-Regression `38076985735` passed 1,859 tests, TypeScript and all Chromium. Runtime `38076985691` passed six two-company status cases and 24 observed authority/ownership races, including restoration, concurrent single-winner/stale rejection and retained content. Exact candidate, schema/access restoration and cleanup were inspected. Runtime ZIP `11679027328` SHA256 `e650c87cef197c7175e65266eca980ed1ee5b5f4a6556e6b93f574b888d194ad`; screenshot ZIP `11679452667` SHA256 `553e01302b3ce9fae256967bf8ef8ee56ef610d3a17e79f3aa47e0bf3cd8c39f`. Both independently downloaded/hash-matched; four 390/1440 restoration success/recovery images visually inspected. Prospective and integrated trees match.
+All prospective and post-merge trees match their qualified candidates. Runtime JSON binds exact candidates; fixture restoration, schema/access postflight and relevant authority/ownership outcomes were inspected. Each ZIP below was independently downloaded and SHA256 matched to GitHub metadata.
 
-PR #423 candidate `c957976a13e1cc244ca7fc0db3a748be2ebb65c4`, tree `342708485a98e8461202c5fb2eec9188683061bf`, adds a compact phone layout with visible project status/location/media/date and edit controls, title links with retained filters and unchanged ordering handlers. Initial regression found the existing sticky-actions requirement; the corrected implementation preserves sticky actions at every breakpoint without weakening the test. Corrected regression `38077562965` passed tests/TypeScript; browser and independent screenshot/final integration gates remain pending. No backend/schema/provider changes; reuse #422's unchanged runtime evidence. No new bulk-writer certification is claimed.
+| Artifact | ZIP SHA256 |
+| --- | --- |
+| #422 runtime `11679027328` | `e650c87cef197c7175e65266eca980ed1ee5b5f4a6556e6b93f574b888d194ad` |
+| #422 screenshots `11679452667` | `553e01302b3ce9fae256967bf8ef8ee56ef610d3a17e79f3aa47e0bf3cd8c39f` |
+| #423 screenshots `11679603241` | `158e860ce4bc64daaf6267ffd4e3949c2dae1ab8a1d1c19745f9398060adf025` |
+| #424 runtime `11678877850` | `689244327ed2299606e50f4cd23d004f88363c16ad7116657006bd23bdbb5989` |
+| #424 screenshots `11679004737` | `b05dbcfb74a552289f645d323a3bb393b244c6805d12435e5a951f5548b1dfc8` |
 
-Next bounded product dependency identified from source: reviewed project ordering. `app/api/admin/projects/order/route.ts` reads the owned ID set before its update transaction and accepts no reviewed revision; the client can submit overlapping saves and rolls back visually on uncertain transport. Qualify stale/concurrent order changes and current authorization/ownership at the write boundary using existing workspace/project locks and explicit saved-order recovery, without rewriting bulk media or unrelated modules. This is a source-backed open dependency, not a completed runtime reproduction or new readiness claim.
-
-## Active implementation: reviewed project ordering
-
-A synthetic-delegate probe of the actual ordering route reproduced a stale overwrite: a first save accepted `[p2,p1]` with HTTP 200, then an older list accepted `[p1,p2]` with HTTP 200. This is an actual-route baseline with in-memory delegates, not PostgreSQL race proof.
-
-The current candidate binds the complete owned order to a workspace-specific revision, rechecks editor access and the owned project set under existing workspace/account/membership/project locks, requires every scoped update to affect one row, and returns exact ordered IDs plus a fresh revision. OWNER/ADMIN/EDITOR retain editor-write eligibility; VIEWER is read-only under the existing shared editor-write guard. The UI pauses duplicate/overlapping actions and retains the attempted order and selection after an uncertain/malformed/stale receipt, requiring explicit saved-list review. No schema/provider/deployment changes.
-
-Pending qualification: exact-head regression/TypeScript, existing and new browser success/recovery at 390/1440, actual two-company PostgreSQL/Next ordering revision/authority/ownership races and cleanup, independent artifact/hash/image verification and final candidate/merge-tree equality. The mobile layout PR #423 must integrate first. Do not merge unqualified work or infer hosted owner access.
+The ordering change followed a reproduced stale overwrite in the actual route with synthetic in-memory delegates: a newer order and an older replacement both returned 200. The final isolated PostgreSQL/Next qualification independently proves stale rejection and single-winner concurrency. Existing OWNER/ADMIN/EDITOR content-write eligibility is preserved; VIEWER is denied by the shared editor-write boundary. No schema/provider/deployment changes occurred. Broader bulk-media contracts remain separate.
 
 ## Active milestone: current hosted owner access
 
@@ -112,4 +116,4 @@ Normal reversible non-production work remains preauthorized. Production, destruc
 
 ## Recovery efficiency
 
-No successful historical suite was rerun merely because this session recovered. New implementation triggered normal exact-head CI. Additional runs resolved two test defects: #419's keyboard driver raced deferred sensor setup; #420's assertions initially failed TypeScript. Final passing runs supersede those failures. A local Chromium download returned a truncated archive; local browser qualification is not claimed. GitHub checkpoints and artifacts remain authoritative, with no second project-state system.
+No successful historical suite was rerun merely because this session recovered. This continuation reused #422 runtime evidence for #423 and performed two new runtime qualifications for changed lifecycle/ordering behavior. #423 required one corrective regression after the initial CSS dropped the existing sticky-actions requirement; the implementation was corrected and the test retained. All three implementation PRs are integrated with no outstanding qualification gate. The documentation-only continuity update reuses their unchanged application evidence. New implementation triggered normal exact-head CI. Additional runs resolved two test defects: #419's keyboard driver raced deferred sensor setup; #420's assertions initially failed TypeScript. Final passing runs supersede those failures. A local Chromium download returned a truncated archive; local browser qualification is not claimed. GitHub checkpoints and artifacts remain authoritative, with no second project-state system.
