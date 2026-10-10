@@ -84,14 +84,14 @@ export default function ProjectPreviewManager({ projectId, initialPreviews }: { 
     <h2 id="preview-heading" className="mt-3 text-2xl text-white">Project preview links</h2>
     <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">Review this project without publishing it. Anyone with a link can view the project until the link expires or you revoke it.</p>
     <form className="mt-6 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]" onSubmit={event => { event.preventDefault(); void create(); }}>
-      <label className="min-w-0 text-sm text-white/75">Link label
-        <input value={label} onChange={event => setLabel(event.target.value)} disabled={busy || reviewRequired} placeholder="Owner review (optional)" maxLength={120} className="mt-2 block w-full min-w-0 rounded-xl border border-white/20 bg-black/25 px-4 py-3 text-white" />
-      </label>
-      <label className="min-w-0 text-sm text-white/75">Expires after
-        <select value={days} onChange={event => setDays(Number(event.target.value))} disabled={busy || reviewRequired} className="mt-2 block w-full rounded-xl border border-white/20 bg-[#111] px-4 py-3 text-white">
+      <div className="min-w-0 text-sm text-white/75"><label htmlFor="preview-link-label">Link label</label>
+        <input id="preview-link-label" value={label} onChange={event => setLabel(event.target.value)} disabled={busy || reviewRequired} placeholder="Owner review (optional)" maxLength={120} className="mt-2 block w-full min-w-0 rounded-xl border border-white/20 bg-black/25 px-4 py-3 text-white" />
+      </div>
+      <div className="min-w-0 text-sm text-white/75"><label htmlFor="preview-link-expiration">Expires after</label>
+        <select id="preview-link-expiration" value={days} onChange={event => setDays(Number(event.target.value))} disabled={busy || reviewRequired} className="mt-2 block w-full rounded-xl border border-white/20 bg-[#111] px-4 py-3 text-white">
           {[1, 3, 7, 14, 30].map(value => <option key={value} value={value}>{value} {value === 1 ? "day" : "days"}</option>)}
         </select>
-      </label>
+      </div>
       <button type="submit" disabled={busy || reviewRequired} className="admin-btn-primary sm:self-end">{busy ? "Saving link" : "Create private link"}</button>
     </form>
     {error && <div role="alert" className="mt-5 rounded-xl border border-amber-200/30 p-4 text-sm text-amber-100">
