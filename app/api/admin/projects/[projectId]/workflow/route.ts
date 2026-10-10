@@ -1,3 +1,4 @@
+import { saveProjectPrivateStatus, ProjectPrivateStatusError } from "@/lib/project-private-status";
 import { saveProjectServices, ProjectServiceSelectionError } from "@/lib/project-service-selection";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
@@ -16,6 +17,7 @@ type ProjectWorkflowRouteProps = {
 type ProjectWorkflowBody = {
   action?: unknown;
   expectedUpdatedAt?: unknown;
+  expectedStatus?: unknown;
   expectedServiceIds?: unknown;
   serviceIds?: unknown;
   featured?: unknown;
@@ -60,6 +62,12 @@ export async function PATCH(
       const saved = await saveProjectServices(session, projectId, body.expectedUpdatedAt, body.expectedServiceIds, body.serviceIds);
       revalidateProjectPaths(saved.project.id, saved.project.slug);
       return NextResponse.json({ success: true, serviceIds: saved.serviceIds, updatedAt: saved.project.updatedAt.toISOString() });
+    }
+
+    if (action === "unpublish" || action === "archive") {
+      const project = await saveProjectPrivateStatus(session, projectId, action, body.expectedUpdatedAt, body.expectedStatus);
+      revalidateProjectPaths(project.id, project.slug);
+      return NextResponse.json({ success: true, project, updatedAt: project.updatedAt.toISOString() });
     }
 
     const project = await prisma.project.findFirst({
@@ -252,58 +260,6 @@ export async function PATCH(
       });
     }
 
-    if (action === "unpublish") {
-      const updatedProject = await prisma.project.update({
-        where: {
-          id: project.id,
-        },
-        data: {
-          status: "DRAFT",
-          publishedAt: null,
-          archivedAt: null,
-          featured: false,
-        },
-        select: {
-          status: true,
-          featured: true,
-          publishedAt: true,
-        },
-      });
-
-      revalidateProjectPaths(project.id, project.slug);
-
-      return NextResponse.json({
-        success: true,
-        project: updatedProject,
-      });
-    }
-
-    if (action === "archive") {
-      const updatedProject = await prisma.project.update({
-        where: {
-          id: project.id,
-        },
-        data: {
-          status: "ARCHIVED",
-          publishedAt: null,
-          archivedAt: new Date(),
-          featured: false,
-        },
-        select: {
-          status: true,
-          featured: true,
-          publishedAt: true,
-        },
-      });
-
-      revalidateProjectPaths(project.id, project.slug);
-
-      return NextResponse.json({
-        success: true,
-        project: updatedProject,
-      });
-    }
-
     return NextResponse.json(
       {
         success: false,
@@ -314,7 +270,7 @@ export async function PATCH(
       },
     );
   } catch (error) {
-    if (error instanceof ProjectServiceSelectionError) return NextResponse.json({ success: false, error: error.message, reloadRequired: error.status !== 400 }, { status: error.status });
+    if (error instanceof ProjectServiceSelectionError || error instanceof ProjectPrivateStatusError) return NextResponse.json({ success: false, error: error.message, reloadRequired: error.status !== 400 }, { status: error.status });
     if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Current owner or administrator access is required.", reloadRequired: true }, { status: 403 });
     console.error("Unable to update project workflow:", error);
 
