@@ -60,8 +60,14 @@ try {
       page.once('dialog',dialog=>dialog.dismiss());await reload.click();assert.equal(calls,count+1);assert.equal(await page.getByLabel('Local project note').inputValue(),'Retain this local note');
     }
     // Existing keyboard sorting remains usable before saving.
-    await open();const handle=page.getByRole('button',{name:'Move Project 1, currently position 1',exact:true});await handle.focus();await page.keyboard.press('Space');await page.keyboard.press('ArrowDown');await page.keyboard.press('Space');
-    const first=await page.locator('ol > li').first().innerText();assert.ok(!first.includes('Project 1'));
+    await open();const handle=page.getByRole('button',{name:'Move Project 1, currently position 1',exact:true});await handle.focus();await page.keyboard.press('Space');
+    await page.waitForFunction(()=>document.querySelector('button[aria-label="Move Project 1, currently position 1"]')?.getAttribute('aria-pressed')==='true');
+    // dnd-kit's keyboard listener attaches on the next task; wait for measured layout before moving.
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+    await page.keyboard.press('ArrowDown');
+    await page.waitForFunction(()=>Array.from(document.querySelectorAll('[role="status"]')).some(node=>/over droppable area p[2-7]/.test(node.textContent||'')));
+    await page.keyboard.press('Space');
+    await page.waitForFunction(()=>!document.querySelector('ol > li')?.textContent?.includes('Project 1'));
     assert.deepEqual(errors,[]);await page.close();
   }
   console.log('PASS featured-list replacement, reviewed saves, recovery and keyboard sorting at 390/1440.');
