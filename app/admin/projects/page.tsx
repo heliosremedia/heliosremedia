@@ -4,6 +4,7 @@ import { tryResolveExternalMedia } from "@/lib/external-media";
 import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 
+import { getProjectOrderReview } from "@/lib/project-order-review";
 import ProjectListManager from "./ProjectListManager";
 import AdminSummaryCards from "@/app/admin/components/AdminSummaryCards";
 import AdminPageLayout, { AdminPageHeader } from "@/app/admin/components/AdminPageLayout";
@@ -112,10 +113,10 @@ export default async function ProjectsPage({
         }
       : {}),
   };
-  const [totalProjects, statusCounts, allOrderedProjects, discoverySettings, featuredReview, curationMedia] = await Promise.all([
+  const [totalProjects, statusCounts, orderReview, discoverySettings, featuredReview, curationMedia] = await Promise.all([
     prisma.project.count({ where }),
     prisma.project.groupBy({ where: { workspaceId: session.workspaceId }, by: ["status"], _count: { _all: true } }),
-    prisma.project.findMany({ where: { workspaceId: session.workspaceId }, orderBy: [{ displayOrder: "asc" }, { updatedAt: "desc" }, { title: "asc" }], select: { id: true } }),
+    getProjectOrderReview(session.workspaceId),
     getPortfolioDiscoverySettings(session.workspaceId),
     getFeaturedProjectReview(session.workspaceId),
     prisma.media.findMany({ where: { project: { workspaceId: session.workspaceId, status: "PUBLISHED" }, visibility: "VISIBLE", sourceType: { in: ["UPLOADED_IMAGE", "UPLOADED_VIDEO", "VIDEO_EMBED"] } }, orderBy: [{ project: { displayOrder: "asc" } }, { displayOrder: "asc" }], take: 1000, select: { id: true, originalFilename: true, altText: true, project: { select: { title: true } } } }),
@@ -132,6 +133,7 @@ export default async function ProjectsPage({
       { displayOrder: "asc" },
       { updatedAt: "desc" },
       { title: "asc" },
+      { id: "asc" },
     ],
     skip: pageStart,
     take: pageSize,
@@ -304,7 +306,9 @@ export default async function ProjectsPage({
           initialProjects={items}
           hasFilters={hasFilters}
           pageStart={pageStart}
-          allProjectIds={allOrderedProjects.map(({ id }) => id)}
+          workspaceId={session.workspaceId}
+          initialRevision={orderReview.revision}
+          allProjectIds={orderReview.projects.map(({ id }) => id)}
           returnTo={currentUrl}
           rangeLabel={`Showing ${firstShown}–${lastShown} of ${totalProjects} projects`}
         />

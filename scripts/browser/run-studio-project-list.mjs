@@ -26,8 +26,8 @@ try {
     const page = await browser.newPage({viewport:{width,height:1000}}), errors=[];
     page.on('pageerror',error=>errors.push(error.message));
     await page.route('**/*',route=>route.request().url().startsWith(origin)&&route.request().method()==='GET'?route.continue():route.abort());
-    let writes=0;
-    await page.route('**/api/admin/projects/order',async route=>{writes++;const body=route.request().postDataJSON();assert.deepEqual(new Set(body.projectIds),new Set(['draft','published','archived']));await route.fulfill({contentType:'application/json',body:JSON.stringify({success:true})});});
+    let writes=0, revision="a".repeat(64), mode="success", release;
+    await page.route('**/api/admin/projects/order',async route=>{writes++;const body=route.request().postDataJSON();assert.equal(body.expectedRevision,revision);assert.deepEqual(new Set(body.projectIds),new Set(['draft','published','archived']));if(mode==='pending')await new Promise(resolve=>{release=resolve});if(mode==='uncertain')return route.abort();if(mode==='json')return route.fulfill({contentType:'application/json',body:'invalid'});if(mode==='conflict')return route.fulfill({status:409,contentType:'application/json',body:JSON.stringify({success:false,reloadRequired:true})});const next=revision==='b'.repeat(64)?'c'.repeat(64):'b'.repeat(64);await route.fulfill({contentType:'application/json',body:JSON.stringify({success:true,workspaceId:mode==='foreign'?'b':'a',revision:mode==='stale'?revision:next,projectIds:mode==='wrong-order'?[...body.projectIds].reverse():body.projectIds})});revision=next;});
     await page.goto(origin+'/');
     const title=page.getByRole('link',{name:'A private mountain property with a long descriptive project name',exact:true});
     await title.waitFor();
@@ -57,6 +57,28 @@ try {
     await page.keyboard.press('Space');
     await page.waitForFunction(()=>document.querySelector('tbody tr')?.textContent.includes('A private mountain'));
     assert.equal(writes,2);
+    for(const outcome of ['pending','uncertain','json','conflict','foreign','stale','wrong-order']) {
+      revision='a'.repeat(64);mode=outcome;release=undefined;await page.goto(origin+'/');
+      await page.getByRole('button',{name:'Select',exact:true}).click();
+      await page.getByRole('checkbox',{name:'Select Retained project',exact:true}).check();
+      const count=writes;await page.getByRole('button',{name:'Move top',exact:true}).evaluate(button=>{button.click();button.click()});
+      if(outcome==='pending'){
+        await page.getByText('Saving project order…',{exact:true}).waitFor();
+        assert.equal(await page.getByRole('button',{name:'Move bottom',exact:true}).isDisabled(),true);
+        assert.equal(await page.getByRole('checkbox',{name:'Select City residence',exact:true}).isDisabled(),true);
+        while(!release)await new Promise(resolve=>setTimeout(resolve,10));release();
+        await page.getByText('Project order saved. The portfolio now uses this order.',{exact:true}).waitFor();
+      }else{
+        const reload=page.getByRole('button',{name:'Review saved project order',exact:true});await reload.waitFor();
+        assert.equal(await page.getByRole('button',{name:'Move bottom',exact:true}).isDisabled(),true);
+        assert.ok((await page.locator('tbody tr').first().innerText()).includes('Retained project'));
+        assert.equal(await page.getByRole('checkbox',{name:'Select Retained project',exact:true}).isChecked(),true);
+        assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+        if(outcome==='conflict')await page.screenshot({path:`release-evidence/studio-project-order-recovery-${width}.png`,fullPage:true});
+        page.once('dialog',dialog=>dialog.dismiss());await reload.click();assert.equal(await reload.isVisible(),true);
+      }
+      assert.equal(writes,count+1);
+    }
     await page.goto(origin+'/?filtered=1');
     assert.equal(await page.getByRole('button',{name:'Select',exact:true}).isDisabled(),true);
     assert.equal(await page.getByRole('button',{name:'Move project Retained project',exact:true}).isDisabled(),true);
