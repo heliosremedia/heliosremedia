@@ -37,3 +37,7 @@ This is a bounded source assessment, not a security certification or whole Phase
 ## Execution and evidence
 
 Use fresh source, meaningful regression, TypeScript, scoped lint, responsive Chromium and isolated PostgreSQL/runtime evidence appropriate to each change. Preserve existing workflow gates, independent artifact checks and tested-tree merge verification. Do not merge an unqualified implementation. Failed gates trigger repair, not weakened assertions. Capture candidate SHA, evidence, limitations and next task in the recovery checkpoint. Continue independent safe product work when a qualification or external dependency is blocked.
+
+## Current private-project milestone (October 10)
+
+PR #407 completes panel navigation from progress cards and media links. The active service-selection change carries the reviewed project revision and saved service set, rechecks administrator access under existing locks, retains uncertain drafts, and links unmet requirements back to setup. Media-added service assignments must survive stale form saves. Qualification is pending; the canonical recovery checkpoint records exact evidence. Publishing/status transitions need their own race and revision qualification before the full owner path is ready. Next: finish service qualification, then the review/status workflow and synthetic complete draft-to-media-to-review pass. Hosted access remains unqualified.

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import ProjectSectionLink from "./ProjectSectionLink";
 import ProjectEditorSection from "./ProjectEditorSection";
 
 type ProjectStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
@@ -18,6 +19,7 @@ export type AssignableService = {
 
 type ProjectWorkflowManagerProps = {
   projectId: string;
+  initialUpdatedAt: string;
   projectSlug: string;
   initialStatus: ProjectStatus;
   initialFeatured: boolean;
@@ -37,6 +39,8 @@ type WorkflowResponse = {
   error?: string;
   blockers?: string[];
   serviceIds?: string[];
+  updatedAt?: string;
+  reloadRequired?: boolean;
   project?: {
     status: ProjectStatus;
     featured: boolean;
@@ -70,6 +74,7 @@ function revealSection(id: string) {
 
 export default function ProjectWorkflowManager({
   projectId,
+  initialUpdatedAt,
   projectSlug,
   initialStatus,
   initialFeatured,
@@ -84,6 +89,12 @@ export default function ProjectWorkflowManager({
   initialServiceIds,
 }: ProjectWorkflowManagerProps) {
   const router = useRouter();
+  const [serviceRevision, setServiceRevision] = useState(initialUpdatedAt);
+  const serviceSaveRef = useRef(false);
+  const serviceReviewRef = useRef(false);
+  const [serviceReviewRequired, setServiceReviewRequired] = useState(false);
+  const [serviceError, setServiceError] = useState<string | null>(null);
+  const [serviceSaved, setServiceSaved] = useState(false);
   const [selectedServiceIds, setSelectedServiceIds] = useState(
     new Set(initialServiceIds),
   );
@@ -123,6 +134,8 @@ export default function ProjectWorkflowManager({
     () => [
       {
         label: "Project introduction ready",
+        href: "#project-identity" as const,
+        action: "Edit project details",
         complete: hasProjectSummary || hasPlayableVideo,
         detail: hasProjectSummary
           ? "The public project has a concise introduction."
@@ -132,6 +145,8 @@ export default function ProjectWorkflowManager({
       },
       {
         label: "Lead media ready",
+        href: "#project-media" as const,
+        action: "Choose lead media",
         complete: Boolean(heroMediaId) || hasPlayableVideo,
         detail: heroMediaId
           ? "The public project has a lead visual."
@@ -141,6 +156,8 @@ export default function ProjectWorkflowManager({
       },
       {
         label: "Visible media available",
+        href: "#project-media" as const,
+        action: "Manage project media",
         complete: visibleMediaCount > 0,
         detail:
           visibleMediaCount > 0
@@ -151,6 +168,8 @@ export default function ProjectWorkflowManager({
       },
       {
         label: "Services assigned",
+        href: "#project-services" as const,
+        action: "Choose project services",
         complete: activeSavedServiceCount > 0,
         detail:
           activeSavedServiceCount > 0
@@ -186,51 +205,40 @@ export default function ProjectWorkflowManager({
   }, []);
 
   const saveServices = useCallback(async () => {
+    if (serviceSaveRef.current || serviceReviewRef.current || workflowAction) return;
+    serviceSaveRef.current = true;
+    setIsSavingServices(true);
+    setServiceError(null);
+    setServiceSaved(false);
+    let confirmedRejection = false;
     try {
-      setIsSavingServices(true);
-      setError(null);
-      setServerBlockers([]);
-
       const serviceIds = [...selectedServiceIds];
-      const response = await fetch(
-        `/api/admin/projects/${projectId}/workflow`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            action: "assign-services",
-            serviceIds,
-          }),
-        },
-      );
-      const data = (await response.json()) as WorkflowResponse;
-
-      if (!response.ok || !data.success || !data.serviceIds) {
-        throw new Error(
-          data.error || "The service selection could not be saved.",
-        );
+      const response = await fetch(`/api/admin/projects/${projectId}/workflow`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "assign-services", serviceIds, expectedUpdatedAt: serviceRevision, expectedServiceIds: [...savedServiceIds] }),
+      });
+      const data = await response.json() as WorkflowResponse;
+      if (!response.ok || !data.success) {
+        confirmedRejection = response.status === 400 && data.success === false && !data.reloadRequired;
+        throw new Error(data.error || "The service selection could not be saved.");
       }
-
-      setSelectedServiceIds(new Set(data.serviceIds));
+      if (!Array.isArray(data.serviceIds) || data.serviceIds.length !== serviceIds.length || new Set(data.serviceIds).size !== serviceIds.length || !data.serviceIds.every(id => serviceIds.includes(id)) || !data.updatedAt || !Number.isFinite(Date.parse(data.updatedAt)) || new Date(data.updatedAt).toISOString() !== data.updatedAt || Date.parse(data.updatedAt) <= Date.parse(serviceRevision)) {
+        throw new Error("The service save receipt could not be confirmed.");
+      }
       setSavedServiceIds(new Set(data.serviceIds));
+      setServiceRevision(data.updatedAt);
+      setServiceSaved(true);
       router.refresh();
     } catch (saveError) {
+      if (!confirmedRejection) { serviceReviewRef.current = true; setServiceReviewRequired(true); }
       revealSection("project-services");
-      console.error("Unable to save project services:", saveError);
-      setError(
-        saveError instanceof Error
-          ? saveError.message
-          : "The service selection could not be saved.",
-      );
-    } finally {
-      setIsSavingServices(false);
-    }
-  }, [projectId, router, selectedServiceIds]);
+      setServiceError(confirmedRejection && saveError instanceof Error ? saveError.message : "The saved selection needs review. Your selections remain here; reload the saved project before trying again.");
+    } finally { serviceSaveRef.current = false; setIsSavingServices(false); }
+  }, [projectId, router, selectedServiceIds, savedServiceIds, serviceRevision, workflowAction]);
 
   const runWorkflowAction = useCallback(
     async (action: "publish" | "unpublish" | "archive" | "set-featured", featuredDuration?: string) => {
+      if (serviceSaveRef.current || serviceReviewRef.current || serviceSelectionChanged) return;
       try {
         setWorkflowAction(action);
         setError(null);
@@ -276,7 +284,7 @@ export default function ProjectWorkflowManager({
         setWorkflowAction(null);
       }
     },
-    [featured, projectId, router, updateProjectFromResponse],
+    [featured, projectId, router, updateProjectFromResponse, serviceSelectionChanged],
   );
 
   return (
@@ -310,14 +318,14 @@ export default function ProjectWorkflowManager({
 
       <ProjectEditorSection id="project-services" eyebrow="Step 03" title="Services and SEO" summary="Choose the services represented by this project and manage its public portfolio signals." status={
           <div className="flex flex-wrap items-center gap-4">
-            <span className="text-xs text-white/25">
+            <span className="text-xs text-white/65">
               {selectedServiceIds.size} selected
             </span>
 
             <button
               type="button"
               onClick={() => void saveServices()}
-              disabled={isSavingServices || !serviceSelectionChanged}
+              disabled={isSavingServices || serviceReviewRequired || workflowAction !== null || !serviceSelectionChanged}
               className="admin-btn-primary"
             >
               {isSavingServices && (
@@ -328,7 +336,14 @@ export default function ProjectWorkflowManager({
           </div>
       }>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {serviceError && <div role="alert" className="mb-4 rounded-xl border border-amber-200/30 p-4 text-sm text-amber-100">
+          <p>{serviceError}</p>
+          {serviceReviewRequired && <button type="button" className="mt-3 underline" onClick={() => { if (window.confirm("Reload the saved project and discard these local service selections? Note any selections you need first.")) window.location.reload(); }}>Reload saved project</button>}
+        </div>}
+        {serviceSaved && <p role="status" className="mb-4 text-sm text-emerald-200">Services saved.</p>}
+        {serviceSelectionChanged && <p className="mb-4 text-sm text-white/65">Unsaved service selection. Save before reviewing publication.</p>}
+        {services.length === 0 && <p className="text-sm text-white/65">No services are available in this workspace. <Link href="/admin/services" className="underline">Manage workspace services</Link></p>}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {services.map((service) => {
             const selected = selectedServiceIds.has(service.id);
             const unavailable =
@@ -338,9 +353,11 @@ export default function ProjectWorkflowManager({
               <button
                 key={service.id}
                 type="button"
-                disabled={unavailable || isSavingServices}
-                onClick={() =>
+                disabled={unavailable || isSavingServices || serviceReviewRequired || workflowAction !== null}
+                onClick={() => {
+                  setServiceSaved(false);
                   setSelectedServiceIds((current) => {
+                    if (serviceSaveRef.current || serviceReviewRef.current) return current;
                     const next = new Set(current);
 
                     if (next.has(service.id)) {
@@ -350,18 +367,18 @@ export default function ProjectWorkflowManager({
                     }
 
                     return next;
-                  })
-                }
+                  });
+                }}
                 aria-pressed={selected}
-                className={`min-h-36 rounded-2xl border p-5 text-left transition ${
+                className={`min-w-0 break-words min-h-36 rounded-2xl border p-5 text-left transition ${
                   selected
                     ? "border-[var(--helios-orange)]/50 bg-[var(--helios-orange)]/[0.08] shadow-[0_15px_40px_rgba(217,107,43,0.06)]"
                     : "border-white/[0.08] bg-black/20 hover:border-white/20 hover:bg-white/[0.025]"
-                } disabled:cursor-not-allowed disabled:opacity-35`}
+                } disabled:cursor-not-allowed ${unavailable ? "disabled:opacity-50" : "disabled:opacity-100"}`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/25">
+                    <p className="text-[0.54rem] font-semibold uppercase tracking-[0.15em] text-white/65">
                       Service
                     </p>
 
@@ -394,7 +411,7 @@ export default function ProjectWorkflowManager({
                   </span>
                 </div>
 
-                <p className="mt-3 text-xs leading-5 text-white/35">
+                <p className="mt-3 text-xs leading-5 text-white/65">
                   {service.description || "No description added."}
                 </p>
 
@@ -456,9 +473,10 @@ export default function ProjectWorkflowManager({
                     {requirement.label}
                   </p>
 
-                  <p className="mt-1 text-xs leading-5 text-white/30">
+                  <p className="mt-1 text-xs leading-5 text-white/65">
                     {requirement.detail}
                   </p>
+                  {!requirement.complete && <ProjectSectionLink href={requirement.href} className="mt-2 inline-block text-sm underline">{requirement.action}</ProjectSectionLink>}
                 </div>
               </div>
             ))}
@@ -470,7 +488,7 @@ export default function ProjectWorkflowManager({
                     Featured project
                   </p>
 
-                  <p className="mt-1 text-xs leading-5 text-white/30">
+                  <p className="mt-1 text-xs leading-5 text-white/65">
                     Prioritize this project in premium portfolio placements.
                   </p>
                 </div>
@@ -479,7 +497,7 @@ export default function ProjectWorkflowManager({
                   aria-label="Featured project duration"
                   value={!featured ? "NONE" : featuredExpiresAt ? "TIMED" : "ALWAYS"}
                   onChange={(event) => event.target.value !== "TIMED" && void runWorkflowAction("set-featured", event.target.value)}
-                  disabled={workflowAction !== null || status !== "PUBLISHED"}
+                  disabled={isSavingServices || serviceReviewRequired || serviceSelectionChanged || workflowAction !== null || status !== "PUBLISHED"}
                   className="min-h-11 rounded-xl border border-white/10 bg-[#111] px-4 text-sm text-white disabled:opacity-35"
                 >
                   <option value="NONE">Not Featured</option>
@@ -540,7 +558,7 @@ export default function ProjectWorkflowManager({
                   <button
                     type="button"
                     onClick={() => void runWorkflowAction("unpublish")}
-                    disabled={workflowAction !== null}
+                    disabled={isSavingServices || serviceReviewRequired || serviceSelectionChanged || workflowAction !== null}
                     className="!w-full admin-btn-secondary"
                   >
                     {workflowAction === "unpublish"
@@ -552,7 +570,7 @@ export default function ProjectWorkflowManager({
                 <button
                   type="button"
                   onClick={() => void runWorkflowAction("publish")}
-                  disabled={workflowAction !== null || !canPublish}
+                  disabled={isSavingServices || serviceReviewRequired || serviceSelectionChanged || workflowAction !== null || !canPublish}
                   className="!w-full admin-btn-primary"
                 >
                   {workflowAction === "publish" && (
@@ -577,7 +595,7 @@ export default function ProjectWorkflowManager({
                         void runWorkflowAction("archive");
                       }
                     }}
-                    disabled={workflowAction !== null}
+                    disabled={isSavingServices || serviceReviewRequired || serviceSelectionChanged || workflowAction !== null}
                     className="!w-full admin-btn-destructive"
                   >
                     {workflowAction === "archive"

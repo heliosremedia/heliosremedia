@@ -348,6 +348,7 @@ export default async function ProjectEditorPage({
       </ProjectEditorSection>
 
       <div><ProjectWorkflowManager
+        initialUpdatedAt={project.updatedAt.toISOString()}
         projectId={project.id}
         projectSlug={project.slug}
         initialStatus={project.status}
