@@ -7,15 +7,17 @@ import { checkLockedAccountMutation } from "./workspace-account-mutation.ts";
 test("locked account authorization reads current PostgreSQL state before allowing a mutation", async () => {
   const db = new PGlite();
   const previous = process.env.STUDIO_V2_TENANT_CONTEXT_ENABLED;
+  const previousLifecycle = process.env.STUDIO_V2_WORKSPACE_LIFECYCLE_ENABLED;
   const session = { userId: "owner", workspaceId: "a", sessionVersion: 1 };
   const change = { role: null, active: null, password: false };
   try {
     process.env.STUDIO_V2_TENANT_CONTEXT_ENABLED = "true";
+    process.env.STUDIO_V2_WORKSPACE_LIFECYCLE_ENABLED = "true";
     await db.exec(`
-      CREATE TABLE "Workspace" (id TEXT PRIMARY KEY);
+      CREATE TABLE "Workspace" (id TEXT PRIMARY KEY, "lifecycleState" TEXT NOT NULL DEFAULT 'ACTIVE');
       CREATE TABLE "AdminUser" (id TEXT PRIMARY KEY, "workspaceId" TEXT NOT NULL REFERENCES "Workspace", role TEXT NOT NULL, active BOOLEAN NOT NULL, "sessionVersion" INTEGER NOT NULL);
       CREATE TABLE "WorkspaceMembership" (id TEXT PRIMARY KEY, "workspaceId" TEXT NOT NULL, "userId" TEXT NOT NULL, role TEXT NOT NULL, status TEXT NOT NULL);
-      INSERT INTO "Workspace" VALUES ('a'), ('b');
+      INSERT INTO "Workspace" (id) VALUES ('a'), ('b');
       INSERT INTO "AdminUser" VALUES ('owner','a','OWNER',true,1), ('editor','a','EDITOR',true,1), ('foreign','b','EDITOR',true,1);
       INSERT INTO "WorkspaceMembership" VALUES ('m1','a','owner','OWNER','ACTIVE'), ('m2','a','editor','EDITOR','ACTIVE'), ('m3','b','foreign','EDITOR','ACTIVE');
     `);
@@ -27,6 +29,8 @@ test("locked account authorization reads current PostgreSQL state before allowin
           const query = parts.reduce((out, part, i) => out + (i ? '$' + i : '') + part, '');
           return (await sql.query(query, values)).rows;
         },
+        workspace: { findUnique: async ({where}: {where:{id:string}}) =>
+          (await sql.query('SELECT * FROM "Workspace" WHERE id=$1', [where.id])).rows[0] ?? null },
         adminUser: { findFirst: async ({where}: {where:{id:string;workspaceId:string}}) =>
           (await sql.query('SELECT * FROM "AdminUser" WHERE id=$1 AND "workspaceId"=$2', [where.id,where.workspaceId])).rows[0] ?? null },
         workspaceMembership: { findUnique: async ({where}: {where:{workspaceId_userId:{workspaceId:string;userId:string}}}) => {
@@ -36,6 +40,14 @@ test("locked account authorization reads current PostgreSQL state before allowin
       } as unknown as Prisma.TransactionClient;
       return checkLockedAccountMutation(tx, who, target, {...change,...overrides});
     });
+    assert.equal(await run("editor"), null);
+    await db.exec(`UPDATE "Workspace" SET "lifecycleState"='SUSPENDED' WHERE id='a'`);
+    assert.equal(await run("editor"), "Workspace access is unavailable.");
+    assert.equal(await run("editor", {transfer:true}), "Workspace access is unavailable.");
+    process.env.STUDIO_V2_WORKSPACE_LIFECYCLE_ENABLED = "false";
+    assert.equal(await run("editor"), null);
+    process.env.STUDIO_V2_WORKSPACE_LIFECYCLE_ENABLED = "true";
+    await db.exec(`UPDATE "Workspace" SET "lifecycleState"='ACTIVE' WHERE id='a'`);
     assert.equal(await run("editor"), null);
     assert.match(await run("foreign") ?? "", /access changed/);
     assert.equal(await run("editor", {transfer:true}), null);
@@ -58,6 +70,8 @@ test("locked account authorization reads current PostgreSQL state before allowin
   } finally {
     if(previous === undefined) delete process.env.STUDIO_V2_TENANT_CONTEXT_ENABLED;
     else process.env.STUDIO_V2_TENANT_CONTEXT_ENABLED = previous;
+    if(previousLifecycle === undefined) delete process.env.STUDIO_V2_WORKSPACE_LIFECYCLE_ENABLED;
+    else process.env.STUDIO_V2_WORKSPACE_LIFECYCLE_ENABLED = previousLifecycle;
     await db.close();
   }
 });

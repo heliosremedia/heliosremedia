@@ -1,6 +1,6 @@
 import "server-only";
+import { resolveCampaignWorkspace } from "./campaign-ownership";
 
-import { recordAuditEvent } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import {
   BOUNCED_BACK_GROUP_NAME,
@@ -92,7 +92,7 @@ export async function processPermanentBounce(providerEventId: string, event: Res
         id: true,
         clientId: true,
         email: true,
-        campaign: { select: { createdBy: { select: { workspaceId: true } } } },
+        campaign: { select: { workspaceId: true } },
       },
       take: 2,
     });
@@ -115,7 +115,7 @@ export async function processPermanentBounce(providerEventId: string, event: Res
       });
       return { status: "rejected" as const };
     }
-    const workspaceId = recipient.campaign.createdBy.workspaceId;
+    const workspaceId = await resolveCampaignWorkspace(recipient.campaign.workspaceId);
     const newer = await prisma.resendWebhookEvent.findFirst({
       where: {
         campaignRecipientId: recipient.id,
@@ -151,12 +151,20 @@ export async function processPermanentBounce(providerEventId: string, event: Res
       update: { name: BOUNCED_BACK_GROUP_NAME, systemManaged: true },
       select: { id: true },
     });
-    await prisma.$transaction([
-      prisma.communicationGroupMembership.createMany({
+    await prisma.$transaction(async transaction => {
+      await transaction.communicationGroupMembership.createMany({
         data: [{ groupId: group.id, clientId: recipient.clientId }],
         skipDuplicates: true,
-      }),
-      prisma.resendWebhookEvent.update({
+      });
+      await transaction.auditEvent.create({ data: {
+        workspaceId,
+        action: "CLIENT_PERMANENT_BOUNCE_RECORDED",
+        entityType: "CommunicationClient",
+        entityId: recipient.clientId,
+        summary: `A permanent delivery failure added ${normalizedEmail} to Bounced Back.`,
+        metadata: { providerEventId, providerMessageId, workspaceId, bounceType, bounceSubtype, reason },
+      } });
+      await transaction.resendWebhookEvent.update({
         where: { providerEventId },
         data: {
           workspaceId,
@@ -166,18 +174,13 @@ export async function processPermanentBounce(providerEventId: string, event: Res
           processingStatus: "PROCESSED",
           processedAt: new Date(),
         },
-      }),
-    ]);
-    await recordAuditEvent({
-      action: "CLIENT_PERMANENT_BOUNCE_RECORDED",
-      entityType: "CommunicationClient",
-      entityId: recipient.clientId,
-      summary: `A permanent delivery failure added ${normalizedEmail} to Bounced Back.`,
-      metadata: { providerEventId, providerMessageId, workspaceId, bounceType, bounceSubtype, reason },
+      });
     });
     return { status: "processed" as const, workspaceId, clientId: recipient.clientId };
   } catch (error) {
-    await recordRetryableBounceFailure(providerEventId, error);
+    // The admitting route owns failure settlement for an already accepted event.
+    // Do not release it for retry before the outer handler has unwound.
+    if (!alreadyAccepted) await recordRetryableBounceFailure(providerEventId, error);
     throw error;
   }
 }

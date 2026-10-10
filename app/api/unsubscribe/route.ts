@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { consumeWorkspacePreferenceToken } from "@/lib/client-communications/workspace-consent-tokens";
 import { consumePreferenceToken, setMarketingPreference } from "@/lib/client-communications/preferences";
 
 export async function POST(request: Request) {
@@ -9,7 +10,13 @@ export async function POST(request: Request) {
       ? await request.json() as { token?: string; reason?: string }
       : Object.fromEntries(await request.formData()) as { token?: string; reason?: string };
     const queryToken = new URL(request.url).searchParams.get("token");
-    const token = await consumePreferenceToken(typeof body.token === "string" ? body.token : queryToken ?? "");
+    const rawToken = typeof body.token === "string" ? body.token : queryToken ?? "";
+    if (rawToken.startsWith("v2.")) {
+      const result = await consumeWorkspacePreferenceToken(prisma, rawToken, typeof body.reason === "string" ? body.reason : undefined);
+      if (!result) return NextResponse.json({ success: false, error: "This preference link is invalid or expired." }, { status: 400 });
+      return NextResponse.json({ success: true });
+    }
+    const token = await consumePreferenceToken(rawToken);
     if (!token) return NextResponse.json({ success: false, error: "This preference link is invalid or expired." }, { status: 400 });
     await setMarketingPreference({
       email: token.preference.normalizedEmail,

@@ -4,12 +4,33 @@ import {
 } from "@aws-sdk/client-s3";
 import { NextResponse } from "next/server";
 
-import { r2Client, r2Config } from "@/lib/r2";
+import { getAdminSession } from "@/lib/auth/session";
+import { prisma } from "@/lib/prisma";
+import { requireLockedWorkspaceAdministrator } from "@/lib/workspace-write-access";
+import { tenantContextEnabled } from "@/lib/workspace-context-core";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  // This probes the shared platform bucket, not a tenant-owned integration.
+  try {
+    const session = await getAdminSession();
+    if (!session || !["OWNER", "ADMIN"].includes(session.role) || tenantContextEnabled()) {
+      return NextResponse.json({ success: false, error: "Storage diagnostics are not available in this context." }, { status: 403 });
+    }
+    await prisma.$transaction(async tx => {
+      await requireLockedWorkspaceAdministrator(tx, session);
+      await tx.$executeRaw`LOCK TABLE "Workspace" IN SHARE MODE`;
+      const companies = await tx.workspace.findMany({ take: 2, select: { id: true } });
+      if (companies.length !== 1 || companies[0].id !== session.workspaceId) throw new Error("STORAGE_DIAGNOSTIC_FORBIDDEN");
+    });
+  } catch (error) {
+    if (error instanceof Error && ["WORKSPACE_WRITE_FORBIDDEN", "STORAGE_DIAGNOSTIC_FORBIDDEN"].includes(error.message)) {
+      return NextResponse.json({ success: false, error: "Storage diagnostics are not available in this context." }, { status: 403 });
+    }
+    return NextResponse.json({ success: false, error: "Storage diagnostics are temporarily unavailable." }, { status: 503 });
+  }
   const checks = {
     environment: true,
     credentials: false,
@@ -19,6 +40,7 @@ export async function GET() {
   };
 
   try {
+    const { r2Client, r2Config } = await import("@/lib/r2");
     const publicUrl = new URL(r2Config.publicUrl);
 
     checks.publicUrlFormat =
@@ -46,7 +68,7 @@ export async function GET() {
     let message = "Cloudflare R2 connection failed.";
 
     if (error instanceof S3ServiceException) {
-      code = error.name;
+      code = ["InvalidAccessKeyId", "SignatureDoesNotMatch", "AccessDenied", "NoSuchBucket"].includes(error.name) ? error.name : "PROVIDER_ERROR";
 
       switch (error.name) {
         case "InvalidAccessKeyId":
@@ -74,14 +96,14 @@ export async function GET() {
           break;
 
         default:
-          message = `Cloudflare R2 returned ${error.name}.`;
+          message = "Cloudflare R2 could not complete the connection check.";
       }
     } else if (error instanceof TypeError) {
       code = "INVALID_CONFIGURATION";
       message =
         "The R2 endpoint or public URL is not formatted correctly.";
     } else if (error instanceof Error) {
-      code = error.name || "CONNECTION_ERROR";
+      code = "CONNECTION_ERROR";
     }
 
     return NextResponse.json(

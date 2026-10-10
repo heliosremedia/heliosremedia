@@ -1,4 +1,5 @@
 import "server-only";
+import { requireWorkspaceScheduledAction } from "@/lib/workspace-lifecycle/state";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { getBlogOwnershipScope } from "@/lib/blog-ownership";
 import { requireLockedWorkspaceAdministrator, type WorkspaceWriteActor } from "@/lib/workspace-write-access";
@@ -28,4 +29,5 @@ export async function requireNewsletterGenerationAccess(
   if (!job?.edition.generationDueAt || job.dueAt.getTime() !== job.edition.generationDueAt.getTime()) {
     throw new Error("NEWSLETTER_GENERATION_CLAIM_EXPIRED");
   }
+  await requireWorkspaceScheduledAction(tx, workspaceId, job.dueAt);
 }

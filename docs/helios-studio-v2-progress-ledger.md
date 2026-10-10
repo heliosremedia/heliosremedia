@@ -1,5 +1,518 @@
 # Helios Studio V2 progress ledger
 
+
+## October 10 — private restoration, responsive Projects and reviewed ordering
+
+#422 integrated at `14fe732dd936fa8c570256ac4f3fcbf95212b0be`: archived projects can return to private draft through the reviewed lifecycle operation, including incomplete projects. #423 integrated at `a03ee33d198c2bbb3fdffe649ae59b456b818e2d`: phone browsing shows status/location/media/date and edit controls without requiring the desktop table width; title links retain return filters and sticky actions remain. #424 integrated at `bb5c9c5ac2e69f89091d02eaff92b00f8a5e9f06`: project ordering now rejects stale lists, rechecks editor access/ownership under existing locks and preserves attempted order/selection after uncertain saves.
+
+Each final candidate passed 1,859 tests, TypeScript and all configured Chromium. #422 runtime 38076985691 covers six two-company status cases/24 observed races; #424 runtime 38078068060 adds two order cases/ten observed races, with exact fixture restoration and schema/access postflight. Ten responsive images across the three candidates were visually inspected; all five ZIP artifacts were independently downloaded/hash-matched. Prospective/integrated trees equal each qualified candidate. Exact SHAs, runs, artifact IDs and hashes are in the canonical recovery checkpoint.
+
+One #423 regression correction retained the established sticky-actions requirement; its test was not weakened. No historical suite was rerun for recovery; #423 reused unchanged #422 runtime evidence. Current staging inspection was checked again and has not been dispatched. Existing protected owner review and unavailable connector dispatch remain the concrete next hosted-access gate. No deployment, live migration, credential/provider activation, billing or production work occurred. Owner-accessible hosting and First Light remain unqualified. This entry supersedes older active-work descriptions below.
+
+## October 10 — reviewed project publication and featured-list editing
+
+PR #418 integrated reviewed publishing and featured placement at `e4aa3031dc74eef476c935807c1ab8821aaa7099`, qualified tree `3cef159d8ffa75e78b2e0e7d323d4e2603a795fb`. Current administrator access, project revision/status and publishing requirements are checked under locks. Both featured writers share capacity serialization; expired renewals consume a slot. The editor confirms receipts and pauses uncertain changes for explicit review. Regression 38063753494 passed 1,856 tests, TypeScript and all Chromium; runtime 38063753495 passed both companies, six cases and 22 observed races. Independent runtime/screenshot hashes, four responsive images, cleanup and prospective/integrated trees verified.
+
+Featured-list revision/recovery #419 integrated at `8bf2729fab0e6309ec1e8d7275e741334daa7c1d`; 1,859 tests, TypeScript, all Chromium including keyboard sorting, runtime two-company cases/eight observed races, independent artifacts/screenshots and matching merge trees passed. Read-only staging inspection #420 integrated separately at `d65a1c98675c123d5b710dbf70cdcd3554f5b869` on the existing protected executor branch; its 1,571-test baseline regression/TypeScript/Chromium and exact tree passed. Canonical recovery checkpoint contains exact candidates, digests and owner-run inputs. No staging inspection, deployment, data/configuration mutation or infrastructure creation has occurred. Existing Preview read-only restrictions and owner environment review remain. Owner-accessible hosting and First Light are not claimed. This entry supersedes older active-work descriptions below.
+
+
+## October 10 — integrated private workflow and staging recovery
+
+Application integration through PR #413: `fdce01115bf8c5b45a13603888792ad4aad5371c`, verified tree `1fc093107c250b41e511f4ac03c6782beb1f3bba`. Creation, information, registered synthetic media, reviewed services, setup navigation, private review and reviewed unpublish/archive are integrated. Current qualification: 1,856 tests, TypeScript, all Chromium and isolated runtime passed; independent current ZIP hashes, four responsive status screenshots, two-tenant authorization races, cleanup and merge-tree equality verified. Exact evidence lives in the canonical recovery checkpoint.
+
+Staging is present in the expected Vercel account when queried without an explicit scope selector. Historical September protected hosted qualification was independently recovered, superseding the missing-project interpretation. Current Studio is not hosted-qualified: source/schema admission is pinned to the older baseline, the six October migrations now pass an isolated actual-Prisma upgrade rehearsal, and Neon connector discovery currently fails authorization. No infrastructure recreation, settings change, live migration or production operation occurred.
+
+Readiness integration #415 (`b231046863a341c198e80d65aac139ec82ca95c5`) preserves existing ledger/private data and proves current schema equivalence plus no-op repeat on disposable PostgreSQL. #416 (`bec844bea9898227fe49cd605ecce1060978ca84`) qualifies ordinary password sign-in through Command Center and the complete private project flow for two companies, including logout and exact fixture restoration. Exact-head regression/runtime, independent artifacts and integrated trees verified. Application implementation remains #413.
+
+Active milestone: extend the existing protected staging process to the qualified current source/schema and establish persistent hosted owner access. Publishing/featured source assessment has begun; its current pre-write checks and non-atomic feature count are the next bounded product dependency. Continue bounded publishing/featured product dependencies if live access remains blocked. First Light and production remain unachieved/on hold. This entry supersedes older active-work descriptions; historical evidence below is retained.
+
+## October 8 recovery: approved direction and usable product work
+
+Live recovery verified Packet 84. PR #394 now records the approved future-schedule policy and bounded readiness/product plan, passed regression 37844736236 and merged at `ed6c71fb4a12ef4170c558c1ac48ea33787afccf`. Newsletter safeguard PR #395 has independently verified runtime artifact evidence; full regression is pending. Studio shell/Command Center PR #396 implements real workspace-aware navigation and existing operational data; HTTP/Chromium qualification is underway. Current SHA/evidence/next-task details are in the [recovery checkpoint](helios-studio-v2-recovery-checkpoint.md). No phase closure or production readiness is inferred; production ON HOLD.
+
+## October 8, 2026: Packet 84 integrated; worker reactivation choice prepared
+
+Packet 84 PR #393 integrated at `96b92a3aec8e9c80d96e1be7b2fa48c6f5252f5f`, matching tested candidate `3f39c5cb4a1b56c9a4023792c1feb7dda5130e0a` and tree `2421cd5a8c881a006eb70c7fa075dbab22604665`. Regression 37782163933 passed 1,840 tests/TypeScript/Chromium. Runtime 37782164067 artifact 11552492702 SHA256 `1a568add9e0affcb646126864464bf2faceb3ec629ac4142c0f51b21e25591d0` independently verifies fourteen profile races, credential/audit rollback, old-session rejection and full identity/membership/credential/schema postflight. Both Vercel projects remain suppressed.
+
+The actual scheduler [synthetic probe](helios-studio-v2-worker-reactivation-probe.json) confirms missing suspension and overdue-replay admission boundaries while retaining its UNCERTAIN guard. The [worker reactivation proposal](helios-studio-v2-worker-reactivation-decision.md) isolates a significant product choice: preserve still-future valid schedules, or require renewed approval for all pre-pause queued work. The existing owner-approved policy prohibits overdue catch-up but does not explicitly select between those future-calendar behaviors. This proposal makes no application/schema/provider changes. Phase 1 OPEN; production ON HOLD.
+
+## October 8, 2026: Packets 82–83 integrated; Packet 84 self-profile fencing
+
+Packet 82 PR #391 integrated at `4dec899a1e7f27de0b1fe2949499b18c7fb5f2f4`, matching tested tree `835677e06d00f0a2452bdd0600de4d7d5a449cba`. Regression 37780493228 passed 1,834 tests/TypeScript/Chromium; runtime 37780493413 artifact 11551722360 SHA256 `2490813f8aae6f14901fd65c47440e6b6bbd098fe229f1406477fbe55dda4706` independently verifies host-owned public 503, opt-out and restoration. Packet 83 PR #392 integrated at `eddfbf94a20b3f8ef1f33e34e228ec338c01b87a`, matching tested tree `f252fd757bd0dd5b9de99c3db1e667bcb08e3ef0`; regression 37780644935 passed 1,837 tests/TypeScript/Chromium. Runtime 37780644804 artifact 11552345770 SHA256 `6add66aa1eb5f06cbf01fb66548ba3317d267c3ed46cbf2c1227ddab825f46a7` independently verifies fourteen invitation races, rollback, owned acceptance and restored identity/membership/schema postflight. Both Vercel projects remain suppressed.
+
+Packet 84 fixes two reproduced [self-profile transaction and audit gaps](helios-studio-v2-profile-write-fencing.md). All 1,840 local tests, TypeScript and lint pass; exact-head qualification remains pending. The current checkpoint credits only the integrated bounded surfaces. Other writers, jobs/provider work, safety settlement, reactivation backlog, hosted parity and the complete compatibility verdict remain open. Phase 1 OPEN; production ON HOLD.
+
+## October 8, 2026: Packet 82 qualification correction; Packet 83 invitation fencing
+
+Packet 82 PR #391 candidate `1e5931fa6aaada6d2af20d6ddc41a034212b3468` corrects the stale company-name assertion from isolated run 37778938638. The failed run passed the new generic 503 checks before encountering the fixture expectation; independent logs confirm disposable database/network removal. No hosted staging or production database was used. New exact-head gates remain pending; Packet 82 is not yet integrated.
+
+Packet 83 closes reproduced [invitation transaction admission gaps](helios-studio-v2-workspace-invitation-fencing.md): creation/revocation now recheck locked current authority, replacement is atomic, and acceptance rereads the token binding under an ACTIVE workspace lock. All three focused tests fail against the previous routes and pass with the corrections. Qualification remains pending; other lifecycle callers and Phase 1 remain OPEN. Production ON HOLD.
+
+## October 8, 2026: Packet 81 integrated; Packet 82 public suspension admission
+
+Packet 81 PR #390 candidate `44468c9af5b8130b3a3709cc434571f310cf0d97` passed runtime 37777680618. Artifact 11551461007 SHA256 `a77cc5c4d4e7df66f628cbe6a3f157fda879403697793c4e4e4932db0b44763f` was independently downloaded, hashed and parsed: both-direction session/write/account/support denial, twelve observed lock races, business/grant preservation, same-cookie reactivation and schema/access restoration passed. Regression/Chromium 37777680712 passed 1,831 tests and TypeScript. PR #390 integrated at `8f1c03a7940559fccae08d775d8389f6b519d8bf`; its merge tree matches the tested candidate. Both Vercel projects remain suppressed.
+
+Packet 82 adds [host-owned public suspension admission](helios-studio-v2-workspace-lifecycle-public.md) and separates opt-out from the public layout. Runtime/regression and independent artifact gates remain pending. Token-owned referrals, analytics/other endpoints, provider workers, hosted CDN and final compatibility remain open. Production ON HOLD.
+
+## October 8, 2026: Packet 80 integrated; Packet 81 lifecycle admission
+
+Packet 80 PR #389 integrated at `f016b4cce898ae9b379a485359c1b34e09a72a91`, matching tested candidate `d40b003aef4f37b6a5d734ed0c18643e205777e9` and tree `3b546cd171b7f5f5d2432d14e736652489e69e7c`. Regression 37775917835 passed 1,829 tests/TypeScript/Chromium. Runtime 37775917780 artifact 11550225321 SHA256 `51d9a2172cd33001e177076d21e30bc19ebf1f9bd1717b9795ac6c9ea489d7a4` independently verifies migration parity, both-direction transitions, ten observed revocation races, audit rollback and schema/access restoration. Both Vercel projects remain suppressed.
+
+Packet 81 connects [session/common-write/account/support admission](helios-studio-v2-workspace-lifecycle-admission.md) to suspension. Qualification remains pending at preparation. The [Phase 1 checkpoint](helios-studio-v2-phase1-checkpoint.md) credits only integrated evidence; public delivery, other callers/workers, hosted parity and compatibility remain open. Production ON HOLD.
+
+## October 8, 2026: approved lifecycle policy; Packet 80 transition foundation
+
+Packet 79 PR #387 integrated at `aed5f90f9da49ed446fbc62f882761ae5634579f`, matching tested tree `d654281f00fde87e445ba44dfee708b163697c50`. Regression 37638269422 passed 1,826 tests/TypeScript/Chromium; runtime 37638269393 artifact 11491208228 SHA256 `36af52cc71f377482878e2f8b04640d7ee7c6879ad36e07152a9eb6b39dbb983` independently verified 28 settings races plus prior film/support and schema/access postflight. Jake approved lifecycle policy PR #388 on October 8; its exact-head regression 37639023296 passed and its integration `aa3457bca84d402cae01fbe85f78e32335995d3a` matches the reviewed policy tree.
+
+Packet 80 adds the [default-off persisted lifecycle transition foundation](helios-studio-v2-workspace-lifecycle-foundation.md). Existing workspaces remain ACTIVE; independent operators start empty/disabled. Request/public/support/worker enforcement remains unqualified until subsequent caller-specific packets. Exact-head CI/runtime and independent artifact gates remain pending at preparation. Phase 1 OPEN; production ON HOLD.
+
+## October 7, 2026: Packets 77–78 integrated; Packet 79 settings attachments
+
+Packet 77 PR #385 integrated at `ec3a055ee8cdb16d1da3c0d33f3ea77a9abf5ec0`, with tested tree `f20e313447efc77a0ffa9d88c8d48d2a6792cbe1`. Regression 37635573932 passed 1,816 tests/TypeScript/Chromium; runtime 37635574038 and artifact 11489621406 SHA256 `bdd6b8c801014ee496a26ae2f72ebe13d54cd95ef88ee3806adc76d1f39a69eb` independently verify the approved diagnostic scope. Packet 78 PR #386 integrated at `e9171e698e0fb92b99519d0a5cbcf83de7c7a359`, matching tested tree `35fccfd7ea365d2c45cd67672351ef3dc5550a74`; regression 37636588189 passed 1,818 tests/TypeScript/Chromium. Runtime 37636588265 artifact 11489532629 SHA256 `bc55f7a2627257ca8a8369d72d522998ff514eedc6e300119337f7f0c61eacc7` independently confirms eighteen film races plus inherited support and postflight. Both Vercel projects remain suppressed.
+
+Packet 79 fixes eight reproduced site-settings attachment authority gaps. [Scope and qualification](helios-studio-v2-settings-attachment-fencing.md). All 1,826 local tests, TypeScript and lint pass; published-head runtime/regression/Chromium and independent artifact verification remain pending. The Phase 1 checkpoint credits only qualified support diagnostics and content sub-surfaces; workspace lifecycle, hosted parity and remaining families remain open. Production ON HOLD.
+
+## October 7, 2026: Packet 77 runtime verified; Packet 78 featured-film attachments
+
+Packet 77 PR #385 candidate `6cb138c6a8b7d240a67154822a464f4ab0ac4821` passed isolated runtime 37635574038. Artifact 11489621406 SHA256 `bdd6b8c801014ee496a26ae2f72ebe13d54cd95ef88ee3806adc76d1f39a69eb` was independently downloaded, hashed and parsed: both-direction consent/audit enforcement, twenty observed revocation races, migration parity, reciprocal concurrent access and schema/access postflight passed. Regression 37635573932 remains pending at preparation; Packet 77 is not yet integrated. No real operator is enrolled.
+
+Packet 78 reproduces video/poster registry changes being accepted after provider inspection and adds the smallest transaction-time recheck. [Scope and qualification](helios-studio-v2-featured-film-fencing.md). Its planned eighteen observed races and compatibility/rollback/concurrency checks require its own published-head gates. Phase 1 remains OPEN; production ON HOLD.
+
+## October 7, 2026: approved support policy; Packet 77 diagnostics foundation
+
+Packets 75–76 are integrated through PR #383 at `4e34a90829be30f58ecce0567b6c1c56c1d706d7`. Packet 76 regression 37629908372 passed 1,804 tests/TypeScript/Chromium; runtime 37629908370 passed. Artifact 11486141442 SHA256 `02e1349d8faa237b386c0dd36d60ffe2907a891655d788e113e58dfac70c37c0` was independently downloaded, hashed and parsed for 22 About-page races, rollback and schema/access postflight. Merge trees match tested candidates; Vercel deployments remained suppressed. Jake approved the bounded non-production support policy; PR #384 integrated at `c73a3c52841c278c2f1be926d7a9afb2840aac51` with reviewed-tree equality.
+
+Packet 77 implements the [approved consented diagnostics boundary](helios-studio-v2-support-diagnostics.md) with empty operator registry, default-off activation, owner consent, 30-minute maximum grants and transactional auditing. Local and published-head qualification must pass before integration; no pending runtime evidence is credited. Phase 1 remains OPEN. Real operator enrollment remains an owner action. Production ON HOLD.
+
+## October 7, 2026: Packet 74 integrated; Packet 76 About-page authority
+
+Packet 74 PR #381 integrated at `2ae6d76a44c1e11209e269db2a9c342f9a1890ed`, matching candidate `96911445b71e896198d7ac55d2e1e0c6ad5799d4` tree `346fd17c7fe17bd14104162b6980c40096166e19`. Regression 37627920999 passed 1,788 tests/TypeScript/Chromium; runtime 37627920882 passed. Artifact 11485655730 SHA256 `e54a70d65a2792354e55f7758000396a4e117aa0c9e6435c2ec3c032e876bae0` independently downloaded, hashed and parsed for 20 races, concurrent saves, page/pair rollback, compatibility and schema/index/access postflight. Both Vercel projects suppressed. Packet 75 PR #382 candidate `82dae5f33799714ed50c5859b74cb90bfb14098d` has successful runtime 37628365564; artifact 11485251935 SHA256 `b0cc7ef2861d859b635ef97d6d6ddaaa88801352d1a977bb8d8167f8ee72ce45` independently verified for 42 races and postflight. Regression 37628365659 remains pending at preparation.
+
+Packet 76 fixes three reproduced About-page save authority/reference failures. [Scope and qualification](helios-studio-v2-about-page-fencing.md). All 1,804 local tests, TypeScript and scoped lint pass. Twenty-two planned observed races plus create/update rollback, five-image replacement/retention and legacy/clear cases require published-head runtime qualification. The Phase 1 checkpoint now explicitly credits qualified trusted-logo and photo-comparison route mutations; remaining families, hosted parity and the platform-support/lifecycle boundary remain open. Production ON HOLD.
+
+## October 7, 2026: Packet 73 integrated; Packet 75 team-member authority
+
+Packet 73 PR #380 integrated at `1c6f569ad1a2ca46fcca8894a33f00188049d7eb`, matching candidate `1bdcf264048368ece739c24578e9d2a2e55f8d74` tree `0524487c3ed45b2cd086a1792afa1ecfeb108b78`. Regression 37625708986 passed 1,784 tests/TypeScript/Chromium; runtime 37625709017 passed. Independently downloaded artifact 11484500824 SHA256 `ca1bfaea4fb1d98584ff4ad8b5a3cb998547a0841cd3d710fab55f9f2b522734` confirms 50 observed races, branch rollback/concurrency/compatibility/retention and schema/index/access postflight. Both Vercel projects suppressed. Packet 74 PR #381 candidate `96911445b71e896198d7ac55d2e1e0c6ad5799d4`, tree `346fd17c7fe17bd14104162b6980c40096166e19`, is qualifying in regression 37627920999/runtime 37627920882. Its prior runtime 37627053517 stopped at standalone-driver import resolution; container cleanup was confirmed. Replacing the fixture's Next-bound import with synthetic content leaves application gates unchanged.
+
+Packet 75 fixes eight reproduced team-member authority/collection defects across create/update/reorder/delete. [Scope and qualification](helios-studio-v2-team-member-fencing.md). All 1,800 local tests, including seventeen targeted/compatibility tests, TypeScript and scoped lint pass; published-head gates remain qualification requirements. Forty-two observed runtime races and rollback/retention/concurrency evidence are pending at preparation. No schema, credentials, provider deletion or production operations. Phase 1 remains open; production ON HOLD.
+
+## October 7, 2026: Packet 72 integrated; Packet 74 photo-comparison authority
+
+Packet 72 PR #379 integrated at `b13729d379f892f5b6adbe41df6d4cd9f7c185c3`, matching candidate `a095f14654b4f49c6432ef1bafa820a1c394d6f1` tree `683e38d68b2085ecbd58a21934ed4dd341f01b2f`. Regression 37625062034 passed 1,771 tests/TypeScript/Chromium; runtime 37625062095 passed. Artifact 11483783689 SHA256 `cde87b7712462a3102d9692c4234bf93649edf208ac9070a78676bfe75e91892` independently downloaded, hashed and parsed for 24 races, rollback/compatibility/retention and schema/index/access postflight. Both Vercel projects suppressed. Packet 73 PR #380 candidate `1bdcf264048368ece739c24578e9d2a2e55f8d74` has successful runtime 37625709017; artifact 11484500824 SHA256 `ca1bfaea4fb1d98584ff4ad8b5a3cb998547a0841cd3d710fab55f9f2b522734` independently verified for 50 races and postflight. Its regression 37625708986 remains pending at preparation.
+
+Packet 74 fixes three reproduced photo-comparison save authority/reference failures. [Scope and qualification](helios-studio-v2-photo-comparison-fencing.md). Local 1,788 tests pass; twenty observed runtime races, concurrent saves, page/pair rollback and legacy compatibility require published-head qualification. The checkpoint explicitly closes only testimonial route mutation admission/atomicity through Packet 72; other writers and hosted parity remain open. Phase 1 remains open; production ON HOLD.
+
+## October 7, 2026: Packet 73 trusted-logo mutation authority
+
+Packet 72 PR #379 is under qualification at candidate `a095f14654b4f49c6432ef1bafa820a1c394d6f1`, tree `683e38d68b2085ecbd58a21934ed4dd341f01b2f`. Its first runtime run 37624690045 rejected a double-encoded rehearsal request at parsing; disposable container removal was independently confirmed in job logs. The HTTP driver now passes a structured body to its existing serializer. Application gates are unchanged. Fresh regression 37625062034 and runtime 37625062095 are pending at preparation; no unpassed evidence is credited. Latest verified integration remains Packet 71 at `18b348a9975000d5053feacfd6623f1145b96bd7`.
+
+Packet 73 fixes nine reproduced trusted-logo authority/collection defects across the route's five write branches. [Scope and qualification](helios-studio-v2-trusted-logo-fencing.md). Thirteen targeted tests pass. Fifty planned observed races plus rollback, concurrency, image compatibility and retention cases require published-head runtime/artifact qualification before integration. No schema, role expansion, provider deletion or production operation. Phase 1 remains open; production ON HOLD.
+
+## October 7, 2026: Packets 70–71 integrated; Packet 72 testimonial write authority
+
+Packet 70 PR #377 integrated at `41ec68eef3b574ae9533863c71dda092572401bc`, tree `893f2ad503d763106b4e2b4766c2a29782c9ad6e`, matching candidate `5c129b0be163a12054bae60e44e556f309aef8c4`. Regression 37622222978 passed 1,761 tests/TypeScript/Chromium; runtime 37622223032 passed. Artifact 11482109358 SHA256 `1bfbe0e8fc2221fcb82fdcc8f0acf4d2acfc5372ca172ffb1957bd421e9f5c5c` independently verified. Packet 71 PR #378 integrated at `18b348a9975000d5053feacfd6623f1145b96bd7`, tree `5d9717b3f3cb7d20b323c4fe7ec6df86ebd8e750`, matching candidate `0e4d42914bbd003960a0c87f804d0a1503ecc7fd`. Regression 37623011216 passed 1,763 tests/TypeScript/Chromium; runtime 37623011233 passed. Artifact 11482852724 SHA256 `0089f3c1018eaca7c87c4b7871041845770a688fe1d1b211df09c3fb597186c8` independently downloaded, hashed and parsed. Both artifacts confirm observed races, rollback, retention/retry contracts and unchanged schema/indexes/restored synthetic access. Both Vercel projects stayed suppressed.
+
+Packet 72 closes reproduced create/update commit-authority gaps. [Scope and qualification](helios-studio-v2-testimonial-write-fencing.md). Five denial tests failed before the fix; 1,771 local tests, TypeScript and scoped lint pass after it. Published-head regression/Chromium and runtime/artifact qualification remain pending. Provider inspection remains outside the transaction; current image registry/actor authority is checked inside it. No Phase 1 exit, production operations, schema or credential changes.
+
+## October 7, 2026: Packet 71 testimonial deletion fencing
+
+Packet 70 PR #377 candidate `5c129b0be163a12054bae60e44e556f309aef8c4` passed 1,761 local tests, TypeScript, lint and source preparation. Runtime 37622223032 passed; independently downloaded artifact 11482109358 SHA256 `1bfbe0e8fc2221fcb82fdcc8f0acf4d2acfc5372ca172ffb1957bd421e9f5c5c` verifies twelve observed races, partial-write rollback, concurrent single-winner ordering, stale replay and schema/index/access postflight. Regression/Chromium 37622222978 remains pending at preparation. The latest verified integration remains Packet 69 until those gates and independent artifact verification pass.
+
+Packet 71 reproduces and fixes testimonial deletion after editor revocation. [Scope and qualification](helios-studio-v2-testimonial-delete-fencing.md). Current locked access, transaction-owned scope and selected-row locking preserve existing deletion/retained-image contracts. Runtime covers eight observed races, foreign/unowned denial, rollback, concurrent single-winner deletion and inert retries. Qualification is pending at preparation. No real data deletion, schema, credentials or provider operations. Phase 1 remains open; production ON HOLD.
+
+## October 7, 2026: Packets 68–69 integrated; Packet 70 testimonial reorder fencing
+
+Packet 68 PR #375 merged at `c38c9263bcab463b3c4ea32c45045346675bbbb3`; regression 37566789862 and runtime 37566789884 passed, including 1,758 tests, TypeScript and Chromium. Packet 69 PR #376 merged at `9ce9b41d11dcde7ca05f5566f90916b5a2a8e878`; regression 37567256593 and runtime 37567256627 passed with the same regression count. Artifact 11458848702 SHA256 `4ac9a4bc325bff0eeff7983d6bb46cc40e8cd916a620cfe423830360a010b5e7` was independently downloaded and parsed for eight status races, rollback, foreign/unowned denial and schema/index/access postflight. Both merge trees match tested candidates and both Vercel projects remain suppressed. The live base and exact-head CI were reverified before Packet 70 work.
+
+Packet 70 reproduces and fixes stale actor/collection admission in testimonial reorder. [Scope and qualification](helios-studio-v2-testimonial-reorder-fencing.md). Two new actual-handler tests fail on the integrated base and pass after the fix; isolated runtime covers twelve observed races, partial-write rollback, optimistic concurrent ordering and current-version retry. Qualification is pending at preparation. The [Phase 1 checkpoint](helios-studio-v2-phase1-checkpoint.md) now explicitly closes the isolated project-media mutation sub-surface through Packet 68 while keeping broader storage/hosted/compatibility criteria open. No production, schema, credentials or provider operations. Phase 1 remains open; production ON HOLD.
+
+## October 7, 2026: Packet 67 qualified; Packet 69 testimonial status fencing
+
+Packet 67 PR #374 merged at `f4f68b694eb02cb6dc8e88c3aef54715468ff76e` with the exact tested tree after regression 37566323724 (1,758 tests, TypeScript and Chromium) and runtime 37566323743 passed. Independently verified artifact 11458901755 SHA256 `d3db11e31b9f412d4f4bc4d0e176c5f437fd16b131c39f820b9d1c2ccf6ddb9e`; both Vercel projects suppressed. Packet 68 PR #375 candidate `6710eca8fc77590069d1875fc94824ec2be1094d` passed final local 1,758 tests, TypeScript, lint and published-source preparation, plus runtime 37566789884. Independently downloaded artifact 11458764783 SHA256 `77d8a918ca0caffc4a1f3000e46d7a2a77fb4326b6ee2344bdab856c8bc99da0` verifies six races, delete rollback, pointer cleanup, concurrent deletion, retained registry and schema/index/access postflight. Regression 37566789862 remains pending at preparation.
+
+Packet 69 isolates testimonial publishing-status authority: current editor/session, current content scope, locked row and owned response readback commit together. [Scope and qualification](helios-studio-v2-testimonial-status-fencing.md) includes eight observed access/ownership races, rollback, foreign/unowned denial and owned status reversal. Qualification is pending at preparation. Upload registration does not qualify other content writes; those remain separate work. No production, schema, credentials or provider operations. Phase 1 remains open; production ON HOLD.
+
+## October 7, 2026: Packet 68 media reference deletion fencing
+
+Packet 66 PR #373 merged at `539d7fc6404a98b38ff17312046888c85553c99e` after regression 37566004377 passed 1,758 tests, TypeScript and Chromium, plus the independently verified runtime artifact below. Merge tree matches candidate `69b0c4250b6e0c6d6111a1308e5cc17969badc5c`; both Vercel projects remain suppressed. Packet 67 PR #374 candidate `ba118ddda6d47a733a207d606ac4e8ed58795c95` passed runtime 37566323743. Independently downloaded artifact 11458901755 SHA256 `d3db11e31b9f412d4f4bc4d0e176c5f437fd16b131c39f820b9d1c2ccf6ddb9e` proves twenty-two observed access/media races, rollback, concurrent hero coherence, social set/clear and unchanged schema/index/access postflight. Its regression/Chromium 37566323724 remains pending at preparation.
+
+Packet 68 fences application media reference deletion with current locked editor/session and owned project/media authority. [Scope and qualification](helios-studio-v2-media-delete-fencing.md) includes both-company foreign denial, six observed access races, failed-delete rollback, concurrent deletion, pointer cleanup and retained R2/Stream registry entries. Shared provider objects remain untouched. Qualification is pending at preparation. No production, schema, credentials or provider operations. Phase 1 remains open; production ON HOLD.
+
+## October 7, 2026: Packet 66 runtime qualified; Packet 67 presentation mutation fencing
+
+Packet 66 PR #373 candidate `69b0c4250b6e0c6d6111a1308e5cc17969badc5c` passed 1,758 local tests, TypeScript, lint and published-source preparation. Runtime 37566004374 passed. Independently downloaded artifact 11457963885 SHA256 `e73d831c5cda4bb22b68732177184107a03e61b81b93e0171e0d7ad3fd064fdc` proves fourteen observed collection races, foreign denial, partial-write rollback, concurrent reorder, bulk movement and unchanged schema/index/access postflight. Regression/Chromium 37566004377 remains in progress at preparation; both Vercel projects are suppressed. Packet 65 remains the latest integrated packet until all Packet 66 gates pass.
+
+Packet 67 applies current locked authority to hero and social-image set/clear actions, keeping selection and project/collection/order writes together. [Scope and qualification](helios-studio-v2-media-presentation-fencing.md) covers twenty-two observed access/media races, failure rollback and coherent concurrent hero selection. Qualification is pending at preparation. Deletion and hosted parity remain open. No production, schema, credentials or provider operations. Phase 1 remains open; production ON HOLD.
+
+## October 7, 2026: Packet 65 recovered and integrated; Packet 66 collection mutation fencing
+
+Packet 65 PR #372 merged at `8b5ae436a3e18767e002fd75b0f13af3877fd0b5` after fresh GitHub verification and recovery of the outstanding artifact gate. Candidate `353d3d3d0c6f1d9653fb83b88a5f509423e540b1` passed regression 37426084602 (1,758 tests, TypeScript and Chromium) and runtime 37426084676. Artifact 11394318487 was independently downloaded, SHA256 checked (`c1f846086727c3165f60aa6623fec199d1eae42204eb4d67dd1d20dd42922a64`) and parsed for candidate identity, twelve observed races, hero rollback, replacement/legacy behavior and unchanged schema/index/access postflight. The merged tree matches the tested candidate; both Vercel projects remain suppressed.
+
+Packet 66 is rebuilt from that verified integration, with no interrupted local work reused. It adds current locked authority and stable media locking to reorder and bulk moves, rechecks the bulk destination and returns safe missing-media denial. [Scope and qualification](helios-studio-v2-media-collection-fencing.md) includes fourteen observed races, partial-write rollback, concurrent reorder and both-company bulk success. Qualification is pending at preparation. Explicit hero/social-image and deletion remain separate work. No production, schema, credentials or provider operations. Phase 1 remains open; production ON HOLD.
+
+## October 6, 2026: Packet 65 media update-asset transaction fencing
+
+Packet 63 PR #370 runtime 37424940686 passed at candidate `2948b6faf366f02c071124669b9362a24ab93193`. Independently downloaded artifact 11394896516 SHA256 `4eeb736298be677bb4778af872ddc516de80e9bd703f5c76bae7219f79c27bf4` verifies twelve observed direct Stream races, concurrent retry single-row persistence, duplicate quarantine denial, failed-insert containment and schema/index/access postflight. Its regression 37424940710 is still completing at preparation. Packet 64 PR #371 candidate `e2c772b5f2176319a78a209afa4fbbbbc2352a3b` passed 1,758 local tests, TypeScript, lint and source preparation; CI 37425489184 / 37425489117 remains pending. Packet 62 remains the latest integrated packet at this preparation.
+
+Packet 65 puts PATCH update-asset current authority, replacement Stream ownership, hero cleanup and media mutation in one transaction. [Scope and qualification](helios-studio-v2-media-update-asset-fencing.md). Actual HTTP tests exercise both-company access and replacement races, foreign IDs, service-move rollback after forced update failure, valid replacements and exact unchanged legacy URL compatibility. Other media actions and hosted parity remain open. No production, schema, credentials or real provider operations. Phase 1 remains open; production ON HOLD.
+
+## October 6, 2026: Packet 62 qualified; Packet 64 external media creation fencing
+
+Documentation-only Packet 62 PR #369 merged at `d1c3cf7e761221a4bacf0215d83f251b1aad3abf`; candidate `8688166fb1d89289672f39a480fb1e362084e92f` passed regression 37424398649 (1,758 tests, TypeScript and Chromium). Only three documentation files differ from qualified Packet 61; application, workflow and schema remain unchanged. Merge tree matches; both Vercel projects suppressed. Packet 63 PR #370 candidate `2948b6faf366f02c071124669b9362a24ab93193` passed 1,758 local tests, TypeScript, lint and source preparation. Runtime 37424940686 has completed successfully; its artifact review and regression 37424940710 remain pending at preparation.
+
+Packet 64 fences the external-URL POST branch under current locked editor/project/service authority and Stream registry state before duplicate lookup or creation. [Scope and qualification](helios-studio-v2-external-media-creation-fencing.md). Actual HTTP qualification covers the alternate Stream URL entry point plus non-Stream YouTube access races and concurrent retries, without following links. Replacement and other mutation actions remain separate work. No production, schema, credentials or real provider operations. Phase 1 remains open; production ON HOLD.
+
+## October 6, 2026: Packet 61 qualified; Packet 63 direct Stream attachment fencing
+
+Packet 61 PR #368 merged at `d9629c5d1bfdfeed9bd8e12690db1c5c408f048e`; candidate `e428c29bebaab33fdef1a7124d7a10ae86cb6fce` passed regression 37423931336 (1,758 tests, TypeScript and Chromium) and runtime 37423931296. Independently downloaded artifact 11393579900 SHA256 `b65e1702351d87e314cb21301227b60a5ea63aa42855e6fb1735a11e48aa292d` proves twelve observed image attachment races, association-failure rollback and unchanged schema/index/access postflight. Merge tree matches; both Vercel projects suppressed. Documentation-only Packet 62 PR #369 remains under regression 37424398649 at preparation; its application/workflow/schema files are identical to Packet 61.
+
+Packet 63 fences direct Stream UID attachment and duplicate responses under current locked authority, with project serialization and transaction-bound asset resolution. [Scope and qualification](helios-studio-v2-stream-attachment-fencing.md). Both-company actual HTTP qualification observes access/service/asset races, concurrent retry deduplication, failed-insert containment and duplicate-path asset rejection. External-URL/replacement and general media mutations remain separate work. No production, schema, credentials or real provider operations. Phase 1 remains open; production ON HOLD.
+
+## October 6, 2026: Packet 60 qualified; Packet 62 Phase 1 evidence reconciliation
+
+Packet 60 PR #367 merged at `7f6520c2098f8c25eb3cbe7c9c1dbe786cc4e15e`; candidate `9d7bdb5098efe056183aee8042acc535935f73d3` passed regression 37423263783 (1,758 tests, TypeScript and Chromium) and runtime 37423263836. Independently downloaded artifact 11394052478 SHA256 `04daf9cc294c0a71a06a1705c2993732acfb5dda3f7ac3fdef5ea8ab2d1f0449` proves sixteen registry denials across both companies, owned attachment links, retry deduplication and schema/index/access postflight. Merge tree matches; both Vercel projects suppressed. Packet 61 PR #368 remains under exact-head CI 37423931336 / 37423931296 at preparation.
+
+Packet 62 updates the [Phase 1 checkpoint](helios-studio-v2-phase1-checkpoint.md), preserving the Packet 46 historical snapshot. It reconciles completed token issuance/attribution, diagnostic containment, upload admission and image attachment proofs; separates each storage family's remaining mutation/delivery/cleanup work; and bounds the next direct Stream attachment packet. Documentation only, with no application, workflow, schema or gate change. Pending qualification is not a passed exit. Phase 1 remains open; production ON HOLD.
+
+## October 6, 2026: Packet 59 qualified; Packet 61 image attachment transaction fencing
+
+Packet 59 PR #366 merged at `ad287038458eacb16d10c2549040b5d59f1aabde`; candidate `e9f3e88e7d09406fa262c158d08ddcc8537f6ab3` passed regression 37422724956 (1,756 tests, TypeScript and Chromium) and runtime 37422724883. The independently verified artifact and metadata denial evidence are recorded below. Both Vercel projects remain suppressed. Packet 60 PR #367 candidate `9d7bdb5098efe056183aee8042acc535935f73d3` passed 1,758 local tests, TypeScript, lint and source preparation; exact-head CI 37423263783 / 37423263836 remains pending at this preparation.
+
+Packet 61 rechecks current image attachment authority under locks after provider inspection and commits media plus service association together. [Scope and qualification](helios-studio-v2-project-image-attachment-fencing.md). Both-company HTTP qualification observes blocked database writes before changing membership, session, service or asset state; denied requests must leave media and service links unchanged. Other media mutation families and hosted parity remain open. No production, schema, credentials or real provider operations. Phase 1 remains open; production ON HOLD.
+
+## October 6, 2026: Packet 60 project image attachment registry boundary
+
+Packet 59 PR #366 candidate `e9f3e88e7d09406fa262c158d08ddcc8537f6ab3` has passed runtime qualification 37422724883. Independently downloaded artifact 11394001718 SHA256 `5b32d4224a70890e718400a3ece2ca847c8056335ee12580296f474388e2bc5e` verifies twelve metadata denials, server-only constraints, preserved Stream admission races and unchanged schema/index/access postflight. Regression/browser 37422724956 remains in progress at this preparation. Both Vercel projects remain suppressed; Packet 58 remains the latest integrated packet.
+
+Packet 60 consumes the project image upload registry before provider object inspection and links new Media rows to the admitted asset. [Scope and qualification](helios-studio-v2-project-image-attachment-ownership.md). Tests cover exact provider namespace, company, project provenance and usable status; both-company HTTP rehearsal uses an explicit no-network HeadObject substitute. The narrow sole-workspace legacy path remains. Mutation-time fencing, object delivery/deletion and hosted parity remain separate work. No production, schema, credentials or real provider operations. Phase 1 remains open; production ON HOLD.
+
+## October 6, 2026: Packets 57–58 qualified; Packet 59 Stream metadata authority
+
+Packet 57 PR #364 merged at `2ab5f083dd5a4ef094744860afc173381a35dd56` with candidate `96a86117ad75ece3916953ee03a594c5169b11a5`. Regression 37421273336 passed 1,756 tests, TypeScript and Chromium; runtime 37421273345 passed. Independently verified artifact 11392689430 SHA256 `447f20d71bd420a65e113169041d426a353368232ba3378314462075d37d12fb` proves both-company diagnostic denial and unchanged schema/index/access postflight. Packet 58 PR #365 merged at `6cdbe6c1254aebea06fc947dc0d046b16dd017e0`; candidate `8ebd3839bd8b026c702b61d5eba4d9cc0a1fec4f` passed regression 37421892557 (1,756 tests, TypeScript and Chromium) and runtime 37421892565. Independently verified artifact 11394045033 SHA256 `f4ac2804e40d945dd53084d309b2c2265d5d49943dd5d7f04629d64b8e3bb99f` proves six observed-lock Stream admission denials, owned UID registration and schema/index/access postflight. Both projects remain suppressed; merge trees match tested candidates.
+
+Packet 59 restricts initial Stream metadata to the existing uploader's descriptive fields and preserves exclusively server-owned duration/expiry. [Scope and qualification](helios-studio-v2-stream-metadata-authority.md). Actual-route tests inspect forwarding and reject reserved/duplicate/malformed values before any asset/provider operation; HTTP rehearsal covers both tenants using a no-network provider. Qualification is pending for this packet at preparation. No production, schema, credentials or hosted provider operations. Phase 1 remains open; production ON HOLD.
+
+## October 6, 2026: Packets 55–56 qualified; Packet 58 Stream upload admission
+
+Packet 55 PR #362 is merged at `b87b79845278395ff65b59f3c8525be9053ea5bb`; candidate `6d36c84b28c2e64dfb8e8bcb481406d3de9c4d46` passed regression 37420342308 (1,743 tests, TypeScript and Chromium) and runtime 37420342307. Independently downloaded artifact 11392124809 SHA256 `3e11c5fd92430b82643e03324cd643d930bf026937481daa68b3f22d521a3d65` verifies all eight observed-lock project-upload denials. Packet 56 PR #363 is merged at `0f26cc2d847546e7dc976c203e942415a7996ed3`; regression 37420718446 passed 1,744 tests, TypeScript and Chromium. Its previously recorded runtime artifact verifies both-company calendar isolation. Both merge trees match tested candidates, both Vercel projects are suppressed, and schema/index/access postflight passes.
+
+Packet 57 PR #364 remains under exact-head qualification; its runtime 37421273345 passed and regression/browser 37421273336 is still completing at this preparation. Packet 58 adds current locked editor/project admission to Stream upload intent creation, preserving provider UID binding and attachment rules. [Scope and qualification](helios-studio-v2-stream-upload-admission.md). Actual HTTP/PostgreSQL qualification uses synthetic no-network provisioning and observes access changes after a database lock wait. No provider transfers, schema changes or production operations. Phase 1 remains open; production ON HOLD.
+
+## October 6, 2026: Packet 57 shared storage diagnostic containment
+
+Packet 56 PR #363 candidate `1b8df1c71014726e90f16ae31ba073cd5d84de44` passed 1,744 local tests without a timezone override, TypeScript, lint and preparation. Runtime 37420718388 passed; independently downloaded artifact 11392792925 SHA256 `e3566003aaab2319af97711a0d956f72de90e0e01632bfe0a9acd4550bf1a41b` verifies both-company exact local schedules, foreign/revoked generation denial, retry deduplication and schema/index/access postflight. Regression/browser 37420718446 remains in progress at this preparation; integration is still gated on full exact-head success.
+
+Packet 57 contains the global R2 bucket diagnostic behind current administrator access in a sole matching legacy workspace, denying all tenant contexts before credential-module loading. [Scope and qualification](helios-studio-v2-storage-diagnostic-containment.md). It preserves attributable legacy checks and redacts unknown failures without introducing a platform support role. Actual HTTP denial qualification uses an explicit no-network diagnostic-only provider substitute. No schema, credentials, hosted providers or production operations. Phase 1 remains open; production ON HOLD.
+
+## October 6, 2026: Packet 56 recurring calendar isolation
+
+Packet 55 PR #362 candidate `6d36c84b28c2e64dfb8e8bcb481406d3de9c4d46` passed all 1,743 local tests under the CI UTC timezone, TypeScript, scoped lint and source preparation. Runtime 37420342307 has produced artifact 11392124809; regression/browser 37420342308 remains in progress at preparation. Integration remains gated on complete exact-head evidence.
+
+Packet 56 fixes the independently reproduced host-timezone dependency in recurring series planning. [Calendar contract and qualification](helios-studio-v2-series-calendar-isolation.md). Actual planner, timezone conversion and creation-handler probes agree under UTC, Brisbane and Los Angeles hosts, including DST transition, month ends, retry identity and current-access denial. Stored date-only calendar arithmetic is explicit; no existing occurrences are rewritten. Actual PostgreSQL/HTTP qualification covers both companies, foreign generation rejection, retry deduplication and lock-observed revocation. No provider, schema or production operations. Phase 1 remains open; production ON HOLD.
+
+## October 6, 2026: Packets 53–54 qualified; Packet 55 project image upload admission
+
+Packet 53 PR #360 is merged at `8d3784db20ef0be349f28f0df19ee4de819b4798`; candidate `685b9a4a8842aed433a96380bfdf738a4e64f454` passed regression 37414442165 (1,731 tests, TypeScript and Chromium) and runtime 37414442110. Independently downloaded artifact 11390677380 SHA256 `3760765b584f914f23570b4d1c07d97e6171338dd1e6d678b4d3a855cc0e5214` verifies eight observed-lock upload denial cases. Packet 54 PR #361 is merged at `0fe6149b4a25b8a054806601ca8e386c2587be55`; candidate `441e58e1424b8c3ca3ec4c171cae862834851226` passed regression 37414587062 (1,734 tests, TypeScript and Chromium) and runtime 37414587088. Artifact 11390592961 SHA256 `8f15dbdcd3ffde6cf2d28163dee41169052643277d8f268ff4196d9c5a4ff75c` independently verifies six Email Studio observed-lock denial cases. Both packets preserve schema/indexes and restore synthetic access; both merge trees match tested candidates, and both Vercel projects remain suppressed. Workspace execution recovered and context was rebuilt from GitHub.
+
+Packet 55 aligns project-image upload grants with the existing editor-only media-write policy and registers owned assets before signing. [Scope and qualification](helios-studio-v2-project-upload-admission.md). Project/service ownership is verified under locks with current account/session/membership access. Existing key/response formats remain compatible. Actual runtime qualification includes service archival after an observed wait. No schema changes, provider object transfers or production operations. Phase 1 remains open; production ON HOLD.
+
+## October 6, 2026: Packet 54 Email Studio upload ownership
+
+Packet 53 PR #360 initial candidate `a7b742965510ebf1d66b3616a7db3cc476e20228` reached all upload ownership and observed-lock denial checks, then failed runtime 37414150559 because its final anonymous assertion expected handler 403 instead of the authentication proxy's 401. The disposable service container was removed. Candidate `685b9a4a8842aed433a96380bfdf738a4e64f454` corrects only that assertion; qualification and integration remain gated on its exact-head CI.
+
+Packet 54 scopes new Email Studio direct uploads to company-owned keys and the asset registry with locked administrator admission. [Scope and evidence boundaries](helios-studio-v2-email-upload-ownership.md). Existing campaign URLs and response shape are preserved; campaign attachment validation remains separate. Local regression prior to the additional key-generator test passed 1,733 tests; TypeScript, scoped lint and source preparation passed. No provider object requests, schema changes or production operations. Phase 1 remains open; production ON HOLD.
+
+## October 6, 2026: Packet 52 qualified; Packet 53 brand upload admission
+
+Packet 51 PR #358 completed regression 37412579449 (1,724 tests, TypeScript and Chromium) and merged at `3cf652b674a33de98fbb1c64229b5db4652a8677`. Packet 52 PR #359 is merged at `e1ad2f1a12aa51c940a826e09b60a62de3f166e4`; candidate `aa5eb1b5fd0ed8b99011c376a032effc4d8643ab` passed regression 37413225092 (1,728 tests, TypeScript and Chromium) and runtime 37413225046. Independently downloaded artifact 11389941795 SHA256 `e823ba6fd07cf75360a8e39b56f1f0c3025744ff5a025a0d72fe0882163014dc` verifies both-company dashboard redaction, revoked/anonymous rejection and schema/index/access postflight. Merged tree matches the tested candidate; both Vercel projects suppressed.
+
+Packet 53 adds current locked authorization before shared brand-asset registration, preserving endpoint role thresholds and provider settlement. [Scope and evidence boundaries](helios-studio-v2-brand-upload-admission.md). Local regression: 1,731 passed; TypeScript and isolated source preparation passed. Actual PostgreSQL/HTTP qualification requires observed lock waits before revocation, demotion and session invalidation in both directions. No provider object requests, schema changes or production operations. Phase 1 remains open; production ON HOLD.
+
+## October 6, 2026: Packet 52 dashboard monitor containment
+
+Packet 51 PR #358 candidate `d469e7adb514bdfd5814c92e46b358ede30015fd` has passed runtime 37412579463. Independently downloaded artifact 11389811261 SHA256 `12e2dcee527ab0e630894bd44c0ac6d7ebed320f4c9ec7a30aa98185827d0956` verifies both-direction referral token source/membership/protected-opt-out admission, rollback of rejected invitation/link creation, stable token identity, public HTTP company unsubscribe attribution and schema/index/access postflight. Its regression/browser run 37412579449 is still completing at this packet's preparation; integration remains gated on success.
+
+Packet 52 corrects a reproduced global monitor-cache boundary: the dashboard now supplies its verified company and the reader checks current sole-company compatibility before cache/credential access. [Scope and qualification](helios-studio-v2-monitor-context-containment.md). All 1,728 local regression tests, TypeScript, scoped lint and preparation pass. Actual dashboard HTTP qualification uses an explicit no-network synthetic monitor account; no live provider or credentials are changed. Existing attributable legacy cache behavior is retained. Phase 1 remains open; platform support design and remaining family qualification remain ahead. Production ON HOLD.
+
+## October 6, 2026: Packet 50 qualified; Packet 51 referral consent tokens
+
+Packet 50 PR #357 is merged at `11413470f26bedc653efb65f5c432c3238045c36`. Candidate `379237d5021b37694a822c1f74882786489e77a4` passed regression 37411907070 (1,718 tests, TypeScript and all Chromium) and runtime 37411906675. Independently downloaded artifact 11389443017 SHA256 `0661af4b64b6bfb48d526cfb76e5ab01562bc2adffbaf31e7008bf5fb8349f5e` verifies both-direction observed lease replacement, stale admission/settlement rejection, replacement-worker admission, preserved sender containment and schema/index/access postflight. Merged tree matches; both Vercel projects suppressed.
+
+Packet 51 integrates referral preparation with company-bound consent tokens under the stored source/lease guard. [Contract and evidence boundary](helios-studio-v2-referral-consent-tokens.md). Current client membership, protected opt-outs and invitation/revision binding are rechecked; incompatible legacy/company markers fail closed. Existing prepared HTML and provider identities are preserved. All 1,724 local regression tests, TypeScript, scoped lint and preparation pass; exact-head runtime/CI remain required. No schema, credential, sender activation or production change. Phase 1 open; production ON HOLD.
+
+## October 6, 2026: Packets 48–49 qualified; Packet 50 referral preparation fencing
+
+Packet 48 PR #355 is merged at `3fada1a6f8ee55d5acb34b57f9d9ed396770cd1b`. Candidate `25c5e30706c559c5c2d82d0f4bc7cd1d007dea7f` passed regression 37410357554 (1,708 tests, TypeScript and all Chromium) and runtime 37410357728. Its independently verified artifact and retry evidence are recorded below; merged tree matches the tested head.
+
+Packet 49 PR #356 is merged at `6a6436f1c3739153195a81328bb5a0211b4bf92a`. Corrected candidate `1cc07232e82d39a09e63705bce821bc99b253e53` passed regression 37411091697 (1,710 tests, TypeScript and all Chromium) and runtime 37411091693. Independently downloaded artifact 11389446578 SHA256 `798619d2c29bf64764164d48060632fde6e6a26d63bba4310fcba68c964d1610` verifies old-history preservation, actual public HTTP stored attribution, both-direction scoped/deduplicated aggregates and schema/index/access postflight. The declaration was corrected to match additive column order; fingerprint checks were not relaxed. Merged tree matches; both Vercel projects suppressed.
+
+Packet 50 addresses a referral preparation prerequisite: lease/source checks now run inside the batch transaction, and renewal/completion/failure match the exact acquired lease. [Scope and evidence boundary](helios-studio-v2-referral-preparation-fencing.md). Existing single-company sender containment is rechecked inside batch admission. Token protocol, prepared payloads, provider identity and schema remain unchanged. Qualification is pending; scoped referral issuance remains subsequent work. Phase 1 open; production ON HOLD.
+
+## October 6, 2026: Packet 49 company unsubscribe attribution
+
+Packet 48 PR #355 candidate `25c5e30706c559c5c2d82d0f4bc7cd1d007dea7f` passes all 1,708 local tests and disposable runtime 37410357728. Independently downloaded artifact 11389480154 SHA256 `cc70e2445ca4d7ad258b3b933b26c4047ae2a0dd74dd47fb7be59fd19d683c7e` verifies both-direction newsletter retry gates, stable tokens, preserved accepted receipts and schema/index/access postflight. Its exact-head regression/browser run 37410357554 is still completing at this packet's preparation; integration remains gated on success. Initial candidate's single outdated dependency fixture was corrected without weakening denial assertions.
+
+Packet 49 records stored-token campaign/message provenance in company history and counts company opt-outs in already-authorized newsletter campaign aggregates, deduplicating addresses across protocols. [Contract and qualification](helios-studio-v2-consent-analytics-attribution.md). All 1,710 local regression tests, TypeScript, scoped lint, Prisma validation and source preparation pass. The additive migration leaves older history unattributed; disposable runtime checks remain required. No hosted migration, live provider or production change. Referral preparation and the remaining Phase 1 matrix remain open. Phase 1 open; production ON HOLD.
+
+## October 6, 2026: Packet 47 qualified; Packet 48 newsletter token integration
+
+Live base `352468eb12cf90df02905a83e24a3c8895fe24d4` confirms merged PR #354. Candidate `e3a3b70d245af446edaed0e57bccf63a286026fd` passed regression 37408282689 (1,699 tests, TypeScript and Chromium) and runtime 37408282743. Independently downloaded artifact 11388286421 SHA256 `601495cceb7c5a3e65e392336a2a9168339f7ff0fde7df251285b17c4cbdd2e9` verifies both-direction campaign token ownership, concurrent issuance, persisted revision/signing fences, preserved legacy markers, observed source-change races and schema/index/access postflight. Merged tree matches; Vercel suppressed.
+
+Packet 48 integrates newsletter token issuance while preserving its approved payload and provider operation identity. Retry reactivation binds the existing campaign version and rejects unresolved or contradictory attempt history inside the edition claim transaction. [Scope and qualification](helios-studio-v2-newsletter-consent-tokens.md). Twenty-one focused tests pass; local TypeScript, lint, syntax and preparation precede exact-head database/CI qualification. No schema or provider changes. Referral issuance and analytics attribution remain open. Phase 1 open; production ON HOLD.
+
+## October 6, 2026: Packet 46 qualified; Packet 47 campaign token issuance
+
+Live base `a6fd2613ad375531f18c1d1f98d32198b29710f2` confirms merged PR #353. Documentation head `af9c0256622925d6d452d7da02b97cd9d87be0af` passed regression 37400649250 (1,689 tests, TypeScript and Chromium). Merged tree matches; Vercel suppressed. Application/runtime files were unchanged from qualified Packet 45.
+
+Packet 47 selects company-bound outgoing campaign tokens from stored source authority and retains only attributable legacy compatibility. Existing legacy protocol markers and incompatible company execution/signing identities fail closed. [Scope and qualification](helios-studio-v2-campaign-consent-tokens.md). Eighteen focused tests pass, including an actual-worker uncertain-failure/reclaim regression whose duplicate-send sensitivity was verified by temporarily removing the binding fences. Source restored. TypeScript, lint, syntax and preparation are local gates; exact-head database and CI evidence remains required. Newsletter/referral issuance and full delivery uncertainty reconciliation remain open. Phase 1 open; production ON HOLD.
+
+## October 6, 2026: Packet 45 qualified; Packet 46 Phase 1 evidence reconciliation
+
+Live base `91f490ba20c718425e8d7d32b1afd7e938592608` confirms merged PR #352. Packet 45 head `47cbd20245c39efcb5fddaac28c5f26477ef6db8` passed regression 37399922887 (1,689 tests, TypeScript and Chromium) and runtime 37399922907. Independently downloaded artifact 11385090867 SHA256 `d950dd175151fecbd134a098fde7a3f726a9947ace5488c63dff19727965202f` verifies company administrator writes, protected global blocks, four observed access races, both-direction required audit rollback/retry, preserved legacy/contact state and schema/index/access postflight. Injection removed; merged tree matches; Vercel suppressed.
+
+Packet 46 reconciles the historical Phase 1 matrix with completed runtime and consent work. [Current checkpoint](helios-studio-v2-phase1-checkpoint.md) distinguishes module, disposable HTTP/database and historical hosted evidence; identifies remaining token issuance, analytics attribution, family-level isolation and compatibility gaps; and bounds the next delivery-token packet around retry identity. Documentation only; links and whitespace checked. No application, workflow, schema or gate changed. Phase 1 open; production ON HOLD.
+
+## October 6, 2026: Packet 44 qualified; Packet 45 administrator consent activation
+
+Live base `a7ef686889b0e9c8fb864e1955384589dc7da84e` confirms merged PR #351. Packet 44 head `7c9d4ea6aeafc76f94f7d776960c945a5ff8ba29` passed regression 37398937520 (1,686 tests, TypeScript and Chromium) and runtime 37398937535. Independently downloaded artifact 11384099070 SHA256 `6e922d31ef67677889b278e029930355466a390a8be0fcbd344c16c9ec1ed91e` verifies both-direction authenticated directory projection, protected metadata redaction, unchanged read snapshots and schema/index/access postflight. Merged tree matches the tested candidate; Vercel suppressed.
+
+Packet 45 activates the verified company-scoped writer through the administrator route and directory consent controls. Confirmed source evidence remains required; protected global opt-outs cannot be lifted here. [Scope and qualification](helios-studio-v2-consent-admin-activation.md). Twenty-four focused module tests (including nine existing projection tests), TypeScript, lint, syntax and preparation pass locally. Exact-head HTTP/database access-race and audit-rollback qualification remains required. Delivery token issuance and analytics attribution remain separate work. Phase 1 open; production ON HOLD.
+
+## October 6, 2026: Packet 43 qualified; Packet 44 directory consent projection
+
+Live base `5cf752f261af279166fb84943a47299ee00bdee0` confirms merged PR #350. Packet 43 head `993eeca104b17023e7fcf4ce26de08c7d15a50e3` passed regression 37398226624 (1,677 tests, TypeScript and Chromium) and runtime 37398226333. Independently downloaded artifact 11384522036 SHA256 `f92b47ecbfdc67f73612c519d4508e785b064cbce29ccbcc4b450da2a8d4ee89` verifies real public HTTP same-address isolation, concurrent replay, optional reasons, invalid/expired tokens, observed audit cancellation with atomic rollback/retry, one-click form, preserved legacy global scope and schema/index/access postflight. Injection removal verified; merged tree matches; Vercel suppressed.
+
+Packet 44 corrects the client directory's remaining global consent display and shared-flag eligibility count. Company preferences are projected with protected global metadata redacted; sole-company compatibility remains. [Scope and qualification](helios-studio-v2-consent-directory-projection.md). Nine module tests, TypeScript, lint, syntax and preparation pass locally; exact-head authenticated HTTP/database evidence remains required. Administrator mutations and delivery token issuance remain separate work. Phase 1 open; production ON HOLD.
+
+## October 6, 2026: Packet 42 qualified; Packet 43 public company unsubscribe
+
+Live base `af7bbacda3a6753a1cad650cd386bfe113a9beda` confirms merged PR #349. Packet 42 head `b7a102653f6c77d19f219be076527b11d74c21fa` passed regression 37225018208 (1,671 tests, TypeScript and Chromium) and runtime 37225018123. Independently downloaded artifact 11311961248 SHA256 `e96a636cf8dc5b8b4d2a78c34804fb29228ca7bbea69caa0183e378e85433fb8` verifies both-direction delivery eligibility isolation, both tenant flag states, protected legacy/safety blocks, read-only snapshots and schema/index/access postflight. The old campaign fixture was corrected to assert the workspace-aware dependency; no gate was weakened. Execution recovered, clean source was rebuilt from GitHub, and the merged tree matches the tested tree. Vercel remains suppressed.
+
+Packet 43 connects versioned public unsubscribe requests to the verified company token consumer, preserving legacy token scope and recording bounded optional reasons. [Scope and verification](helios-studio-v2-consent-public-unsubscribe.md). Six route tests and local TypeScript/lint/preparation gates precede exact-head real HTTP replay/isolation/audit rollback and legacy-scope qualification. Delivery token issuance and administrator activation remain separate work. Phase 1 remains open. Production ON HOLD.
+
+## October 4, 2026: Packet 41 qualified; Packet 42 delivery consent readers
+
+Live base `366835a2f1f3979bdf98b0a1cdd9d6ec5e3b88a0` confirms merged PR #348. Packet 41 head `2990d52cd98e2bf6fc634dca429b463130bd27c4` passed regression 37223795222 (1,661 tests, TypeScript and Chromium) and runtime 37223795296. Independently downloaded artifact 11311446279 SHA256 `f9876ada1151e321b2e01c9e60996982d8714c6db8f58b295bad570b3de1a535` verifies company token provenance/isolation, stable retry, concurrent replay, expiry after observed lock wait, atomic audit rollback/retry, preserved legacy state, injection removal and schema/index/access postflight. Merged tree matches the tested tree; Vercel remains suppressed.
+
+Packet 42 switches campaign/referral delivery and newsletter recipient consent checks to a workspace-aware reader with conservative legacy/safety precedence and sole-company compatibility. Explicit company opt-outs also override legacy compatibility. [Scope and qualification](helios-studio-v2-consent-delivery-readers.md). Twenty-one focused tests, TypeScript, lint, syntax and source preparation pass locally; exact-head CI and actual database evidence remain required. No administrator/public writer or new token issuance is activated. Phase 1 remains open. Production ON HOLD.
+
+## October 4, 2026: Packet 40 qualified; Packet 41 company-bound tokens
+
+Live base `1a50b013ba2261c6b6abe56dbb9dd050e722fbe1` confirms merged PR #347. Packet 40 head `493caa3bfff67072eb8daef2ae9fbb0870ea0c87` passed regression 37222724628 (1,657 tests, TypeScript and Chromium) and runtime 37222724623. Independently downloaded artifact 11310867112 SHA256 `77625b6be8e3f3b3fe98328a074fcbb5499d53f58d080984cdc197698803dba8` verifies both-company consent isolation, protected legacy/safety blocks, observed audit cancellation with full rollback/retry, injection removal and schema/index/access postflight. Merged tree matches the tested tree; both Vercel builds remain suppressed.
+
+Packet 41 adds inactive company-bound campaign unsubscribe token services. [Scope and qualification](helios-studio-v2-consent-workspace-tokens.md). Four focused tests, TypeScript, lint, syntax and driver preparation are local gates; exact-head CI and actual database provenance/isolation/expiry/rollback evidence remain required. No public route or delivery activation. Phase 1 remains open. Production ON HOLD.
+
+## October 4, 2026: Packet 39 qualified; Packet 40 scoped consent adapters
+
+Live base `435dc389c75d736f44d57bfb59f92c194a601176` confirms merged PR #346. Packet 39 head `1af5c3fd15514cd22dbcdca9fb9369cb762c8c06` passed regression 37221989540 (1,644 tests, TypeScript and Chromium) and runtime 37221989584. Independently downloaded artifact 11309994151 SHA256 `c02fbd9dfa5735cc7f5a9f53a63d6351b4d5591232d3529779a70711b42bfaf7` verifies additive migration, composite ownership constraints, preserved legacy consent/safety/token rows and prior schema/index/access checks. Merged tree matches the tested tree; Vercel remains suppressed.
+
+Packet 40 adds inactive company-owned consent service/eligibility adapters with protected legacy/safety precedence, current actor/client ownership, inert replay and atomic history/audit. [Scope and runtime qualification](helios-studio-v2-consent-scoped-adapters.md). Thirteen focused tests, TypeScript, scoped lint, syntax/whitespace and driver preparation pass locally. Exact-head shared-client isolation, protected-block and observed audit rollback/retry evidence remain required. No application route/delivery reader is activated. Phase 1 remains open. Production ON HOLD.
+
+## October 4, 2026: Packet 38 qualified; Packet 39 additive consent schema
+
+Live base `eb9cd6db3b0b234092cd60e2c86cb1dc763159ca` confirms merged PR #345. Packet 38 head `5b80154d15f561b8ea6899ec1333f6aa0cfeea88` passed regression 37221315433 (1,644 tests, TypeScript and Chromium) and runtime 37221315423. Artifact 11309548845 SHA256 `5a1ef3804d5868207d56630952c5c7d632884b8d0e925e52779b4a882fa563b4` was independently downloaded and verified: both-direction administrator containment, four observed revocation/demotion cases and column/index/access postflight passed. Merged tree matches the tested tree; Vercel remains suppressed.
+
+Under the approved architecture, Packet 39 adds company-owned preference/history/token tables with composite ownership constraints. [Schema, migration qualification and limits](helios-studio-v2-consent-schema-expand.md). Prisma validation/generation, TypeScript, syntax/whitespace and 22 historical hosted-diagnostic tests pass locally. Exact-head CI and disposable migration/constraint/legacy-preservation evidence remain required. Existing consent, safety and token records are not converted; no application reader or writer is activated. Phase 1 remains open. Production ON HOLD.
+
+## October 4, 2026: Packet 37 qualified; consent architecture approved; Packet 38 containment
+
+Live base `0b13aa489a61a91a87e5a24df725e45ec9aa0f40` confirms merged PR #344. Packet 37 final head `aa92810cccb374a7775225ff660eb627a2ad5b88` passed regression 37220132608 (1,632 tests, TypeScript and Chromium) and runtime 37220132631. Artifact 11309304185 SHA256 `da621c414adc7228c862e7289197166eba407309f6877f214604672a1f7d670c` was independently downloaded and verified, including both-direction old collisions, migration recovery, concurrent reuse and schema/index/access postflight. The historical staging diagnostic fixture was corrected without changing the protected hosted gate. Merged tree matches the tested tree; Vercel remains suppressed.
+
+Jake explicitly approved the [split consent architecture](helios-studio-v2-consent-boundary-owner-decision.md) for non-production implementation. Packet 38 contains administrator preference mutations before global writes and adds current-access/ownership/safety/audit gates. [Scope and evidence limits](helios-studio-v2-consent-admin-containment.md). Twelve focused tests, TypeScript, scoped lint and syntax/whitespace pass; exact-head CI/runtime/artifact qualification remains required. Consent schema/readers and legacy token preservation remain ahead. Phase 1 remains open. Production ON HOLD.
+
+## October 4, 2026: Packet 36 qualified; Packet 37 request identity
+
+Live base `a1a042a28b99730497e9da7188cad4bfd02d9d5f` is merged PR #343. Packet 36 head `ad5655bd3882b26861868347d1d4ea97c063bc54` passed regression 37219078310 (1,630 tests, TypeScript and Chromium) and runtime 37219078308. Independently downloaded artifact 11309641569 SHA256 `f772839f8f95447027a43710413dcc8e5920f548f3a270447189f42a55c23d79` verifies 22 provider-failure cases, prior rollback/injection cleanup and schema/access postflight. Merged tree matches the tested tree; Vercel remains suppressed.
+
+Packet 37 replaces globally unique Social AI request IDs with company-scoped uniqueness and qualifies the checked-in migration in disposable PostgreSQL. [Scope, reproduction and rollback limit](helios-studio-v2-social-ai-request-scope.md). Thirty-two targeted tests, Prisma validation/generation, TypeScript, scoped lint and syntax/whitespace pass. Exact-head regression/runtime/artifact verification remains required. No hosted or production migration is authorized or performed. Phase 1 remains open; the consent probe still reproduces the separate pending architecture issue. Production ON HOLD.
+
+## October 4, 2026: Packet 35 qualified; Packet 36 provider failures
+
+Live development base `1e551e1f73cdebc2fda1fd2601fe8b94b896f696` confirms merged PR #342. Packet 35 head `68aaa95ba23059ca174dc8a25103e1061f15b981` passed regression 37142820661 (1,619 tests, TypeScript and Chromium) and runtime 37142820660. Downloaded artifact 11280359944 SHA256 `b60ee0c1b77dca73ca10d9451735e08e70dba3ae6b66c48d432f471c8b755470` independently verified both-tenant rollback/retry, injection removal and schema/access postflight. Merged tree matched tested tree; Vercel remained suppressed.
+
+Packet 36 reproduces acceptance of an empty grounding draft, enforces the advertised response contract locally and adds both-tenant provider-failure preservation/retry qualification. [Scope and evidence limits](helios-studio-v2-social-ai-provider-failure.md). Thirty-two targeted tests pass; exact-head CI/runtime/artifact verification remains required. No schema, hosted, live provider or production change. Phase 1 remains open; consent architecture independently pending. Production ON HOLD.
+
+## October 3, 2026: Packet 34 qualified; Packet 35 multi-variant rollback
+
+Live base `6d3089e8f8c7094457ffd2aa39c905412f888ecf` confirmed as merged PR #341. Packet 34 exact head `3832c3a2408aa6804f0b3a729ea374da60eac5a2` passed regression 37047286145 (1,617 tests, TypeScript and Chromium) and runtime 37047286090. Artifact 11245446477 SHA256 `92100c2ac04c0b50231f3d8b24049cbfe47dd116a8437228880cfc67522b5471` was independently downloaded/verified; both-tenant persisted output and revoked settlement, prior isolation and schema/access postflight passed. Merged tree matched tested tree; Vercel remained suppressed.
+
+Packet 35 extends disposable runtime qualification to a cancelled second-variant write, rollback of both drafts/approval changes, same-request retry and inert replay. [Scope and failure injection](helios-studio-v2-social-ai-rollback.md). Twenty targeted local tests, TypeScript, scoped lint, syntax/whitespace and preparation pass. Exact-head CI/runtime/artifact verification remains required. No application, migration, hosted, live provider or production changes. Phase 1 remains open; consent architecture is independently pending. Production ON HOLD.
+
+## October 2, 2026: Packet 33 qualified; Packet 34 persisted Social AI output
+
+Live non-production base `ef0d0dd171d7ff5d412f675d2b105d67f9d22900` confirmed as merged PR #340. Exact head `12ce63f16be89f738ccd0334600046a3bb43c176` passed regression 37045165283 with 1,614 tests, TypeScript and all Chromium checks; merged tree matched tested tree `6a4e43da0d3b76e4de03368e6a8345ad1e733bc3`. Vercel remained suppressed.
+
+Packet 34 extends the actual Next/PostgreSQL harness to Social AI persisted drafts, approval revocation, foreign rejection, replay and lock-observed membership revocation during a synthetic provider response. [Scope, provider substitution and limits](helios-studio-v2-social-ai-runtime.md). Eighteen targeted tests, TypeScript, scoped lint, syntax/whitespace and source preparation pass locally. Exact-head runtime/artifact and regression qualification remain required. No application/schema/hosted/provider/production change. Phase 1 remains open; consent architecture is independently pending. Production ON HOLD.
+
+## October 2, 2026: Packet 32 qualified; Packet 33 content-source isolation
+
+Live development base `147a78eabfde84cb65c22ecfd4ea86c76e694f16` independently confirmed as merged PR #339. Exact head `2206f6ef968933cf829fcda14f4a4797110b98f6` passed regression 37043023521: 1,606 tests, TypeScript and all Chromium checks. The checkpoint records matching tested/merged tree `c325313e7bca6682977ba817ecd1e8b73be4eeb8` and both Vercel deployments suppressed. This live checkpoint supersedes the supplied Packet 31 resume anchor.
+
+Packet 33 extends composed Social AI coverage to BLOG/NEWSLETTER sources and actual ownership-scope resolution. Eight added cases cover both-direction rejection, overlapping prompts/output targets and narrowly allowed legacy null ownership. [Scope and evidence limits](helios-studio-v2-social-ai-content-sources.md). Eighteen targeted tests, TypeScript, scoped lint and whitespace pass locally; exact-head CI is required before integration. No application/schema/provider/production change. Phase 1 remains open; consent architecture remains independently pending. Production ON HOLD.
+
+## October 2, 2026: Packet 31 reconfirmed; Packet 32 Social AI isolation
+
+Live non-production base `df3912cf771a0d141d097089ccc70a859d1043a7` matches merged PR #338. Exact head `cabe2ff6c8595165cf52b3002f871ca7c3206dbb` regression 36714191483 and runtime 36714191069 independently reconfirmed SUCCESS. PR/checkpoint evidence records 1,602 tests, Chromium, artifact 11095697696 SHA256 `7171326b548f960f65ffb939c7b665a715b5f612e771174e75865e729ce106fd`, both-tenant bounce audit rollback/retry and unchanged schema/restored synthetic access. This resume did not rerun hosted qualification or redownload the historical artifact.
+
+A fresh checkout replaces reliance on interrupted local work. Packet 32 adds four composed Social AI isolation tests: both-direction foreign campaign/variant/project rejection, overlapped source-to-prompt/output-target isolation and revocation before settlement. [Scope and adapter limits](helios-studio-v2-social-ai-isolation.md). No application change was required. Exact-head CI remains required before integration. Consent architecture remains a separate pending owner decision; this independent AI evidence packet does not cross it. Phase 1 remains open. Production ON HOLD.
+
+## September 30, 2026: Packet 30 qualified; Packet 31 bounce audit
+
+Live development base `5e62ba395a859f6771763dd28ae16ae1344b64ee` matches Packet 30 / PR #337. Head `254a9df43ed63eae1b951fc5f4c16aff17414d45` passed regression 36505327655 (1,600 tests and Chromium) and runtime 36505327624. Downloaded artifact 11006672401 SHA256 `5395189dcaa0ecba0c23fa39dd8683e63880480cabedc1278b37b17b63604581` independently checked; both-tenant terminal-query rollback/retry and prior isolation/postflight passed. Merged tree matched the tested head.
+
+Packet 31 reproduces completed bounce events without durable audit, then moves the audit into the membership/completion transaction. [Scope and qualification](helios-studio-v2-bounce-audit-atomicity.md). Both-tenant audit-write cancellation, rollback, retry and inert replay are required from exact-head CI/downloaded evidence. No schema, policy, provider, credential, hosted staging or production changes. Phase 1 remains open. An isolated checkout preserves an unrelated local photo edit.
+
+## September 28, 2026: Packet 29 qualified; Packet 30 complaint settlement
+
+Live development base `43d51847de492ac73ab34e0c191681cf5abf522e` matches Packet 29 / PR #336. Head `56a3e9fb4f56807681ae72f6101fbb457a0241c9` passed regression 36353460450 (1,598 tests and Chromium) and runtime 36353460475. Downloaded artifact 10942918520 SHA256 `4ed6243f1db1bb09decdf577403ac2e9c5e5933347ab177a7c2063c24ccc86e2` independently checked; both-tenant group-failure rollback/retry and prior isolation/postflight passed. Merged tree matched the tested head.
+
+Packet 30 reproduces preference persistence before failed webhook finalization, then combines those writes in one transaction and restricts catch-path failure writes to PROCESSING events. [Scope and evidence limits](helios-studio-v2-complaint-settlement-atomicity.md). Twenty-eight targeted tests, TypeScript/scoped lint and syntax/whitespace pass. Real HTTP/PostgreSQL terminal-query cancellation for both tenants and exact-head CI/artifact inspection remain required. No schema, consent-policy, provider, credential, hosted staging or production change. Phase 1 remains open.
+
+## September 27, 2026: Packet 28 qualified; Packet 29 preference atomicity
+
+PR #335 merged into development at `acf34c9f7ac9fba4e29c47fd62aba17024669f04`. Tested head `8b859e33d5ca0483a836b60e2a7f00d87347384f` passed regression 36352119552 (1,596 tests and Chromium) and runtime 36352119545. Downloaded artifact 10942109599 SHA256 `bc4fc04dc3c2b235e8f06b77ee58daca3f6e60740233023b502a8ef1630ddc3b` independently checked; all four complaint/bounce recovery cases and schema/access postflight passed. Merged tree matched the tested head; Vercel deployments remained suppressed.
+
+Packet 29 reproduces preference/history persistence before a failed group mutation and moves reconciliation into the same transaction. [Scope and remaining recovery limits](helios-studio-v2-preference-group-atomicity.md). Both unsubscribe and resubscribe rollback/retry tests are required, plus real HTTP/PostgreSQL failure at the later group boundary for both tenants. Exact-head qualification remains required. No schema, consent-policy, provider, credential, hosted staging or production change. Phase 1 remains open.
+
+## September 27, 2026: Packet 27 qualified; Packet 28 completion boundary
+
+Live base61be715b15febd3c2573f69cbd54bd2d367c0bca matches merged PR #334. Packet 27 exact head7dc5e752b868ef205b54eb0b31ca02b5ef29c7c7 passed regression36349332455 (1595 tests and Chromium) and runtime36349332430. Downloaded artifact10940574807 SHA2566af632cd75de31f1897bce6cd6098a53733b7659444a154a1493e04f9131464d independently checked; both-tenant retry admission, prior isolation and schema/access postflight passed.
+
+Packet 28 reproduces premature completion before complaint/bounce follow-up. It retains PROCESSING until required follow-up reaches its terminal boundary, returns503 for in-flight duplicates, and keeps one failure-settlement owner for admitted bounce errors. [Scope, failure injection and remaining limits](helios-studio-v2-webhook-completion-boundary.md). Twenty-eight targeted tests, TypeScript/scoped lint/syntax/whitespace pass. Real HTTP/PostgreSQL canceled-query recovery and exact-head regression remain required. No schema, credentials, providers, hosted staging or production changes. Phase 1 remains open.
+
+## September 27, 2026: Packet 26 independently reconfirmed; Packet 27 retry admission
+
+Live development basea1cfe6e0267382b2106cdebd44033baa7530e024 matches merged PR #333. Exact-head3846b3fce71349d203c56ffce7ef4d101ad3df73 workflows36293636315 and36293636494 independently reconfirmed SUCCESS. The automation checkpoint records1594 passing regression tests, Chromium, downloaded artifact10923232780 SHA25621dcd8bd72e9a7f50e2a12396dbd9440868100337ecf20c7169137804a371499 and both-tenant lock-observed first-admission proof. Historical preparation entries below remain unchanged.
+
+Packet 27 reproduces two successful concurrent admissions of an existing FAILED_RETRYABLE event, then makes retry admission conditional on unchanged event/message identity and failed status. [Scope and remaining recovery boundaries](helios-studio-v2-webhook-retry-admission.md). Twenty-seven targeted tests, TypeScript/scoped lint/syntax/whitespace pass. Actual HTTP/PostgreSQL retry overlap qualification is required from exact-head CI and downloaded evidence. No schema, provider, credential or production change. Phase 1 remains open.
+
+## September 27, 2026: Packets 24–25 qualified; Packet 26 admission failure
+
+Packet 24 PR #331 passed regression36292707468 (1590 tests and Chromium) and runtime36292707458 at42bcde4b2624e14c6f5b3c49f1f9a5807a894934, then merged into development at6da5683b12a93c36cac6619de3b2765b567c997e. Artifact10922607227 SHA256367dc3d01e0dc453a23e640d9f9a4582515e85e3bcd6ddc41f45176bf41b1599 independently verified.
+
+Packet 25 PR #332 passed regression36293034370 (1592 tests and Chromium) and runtime36293034410 atca9921ae7eaa1f85cfe4110f4fba85a35758d6dc. Artifact10922808199 SHA25624d931d3d9b4d80dc914768574c77ad64f91b4f9ffc0383e4303e3d929132b85 independently downloaded and verified; both-family/both-tenant identity rejection and valid retry, prior isolation and schema/access postflight inspected. Non-production mergefa297db8e4de5e81e80113b82934d04fa0ef7b3e.
+
+Packet 26 reproduces a concurrent first-insert loser overwriting the active event's state, then restricts failure writes to requests that completed admission. [Scope, real-lock qualification and remaining recovery boundaries](helios-studio-v2-webhook-admission-failure.md). Twenty-six targeted tests, TypeScript/scoped lint/syntax/whitespace pass. Exact-head CI and real PostgreSQL lock-observed HTTP evidence pending. No schema, provider, credential or production change. Phase 1 remains open.
+
+## September 27, 2026: Packet 24 runtime qualified; Packet 25 retry identity
+
+Packet 24 runtime36292707458 passed at42bcde4b2624e14c6f5b3c49f1f9a5807a894934. Artifact10922607227 independently downloaded; SHA256367dc3d01e0dc453a23e640d9f9a4582515e85e3bcd6ddc41f45176bf41b1599 matched. Both tenants passed27 malformed and5 ignored event cases, prior fourteen webhook summaries and schema/access postflight. Regression36292707468 remains tracked on PR #331; this preparation entry makes no Packet 24 merge claim.
+
+Packet 25 reproduces failed-event identity replacement and rejects a changed message ID or event type before retry or duplicate acknowledgement. [Scope and remaining recovery boundaries](helios-studio-v2-webhook-retry-identity.md). Twenty-four targeted tests, TypeScript/scoped lint/syntax/whitespace pass. Both-tenant email/referral HTTP changed-identity checks require exact-head CI and downloaded evidence. No schema, provider, credential or production change. Phase 1 remains open.
+
+## September 27, 2026: Packet 23 qualified; Packet 24 payload boundary
+
+PR #330 passed regression36255404288 and runtime36255404188 at8b09af8b7e32a8cb8ca947d33b1d509af11d000e. Downloaded artifact10910387014 SHA2569cbcbc0415330e7c7bd921b8cc831b1a41180d61548b33ef20e9551402596dfd independently verified; fourteen webhook summaries and schema/access postflight inspected. Non-production mergeacd33aad5df34c28d8d03a187353f7df8b2509cb.
+
+Packet 24 reproduces malformed signed JSON and inherited event-name admission failures, then validates consumed fields before database access. [Payload scope and compatibility](helios-studio-v2-webhook-payload-boundary.md). Twenty-two targeted tests, TypeScript/scoped lint and syntax checks pass. Both-host actual HTTP cases require exact-head runtime CI/artifact inspection. No schema, provider, credential or production change. Phase 1 remains open.
+
+## September 26, 2026: Packet 23 stored webhook ownership
+
+Packet 22 runtime36255047101 passed at303e924c413f4371fae6c03bc63759dfb469f941. Artifact10910530482 downloaded; SHA256eb6e0f2117e95a6b66a487437ceccb8897dbcdff341a1960c3d5f3bc52d2e355 independently verified. All ten signed-webhook case summaries and schema/access postflight inspected. Regression36255047029 is tracked on PR #329; no Packet 22 merge claim is made by this preparation entry.
+
+Packet 23 reproduces creator-transfer attribution, unowned-message admission and unmatched-tag attribution defects. The handler and permanent-bounce processor now use existing stored campaign ownership policy; unmatched diagnostics do not acquire ownership through tags; bounce audit attribution is explicit. Twenty-seven targeted tests, TypeScript/scoped lint/whitespace pass. [Policy, compatibility and remaining boundaries](helios-studio-v2-webhook-stored-ownership.md). Real Next/PostgreSQL creator-transfer, bounce and retry evidence is required from exact-head CI. No schema, credential, global consent-policy or production change. Phase 1 remains open.
+
+## September 26, 2026: Packet 21 qualified; Packet 22 signed webhook ambiguity
+
+Packet 21 PR #328 passed exact-head regression36252096449 and runtime36252096432 ate7743adc25f08b1c08d0a26927250d7b7fbe906a. Downloaded artifact10909416670 SHA256c8ff0d2e09f8be022fb69412164058b36fdd0df1063a1d3e10c5ce708cccdff7 independently verified. Both tenant POST/DELETE membership-race cases rejected403 without preview/audit mutation; prior runtime checks and schema/access postflight passed. Non-production merge59850041da91ca8e8e79a3f496b5c9abd4feed7a.
+
+Packet 22 reproduces and corrects signed webhook message-ID ambiguity across email/referral families and multiple referral records. Twenty targeted tests pass; TypeScript/scoped lint/whitespace pass. The disposable Next/PostgreSQL harness adds signed HTTP and unchanged-domain/consent evidence; exact-head CI and artifact inspection remain required. [Scope and unresolved ownership/consent boundaries](helios-studio-v2-webhook-message-isolation.md). No live provider, credential, schema or production changes. Phase 1 remains open.
+
+## September 26, 2026: Packet 20 qualified; Packet 21 preview write fencing
+
+PR #327 passed runtime36251029160 and regression36251029159 ate42a2c54d3db372c403d01a227421be9e385ca86. Downloaded artifact10909805079 SHA256d6ccdf80bc19a9092d3d72245e883d8522a105c6d91d0d17662016f8bad29dc5 independently matched; candidate, both-tenant portfolio/preview results and prior postflight inspected. Merged only into development base at752802d937dac5d89bf64772ca74c93e549f23f3.
+
+Packet 21 corrects a reproduced stale-session preview creation race by applying the existing locked current-membership helper inside both preview mutation transactions. Six negative cases plus existing ownership tests pass locally (11 total); TypeScript/scoped lint/whitespace pass. [Fix and evidence boundary](helios-studio-v2-preview-write-fencing.md) describes the additional real PostgreSQL lock-observed HTTP test required before qualification. No schema/token/provider changes. Phase 1 stays open; production ON HOLD.
+
+## September 26, 2026: Packet 19 qualified; Packet 20 portfolio HTTP isolation
+
+PR #326 passed runtime36250083538 and regression36250083399 at69254f1d8cb9dd343429c0aab89fac564cd4d3cb, then merged into the non-production base at012e5343fdbca843aeb1f3f63aa14691523ff04e. Downloaded artifact10908419107 archive SHA256923ea475e56d78c6fe1e2f03184507c6baeb2e88db3aa330de0646f388dc50d9 independently verified; candidate and both-tenant assertions inspected. Real Next build/start with local PrismaPg passed alternating/concurrent host reads, actual writes/readback, foreign/stale rejection, current membership/session-version rejection and postflight. Hosted/CDN/router-cache proof is not claimed.
+
+Packet 20 extends this isolated runtime harness to [portfolio publication and preview boundaries](helios-studio-v2-runtime-portfolio-isolation.md), including actual preview creation/revocation, foreign-host token rejection, expiry and absence of rejected usage writes. No application or schema change. Exact-head CI/artifact qualification pending. Phase 1 remains open; production ON HOLD.
+
+## September 26, 2026: Packet 18 closed; Packet 19 actual runtime qualification
+
+PR #325 passed regression36248414205 atc8a6836524076d3dcd246215dfe7d8aadf457d7f, then merged only into the non-production development base ata948ac3f1bf1b7642a4a0f1fecf87ab8f85f8a72. Packet 19 adds a branch-only disposable PostgreSQL/Next build-and-start qualification, exercising real Host headers, tenant writes and post-write reads, current membership and session-version revocation. No test authentication endpoint is installed.
+
+[Runtime qualification scope](helios-studio-v2-runtime-request-isolation.md) records the fixed empty-database gate, synthetic environment, temporary PrismaPg/offline-font substitutions, required assertions and evidence limitations. Local source preparation and three safety/transport tests pass. Exact-head CI and artifact inspection remain required before claiming this runtime qualification passed. Phase 1 remains open; production ON HOLD.
+
+## September 26, 2026: Packet 17 closed; Packet 18 request isolation
+
+Packet 17 PR #324 passed exact-head regression run36245774505 at208d19c5ae0bc5ca894290732282cc2b3bf3cd07 and merged only into the non-production base atad732e95586db48ba7b879e5b8ef85373fd4e720.
+
+Packet 18 adds four executable regression cases across the actual public resolver/settings/session/membership module graph: alternating tenants, deliberately overlapping host resolution, fresh reads after an A-only fixture change, unknown/inactive host rejection and current membership/session-version enforcement. Request storage and database delegates are synthetic adapters. Existing application behavior passed; no application rewrite or schema change. [Evidence scope and remaining real-runtime qualification](helios-studio-v2-request-isolation.md) explicitly distinguish these tests from Next server/CDN/browser cache or hosted proof.
+
+Local targeted tests pass. TypeScript/scoped lint and exact-head CI results are recorded on the PR and run claim after verification. Phase 1 remains open; production ON HOLD.
+
+## September 26, 2026: Packet 16 qualified; Packet 17 reconciliation
+
+Protected run [36217912507](https://github.com/heliosremedia/heliosremedia/actions/runs/36217912507), attempt 1, PASSED at executor `77dfe4104ad0756c1c0aedf87f78a3ece666a609` and candidate `2999055b2b59467fcfef446c33a47212e72d4712`. Downloaded artifact 10907013060 checksum independently verified. Both synthetic tenants passed hosted HTTP/Chromium at 390/1440, foreign-write isolation and conflict handling, with zero external requests. Cleanup/restoration and unchanged schema/ledger passed. Independent authenticated Vercel readback confirmed exit 0 and only original database project variables; fresh Neon READ ONLY postflight confirmed 114 tables, 19 completed migrations, zero incomplete and restored two-tenant fixture baseline.
+
+PR #323 merged only into `codex/v2-hosted-access-owner-action`, merge `e2dedea3e1d7680798ab65ddbe2f6c8ab4b7c8d7`. Bounded Packet 16 exit is satisfied. [Immutable evidence and limitations](helios-studio-v2-packet16-qualified.md) supersede historical OPEN hosted checkpoints below. Hosted rollback, all-route coverage, external-provider parity and production readiness are not claimed.
+
+Packet 17 on `codex/v2-phase-exit-reconciliation` records a [Phase 1/2 evidence matrix and worker inventory](helios-studio-v2-phase-exit-reconciliation.md). It is documentation-only: existing newsletter leases, social claim fencing, analytics cancellation/health chronology and publishing review-only uncertainty are preserved. Next bounded implementation is executable cache/request-boundary isolation evidence, with corrections only for observed defects. Exact-head documentation CI is recorded on its PR and canonical run claim after publication.
+
+Phase 0 essentially complete; Phase 1 still in final qualification; Phase 2 partial groundwork; Phases 3–7 ahead. No phase exit or completion percentage invented. Production ON HOLD; no main merge, production deployment/migration, provider migration or external-customer onboarding.
+
+## Packet16 preflight diagnostics only (September21,2026)
+
+Workflow-only registration is complete at main b6fb99e9a5ffe5b30c6d7b538cb79861e4fa6199. Approved run35563010507 attempt1, executor51f6ad1a4bde4cc54620e32214eb7f95b6f694a5 and candidate dbfb19909d3fe0bb91d81a478210373340f86e86, passed76 targeted tests then failed before admission with IDENTITY_OR_CONTRACT_MISMATCH. Retained artifact10621934940 has no admitted phases and no deployment. The exact failing assertion is unknown. This supersedes earlier “not registered/executed” preparation notes, not the verified Neon baseline.
+
+Diagnostics-only correction adds static per-check and metadata-stage reasons, matched:false and error hash. No provider bodies, URLs, credentials or observed values are retained. Existing gates, argument evaluation and effect order are preserved; executable AST equality checks compare against the reviewed executor.187 added diagnostic cases include every code, secret redaction, original errors, actual policy/preflight failures and zero provider mutation before admission. Full regression/isolated build/contract CI must pass at the published head; exact SHA and runs are recorded on PR323 and the canonical claim. See protected-hosted-executor document for the diagnostic contract and evidence limitations.
+
+No live dispatch, registration change, Vercel/Neon mutation, application candidate change, merge or production action in this correction. Hosted HTTP/Chromium, deployment provenance, postflight/restoration and rollback remain unverified. Packet16 OPEN; no Packet17. Next action is review of the diagnostic executor, followed only by a separately authorized protected staging execution.
+
+## Packet16 protected hosted Actions executor preparation (September21,2026)
+
+Manual Vercel UI qualification is superseded by a protected manual Actions executor. Application source remains pinned to dbfb19909d3fe0bb91d81a478210373340f86e86; new executor/diagnostics source has a separate review SHA. Existing candidate1041/1041 tests and workflows35556635809/35556635811/35556635812 are verified baseline, not new hosted evidence.
+
+New workflow validates Environment protection, exact staging project/team/Git candidate, authenticated Neon identity, current schema/ledger and existing synthetic footprint; creates only one Preview; validates native build receipt; performs signed-session HTTP/concurrency and Chromium qualification; restores staging suppression, synthetic hostname mappings and run-owned temporary configuration. No migrations or production endpoint. Safe phase/reason/hash diagnostics replace raw errors. See helios-studio-v2-protected-hosted-executor.md for exact pending mutations, secret names, API path, pinned-source diagnostic limitation and cleanup failure recovery.
+
+Prepared only, not registered or dispatched. Both project suppression settings remain untouched. Final executor CI pending; exact results recorded on #323 and canonical claim. Owner approval required before first live execution. Packet16 remains OPEN; no Packet17.
+
+## Packet16 staging-only hosted admission implementation (September21,2026)
+
+Real Neon tenant baseline verified at6e9544067b73909dcd68e2859c9345976172918f, run35553978752: two synthetic tenants,1001 passing tests, both-direction read/write isolation, concurrent200+409 and stale409, unchanged schema/19-entry ledger, no unexpected rows. This supersedes earlier pending tenant observations.
+
+New bounded admission implementation remains under verification. Exact staging project/team/Preview/source/branch, authenticated Vercel/GitHub/Neon metadata, read-only schema/ledger preflight/postflight, immutable migration identity and generated-client check gate Next build. Receipt binds native Next output digest but remains non-promotable pending actual hosted provenance/HTTP checks. Runner-only normal signed-session cookies and provider-owned preview hostname plans add no auth endpoint or database mutation. See docs/helios-studio-v2-staging-hosted-admission.md for configuration names, review gates and exact one-shot condition template.
+
+Both Vercel projects remain suppressed and unchanged. No live database writes, environment changes, deployment, merge or Packet17. Final exact-head CI evidence will be recorded on #323 and canonical run claim.
+
+## Packet 16 continuation: protected tenant qualification (September 21, 2026)
+
+Database baseline is now VERIFIED at candidate `513f5eb94c963c2d33929604f56cc5f7107de483`, manual run35549161614 attempt2: real Neon bootstrap/postflight and repeated migration no-op passed,994/994 tests. Independent authenticated readback: PostgreSQL16.15,114 public tables,19 completed migration rows,zero workspaces. This supersedes the historical blocked observations below. Bootstrap receipt artifact10617918204 was retained by CI; its archive contents were not independently downloaded here.
+
+Authenticated Vercel browser sign-in now succeeds. Staging project ID `prj_PUv0ADGxYl5QjRYaMv2h8Km1UmMg` is visible under Helios Real Estate Media. Domain inventory shows only `helios-v2-staging.vercel.app`, with No Deployment. Build suppression remains `exit 0` (UI labels this “Don’t build anything”). No setting changed. This is authenticated UI evidence, not immutable deployment/API/upload provenance. Production was not opened or modified.
+
+New draft-only tenant executor uses a separate manual workflow, existing protected environment and exact Neon target policy. It performs no migration or deployment. It requires current-baseline classification, fresh candidate-bound tests/source evidence, explicit seed confirmation and unchanged catalog/ledger after qualification. Atomic seed creates exactly two synthetic workspaces, passwordless owner identities/memberships, scoped settings, published synthetic projects/homepage placements and reserved `.example.test` public mappings. Unknown/non-fixture data blocks without repair. Repeat execution validates identities and footprint before using existing fixtures.
+
+Qualification bundles actual session verification, public host resolution, settings readers, curation snapshot and homepage PATCH route with generated Prisma/PrismaPg. Only Next request context/cache/navigation and Prisma construction are adapted. It tests both tenant directions, foreign404, parallel200+409, stale409, authoritative revision readback, unknown-host rejection, anonymous403 and unchanged other-tenant placement. No provider adapters are invoked. This is route/service execution, not hosted HTTP/browser or the deployed PrismaNeon transport.
+
+Verification: implementation under review; fresh isolated PostgreSQL CI and final evidence pending. Existing bootstrap workflow and all application/release guards unchanged. New manual workflow is NOT yet registered on default branch or dispatched. Live tenant seed and hosted qualification remain outstanding. Registration is a separate narrowly scoped owner-reviewed action; do not merge the V2 stack. No staging build-setting approval is requested yet because hosted admission is not ready. Packet16 OPEN; no Packet17.
+
+
+
+## Packet 16: authenticated empty Neon baseline, execution blocked (September 20, 2026)
+
+**INCOMPLETE; staging remains unmodified.** Fresh #322 base `ba964b856614ce9d4279a99fb5e4c83cd0da5c3c`; main unchanged72dab345. Neon connector now authenticates project `calm-shape-83359560` / branch `br-young-math-arj7l4r3` / database `helios_v2_staging`, aws-us-west-2, PostgreSQL16.15. SQL proves zero user/public relations, absent ledger, zero public functions/types, extra schemas/extensions/event triggers. This closes the database identity/empty-observation gap only.
+
+Direct PostgreSQL endpoint DNS fails in this runtime, while connector SQL works. Actual #318 artifact generation also stops on Prisma engine download DNS (binaries.prisma.sh EAI_AGAIN). No migration/seed/build/deployment attempted, no secrets persisted, no schema/ledger changed.106 immutable SQL files/directory membership and source schema/manifest checksums pass. No fresh full suite or CI: checkpoint is documentation only, with whitespace verification. Full evidence, precise runner prerequisite and safe resume sequence: `docs/helios-studio-v2-neon-staging-bootstrap.md`.
+
+Existing #318/#319 loopback-only helpers and hosted guard are preserved. Resume this packet with an approved network-capable staging execution environment and a reviewed exact-target executor; do not bypass guards or substitute connector SQL for Prisma ledger handling. Vercel target separation remains owner-reported, provider provenance/hosted admission remains open. All bootstrap/postflight, real Neon application isolation/build, hosted browser and rollback gates remain outstanding. No next packet started. Final PR/head recorded on the canonical claim.
+
+## Packet 15: external access enablement blocked, September 19, 2026
+
+**Outcome B. No application/test/adapter changes.** Base #321 `a61bb726f8c894abf1e754f4dbf68cbc714ec36d`; main `72dab34568cb6885f3e93b5ed9db38edca156835`. Fresh authenticated discovery again sees Helios team `team_H79eaUfq9xMqcbf34ZCtwwn9` but returns no projects. Direct lookup of the known `heliosremedia` slug fails in the connector with `INVALID_ARGUMENT`: exposed `projectId` is not mapped to required `idOrName`. One retry supplying the reported field also fails. This is a connector invocation defect before provider lookup, NOT a Vercel404 or proof of permission denial.
+
+Authenticated GitHub status for pinned main reports a successful Vercel integration pointing to `https://vercel.com/helios-real-estate-media/heliosremedia/CcUjMpNxnxE9Vcdc8TMyYsQpEcCz`. It establishes historical integration linkage under the expected team/project slug, not a safe preview target or provider-authoritative deployment identity. No alternate-account or missing-project conclusion is justified. Team pagination remains unavailable through the exposed tool.
+
+No Vercel CLI, VERCEL_TOKEN, HELIOS_READONLY_VERCEL_TOKEN, NEON_API_KEY, DATABASE_URL or DIRECT_URL is present (booleans only checked). No Neon connector or project-creation tool is available. App provider is Neon via PrismaNeon, with DIRECT_URL for Prisma CLI; actual branch/DB ownership remains unknown. No safe application/DB target, authenticated deployment/DB provenance, upload correlation, live qualification/deployment/rollback is established.
+
+Account-owner action: confirm the intended non-production project and owning team in Vercel; repair/re-authorize project visibility or provide read-only API access through secure configuration to bypass the broken connector lookup; identify or separately provision an EMPTY isolated non-production Neon project/database and grant metadata plus schema/ledger read access. Do not clone production data/secrets or enable Git auto-deployment. Required non-secret handoff and verification criteria are in the Packet15 addendum to `docs/helios-studio-v2-hosted-access.md`.
+
+Documentation-only PR on #321; whitespace/diff reviewed. No new tests or full-suite rerun warranted; inherited968/968 and exact #321 CI35424094342/35424094287 remain the last code verification, not new hosted evidence. Final PR/head recorded in canonical claim. Production ON HOLD. Packet15 complete as B; live gate OPEN. No further repository implementation can grant external access. Next packet only after owner action: authenticated read-only qualification and build-upload correlation. Not started.
+
+
 ## Packet 14: hosted access inventory, September 19, 2026
 
 Outcome B: **safe hosted target NOT identified; live access gate remains OPEN**. Branch `codex/v2-hosted-access-inventory`, base #320 `codex/v2-hosted-artifact-provenance` at `1a09a9546aab41e96db0b65e22c9eb52d1b49a19`. Main unchanged72dab345. Production ON HOLD.
@@ -1082,3 +1595,28 @@ Reproduced ignored zero-count reorder/layout writes, obsolete service preparatio
 Isolated actual-route/PGlite and component checks cover completed transfers, admission changes, null/legacy ownership, stale parent receipts, upload/save/order/removal and context change. Hosted independent-connection concurrency is not claimed. Final regression and CI evidence pending. Production ON HOLD. Stop after Packet 6. Recommended next packet only: private homepage section-layout preference browser recovery inventory and executable baseline.
 
 Local final Packet 6 verification passed **835/835 tests**, Prisma generation without migration, non-incremental TypeScript, scoped lint, fixture bundling and whitespace. Existing registry identity-guard migration tests already prevent asset workspace transfer. No local or hosted browser claim is made from bundling. Fresh exact-head CI and synthetic actual-component Chromium are required before closing the packet.
+
+## Packet 16 resumed: manual staging executor, not yet live
+
+On #323, added an exact-target workflow_dispatch executor with independently checked environment owner approval/branch/no-bypass policy, authenticated Neon project/branch/endpoint/database matching, SHA and #318/#319 artifact/reference admission, actual Prisma deploy/postflight/no-op repeat and safe receipt. Existing loopback/hosted guards remain intact.26 targeted executable policy/CLI tests pass. Credential-free contract CI added; exact final evidence recorded on PR/claim. No live bootstrap claimed.
+
+GitHub status and vercel[bot] comment prove both linked projects reacted to #323 head3453f854; both reported failure. This is Git integration fan-out, not proof of production promotion. Staging deployment lookup returned404; failure reasons and provider target metadata remain unknown. No production settings changed.
+
+External execution gates: protected GitHub Environment and staging-only secrets; workflow registration on default branch (requires separately approved workflow-only change, not stack merge); authorized manual dispatch capability. Current tools cannot configure these or dispatch. Details and exact names in the staging-bootstrap runbook. Packet16 remains OPEN; no Packet17 work, application release or deployment.
+
+## Packet 16: September 25 receipt redaction correction
+
+Protected run36175397618 reached READY on candidate2999055, then failed closed
+at `CHECK_BUILD_RECEIPT_CHECKSUM`. Downloaded artifact10882409380 matched its
+GitHub archive digest and records all cleanup phases plus unchanged schema and
+ledger. Authenticated Vercel UI independently confirmed staging `exit 0` and
+only the two original database variables. The build log shows the public
+candidate SHA and project ID redacted inside the checksummed receipt.
+
+The executor now classifies only those two fixed public identities as plain
+configuration. Credentials retain their existing encrypted type. Receipt
+validation, candidate and regression-run pins, Preview targeting, cleanup and
+all admission checks remain unchanged. Local regression passed1533/1533;
+exact-head CI and independent Neon postflight remain pending. See
+`docs/helios-studio-v2-receipt-redaction.md` for reproducible evidence and limits.
+No hosted retry, phase exit, Packet17, merge or production change is claimed.

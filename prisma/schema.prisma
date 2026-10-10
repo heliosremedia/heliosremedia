@@ -1591,6 +1591,10 @@ model CtaPlacement {
 }
 
 model AdminUser {
+  platformLifecycleOperator PlatformLifecycleOperator?
+  platformSupportOperator PlatformSupportOperator?
+  supportGrantsIssued SupportAccessGrant[] @relation("SupportGrantIssuer")
+  supportGrantsRevoked SupportAccessGrant[] @relation("SupportGrantRevoker")
   id String @id @default(cuid())
 
   email                       String             @unique
@@ -1666,6 +1670,7 @@ model AdminUser {
 }
 
 model Workspace {
+  supportAccessGrants SupportAccessGrant[]
   id   String @id @default(cuid())
   name String
   slug String @unique
@@ -1686,6 +1691,9 @@ model Workspace {
   projects                  Project[]
   projectAgents             ProjectAgent[]
   communicationClients      CommunicationClientWorkspace[]
+  marketingPreferences      WorkspaceMarketingPreference[]
+  marketingPreferenceEvents WorkspaceMarketingPreferenceEvent[]
+  marketingPreferenceTokens WorkspaceMarketingPreferenceToken[]
   invitations               AdminInvitation[]
   clientSyncRuns            ClientSyncRun[]
   resendWebhookEvents       ResendWebhookEvent[]
@@ -1720,6 +1728,9 @@ model Workspace {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  lifecycleState WorkspaceLifecycleState @default(ACTIVE)
+  lifecycleRevision Int @default(0)
+  lastReactivatedAt DateTime? @db.Timestamptz(3)
 }
 
 model WorkspaceMembership {
@@ -1899,7 +1910,7 @@ model SocialCampaign {
   internalAiInstructions String?
   generationStatus       String?
   generationError        String?
-  generationRequestId    String?              @unique
+  generationRequestId    String?
 
   sourceProjectId String?
   sourceProject   Project? @relation(fields: [sourceProjectId], references: [id], onDelete: SetNull)
@@ -1923,6 +1934,7 @@ model SocialCampaign {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
+  @@unique([workspaceId, generationRequestId])
   @@index([createdById, updatedAt])
   @@index([workspaceId, updatedAt])
   @@index([workspaceId, status, updatedAt])
@@ -3772,4 +3784,114 @@ model WorkspaceAsset {
 
   @@unique([provider, providerNamespace, providerKey])
   @@index([workspaceId, status, createdAt])
+}
+
+// Company consent is separate from legacy global consent and platform safety.
+enum WorkspaceMarketingPreferenceStatus {
+  UNKNOWN
+  SUBSCRIBED
+  UNSUBSCRIBED
+  PENDING_CONFIRMATION
+}
+
+model WorkspaceMarketingPreference {
+  id              String @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  normalizedEmail String
+  status          WorkspaceMarketingPreferenceStatus @default(UNKNOWN)
+  effectiveAt     DateTime @default(now())
+  source          String
+  reason          String?
+  actorId         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  history         WorkspaceMarketingPreferenceEvent[]
+  tokens          WorkspaceMarketingPreferenceToken[]
+
+  @@unique([workspaceId, normalizedEmail])
+  @@unique([workspaceId, id])
+  @@index([workspaceId, status, effectiveAt])
+}
+
+model WorkspaceMarketingPreferenceEvent {
+  id             String @id @default(cuid())
+  workspaceId    String
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  preferenceId   String
+  preference     WorkspaceMarketingPreference @relation(fields: [workspaceId, preferenceId], references: [workspaceId, id], onDelete: Restrict, onUpdate: Restrict)
+  previousStatus WorkspaceMarketingPreferenceStatus?
+  status         WorkspaceMarketingPreferenceStatus
+  source         String
+  reason         String?
+  actorId        String?
+  createdAt      DateTime @default(now())
+  campaignId     String?
+  messageId      String?
+
+  @@index([workspaceId, preferenceId, createdAt])
+  @@index([workspaceId, campaignId, status], map: "workspace_consent_campaign_status_idx")
+}
+
+model WorkspaceMarketingPreferenceToken {
+  id           String @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  preferenceId String
+  preference   WorkspaceMarketingPreference @relation(fields: [workspaceId, preferenceId], references: [workspaceId, id], onDelete: Restrict, onUpdate: Restrict)
+  tokenHash    String @unique
+  source       String
+  messageId    String?
+  campaignId   String?
+  expiresAt    DateTime
+  lastUsedAt   DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([workspaceId, preferenceId, expiresAt])
+}
+
+// Empty by default. No tenant API may enroll platform operators.
+model PlatformSupportOperator {
+  userId String @id
+  user AdminUser @relation(fields: [userId], references: [id], onDelete: Restrict)
+  enabled Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  grants SupportAccessGrant[]
+}
+
+enum SupportAccessScope {
+  DIAGNOSTICS
+}
+
+model SupportAccessGrant {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  operatorId String
+  operator PlatformSupportOperator @relation(fields: [operatorId], references: [userId], onDelete: Restrict)
+  grantedById String
+  grantedBy AdminUser @relation("SupportGrantIssuer", fields: [grantedById], references: [id], onDelete: Restrict)
+  reason String @db.VarChar(600)
+  scope SupportAccessScope
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
+  revokedById String?
+  revokedBy AdminUser? @relation("SupportGrantRevoker", fields: [revokedById], references: [id], onDelete: Restrict)
+  @@index([workspaceId, createdAt])
+  @@index([operatorId, expiresAt])
+}
+
+// Empty on migration. Tenant/support roles never imply transition authority.
+enum WorkspaceLifecycleState {
+  ACTIVE
+  SUSPENDED
+}
+model PlatformLifecycleOperator {
+  userId String @id
+  user AdminUser @relation(fields: [userId], references: [id], onDelete: Restrict)
+  enabled Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

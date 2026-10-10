@@ -34,7 +34,8 @@ test("every claimed referral launch queues the owned processor", () => {
   assert.doesNotMatch(route, /void processReferralLaunch/);
   assert.match(launch, /CAMPAIGN_LAUNCH_PROCESSOR_STARTED/);
   assert.match(launch, /launchAttemptId: attemptId/);
-  assert.match(launch, /launchLeaseExpiresAt: new Date\(processingStartedAt\.getTime\(\) \+ LEASE_MS\)/);
+  assert.match(launch, /leaseExpiresAt: new Date\(processingStartedAt\.getTime\(\) \+ LEASE_MS\)/);
+  assert.match(launch, /launchLeaseExpiresAt: claim\.leaseExpiresAt/);
   assert.match(launch, /\[referral-launch\] \$\{event\}/);
   assert.match(launch, /Retry Safely will continue from the existing prepared records/);
 });

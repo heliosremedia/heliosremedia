@@ -14,7 +14,7 @@ function fixture() {
   const sendAt = new Date("2027-01-01");
   const blocks = [{ type: "HERO", heading: "Approved heading", body: "Approved body" }];
   const hash = contentHash({ subject: "Approved subject", previewText: "Preview", blocks });
-  const campaign = { id: "campaign", workspaceId: "a", subject: "Approved subject", previewText: "Preview", body: JSON.stringify({ newsletterEditionId: "edition", revisionId: "revision", blocks }), recipients: [{ id: "recipient", clientId: "client", email: "client@example.test", status: "FAILED" }] };
+  const campaign = { id: "campaign", workspaceId: "a", rowVersion: 1, subject: "Approved subject", previewText: "Preview", body: JSON.stringify({ newsletterEditionId: "edition", revisionId: "revision", blocks }), recipients: [{ id: "recipient", clientId: "client", email: "client@example.test", status: "FAILED" }] };
   const delivery = { editionId: "edition", revisionId: "revision", campaignId: "campaign", contentHash: hash, campaign };
   return {
     id: "edition", currentRevisionNumber: 1, rowVersion: 4, intendedSendAt: sendAt, status: "SCHEDULED", createdById: "actor",
@@ -54,7 +54,7 @@ class FakeEmailDeliveryError extends Error {
   constructor(code: string) { super(code); this.code = code; }
 }
 
-function deliveryHarness(row: ReturnType<typeof fixture>, claim = true, denyAt = 0, excludeAt = 0, persistenceFails = false, incompleteReceipt = false, providerError?: Error, prepareFails = false, receiptFails = false) {
+function deliveryHarness(row: ReturnType<typeof fixture>, claim = true, denyAt = 0, excludeAt = 0, persistenceFails = false, incompleteReceipt = false, providerError?: Error, prepareFails = false, receiptFails = false, tokenError?: Error) {
   let recipients = 0;
   let providerCalls = 0;
   let tokens = 0;
@@ -91,7 +91,8 @@ function deliveryHarness(row: ReturnType<typeof fixture>, claim = true, denyAt =
     "@/lib/newsletters/ownership": { requireNewsletterApprovalWorkspace: async () => "a" },
     "@/lib/newsletters/integrity": integrity,
     "@/lib/newsletters/recipients": { resolveEligibleNewsletterRecipients: async () => { recipients++; return { eligible: row.retry.campaign.recipients.filter((_recipient, index) => recipients !== excludeAt || index !== row.retry.campaign.recipients.length - 1).map(recipient => ({ id: recipient.clientId, email: recipient.email, normalizedEmail: recipient.email, displayName: "Client" })) }; } },
-    "@/lib/client-communications/preferences": { createPreferenceToken: async () => { tokens++; return "test-token"; } },
+    "./delivery-campaign": { prepareNewsletterCampaignRetry: async (_tx: unknown, input: { campaignId: string; campaignVersion: number; workspaceId: string; revisionId: string }) => { assert.equal(input.campaignId, "campaign"); assert.equal(input.campaignVersion, 1); assert.equal(input.workspaceId, "a"); assert.equal(input.revisionId, "revision"); } },
+    "@/lib/client-communications/campaign-consent-token": { createCampaignDeliveryPreferenceToken: async (_db: unknown, input: { workspaceId: string; campaignId: string; recipientId: string; expectedCampaignVersion: number; expectedEmail: string }) => { if (tokenError) throw tokenError; assert.equal(input.workspaceId, "a"); assert.equal(input.campaignId, "campaign"); assert.equal(input.expectedCampaignVersion, 1); assert.ok(row.retry.campaign.recipients.some(recipient => recipient.id === input.recipientId && recipient.email === input.expectedEmail)); tokens++; return "test-token"; } },
     "@/lib/site": { getSiteUrl: () => "https://company-a.example" },
     "@/lib/newsletters/email-renderer": { renderNewsletterEmail: ({ blocks }: { blocks: { body: string }[] }) => { assert.equal(blocks[0].body, "Approved body"); return "<p>Approved body</p>"; } },
     "@/lib/client-communications/email": { EmailDeliveryError: FakeEmailDeliveryError, sendCampaignBatch: async (input: { campaignId: string; revisionKey: string; messages: { subject: string }[] }) => {
@@ -114,7 +115,7 @@ function deliveryHarness(row: ReturnType<typeof fixture>, claim = true, denyAt =
     } },
   };
   runInNewContext(ts.transpileModule(readFileSync(new URL("./delivery.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, {
-    exports, Date, Error, console, require: (id: string) => { assert.ok(id in modules, id); return modules[id]; },
+    exports, Date, Error, console, process: { env: { AUTH_SECRET: "synthetic-newsletter-signing-secret-only" } }, require: (id: string) => { assert.ok(id in modules, id); return modules[id]; },
   });
   return { send: () => exports.deliverApprovedNewsletter!("edition", { kind: "ADMIN", actor }), attempts: () => attempts, skipped: () => skipped, markedFailed: () => markedFailed, counts: () => ({ recipients, providerCalls, tokens, creations }) };
 }
@@ -215,4 +216,11 @@ test("failed receipt persistence preserves prepared evidence and holds the editi
   const h = deliveryHarness(fixture(), true, 0, 0, false, false, undefined, false, true);
   await assert.rejects(h.send(), /RECONCILIATION_REQUIRED/);
   assert.equal(h.counts().providerCalls, 1); assert.equal(h.markedFailed(), 0); assert.deepEqual(h.attempts(), ["PREPARED"]);
+});
+
+
+test("newsletter token protocol conflict stops before a provider attempt", async () => {
+  const h = deliveryHarness(fixture(), true, 0, 0, false, false, undefined, false, false, new Error("CONSENT_TOKEN_LEGACY_RETRY_REVIEW_REQUIRED"));
+  assert.equal((await h.send()).status, "SEND_FAILED");
+  assert.equal(h.counts().providerCalls, 0); assert.equal(h.counts().tokens, 0); assert.deepEqual(h.attempts(), []);
 });

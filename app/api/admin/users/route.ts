@@ -1,3 +1,4 @@
+import { requireLockedWorkspaceAdministrator } from "@/lib/workspace-write-access";
 import { checkLockedAccountMutation } from "@/lib/workspace-account-mutation";
 import { tenantContextEnabled } from "@/lib/workspace-context-core";
 import { updateCompatibilityMembership } from "@/lib/workspace-membership-lifecycle";
@@ -31,9 +32,14 @@ export async function POST(request: Request) {
   if (role === "OWNER" && session.role !== "OWNER") return NextResponse.json({ success: false, error: "Only an owner can invite another owner." }, { status: 403 });
   const existing = await prisma.adminUser.findUnique({ where: { email }, select: { id: true } });
   if (existing) return NextResponse.json({ success: false, error: "An account already uses this email." }, { status: 409 });
-  await prisma.adminInvitation.updateMany({ where: { workspaceId: session.workspaceId, email, acceptedAt: null, revokedAt: null }, data: { revokedAt: new Date() } });
   const token = createInvitationToken();
-  const invitation = await prisma.adminInvitation.create({ data: { email, displayName, title: title || null, role, tokenHash: hashInvitationToken(token), createdById: session.userId, workspaceId: session.workspaceId, expiresAt: new Date(Date.now() + 7 * 86400000) } });
+  const invitation = await prisma.$transaction(async tx => {
+    const access = await requireLockedWorkspaceAdministrator(tx, session);
+    if (role === "OWNER" && access.role !== "OWNER") throw new Error("WORKSPACE_WRITE_FORBIDDEN");
+    await tx.adminInvitation.updateMany({ where: { workspaceId: session.workspaceId, email, acceptedAt: null, revokedAt: null }, data: { revokedAt: new Date() } });
+    return tx.adminInvitation.create({ data: { email, displayName, title: title || null, role, tokenHash: hashInvitationToken(token), createdById: session.userId, workspaceId: session.workspaceId, expiresAt: new Date(Date.now() + 7 * 86400000) } });
+  }).catch(error => { if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return null; throw error; });
+  if (!invitation) return NextResponse.json({ success: false, error: "Workspace access is unavailable." }, { status: 403 });
   await recordAuditEvent({ workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: "USER_INVITED", entityType: "AdminInvitation", entityId: invitation.id, summary: `${email} invited as ${role}.` });
   revalidatePath("/admin/users");
   return NextResponse.json({ success: true, invitationUrl: getAbsoluteUrl(`/accept-invite?token=${encodeURIComponent(token)}`) }, { status: 201 });
@@ -107,9 +113,16 @@ export async function DELETE(request: Request) {
   if (!session) return NextResponse.json({ success: false, error: "Owner or administrator access is required." }, { status: 403 });
   const body = await request.json() as Record<string, unknown>;
   const invitationId = typeof body.invitationId === "string" ? body.invitationId : "";
-  const invitation = await prisma.adminInvitation.findFirst({ where: { id: invitationId, workspaceId: session.workspaceId, acceptedAt: null, revokedAt: null } });
+  const outcome = await prisma.$transaction(async tx => {
+    await requireLockedWorkspaceAdministrator(tx, session);
+    const invitation = await tx.adminInvitation.findFirst({ where: { id: invitationId, workspaceId: session.workspaceId, acceptedAt: null, revokedAt: null } });
+    if (!invitation) return { invitation: null, denied: false };
+    await tx.adminInvitation.update({ where: { id: invitation.id, workspaceId: session.workspaceId }, data: { revokedAt: new Date() } });
+    return { invitation, denied: false };
+  }).catch(error => { if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return { invitation: null, denied: true }; throw error; });
+  if (outcome.denied) return NextResponse.json({ success: false, error: "Workspace access is unavailable." }, { status: 403 });
+  const invitation = outcome.invitation;
   if (!invitation) return NextResponse.json({ success: false, error: "Invitation not found." }, { status: 404 });
-  await prisma.adminInvitation.update({ where: { id: invitation.id }, data: { revokedAt: new Date() } });
   await recordAuditEvent({ workspaceId: session.workspaceId, actorId: session.userId, actorEmail: session.email, action: "USER_INVITATION_REVOKED", entityType: "AdminInvitation", entityId: invitation.id, summary: `${invitation.email} invitation revoked.` });
   revalidatePath("/admin/users");
   return NextResponse.json({ success: true });

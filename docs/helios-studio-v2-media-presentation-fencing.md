@@ -1,0 +1,9 @@
+# Packet 67: Hero and social-image mutation fencing
+
+Hero selection read media before its transaction; social-image selection and clearing wrote the project after separate authorization/media reads. Both actions now lock current editor/session authority and the owned project. Hero selection locks project media in stable ID order and reads its current collection inside the transaction. Social selection locks the chosen media before checking its current image type, storage key, visibility and MIME type; clearing uses the same current-access fence.
+
+Hero ordering, collection hero and photography project hero commit atomically. Responses use the selected transaction result. Existing eligibility rules, role thresholds and social automatic-preview clearing remain unchanged. This does not invent new policy for archived services or unchanged asset references. Asset lifecycle and hosted delivery remain separate boundaries.
+
+Both-company HTTP/PostgreSQL qualification includes foreign selection rejection and twenty-two observed database-wait races: revoked/demoted/stale sessions for hero, social set and social clear, plus media-key removal and media visibility changes. Denied requests must leave project, media and hero state unchanged after the competing mutation. A temporary project-update trigger proves failure rolls back earlier hero/order writes and preserves social set/clear state. Concurrent hero selections must leave the project hero, collection hero and first position coherent. Owned social selection and automatic clearing succeed in both directions; foreign company rows remain unchanged.
+
+No provider requests, schema migrations, credentials or production actions. Trigger/function cleanup and schema/index/access postflight remain gates. Isolated Next/PostgreSQL evidence does not establish hosted, CDN, Neon or Helios production parity. DELETE remains separate work. Phase 1 remains open; production ON HOLD.

@@ -46,3 +46,5 @@ next-env.d.ts
 # Isolated release receipts are uploaded by CI, never source inputs.
 /release-evidence/
 /.packet12-context.json
+/.packet16-tenant-driver.mjs
+/staging-evidence/

@@ -6,7 +6,7 @@ import { requestNewsletterJobHealth, type NewsletterJobHealth } from "./job-heal
 const labels = { PENDING: "Queued", ACTIVE: "Active claim", REVIEW: "Claim needs review", FAILED: "Failed" };
 const types = { GENERATE: "Generation", SEND: "Delivery", MISSED_APPROVAL: "Approval deadline", NOTIFY: "Notification" };
 
-export default function NewsletterJobHealthPanel() {
+export default function NewsletterJobHealthPanel({ source = "newsletter" }: { source?: "newsletter" | "studio" }) {
   const [health, setHealth] = useState<NewsletterJobHealth | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -17,7 +17,7 @@ export default function NewsletterJobHealthPanel() {
     const controller = new AbortController(); pending.current = controller;
     setBusy(true); setError(""); setHealth(null);
     try {
-      const result = await requestNewsletterJobHealth(controller.signal);
+      const result = await requestNewsletterJobHealth(controller.signal, fetch, source);
       if (!controller.signal.aborted) setHealth(result);
     } catch (failure) {
       if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : "Job status is unavailable. Refresh to try again.");
@@ -34,15 +34,17 @@ export default function NewsletterJobHealthPanel() {
     </div>
     <p role="status" aria-live="polite" className="text-sm text-white/75">{error || (busy ? "Loading job status." : health ? "Job status loaded." : "Load job status to inspect current work.")}</p>
     {health && <>
+      {health.editionReviewAvailable === false && <p className="rounded-lg border border-amber-200/20 p-3 text-sm text-amber-100">Status review is available. Edition actions remain unavailable while Newsletter Studio is being qualified for multiple workspaces. No work is restarted by this view.</p>}
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">{([['pending', 'Queued'], ['active', 'Active claims'], ['review', 'Claims needing review'], ['failed', 'Failed']] as const).map(([key, label]) => <div key={key} className="rounded-xl border border-white/10 p-3"><dt className="text-xs text-white/60">{label}</dt><dd className="mt-2 text-2xl text-white">{health.counts[key]}</dd></div>)}</dl>
       <p className="text-xs text-white/60">Snapshot: <time dateTime={health.observedAt}>{new Date(health.observedAt).toLocaleString()}</time>. An active lease does not prove a worker is still running. Expired or missing leases require review, not an automatic retry.</p>
       {health.truncated && <p className="text-sm text-white/70">Showing the 50 most recently updated unfinished jobs. Totals include all matching jobs.</p>}
       {health.jobs.length === 0 ? <p className="text-sm text-white/70">No queued, claimed or failed jobs were found.</p> : <ul className="space-y-3">{health.jobs.map(job => <li key={job.id} className="space-y-2 rounded-xl border border-white/10 p-4 text-sm text-white/70">
         <div className="flex flex-wrap justify-between gap-2"><h3 className="min-w-0 break-words font-medium text-white">{job.editionLabel}</h3><span>{labels[job.state]}</span></div>
         <p>{types[job.type]} · Attempts: {job.attempts} · Series: {job.seriesStatus.toLowerCase()} · Edition: {job.editionStatus.replaceAll("_", " ").toLowerCase()}</p>
+        {job.heldForReactivation && <p className="rounded-lg border border-amber-200/20 bg-amber-200/5 p-3 text-amber-100"><strong>Held after reactivation.</strong> This due time passed before the workspace returned. Review the edition and explicitly reschedule or reapprove it. Uncertain provider outcomes still require delivery review; this view cannot restart work.</p>}
         {job.type === "NOTIFY" && <p>This job type has no worker implementation and remains held for review.</p>}
         <p>Due: <time dateTime={job.dueAt}>{new Date(job.dueAt).toLocaleString()}</time></p>
-        <a className="inline-block underline underline-offset-4 focus-visible:outline" href={`/admin/newsletter-studio/editions/${encodeURIComponent(job.editionId)}${job.type === "GENERATE" ? "#generation-recovery-title" : job.type === "SEND" ? "#delivery-review-title" : ""}`}>Open edition review<span className="sr-only"> for {job.editionLabel}</span></a>
+        {health.editionReviewAvailable !== false && <a className="inline-block underline underline-offset-4 focus-visible:outline" href={`/admin/newsletter-studio/editions/${encodeURIComponent(job.editionId)}${job.type === "GENERATE" ? "#generation-recovery-title" : job.type === "SEND" ? "#delivery-review-title" : ""}`}>Open edition review<span className="sr-only"> for {job.editionLabel}</span></a>}
       </li>)}</ul>}
     </>}
   </section>;

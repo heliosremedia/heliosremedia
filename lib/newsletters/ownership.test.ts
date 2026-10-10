@@ -92,12 +92,14 @@ test("actual delivery aborts a foreign approval before recipients, tokens or pro
   const modules: Record<string, unknown> = {
     "@/lib/client-communications/providers/resend-core": {},
     "./delivery-approval": deliveryApproval, "./delivery-access": {},
+    "./delivery-campaign": { prepareNewsletterCampaignRetry: async () => { assert.fail("Foreign approval reached campaign retry"); } },
+    "@/lib/client-communications/campaign-consent-token": { createCampaignDeliveryPreferenceToken: async () => { assert.fail("Foreign approval reached token issuance"); } },
     "server-only": {}, "node:crypto": {}, "./recipient-identity": {}, "@/lib/client-communications/campaign-ownership": {},
     "@/lib/newsletters/ownership": { requireNewsletterApprovalWorkspace: async () => { throw new Error("Foreign approval"); } },
     "@/lib/prisma": { prisma: { newsletterEdition: { findUnique: async () => ({ id: "edition", currentRevisionNumber: 1, intendedSendAt: new Date("2027-01-01"), status: "SCHEDULED", series: { status: "ACTIVE", workspaceId: "a" }, approvedRevision: { id: "revision", editionId: "edition", revisionNumber: 1 }, approvedRevisionId: "revision", approvals: [{ editionId: "edition", revisionId: "revision", approvedSendAt: new Date("2027-01-01"), revokedAt: null, recipientSelectionSnapshot: { mode: "ALL", workspaceId: "b" } }] }) } } },
     "@/lib/client-communications/email": { sendCampaignBatch: async () => { providerCalls++; } },
     "@/lib/newsletters/email-renderer": {}, "@/lib/newsletters/recipients": {},
-    "@/lib/client-communications/preferences": {}, "@/lib/site": {}, "@/lib/newsletters/integrity": {},
+    "@/lib/site": {}, "@/lib/newsletters/integrity": {},
   };
   runInNewContext(ts.transpileModule(readFileSync(new URL("./delivery.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, console, require: (id: string) => {
     if (!(id in modules)) throw new Error(`Unexpected dependency ${id}`);

@@ -20,8 +20,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Upload a JPG, PNG, WebP, or AVIF image under 25 MB." }, { status: 400 });
     }
     const key = createAboutPageImageKey(session.workspaceId, kind, fileType);
-    return NextResponse.json({ success: true, upload: { key, uploadUrl: await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, kind: "about", key, byteSize: fileSize }, () => createPresignedUploadUrl(key, fileType)), publicUrl: getPublicAssetUrl(key), contentType: fileType } });
+    return NextResponse.json({ success: true, upload: { key, uploadUrl: await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, sessionVersion: session.sessionVersion, kind: "about", key, byteSize: fileSize }, () => createPresignedUploadUrl(key, fileType)), publicUrl: getPublicAssetUrl(key), contentType: fileType } });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Upload access is no longer available." }, { status: 403 });
     console.error("Unable to prepare About image upload:", error);
     return NextResponse.json({ success: false, error: "The About image upload could not be prepared." }, { status: 500 });
   }

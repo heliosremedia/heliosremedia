@@ -133,7 +133,7 @@ test("referral delivery rejects foreign client relationships before consent chec
     "server-only": {}, "@/lib/blog-ownership": scopeModule,
     "./ownership": { legacyReferralExecutionWorkspace: async () => "a" },
     "@/lib/prisma": { prisma: { referralCommunication: { findMany: async () => [communication] } } },
-    "@/lib/client-communications/email": {}, "@/lib/client-communications/preferences": {}, "@/lib/site": {}, "./operations": {}, "./state-machine": {},
+    "@/lib/client-communications/email": {}, "@/lib/client-communications/delivery-consent": {}, "@/lib/site": {}, "./operations": {}, "./state-machine": {},
   });
   const result = await api.processReferralCommunications();
   assert.equal(result.skipped, 1); assert.equal(result.claimed, 0); assert.equal(result.sent, 0);
@@ -153,7 +153,7 @@ test("owned legacy referral delivery retains provider behavior and rechecks appr
     "@/lib/client-communications/email": { sendCampaignBatch: async (input: { source: string; messages: Array<{ to: string }> }) => {
       assert.equal(input.source, "referral"); assert.equal(input.messages[0].to, "test@example.test"); sent++; return [{ id: "mock-provider-id" }];
     } },
-    "@/lib/client-communications/preferences": { addressIsMarketingEligible: async () => true }, "@/lib/site": {},
+    "@/lib/client-communications/delivery-consent": { workspaceAddressIsMarketingEligible: async (_db: unknown, workspaceId: string, email: string) => { assert.equal(workspaceId, "a"); assert.equal(email, "test@example.test"); return true; } }, "@/lib/site": {},
     "./operations": { referralScheduleIsRunnable: () => true }, "./state-machine": { campaignCanExecute: () => true },
     "@/lib/prisma": { prisma: {
       referralCommunication: {
@@ -175,7 +175,7 @@ test("referral preparation rejects a foreign approval snapshot before claiming o
   const api = load<{ processReferralLaunch: (id: string, attempt: string) => Promise<unknown> }>("./referrals/launch.ts", {
     "server-only": {}, "node:crypto": crypto, "@/lib/blog-ownership": scopeModule,
     "./ownership": { legacyReferralExecutionWorkspace: async () => "a" },
-    "@/app/generated/prisma/client": {}, "@/lib/audit": {}, "@/lib/site": {}, "@/lib/client-communications/preferences": {}, "./email-renderer": {}, "./tokens": {}, "./launch-contract": {},
+    "@/app/generated/prisma/client": {}, "@/lib/audit": {}, "@/lib/site": {}, "@/lib/client-communications/preferences": {}, "./email-renderer": {}, "./tokens": {}, "./launch-contract": {}, "./preparation-claim": {}, "./preparation-consent": {},
     "@/lib/prisma": { prisma: { referralCampaign: { findUnique: async () => ({ workspaceId: "a", status: "LAUNCHING", launchAttemptId: "attempt", approvedRevision: { snapshot: { workspaceId: "b" } } }) } } },
   });
   assert.equal(await api.processReferralLaunch("campaign-a", "attempt"), null);

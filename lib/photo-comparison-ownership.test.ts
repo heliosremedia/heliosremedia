@@ -76,7 +76,9 @@ test("photo page handler scopes replacement, rejects foreign images and conflict
     "@/lib/auth/session": { getAdminSession: async () => ({ role, workspaceId: "a" }) },
     "@/lib/photo-comparison": { ...base, getPhotoComparisonPage: async (workspaceId: string) => { assert.equal(workspaceId, "a"); return existing; } },
     "@/lib/photo-comparison-storage": storage, "@/lib/r2-upload": { getPublicAssetUrl: publicUrl },
-    "@/lib/workspace-brand-assets": { verifyRegisteredBrandImage: async ({ workspaceId }: { workspaceId: string }) => { assert.equal(workspaceId, "a"); verifies++; } },
+    "@/lib/workspace-write-access": { requireLockedWorkspaceEditor: async () => {} },
+    "@/lib/workspace-context-core": { tenantContextEnabled: () => true },
+    "@/lib/workspace-brand-assets": { lockRegisteredBrandImage: async () => {}, verifyRegisteredBrandImage: async ({ workspaceId }: { workspaceId: string }) => { assert.equal(workspaceId, "a"); verifies++; } },
     "@/lib/prisma": { prisma: { $transaction: (fn: (client: typeof tx) => Promise<unknown>) => fn(tx) } },
   });
   const call = (patch: Record<string, unknown> = {}) => api.PATCH(new Request("https://example.test/api", { method: "PATCH", body: JSON.stringify({ ...existing, workspaceId: "b", ...patch }) }));

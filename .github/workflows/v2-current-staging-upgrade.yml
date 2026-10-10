@@ -1,0 +1,48 @@
+name: V2 current staging upgrade rehearsal
+on:
+  push:
+    branches: ['codex/v2-current-staging-upgrade']
+permissions:
+  contents: read
+concurrency:
+  group: current-staging-upgrade-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  rehearsal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16@sha256:f1c3376c26f2609ab9f29f71f824103fe2fcd8ee0346485cb6122a4f93df6f94
+        env:
+          POSTGRES_USER: helios_rehearsal
+          POSTGRES_PASSWORD: synthetic_only
+          POSTGRES_DB: packet11_control
+        ports: ['55439:5432']
+        options: >-
+          --health-cmd "pg_isready -U helios_rehearsal -d packet11_control"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      STUDIO_STAGING_UPGRADE: isolated-only
+      PACKET11_REHEARSAL: isolated-only
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Fetch immutable baseline and last hosted source
+        run: |
+          git fetch --depth 1 origin 72dab34568cb6885f3e93b5ed9db38edca156835
+          git fetch --depth 1 origin 2999055b2b59467fcfef446c33a47212e72d4712
+      - run: npm ci --ignore-scripts
+      - name: Rehearse six current migrations on the hosted baseline
+        run: node scripts/rehearsal/staging-upgrade/run.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: current-staging-upgrade-${{ github.sha }}
+          path: staging-evidence/current-upgrade.json
+          if-no-files-found: error

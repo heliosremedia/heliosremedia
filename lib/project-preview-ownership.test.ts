@@ -25,17 +25,18 @@ test("preview creation and revocation require editor access and the project comp
       assert.equal(projectId, "target"); assert.equal(workspaceId, "a"); return own ? [{ id: projectId }] : [];
     },
     project: { findFirst: async ({ where }: { where: { workspaceId: string } }) => { assert.equal(where.workspaceId, "a"); return { slug: "listing", title: "Listing" }; } },
-    projectPreviewLink: { create: async ({ data }: { data: { tokenHash: string } }) => { assert.equal(data.tokenHash, "hash"); created++; return { id: "preview" }; } },
+    projectPreviewLink: { create: async ({ data }: { data: { tokenHash: string } }) => { assert.equal(data.tokenHash, "hash"); created++; return { id: "preview" }; },
+      updateMany: async ({ where }: { where: { project: { workspaceId: string }; projectId: string } }) => {
+        assert.equal(where.project.workspaceId, "a"); assert.equal(where.projectId, "target"); return { count: own ? 1 : 0 };
+      } },
   };
   const api = load<Record<"POST" | "DELETE", (request: Request, context: { params: Promise<{ projectId: string }> }) => Promise<Response>>>("../app/api/admin/projects/[projectId]/previews/route.ts", {
     "next/cache": { revalidatePath() {} }, "next/server": { NextResponse: Response },
     "@/lib/auth/session": { getAdminSession: async () => ({ role, workspaceId: "a", userId: "actor", email: "actor@example.test" }) },
     "@/lib/audit": { recordAuditEvent: async () => { audits++; } },
+    "@/lib/workspace-write-access": { requireLockedWorkspaceEditor: async () => {} },
     "@/lib/prisma": { prisma: {
       $transaction: (fn: (client: typeof tx) => Promise<unknown>) => fn(tx),
-      projectPreviewLink: { updateMany: async ({ where }: { where: { project: { workspaceId: string }; projectId: string } }) => {
-        assert.equal(where.project.workspaceId, "a"); assert.equal(where.projectId, "target"); return { count: own ? 1 : 0 };
-      } },
     } },
     "@/lib/project-preview": { createPreviewToken: () => "secret-token", hashPreviewToken: () => "hash" },
     "@/lib/project-preview-url": { getWorkspacePreviewUrl: async (workspaceId: string, path: string) => { assert.equal(workspaceId, "a"); return `https://a.example.test${path}`; } },
@@ -103,12 +104,10 @@ test("media mutation permissions and scoped deletion retain unverified storage r
   let role = "VIEWER";
   let own = false;
   let deletes = 0;
-  const api = load<Record<"POST" | "PATCH" | "DELETE", (request: Request, context: { params: Promise<{ projectId: string }> }) => Promise<Response>>>("../app/api/admin/projects/[projectId]/media/route.ts", {
-    "@aws-sdk/client-s3": {}, "next/cache": {}, "next/server": { NextResponse: Response },
-    "@/lib/workspace-assets": {}, "@/lib/media-collections": {}, "@/lib/cloudflare-stream": {}, "@/lib/external-media": {},
-    "@/lib/r2": {}, "@/lib/r2-upload": {}, "@/lib/service-media": {}, "@/lib/project-media-upload": {},
-    "@/lib/auth/session": { getAdminSession: async () => ({ role, workspaceId: "a" }) },
-    "@/lib/prisma": { prisma: { media: {
+  const tx = {
+    $queryRaw: async () => [],
+    project: { findFirst: async ({ where }: { where: { workspaceId: string } }) => { assert.equal(where.workspaceId, "a"); return { id: "target" }; } },
+    media: {
       findFirst: async ({ where }: { where: { project: { workspaceId: string } } }) => {
         assert.equal(where.project.workspaceId, "a");
         return own ? { id: "media", storageKey: "workspaces/b/foreign.webp", provider: "CLOUDFLARE_STREAM", externalId: "foreign-provider-id" } : null;
@@ -116,7 +115,14 @@ test("media mutation permissions and scoped deletion retain unverified storage r
       deleteMany: async ({ where }: { where: { project: { workspaceId: string }; projectId: string } }) => {
         assert.equal(where.project.workspaceId, "a"); assert.equal(where.projectId, "target"); deletes++; return { count: 1 };
       },
-    } } },
+    }
+  };
+  const api = load<Record<"POST" | "PATCH" | "DELETE", (request: Request, context: { params: Promise<{ projectId: string }> }) => Promise<Response>>>("../app/api/admin/projects/[projectId]/media/route.ts", {
+    "@aws-sdk/client-s3": {}, "next/cache": {}, "next/server": { NextResponse: Response },
+    "@/lib/workspace-write-access": { requireLockedWorkspaceEditor: async () => {} }, "@/lib/workspace-assets": {}, "@/lib/media-collections": {}, "@/lib/cloudflare-stream": {}, "@/lib/external-media": {},
+    "@/lib/r2": {}, "@/lib/r2-upload": {}, "@/lib/service-media": {}, "@/lib/project-media-upload": {},
+    "@/lib/auth/session": { getAdminSession: async () => ({ role, workspaceId: "a" }) },
+    "@/lib/prisma": { prisma: { $transaction: (fn: (client: typeof tx) => Promise<unknown>) => fn(tx) } },
   });
   const call = (method: "POST" | "PATCH" | "DELETE") => api[method](new Request("https://example.test/api", { method, body: JSON.stringify({ mediaId: "media" }) }), { params: Promise.resolve({ projectId: "target" }) });
   for (const method of ["POST", "PATCH", "DELETE"] as const) assert.equal((await call(method)).status, 403);

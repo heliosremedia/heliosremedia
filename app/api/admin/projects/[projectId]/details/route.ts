@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
 import { getAdminSession } from "@/lib/auth/session";
 
 type ProjectDetailsRouteProps = {
@@ -136,8 +137,12 @@ export async function PATCH(
   try {
     const session = await getAdminSession();
     if (!session) return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+    if (!["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return NextResponse.json({ success: false, error: "Editor access is required." }, { status: 403 });
     const { projectId } = await params;
     const body = (await request.json()) as ProjectDetailsBody;
+    if (!body || typeof body !== "object" || Array.isArray(body)) return NextResponse.json({ success: false, error: "Invalid project details." }, { status: 400 });
+    const expectedUpdatedAt = body.expectedUpdatedAt;
+    if (typeof expectedUpdatedAt !== "string" || !Number.isFinite(Date.parse(expectedUpdatedAt)) || new Date(expectedUpdatedAt).toISOString() !== expectedUpdatedAt) return NextResponse.json({ success: false, error: "Reload the project before saving. Its reviewed version is missing.", reloadRequired: true }, { status: 409 });
 
     if (!projectId) {
       return NextResponse.json(
@@ -235,10 +240,7 @@ export async function PATCH(
     }) ?? null;
     if (agents?.some((agent) => !agent.displayNameSnapshot || agent.displayNameSnapshot.length > 160 || (agent.brokerageSnapshot?.length || 0) > 160)) return NextResponse.json({ success: false, error: "Each agent needs a valid display name and brokerage." }, { status: 400 });
     const linkedClientIds = [...new Set(agents?.flatMap((agent) => agent.clientId ? [agent.clientId] : []) ?? [])];
-    if (linkedClientIds.length) {
-      const memberships = await prisma.communicationClientWorkspace.count({ where: { workspaceId: session.workspaceId, clientId: { in: linkedClientIds } } });
-      if (memberships !== linkedClientIds.length) return NextResponse.json({ success: false, error: "One or more selected clients are not available in this workspace." }, { status: 400 });
-    }
+
 
     if (!isValidWebsiteUrl(propertyWebsiteUrl)) {
       return NextResponse.json(
@@ -251,6 +253,16 @@ export async function PATCH(
     }
 
     const project = await prisma.$transaction(async (transaction) => {
+      await requireLockedWorkspaceEditor(transaction, session);
+      const locked = await transaction.$queryRaw<Array<{ id: string }>>`SELECT "id" FROM "Project" WHERE "id"=${projectId} AND "workspaceId"=${session.workspaceId} FOR UPDATE`;
+      if (!locked.length) throw new Error("PROJECT_NOT_FOUND");
+      const current = await transaction.project.findFirst({ where: { id: projectId, workspaceId: session.workspaceId }, select: { updatedAt: true } });
+      if (!current) throw new Error("PROJECT_NOT_FOUND");
+      if (current.updatedAt.toISOString() !== expectedUpdatedAt) throw new Error("PROJECT_STALE");
+      if (linkedClientIds.length) {
+        const memberships = await transaction.communicationClientWorkspace.count({ where: { workspaceId: session.workspaceId, clientId: { in: linkedClientIds } } });
+        if (memberships !== linkedClientIds.length) throw new Error("PROJECT_CLIENT_UNAVAILABLE");
+      }
       if (agents) {
         await transaction.projectAgent.deleteMany({ where: { projectId, workspaceId: session.workspaceId } });
         if (agents.length) await transaction.projectAgent.createMany({ data: agents.map((agent) => ({ ...agent, projectId, workspaceId: session.workspaceId })) });
@@ -289,8 +301,9 @@ export async function PATCH(
       });
 
       return transaction.project.update({
-        where: { id: projectId },
+        where: { id: projectId, workspaceId: session.workspaceId },
         data: {
+          updatedAt: new Date(Math.max(Date.now(), current.updatedAt.getTime() + 1)),
           title,
           slug,
           shortDescription: getOptionalText(body, "shortDescription"),
@@ -307,6 +320,7 @@ export async function PATCH(
           id: true,
           title: true,
           slug: true,
+          updatedAt: true,
           shortDescription: true,
           city: true,
           state: true,
@@ -321,6 +335,12 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, project });
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Editor access is required.", reloadRequired: true }, { status: 403 });
+      if (error.message === "PROJECT_NOT_FOUND") return NextResponse.json({ success: false, error: "Project not found.", reloadRequired: true }, { status: 404 });
+      if (error.message === "PROJECT_STALE") return NextResponse.json({ success: false, error: "This project changed since you opened it. Copy any unsaved text, then reload and review the current details.", reloadRequired: true }, { status: 409 });
+      if (error.message === "PROJECT_CLIENT_UNAVAILABLE") return NextResponse.json({ success: false, error: "One or more selected clients are not available in this workspace." }, { status: 400 });
+    }
     console.error("Unable to update project details:", error);
 
     return NextResponse.json(

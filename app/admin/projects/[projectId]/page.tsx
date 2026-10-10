@@ -14,6 +14,7 @@ import { requireAdminSession } from "@/lib/auth/session";
 import AdminSectionNavigator from "@/app/admin/components/AdminSectionNavigator";
 import { getProjectProgressState } from "@/lib/project-progress";
 import ProjectProgressCard from "./ProjectProgressCard";
+import ProjectSectionLink from "./ProjectSectionLink";
 import FilmComparisonClassifier from "./FilmComparisonClassifier";
 
 export const dynamic = "force-dynamic";
@@ -269,6 +270,7 @@ export default async function ProjectEditorPage({
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <ProjectDetailsEditor
           projectId={project.id}
+          initialUpdatedAt={project.updatedAt.toISOString()}
           statusLabel={formatStatus(project.status)}
           initialAgents={project.agents.map((agent) => ({ ...agent, brokerageSnapshot: agent.brokerageSnapshot || "" }))}
           clientOptions={clientMemberships.map(({ client, brokerage }) => ({ ...client, brokerage }))}
@@ -323,12 +325,12 @@ export default async function ProjectEditorPage({
             </p>
           </div>
 
-          <a
+          <ProjectSectionLink
             href="#project-media"
-            className="mt-5 w-full admin-btn-primary"
+            className="mt-5 w-full admin-btn-primary text-[#171515]! hover:text-[#f5f1ea]!"
           >
             {project._count.media > 0 ? "Manage assets" : "Upload media"}
-          </a>
+          </ProjectSectionLink>
         </aside>
       </div>
       </ProjectEditorSection>
@@ -346,6 +348,7 @@ export default async function ProjectEditorPage({
       </ProjectEditorSection>
 
       <div><ProjectWorkflowManager
+        initialUpdatedAt={project.updatedAt.toISOString()}
         projectId={project.id}
         projectSlug={project.slug}
         initialStatus={project.status}
@@ -366,7 +369,7 @@ export default async function ProjectEditorPage({
           (projectService) => projectService.serviceId,
         )}
       /></div>
-      <div id="project-previews" className="scroll-mt-28"><ProjectPreviewManager projectId={project.id} initialPreviews={project.previewLinks.map((item) => ({ ...item, expiresAt: item.expiresAt.toISOString(), createdAt: item.createdAt.toISOString(), lastUsedAt: item.lastUsedAt?.toISOString() ?? null, revokedAt: item.revokedAt?.toISOString() ?? null }))} /></div>
+      <div id="project-previews" tabIndex={-1} className="scroll-mt-28"><ProjectPreviewManager projectId={project.id} initialPreviews={project.previewLinks.map((item) => ({ ...item, expiresAt: item.expiresAt.toISOString(), createdAt: item.createdAt.toISOString(), lastUsedAt: item.lastUsedAt?.toISOString() ?? null, revokedAt: item.revokedAt?.toISOString() ?? null }))} /></div>
     </div>
   );
 }

@@ -40,8 +40,8 @@ export async function POST(request: Request) {
           defaultPlatforms: platforms,
           frequency: normalizeSeriesFrequency(body.frequency),
           interval: Math.min(52, Math.max(1, Math.trunc(number(body.interval, 1)))),
-          dayOfWeek: Math.min(6, Math.max(0, Math.trunc(number(body.dayOfWeek, startsAt.getDay())))),
-          dayOfMonth: Math.min(31, Math.max(1, Math.trunc(number(body.dayOfMonth, startsAt.getDate())))),
+          dayOfWeek: Math.min(6, Math.max(0, Math.trunc(number(body.dayOfWeek, startsAt.getUTCDay())))),
+          dayOfMonth: Math.min(31, Math.max(1, Math.trunc(number(body.dayOfMonth, startsAt.getUTCDate())))),
           localTime,
           timeZone,
           defaultTone: clean(body.defaultTone, 1000),
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
         },
       });
       const through = new Date(startsAt);
-      through.setMonth(through.getMonth() + 3);
+      through.setUTCMonth(through.getUTCMonth() + 3);
       const generated = await generateSeriesOccurrences({ seriesId: series.id, actor: session, through }, tx);
       return { series: { id: series.id }, generated };
     });

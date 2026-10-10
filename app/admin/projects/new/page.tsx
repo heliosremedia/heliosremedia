@@ -1,8 +1,15 @@
 import Link from "next/link";
+import { randomUUID } from "node:crypto";
+import { notFound } from "next/navigation";
+import { requireAdminSession } from "@/lib/auth/session";
 
 import NewProjectForm from "./NewProjectForm";
 
-export default function NewProjectPage() {
+export const dynamic = "force-dynamic";
+
+export default async function NewProjectPage() {
+  const session = await requireAdminSession();
+  if (!["OWNER", "ADMIN", "EDITOR"].includes(session.role)) notFound();
   return (
     <div className="space-y-7">
       <section className="border-b border-white/[0.08] pb-7">
@@ -42,7 +49,7 @@ export default function NewProjectPage() {
         </p>
       </section>
 
-      <NewProjectForm />
+      <NewProjectForm requestId={randomUUID()} />
     </div>
   );
 }
