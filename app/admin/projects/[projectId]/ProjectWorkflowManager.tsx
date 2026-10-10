@@ -545,6 +545,10 @@ export default function ProjectWorkflowManager({
                 : "Publishing makes this project available to the public portfolio."}
             </p>
 
+            <div className="mt-5 rounded-xl border border-white/15 p-4">
+              <p className="text-sm text-white/75">Review this draft before making it public.</p>
+              <ProjectSectionLink href="#project-previews" className="mt-2 inline-block text-sm underline">Review privately</ProjectSectionLink>
+            </div>
             <div className="mt-5">
               {status === "PUBLISHED" ? (
                 <div className="space-y-3">
