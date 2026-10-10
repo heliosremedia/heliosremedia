@@ -542,11 +542,12 @@ export default function ProjectWorkflowManager({
 
                 <select
                   aria-label="Featured project duration"
-                  value={!featured ? "NONE" : featuredExpiresAt ? "TIMED" : "ALWAYS"}
+                  value={statusReviewRequired ? "REVIEW" : !featured ? "NONE" : featuredExpiresAt ? "TIMED" : "ALWAYS"}
                   onChange={(event) => event.target.value !== "TIMED" && void runWorkflowAction("set-featured", event.target.value)}
                   disabled={isSavingServices || serviceReviewRequired || statusReviewRequired || serviceSelectionChanged || workflowAction !== null || status !== "PUBLISHED"}
                   className="min-h-11 rounded-xl border border-white/10 bg-[#111] px-4 text-sm text-white disabled:opacity-35"
                 >
+                  {statusReviewRequired && <option value="REVIEW" disabled>Review saved placement</option>}
                   <option value="NONE">Not Featured</option>
                   <option value="7_DAYS">7 days</option>
                   <option value="14_DAYS">14 days</option>
@@ -555,7 +556,7 @@ export default function ProjectWorkflowManager({
                   <option value="ALWAYS">Always</option>
                 </select>
               </div>
-              {featured ? <p className="mt-4 text-xs text-white/40">
+              {featured && !statusReviewRequired ? <p className="mt-4 text-xs text-white/65">
                 Started {featuredStartedAt ? new Date(featuredStartedAt).toLocaleString("en-US", { timeZone: "America/Denver", timeZoneName: "short" }) : "before timing records"}
                 {" · "}
                 {featuredExpiresAt
@@ -578,7 +579,7 @@ export default function ProjectWorkflowManager({
                   : "Complete requirements"}
             </h3>
 
-            <p className="mt-3 text-sm leading-6 text-white/40">
+            <p className="mt-3 text-sm leading-6 text-white/65">
               {statusReviewRequired ? "The previous status is unconfirmed until you review the saved project." : status === "PUBLISHED"
                 ? `Published${
                     publishedAt
@@ -598,7 +599,7 @@ export default function ProjectWorkflowManager({
             </div>}
             {statusNotice && <p role="status" className="mt-4 text-sm text-emerald-200">{statusNotice}</p>}
             <div className="mt-5 rounded-xl border border-white/15 p-4">
-              <p className="text-sm text-white/75">Review this draft before making it public.</p>
+              <p className="text-sm text-white/75">Open a private preview to review project content.</p>
               <ProjectSectionLink href="#project-previews" className="mt-2 inline-block text-sm underline">Review privately</ProjectSectionLink>
             </div>
             <div className="mt-5">

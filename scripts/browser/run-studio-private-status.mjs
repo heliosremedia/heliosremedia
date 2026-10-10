@@ -56,6 +56,9 @@ try {
       // An uncertain result must not invite retry or claim the old live status is current.
       await move().click();await page.getByRole('heading',{name:'Review saved status',exact:true}).waitFor();
       assert.equal(await move().isDisabled(),true);assert.equal(await archive().isDisabled(),true);assert.equal(await page.getByLabel('Featured project duration').isDisabled(),true);
+      assert.equal(await page.getByLabel('Featured project duration').inputValue(),'REVIEW');
+      assert.equal(await page.getByText('Always featured',{exact:false}).count(),0);
+      assert.equal(await page.getByText('Review this draft before making it public.',{exact:true}).count(),0);
       assert.equal(await page.getByRole('link',{name:'View live project',exact:true}).count(),0);
       const reload=page.getByRole('button',{name:'Review saved project status',exact:true});await reload.scrollIntoViewIfNeeded();
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
