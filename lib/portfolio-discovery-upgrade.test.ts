@@ -46,7 +46,7 @@ test("featured projects enforce six, require replacement confirmation, and never
   const portfolio = read("../app/(public)/portfolio/page.tsx");
   const manager = read("../app/admin/projects/FeaturedProjectsManager.tsx");
   const endpoint = read("../app/api/admin/projects/featured/route.ts");
-  const workflow = read("../app/api/admin/projects/[projectId]/workflow/route.ts");
+  const workflow = read("../lib/project-publishing.ts");
   assert.match(portfolio, /\.slice\(0, 6\)/);
   assert.match(endpoint, /projectIds\.length > 6/);
   assert.match(endpoint, /new Set\(projectIds\)\.size/);
@@ -55,7 +55,7 @@ test("featured projects enforce six, require replacement confirmation, and never
   assert.match(manager, /strategy=\{rectSortingStrategy\}/);
   assert.match(manager, /dropEdge === "before"/);
   assert.match(manager, /bg-\[var\(--helios-orange\)\]/);
-  assert.match(workflow, /activeFeatured >= 6/);
+  assert.match(workflow, /count >= 6/);
   assert.match(endpoint, /VERCEL_ENV === "preview"/);
   assert.doesNotMatch(endpoint, /\.delete\(|deleteMany/);
   assert.doesNotMatch(endpoint, /status: "ARCHIVED"/);
