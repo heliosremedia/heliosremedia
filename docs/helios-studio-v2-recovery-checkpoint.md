@@ -40,6 +40,14 @@ All listed runtime/screenshot ZIPs were separately downloaded and SHA256 matched
 
 Earlier evidence remains valid: #415 current-schema upgrade rehearsal integrated at `b231046863a341c198e80d65aac139ec82ca95c5`; runs `38060380830`/`38060380786`; artifact `11672438840` SHA256 `ce7cd03e3bacb03f75c246875f321f035feb621faa262733550f2f9d29aa927c`. It proves six existing migrations, retained ledger/private data, current Prisma equivalence and repeated-deploy no-op in disposable PostgreSQL. #416 sign-in/private workflow integrated at `bec844bea9898227fe49cd605ecce1060978ca84`; runs `38060682561`/`38060682637`; artifact `11672254799` SHA256 `e68550273b538fe2f0b033551576b344ca8db799c9f2d6d0f0b02dda5e662223`. Historical detail is retained in the existing progress ledger and Git history.
 
+## Active bounded product work: restore archived projects to draft
+
+Live recovery reconfirmed application `18cbc536b298e213c528664a0fe658c42446b8d1` (documentation #421) and executor `d65a1c98675c123d5b710dbf70cdcd3554f5b869`. No newer manual staging inspection exists. Historical successful suites were not rerun for recovery.
+
+The editor offered publication for archived projects but no private return to draft. The current candidate adds **Restore to draft** using the existing reviewed `unpublish` operation, retaining its administrator/workspace locks, expected revision/status, receipt checks and uncertainty hold. No API, schema or provider behavior changes. Incomplete projects can resume private preparation without satisfying publication requirements.
+
+Qualification is pending: existing two-company runtime now exercises archived-to-draft authority/ownership races, concurrent single winner, stale rejection and retained content; actual-component Chromium adds 390/1440 success, duplicate/pending guards and seven uncertain/rejected outcomes. Do not merge until exact-head CI, independent artifact/hash/screenshot review and final integration-tree comparison pass. Continue hosted inspection when its existing environment gate is available.
+
 ## Active milestone: current hosted owner access
 
 **No current Studio owner-testing URL is qualified.** The next concrete task is to execute the qualified read-only staging inspection, then reconcile its evidence with the current source/schema and owner sign-in requirements.
