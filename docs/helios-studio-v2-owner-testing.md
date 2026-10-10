@@ -8,6 +8,7 @@ Production ON HOLD. This guide describes the next non-production owner-testing p
 - Existing module destinations remain integrated under the V2 shell for eligible administrators.
 - Workspace Media Library search/counts and project media links are scoped to the current company.
 - Private draft creation preserves form state and prevents duplicate drafts on replay.
+- Progress cards and media links open the corresponding setup panel while preserving mounted local fields.
 - Project details and media metadata use reviewed revisions and preserve unsaved drafts during conflict or uncertainty.
 - Read-only newsletter job review distinguishes jobs held after reactivation and links to edition generation/delivery review.
 - Valid unchanged future newsletter schedules survive reactivation; overdue work is held. SEND, GENERATE and approval-deadline admission are checked under workspace locks. Uncertain provider outcomes retain their separate review rules.
@@ -47,3 +48,5 @@ The integrated project-detail editor preserves unsaved text after conflicts and 
 The integrated draft-creation workflow preserves fields on validation/transport failure, pauses uncertain creation for review, and uses a stable owned submission identity to avoid duplicate drafts on replay. Actual Next form submission/replay, two-company permission races and responsive recovery are qualified in isolation.
 
 PR #405 integrates reviewed media metadata saves and draft recovery; exact-head regression, two-company runtime and responsive recovery gates are complete. Next: complete media additions and metadata editing using the existing upload/provider containment. Resolve demonstrated dependencies alongside these workflows. No hosted owner URL or broader rollout is claimed.
+
+Service configuration is the active qualification slice: select owned services, save, follow unmet requirement links, and retain the local selection if a competing edit or uncertain response requires review. The pending change does not qualify public publishing or hosted access.

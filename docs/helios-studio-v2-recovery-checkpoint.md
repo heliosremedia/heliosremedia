@@ -1,12 +1,12 @@
 # Studio V2 live recovery checkpoint
 
-Updated October 9, 2026. Production ON HOLD. Resume from live GitHub, not interrupted local files.
+Updated October 10, 2026. Production ON HOLD. Resume from live GitHub, not interrupted local files.
 
 ## Verified integration
 
 Branch: `codex/v2-hosted-access-owner-action`.
-Latest verified application integration: `668e8b934e941d4c7cbd5ada8c544b2826b3b30f` (PR #405).
-Tree: `cda080ab55887dd1cb8b3e83b78270b3e0d4662e`, independently verified equal to qualified candidate `e419f205ed6686590ac805a29c4e6b6520c3ebde`. Fresh live recovery and post-merge tree verification completed October 9.
+Latest verified application integration: `ca4f96155e5b67dda1dfa7213d7d50bcffe8cd3d` (PR #407).
+Tree: `241ea9c651696629b9e85d546f29889ef3374e1d`, independently verified equal to qualified candidate `fa458f2c923e85cee78e7964e7e92147aaa81da7`. Fresh live recovery and post-merge tree verification completed October 10. Production unchanged.
 
 | Completed capability | PR / integrated SHA | Qualification |
 | --- | --- | --- |
@@ -58,7 +58,11 @@ Draft runtime fixture repairs: 37875726925 incorrectly assumed a progressively e
 
 Documentation integration #406: `c5464b1aca098f5d1b7a8eaa1248623d9239e0e6`, tree `eea56f55dd1835d11196e1baf780cd68209bc796`. Its diff contains only the three existing documentation files; qualified application/workflow/schema code is unchanged from #405. Post-merge tree verified.
 
-**Active navigation slice:** `codex/v2-project-setup-navigation` fixes a demonstrated owner-path defect: progress cards and the Upload media link could scroll to still-collapsed panels. Shared section links now expand existing mounted panels, preserve local drafts, focus below the sticky navigator and keep native modified-link behavior. Initial/hash-history links reveal their matching panel. TypeScript, scoped lint and the existing section contract pass locally; actual-component responsive browser and exact-head runtime/regression plus independent artifact review are required before integration.
+**Integrated PR #407:** progress cards and Upload media links open the existing mounted panels and focus below the sticky navigator; fragment/history navigation preserves local drafts. Regression 37880266103 passed 1,856 tests, TypeScript and all Chromium; runtime 37880266075 passed with successful container cleanup. Runtime artifact 11593714651 SHA256 `0857f1899b78083a790d7b6cbc51dd585fd439a6ce2e2653ca15bd2a756f6846` independently downloaded and parsed: exact candidate, both-company evidence, schema and synthetic access restoration. Screenshot artifact 11593999272 SHA256 `f1e07886ee2fb511ea3da0e056b74a678ae79227ca2f9b63aefb381bf75c1485` independently verified; 390/1440 navigation screenshots inspected with readable controls, expanded target and no clipping. Prospective and post-merge trees match the qualified candidate. No duplicate suite run.
+
+**Active service configuration slice:** `codex/v2-reviewed-project-services`. Inspection found service assignment checks outside its transaction and no reviewed revision. Reuse the current administrator/workspace locks and project revision, retain selected services after conflict or uncertain save, and link incomplete review requirements back to setup. Exact-head regression/runtime, actual-component Chromium and independent evidence remain required before integration. Publishing/status transitions still need separate race/revision qualification before complete owner readiness; no publishing activation is authorized by this checkpoint.
+
+October 10 recovery overhead: one fresh shallow clone, live PR/CI/project-lead reads, two independently downloaded artifacts totaling 1,689,236 bytes, one prospective and one integrated tree verification. No full test rerun or hosted mutation replay. Exact wall time not instrumented.
 
 **Active milestone and next safe task:** validate and improve Projects and Media create/edit workflows under the Studio shell using synthetic owned records and existing upload/provider containment. Reviewed per-asset metadata editing is now integrated. Next, exercise the owner path from a new private draft through media additions, service assignment and review using synthetic owned records and the existing provider containment. Resolve demonstrated workflow defects alongside that capability; bulk move/reorder/delete retain their existing separate contracts. Do not claim complete owner readiness until hosted access and this full workflow qualify. Preserve storage/provider containment; do not add speculative upload or provider rewrites. Maintain the existing owner-testing guide and this checkpoint. Do not add speculative hardening packets or parallel continuity systems.
 

@@ -1,3 +1,4 @@
+import { saveProjectServices, ProjectServiceSelectionError } from "@/lib/project-service-selection";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
@@ -14,6 +15,8 @@ type ProjectWorkflowRouteProps = {
 
 type ProjectWorkflowBody = {
   action?: unknown;
+  expectedUpdatedAt?: unknown;
+  expectedServiceIds?: unknown;
   serviceIds?: unknown;
   featured?: unknown;
   featuredDuration?: unknown;
@@ -51,6 +54,12 @@ export async function PATCH(
           status: 400,
         },
       );
+    }
+
+    if (action === "assign-services") {
+      const saved = await saveProjectServices(session, projectId, body.expectedUpdatedAt, body.expectedServiceIds, body.serviceIds);
+      revalidateProjectPaths(saved.project.id, saved.project.slug);
+      return NextResponse.json({ success: true, serviceIds: saved.serviceIds, updatedAt: saved.project.updatedAt.toISOString() });
     }
 
     const project = await prisma.project.findFirst({
@@ -116,108 +125,6 @@ export async function PATCH(
           status: 404,
         },
       );
-    }
-
-    if (action === "assign-services") {
-      if (!Array.isArray(body.serviceIds)) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "A service selection is required.",
-          },
-          {
-            status: 400,
-          },
-        );
-      }
-
-      if (
-        !body.serviceIds.every(
-          (value) => typeof value === "string" && value.trim().length > 0,
-        )
-      ) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Every selected service ID must be valid.",
-          },
-          {
-            status: 400,
-          },
-        );
-      }
-
-      const serviceIds = body.serviceIds.map((value) => value.trim());
-
-      if (new Set(serviceIds).size !== serviceIds.length) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "The selected service list contains duplicates.",
-          },
-          {
-            status: 400,
-          },
-        );
-      }
-
-      const services = await prisma.service.findMany({
-        where: {
-          workspaceId: session.workspaceId,
-          archivedAt: null,
-          id: {
-            in: serviceIds,
-          },
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      if (services.length !== serviceIds.length) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "One or more selected services are no longer available.",
-          },
-          {
-            status: 409,
-          },
-        );
-      }
-
-      const existingAssignments = await prisma.projectService.findMany({ where: { projectId }, select: { serviceId: true } });
-      const existingIds = new Set(existingAssignments.map((item) => item.serviceId));
-      const inactiveNewSelection = await prisma.service.findFirst({
-        where: { id: { in: serviceIds.filter((id) => !existingIds.has(id)) }, workspaceId: session.workspaceId, active: false },
-        select: { id: true },
-      });
-      if (inactiveNewSelection) return NextResponse.json({ success: false, error: "Inactive services cannot be newly assigned." }, { status: 409 });
-
-      await prisma.$transaction(async (transaction) => {
-        await transaction.projectService.deleteMany({
-          where: {
-            projectId,
-          },
-        });
-
-        if (serviceIds.length > 0) {
-          await transaction.projectService.createMany({
-            data: serviceIds.map((serviceId) => ({
-              projectId,
-              serviceId,
-            })),
-            skipDuplicates: true,
-          });
-        }
-      });
-
-      revalidateProjectPaths(project.id, project.slug);
-
-      return NextResponse.json({
-        success: true,
-        serviceIds,
-      });
     }
 
     if (action === "set-featured") {
@@ -407,6 +314,8 @@ export async function PATCH(
       },
     );
   } catch (error) {
+    if (error instanceof ProjectServiceSelectionError) return NextResponse.json({ success: false, error: error.message, reloadRequired: error.status !== 400 }, { status: error.status });
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Current owner or administrator access is required.", reloadRequired: true }, { status: 403 });
     console.error("Unable to update project workflow:", error);
 
     return NextResponse.json(
