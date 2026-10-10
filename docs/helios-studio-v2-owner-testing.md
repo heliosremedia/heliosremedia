@@ -9,7 +9,9 @@ Production ON HOLD. This guide describes the next non-production owner-testing p
 - Workspace Media Library search/counts and project media links are scoped to the current company.
 - Private draft creation preserves form state and prevents duplicate drafts on replay.
 - Progress cards and media links open the corresponding setup panel while preserving mounted local fields.
-- Project details and media metadata use reviewed revisions and preserve unsaved drafts during conflict or uncertainty.
+- Project details, media metadata and service selections use reviewed revisions and preserve unsaved work during conflict or uncertainty.
+- Unmet setup requirements lead directly to the appropriate panel. Saved details can flow into a fresh service edit without rebasing an already-started selection.
+- Private review creates an expiring link without publishing. Opening, copying, manual-copy fallback and deliberate revocation are separate actions; uncertain outcomes require saved-state review.
 - Read-only newsletter job review distinguishes jobs held after reactivation and links to edition generation/delivery review.
 - Valid unchanged future newsletter schedules survive reactivation; overdue work is held. SEND, GENERATE and approval-deadline admission are checked under workspace locks. Uncertain provider outcomes retain their separate review rules.
 
@@ -32,6 +34,9 @@ Do not infer provider readiness from dashboard counts. Do not use production rec
 | Create a private project draft  | Entered fields survive validation; confirmed creation opens the owned draft; uncertain creation pauses for Projects review | Any lost fields, duplicate draft or unclear next step |
 | Edit project details | Save the reviewed record; a competing edit preserves local text and requires reload | Whether conflict recovery is understandable |
 | Edit media metadata  | Preserve filename, alt text and caption on conflict; review saved media before another edit | Whether the recovery control is reachable on mobile |
+| Configure services | Saved selection survives concurrent changes and uncertain responses; media-added assignments are retained | Whether selections and reload controls remain readable |
+| Review privately | Create an expiring link, open the private preview, copy its address and revoke deliberately; the project remains a draft | Any false success, duplicate creation after clipboard failure or ambiguous link status |
+| Move between setup steps | Progress cards, requirement links and the media action open the appropriate panel without dropping local fields | Whether the next task is clear |
 | Use mobile and keyboard navigation | Disclosure menu, skip link, visible focus and readable controls without horizontal overflow | Any inaccessible or awkward control |
 | Refresh a temporarily unavailable section | Unavailable state remains distinct from an empty result | Wording that suggests a false success or hidden work |
 
@@ -47,6 +52,17 @@ The integrated project-detail editor preserves unsaved text after conflicts and 
 
 The integrated draft-creation workflow preserves fields on validation/transport failure, pauses uncertain creation for review, and uses a stable owned submission identity to avoid duplicate drafts on replay. Actual Next form submission/replay, two-company permission races and responsive recovery are qualified in isolation.
 
-PR #405 integrates reviewed media metadata saves and draft recovery; exact-head regression, two-company runtime and responsive recovery gates are complete. Next: complete media additions and metadata editing using the existing upload/provider containment. Resolve demonstrated dependencies alongside these workflows. No hosted owner URL or broader rollout is claimed.
+The private-project pass composes the actual draft Server Action and existing details, registered synthetic media upload/attachment, media edit, service assignment, workspace library, review page, private preview and revocation routes on one new project in each of two companies. Both projects remain unpublished. Responsive actual-component Chromium separately checks owner controls, retained drafts, clipboard fallback, explicit labels, uncertain states and recovery at 390px and 1440px. Exact candidates, artifacts and integrated commits are in the canonical recovery checkpoint.
 
-Service configuration is the active qualification slice: select owned services, save, follow unmet requirement links, and retain the local selection if a competing edit or uncertain response requires review. The pending change does not qualify public publishing or hosted access.
+This evidence is isolated Next/PostgreSQL and synthetic provider qualification. It is not hosted owner access, live-provider parity, public publishing qualification or First Light. The October 10 read-only Vercel check still finds the Helios team but no project for the repository, and the known staging project returns 404. No new hosted testing URL has been qualified.
+
+## Private-project test sequence
+
+1. Create a synthetic private draft from Projects, then edit and save its information.
+2. Use a progress card or Upload media to open Media. Add synthetic media through the qualified isolated storage/provider setup; edit its metadata.
+3. Choose and save project services. If another change or an uncertain response intervenes, preserve the selection and use the explicit saved-state review path.
+4. Open Review and Publish to inspect completion requirements. Follow an unmet requirement back to setup, or use Review privately.
+5. Create a short-lived private review link. Open it and inspect the draft. If clipboard access is unavailable, copy the visible address manually; creating another link is unnecessary.
+6. Revoke the review link deliberately, then confirm that it no longer grants access. The project should still be a draft.
+
+Public publishing/status transitions remain the next bounded qualification dependency. This private pass does not invoke them. Production remains ON HOLD; no real customer onboarding or live provider activation is authorized.
