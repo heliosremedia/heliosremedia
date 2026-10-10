@@ -6,6 +6,12 @@ Owner directive: protect the existing foundation while building the production-i
 
 Current milestones and bounded readiness assessment: [product delivery plan](helios-studio-v2-product-delivery-plan.md). Normal reversible non-production implementation, tests, qualified PR merges, staging and progression between milestones are authorized without routine approval. No artificial deadline or packet-count target.
 
+## October 10 milestone progress
+
+The integrated private workflow covers creation, details, registered synthetic media, reviewed services, setup navigation, private review and reviewed unpublish/archive. Ordinary password sign-in through Command Center and that workflow is qualified on two synthetic companies. The current schema upgrade from the last hosted baseline is also qualified in disposable PostgreSQL with retained data/ledger and no-op repeat.
+
+Owner-accessible hosting remains incomplete. The staging Vercel project exists; explicit connector scope selectors caused earlier empty/404 findings. Current Neon discovery fails internal authorization. Preserve the existing protected deployment process while preparing current-source admission and persistent owner access. Continue reviewed publishing/featured product work alongside this concrete dependency. See the canonical recovery checkpoint for exact commits/evidence; no First Light or production readiness is claimed.
+
 ## Phase 0: baseline and containment
 
 Deliverables:
