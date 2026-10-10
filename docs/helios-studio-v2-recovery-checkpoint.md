@@ -5,8 +5,25 @@ Updated October 10, 2026. Production ON HOLD. Resume from live GitHub, not inter
 ## Verified integration
 
 Branch: `codex/v2-hosted-access-owner-action`.
-Latest verified application integration: `29426bcc0bf39f6fde9b60bd48867c87f6ece2f3` (PR #411).
-Tree: `6fdddd72a3234fb83f2277500c27419582df0fee`, independently verified equal to qualified candidate `e9606c237915a1234e4f39c938b7370cb41cd0a9`. Fresh live recovery and post-merge tree verification completed October 10. Production unchanged.
+Latest verified application integration: `fdce01115bf8c5b45a13603888792ad4aad5371c` (PR #413).
+Tree: `1fc093107c250b41e511f4ac03c6782beb1f3bba`, independently verified equal to qualified candidate `5aa598bab24f41b11ef7f177001938656e867256`. Fresh prospective and post-merge tree verification completed October 10. Production unchanged.
+
+## Current recovery summary — supersedes historical pending entries below
+
+**Completed:** PR #413 adds reviewed unpublish/archive transitions with locked current authorization, expected revision/status, retained content and explicit uncertainty recovery. The integrated private workflow includes creation, details, synthetic registered media, services, setup navigation and private review. Publish/featured mutations remain separate dependencies.
+
+**Qualification:** regression 38052934831 passed 1,856 tests, TypeScript and every Chromium step; runtime 38052934811 passed including cleanup. Runtime artifact 11670476444 independently downloaded, SHA256 `5b8c37b01ad43e980ccc223bbf6ed89a6c280d87b9c2deb8a5dcbd17da40384c` matched metadata, JSON exact candidate checked; four status cases and 16 observed authorization races across two tenants passed, schema/indexes unchanged and synthetic access restored. Screenshot artifact 11670446852 independently downloaded, SHA256 `c742a104444e723bd5faad272031b51694306fd72c4fbf6629446e763cb9459a` matched; four success/recovery images at 390/1440 inspected. Original successful evidence was reused until independent screenshot review demonstrated misleading draft/featured wording; the correction triggered new exact-head CI. No reconnect-driven full-suite rerun.
+
+**Active / next task:** current-candidate staging and owner-access readiness on `codex/v2-staging-owner-access-readiness`. Read-only source assessment confirms six October migrations and changed Prisma schema beyond the September hosted source. Existing hosted source admission requires the original 106-file manifest, original Prisma schema hash, original database catalog and pinned candidate/regression run. The baseline artifact and ledger classifier select September expansion migrations only. Updating a candidate SHA alone cannot qualify current Studio. Prepare a bounded isolated upgrade rehearsal preserving the immutable historical manifest/baseline and exact-target/protected-environment gates, then qualify the current source through the existing deployment process. No hosted dispatch or migration has occurred.
+
+**Staging findings:** default-scope Vercel discovery returns `helios-v2-staging` / `prj_PUv0ADGxYl5QjRYaMv2h8Km1UmMg` with expected accountId `team_H79eaUfq9xMqcbf34ZCtwwn9`; explicit teamId/slug selectors return empty/404. This is an observed connector scope discrepancy, not evidence that infrastructure is missing. Git integration is connected: candidate 6425df7 generated staging deployment `dpl_82PpuvGMqDi1E1ykFZDooQebWwx1`, intentionally canceled by ignored-build policy. No suppression or project configuration changed.
+
+Historical protected hosted run 36217912507 succeeded for old source `2999055b2b59467fcfef446c33a47212e72d4712`; independently downloaded artifact 10907013060 SHA256 `a97ea9cc5b4b1453fe22cd9b0085803085f97e5405d0a1d46dcbd5bbf5c30437` proves two-company HTTP/Chromium and restoration. Deployment `dpl_AtCunrUq5yMk25hsfU8mBPLix59A` remains READY. This does not prove current Studio, persistent owner authentication or First Light. Older failed builds are not the latest hosted qualification result.
+
+**Blockers:** current Neon connector project/branch discovery returns internal authorization 404 (one prompted authentication retry also failed); no current database classification is claimed. A protected existing executor may still have valid credentials, but that has not been freshly demonstrated. Do not rotate credentials or recreate resources speculatively. Owner login, shell allowlisting, current schema/source and hosted workflow still require qualification. Preserve the required GitHub Environment reviewer gate; standing development authorization does not bypass access controls.
+
+**Recovery overhead:** the Work filesystem changed again after publishing the correction. GitHub preserved all source/evidence; a fresh clone recovered the candidate. Original runtime/screens ZIPs and current runtime/screens ZIPs were each independently verified. Current ZIP sizes total 2,676,924 bytes. No mutation was replayed and no suite was rerun because of the disconnect; exact wall time is not instrumented.
+
 
 | Completed capability | PR / integrated SHA | Qualification |
 | --- | --- | --- |
@@ -75,7 +92,7 @@ Initial schedule-runtime failures were qualification assumptions: 37850304377 ex
 - Newsletter Studio retains its existing single-company HTTP guard. The integrated Command Center has separately qualified read-only status for two workspaces; edition actions retain that restriction. Direct scoped-service evidence does not qualify the broader module for multi-workspace HTTP use. This is an explicit feature dependency before broader newsletter owner testing.
 - Whole lifecycle activation remains disabled. Newsletter notifications and other email/referral/social/AI/provider families need their own admission and settlement qualification alongside their features.
 - Hosted Neon/Vercel/CDN parity and complete Helios/second-company compatibility remain release dependencies. Synthetic PostgreSQL/Next proof does not close them.
-- Latest read-only Vercel inspection confirmed the team but returned no Helios project for repository/search queries and 404 for the known staging project ID. Earlier inspection also returned 404 for the production project ID. Live Vercel bot comments on #396, #398 and #399 report two skipped/ignored automatic deployments. Settings were not changed. No newly qualified hosted owner-testing URL exists.
+- Earlier explicit-scope Vercel lookups returned empty/404; current default-scope discovery and historical hosted success supersede that missing-project interpretation. See current recovery summary. No current owner-testing URL is qualified.
 - Shell is default-off with an explicit workspace allowlist and current OWNER/ADMIN access. It summarizes persisted module data, not verified live provider health.
 - No production changes, billing, real external onboarding or provider activation occurred.
 
