@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { inspectionInvocation, inspectVercelScopes, inspectDatabase, safeBranchCurrentState } from '../scripts/staging/readonly-inspection.mjs';
+import { inspectionInvocation, inspectVercelScopes, inspectDatabase, safeBranchCurrentState, recordBranchState } from '../scripts/staging/readonly-inspection.mjs';
 import { HOSTED } from '../scripts/staging/hosted-policy.mjs';
 import { TARGET, targetConnection } from '../scripts/staging/policy.mjs';
 
@@ -15,6 +15,9 @@ test('branch state is safely recorded before the existing ready guard blocks dat
   assert.equal(safeBranchCurrentState({ current_state: 'ready' }), 'ready');
   assert.equal(safeBranchCurrentState({ current_state: 'unexpected state\nsecret' }), null);
   assert.equal(safeBranchCurrentState(null), null);
+  const receipt: Record<string, unknown> = {};
+  assert.throws(() => recordBranchState(receipt, { current_state: 'idle' }));
+  assert.deepEqual(receipt.neonBranch, { currentState: 'idle' });
   const target = {
     project: { id: TARGET.project, name: 'helios-v2-staging', org_id: TARGET.organization, region_id: TARGET.region, pg_version: 16 },
     branch: { id: TARGET.branch, project_id: TARGET.project, name: 'main', current_state: 'idle' },

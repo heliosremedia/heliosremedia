@@ -14,6 +14,12 @@ export function safeBranchCurrentState(branch) {
   return typeof state === 'string' && /^[a-z][a-z0-9_]{0,31}$/.test(state) ? state : null;
 }
 
+export function recordBranchState(result, branch) {
+  result.neonBranch = { currentState: safeBranchCurrentState(branch) };
+  // Preserve the existing hard stop before endpoint checks or database connection.
+  check('NEON_BRANCH_STATE', () => assert.equal(branch?.current_state, 'ready'));
+}
+
 export function inspectionInvocation(env) {
   assert.equal(env.GITHUB_REPOSITORY, 'heliosremedia/heliosremedia');
   assert.equal(env.GITHUB_EVENT_NAME, 'workflow_dispatch');
@@ -81,9 +87,7 @@ export async function runInspection(env = process.env) {
   try {
     const n = `https://console.neon.tech/api/v2/projects/${TARGET.project}`, token = env.STAGING_NEON_API_KEY;
     const [p, b] = await Promise.all([jsonGet(n, token), jsonGet(n + '/branches/' + TARGET.branch, token)]);
-    result.neonBranch = { currentState: safeBranchCurrentState(b.branch) };
-    // Keep the same fail-closed readiness guard, but record its bounded state first.
-    check('NEON_BRANCH_STATE', () => assert.equal(b.branch.current_state, 'ready'));
+    recordBranchState(result, b.branch);
     const [e, d] = await Promise.all([jsonGet(n + '/endpoints', token), jsonGet(n + '/branches/' + TARGET.branch + '/databases', token)]);
     db = new pg.Client(targetConnection({ project: p.project, branch: b.branch, endpoints: e.endpoints, databases: d.databases }, env.STAGING_DIRECT_URL));
     await db.connect(); result.database = await inspectDatabase(db);
