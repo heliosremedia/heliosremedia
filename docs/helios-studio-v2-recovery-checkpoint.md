@@ -1,12 +1,12 @@
 # Studio V2 live recovery checkpoint
 
-Updated October 10, 2026. **Production ON HOLD.** Recover from live GitHub before any mutation. This is the canonical continuity record; the roadmap and progress ledger provide product priorities and historical evidence.
+Updated October 11, 2026. **Production ON HOLD.** Recover from live GitHub before any mutation. This is the canonical continuity record; the roadmap and progress ledger provide product priorities and historical evidence.
 
 ## Verified integrated state
 
 | Scope | Branch | Verified integration | Qualified candidate / tree |
 | --- | --- | --- | --- |
-| Studio application through #424 | `codex/v2-hosted-access-owner-action` | `bb5c9c5ac2e69f89091d02eaff92b00f8a5e9f06` | Candidate `6299c358352de91675cecf14a50412ca8bd2eaba`; tree `9af174c9f9ab9fc3e6be3d7889e5ec25a20e75d6` |
+| Studio application through #426 | `codex/v2-hosted-access-owner-action` | `db3cbb0161af58d36b4e6345410060153450c161` | Qualified candidate `63fdcacf5fc8a4a0751bdff84f7cc79df07c11d9`; integrated tree `c51dd0974262e6ee10232ae5f7af7079306d4a6d` |
 | Protected read-only staging inspector #420 | `codex/v2-neon-staging-bootstrap` | `d65a1c98675c123d5b710dbf70cdcd3554f5b869` | Candidate `aa792c212d18a24593ba93d5128331b056fc33d2`; tree `8139278ebc86b630c30f5bc150a0f37c402e598e` |
 
 Prospective and post-merge trees were independently compared with each qualified candidate. The documentation-only update carrying this checkpoint leaves application/runtime source unchanged; always inspect the live branch for that documentation commit or newer work. Main and production were not changed. #420 modifies only the existing protected workflow, a read-only diagnostic script and its tests; it does not merge the older executor application into the Studio integration branch.
@@ -19,6 +19,7 @@ Prospective and post-merge trees were independently compared with each qualified
 - Featured placement preserves the six-project cap across both writers. Expired renewals consume capacity. The featured-list editor binds candidates, placement windows and saved order to a workspace-specific revision, preserves local selections after uncertain saves, and requires explicit review before retry. Keyboard sorting and replacement are qualified.
 - Archived projects can return to a private draft without meeting publication requirements. The Projects list keeps status and edit controls visible on phones and preserves return filters.
 - Project ordering binds the complete owned list to a reviewed revision and fresh editor authorization under locks. Exact receipts, duplicate-save guards and retained attempted order/selection support explicit recovery after uncertain saves.
+- Inquiry details use an accessible keyboard dialog. Status, assignee and follow-up updates wait for server confirmation; transport failure retains the last confirmed state and offers a clear retry message.
 - Existing Preview read-only restrictions remain. Isolated qualification does **not** establish hosted publishing, owner access, live providers or First Light.
 
 ## Current qualification evidence
@@ -61,6 +62,14 @@ All prospective and post-merge trees match their qualified candidates. Runtime J
 | #424 screenshots `11679004737` | `b05dbcfb74a552289f645d323a3bb393b244c6805d12435e5a951f5548b1dfc8` |
 
 The ordering change followed a reproduced stale overwrite in the actual route with synthetic in-memory delegates: a newer order and an older replacement both returned 200. The final isolated PostgreSQL/Next qualification independently proves stale rejection and single-winner concurrency. Existing OWNER/ADMIN/EDITOR content-write eligibility is preserved; VIEWER is denied by the shared editor-write boundary. No schema/provider/deployment changes occurred. Broader bulk-media contracts remain separate.
+
+## October 11 continuation: qualified inquiry workflow
+
+| Change | Integration | Qualification |
+| --- | --- | --- |
+| #426 inquiry accessibility and confirmed-state recovery | `db3cbb0161af58d36b4e6345410060153450c161` (qualified candidate `63fdcacf5fc8a4a0751bdff84f7cc79df07c11d9`) | Regression run `38122085985`: isolated regression suite, TypeScript and all configured Chromium checks passed, including inquiry dialog keyboard focus, Escape/return focus, phone/desktop overflow, acknowledged workflow state and failed-save recovery. Screenshot artifact `11695947503` was uploaded (GitHub SHA256 `b4cc7b45d06b0411d2bdd22218b952fe9e55958c0474db3482ace72314211785`). |
+
+No schema, database, provider, credential, deployment or production changes. This isolated UI qualification makes no claim about hosted owner access or First Light.
 
 ## Active milestone: current hosted owner access
 

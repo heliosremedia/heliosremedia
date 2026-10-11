@@ -1620,3 +1620,8 @@ all admission checks remain unchanged. Local regression passed1533/1533;
 exact-head CI and independent Neon postflight remain pending. See
 `docs/helios-studio-v2-receipt-redaction.md` for reproducible evidence and limits.
 No hosted retry, phase exit, Packet17, merge or production change is claimed.
+
+
+## October 11, 2026 — PR #426: accessible inquiry review and save recovery
+
+Merged to `codex/v2-hosted-access-owner-action` at `db3cbb0161af58d36b4e6345410060153450c161`; exact qualified candidate `63fdcacf5fc8a4a0751bdff84f7cc79df07c11d9`. Regression run `38122085985` passed the isolated suite, TypeScript, all configured Chromium workflows and screenshot upload. Inquiry details now have keyboard dialog focus behavior and mobile-friendly text. Workflow values update only after server acknowledgement; network failures keep confirmed state and give an actionable message. No schema, provider, credential, database, deployment or production change. Hosted staging inspection remains pending owner dispatch and protected environment review; no owner-accessible URL or First Light is claimed.
