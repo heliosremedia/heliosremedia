@@ -185,3 +185,16 @@ Active work: qualify the local-time Command Center change, correct any demonstra
 
 Next staging gate: obtain an authorized GitHub Actions dispatch path for the exact executor SHA above. Start the existing inspection-only workflow with the documented sentinels and inputs, then stop at its existing `helios-v2-staging-bootstrap` environment review if presented. After approval, independently download/hash/inspect its artifact and report branch state. If the branch is not `ready`, leave database access blocked. Do not change Neon/Vercel settings, run migrations, deploy, recreate infrastructure, or touch production.
 
+
+
+## October 11 Command Center local-time qualification and integration
+
+This entry supersedes the pending #429 status above. Production remains **ON HOLD**.
+
+- PR [#429](https://github.com/heliosremedia/heliosremedia/pull/429) merged to `codex/v2-hosted-access-owner-action` at integration SHA `5ec57bde6ea6b5db8dca8d964959a7134c10845b`, tree `edb44e0c2917bbd59a9aa5415d7829f8ef66b25b`. Qualified candidate/head: `749362c732ab4cc4ba89504a4446a80a3741658b`.
+- Fix for the test failure in run `38185039284`: use supported Playwright timezone configuration on `browser.newContext({ timezoneId: "America/Denver", viewport })`, then create the page from that context. The unsupported `page.emulateTimezone` call is removed. No application data or timestamps are changed.
+- Final exact-head regression run [38185526522](https://github.com/heliosremedia/heliosremedia/actions/runs/38185526522) passed. Isolated regression tests, TypeScript, every configured Chromium check, including Studio V2 Command Center and its 390px/1440px timezone assertions, and screenshot preservation all passed. The resulting display assertion covers Oct 10, 10:30 AM MDT for the fixture time. Vercel Preview Comments check reported no unresolved feedback.
+- Screenshot artifact `11720060362`, name `studio-command-center-749362c732ab4cc4ba89504a4446a80a3741658b`, GitHub metadata digest `sha256:6cdf69db348255686c8a3cdf59a096cd6df2c718369335d7cfeb6f546ef8eb82`, binds to run `38185526522` and the exact candidate SHA. Artifact is retained at GitHub; this session did not independently hash or visually inspect the downloaded ZIP, so no independent artifact inspection is claimed. Browser assertions and workflow screenshot-preservation step did pass.
+- PR merged only after the exact-head run succeeded; GitHub reported merge SHA above, and the integration branch now matches the merge commit. No schema/database, provider, Vercel/Neon setting, migration, or deployment changes. No hosted owner access or First Light is claimed.
+
+Next authorized task remains the read-only staging inspection using an authenticated, protected dispatch path when available; preserve the existing environment approval and `ready` guard. If that session capability remains unavailable, record it and continue with independent product work. Do not bypass protection. Production remains ON HOLD.
