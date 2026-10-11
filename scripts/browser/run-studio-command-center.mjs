@@ -36,8 +36,8 @@ try {
   browser = await chromium.launch({ headless: true });
   await mkdir('release-evidence', { recursive: true });
   for (const width of [390, 1440]) {
-    const page = await browser.newPage({ viewport: { width, height: 1000 } });
-    await page.emulateTimezone("America/Denver");
+    const context = await browser.newContext({ viewport: { width, height: 1000 }, timezoneId: "America/Denver" });
+    const page = await context.newPage();
     const errors = []; page.on('pageerror', error => errors.push(error.message));
     await page.route('**/*', route => route.request().url().startsWith(origin) && route.request().method() === 'GET' ? route.continue() : route.abort());
     await page.goto(origin);
