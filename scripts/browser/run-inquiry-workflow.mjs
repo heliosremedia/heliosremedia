@@ -73,7 +73,7 @@ try {
   assert.equal(await close.evaluate(node => document.activeElement === node), true, 'keyboard focus cannot escape the open modal');
   await close.focus();
   await page.keyboard.press('Shift+Tab');
-  assert.equal(await page.getByLabel('Follow up').evaluate(node => document.activeElement === node), true, 'Shift+Tab stays inside the modal');
+  assert.equal(await page.getByRole('link', { name: 'Open project draft' }).evaluate(node => document.activeElement === node), true, 'Shift+Tab wraps to the last modal control');
   await page.keyboard.press('Tab');
   assert.equal(await close.evaluate(node => document.activeElement === node), true, 'Tab wraps to the first modal control');
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'inquiry details fit a phone viewport');
