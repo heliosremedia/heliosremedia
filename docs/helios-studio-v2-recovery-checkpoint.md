@@ -133,7 +133,7 @@ Inspection verifies the environment gate and exact target, issues fixed GET-only
 
 ## October 11 owner Neon dashboard screenshot
 
-Jake's screenshot shows Neon organization label `Helios RE Media`, project `helios-studio`, and its sole visible `production` branch (one branch). The URL identifies project slug `blue-tooth-89291805`, which does not match the expected V2 staging project `calm-shape-83359560` / `helios-v2-staging`. This is direct evidence of the production project being selected in the dashboard, not evidence that staging is absent. Do not create a branch or change this production project. Next read-only step is to inspect the Neon organization/project selector for the separately existing staging project or determine whether the current account has access. If not visible there, ask the Neon organization owner to verify the account/organization membership. Production remains ON HOLD.
+Jake's dashboard screenshots show the selected Neon organization `Helios RE Media`, URL organization ID `org-dawn-sunset-51163361`, and only project `helios-studio` (project slug `blue-tooth-89291805`) with one `production` branch. This is distinct from the protected inspector's expected staging organization `org-nameless-shape-94202911`, project `calm-shape-83359560` / `helios-v2-staging`. The screenshot establishes an organization/account scope mismatch; it does not establish staging deletion. Do not create a project/branch or change production. Next read-only step: inspect the Neon organization selector for `org-nameless-shape-94202911`. If unavailable, the Neon organization owner must grant Jake's account access or confirm the staging project was moved. Production remains ON HOLD.
 
 ## October 11 protected inspection result
 
