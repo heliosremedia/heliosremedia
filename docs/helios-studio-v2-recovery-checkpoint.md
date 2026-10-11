@@ -6,7 +6,7 @@ Updated October 11, 2026. **Production ON HOLD.** Recover from live GitHub befor
 
 | Scope | Branch | Verified integration | Qualified candidate / tree |
 | --- | --- | --- | --- |
-| Studio application through #426 | `codex/v2-hosted-access-owner-action` | `db3cbb0161af58d36b4e6345410060153450c161` | Qualified candidate `63fdcacf5fc8a4a0751bdff84f7cc79df07c11d9`; integrated tree `c51dd0974262e6ee10232ae5f7af7079306d4a6d` |
+| Studio application through #427 | `codex/v2-hosted-access-owner-action` | `f45e4cb4ed7bd8f874760dfe6c9ea02bc692f21b` | Qualified candidate `02ac4ba83226e0f121bd75e58131a567f25ee805`; integrated tree `0b097b49ed21a30606d4ba03fa3d8b30245d54c6` |
 | Protected read-only staging inspector #420 | `codex/v2-neon-staging-bootstrap` | `d65a1c98675c123d5b710dbf70cdcd3554f5b869` | Candidate `aa792c212d18a24593ba93d5128331b056fc33d2`; tree `8139278ebc86b630c30f5bc150a0f37c402e598e` |
 
 Prospective and post-merge trees were independently compared with each qualified candidate. The documentation-only update carrying this checkpoint leaves application/runtime source unchanged; always inspect the live branch for that documentation commit or newer work. Main and production were not changed. #420 modifies only the existing protected workflow, a read-only diagnostic script and its tests; it does not merge the older executor application into the Studio integration branch.
@@ -20,6 +20,7 @@ Prospective and post-merge trees were independently compared with each qualified
 - Archived projects can return to a private draft without meeting publication requirements. The Projects list keeps status and edit controls visible on phones and preserves return filters.
 - Project ordering binds the complete owned list to a reviewed revision and fresh editor authorization under locks. Exact receipts, duplicate-save guards and retained attempted order/selection support explicit recovery after uncertain saves.
 - Inquiry details use an accessible keyboard dialog. Status, assignee and follow-up updates wait for server confirmation; transport failure retains the last confirmed state and offers a clear retry message.
+- Inquiry-to-project handoff creates a private draft from workspace-scoped property location, preserves customer messages/contact in the inquiry, and records an activity link to the project. Replays are idempotent.
 - Existing Preview read-only restrictions remain. Isolated qualification does **not** establish hosted publishing, owner access, live providers or First Light.
 
 ## Current qualification evidence
@@ -68,6 +69,7 @@ The ordering change followed a reproduced stale overwrite in the actual route wi
 | Change | Integration | Qualification |
 | --- | --- | --- |
 | #426 inquiry accessibility and confirmed-state recovery | `db3cbb0161af58d36b4e6345410060153450c161` (qualified candidate `63fdcacf5fc8a4a0751bdff84f7cc79df07c11d9`) | Regression run `38122085985`: isolated regression suite, TypeScript and all configured Chromium checks passed, including inquiry dialog keyboard focus, Escape/return focus, phone/desktop overflow, acknowledged workflow state and failed-save recovery. Screenshot artifact `11695947503` was uploaded (GitHub SHA256 `b4cc7b45d06b0411d2bdd22218b952fe9e55958c0474db3482ace72314211785`). |
+| #427 tenant-scoped inquiry-to-project draft | `f45e4cb4ed7bd8f874760dfe6c9ea02bc692f21b` (qualified candidate `02ac4ba83226e0f121bd75e58131a567f25ee805`) | Regression run `38123653380`: isolated regression suite, TypeScript and all configured Chromium checks passed, including 390/1440 inquiry handoff links and project form prefill. Focused project-draft tests cover workspace ownership, replay and activity linking. Screenshot artifact `11696860148` was uploaded (GitHub SHA256 `91459ac52a9da3451498459d7ef2a60b59b83dbce6feb386b19710e91de6b96b`). |
 
 No schema, database, provider, credential, deployment or production changes. This isolated UI qualification makes no claim about hosted owner access or First Light.
 

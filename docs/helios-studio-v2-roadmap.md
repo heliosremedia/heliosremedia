@@ -14,6 +14,8 @@ Owner-accessible hosting remains incomplete. The staging Vercel project exists; 
 
 The Inquiry review workflow now has an accessible named dialog with keyboard focus handling, responsive contact details, and server-confirmed status, owner and follow-up changes. Failed saves preserve confirmed state and display an actionable connection message. Exact-head regression, TypeScript and the configured Chromium workflow passed in run 38122085985. This improves daily lead handling but does not qualify hosted access.
 
+A tenant-scoped handoff now starts a private project draft from an inquiry with reviewable property address and location, records the project on the inquiry activity timeline, and avoids copying inquiry message or contact details into project fields. Draft replay, workspace ownership and the handoff controls passed exact-head regression and Chromium qualification in run 38123653380.
+
 ## Phase 0: baseline and containment
 
 Deliverables:
