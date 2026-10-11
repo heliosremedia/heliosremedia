@@ -90,7 +90,7 @@ After the inspection, independently download/hash its artifact and inspect targe
 
 ## Active milestone: current hosted owner access
 
-**No current Studio owner-testing URL is qualified.** The next concrete task is to execute the qualified read-only staging inspection, then reconcile its evidence with the current source/schema and owner sign-in requirements.
+**No current Studio owner-testing URL is qualified.** Read-only inspection run `38159974154` completed after Jake's approval. Vercel identity/scope checks passed; database inspection stopped at `CHECK_NEON_BRANCH_STATE` before connection. Next: establish the actual Neon branch state via read-only metadata, then reconcile schema/ledger and owner sign-in requirements.
 
 Verified discovery to date:
 
@@ -99,9 +99,9 @@ Verified discovery to date:
 - Neon connector discovery returned an internal authorization error. Current live ledger/schema are unknown. The existing hosted source admission still pins the older baseline; the qualified six-migration upgrade has not been applied to staging.
 - Historical hosted fixtures used password-null synthetic owners and temporary runner-signed cookies. Persistent owner sign-in and explicit V2 workspace allowlisting still need qualification.
 
-### Exact owner action for read-only discovery
+### Historical dispatch instructions (run completed; do not replay unchanged)
 
-The existing `helios-v2-staging-bootstrap` GitHub environment requires owner review, forbids administrator bypass and admits only the existing executor branch. These requirements come from `scripts/staging/policy.mjs` and remain unchanged. This session's GitHub connector has no workflow-dispatch capability. **No inspection is queued or running.**
+The existing `helios-v2-staging-bootstrap` GitHub environment requires owner review, forbids administrator bypass and admits only the existing executor branch. These requirements come from `scripts/staging/policy.mjs` and remain unchanged. This session's GitHub connector has no workflow-dispatch capability. **Inspection `38159974154` has now completed. Do not dispatch again merely to repeat this result.**
 
 Run [V2 manual protected staging Preview qualification](https://github.com/heliosremedia/heliosremedia/actions/workflows/v2-vercel-staging-qualification.yml) with these inputs, then approve its existing environment review:
 
@@ -130,6 +130,23 @@ gh workflow run v2-vercel-staging-qualification.yml \
 ```
 
 Inspection verifies the environment gate and exact target, issues fixed GET-only provider metadata requests, and uses a repeatable READ ONLY database transaction followed by rollback. It exports only safe metadata, catalog/ledger hashes and aggregate counts. It makes no deployment, schema, data, hostname, suppression, credential or provider-activation change. The receipt always reports `deployable:false` and `ownerAccessQualified:false`.
+
+## October 11 protected inspection result
+
+Jake dispatched and approved run [38159974154](https://github.com/heliosremedia/heliosremedia/actions/runs/38159974154). Exact executor `d65a1c98675c123d5b710dbf70cdcd3554f5b869`; inspect completed successfully; deployment/qualify job skipped. Success means diagnostic collection completed, not staging readiness.
+
+Artifact `11709634858` (`staging-readonly-d65a1c98675c123d5b710dbf70cdcd3554f5b869`) was independently downloaded. ZIP SHA256 `b5e0638f47cf4f6ddc61b077d01ef9e95373e5d82a89bb1644866d09294937fe` matches GitHub metadata; CRC check passed; sole file `readonly-inspection.json` parsed and inspected. Observation time `2026-10-11T17:32:05.293Z`, exact executor/target matched, mode read-only, deployable=false, ownerAccessQualified=false.
+
+- Vercel default and expected-team scopes both returned HTTP 200, expected project/team=true, gitConnected=true, automaticBuildsSuppressed=true. This resolves the runner's scope/access question; prior connector-only empty/404 results do not establish a missing project.
+- Neon metadata passed the earlier project ID/name/organization/region/PostgreSQL 16 and branch ID/project/name checks, then failed `CHECK_NEON_BRANCH_STATE`. Reviewed `targetConnection` requires `branch.current_state === 'ready'`. Receipt intentionally omits the actual state; neither suspension nor a missing/deleted branch is established.
+- Code inspection confirms this failure occurs before constructing/connecting the PostgreSQL client. No database transaction, schema/ledger/password counts or database cleanup evidence was produced. No database/deployment/configuration mutation occurred in this read-only path.
+- Direct read-only Neon connector get_branch follow-up returned internal authorization HTTP 404 / UNAVAILABLE. It did not resolve the actual branch state. Runner Neon metadata access itself succeeded, so do not conflate the connector error with missing runner credentials.
+
+Next concrete step: obtain the exact branch's current_state from read-only Neon dashboard/API metadata (owner can provide a screenshot of project helios-v2-staging, branch main, ID br-young-math-arj7l4r3) without changing settings, restarting compute, restoring or recreating infrastructure. Alternatively qualify a bounded diagnostic-only executor update that records the state while retaining the existing ready-state guard. Do not relax the guard speculatively.
+
+After the branch-state cause is understood: collect the protected database snapshot; compare live schema/ledger with the qualified baseline and six-migration rehearsal; prepare current-source admission and any needed protected migration; establish a persistent non-production owner credential and explicit V2 workspace allowlist; qualify ordinary login/logout, isolation, styled responsive inquiry/private-project navigation, persistence and cleanup on the exact hosted candidate before issuing a tested URL.
+
+No infrastructure/database modification is proposed for execution yet. Any restart/reactivation/restore, changed credential scope, protection policy, unexpected ledger repair, destructive operation or material new infrastructure decision must be described concretely and receive any required separate owner approval first. Normal reversible non-production work remains preauthorized; all existing environment reviews remain mandatory. New features stay paused; production ON HOLD.
 
 ## Next authorized work and boundaries
 
