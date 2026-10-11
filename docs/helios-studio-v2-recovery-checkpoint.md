@@ -164,3 +164,24 @@ Normal reversible non-production work remains preauthorized. Production, destruc
 ## Recovery efficiency
 
 No successful historical suite was rerun merely because this session recovered. This continuation reused #422 runtime evidence for #423 and performed two new runtime qualifications for changed lifecycle/ordering behavior. #423 required one corrective regression after the initial CSS dropped the existing sticky-actions requirement; the implementation was corrected and the test retained. All three implementation PRs are integrated with no outstanding qualification gate. The documentation-only continuity update reuses their unchanged application evidence. New implementation triggered normal exact-head CI. Additional runs resolved two test defects: #419's keyboard driver raced deferred sensor setup; #420's assertions initially failed TypeScript. Final passing runs supersede those failures. A local Chromium download returned a truncated archive; local browser qualification is not claimed. GitHub checkpoints and artifacts remain authoritative, with no second project-state system.
+
+## October 11 continued recovery and product progress
+
+This entry supersedes earlier active-work descriptions above where they conflict. Production remains **ON HOLD**.
+
+Live GitHub reconciliation:
+- Integration branch `codex/v2-hosted-access-owner-action`: `9e5429518b672cca77609c7e5520fc16093e4a98`. The integrated Studio product history through #427 remains documented above; this current integration head contains subsequent documentation-only commits.
+- Protected executor branch `codex/v2-neon-staging-bootstrap`: `b78600b3080dfa97dc263b13c2fca6bae30bf158`, the merged #428 diagnostic update.
+- #428 regression `38177277278`, executor contract `38177277212`, and isolated tenant route contract `38177277232` completed successfully on the exact executor SHA. No suite was rerun during this recovery.
+- Protected inspection history was rechecked. Latest run `38159974154` completed successfully on old executor `d65a1c98675c123d5b710dbf70cdcd3554f5b869`; no equivalent run is queued or active. It did not reveal Neon `current_state`. No artifact exists for the new executor, so the exact Neon branch state and live database snapshot remain unknown.
+- The new dispatch is blocked in this Work session: the GitHub connector exposes read-only workflow-run retrieval but no `workflow_dispatch` action, the available `gh` executable is absent, and the GitHub Actions page in its cloud browser is signed out. No credential was guessed, no protection was bypassed, and no dispatch was submitted. This is a session tooling/authentication limitation, not evidence of a Neon/Vercel issue. Continue immediately through any later authorized dispatch-capable GitHub session; preserve the existing environment review, inspect-only inputs, database read-only transaction, and `ready` guard.
+- Open PR inventory still contains the older stacked draft chain beginning with #322 and proceeding through #223. The live integration branch is a separate maintained line; do not merge or replay those historical drafts without checking their intended base.
+
+Independent product work started while the protected dispatch path is unavailable:
+- Branch `codex/v2-command-center-local-time`, based on the verified integration head, changes Command Center schedule and snapshot display from fixed UTC labels to the viewer's local browser timezone. Server-rendered output remains explicit UTC until hydration; event instants and persisted records do not change.
+- The existing Chromium qualification is extended to emulate `America/Denver` and assert the scheduled event renders as `Oct 10, 10:30 AM MDT` at 390px and 1440px. TypeScript, regression, and Chromium CI are pending. This is not yet qualified or integrated.
+
+Active work: qualify the local-time Command Center change, correct any demonstrated failures, and merge only if standard required checks pass. Then continue the highest-value independent product capability while preserving the protected staging gate.
+
+Next staging gate: obtain an authorized GitHub Actions dispatch path for the exact executor SHA above. Start the existing inspection-only workflow with the documented sentinels and inputs, then stop at its existing `helios-v2-staging-bootstrap` environment review if presented. After approval, independently download/hash/inspect its artifact and report branch state. If the branch is not `ready`, leave database access blocked. Do not change Neon/Vercel settings, run migrations, deploy, recreate infrastructure, or touch production.
+
