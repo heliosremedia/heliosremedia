@@ -73,6 +73,21 @@ The ordering change followed a reproduced stale overwrite in the actual route wi
 
 No schema, database, provider, credential, deployment or production changes. This isolated UI qualification makes no claim about hosted owner access or First Light.
 
+## October 11 PM-directed staging resumption
+
+New feature development is paused. Owner-accessible non-production staging is the immediate milestone.
+
+Independently downloaded existing artifacts without rerunning tests:
+- #426 run `38122085985`, candidate `63fdcacf5fc8a4a0751bdff84f7cc79df07c11d9`, artifact `11695947503`: ZIP SHA256 `b4cc7b45d06b0411d2bdd22218b952fe9e55958c0474db3482ace72314211785` matches GitHub metadata; ZIP CRC check passed.
+- #427 run `38123653380`, candidate `02ac4ba83226e0f121bd75e58131a567f25ee805`, artifact `11696860148`: ZIP SHA256 `91459ac52a9da3451498459d7ef2a60b59b83dbce6feb386b19710e91de6b96b` matches GitHub metadata; ZIP CRC check passed.
+- Visually inspected both candidates' `studio-inquiries-390.png` and `studio-inquiries-1440.png`, plus #427's `studio-project-create-390.png` and `studio-project-create-1440.png`. Inquiry images show the fixture content, confirmed-state failure message and (for #427) draft/activity links. Project-create images show the styled source-inquiry notice, retained fields, validation message and private-draft controls at both widths.
+- Limitation: the inquiry screenshots are unstyled component fixtures. Source inspection of `scripts/browser/run-inquiry-workflow.mjs` confirms an esbuild component harness with mocked fetch/router and no application stylesheet. Its overflow assertions therefore do not establish production-styled responsive layout or actual hosted navigation/persistence. These screenshots cannot qualify the real inquiry modal's visual presentation. The ZIPs contain screenshots, not PostgreSQL authorization/cleanup receipts. Existing passing CI remains valid for its stated synthetic scope; no new hosted/runtime qualification is claimed.
+- Remaining verification: inspect the real styled inquiry page and continuous inquiry-to-draft workflow during protected hosted qualification, including authorization, persistence and cleanup. Do not equate the recovered screenshots with full hosted qualification.
+
+Live reconciliation before this documentation update: application head `8d713f284b0e44869d69ef8728aebc2bd636e7e8`; exact-head integration regression `38124285356` passed. Executor remains `d65a1c98675c123d5b710dbf70cdcd3554f5b869`. Manual workflow history still ends at historical run `36217912507`; no equivalent new inspection is queued or running. Jake's next action remains the exact read-only dispatch and existing environment approval below. Recheck history before dispatch to avoid duplicates.
+
+After the inspection, independently download/hash its artifact and inspect target identity, provider scope results, ledger/catalog and password-readiness evidence before proposing changes. Current-source admission, the rehearsed staging migration path, persistent owner credentials and explicit workspace allowlisting remain incomplete. Present exact changes and any consequential credential/infrastructure or unexpected database risks for separate owner approval before execution. Do not recreate infrastructure, change protection/suppression policy or deploy production. Normal reversible non-production work remains within standing authorization, subject to existing protected environment review.
+
 ## Active milestone: current hosted owner access
 
 **No current Studio owner-testing URL is qualified.** The next concrete task is to execute the qualified read-only staging inspection, then reconcile its evidence with the current source/schema and owner sign-in requirements.
@@ -121,7 +136,7 @@ Inspection verifies the environment gate and exact target, issues fixed GET-only
 1. Inspect the live workflow state before any replay. Independently download/hash the inspection artifact and review scope results, database identity, catalog/ledger and password-readiness counts. A green diagnostic job means evidence was collected, not that hosted readiness passed.
 2. Use that evidence to prepare current-source staging admission and the already-rehearsed six-migration path through the existing protected process. Stop for unknown ledger/data states or consequential credential/provider decisions; do not auto-repair or recreate infrastructure.
 3. Establish persistent non-production owner login and explicit V2 workspace allowlisting, then qualify the continuous private-project flow against the hosted environment before giving the owner a testing URL. Preserve Preview limits and existing module guards.
-4. Continue independent, bounded product fixes where demonstrated. Bulk media organization and unqualified outbound/module families retain their separate contracts. No general Phase 1 hardening expansion is needed.
+4. New feature development is paused by the October 11 PM directive. Resume independent product work only after direction changes. Bulk media organization and unqualified outbound/module families retain their separate contracts. No general Phase 1 hardening expansion is needed.
 
 Normal reversible non-production work remains preauthorized. Production, destructive operations, consequential security/architecture changes, billing, real providers and external customer onboarding remain owner-gated. First Light is not achieved.
 
