@@ -31,13 +31,14 @@ try {
     await page.route('**/*',route=>route.request().url().startsWith(origin)&&route.request().method()==='GET'?route.continue():route.abort());
     let mode='validation', calls=0;
     await page.route('**/synthetic-create',async route=>{
-      calls++; const body=route.request().postDataJSON();assert.equal(body.requestId,'00000000-0000-4000-8000-000000000001');
+      calls++; const body=route.request().postDataJSON();assert.equal(body.requestId,'00000000-0000-4000-8000-000000000001');assert.equal(body.sourceInquiryId,'inquiry-a');
       assert.equal(body.city,'Fort Collins');assert.equal(body.shortDescription,'Keep this description');
       if(mode==='uncertain') return route.abort();
       return route.fulfill({contentType:'application/json',body:JSON.stringify(mode==='validation'?{error:'Review the project fields.'}:{error:null,projectId:'synthetic-created'})});
     });
     const fill = async () => {
-      await page.goto(origin);await page.getByLabel('Project title',{exact:false}).fill('Synthetic home');
+      await page.goto(origin);assert.equal(await page.getByLabel('Project title',{exact:false}).inputValue(),'123 Longview Drive');assert.equal(await page.getByLabel('City',{exact:true}).inputValue(),'Fort Collins');assert.equal(await page.locator('input[name="sourceInquiryId"]').inputValue(),'inquiry-a');
+      await page.getByLabel('Project title',{exact:false}).fill('Synthetic home');
       await page.getByLabel('City',{exact:true}).fill('Fort Collins');await page.getByLabel('Short description',{exact:true}).fill('Keep this description');
     };
     await fill();
