@@ -87,7 +87,7 @@ try {
   await page.getByLabel('Status').selectOption('QUALIFIED');
   assert.equal(await page.getByLabel('Status').inputValue(), 'CONTACTED', 'failed save never leaves an optimistic status in the UI');
   await page.getByRole('alert').waitFor();
-  assert.match(await page.getByRole('alert').textContent(), /Unable to save change/);
+  assert.match(await page.getByRole('alert').textContent(), /Unable to save change\. Check your connection/);
   await page.setViewportSize({ width: 1440, height: 900 });
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'inquiry details fit a desktop viewport');
   await page.screenshot({ path: join(evidenceDir, 'studio-inquiries-1440.png'), fullPage: true });
