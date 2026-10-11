@@ -10,7 +10,8 @@ export async function createProject(_previousState: CreateProjectState, formData
   const session = await requireAdminSession();
   if (!["OWNER", "ADMIN", "EDITOR"].includes(session.role)) return { error: "Editor access is required.", requiresReview: true };
   const get = (field: string) => typeof formData.get(field) === "string" ? (formData.get(field) as string).trim() : "";
-  const input: ProjectDraftInput = { title: get('title'), slug: get('slug'), shortDescription: get('shortDescription'), city: get('city'), state: get('state'), locationLabel: get('locationLabel'), projectType: get('projectType'), propertyType: get('propertyType') };
+  const sourceInquiryId = get('sourceInquiryId');
+  const input: ProjectDraftInput = { title: get('title'), slug: get('slug'), shortDescription: get('shortDescription'), city: get('city'), state: get('state'), locationLabel: get('locationLabel'), projectType: get('projectType'), propertyType: get('propertyType'), ...(sourceInquiryId ? { sourceInquiryId } : {}) };
   try {
     const result = await createProjectDraft(session, get('requestId'), input);
     revalidatePath('/admin'); revalidatePath('/admin/projects'); revalidatePath('/admin/studio');
@@ -21,6 +22,7 @@ export async function createProject(_previousState: CreateProjectState, formData
       if (error.message === 'PROJECT_DRAFT_INPUT_INVALID') return { error: 'One or more project fields exceed their allowed length. Review the form and try again.' };
       if (error.message === 'WORKSPACE_WRITE_FORBIDDEN') return { error: 'Your workspace access changed. Check your access before creating a project.', requiresReview: true };
       if (error.message === 'PROJECT_DRAFT_REQUEST_INVALID') return { error: 'Reload this form before creating a project. Copy any text you need first.', requiresReview: true };
+      if (error.message === 'PROJECT_DRAFT_INQUIRY_NOT_FOUND') return { error: 'This inquiry is no longer available in your workspace. Check Inquiries before creating a project.', requiresReview: true };
     }
     console.error('Unable to confirm project creation:', error);
     return { error: 'The creation result could not be confirmed. Your form is preserved. Check Projects before starting another draft.', requiresReview: true };

@@ -2,14 +2,28 @@ import Link from "next/link";
 import { randomUUID } from "node:crypto";
 import { notFound } from "next/navigation";
 import { requireAdminSession } from "@/lib/auth/session";
+import { getContentOwnershipScope } from "@/lib/blog-ownership";
+import { prisma } from "@/lib/prisma";
 
 import NewProjectForm from "./NewProjectForm";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewProjectPage() {
+export default async function NewProjectPage({ searchParams }: { searchParams: Promise<{ inquiry?: string }> }) {
   const session = await requireAdminSession();
   if (!["OWNER", "ADMIN", "EDITOR"].includes(session.role)) notFound();
+  const { inquiry: inquiryId } = await searchParams;
+  const sourceInquiry = inquiryId ? await prisma.inquiry.findFirst({ where: { id: inquiryId, ...await getContentOwnershipScope(session.workspaceId) }, select: { id: true, name: true, propertyAddress: true, city: true, state: true, requestedServices: { where: { service: { workspaceId: session.workspaceId } }, include: { service: { select: { name: true } } } } } }) : null;
+  if (inquiryId && !sourceInquiry) notFound();
+  const location = [sourceInquiry?.city, sourceInquiry?.state].filter(Boolean).join(", ");
+  const address = sourceInquiry?.propertyAddress?.trim() ?? "";
+  const initialValues = sourceInquiry ? {
+    title: address ? address.slice(0, 120) : "New project",
+    city: sourceInquiry.city ?? "",
+    state: sourceInquiry.state ?? "Colorado",
+    locationLabel: location,
+  } : undefined;
+  const source = sourceInquiry ? { id: sourceInquiry.id, name: sourceInquiry.name, services: sourceInquiry.requestedServices.map(({ service }) => service.name) } : undefined;
   return (
     <div className="space-y-7">
       <section className="border-b border-white/[0.08] pb-7">
@@ -49,7 +63,7 @@ export default async function NewProjectPage() {
         </p>
       </section>
 
-      <NewProjectForm requestId={randomUUID()} />
+      <NewProjectForm requestId={randomUUID()} initialValues={initialValues} sourceInquiry={source} />
     </div>
   );
 }

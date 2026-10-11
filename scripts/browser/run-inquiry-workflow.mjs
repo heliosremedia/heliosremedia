@@ -8,12 +8,14 @@ import { chromium } from 'playwright';
 const scratch = await mkdtemp(join(tmpdir(), 'helios-inquiries-'));
 const evidenceDir = join(process.cwd(), 'release-evidence');
 const stub = join(scratch, 'next-navigation-stub.js');
+const linkStub = join(scratch, 'next-link-stub.jsx');
 const harness = join(scratch, 'harness.tsx');
 let browser;
 
 try {
   await mkdir(evidenceDir, { recursive: true });
   await writeFile(stub, 'export function useRouter(){return {refresh(){window.dispatchEvent(new Event("synthetic-router-refresh"));}}}\n');
+  await writeFile(linkStub, 'export default function Link(props){return <a {...props}/>;}\n');
   await writeFile(harness, `
     import React from 'react';
     import { createRoot } from 'react-dom/client';
@@ -24,7 +26,7 @@ try {
       desiredDate:'2026-10-20T16:00:00.000Z', message:'Please call about the listing.', sourcePage:'/inquire',
       referrer:null, ctaName:'Request a quote', utmSource:null, utmMedium:null, utmCampaign:null, utmContent:null, utmTerm:null,
       consent:true, assignedToId:null, assignedTo:null, followUpAt:null, requestedServices:[{service:{id:'photo',name:'Photography'}}],
-      notes:[], activities:[], createdAt:'2026-10-10T16:00:00.000Z', updatedAt:'2026-10-10T16:00:00.000Z', lastActivityAt:'2026-10-10T16:00:00.000Z'
+      notes:[], activities:[{id:'activity-1',action:'PROJECT_DRAFT_CREATED',summary:'A private project draft was started from this inquiry.',metadata:{projectId:'project-1',projectTitle:'123 Longview Drive'},createdAt:'2026-10-11T00:00:00.000Z',actor:{displayName:'Owner'}}], createdAt:'2026-10-10T16:00:00.000Z', updatedAt:'2026-10-10T16:00:00.000Z', lastActivityAt:'2026-10-10T16:00:00.000Z'
     };
     window.__failNextWorkflow = false;
     window.__deferWorkflow = false;
@@ -43,8 +45,9 @@ try {
   const result = await build({
     entryPoints: [harness], bundle: true, platform: 'browser', format: 'iife', write: false,
     nodePaths: [join(process.cwd(), 'node_modules')],
-    jsx: 'automatic', plugins: [{ name: 'next-navigation-stub', setup(api) {
+    jsx: 'automatic', plugins: [{ name: 'next-navigation-and-link-stub', setup(api) {
       api.onResolve({ filter: /^next\/navigation$/ }, () => ({ path: stub }));
+      api.onResolve({ filter: /^next\/link$/ }, () => ({ path: linkStub }));
     } }],
   });
   const script = result.outputFiles[0].text;
@@ -61,6 +64,8 @@ try {
   await row.click();
   const dialog = page.getByRole('dialog', { name: 'Morgan Listing' });
   await dialog.waitFor();
+  assert.equal(await page.getByRole('link', { name: 'Start project draft' }).getAttribute('href'), '/admin/projects/new?inquiry=inquiry-1', 'inquiry detail provides the scoped draft handoff');
+  assert.equal(await page.getByRole('link', { name: 'Open project draft' }).getAttribute('href'), '/admin/projects/project-1', 'inquiry activity keeps the created project reachable');
   assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('aria-label')), 'Close inquiry details', 'opening details moves focus to the close control');
   const close = page.getByRole('button', { name: 'Close inquiry details' });
   await row.focus();
@@ -68,7 +73,7 @@ try {
   assert.equal(await close.evaluate(node => document.activeElement === node), true, 'keyboard focus cannot escape the open modal');
   await close.focus();
   await page.keyboard.press('Shift+Tab');
-  assert.equal(await page.getByLabel('Follow up').evaluate(node => document.activeElement === node), true, 'Shift+Tab stays inside the modal');
+  assert.equal(await page.getByRole('link', { name: 'Open project draft' }).evaluate(node => document.activeElement === node), true, 'Shift+Tab wraps to the last modal control');
   await page.keyboard.press('Tab');
   assert.equal(await close.evaluate(node => document.activeElement === node), true, 'Tab wraps to the first modal control');
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'inquiry details fit a phone viewport');

@@ -65,7 +65,10 @@ const inputClasses =
 const labelClasses =
   "text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/65";
 
-export default function NewProjectForm({ requestId }: { requestId: string }) {
+type ProjectPrefill = { title?: string; city?: string; state?: string; locationLabel?: string };
+type InquirySource = { id: string; name: string; services: string[] };
+
+export default function NewProjectForm({ requestId, initialValues, sourceInquiry }: { requestId: string; initialValues?: ProjectPrefill; sourceInquiry?: InquirySource }) {
   const router = useRouter();
   const [submissionId] = useState(requestId);
   const [state, formAction, pending] = useActionState(async (previous: CreateProjectState, data: FormData) => {
@@ -73,16 +76,18 @@ export default function NewProjectForm({ requestId }: { requestId: string }) {
     catch { return { error: "The creation result could not be confirmed. Your form is preserved. Check Projects before starting another draft.", requiresReview: true }; }
   }, initialState);
   useEffect(() => { if (state.projectId) router.push(`/admin/projects/${state.projectId}`); }, [router, state.projectId]);
-  const [fields, setFields] = useState({ shortDescription: "", city: "", state: "Colorado", locationLabel: "", projectType: "Listing Media", propertyType: "" });
+  const [fields, setFields] = useState({ shortDescription: "", city: initialValues?.city ?? "", state: initialValues?.state ?? "Colorado", locationLabel: initialValues?.locationLabel ?? "", projectType: "Listing Media", propertyType: "" });
   const field = (name: keyof typeof fields) => ({ value: fields[name], onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => setFields(current => ({ ...current, [name]: event.target.value })) });
 
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(initialValues?.title ?? "");
   const [slug, setSlug] = useState("");
   const [slugEdited, setSlugEdited] = useState(false);
 
   return (
     <form action={formAction}>
       <input type="hidden" name="requestId" value={submissionId} />
+      {sourceInquiry && <input type="hidden" name="sourceInquiryId" value={sourceInquiry.id} />}
+      {sourceInquiry && <aside className="mb-6 rounded-xl border border-[var(--helios-orange)]/20 bg-[var(--helios-orange)]/[0.05] px-4 py-4 text-sm leading-6 text-white/60"><p>Draft started from inquiry for <strong className="text-white/80">{sourceInquiry.name}</strong>. The inquiry stays in your pipeline. Review every project detail and add the requested services before any publication.</p>{sourceInquiry.services.length > 0 && <p className="mt-2 text-xs text-white/40">Requested services: {sourceInquiry.services.join(", ")}</p>}</aside>}
       {state.projectId && <p role="status">Draft created. <Link href={`/admin/projects/${state.projectId}`}>Open project</Link></p>}
       {state.requiresReview && <p role="status" className="mb-5 text-sm text-amber-100">Creation is paused. Copy any text you need, then <Link href="/admin/projects" className="underline">check Projects</Link>.</p>}
       <fieldset disabled={pending || Boolean(state.projectId)} className="min-w-0">
