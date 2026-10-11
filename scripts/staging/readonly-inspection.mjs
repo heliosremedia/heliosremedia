@@ -6,8 +6,19 @@ import { pathToFileURL } from 'node:url';
 import pg from 'pg';
 import { TARGET, ENVIRONMENT, REF, protection, targetConnection, jsonGet } from './policy.mjs';
 import { HOSTED } from './hosted-policy.mjs';
-import { diagnostic } from './actions/diagnostics.mjs';
+import { check, diagnostic } from './actions/diagnostics.mjs';
 import { schemaSnapshot, readLedger, hash } from '../migrations/bootstrap/inspect.mjs';
+
+export function safeBranchCurrentState(branch) {
+  const state = branch?.current_state;
+  return typeof state === 'string' && /^[a-z][a-z0-9_]{0,31}$/.test(state) ? state : null;
+}
+
+export function recordBranchState(result, branch) {
+  result.neonBranch = { currentState: safeBranchCurrentState(branch) };
+  // Preserve the existing hard stop before endpoint checks or database connection.
+  check('NEON_BRANCH_STATE', () => assert.equal(branch?.current_state, 'ready'));
+}
 
 export function inspectionInvocation(env) {
   assert.equal(env.GITHUB_REPOSITORY, 'heliosremedia/heliosremedia');
@@ -75,7 +86,9 @@ export async function runInspection(env = process.env) {
   let db;
   try {
     const n = `https://console.neon.tech/api/v2/projects/${TARGET.project}`, token = env.STAGING_NEON_API_KEY;
-    const [p, b, e, d] = await Promise.all([jsonGet(n, token), jsonGet(n + '/branches/' + TARGET.branch, token), jsonGet(n + '/endpoints', token), jsonGet(n + '/branches/' + TARGET.branch + '/databases', token)]);
+    const [p, b] = await Promise.all([jsonGet(n, token), jsonGet(n + '/branches/' + TARGET.branch, token)]);
+    recordBranchState(result, b.branch);
+    const [e, d] = await Promise.all([jsonGet(n + '/endpoints', token), jsonGet(n + '/branches/' + TARGET.branch + '/databases', token)]);
     db = new pg.Client(targetConnection({ project: p.project, branch: b.branch, endpoints: e.endpoints, databases: d.databases }, env.STAGING_DIRECT_URL));
     await db.connect(); result.database = await inspectDatabase(db);
   } catch (error) { result.database = { blocked: true, diagnostic: diagnostic('preflight', error) }; }

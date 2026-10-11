@@ -1,14 +1,31 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { inspectionInvocation, inspectVercelScopes, inspectDatabase } from '../scripts/staging/readonly-inspection.mjs';
+import { inspectionInvocation, inspectVercelScopes, inspectDatabase, safeBranchCurrentState, recordBranchState } from '../scripts/staging/readonly-inspection.mjs';
 import { HOSTED } from '../scripts/staging/hosted-policy.mjs';
+import { TARGET, targetConnection } from '../scripts/staging/policy.mjs';
 
 const env = { GITHUB_REPOSITORY: 'heliosremedia/heliosremedia', GITHUB_EVENT_NAME: 'workflow_dispatch', GITHUB_REF: 'refs/heads/codex/v2-neon-staging-bootstrap', GITHUB_SHA: 'a'.repeat(40), STAGING_EXECUTOR_SHA: 'a'.repeat(40), STAGING_INSPECT_ONLY: 'true', STAGING_CONFIRMATION: 'calm-shape-83359560/br-young-math-arj7l4r3/helios_v2_staging' };
 test('read-only inspection requires exact protected executor and explicit inspection intent', () => {
   assert.equal(inspectionInvocation(env), env.GITHUB_SHA);
   for (const patch of [{ STAGING_INSPECT_ONLY: 'false' }, { GITHUB_REF: 'refs/heads/main' }, { GITHUB_EVENT_NAME: 'push' }, { STAGING_EXECUTOR_SHA: 'b'.repeat(40) }, { STAGING_CONFIRMATION: 'other' }, { VERCEL_ENV: 'production' }]) assert.throws(() => inspectionInvocation({ ...env, ...patch }));
 });
+test('branch state is safely recorded before the existing ready guard blocks database access', () => {
+  assert.equal(safeBranchCurrentState({ current_state: 'idle' }), 'idle');
+  assert.equal(safeBranchCurrentState({ current_state: 'ready' }), 'ready');
+  assert.equal(safeBranchCurrentState({ current_state: 'unexpected state\nsecret' }), null);
+  assert.equal(safeBranchCurrentState(null), null);
+  const receipt: Record<string, unknown> = {};
+  assert.throws(() => recordBranchState(receipt, { current_state: 'idle' }));
+  assert.deepEqual(receipt.neonBranch, { currentState: 'idle' });
+  const target = {
+    project: { id: TARGET.project, name: 'helios-v2-staging', org_id: TARGET.organization, region_id: TARGET.region, pg_version: 16 },
+    branch: { id: TARGET.branch, project_id: TARGET.project, name: 'main', current_state: 'idle' },
+    endpoints: [], databases: [],
+  };
+  assert.throws(() => targetConnection(target, 'postgresql://owner:secret@staging.invalid/helios_v2_staging?sslmode=require'));
+});
+
 test('scope inspection uses only fixed GET requests and emits no provider configuration values', async () => {
   const calls: string[] = [];
   const rows = await inspectVercelScopes('synthetic-secret', async (url: string | URL | Request, options?: RequestInit) => {
