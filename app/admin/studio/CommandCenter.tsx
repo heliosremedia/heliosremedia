@@ -2,8 +2,8 @@ import Link from "next/link";
 import NewsletterJobHealthPanel from "../newsletter-studio/components/NewsletterJobHealthPanel";
 import DashboardRefresh from "../components/DashboardRefresh";
 import type { StudioOverview } from "@/lib/studio-overview";
+import LocalDateTime from "./LocalDateTime";
 
-const date = (value: Date) => new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(value);
 const panel = "rounded-2xl border border-white/10 bg-white/[.025] p-5 sm:p-6";
 const linkStyle = "text-sm text-amber-100 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-amber-200";
 
@@ -32,11 +32,11 @@ export default function CommandCenter({ data }: { data: StudioOverview }) {
           </li>)}</ul>}
       </section>
       <section id="upcoming" aria-labelledby="upcoming-heading" className={`${panel} scroll-mt-6`}>
-        <h2 id="upcoming-heading" className="text-lg font-medium">Coming up</h2><p className="mt-2 text-xs leading-5 text-stone-400">Next 14 days · Times shown in UTC. Open an item for its approval and delivery status.</p>
+        <h2 id="upcoming-heading" className="text-lg font-medium">Coming up</h2><p className="mt-2 text-xs leading-5 text-stone-400">Next 14 days · Times shown in your device’s local time zone. Open an item for its approval and delivery status.</p>
         {!operations.available ? <p role="status" className="mt-4 text-sm text-amber-100">Schedule data is unavailable. Your saved schedules have not been changed.</p>
           : !operations.data.upcoming.length ? <p className="mt-4 text-sm text-stone-400">No upcoming items were returned by the connected modules.</p>
           : <ul className="mt-3 divide-y divide-white/10">{operations.data.upcoming.map(item => <li key={item.id} className="py-4">
-            <time dateTime={item.date.toISOString()} className="text-xs text-stone-400">{date(item.date)} UTC</time><p className="mt-2 text-sm font-medium"><Link className={linkStyle} href={item.href}>{item.title}</Link></p><p className="mt-2 text-xs text-stone-400">{item.type} · {item.state}</p>
+            <LocalDateTime value={item.date.toISOString()} className="text-xs text-stone-400" /><p className="mt-2 text-sm font-medium"><Link className={linkStyle} href={item.href}>{item.title}</Link></p><p className="mt-2 text-xs text-stone-400">{item.type} · {item.state}</p>
           </li>)}</ul>}
       </section>
     </div>
@@ -47,6 +47,6 @@ export default function CommandCenter({ data }: { data: StudioOverview }) {
         : !website.data.recentProjects.length ? <p className="mt-4 text-sm text-stone-400">Your projects will appear here as you create them.</p>
         : <ul className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{website.data.recentProjects.map(project => <li key={project.id} className="rounded-xl border border-white/10 p-4"><p className="text-[10px] uppercase tracking-widest text-stone-400">{project.status}</p><Link href={`/admin/projects/${project.id}`} className={`${linkStyle} mt-2 inline-block`}>{project.title}</Link><p className="mt-2 text-xs text-stone-400">{[project.city, project.state].filter(Boolean).join(", ") || "Location not set"}</p></li>)}</ul>}
     </section>
-    <div className="flex flex-wrap items-center justify-between gap-4"><p className="text-xs leading-5 text-stone-400">Snapshot {date(data.generatedAt)} UTC. This view summarizes available module records; it does not verify live provider health.</p><DashboardRefresh /></div>
+    <div className="flex flex-wrap items-center justify-between gap-4"><p className="text-xs leading-5 text-stone-400">Snapshot <LocalDateTime value={data.generatedAt.toISOString()} inline />. This view summarizes available module records; it does not verify live provider health.</p><DashboardRefresh /></div>
   </div>;
 }
