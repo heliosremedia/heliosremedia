@@ -80,6 +80,8 @@ try {
 
   await row.click();
   await page.getByLabel('Status').selectOption('CONTACTED');
+  await page.waitForFunction(() => Array.from(document.querySelectorAll('label')).some(label =>
+    label.textContent?.trim().startsWith('Status') && label.querySelector('select')?.value === 'CONTACTED'));
   assert.equal(await page.getByLabel('Status').inputValue(), 'CONTACTED', 'confirmed workflow state appears after the server acknowledgement');
   await page.evaluate(() => { window.__failNextWorkflow = true; });
   await page.getByLabel('Status').selectOption('QUALIFIED');
