@@ -37,10 +37,13 @@ try {
   await mkdir('release-evidence', { recursive: true });
   for (const width of [390, 1440]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 } });
+    await page.emulateTimezone("America/Denver");
     const errors = []; page.on('pageerror', error => errors.push(error.message));
     await page.route('**/*', route => route.request().url().startsWith(origin) && route.request().method() === 'GET' ? route.continue() : route.abort());
     await page.goto(origin);
     await page.getByRole('heading', { name: 'Command Center', exact: true }).waitFor();
+    await page.getByText('Oct 10, 10:30 AM MDT', { exact: true }).waitFor();
+    assert.match(await page.getByText(/Times shown in your device/).innerText(), /local time zone/);
     assert.equal(await page.getByRole('link', { name: 'Review delivery →' }).getAttribute('href'), '/admin/newsletter-studio/editions/synthetic');
     assert.equal(await page.getByRole('link', { name: 'Stonewater Sanctuary' }).getAttribute('href'), '/admin/projects/synthetic');
     assert.equal(await page.getByRole('link', { name: 'New project', exact: true }).getAttribute('href'), '/admin/projects/new');
