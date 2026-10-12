@@ -43,7 +43,7 @@ try {
       }
       return Response.json({success:true,note:{id:'note-1',body:body.note,createdAt:'2026-10-11T00:00:00.000Z',author:{displayName:'Owner'}}});
     };
-    createRoot(document.getElementById('root')).render(<InquiryManager initialInquiries={[inquiry]} users={[{id:'editor-1',displayName:'Editor One',role:'EDITOR'}]} />);
+    createRoot(document.getElementById('root')).render(<InquiryManager initialInquiries={[inquiry, {...inquiry, id:'inquiry-2', name:'Taylor Buyer'}]} users={[{id:'editor-1',displayName:'Editor One',role:'EDITOR'}]} />);
   `);
   const result = await build({
     entryPoints: [harness], bundle: true, platform: 'browser', format: 'iife', write: false,
@@ -119,6 +119,14 @@ try {
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'inquiry details fit a desktop viewport');
   await alert.scrollIntoViewIfNeeded();
   await page.screenshot({ path: join(evidenceDir, 'studio-inquiries-1440.png'), fullPage: true });
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Open inquiry: Taylor Buyer' }).click();
+  const otherDialog = page.getByRole('dialog', { name: 'Taylor Buyer' });
+  await otherDialog.waitFor();
+  assert.equal(await page.getByRole('alert').count(), 0, 'a different inquiry does not inherit the previous inquiry save error');
+  await page.keyboard.press('Escape');
+  await row.click();
+  await dialog.getByRole('alert').waitFor();
   assert.deepEqual(errors, []);
   console.log('PASS: real InquiryManager React component in Chromium; named dialog, focus entry/trap/return, Escape close, application styles, mobile overflow, local-time follow-up round trip, acknowledged workflow state and visible failed-save recovery');
 } finally {
