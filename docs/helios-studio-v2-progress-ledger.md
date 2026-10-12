@@ -1630,3 +1630,10 @@ Merged to `codex/v2-hosted-access-owner-action` at `db3cbb0161af58d36b4e63454100
 ## October 11, 2026 — PR #427: tenant-scoped inquiry-to-project draft
 
 Merged to `codex/v2-hosted-access-owner-action` at `f45e4cb4ed7bd8f874760dfe6c9ea02bc692f21b`; exact candidate `02ac4ba83226e0f121bd75e58131a567f25ee805`. Regression run `38123653380` passed the isolated suite, TypeScript and configured Chromium workflows, including inquiry timeline and project creation at 390/1440. Project draft tests cover same-workspace creation, foreign-workspace rejection, replay, and one activity link. GitHub screenshot artifact `11696860148` reports SHA256 `91459ac52a9da3451498459d7ef2a60b59b83dbce6feb386b19710e91de6b96b`. The flow copies property location only, leaves inquiry message/contact details in Inquiries, and keeps the project a private draft. No schema/provider/credential/database/deployment/production changes. Staging inspection and owner access remain blocked on the existing protected owner dispatch and review.
+
+
+## October 12 UTC — #429 and #430: local time and visible inquiry recovery
+
+#429 integrated at 5ec57bde6ea6b5db8dca8d964959a7134c10845b (candidate 749362c732ab4cc4ba89504a4446a80a3741658b, run 38185526522). Command Center schedules and snapshots show local browser time. Artifact 11720060362 was independently hashed and visually inspected during this continuation, closing the previously recorded evidence gap.
+
+#430 integrated at 5bf220625c3d7cd6520146d325c64beaee39e933 (candidate 99beae0cffd48aa18e8eea7aae8f91076338bf13, run 38188450047). Inquiry follow-up inputs now convert stored instants to local wall-clock time, with in-modal errors scoped to the inquiry that failed. Regression, TypeScript and Chromium passed; artifact 11721310293 independently hashed/CRC-checked and responsive images inspected. Candidate, prospective merge and integrated trees matched. See canonical checkpoint for hashes and limitations. No provider, schema/database or deployment changes. Production ON HOLD.

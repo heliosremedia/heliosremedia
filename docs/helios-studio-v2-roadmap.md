@@ -165,3 +165,8 @@ Every implementation slice must include:
 - Post-release verification
 
 No release is complete because a page renders. It is complete when its data, authorization, execution, observability, and recovery story are verified end to end.
+
+
+## October 12 UTC: local times and inquiry recovery
+
+Command Center schedules/snapshots now show the viewer's local time zone (#429). Inquiry follow-up inputs retain local time after save, and workflow errors appear inside the correct inquiry modal (#430). Required CI and independent responsive artifact inspection completed; exact evidence is in the recovery checkpoint. The inquiry browser fixture now includes application CSS. Next bounded product correction: keep unsaved note drafts with their inquiry and preserve newer typing across pending saves. Hosted access remains unqualified; all existing staging gates remain.

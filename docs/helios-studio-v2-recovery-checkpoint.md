@@ -6,7 +6,7 @@ Updated October 11, 2026. **Production ON HOLD.** Recover from live GitHub befor
 
 | Scope | Branch | Verified integration | Qualified candidate / tree |
 | --- | --- | --- | --- |
-| Studio application through #427 | `codex/v2-hosted-access-owner-action` | `f45e4cb4ed7bd8f874760dfe6c9ea02bc692f21b` | Qualified candidate `02ac4ba83226e0f121bd75e58131a567f25ee805`; integrated tree `0b097b49ed21a30606d4ba03fa3d8b30245d54c6` |
+| Studio application through #430 | `codex/v2-hosted-access-owner-action` | `5bf220625c3d7cd6520146d325c64beaee39e933` | Qualified candidate `99beae0cffd48aa18e8eea7aae8f91076338bf13`; integrated tree `d9bd974a5a5bd1028b6af07aad8dfbbc4d7a185e` |
 | Protected read-only staging inspector #420 | `codex/v2-neon-staging-bootstrap` | `d65a1c98675c123d5b710dbf70cdcd3554f5b869` | Candidate `aa792c212d18a24593ba93d5128331b056fc33d2`; tree `8139278ebc86b630c30f5bc150a0f37c402e598e` |
 
 Prospective and post-merge trees were independently compared with each qualified candidate. The documentation-only update carrying this checkpoint leaves application/runtime source unchanged; always inspect the live branch for that documentation commit or newer work. Main and production were not changed. #420 modifies only the existing protected workflow, a read-only diagnostic script and its tests; it does not merge the older executor application into the Studio integration branch.
@@ -209,3 +209,14 @@ Closed #429's outstanding independent artifact gap using the existing artifact, 
 Active bounded product fix: inquiry follow-up timestamps were populated by slicing UTC into a datetime-local field, shifting the displayed local time after acknowledgement. Save errors also rendered outside the fixed modal, behind its overlay. The candidate converts acknowledged timestamps to local input values and renders errors inside the open workflow panel. The existing component browser test now uses the actual application stylesheet and America/Denver, checks the time round trip, and verifies the failure alert is unobscured in the modal. Qualification is pending; do not treat this candidate as integrated. No API, schema, database, authorization, provider, or deployment change.
 
 Next: finish regression/TypeScript/styled Chromium qualification, independently inspect responsive artifact and candidate/merge trees, then integrate if all gates pass. Continue owner-access work through the existing protected inspector when a supported authenticated dispatch path becomes available. Hosted login, live schema/ledger, and First Light remain unqualified. Production ON HOLD.
+
+
+## Current handoff: #430 integrated, inquiry draft work next (October 12 UTC)
+
+PR #430 integrated at `5bf220625c3d7cd6520146d325c64beaee39e933`. Candidate `99beae0cffd48aa18e8eea7aae8f91076338bf13`; candidate, prospective merge and integrated trees all equal `d9bd974a5a5bd1028b6af07aad8dfbbc4d7a185e`. Run `38188450047` passed regression, TypeScript, all configured Chromium and whitespace. The initial candidate was superseded to address the review finding about misattributed errors; its in-progress run was cancelled by existing workflow concurrency.
+
+Independently downloaded artifact `11721310293`; SHA256 `775a50e5f520c6eb9c93a43a39cad3147075930facea9e01c53f76670da469a7` matches GitHub metadata and ZIP CRC passed. Inspected `studio-inquiries-390.png`, `studio-inquiries-recovery-390.png`, and `studio-inquiries-1440.png`: styled dialog, visible failure message, retained CONTACTED status and local 11:45 AM follow-up. Phone full-page capture includes document space below the fixed 844px viewport; this is not hosted/device-browser evidence. Browser assertions verify alert hit-testing within the viewport and that switching inquiries does not misattribute errors. Backend/runtime contracts unchanged; no new database qualification needed for these display/error changes.
+
+Usable improvement: inquiry follow-up values retain local wall-clock time after acknowledgement; failures are visible in the modal and associated with the inquiry that failed. Next bounded task: isolate unsaved internal-note drafts per inquiry and preserve newer text when an earlier save finishes. Source review found one shared draft state, which can carry a lead's text into another inquiry.
+
+Read-only Neon metadata retry returned HTTP 404 internal authorization error / UNAVAILABLE, not a branch state. Protected executor remains `b78600b3080dfa97dc263b13c2fca6bae30bf158`; no new protected inspection, settings, migration, deployment, or provider change. Staging dispatch capability remains unavailable in this session. Continue independent product work while preserving the existing protected staging gate. No hosted owner login or First Light claimed. Production ON HOLD.
