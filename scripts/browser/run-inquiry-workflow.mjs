@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { build } from 'esbuild';
 import { chromium } from 'playwright';
+import postcss from 'postcss';
+import tailwind from '@tailwindcss/postcss';
 
 const scratch = await mkdtemp(join(tmpdir(), 'helios-inquiries-'));
 const evidenceDir = join(process.cwd(), 'release-evidence');
@@ -25,7 +27,7 @@ try {
       propertyAddress:'123 Longview Drive', city:'Fort Collins', state:'CO', postalCode:'80524',
       desiredDate:'2026-10-20T16:00:00.000Z', message:'Please call about the listing.', sourcePage:'/inquire',
       referrer:null, ctaName:'Request a quote', utmSource:null, utmMedium:null, utmCampaign:null, utmContent:null, utmTerm:null,
-      consent:true, assignedToId:null, assignedTo:null, followUpAt:null, requestedServices:[{service:{id:'photo',name:'Photography'}}],
+      consent:true, assignedToId:null, assignedTo:null, followUpAt:'2026-10-20T16:30:00.000Z', requestedServices:[{service:{id:'photo',name:'Photography'}}],
       notes:[], activities:[{id:'activity-1',action:'PROJECT_DRAFT_CREATED',summary:'A private project draft was started from this inquiry.',metadata:{projectId:'project-1',projectTitle:'123 Longview Drive'},createdAt:'2026-10-11T00:00:00.000Z',actor:{displayName:'Owner'}}], createdAt:'2026-10-10T16:00:00.000Z', updatedAt:'2026-10-10T16:00:00.000Z', lastActivityAt:'2026-10-10T16:00:00.000Z'
     };
     window.__failNextWorkflow = false;
@@ -33,6 +35,7 @@ try {
     window.__resolveWorkflow = null;
     window.fetch = async (_url, options) => {
       const body = JSON.parse(options.body);
+      window.__lastRequest = body;
       if (body.action === 'update-workflow') {
         if (window.__failNextWorkflow) { window.__failNextWorkflow=false; throw new Error('synthetic network failure'); }
         if (window.__deferWorkflow) await new Promise(resolve => { window.__resolveWorkflow=resolve; });
@@ -51,11 +54,15 @@ try {
     } }],
   });
   const script = result.outputFiles[0].text;
+  const css = await postcss([tailwind()]).process(await readFile('app/globals.css', 'utf8'), { from: 'app/globals.css' });
   browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: 'America/Denver', reducedMotion: 'reduce' });
+  const page = await context.newPage();
+  await page.route('**/*', route => route.abort());
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.setContent('<!doctype html><html><body style="margin:0;background:#111;color:#eee"><main id="root"></main></body></html>');
+  await page.setContent('<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body class="admin-form-scope"><main id="root"></main></body></html>');
+  await page.addStyleTag({ content: css.css });
   await page.addScriptTag({ content: script });
   const row = page.getByRole('button', { name: 'Open inquiry: Morgan Listing' });
   await row.waitFor();
@@ -64,6 +71,7 @@ try {
   await row.click();
   const dialog = page.getByRole('dialog', { name: 'Morgan Listing' });
   await dialog.waitFor();
+  assert.equal(await dialog.evaluate(node => getComputedStyle(node).position), 'fixed', 'actual application stylesheet positions the modal');
   assert.equal(await page.getByRole('link', { name: 'Start project draft' }).getAttribute('href'), '/admin/projects/new?inquiry=inquiry-1', 'inquiry detail provides the scoped draft handoff');
   assert.equal(await page.getByRole('link', { name: 'Open project draft' }).getAttribute('href'), '/admin/projects/project-1', 'inquiry activity keeps the created project reachable');
   assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('aria-label')), 'Close inquiry details', 'opening details moves focus to the close control');
@@ -79,6 +87,12 @@ try {
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'inquiry details fit a phone viewport');
   await page.screenshot({ path: join(evidenceDir, 'studio-inquiries-390.png'), fullPage: true });
 
+  assert.equal(await page.getByLabel('Follow up', { exact: true }).inputValue(), '2026-10-20T10:30', 'stored UTC follow-up displays in the browser local time zone');
+  await page.getByLabel('Follow up', { exact: true }).fill('2026-10-21T11:45');
+  await page.waitForFunction(() => window.__lastRequest?.followUpAt === '2026-10-21T17:45:00.000Z');
+  await page.waitForFunction(() => !document.querySelector('input[type="datetime-local"]').disabled);
+  assert.equal(await page.getByLabel('Follow up', { exact: true }).inputValue(), '2026-10-21T11:45', 'acknowledged UTC value keeps the chosen local wall-clock time');
+
   await page.keyboard.press('Escape');
   await dialog.waitFor({ state: 'detached' });
   assert.equal(await row.evaluate(node => document.activeElement === node), true, 'closing with Escape restores focus to the opened inquiry');
@@ -91,13 +105,22 @@ try {
   await page.evaluate(() => { window.__failNextWorkflow = true; });
   await page.getByLabel('Status').selectOption('QUALIFIED');
   assert.equal(await page.getByLabel('Status').inputValue(), 'CONTACTED', 'failed save never leaves an optimistic status in the UI');
-  await page.getByRole('alert').waitFor();
+  const alert = dialog.getByRole('alert');
+  await alert.waitFor();
+  await alert.scrollIntoViewIfNeeded();
+  assert.equal(await alert.evaluate(node => {
+    const rect = node.getBoundingClientRect();
+    const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+    return node === hit || node.contains(hit);
+  }), true, 'save failure is visible inside the styled modal, not obscured behind its overlay');
+  await page.screenshot({ path: join(evidenceDir, 'studio-inquiries-recovery-390.png'), fullPage: true });
   assert.match(await page.getByRole('alert').textContent(), /Unable to save change\. Check your connection/);
   await page.setViewportSize({ width: 1440, height: 900 });
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'inquiry details fit a desktop viewport');
+  await alert.scrollIntoViewIfNeeded();
   await page.screenshot({ path: join(evidenceDir, 'studio-inquiries-1440.png'), fullPage: true });
   assert.deepEqual(errors, []);
-  console.log('PASS: real InquiryManager React component in Chromium; named dialog, focus entry/trap/return, Escape close, mobile overflow, acknowledged workflow state and failed-save recovery');
+  console.log('PASS: real InquiryManager React component in Chromium; named dialog, focus entry/trap/return, Escape close, application styles, mobile overflow, local-time follow-up round trip, acknowledged workflow state and visible failed-save recovery');
 } finally {
   await browser?.close();
   await rm(scratch, { recursive: true, force: true });

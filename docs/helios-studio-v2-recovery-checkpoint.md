@@ -198,3 +198,14 @@ This entry supersedes the pending #429 status above. Production remains **ON HOL
 - PR merged only after the exact-head run succeeded; GitHub reported merge SHA above, and the integration branch now matches the merge commit. No schema/database, provider, Vercel/Neon setting, migration, or deployment changes. No hosted owner access or First Light is claimed.
 
 Next authorized task remains the read-only staging inspection using an authenticated, protected dispatch path when available; preserve the existing environment approval and `ready` guard. If that session capability remains unavailable, record it and continue with independent product work. Do not bypass protection. Production remains ON HOLD.
+
+
+## October 12 UTC continuation: inquiry follow-up and visible recovery
+
+Recovered integration `f99ca349ea89701af613bf97144ab5d258704ce3`; integration regression `38186160893` passed. Executor remains `b78600b3080dfa97dc263b13c2fca6bae30bf158`. Manual workflow history still ends at completed inspection `38159974154`; no newer inspection is active. This session still has no authenticated workflow-dispatch capability; the GitHub connector supports repository writes but no Actions dispatch, gh is absent, and the supported git mirror clone rejected missing authentication. No credentials or protections were changed.
+
+Closed #429's outstanding independent artifact gap using the existing artifact, without rerunning tests: downloaded artifact `11720060362`, SHA256 `6cdf69db348255686c8a3cdf59a096cd6df2c718369335d7cfeb6f546ef8eb82` matches metadata; ZIP CRC passed. Visually inspected `studio-command-center-390.png` and `studio-command-center-1440.png`: local MDT schedule/snapshot labels, legible navigation/cards and retained held-work warning. This supersedes the preceding limitation for that artifact, not the hosted-access gap.
+
+Active bounded product fix: inquiry follow-up timestamps were populated by slicing UTC into a datetime-local field, shifting the displayed local time after acknowledgement. Save errors also rendered outside the fixed modal, behind its overlay. The candidate converts acknowledged timestamps to local input values and renders errors inside the open workflow panel. The existing component browser test now uses the actual application stylesheet and America/Denver, checks the time round trip, and verifies the failure alert is unobscured in the modal. Qualification is pending; do not treat this candidate as integrated. No API, schema, database, authorization, provider, or deployment change.
+
+Next: finish regression/TypeScript/styled Chromium qualification, independently inspect responsive artifact and candidate/merge trees, then integrate if all gates pass. Continue owner-access work through the existing protected inspector when a supported authenticated dispatch path becomes available. Hosted login, live schema/ledger, and First Light remain unqualified. Production ON HOLD.
