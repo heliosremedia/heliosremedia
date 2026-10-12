@@ -1,246 +1,81 @@
-# Studio V2 live recovery checkpoint
+# Studio V2 recovery checkpoint
 
-Updated October 11, 2026. **Production ON HOLD.** Recover from live GitHub before any mutation. This is the canonical continuity record; the roadmap and progress ledger provide product priorities and historical evidence.
+Updated October 12, 2026 (UTC). **Production ON HOLD.** Live GitHub is authoritative. This is the single current continuity record; historical evidence remains in the progress ledger and [prior checkpoint](https://github.com/heliosremedia/heliosremedia/blob/e0f57719355a03a3e63918928173c6697f01d813/docs/helios-studio-v2-recovery-checkpoint.md). The owner's continuous-development directive supersedes the earlier temporary feature pause.
 
-## Verified integrated state
+## Verified integration
 
-| Scope | Branch | Verified integration | Qualified candidate / tree |
+PR #432 merged into `codex/v2-hosted-access-owner-action` at `3ecb648b30645fd9f9c16d8fe16537ed26c6dba7`. Qualified candidate `b9e46c56ae047cab3f1a48b1d9a5884237c7f079`; candidate, prospective merge and post-merge tree all `1c2220359f2b2db0151542b3ae583437698fff57`. #430 integrated at `5bf220625c3d7cd6520146d325c64beaee39e933`; #431 at `20a2d61d41c14ca59cc2331c3ffce332cf248352`.
+
+The documentation commit carrying this checkpoint follows that merge without changing application/test/runtime source. Check live HEAD for it or newer work before acting. No unfinished implementation is left on these three PRs. Integration-triggered CI may run separately; the exact merged tree already passed both required candidate workflows.
+
+Protected inspector: `codex/v2-neon-staging-bootstrap` remains `b78600b3080dfa97dc263b13c2fca6bae30bf158` (#428). Its existing regression/contract runs `38177277278`, `38177277212`, `38177277232` passed. This older executor is separate from the application branch; do not merge its application baseline.
+
+## Usable product progress
+
+The integrated application supports workspace-aware navigation and Command Center, private project creation/details, registered synthetic media, reviewed services, private review/revocation, reviewed publishing/featured placement, unpublish/archive/private restore, and responsive project browsing/order recovery. Tenant, revision, authority, consent and uncertainty protections remain.
+
+- #429: Command Center schedules and snapshot times use the viewer's local timezone. The Playwright timezone correction was already integrated on recovery.
+- #430: inquiry follow-up inputs preserve local wall-clock time; workflow failures appear in the correct styled modal.
+- #431: unsaved private notes remain with their inquiry across navigation; late responses preserve newer typing and other inquiries' drafts. Drafts are component memory only, not durable across reload/logout.
+- #432: the existing actual Next/disposable PostgreSQL owner flow now begins with an inquiry. Both synthetic companies sign in normally, use owned prefill, reject foreign inquiry page/action access without mutation, create/replay exactly one project and activity link, and continue through details, synthetic registered media, services, private review and logout. Inquiry contact/message data stays out of project fields. Fixture cleanup and existing credential/audit/schema restoration pass.
+
+These are isolated qualification results. **No current owner-testing URL, hosted persistent login, live provider readiness or First Light is qualified.**
+
+## Qualification and independent evidence
+
+| PR | Qualified candidate | Regression | Runtime / scope |
 | --- | --- | --- | --- |
-| Studio application through #431 | `codex/v2-hosted-access-owner-action` | `20a2d61d41c14ca59cc2331c3ffce332cf248352` | Qualified candidate `b617e93ce52596bb8262c613968cef0d0bf8928e`; integrated tree `67e0485d4b5e4927396482672d0b35d3d2eb2281` |
-| Protected read-only staging inspector #420 | `codex/v2-neon-staging-bootstrap` | `d65a1c98675c123d5b710dbf70cdcd3554f5b869` | Candidate `aa792c212d18a24593ba93d5128331b056fc33d2`; tree `8139278ebc86b630c30f5bc150a0f37c402e598e` |
+| #429 | `749362c732ab4cc4ba89504a4446a80a3741658b` | `38185526522` | Display-only; existing runtime evidence reused |
+| #430 | `99beae0cffd48aa18e8eea7aae8f91076338bf13` | `38188450047` | Display/error state only |
+| #431 | `b617e93ce52596bb8262c613968cef0d0bf8928e` | `38189332657` | Component draft state only |
+| #432 | `b9e46c56ae047cab3f1a48b1d9a5884237c7f079` | `38190803695` | `38190803685`; actual HTTP/Server Action on disposable PostgreSQL |
 
-Prospective and post-merge trees were independently compared with each qualified candidate. The documentation-only update carrying this checkpoint leaves application/runtime source unchanged; always inspect the live branch for that documentation commit or newer work. Main and production were not changed. #420 modifies only the existing protected workflow, a read-only diagnostic script and its tests; it does not merge the older executor application into the Studio integration branch.
+Final #432 regression passed 1,860 tests, zero failures, TypeScript, every configured Chromium step and whitespace validation. Final runtime receipt identifies the exact candidate, disposable-local-postgresql, two passing tenant flows, actual HTTP/Server Action, unchanged columns/indexes and restored synthetic access. Inquiry/activity cleanup assertions execute before receipt emission. Receipt reports hosted:false, deployable:false and no live provider calls. Final 390/1440 note images were visually inspected; they show the saved note and retained newer draft.
 
-## Functionality now integrated
-
-- Workspace-aware shell, Command Center, project creation/information, registered synthetic media management, reviewed services, setup navigation and private review/revocation.
-- Ordinary password sign-in through the complete private project workflow on two synthetic companies, including logout and exact credential/audit restoration.
-- Reviewed publish, unpublish and archive with current administrator authorization, project revision/status checks and explicit uncertainty recovery. Publishing rechecks owned active services and visible/playable media under locks.
-- Featured placement preserves the six-project cap across both writers. Expired renewals consume capacity. The featured-list editor binds candidates, placement windows and saved order to a workspace-specific revision, preserves local selections after uncertain saves, and requires explicit review before retry. Keyboard sorting and replacement are qualified.
-- Archived projects can return to a private draft without meeting publication requirements. The Projects list keeps status and edit controls visible on phones and preserves return filters.
-- Project ordering binds the complete owned list to a reviewed revision and fresh editor authorization under locks. Exact receipts, duplicate-save guards and retained attempted order/selection support explicit recovery after uncertain saves.
-- Inquiry details use an accessible keyboard dialog. Status, assignee and follow-up updates wait for server confirmation; transport failure retains the last confirmed state and offers a clear retry message.
-- Inquiry-to-project handoff creates a private draft from workspace-scoped property location, preserves customer messages/contact in the inquiry, and records an activity link to the project. Replays are idempotent.
-- Existing Preview read-only restrictions remain. Isolated qualification does **not** establish hosted publishing, owner access, live providers or First Light.
-
-## Current qualification evidence
-
-| Change | Regression | Isolated runtime | Independent verification |
-| --- | --- | --- | --- |
-| #418 publishing / placement | `38063753494`: 1,856 tests, TypeScript, all Chromium | `38063753495`: six cases, 22 observed authority/dependency races across two companies; schema/access/fixture cleanup passed | Runtime artifact `11674205546`; screenshot artifact `11674760645`; four 390/1440 success/recovery images inspected |
-| #419 featured-list review / recovery | `38065081061`: 1,859 tests, TypeScript, all Chromium including keyboard ordering | `38065081090`: two list cases/eight observed authority/revision races, plus all prior publishing cases; schema/access/fixture cleanup passed | Runtime artifact `11675106730`; screenshot artifact `11674312436`; four 390/1440 success/recovery images inspected |
-| #420 protected inspection | `38065154309`: 1,571 tests on the existing executor baseline, TypeScript, all configured Chromium | No hosted inspection has run. 159 local credential-free executor/admission/inspection checks and lint passed | Source limited to three reviewed files; no application/schema/dependency change; exact integration tree verified |
-
-All listed runtime/screenshot ZIPs were separately downloaded and SHA256 matched to GitHub metadata. JSON candidate identity and relevant authorization, concurrency, ownership and cleanup outcomes were inspected. Screenshot evidence was visually inspected, not inferred from workflow badges.
-
-| Artifact | ZIP SHA256 |
+| Artifact | Independently verified ZIP SHA256 |
 | --- | --- |
-| `11674205546` | `74aba91ad3780fcaa1ebd68562e0c57dec895593cf696db7f20a584f40008ddd` |
-| `11674760645` | `d39a9d609d78627c67b4cf8dbf7c913820cd12b0d3c9e38472d8ee312022fd3c` |
-| `11675106730` | `61d253908355ee09776c5d3346282ab9dae4305c67ba2643c87aa4042cb66289` |
-| `11674312436` | `7600ea917ae2170215270896f1a4d6940fa1e230efa7bd4599bcf672ba170ce6` |
+| #429 `11720060362` | `6cdf69db348255686c8a3cdf59a096cd6df2c718369335d7cfeb6f546ef8eb82` |
+| #430 `11721310293` | `775a50e5f520c6eb9c93a43a39cad3147075930facea9e01c53f76670da469a7` |
+| #431 `11721221056` | `d653c27a36a2219b50e7cf386fd92a39542ee1ac7230afdec8d7b220f70d08ee` |
+| #432 runtime `11721493108` | `e43b8cb54b3749a531e093d699d2918fe251fc900779ca5a05919e84d7c75194` |
+| #432 screenshots `11721578504` | `b27db9ae4f3c54579b7b71c878dd2560255c5ddada6f10eb772bce21c08d6bd5` |
 
-#418 integration: `e4aa3031dc74eef476c935807c1ab8821aaa7099`, tree `3cef159d8ffa75e78b2e0e7d323d4e2603a795fb`, candidate `2f1b7330dbfee4921ea5530c473848f436d89ddb`.
+Every listed artifact was downloaded independently, checked against GitHub SHA256 metadata and ZIP CRC, and inspected for its relevant evidence. #429 Command Center and #430/#431 inquiry phone/desktop images were visually inspected. #430's full-page fixed-modal capture included below-viewport document space; #431 corrected modal captures to viewport-only.
 
-Earlier evidence remains valid: #415 current-schema upgrade rehearsal integrated at `b231046863a341c198e80d65aac139ec82ca95c5`; runs `38060380830`/`38060380786`; artifact `11672438840` SHA256 `ce7cd03e3bacb03f75c246875f321f035feb621faa262733550f2f9d29aa927c`. It proves six existing migrations, retained ledger/private data, current Prisma equivalence and repeated-deploy no-op in disposable PostgreSQL. #416 sign-in/private workflow integrated at `bec844bea9898227fe49cd605ecce1060978ca84`; runs `38060682561`/`38060682637`; artifact `11672254799` SHA256 `e68550273b538fe2f0b033551576b344ca8db799c9f2d6d0f0b02dda5e662223`. Historical detail is retained in the existing progress ledger and Git history.
+Earlier #426/#427 artifacts `11695947503` / `11696860148` were independently verified in the prior checkpoint (hashes and inspected files retained there). Their unstyled inquiry fixtures did not establish real modal presentation; #430/#431 add application CSS and viewport checks. #432 adds continuous actual-server inquiry handoff evidence. Hosted qualification is still outstanding.
 
-## October 10 continuation: qualified project lifecycle and browsing
+## Failures resolved and reuse limits
 
-| Change | Integrated commit / candidate tree | Qualification |
-| --- | --- | --- |
-| #422 restore archived project to draft | Integration `14fe732dd936fa8c570256ac4f3fcbf95212b0be`; candidate `f3ac5c278be9ee9be786d1f875042acc9e68350f`; tree `78623720b604921bb5caa24011d4439f1f48cfa4` | Regression `38076985735`: 1,859 tests, TypeScript, all Chromium. Runtime `38076985691`: six two-company status cases and 24 observed authority/ownership races, including restoration, stale/concurrent requests and retained content. Four responsive success/recovery images inspected |
-| #423 responsive project list | Integration `a03ee33d198c2bbb3fdffe649ae59b456b818e2d`; candidate `c957976a13e1cc244ca7fc0db3a748be2ebb65c4`; tree `342708485a98e8461202c5fb2eec9188683061bf` | Corrected regression `38077562965`: 1,859 tests, TypeScript, all Chromium, including selection moves, keyboard ordering, phone visibility and retained filters. Two responsive images inspected. #422 runtime evidence reused for unchanged backend/runtime code |
-| #424 reviewed project ordering | Integration `bb5c9c5ac2e69f89091d02eaff92b00f8a5e9f06`; candidate `6299c358352de91675cecf14a50412ca8bd2eaba`; tree `9af174c9f9ab9fc3e6be3d7889e5ec25a20e75d6` | Regression `38078067769`: 1,859 tests, TypeScript, all Chromium including pending and six held ordering outcomes. Runtime `38078068060`: two company cases and ten observed viewer/revocation/suspension/ownership/content races, stale/concurrent rejection, ordered receipts, editor allowance and retained fields. Four responsive normal/recovery images inspected |
+Initial #432 candidate `2e8f7e6aeea035930a71d2541fb42fb1569d6a2b` passed runtime `38190115077`; artifact `11721357269`, SHA256 `5b9a80ae1440e348a1bc0d3e2afb313197767b0641a04b0824e2f3566625602c`, independently checked. Regression `38190115054` then exposed a browser-test race: a text locator could match the textarea before acknowledgement. Follow-up deliberately holds the save, verifies retained pending text, releases it, and waits for a saved paragraph plus cleared input. Application/runtime source did not change. Final exact-candidate CI supersedes the failed run.
 
-All prospective and post-merge trees match their qualified candidates. Runtime JSON binds exact candidates; fixture restoration, schema/access postflight and relevant authority/ownership outcomes were inspected. Each ZIP below was independently downloaded and SHA256 matched to GitHub metadata.
+No successful historical suite was rerun just for recovery. New source commits triggered established CI; corrective qualification resolved demonstrated defects. Documentation-only checkpoint commits reuse unchanged code evidence. Historical stacked draft PRs are not the maintained integration line; do not merge/replay them blindly.
 
-| Artifact | ZIP SHA256 |
+## Owner-accessible staging: concrete blocker
+
+Read-only inspection `38159974154` completed on old executor `d65a1c98675c123d5b710dbf70cdcd3554f5b869`. Provider identity checks passed, then `CHECK_NEON_BRANCH_STATE` stopped before database access because state was not `ready`. The old receipt omits the exact state. No suspension, deletion or schema diagnosis is established.
+
+The #428 executor now records sanitized branch state while preserving the ready guard. Manual workflow history was rechecked this continuation: no newer/equivalent inspection is queued or running. This session lacks an authenticated workflow-dispatch capability; repository writes and Actions reads work, but no dispatch action is exposed, gh is absent, and the previously checked browser is signed out. Direct Neon read-only metadata returns internal authorization HTTP404 / UNAVAILABLE; that is not evidence of a missing branch. No settings, credentials, migrations or deployments were changed.
+
+Existing targets:
+- Vercel `helios-v2-staging`, project `prj_PUv0ADGxYl5QjRYaMv2h8Km1UmMg`, account `team_H79eaUfq9xMqcbf34ZCtwwn9`. Default-scope discovery found it; explicit scope selectors had empty/404 responses. Do not recreate it.
+- Neon organization `org-nameless-shape-94202911`, project `calm-shape-83359560` / `helios-v2-staging`, branch `br-young-math-arj7l4r3` / `main`, database `helios_v2_staging`. Jake's earlier other-email/org screenshot was a different project; it did not prove deletion.
+- Preview build suppression and environment protections are intentional. Historical September hosted source is not the current Studio application.
+
+## Next safe gates
+
+1. Through a supported authenticated dispatch path, recheck executor SHA and active runs, then run existing [protected inspection](https://github.com/heliosremedia/heliosremedia/actions/workflows/v2-vercel-staging-qualification.yml) with the inputs below. Preserve the `helios-v2-staging-bootstrap` environment review and no-admin-bypass policy. Ask Jake only if an actual environment review requires his approval, with the exact run link.
+2. Independently download/hash the inspection artifact. Verify target/scope, exact branch state, catalog/ledger and password readiness. If state is not ready, retain the guard; diagnose before proposing any change.
+3. Use the observed database state to prepare current-source admission and the existing six-migration upgrade (#415 already rehearsed on disposable PostgreSQL). Live staging ledger/schema remain unknown. Persistent non-production owner credentials and explicit V2 workspace allowlisting remain incomplete.
+4. Obtain any separate approval required for concrete consequential credential/provider/infrastructure changes or unexpected database risks before execution. Do not restart/restore/recreate infrastructure speculatively. Then qualify the continuous hosted owner workflow and protected Studio URL before claiming access/First Light.
+5. Continue bounded independent product work under standing authorization while dispatch is unavailable; use actual roadmap gaps, not a new hardening program.
+
+| Inspection input | Exact value |
 | --- | --- |
-| #422 runtime `11679027328` | `e650c87cef197c7175e65266eca980ed1ee5b5f4a6556e6b93f574b888d194ad` |
-| #422 screenshots `11679452667` | `553e01302b3ce9fae256967bf8ef8ee56ef610d3a17e79f3aa47e0bf3cd8c39f` |
-| #423 screenshots `11679603241` | `158e860ce4bc64daaf6267ffd4e3949c2dae1ab8a1d1c19745f9398060adf025` |
-| #424 runtime `11678877850` | `689244327ed2299606e50f4cd23d004f88363c16ad7116657006bd23bdbb5989` |
-| #424 screenshots `11679004737` | `b05dbcfb74a552289f645d323a3bb393b244c6805d12435e5a951f5548b1dfc8` |
-
-The ordering change followed a reproduced stale overwrite in the actual route with synthetic in-memory delegates: a newer order and an older replacement both returned 200. The final isolated PostgreSQL/Next qualification independently proves stale rejection and single-winner concurrency. Existing OWNER/ADMIN/EDITOR content-write eligibility is preserved; VIEWER is denied by the shared editor-write boundary. No schema/provider/deployment changes occurred. Broader bulk-media contracts remain separate.
-
-## October 11 continuation: qualified inquiry workflow
-
-| Change | Integration | Qualification |
-| --- | --- | --- |
-| #426 inquiry accessibility and confirmed-state recovery | `db3cbb0161af58d36b4e6345410060153450c161` (qualified candidate `63fdcacf5fc8a4a0751bdff84f7cc79df07c11d9`) | Regression run `38122085985`: isolated regression suite, TypeScript and all configured Chromium checks passed, including inquiry dialog keyboard focus, Escape/return focus, phone/desktop overflow, acknowledged workflow state and failed-save recovery. Screenshot artifact `11695947503` was uploaded (GitHub SHA256 `b4cc7b45d06b0411d2bdd22218b952fe9e55958c0474db3482ace72314211785`). |
-| #427 tenant-scoped inquiry-to-project draft | `f45e4cb4ed7bd8f874760dfe6c9ea02bc692f21b` (qualified candidate `02ac4ba83226e0f121bd75e58131a567f25ee805`) | Regression run `38123653380`: isolated regression suite, TypeScript and all configured Chromium checks passed, including 390/1440 inquiry handoff links and project form prefill. Focused project-draft tests cover workspace ownership, replay and activity linking. Screenshot artifact `11696860148` was uploaded (GitHub SHA256 `91459ac52a9da3451498459d7ef2a60b59b83dbce6feb386b19710e91de6b96b`). |
-
-No schema, database, provider, credential, deployment or production changes. This isolated UI qualification makes no claim about hosted owner access or First Light.
-
-## October 11 PM-directed staging resumption
-
-New feature development is paused. Owner-accessible non-production staging is the immediate milestone.
-
-Independently downloaded existing artifacts without rerunning tests:
-- #426 run `38122085985`, candidate `63fdcacf5fc8a4a0751bdff84f7cc79df07c11d9`, artifact `11695947503`: ZIP SHA256 `b4cc7b45d06b0411d2bdd22218b952fe9e55958c0474db3482ace72314211785` matches GitHub metadata; ZIP CRC check passed.
-- #427 run `38123653380`, candidate `02ac4ba83226e0f121bd75e58131a567f25ee805`, artifact `11696860148`: ZIP SHA256 `91459ac52a9da3451498459d7ef2a60b59b83dbce6feb386b19710e91de6b96b` matches GitHub metadata; ZIP CRC check passed.
-- Visually inspected both candidates' `studio-inquiries-390.png` and `studio-inquiries-1440.png`, plus #427's `studio-project-create-390.png` and `studio-project-create-1440.png`. Inquiry images show the fixture content, confirmed-state failure message and (for #427) draft/activity links. Project-create images show the styled source-inquiry notice, retained fields, validation message and private-draft controls at both widths.
-- Limitation: the inquiry screenshots are unstyled component fixtures. Source inspection of `scripts/browser/run-inquiry-workflow.mjs` confirms an esbuild component harness with mocked fetch/router and no application stylesheet. Its overflow assertions therefore do not establish production-styled responsive layout or actual hosted navigation/persistence. These screenshots cannot qualify the real inquiry modal's visual presentation. The ZIPs contain screenshots, not PostgreSQL authorization/cleanup receipts. Existing passing CI remains valid for its stated synthetic scope; no new hosted/runtime qualification is claimed.
-- Remaining verification: inspect the real styled inquiry page and continuous inquiry-to-draft workflow during protected hosted qualification, including authorization, persistence and cleanup. Do not equate the recovered screenshots with full hosted qualification.
-
-Live reconciliation before this documentation update: application head `8d713f284b0e44869d69ef8728aebc2bd636e7e8`; exact-head integration regression `38124285356` passed. Executor remains `d65a1c98675c123d5b710dbf70cdcd3554f5b869`. Manual workflow history still ends at historical run `36217912507`; no equivalent new inspection is queued or running. Jake's next action remains the exact read-only dispatch and existing environment approval below. Recheck history before dispatch to avoid duplicates.
-
-After the inspection, independently download/hash its artifact and inspect target identity, provider scope results, ledger/catalog and password-readiness evidence before proposing changes. Current-source admission, the rehearsed staging migration path, persistent owner credentials and explicit workspace allowlisting remain incomplete. Present exact changes and any consequential credential/infrastructure or unexpected database risks for separate owner approval before execution. Do not recreate infrastructure, change protection/suppression policy or deploy production. Normal reversible non-production work remains within standing authorization, subject to existing protected environment review.
-
-## Active milestone: current hosted owner access
-
-**No current Studio owner-testing URL is qualified.** Read-only inspection run `38159974154` completed after Jake's approval. Vercel identity/scope checks passed; database inspection stopped at `CHECK_NEON_BRANCH_STATE` before connection. Next: establish the actual Neon branch state via read-only metadata, then reconcile schema/ledger and owner sign-in requirements.
-
-Verified discovery to date:
-
-- Default-scope Vercel discovery finds existing `helios-v2-staging`, project `prj_PUv0ADGxYl5QjRYaMv2h8Km1UmMg`, expected account `team_H79eaUfq9xMqcbf34ZCtwwn9`. Explicit scope selectors returned empty/404. The protected inspector compares both scopes using the existing runner credential; do not assume this is a missing project or recreate it.
-- Git integration is connected; suppressed Preview builds are intentional. Historical protected hosted run `36217912507` succeeded for September source `2999055b2b59467fcfef446c33a47212e72d4712`, not current Studio. Its independently recovered artifact `10907013060` has SHA256 `a97ea9cc5b4b1453fe22cd9b0085803085f97e5405d0a1d46dcbd5bbf5c30437`.
-- Neon connector discovery returned an internal authorization error. Current live ledger/schema are unknown. The existing hosted source admission still pins the older baseline; the qualified six-migration upgrade has not been applied to staging.
-- Historical hosted fixtures used password-null synthetic owners and temporary runner-signed cookies. Persistent owner sign-in and explicit V2 workspace allowlisting still need qualification.
-
-### Historical dispatch instructions (run completed; do not replay unchanged)
-
-The existing `helios-v2-staging-bootstrap` GitHub environment requires owner review, forbids administrator bypass and admits only the existing executor branch. These requirements come from `scripts/staging/policy.mjs` and remain unchanged. This session's GitHub connector has no workflow-dispatch capability. **Inspection `38159974154` has now completed. Do not dispatch again merely to repeat this result.**
-
-Run [V2 manual protected staging Preview qualification](https://github.com/heliosremedia/heliosremedia/actions/workflows/v2-vercel-staging-qualification.yml) with these inputs, then approve its existing environment review:
-
-| Input | Exact value |
-| --- | --- |
-| Branch / ref | `codex/v2-neon-staging-bootstrap` |
-| `executor_sha` | `d65a1c98675c123d5b710dbf70cdcd3554f5b869` |
-| `inspect_only` | `true` |
-| `confirmation` | `calm-shape-83359560/br-young-math-arj7l4r3/helios_v2_staging` |
-| `candidate_sha` | `inspection-only` |
-| `hosted_confirmation` | `read-only-inspection` |
-
-The last two values are deliberate non-deploying sentinels. They are unused by inspection and cannot admit the deployment job if the inspection checkbox is omitted. If the branch has advanced, verify the new executor before changing the SHA; never blindly replay a run.
-
-Equivalent owner CLI invocation:
-
-```sh
-gh workflow run v2-vercel-staging-qualification.yml \
-  --repo heliosremedia/heliosremedia \
-  --ref codex/v2-neon-staging-bootstrap \
-  -f executor_sha=d65a1c98675c123d5b710dbf70cdcd3554f5b869 \
-  -F inspect_only=true \
-  -f confirmation=calm-shape-83359560/br-young-math-arj7l4r3/helios_v2_staging \
-  -f candidate_sha=inspection-only \
-  -f hosted_confirmation=read-only-inspection
-```
-
-Inspection verifies the environment gate and exact target, issues fixed GET-only provider metadata requests, and uses a repeatable READ ONLY database transaction followed by rollback. It exports only safe metadata, catalog/ledger hashes and aggregate counts. It makes no deployment, schema, data, hostname, suppression, credential or provider-activation change. The receipt always reports `deployable:false` and `ownerAccessQualified:false`.
-
-## October 11 owner Neon dashboard screenshot
-
-Jake's dashboard screenshots show the selected Neon organization `Helios RE Media`, URL organization ID `org-dawn-sunset-51163361`, and only project `helios-studio` (project slug `blue-tooth-89291805`) with one `production` branch. This is distinct from the protected inspector's expected staging organization `org-nameless-shape-94202911`, project `calm-shape-83359560` / `helios-v2-staging`. The screenshot establishes an organization/account scope mismatch; it does not establish staging deletion. Do not create a project/branch or change production. Next read-only step: inspect the Neon organization selector for `org-nameless-shape-94202911`. If unavailable, the Neon organization owner must grant Jake's account access or confirm the staging project was moved. Production remains ON HOLD.
-
-## October 11 protected inspection result
-
-Jake dispatched and approved run [38159974154](https://github.com/heliosremedia/heliosremedia/actions/runs/38159974154). Exact executor `d65a1c98675c123d5b710dbf70cdcd3554f5b869`; inspect completed successfully; deployment/qualify job skipped. Success means diagnostic collection completed, not staging readiness.
-
-Artifact `11709634858` (`staging-readonly-d65a1c98675c123d5b710dbf70cdcd3554f5b869`) was independently downloaded. ZIP SHA256 `b5e0638f47cf4f6ddc61b077d01ef9e95373e5d82a89bb1644866d09294937fe` matches GitHub metadata; CRC check passed; sole file `readonly-inspection.json` parsed and inspected. Observation time `2026-10-11T17:32:05.293Z`, exact executor/target matched, mode read-only, deployable=false, ownerAccessQualified=false.
-
-- Vercel default and expected-team scopes both returned HTTP 200, expected project/team=true, gitConnected=true, automaticBuildsSuppressed=true. This resolves the runner's scope/access question; prior connector-only empty/404 results do not establish a missing project.
-- Neon metadata passed the earlier project ID/name/organization/region/PostgreSQL 16 and branch ID/project/name checks, then failed `CHECK_NEON_BRANCH_STATE`. Reviewed `targetConnection` requires `branch.current_state === 'ready'`. Receipt intentionally omits the actual state; neither suspension nor a missing/deleted branch is established.
-- Code inspection confirms this failure occurs before constructing/connecting the PostgreSQL client. No database transaction, schema/ledger/password counts or database cleanup evidence was produced. No database/deployment/configuration mutation occurred in this read-only path.
-- Direct read-only Neon connector get_branch follow-up returned internal authorization HTTP 404 / UNAVAILABLE. It did not resolve the actual branch state. Runner Neon metadata access itself succeeded, so do not conflate the connector error with missing runner credentials.
-
-Next concrete step: obtain the exact branch's current_state from read-only Neon dashboard/API metadata (owner can provide a screenshot of project helios-v2-staging, branch main, ID br-young-math-arj7l4r3) without changing settings, restarting compute, restoring or recreating infrastructure. Alternatively qualify a bounded diagnostic-only executor update that records the state while retaining the existing ready-state guard. Do not relax the guard speculatively.
-
-After the branch-state cause is understood: collect the protected database snapshot; compare live schema/ledger with the qualified baseline and six-migration rehearsal; prepare current-source admission and any needed protected migration; establish a persistent non-production owner credential and explicit V2 workspace allowlist; qualify ordinary login/logout, isolation, styled responsive inquiry/private-project navigation, persistence and cleanup on the exact hosted candidate before issuing a tested URL.
-
-No infrastructure/database modification is proposed for execution yet. Any restart/reactivation/restore, changed credential scope, protection policy, unexpected ledger repair, destructive operation or material new infrastructure decision must be described concretely and receive any required separate owner approval first. Normal reversible non-production work remains preauthorized; all existing environment reviews remain mandatory. New features stay paused; production ON HOLD.
-
-## Next authorized work and boundaries
-
-1. Inspect the live workflow state before any replay. Independently download/hash the inspection artifact and review scope results, database identity, catalog/ledger and password-readiness counts. A green diagnostic job means evidence was collected, not that hosted readiness passed.
-2. Use that evidence to prepare current-source staging admission and the already-rehearsed six-migration path through the existing protected process. Stop for unknown ledger/data states or consequential credential/provider decisions; do not auto-repair or recreate infrastructure.
-3. Establish persistent non-production owner login and explicit V2 workspace allowlisting, then qualify the continuous private-project flow against the hosted environment before giving the owner a testing URL. Preserve Preview limits and existing module guards.
-4. New feature development is paused by the October 11 PM directive. Resume independent product work only after direction changes. Bulk media organization and unqualified outbound/module families retain their separate contracts. No general Phase 1 hardening expansion is needed.
-
-Normal reversible non-production work remains preauthorized. Production, destructive operations, consequential security/architecture changes, billing, real providers and external customer onboarding remain owner-gated. First Light is not achieved.
-
-## Recovery efficiency
-
-No successful historical suite was rerun merely because this session recovered. This continuation reused #422 runtime evidence for #423 and performed two new runtime qualifications for changed lifecycle/ordering behavior. #423 required one corrective regression after the initial CSS dropped the existing sticky-actions requirement; the implementation was corrected and the test retained. All three implementation PRs are integrated with no outstanding qualification gate. The documentation-only continuity update reuses their unchanged application evidence. New implementation triggered normal exact-head CI. Additional runs resolved two test defects: #419's keyboard driver raced deferred sensor setup; #420's assertions initially failed TypeScript. Final passing runs supersede those failures. A local Chromium download returned a truncated archive; local browser qualification is not claimed. GitHub checkpoints and artifacts remain authoritative, with no second project-state system.
-
-## October 11 continued recovery and product progress
-
-This entry supersedes earlier active-work descriptions above where they conflict. Production remains **ON HOLD**.
-
-Live GitHub reconciliation:
-- Integration branch `codex/v2-hosted-access-owner-action`: `9e5429518b672cca77609c7e5520fc16093e4a98`. The integrated Studio product history through #427 remains documented above; this current integration head contains subsequent documentation-only commits.
-- Protected executor branch `codex/v2-neon-staging-bootstrap`: `b78600b3080dfa97dc263b13c2fca6bae30bf158`, the merged #428 diagnostic update.
-- #428 regression `38177277278`, executor contract `38177277212`, and isolated tenant route contract `38177277232` completed successfully on the exact executor SHA. No suite was rerun during this recovery.
-- Protected inspection history was rechecked. Latest run `38159974154` completed successfully on old executor `d65a1c98675c123d5b710dbf70cdcd3554f5b869`; no equivalent run is queued or active. It did not reveal Neon `current_state`. No artifact exists for the new executor, so the exact Neon branch state and live database snapshot remain unknown.
-- The new dispatch is blocked in this Work session: the GitHub connector exposes read-only workflow-run retrieval but no `workflow_dispatch` action, the available `gh` executable is absent, and the GitHub Actions page in its cloud browser is signed out. No credential was guessed, no protection was bypassed, and no dispatch was submitted. This is a session tooling/authentication limitation, not evidence of a Neon/Vercel issue. Continue immediately through any later authorized dispatch-capable GitHub session; preserve the existing environment review, inspect-only inputs, database read-only transaction, and `ready` guard.
-- Open PR inventory still contains the older stacked draft chain beginning with #322 and proceeding through #223. The live integration branch is a separate maintained line; do not merge or replay those historical drafts without checking their intended base.
-
-Independent product work started while the protected dispatch path is unavailable:
-- Branch `codex/v2-command-center-local-time`, based on the verified integration head, changes Command Center schedule and snapshot display from fixed UTC labels to the viewer's local browser timezone. Server-rendered output remains explicit UTC until hydration; event instants and persisted records do not change.
-- The existing Chromium qualification is extended to emulate `America/Denver` and assert the scheduled event renders as `Oct 10, 10:30 AM MDT` at 390px and 1440px. TypeScript, regression, and Chromium CI are pending. This is not yet qualified or integrated.
-
-Active work: qualify the local-time Command Center change, correct any demonstrated failures, and merge only if standard required checks pass. Then continue the highest-value independent product capability while preserving the protected staging gate.
-
-Next staging gate: obtain an authorized GitHub Actions dispatch path for the exact executor SHA above. Start the existing inspection-only workflow with the documented sentinels and inputs, then stop at its existing `helios-v2-staging-bootstrap` environment review if presented. After approval, independently download/hash/inspect its artifact and report branch state. If the branch is not `ready`, leave database access blocked. Do not change Neon/Vercel settings, run migrations, deploy, recreate infrastructure, or touch production.
-
-
-
-## October 11 Command Center local-time qualification and integration
-
-This entry supersedes the pending #429 status above. Production remains **ON HOLD**.
-
-- PR [#429](https://github.com/heliosremedia/heliosremedia/pull/429) merged to `codex/v2-hosted-access-owner-action` at integration SHA `5ec57bde6ea6b5db8dca8d964959a7134c10845b`, tree `edb44e0c2917bbd59a9aa5415d7829f8ef66b25b`. Qualified candidate/head: `749362c732ab4cc4ba89504a4446a80a3741658b`.
-- Fix for the test failure in run `38185039284`: use supported Playwright timezone configuration on `browser.newContext({ timezoneId: "America/Denver", viewport })`, then create the page from that context. The unsupported `page.emulateTimezone` call is removed. No application data or timestamps are changed.
-- Final exact-head regression run [38185526522](https://github.com/heliosremedia/heliosremedia/actions/runs/38185526522) passed. Isolated regression tests, TypeScript, every configured Chromium check, including Studio V2 Command Center and its 390px/1440px timezone assertions, and screenshot preservation all passed. The resulting display assertion covers Oct 10, 10:30 AM MDT for the fixture time. Vercel Preview Comments check reported no unresolved feedback.
-- Screenshot artifact `11720060362`, name `studio-command-center-749362c732ab4cc4ba89504a4446a80a3741658b`, GitHub metadata digest `sha256:6cdf69db348255686c8a3cdf59a096cd6df2c718369335d7cfeb6f546ef8eb82`, binds to run `38185526522` and the exact candidate SHA. Artifact is retained at GitHub; this session did not independently hash or visually inspect the downloaded ZIP, so no independent artifact inspection is claimed. Browser assertions and workflow screenshot-preservation step did pass.
-- PR merged only after the exact-head run succeeded; GitHub reported merge SHA above, and the integration branch now matches the merge commit. No schema/database, provider, Vercel/Neon setting, migration, or deployment changes. No hosted owner access or First Light is claimed.
-
-Next authorized task remains the read-only staging inspection using an authenticated, protected dispatch path when available; preserve the existing environment approval and `ready` guard. If that session capability remains unavailable, record it and continue with independent product work. Do not bypass protection. Production remains ON HOLD.
-
-
-## October 12 UTC continuation: inquiry follow-up and visible recovery
-
-Recovered integration `f99ca349ea89701af613bf97144ab5d258704ce3`; integration regression `38186160893` passed. Executor remains `b78600b3080dfa97dc263b13c2fca6bae30bf158`. Manual workflow history still ends at completed inspection `38159974154`; no newer inspection is active. This session still has no authenticated workflow-dispatch capability; the GitHub connector supports repository writes but no Actions dispatch, gh is absent, and the supported git mirror clone rejected missing authentication. No credentials or protections were changed.
-
-Closed #429's outstanding independent artifact gap using the existing artifact, without rerunning tests: downloaded artifact `11720060362`, SHA256 `6cdf69db348255686c8a3cdf59a096cd6df2c718369335d7cfeb6f546ef8eb82` matches metadata; ZIP CRC passed. Visually inspected `studio-command-center-390.png` and `studio-command-center-1440.png`: local MDT schedule/snapshot labels, legible navigation/cards and retained held-work warning. This supersedes the preceding limitation for that artifact, not the hosted-access gap.
-
-Active bounded product fix: inquiry follow-up timestamps were populated by slicing UTC into a datetime-local field, shifting the displayed local time after acknowledgement. Save errors also rendered outside the fixed modal, behind its overlay. The candidate converts acknowledged timestamps to local input values and renders errors inside the open workflow panel. The existing component browser test now uses the actual application stylesheet and America/Denver, checks the time round trip, and verifies the failure alert is unobscured in the modal. Qualification is pending; do not treat this candidate as integrated. No API, schema, database, authorization, provider, or deployment change.
-
-Next: finish regression/TypeScript/styled Chromium qualification, independently inspect responsive artifact and candidate/merge trees, then integrate if all gates pass. Continue owner-access work through the existing protected inspector when a supported authenticated dispatch path becomes available. Hosted login, live schema/ledger, and First Light remain unqualified. Production ON HOLD.
-
-
-## Current handoff: #430 integrated, inquiry draft work next (October 12 UTC)
-
-PR #430 integrated at `5bf220625c3d7cd6520146d325c64beaee39e933`. Candidate `99beae0cffd48aa18e8eea7aae8f91076338bf13`; candidate, prospective merge and integrated trees all equal `d9bd974a5a5bd1028b6af07aad8dfbbc4d7a185e`. Run `38188450047` passed regression, TypeScript, all configured Chromium and whitespace. The initial candidate was superseded to address the review finding about misattributed errors; its in-progress run was cancelled by existing workflow concurrency.
-
-Independently downloaded artifact `11721310293`; SHA256 `775a50e5f520c6eb9c93a43a39cad3147075930facea9e01c53f76670da469a7` matches GitHub metadata and ZIP CRC passed. Inspected `studio-inquiries-390.png`, `studio-inquiries-recovery-390.png`, and `studio-inquiries-1440.png`: styled dialog, visible failure message, retained CONTACTED status and local 11:45 AM follow-up. Phone full-page capture includes document space below the fixed 844px viewport; this is not hosted/device-browser evidence. Browser assertions verify alert hit-testing within the viewport and that switching inquiries does not misattribute errors. Backend/runtime contracts unchanged; no new database qualification needed for these display/error changes.
-
-Usable improvement: inquiry follow-up values retain local wall-clock time after acknowledgement; failures are visible in the modal and associated with the inquiry that failed. Next bounded task: isolate unsaved internal-note drafts per inquiry and preserve newer text when an earlier save finishes. Source review found one shared draft state, which can carry a lead's text into another inquiry.
-
-Read-only Neon metadata retry returned HTTP 404 internal authorization error / UNAVAILABLE, not a branch state. Protected executor remains `b78600b3080dfa97dc263b13c2fca6bae30bf158`; no new protected inspection, settings, migration, deployment, or provider change. Staging dispatch capability remains unavailable in this session. Continue independent product work while preserving the existing protected staging gate. No hosted owner login or First Light claimed. Production ON HOLD.
-
-
-## Active candidate: inquiry note drafts
-
-Branch `codex/v2-inquiry-note-drafts` starts from the documentation checkpoint following #430. Internal note drafts now belong to their inquiry in component memory. An acknowledged save only clears the exact submitted draft; newer typing and another inquiry's draft remain intact. Browser coverage switches between two inquiries, delays a save, types newer text, and checks both note ownership and draft preservation. Fixed-modal screenshots now capture the viewport rather than document space below it. Qualification pending. No persistence/API/authorization/schema/provider change. Next gate: exact-candidate CI, independent responsive artifact inspection and tree verification before merge. Production ON HOLD.
-
-
-## Current handoff: #431 integrated; continuous inquiry handoff qualification next
-
-PR #431 integrated at `20a2d61d41c14ca59cc2331c3ffce332cf248352`. Candidate `b617e93ce52596bb8262c613968cef0d0bf8928e`; candidate/prospective/post-merge trees all `67e0485d4b5e4927396482672d0b35d3d2eb2281`. Run `38189332657`: 1,860 tests passed, zero failures, TypeScript and every configured Chromium check passed. Artifact `11721221056` independently downloaded, SHA256 `d653c27a36a2219b50e7cf386fd92a39542ee1ac7230afdec8d7b220f70d08ee` matched GitHub metadata; ZIP CRC passed. Visually inspected both `studio-inquiries-notes-390.png` and `studio-inquiries-notes-1440.png`, plus corrected viewport-only phone modal capture. Screenshots show the saved note and the newer retained draft. Browser assertions prove another inquiry's draft is preserved and the saved note stays with its source inquiry.
-
-Product behavior now integrated: each inquiry retains its own unsaved note in component memory; pending saves clear only unchanged submitted text. This is not durable draft storage across reload/logout. Source/API/database contracts remain unchanged. No hosted-access or First Light claim.
-
-Next bounded work, source review begun: extend the existing ordinary-sign-in/private-project runtime flow to begin from an inquiry. Current `studio-private-project-flow.mjs` bypasses `sourceInquiryId`; component/unit tests do not establish the continuous inquiry-to-draft HTTP path. Exercise actual query prefill, foreign-inquiry rejection, draft replay and one activity link on both synthetic workspaces, reusing the existing disposable runtime process and cleanup gates. No new staging infrastructure or live provider activation. The read-only staging dispatch/authentication blocker is unchanged. Production ON HOLD.
-
-
-## Active candidate: continuous inquiry-to-private-project qualification
-
-Branch `codex/v2-inquiry-private-owner-flow` extends the existing disposable PostgreSQL/actual Next runtime flow. It signs in normally, reads owned inquiry prefill, rejects a foreign inquiry both on the page and actual Server Action without mutation, creates/replays one owned private draft and activity link, then continues the existing details/media/services/private-review/logout path on both workspaces. New inquiry fixtures and their cascaded activity rows are removed in cleanup; existing credential/audit restoration remains. This is a named owner-workflow qualification dependency, not a new staging executor or foundation redesign. No application source change. Qualification pending: regression, runtime, independent runtime receipt and cleanup review, merge-tree check. Production ON HOLD.
-
-
-## #432 qualification follow-up
-
-Candidate `2e8f7e6aeea035930a71d2541fb42fb1569d6a2b` runtime `38190115077` passed. Artifact `11721357269` independently downloaded; SHA256 `5b9a80ae1440e348a1bc0d3e2afb313197767b0641a04b0824e2f3566625602c` matches metadata; ZIP CRC and exact-candidate receipt verified. Both tenant flows, foreign-inquiry denial without mutation, one project/activity on replay, private workflow and cleanup passed; no hosted/live provider claim. Regression `38190115054` passed unit/TypeScript and earlier browser checks but failed the inquiry draft-clear assertion. The text locator could match the textarea before acknowledgement. Follow-up changes only that browser synchronization: deliberately delay the second save, prove pending text remains, release it, wait for the saved paragraph and cleared input. Application/runtime source unchanged. Replacement candidate CI and final tree verification remain required; do not merge the failed candidate.
+| Branch/ref | `codex/v2-neon-staging-bootstrap` |
+| executor_sha | `b78600b3080dfa97dc263b13c2fca6bae30bf158` |
+| inspect_only | `true` |
+| confirmation | `calm-shape-83359560/br-young-math-arj7l4r3/helios_v2_staging` |
+| candidate_sha | `inspection-only` |
+| hosted_confirmation | `read-only-inspection` |
+
+The sentinels cannot admit deployment. Inspection uses provider GETs and a read-only database transaction/rollback only if the ready guard passes. No provider activation, real customer onboarding, billing, destructive operation or production change is authorized. Production remains ON HOLD.

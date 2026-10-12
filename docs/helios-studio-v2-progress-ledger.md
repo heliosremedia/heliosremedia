@@ -1642,3 +1642,10 @@ Merged to `codex/v2-hosted-access-owner-action` at `f45e4cb4ed7bd8f874760dfe6c9e
 ## October 12 UTC — #431: inquiry-specific unsaved notes
 
 Integrated `20a2d61d41c14ca59cc2331c3ffce332cf248352`, candidate `b617e93ce52596bb8262c613968cef0d0bf8928e`. Run `38189332657` passed 1,860 tests, TypeScript and all Chromium. Artifact `11721221056` independently verified and responsive note screenshots inspected. Drafts remain with their inquiry across modal navigation; late acknowledgements preserve newer typing and other inquiries' drafts. In-memory only, no new storage. Candidate and merge trees match. Production ON HOLD.
+
+
+## October 12 UTC — #432: continuous inquiry-to-private-project qualification
+
+Integrated `3ecb648b30645fd9f9c16d8fe16537ed26c6dba7`, candidate `b9e46c56ae047cab3f1a48b1d9a5884237c7f079`, matching candidate/merge tree `1c2220359f2b2db0151542b3ae583437698fff57`. Regression `38190803695` passed 1,860 tests, TypeScript and all Chromium; runtime `38190803685` passed the actual Next/disposable PostgreSQL flow for both workspaces. Owned inquiry prefill, foreign inquiry rejection without mutation, one project/activity on replay, private project editing/media/services/review, sign-in/logout and cleanup are qualified together. Final artifacts `11721493108` and `11721578504` independently downloaded/hash/CRC verified; responsive note images inspected. Exact hashes in the canonical checkpoint.
+
+The first regression exposed a browser locator matching textarea text before acknowledgement. Corrected with a deliberately held response, pending-draft assertion and saved-paragraph/cleared-input synchronization. No application/schema/provider change. Staging inspection remains blocked by session dispatch capability; no staging modification or deployment. Consolidated the canonical checkpoint to remove superseded active-work instructions while retaining historical evidence links. Production ON HOLD.
