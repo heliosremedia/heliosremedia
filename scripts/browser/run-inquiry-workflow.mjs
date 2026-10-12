@@ -30,6 +30,9 @@ try {
       consent:true, assignedToId:null, assignedTo:null, followUpAt:'2026-10-20T16:30:00.000Z', requestedServices:[{service:{id:'photo',name:'Photography'}}],
       notes:[], activities:[{id:'activity-1',action:'PROJECT_DRAFT_CREATED',summary:'A private project draft was started from this inquiry.',metadata:{projectId:'project-1',projectTitle:'123 Longview Drive'},createdAt:'2026-10-11T00:00:00.000Z',actor:{displayName:'Owner'}}], createdAt:'2026-10-10T16:00:00.000Z', updatedAt:'2026-10-10T16:00:00.000Z', lastActivityAt:'2026-10-10T16:00:00.000Z'
     };
+    window.__deferNote = false;
+    window.__resolveNote = null;
+    window.__noteSequence = 0;
     window.__failNextWorkflow = false;
     window.__deferWorkflow = false;
     window.__resolveWorkflow = null;
@@ -41,7 +44,8 @@ try {
         if (window.__deferWorkflow) await new Promise(resolve => { window.__resolveWorkflow=resolve; });
         return Response.json({success:true,inquiry:{id:body.inquiryId,status:body.status,assignedToId:body.assignedToId,followUpAt:body.followUpAt,lastActivityAt:'2026-10-11T00:00:00.000Z'}});
       }
-      return Response.json({success:true,note:{id:'note-1',body:body.note,createdAt:'2026-10-11T00:00:00.000Z',author:{displayName:'Owner'}}});
+      if (window.__deferNote) await new Promise(resolve => { window.__resolveNote=resolve; });
+      return Response.json({success:true,note:{id:'note-'+(++window.__noteSequence),body:body.note,createdAt:'2026-10-11T00:00:00.000Z',author:{displayName:'Owner'}}});
     };
     createRoot(document.getElementById('root')).render(<InquiryManager initialInquiries={[inquiry, {...inquiry, id:'inquiry-2', name:'Taylor Buyer'}]} users={[{id:'editor-1',displayName:'Editor One',role:'EDITOR'}]} />);
   `);
@@ -85,7 +89,7 @@ try {
   await page.keyboard.press('Tab');
   assert.equal(await close.evaluate(node => document.activeElement === node), true, 'Tab wraps to the first modal control');
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'inquiry details fit a phone viewport');
-  await page.screenshot({ path: join(evidenceDir, 'studio-inquiries-390.png'), fullPage: true });
+  await page.screenshot({ path: join(evidenceDir, 'studio-inquiries-390.png'), fullPage: false });
 
   assert.equal(await page.getByLabel('Follow up', { exact: true }).inputValue(), '2026-10-20T10:30', 'stored UTC follow-up displays in the browser local time zone');
   await page.getByLabel('Follow up', { exact: true }).fill('2026-10-21T11:45');
@@ -113,12 +117,12 @@ try {
     const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
     return node === hit || node.contains(hit);
   }), true, 'save failure is visible inside the styled modal, not obscured behind its overlay');
-  await page.screenshot({ path: join(evidenceDir, 'studio-inquiries-recovery-390.png'), fullPage: true });
+  await page.screenshot({ path: join(evidenceDir, 'studio-inquiries-recovery-390.png'), fullPage: false });
   assert.match(await page.getByRole('alert').textContent(), /Unable to save change\. Check your connection/);
   await page.setViewportSize({ width: 1440, height: 900 });
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'inquiry details fit a desktop viewport');
   await alert.scrollIntoViewIfNeeded();
-  await page.screenshot({ path: join(evidenceDir, 'studio-inquiries-1440.png'), fullPage: true });
+  await page.screenshot({ path: join(evidenceDir, 'studio-inquiries-1440.png'), fullPage: false });
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Open inquiry: Taylor Buyer' }).click();
   const otherDialog = page.getByRole('dialog', { name: 'Taylor Buyer' });
@@ -127,8 +131,42 @@ try {
   await page.keyboard.press('Escape');
   await row.click();
   await dialog.getByRole('alert').waitFor();
+  const noteInput = page.getByRole('textbox', { name: 'Add a private follow-up note' });
+  const submittedNote = 'Morgan: confirm photography access.';
+  await noteInput.fill(submittedNote);
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Open inquiry: Taylor Buyer' }).click();
+  await otherDialog.waitFor();
+  assert.equal(await noteInput.inputValue(), '', 'a different inquiry starts with its own note draft');
+  await noteInput.fill('Taylor: call after the showing.');
+  await page.keyboard.press('Escape');
+  await row.click();
+  assert.equal(await noteInput.inputValue(), submittedNote, 'reopening an inquiry restores its unsaved draft');
+  await page.evaluate(() => { window.__deferNote = true; });
+  await page.getByRole('button', { name: 'Add note', exact: true }).click();
+  await page.waitForFunction(() => typeof window.__resolveNote === 'function');
+  await noteInput.fill('Morgan: newer follow-up draft.');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Open inquiry: Taylor Buyer' }).click();
+  await page.evaluate(() => window.__resolveNote());
+  await page.waitForFunction(() => !Array.from(document.querySelectorAll('button')).some(button => button.textContent === 'Saving…'));
+  assert.equal(await noteInput.inputValue(), 'Taylor: call after the showing.', 'another inquiry save cannot clear the active draft');
+  assert.equal(await otherDialog.getByText(submittedNote, { exact: true }).count(), 0, 'saved note stays with its original inquiry');
+  await page.keyboard.press('Escape');
+  await row.click();
+  await dialog.getByText(submittedNote, { exact: true }).waitFor();
+  assert.equal(await noteInput.inputValue(), 'Morgan: newer follow-up draft.', 'late acknowledgement preserves text typed after submission');
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await noteInput.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: join(evidenceDir, 'studio-inquiries-notes-'+width+'.png'), fullPage: false });
+  }
+  await page.evaluate(() => { window.__deferNote = false; });
+  await page.getByRole('button', { name: 'Add note', exact: true }).click();
+  await dialog.getByText('Morgan: newer follow-up draft.', { exact: true }).waitFor();
+  assert.equal(await noteInput.inputValue(), '', 'acknowledgement clears the submitted draft when it is still current');
   assert.deepEqual(errors, []);
-  console.log('PASS: real InquiryManager React component in Chromium; named dialog, focus entry/trap/return, Escape close, application styles, mobile overflow, local-time follow-up round trip, acknowledged workflow state and visible failed-save recovery');
+  console.log('PASS: real InquiryManager React component in Chromium; named dialog, focus entry/trap/return, Escape close, application styles, mobile overflow, local-time follow-up round trip, acknowledged workflow state visible failed-save recovery, inquiry-specific note drafts and late-save preservation');
 } finally {
   await browser?.close();
   await rm(scratch, { recursive: true, force: true });

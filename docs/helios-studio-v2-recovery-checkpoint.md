@@ -220,3 +220,8 @@ Independently downloaded artifact `11721310293`; SHA256 `775a50e5f520c6eb9c93a43
 Usable improvement: inquiry follow-up values retain local wall-clock time after acknowledgement; failures are visible in the modal and associated with the inquiry that failed. Next bounded task: isolate unsaved internal-note drafts per inquiry and preserve newer text when an earlier save finishes. Source review found one shared draft state, which can carry a lead's text into another inquiry.
 
 Read-only Neon metadata retry returned HTTP 404 internal authorization error / UNAVAILABLE, not a branch state. Protected executor remains `b78600b3080dfa97dc263b13c2fca6bae30bf158`; no new protected inspection, settings, migration, deployment, or provider change. Staging dispatch capability remains unavailable in this session. Continue independent product work while preserving the existing protected staging gate. No hosted owner login or First Light claimed. Production ON HOLD.
+
+
+## Active candidate: inquiry note drafts
+
+Branch `codex/v2-inquiry-note-drafts` starts from the documentation checkpoint following #430. Internal note drafts now belong to their inquiry in component memory. An acknowledged save only clears the exact submitted draft; newer typing and another inquiry's draft remain intact. Browser coverage switches between two inquiries, delays a save, types newer text, and checks both note ownership and draft preservation. Fixed-modal screenshots now capture the viewport rather than document space below it. Qualification pending. No persistence/API/authorization/schema/provider change. Next gate: exact-candidate CI, independent responsive artifact inspection and tree verification before merge. Production ON HOLD.
