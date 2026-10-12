@@ -161,9 +161,14 @@ try {
     await noteInput.scrollIntoViewIfNeeded();
     await page.screenshot({ path: join(evidenceDir, 'studio-inquiries-notes-'+width+'.png'), fullPage: false });
   }
-  await page.evaluate(() => { window.__deferNote = false; });
+  await page.evaluate(() => { window.__resolveNote = null; });
   await page.getByRole('button', { name: 'Add note', exact: true }).click();
-  await dialog.getByText('Morgan: newer follow-up draft.', { exact: true }).waitFor();
+  await page.waitForFunction(() => typeof window.__resolveNote === 'function');
+  assert.equal(await noteInput.inputValue(), 'Morgan: newer follow-up draft.', 'pending save preserves the submitted draft until acknowledgement');
+  await page.evaluate(() => window.__resolveNote());
+  // Match the saved note paragraph, never the textarea containing the same text.
+  await dialog.locator('p').filter({ hasText: /^Morgan: newer follow-up draft\.$/ }).waitFor();
+  await page.waitForFunction(() => document.querySelector('textarea[aria-label="Add a private follow-up note"]')?.value === '');
   assert.equal(await noteInput.inputValue(), '', 'acknowledgement clears the submitted draft when it is still current');
   assert.deepEqual(errors, []);
   console.log('PASS: real InquiryManager React component in Chromium; named dialog, focus entry/trap/return, Escape close, application styles, mobile overflow, local-time follow-up round trip, acknowledged workflow state visible failed-save recovery, inquiry-specific note drafts and late-save preservation');

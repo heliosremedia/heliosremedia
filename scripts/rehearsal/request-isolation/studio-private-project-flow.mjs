@@ -12,6 +12,8 @@ export async function qualifyStudioPrivateProjectFlow(origin, driver, actionMani
   requireOrigin(origin);
   requireDatabase(process.env.PACKET19_DATABASE_URL);
   const db = driver.prisma, cases = [], projects = [], assets = [];
+  const inquiryIds = { a: `owner-flow-inquiry-a-${randomUUID()}`, b: `owner-flow-inquiry-b-${randomUUID()}` };
+  const inquirySnapshots = new Map();
   const originalUsers = await db.adminUser.findMany({ orderBy: { id: 'asc' } });
   const authActions = ['AUTH_LOGIN_FAILED', 'AUTH_LOGIN_SUCCEEDED', 'AUTH_LOGOUT'];
   const priorAuth = await db.auditEvent.findMany({ where: { action: { in: authActions } }, select: { id: true } });
@@ -21,8 +23,16 @@ export async function qualifyStudioPrivateProjectFlow(origin, driver, actionMani
   assert.equal(actions.length, 1);
   try {
     for (const id of ['a', 'b']) {
+      inquirySnapshots.set(id, await db.inquiry.create({ data: {
+        id: inquiryIds[id], workspaceId: id, name: `Synthetic owner inquiry ${id}`,
+        email: `owner-flow-${id}@example.test`, propertyAddress: `100 Synthetic Owner Lane ${id}`,
+        city: 'Fort Collins', state: 'Colorado', message: `PRIVATE INQUIRY MESSAGE ${id}`, consent: true,
+        requestedServices: { create: { serviceId: `s${id}` } },
+      } }));
+    }
+    for (const id of ['a', 'b']) {
       const other = id === 'a' ? 'b' : 'a', requestId = randomUUID();
-      const projectId = `draft_${createHash('sha256').update(JSON.stringify(['studio-draft-v1', id, `u${id}`, requestId])).digest('hex')}`;
+      const projectId = `draft_${createHash('sha256').update(JSON.stringify(['studio-inquiry-draft-v1', id, `u${id}`, requestId, inquiryIds[id]])).digest('hex')}`;
       projects.push(projectId);
       const originalUser = originalUsers.find(user => user.id === `u${id}`);
       assert.ok(originalUser);
@@ -48,13 +58,44 @@ export async function qualifyStudioPrivateProjectFlow(origin, driver, actionMani
       const route = `/api/admin/projects/${projectId}`;
       const send = (suffix, method, body) => http(origin, `${other}.example.test`, route + suffix, { method, headers, body });
       const form = new FormData();
-      const title = `PRIVATE OWNER FLOW ${id}`;
-      for (const [key, value] of Object.entries({ requestId, title, slug: `owner-flow-${id}-${requestId}`, shortDescription: 'Private synthetic project', city: 'Fort Collins', state: 'Colorado', locationLabel: '', projectType: 'Listing Media', propertyType: '' })) form.set(key, value);
+      const inquiry = inquirySnapshots.get(id);
+      const title = inquiry.propertyAddress;
+      for (const [key, value] of Object.entries({ requestId, sourceInquiryId: inquiryIds[id], title, slug: `owner-flow-${id}-${requestId}`, shortDescription: 'Private synthetic project', city: 'Fort Collins', state: 'Colorado', locationLabel: '', projectType: 'Listing Media', propertyType: '' })) form.set(key, value);
       const host = `${other}.example.test`;
-      const created = await fetch(`${origin}/admin/projects/new`, { method: 'POST', headers: { ...headers, host, 'x-forwarded-host': host, origin: `http://${host}`, 'Next-Action': actions[0], accept: 'text/x-component' }, body: await encodeReply([{ error: null }, form]), redirect: 'manual' });
+      const prefill = await http(origin, host, `/admin/projects/new?inquiry=${inquiryIds[id]}`, { headers });
+      assert.equal(prefill.status, 200); assert.ok(prefill.text.includes(inquiry.name)); assert.ok(prefill.text.includes(title));
+      assert.ok(prefill.text.includes('name="sourceInquiryId"')); assert.ok(prefill.text.includes(inquiryIds[id]));
+      const foreignPrefill = await http(origin, host, `/admin/projects/new?inquiry=${inquiryIds[other]}`, { headers });
+      assert.equal(foreignPrefill.status, 404);
+      assert.ok(!foreignPrefill.text.includes(inquirySnapshots.get(other).email));
+      const createDraft = async submitted => fetch(`${origin}/admin/projects/new`, { method: 'POST', headers: { ...headers, host, 'x-forwarded-host': host, origin: `http://${host}`, 'Next-Action': actions[0], accept: 'text/x-component' }, body: await encodeReply([{ error: null }, submitted]), redirect: 'manual' });
+      const foreignForm = new FormData();
+      for (const [key, value] of form) foreignForm.set(key, value);
+      foreignForm.set('sourceInquiryId', inquiryIds[other]);
+      const beforeCount = await db.project.count();
+      const foreignBefore = await db.inquiry.findUniqueOrThrow({ where: { id: inquiryIds[other] } });
+      const foreignAttempt = await createDraft(foreignForm);
+      assert.equal(foreignAttempt.status, 200);
+      assert.ok((await foreignAttempt.text()).includes('This inquiry is no longer available in your workspace.'));
+      assert.equal(await db.project.count(), beforeCount, 'foreign inquiry cannot create a draft through the real action');
+      assert.deepEqual(await db.inquiry.findUniqueOrThrow({ where: { id: inquiryIds[other] } }), foreignBefore);
+      const created = await createDraft(form);
       assert.equal(created.status, 200); assert.ok((await created.text()).includes(projectId));
       let project = await db.project.findUniqueOrThrow({ where: { id: projectId } });
       assert.equal(project.workspaceId, id); assert.equal(project.status, 'DRAFT');
+      assert.equal(project.title, title); assert.equal(project.city, inquiry.city); assert.equal(project.state, inquiry.state);
+      assert.ok(!JSON.stringify(project).includes(inquiry.email)); assert.ok(!JSON.stringify(project).includes(inquiry.message));
+      const replayed = await createDraft(form);
+      assert.equal(replayed.status, 200); assert.ok((await replayed.text()).includes(projectId));
+      assert.equal(await db.project.count(), beforeCount + 1);
+      assert.deepEqual(await db.project.findUniqueOrThrow({ where: { id: projectId } }), project);
+      const activities = await db.inquiryActivity.findMany({ where: { inquiryId: inquiryIds[id], action: 'PROJECT_DRAFT_CREATED' } });
+      assert.equal(activities.length, 1); assert.equal(activities[0].actorId, originalUser.id);
+      assert.equal(activities[0].metadata.projectId, projectId);
+      const inquiryPage = await http(origin, host, '/admin/inquiries', { headers });
+      assert.equal(inquiryPage.status, 200); assert.ok(inquiryPage.text.includes(projectId));
+      assert.ok(inquiryPage.text.includes(inquiry.name));
+      assert.ok(!inquiryPage.text.includes(inquirySnapshots.get(other).name));
       const details = await send('/details', 'PATCH', { title, slug: project.slug, shortDescription: 'Reviewed private introduction', city: 'Fort Collins', state: 'Colorado', expectedUpdatedAt: project.updatedAt.toISOString(), agents: [] });
       assert.equal(details.status, 200, details.text);
       const upload = await http(origin, host, route + '/stream-upload', { method: 'POST', headers: { ...headers, 'upload-length': '100', 'tus-resumable': '1.0.0' } });
@@ -98,15 +139,18 @@ export async function qualifyStudioPrivateProjectFlow(origin, driver, actionMani
       const auth = await db.auditEvent.findMany({ where: { actorId: originalUser.id, action: { in: authActions }, id: { notIn: [...priorAuthIds] } } });
       assert.deepEqual(auth.map(row => row.action).sort(), [...authActions].sort());
       assert.ok(auth.every(row => row.workspaceId === id));
-      cases.push({ tenant: id, ordinaryPasswordSignIn: true, incorrectPasswordDenied: true, issuedCookieUsedForEntirePrivateFlow: true, commandCenterReachable: true, logoutClearsCookie: true, ownedAuthAudit: true, actualDraftAction: true, detailsSaved: true, registeredSyntheticMediaAttachedAndEdited: true, serviceSelectionSaved: true, editorReadyAndPrivateReviewLinked: true, mediaLibraryDiscovery: true, privatePreview200: true, foreignPreviewAndMedia404: true, revokedPreview404: true, remainedUnpublished: true });
+      cases.push({ tenant: id, inquiryPrefill200: true, foreignInquiryPrefill404: true, foreignInquiryActionDeniedWithoutMutation: true, inquiryDraftReplayOneProjectOneActivity: true, inquiryActivityProjectLink: true, inquiryContactAndMessageNotCopied: true, ordinaryPasswordSignIn: true, incorrectPasswordDenied: true, issuedCookieUsedForEntirePrivateFlow: true, commandCenterReachable: true, logoutClearsCookie: true, ownedAuthAudit: true, actualDraftAction: true, detailsSaved: true, registeredSyntheticMediaAttachedAndEdited: true, serviceSelectionSaved: true, editorReadyAndPrivateReviewLinked: true, mediaLibraryDiscovery: true, privatePreview200: true, foreignPreviewAndMedia404: true, revokedPreview404: true, remainedUnpublished: true });
     }
-    return { cases, actualNextHttpAndServerAction: true, liveProviderCalls: false, hosted: false, scope: 'ordinary password sign-in through complete private-project HTTP workflow and logout with synthetic Stream provisioning; browser interactions qualified separately' };
+    return { cases, actualNextHttpAndServerAction: true, liveProviderCalls: false, hosted: false, scope: 'ordinary password sign-in through inquiry handoff and complete private-project HTTP workflow and logout with synthetic Stream provisioning; browser interactions qualified separately' };
   } finally {
     await db.projectPreviewLink.deleteMany({ where: { projectId: { in: projects } } });
     await db.media.deleteMany({ where: { projectId: { in: projects } } });
     await db.projectService.deleteMany({ where: { projectId: { in: projects } } });
     await db.projectDetails.deleteMany({ where: { projectId: { in: projects } } });
     await db.project.deleteMany({ where: { id: { in: projects } } });
+    await db.inquiry.deleteMany({ where: { id: { in: Object.values(inquiryIds) } } });
+    assert.equal(await db.inquiry.count({ where: { id: { in: Object.values(inquiryIds) } } }), 0);
+    assert.equal(await db.inquiryActivity.count({ where: { inquiryId: { in: Object.values(inquiryIds) } } }), 0);
     await db.workspaceAsset.deleteMany({ where: { id: { in: assets } } });
     assert.equal(await db.project.count({ where: { id: { in: projects } } }), 0);
     assert.equal(await db.workspaceAsset.count({ where: { id: { in: assets } } }), 0);
