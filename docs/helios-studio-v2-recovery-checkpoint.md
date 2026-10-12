@@ -6,7 +6,7 @@ Updated October 11, 2026. **Production ON HOLD.** Recover from live GitHub befor
 
 | Scope | Branch | Verified integration | Qualified candidate / tree |
 | --- | --- | --- | --- |
-| Studio application through #430 | `codex/v2-hosted-access-owner-action` | `5bf220625c3d7cd6520146d325c64beaee39e933` | Qualified candidate `99beae0cffd48aa18e8eea7aae8f91076338bf13`; integrated tree `d9bd974a5a5bd1028b6af07aad8dfbbc4d7a185e` |
+| Studio application through #431 | `codex/v2-hosted-access-owner-action` | `20a2d61d41c14ca59cc2331c3ffce332cf248352` | Qualified candidate `b617e93ce52596bb8262c613968cef0d0bf8928e`; integrated tree `67e0485d4b5e4927396482672d0b35d3d2eb2281` |
 | Protected read-only staging inspector #420 | `codex/v2-neon-staging-bootstrap` | `d65a1c98675c123d5b710dbf70cdcd3554f5b869` | Candidate `aa792c212d18a24593ba93d5128331b056fc33d2`; tree `8139278ebc86b630c30f5bc150a0f37c402e598e` |
 
 Prospective and post-merge trees were independently compared with each qualified candidate. The documentation-only update carrying this checkpoint leaves application/runtime source unchanged; always inspect the live branch for that documentation commit or newer work. Main and production were not changed. #420 modifies only the existing protected workflow, a read-only diagnostic script and its tests; it does not merge the older executor application into the Studio integration branch.
@@ -225,3 +225,12 @@ Read-only Neon metadata retry returned HTTP 404 internal authorization error / U
 ## Active candidate: inquiry note drafts
 
 Branch `codex/v2-inquiry-note-drafts` starts from the documentation checkpoint following #430. Internal note drafts now belong to their inquiry in component memory. An acknowledged save only clears the exact submitted draft; newer typing and another inquiry's draft remain intact. Browser coverage switches between two inquiries, delays a save, types newer text, and checks both note ownership and draft preservation. Fixed-modal screenshots now capture the viewport rather than document space below it. Qualification pending. No persistence/API/authorization/schema/provider change. Next gate: exact-candidate CI, independent responsive artifact inspection and tree verification before merge. Production ON HOLD.
+
+
+## Current handoff: #431 integrated; continuous inquiry handoff qualification next
+
+PR #431 integrated at `20a2d61d41c14ca59cc2331c3ffce332cf248352`. Candidate `b617e93ce52596bb8262c613968cef0d0bf8928e`; candidate/prospective/post-merge trees all `67e0485d4b5e4927396482672d0b35d3d2eb2281`. Run `38189332657`: 1,860 tests passed, zero failures, TypeScript and every configured Chromium check passed. Artifact `11721221056` independently downloaded, SHA256 `d653c27a36a2219b50e7cf386fd92a39542ee1ac7230afdec8d7b220f70d08ee` matched GitHub metadata; ZIP CRC passed. Visually inspected both `studio-inquiries-notes-390.png` and `studio-inquiries-notes-1440.png`, plus corrected viewport-only phone modal capture. Screenshots show the saved note and the newer retained draft. Browser assertions prove another inquiry's draft is preserved and the saved note stays with its source inquiry.
+
+Product behavior now integrated: each inquiry retains its own unsaved note in component memory; pending saves clear only unchanged submitted text. This is not durable draft storage across reload/logout. Source/API/database contracts remain unchanged. No hosted-access or First Light claim.
+
+Next bounded work, source review begun: extend the existing ordinary-sign-in/private-project runtime flow to begin from an inquiry. Current `studio-private-project-flow.mjs` bypasses `sourceInquiryId`; component/unit tests do not establish the continuous inquiry-to-draft HTTP path. Exercise actual query prefill, foreign-inquiry rejection, draft replay and one activity link on both synthetic workspaces, reusing the existing disposable runtime process and cleanup gates. No new staging infrastructure or live provider activation. The read-only staging dispatch/authentication blocker is unchanged. Production ON HOLD.

@@ -1637,3 +1637,8 @@ Merged to `codex/v2-hosted-access-owner-action` at `f45e4cb4ed7bd8f874760dfe6c9e
 #429 integrated at 5ec57bde6ea6b5db8dca8d964959a7134c10845b (candidate 749362c732ab4cc4ba89504a4446a80a3741658b, run 38185526522). Command Center schedules and snapshots show local browser time. Artifact 11720060362 was independently hashed and visually inspected during this continuation, closing the previously recorded evidence gap.
 
 #430 integrated at 5bf220625c3d7cd6520146d325c64beaee39e933 (candidate 99beae0cffd48aa18e8eea7aae8f91076338bf13, run 38188450047). Inquiry follow-up inputs now convert stored instants to local wall-clock time, with in-modal errors scoped to the inquiry that failed. Regression, TypeScript and Chromium passed; artifact 11721310293 independently hashed/CRC-checked and responsive images inspected. Candidate, prospective merge and integrated trees matched. See canonical checkpoint for hashes and limitations. No provider, schema/database or deployment changes. Production ON HOLD.
+
+
+## October 12 UTC — #431: inquiry-specific unsaved notes
+
+Integrated `20a2d61d41c14ca59cc2331c3ffce332cf248352`, candidate `b617e93ce52596bb8262c613968cef0d0bf8928e`. Run `38189332657` passed 1,860 tests, TypeScript and all Chromium. Artifact `11721221056` independently verified and responsive note screenshots inspected. Drafts remain with their inquiry across modal navigation; late acknowledgements preserve newer typing and other inquiries' drafts. In-memory only, no new storage. Candidate and merge trees match. Production ON HOLD.
