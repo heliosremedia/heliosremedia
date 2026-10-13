@@ -1,7 +1,7 @@
 name: V2 current staging upgrade rehearsal
 on:
   push:
-    branches: ['codex/v2-current-staging-upgrade', 'codex/v2-staging-current-admission', 'codex/v2-staging-current-executor', 'codex/v2-current-hosted-admission', 'codex/v2-persistent-owner-credentials']
+    branches: ['codex/v2-current-staging-upgrade', 'codex/v2-staging-current-admission', 'codex/v2-staging-current-executor', 'codex/v2-current-hosted-admission', 'codex/v2-persistent-owner-credentials', 'codex/v2-current-owner-preview']
 permissions:
   contents: read
 concurrency:
@@ -40,18 +40,21 @@ jobs:
           git fetch --depth 1 origin 2999055b2b59467fcfef446c33a47212e72d4712
       - run: npm ci --ignore-scripts
       - name: Check exact current upgrade admission
-        run: node --test scripts/staging/current-upgrade-*.test.mjs scripts/staging/current-owner.test.mjs
+        run: node --test scripts/staging/current-upgrade-*.test.mjs scripts/staging/current-owner.test.mjs scripts/staging/current-preview.test.mjs
       - name: Rehearse six current migrations on the hosted baseline
         run: node scripts/rehearsal/staging-upgrade/run.mjs
       - name: Qualify current Studio build with synthetic provider metadata and local PostgreSQL
-        if: github.ref == 'refs/heads/codex/v2-current-hosted-admission'
+        if: github.ref == 'refs/heads/codex/v2-current-hosted-admission' || github.ref == 'refs/heads/codex/v2-current-owner-preview'
         env:
           PACKET12_REHEARSAL: isolated-only
           STAGING_SCHEMA_PROFILE: current-studio
         run: node scripts/staging/hosted-rehearsal.mjs
       - name: Qualify persistent synthetic-owner credentials on disposable PostgreSQL
-        if: github.ref == 'refs/heads/codex/v2-persistent-owner-credentials'
+        if: github.ref == 'refs/heads/codex/v2-persistent-owner-credentials' || github.ref == 'refs/heads/codex/v2-current-owner-preview'
         run: node scripts/staging/owner-rehearsal.mjs
+      - name: Check current Preview retention and stored auth transitions
+        if: github.ref == 'refs/heads/codex/v2-current-owner-preview'
+        run: node scripts/staging/current-preview/rehearsal.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: current-staging-upgrade-${{ github.sha }}
@@ -59,4 +62,5 @@ jobs:
             staging-evidence/current-upgrade.json
             staging-evidence/hosted-isolated.json
             staging-evidence/owner-credentials-isolated.json
+            staging-evidence/current-preview-isolated.json
           if-no-files-found: error

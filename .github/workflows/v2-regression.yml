@@ -39,7 +39,7 @@ jobs:
       - name: Generate Prisma client without migrating a database
         run: ./node_modules/.bin/prisma generate
       - name: Check current staging upgrade admission
-        run: node --test scripts/staging/current-upgrade-*.test.mjs scripts/staging/current-owner.test.mjs
+        run: node --test scripts/staging/current-upgrade-*.test.mjs scripts/staging/current-owner.test.mjs scripts/staging/current-preview.test.mjs
       - name: Run isolated regression tests
         run: npm test
       - name: Check TypeScript
