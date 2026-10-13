@@ -54,13 +54,22 @@ import assert from 'node:assert/strict';
 import {TARGET,REF} from './policy.mjs';
 import {digest,requireCandidate} from '../release/policy.mjs';
 export const HOSTED={project:'prj_PUv0ADGxYl5QjRYaMv2h8Km1UmMg',team:'team_H79eaUfq9xMqcbf34ZCtwwn9',repository:1301054677,branch:REF.slice(11)};
+export const CURRENT_STUDIO_SOURCE_BRANCH='codex/v2-hosted-access-owner-action';
+export function sourceBranch(env){
+ assert.ok(env.STAGING_SCHEMA_PROFILE===undefined||env.STAGING_SCHEMA_PROFILE==='current-studio','Unknown staging schema profile');
+ return env.STAGING_SCHEMA_PROFILE==='current-studio'?CURRENT_STUDIO_SOURCE_BRANCH:HOSTED.branch;
+}
 export function runtime(env){
  assert.equal(env.STAGING_HOSTED_ADMISSION,'preview-only');
  assert.equal(env.VERCEL,'1');assert.equal(env.VERCEL_ENV,'preview');
  assert.equal(env.VERCEL_PROJECT_ID,HOSTED.project);assert.equal(env.VERCEL_ORG_ID,HOSTED.team);
- assert.equal(env.VERCEL_GIT_COMMIT_REF,HOSTED.branch);
+ assert.equal(env.VERCEL_GIT_COMMIT_REF,sourceBranch(env));
  const sha=requireCandidate(env.STAGING_CANDIDATE_SHA||'');assert.equal(env.VERCEL_GIT_COMMIT_SHA,sha);
  assert.equal(env.STUDIO_V2_TENANT_CONTEXT_ENABLED,'true');
+ if(env.STAGING_SCHEMA_PROFILE==='current-studio'){
+  assert.equal(env.STUDIO_V2_SHELL_ENABLED,'true');
+  assert.equal(env.STUDIO_V2_SHELL_WORKSPACE_IDS,'packet16-a,packet16-b');
+ }
  assert.match(env.AUTH_SECRET||'',/^[a-f0-9]{96}$/,'Use a dedicated random 48-byte staging secret');
  assert.match(env.STAGING_RELEASE_RUN_ID||'',/^[1-9][0-9]*$/);
  assert.ok(!env.HELIOS_RELEASE_TARGET&&!env.STUDIO_V2_LOCAL_WORKSPACE_SLUG);
@@ -86,22 +95,22 @@ export function provenance({project,deployment,domains,run,jobs},env){
  assert.ok(!deployment.customEnvironment);
  for(const alias of deployment.alias||[])assert.match(alias,/^helios-v2-staging-[a-z0-9-]+\.vercel\.app$/,'Non-preview alias forbidden');assert.ok(['INITIALIZING','BUILDING'].includes(deployment.readyState));
  assert.equal(deployment.gitSource?.type,'github');assert.equal(String(deployment.gitSource.repoId),String(HOSTED.repository));
- assert.equal(deployment.gitSource.sha,candidate);assert.equal(deployment.gitSource.ref,HOSTED.branch);
+ assert.equal(deployment.gitSource.sha,candidate);assert.equal(deployment.gitSource.ref,sourceBranch(env));
  assert.equal(deployment.id,env.VERCEL_DEPLOYMENT_ID);assert.equal(deployment.url,env.VERCEL_URL);
  assert.ok(/^helios-v2-staging-[a-z0-9-]+\.vercel\.app$/.test(deployment.url));
  assert.ok(Array.isArray(domains.domains)&&domains.domains.length===1);
  assert.equal(domains.domains[0].name,'helios-v2-staging.vercel.app');assert.ok(!domains.pagination?.next);
  assert.equal(run.id.toString(),env.STAGING_RELEASE_RUN_ID);assert.equal(run.repository?.full_name,'heliosremedia/heliosremedia');
- assert.equal(run.head_sha,candidate);assert.equal(run.head_branch,HOSTED.branch);
+ assert.equal(run.head_sha,candidate);assert.equal(run.head_branch,sourceBranch(env));
  assert.equal(run.path,'.github/workflows/v2-regression.yml');assert.equal(run.event,'push');
  assert.equal(run.status,'completed');assert.equal(run.conclusion,'success');
  assert.equal(jobs.total_count,1);assert.equal(jobs.jobs?.length,1);
  assert.equal(jobs.jobs[0].conclusion,'success');assert.equal(jobs.jobs[0].name,'Tests and TypeScript');
  assert.ok(jobs.jobs[0].steps?.some(s=>s.name==='Run isolated regression tests'&&s.conclusion==='success'));
- return {candidate,project:project.id,team:project.accountId,deployment:deployment.id,url:deployment.url,environment:'preview',tests:{run:run.id,attempt:run.run_attempt,status:'passed'}};
+ return {...(env.STAGING_SCHEMA_PROFILE?{schemaProfile:env.STAGING_SCHEMA_PROFILE}:{}),candidate,project:project.id,team:project.accountId,deployment:deployment.id,url:deployment.url,environment:'preview',tests:{run:run.id,attempt:run.run_attempt,status:'passed'}};
 }
 export function receipt(proof,before,after,identity,buildDigest){
- assert.equal(before.state,'current-compatible-ledger');assert.equal(before.track,'baseline');
+ assert.equal(before.state,'current-compatible-ledger');assert.equal(before.track,proof.schemaProfile==='current-studio'?'current-studio':'baseline');
  assert.equal(after.state,before.state);assert.equal(after.track,before.track);
  assert.equal(after.schemaHash,before.schemaHash);assert.equal(after.ledgerHash,before.ledgerHash);
  assert.match(buildDigest,/^[a-f0-9]{64}$/);

@@ -1,7 +1,7 @@
 name: V2 current staging upgrade rehearsal
 on:
   push:
-    branches: ['codex/v2-current-staging-upgrade', 'codex/v2-staging-current-admission', 'codex/v2-staging-current-executor']
+    branches: ['codex/v2-current-staging-upgrade', 'codex/v2-staging-current-admission', 'codex/v2-staging-current-executor', 'codex/v2-current-hosted-admission']
 permissions:
   contents: read
 concurrency:
@@ -43,8 +43,16 @@ jobs:
         run: node --test scripts/staging/current-upgrade-*.test.mjs
       - name: Rehearse six current migrations on the hosted baseline
         run: node scripts/rehearsal/staging-upgrade/run.mjs
+      - name: Qualify current Studio build with synthetic provider metadata and local PostgreSQL
+        if: github.ref == 'refs/heads/codex/v2-current-hosted-admission'
+        env:
+          PACKET12_REHEARSAL: isolated-only
+          STAGING_SCHEMA_PROFILE: current-studio
+        run: node scripts/staging/hosted-rehearsal.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: current-staging-upgrade-${{ github.sha }}
-          path: staging-evidence/current-upgrade.json
+          path: |
+            staging-evidence/current-upgrade.json
+            staging-evidence/hosted-isolated.json
           if-no-files-found: error

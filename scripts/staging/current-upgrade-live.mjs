@@ -1,13 +1,13 @@
 // Protected non-production schema upgrade only; no deployment or credential setup.
 import assert from 'node:assert/strict';
 import {execFileSync,spawn} from 'node:child_process';
-import {mkdtemp,mkdir,readFile,readdir,writeFile,symlink} from 'node:fs/promises';
+import {mkdtemp,mkdir,readFile,writeFile,symlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import pg from 'pg';
 import {TARGET,ENVIRONMENT,protection,targetConnection,jsonGet} from './policy.mjs';
 import {prepareArtifact} from '../migrations/bootstrap/artifact.mjs';
-import {hash} from '../migrations/bootstrap/inspect.mjs';
+import {verifiedCurrentMigrationSource} from './current-upgrade-source.mjs';
 import {upgradeInvocation,qualifiedUpgradeRun} from './current-upgrade-invocation.mjs';
 import {executeCurrentUpgrade} from './current-upgrade-execute.mjs';
 
@@ -25,13 +25,7 @@ try{
   const run=await jsonGet(api+'/actions/runs/'+id,token);
   qualifiedUpgradeRun(run,candidate,path);
  }
- const manifestBytes=await readFile('scripts/migrations/bootstrap/history-sha256.json');
- assert.equal(hash(manifestBytes),'8cb9e5d72af3c2353018a3099d14172794e165a5e54ee11b02e80c46a5e6437a');
- const history=JSON.parse(manifestBytes),extensions=JSON.parse(await readFile('scripts/rehearsal/staging-upgrade/migrations.json','utf8'));
- assert.equal(Object.keys(extensions).length,6);
- assert.deepEqual((await readdir('prisma/migrations')).filter(n=>/^\d/.test(n)).sort(),[...Object.keys(history),...Object.keys(extensions)].sort());
- for(const [name,checksum] of Object.entries({...history,...extensions}))
-  assert.equal(hash(await readFile('prisma/migrations/'+name+'/migration.sql')),checksum);
+ const {extensions}=await verifiedCurrentMigrationSource();
  const scratch=await mkdtemp(join(tmpdir(),'studio-protected-upgrade-'));
  old=join(scratch,'hosted-source');
  execFileSync('git',['worktree','add','--detach',old,'2999055b2b59467fcfef446c33a47212e72d4712'],{stdio:'pipe'});

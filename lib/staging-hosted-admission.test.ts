@@ -107,10 +107,14 @@ test('provider family matching preserves case, prefix, exact-key and empty-value
  for(const [key] of providerCases)for(const value of ['0','false',' '])assert.throws(()=>runtime({...fixture().env,[key]:value}));
 });
 
-test('runtime restrictions preserve reviewed guard except exact metadata exemption',async()=>{
+test('legacy runtime restrictions retain their reviewed fingerprint with explicit current-profile extension',async()=>{
  const {readFileSync}=await import('node:fs');const {createHash}=await import('node:crypto');
  const source=readFileSync('scripts/staging/hosted-policy.mjs','utf8');
+ // Normalize only the exact new opt-in branch and additional shell restrictions.
+ // All original legacy runtime restrictions and their order retain the original fingerprint.
  const guard=source.slice(source.indexOf('export function runtime'),source.indexOf('export function provenance'))
+  .replace("assert.equal(env.VERCEL_GIT_COMMIT_REF,sourceBranch(env));","assert.equal(env.VERCEL_GIT_COMMIT_REF,HOSTED.branch);")
+  .replace(" if(env.STAGING_SCHEMA_PROFILE==='current-studio'){\n  assert.equal(env.STUDIO_V2_SHELL_ENABLED,'true');\n  assert.equal(env.STUDIO_V2_SHELL_WORKSPACE_IDS,'packet16-a,packet16-b');\n }\n","")
   .replace(" // Platform runtime metadata is exempt by exact name; never read its value.\n", '')
   .replace("for(const key of Object.keys(env))if(key!=='AWS_EXECUTION_ENV'&&env[key])", 'for(const [key,value] of Object.entries(env))if(value)')
   .replace('check(providerFamily(key),()=>assert.ok(', 'assert.ok(')
@@ -211,3 +215,30 @@ test('runtime metadata does not mask any other forbidden provider family',()=>{
   });
  }
 });
+
+function currentFixture(){
+ const f=fixture();
+ const branch='codex/v2-hosted-access-owner-action';
+ const env={...f.env,STAGING_SCHEMA_PROFILE:'current-studio',VERCEL_GIT_COMMIT_REF:branch,STUDIO_V2_SHELL_ENABLED:'true',STUDIO_V2_SHELL_WORKSPACE_IDS:'packet16-a,packet16-b'};
+ f.metadata.deployment.gitSource.ref=branch;f.metadata.run.head_branch=branch;
+ return {env,metadata:f.metadata};
+}
+test('current Studio profile binds current application branch and explicit synthetic workspaces',async()=>{
+ const f=currentFixture(),calls:string[]=[];
+ const result=await executeHosted({metadata:async()=>f.metadata,source:async()=>({}),inspect:async()=>({...state,track:'current-studio'}),build:async()=>{calls.push('build');},digest:async()=>h,persist:async()=>{calls.push('receipt');}},f.env);
+ assert.deepEqual(calls,['build','receipt']);assert.equal(result.schemaProfile,'current-studio');assert.equal(result.promotable,false);
+});
+for(const [key,value] of Object.entries({STAGING_SCHEMA_PROFILE:'unknown',STUDIO_V2_SHELL_ENABLED:'false',STUDIO_V2_SHELL_WORKSPACE_IDS:'*',VERCEL_GIT_COMMIT_REF:HOSTED.branch,VERCEL_ENV:'production',RESEND_API_KEY:'present',HELIOS_ADMIN_PASSWORD:'present'}))
+ test('current Studio rejects '+key+' before provider access',async()=>{
+  let touched=false;await assert.rejects(executeHosted({metadata:async()=>{touched=true;}},{...currentFixture().env,[key]:value}));assert.equal(touched,false);
+ });
+test('current Studio refuses a historical schema receipt before build',async()=>{
+ const f=currentFixture();let built=false;
+ await assert.rejects(executeHosted({metadata:async()=>f.metadata,source:async()=>({}),inspect:async()=>state,build:async()=>{built=true;}},f.env));assert.equal(built,false);
+});
+for(const field of ['deployment','run'])test('current Studio rejects historical '+field+' provenance',()=>{
+ const f=currentFixture();
+ if(field==='deployment')f.metadata.deployment.gitSource.ref=HOSTED.branch;else f.metadata.run.head_branch=HOSTED.branch;
+ assert.throws(()=>provenance(f.metadata,f.env));
+});
+test('unknown profile cannot fall back to historical admission',()=>assert.throws(()=>runtime({...fixture().env,STAGING_SCHEMA_PROFILE:'typo'})));

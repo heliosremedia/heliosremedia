@@ -54,7 +54,11 @@ const urlCases:[string,string][]=[['DATABASE_URL_PARSE',sentinel],['DATABASE_PRO
 for(const [code,value]of urlCases)test('actual connection rejection '+code,()=>assert.equal(reason(()=>targetConnection(neon,value)),'CHECK_'+code));
 
 // Strip diagnostic-only wrappers, then fingerprint the complete original executable AST.
-// These hashes are from reviewed executor 51f6ad1, not a newly generated expectation.
+// Historical predicates retain their reviewed executor 51f6ad1 fingerprints.
+// hosted-build now pins reviewed #437 source 51b271f: explicit current schema profile,
+// source helper extraction and shell-only build forwarding. Its legacy rejection and
+// redaction behavior remain covered by source diagnostics and hosted admission tests.
+// Prior hosted-build fingerprint: f2534c5b316ccc60c173bdae3440820a264d5f8dc8df6b23792352542e47b57d.
 function gateFingerprint(source:string){
  // Normalize only the reviewed public-identity storage classification; keep the
  // historical fingerprint for every admission predicate and effect ordering.
@@ -82,9 +86,9 @@ function gateFingerprint(source:string){
 for(const [path,hash]of Object.entries({
  'scripts/staging/actions/policy.mjs':'23c0ff7b5cb021bed79c259a1658f44e0d41a44c1b6d926efd93a1b01f3bf163',
  'scripts/staging/policy.mjs':'ffeb3024e47a9323d6015fb407e380f11663d729358a7c7a855d89c3095b50f8',
- 'scripts/staging/hosted-build.mjs':'f2534c5b316ccc60c173bdae3440820a264d5f8dc8df6b23792352542e47b57d',
+ 'scripts/staging/hosted-build.mjs':'e938188ae745985165b3e64bad0d2507aca93832ef3c3258143842d2a95eecf9',
  'scripts/staging/actions/live.mjs':'5eaef8b802fdfeba53e73b16794874302615d6e45a4779779ba535d6a38813b3',
-}))test('reviewed checks and effect order remain identical: '+path,()=>assert.equal(gateFingerprint(readFileSync(path,'utf8')),hash));
+}))test('reviewed executable checks and effect order remain fixed: '+path,()=>assert.equal(gateFingerprint(readFileSync(path,'utf8')),hash));
 
 test('safe labels are unique and every assertion label is registered',()=>{
  assert.equal(new Set(CHECK_CODES).size,CHECK_CODES.length);

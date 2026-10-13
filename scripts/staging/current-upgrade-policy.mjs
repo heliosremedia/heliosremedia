@@ -23,6 +23,7 @@ const baseline = {
   ...Object.fromEntries(Object.entries(history).filter(([name]) => name.startsWith('2026091'))),
 };
 assert.equal(Object.keys(baseline).length, 19);
+export const REVIEWED_CURRENT_MIGRATIONS = Object.freeze({...reviewedExtensions});
 const current = { ...baseline, ...reviewedExtensions };
 export const UPGRADE_SCHEMA = Object.freeze({
   baseline: '500be0f2b2b62093876525ee61994200aa822fefd7f47e41dfffdba6ec0f7dad',
