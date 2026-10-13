@@ -4,6 +4,8 @@ Updated October 13, 2026 (UTC). **Production ON HOLD.** Live GitHub is authorita
 
 ## Verified integration
 
+Latest staging dependency integration: PR #435 at `2d9300c825e338de33c81183eaf41353a43d9f51`; qualified source `f38e5e544e47f02891626395f79c80c9eae5eb1d`, ancestry-only head `223574f60506bf42a14210e20fe9fb531effc25c`, candidate/prospective/post-merge tree `c684cd1719ba7d71495b89a5fddb7db0284f6dd1`. #434 integrated at `862dacb62dd9feca4eb5da40f49e58d64316943a` with exact qualified tree `fdea79b732b7bc885f26782301a6ed0de1d49395`. These add schema admission and the rehearsed protected upgrade runner; neither has changed live staging.
+
 Latest product integration: PR #433 merged at `90091c7a2434e1d86fca99b19051f75d7f4ce9cf`, candidate `ef4dd7dbf3b95028efae8a6c4925fde2096f917e`; candidate/prospective/post-merge tree `c51398d0f853305450d5463bec80a617b262c7a5`. Exact-head regression `38328449162` passed 1,860 tests, TypeScript and all Chromium. Artifact `11782058389` independently downloaded, SHA256 `f2431dd523f14bba30056a79fcd798203fbf33a56db12c1f54a5ce6d27196df5` matched metadata, ZIP CRC passed. Phone/desktop login recovery and phone pending screenshots inspected. Sign-in now prevents duplicate pending submissions, retains fields after failure, provides readable connection recovery and stays locked during acknowledged navigation. No backend auth/session/schema change; #432 actual-server login evidence reused.
 
 
@@ -62,17 +64,21 @@ Observed 2026-10-13T01:14:53.165Z: Neon branch currentState `ready`; exact expec
 The live schema hash matches the independently pinned historical staging catalog. Existing #415 rehearsal artifact `11672438840` was recovered without rerunning: SHA256 `ce7cd03e3bacb03f75c246875f321f035feb621faa262733550f2f9d29aa927c`, ZIP CRC passed. It binds six unchanged migrations from the 19-entry baseline to expected current schema `9a0c9c3ca2796e8f4c640c652e51fd0c7132bd30b8f59ab5e755327009ba8d3f`, with original ledger/data retained, Prisma equivalence and repeat no-op. Live aggregate counts/hash alone do not verify individual ledger checksums; the eventual executor must revalidate every row before mutation. Persistent password setup and current-source Preview admission remain incomplete. Do not recreate or restart infrastructure.
 
 Existing targets:
-- Vercel `helios-v2-staging`, project `prj_PUv0ADGxYl5QjRYaMv2h8Km1UmMg`, account `team_H79eaUfq9xMqcbf34ZCtwwn9`. Default-scope discovery found it; explicit scope selectors had empty/404 responses. Do not recreate it.
+- Vercel `helios-v2-staging`, project `prj_PUv0ADGxYl5QjRYaMv2h8Km1UmMg`, account `team_H79eaUfq9xMqcbf34ZCtwwn9`. Earlier connector scope selectors had empty/404 responses; the October 13 protected inspection returned 200 and matching identity in both default and expected-team API scopes. Do not recreate it.
 - Neon organization `org-nameless-shape-94202911`, project `calm-shape-83359560` / `helios-v2-staging`, branch `br-young-math-arj7l4r3` / `main`, database `helios_v2_staging`. Jake's earlier other-email/org screenshot was a different project; it did not prove deletion.
 - Preview build suppression and environment protections are intentional. Historical September hosted source is not the current Studio application.
 
 ## Next safe gates
 
-1. Inspection `38329475195` is complete and independently verified. Do not replay it. Build and qualify current-schema/source admission using the observed baseline and existing six-migration rehearsal. Preserve the exact-target, owner-review and ready guards.
-2. Independently download/hash the inspection artifact. Verify target/scope, exact branch state, catalog/ledger and password readiness. If state is not ready, retain the guard; diagnose before proposing any change.
-3. Use the observed database state to prepare current-source admission and the existing six-migration upgrade (#415 already rehearsed on disposable PostgreSQL). Live schema matches the old 19-entry baseline; individual ledger rows still require executor validation. Persistent non-production owner credentials and explicit V2 workspace allowlisting remain incomplete.
-4. Obtain any separate approval required for concrete consequential credential/provider/infrastructure changes or unexpected database risks before execution. Do not restart/restore/recreate infrastructure speculatively. Then qualify the continuous hosted owner workflow and protected Studio URL before claiming access/First Light.
-5. Continue bounded independent product work under standing authorization while dispatch is unavailable; use actual roadmap gaps, not a new hardening program.
+1. Inspection `38329475195` is complete and independently verified. Do not replay it. The ready branch is on the old schema, with no active owner having a stored password.
+2. #434/#435 qualified exact schema/ledger admission and the real upgrade runner on disposable PostgreSQL. #435 regression `38332366975` passed 54 new policy/invocation cases, 1,860 existing tests, TypeScript and all Chromium; rehearsal `38332366928` passed preservation, six executed migrations, Prisma equivalence, repeat no-op and failure/drift/concurrent/already-current rejection.
+3. PR #436 on `codex/v2-staging-upgrade-executor`, candidate `6f6d84ef2216125151c1989d018936949c8a5bcd`, pins the qualified source and successful run IDs into the existing protected bootstrap workflow. Contract `38332844774` passed; regression `38332844723` and final merge gates are pending. No migration run is dispatched. Keep the existing environment review, no-admin-bypass, ready guard and exact target.
+4. After qualified executor integration, dispatch the explicit six-migration track once. If GitHub requests review, give Jake that actual run; standing development authority does not bypass environment protection. Independently inspect the schema-upgrade receipt before further mutations. On uncertainty, inspect read-only; never blindly retry/repair.
+5. Current-source hosted build admission, persistent owner login and Studio workspace allowlisting remain incomplete. Existing hosted qualification restores its temporary hostname/configuration changes, so historical success did not leave a persistent owner-testing URL. Prepare these next under current source/schema provenance and existing provider restrictions; do not recreate infrastructure.
+
+#434 rehearsal artifact `11782518764`: SHA256 `2f423c5c25cfe65684d1ca0e90d143fcea5efb0747bf498ddc154df5c8c0f05e`; regression archive `11782899227`: `3c70d42898e1eb27ae3497039f867f125201ee8486bd63570a28ecd9e326a653`. #435 rehearsal `11782914230`: `202c96f99a67c17b85e43fcfce01208bcdf76043cd391603b6848ff78144aab3`; regression archive `11783219953`: `6cce0a01322b0e923d075fbcacff342825fde5e90bf63597099a4863d5d145f7`. All independently downloaded, compared with GitHub SHA256 metadata and ZIP CRC checked; runtime receipts inspected. UI is unchanged; prior responsive visual verification is reused. The ancestry-only #435 reconciliation changed no bytes and did not rerun expensive suites.
+
+Completed inspection inputs (historical record, not an instruction to redispatch):
 
 | Inspection input | Exact value |
 | --- | --- |
@@ -88,6 +94,8 @@ The sentinels cannot admit deployment. Inspection uses provider GETs and a read-
 
 ## Current handoff
 
-PR #433 is fully qualified and integrated; previous post-merge regression #432 passed. Protected inspection has completed, so browser authentication/dispatch is no longer the blocker. Owner reiterated standing non-production authorization; routine changes need no new approval, while existing environment reviews remain mandatory.
+#433, #434 and #435 are integrated and independently qualified. Last verified code integration is `2d9300c825e338de33c81183eaf41353a43d9f51`; this documentation-only checkpoint follows it without changing the qualified code. Protected inspection resolved the former authentication/dispatch and Neon-state uncertainty.
 
-Active branch `codex/v2-staging-current-admission` introduces reusable exact 19/25-entry schema-and-ledger checks and wires them into the existing disposable six-migration rehearsal. This is preparation for the missing protected current-schema upgrade path, not live migration/deployment admission. Local credential-free policy tests: 28 passed. Candidate regression and actual PostgreSQL rehearsal, independent artifact review and merge-tree gates are pending. Application UI/backend, immutable migrations and existing protected executor are unchanged. Next task after qualification: integrate these checks into a bounded protected upgrade executor with fresh exact-target ledger validation, current-source provenance and no automatic repair; prepare persistent owner access under existing controls. Production ON HOLD.
+Active work: finish #436 executor qualification and install its pinned six-migration track on the protected executor. Candidate source is #435's independently qualified `f38e5e544e47f02891626395f79c80c9eae5eb1d`. Executor remains `b78600b3080dfa97dc263b13c2fca6bae30bf158` until that PR qualifies and merges. No migration, Vercel setting, password or deployment changed.
+
+Next implementation: current Studio hosted build admission, followed by persistent owner setup and hosted workflow testing. Production ON HOLD; owner access and First Light remain unqualified.
