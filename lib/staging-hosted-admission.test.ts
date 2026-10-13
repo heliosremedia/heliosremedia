@@ -107,10 +107,14 @@ test('provider family matching preserves case, prefix, exact-key and empty-value
  for(const [key] of providerCases)for(const value of ['0','false',' '])assert.throws(()=>runtime({...fixture().env,[key]:value}));
 });
 
-test('runtime restrictions preserve reviewed guard except exact metadata exemption',async()=>{
+test('legacy runtime restrictions retain their reviewed fingerprint with explicit current-profile extension',async()=>{
  const {readFileSync}=await import('node:fs');const {createHash}=await import('node:crypto');
  const source=readFileSync('scripts/staging/hosted-policy.mjs','utf8');
+ // Normalize only the exact new opt-in branch and additional shell restrictions.
+ // All original legacy runtime restrictions and their order retain the original fingerprint.
  const guard=source.slice(source.indexOf('export function runtime'),source.indexOf('export function provenance'))
+  .replace("assert.equal(env.VERCEL_GIT_COMMIT_REF,sourceBranch(env));","assert.equal(env.VERCEL_GIT_COMMIT_REF,HOSTED.branch);")
+  .replace(" if(env.STAGING_SCHEMA_PROFILE==='current-studio'){\n  assert.equal(env.STUDIO_V2_SHELL_ENABLED,'true');\n  assert.equal(env.STUDIO_V2_SHELL_WORKSPACE_IDS,'packet16-a,packet16-b');\n }\n","")
   .replace(" // Platform runtime metadata is exempt by exact name; never read its value.\n", '')
   .replace("for(const key of Object.keys(env))if(key!=='AWS_EXECUTION_ENV'&&env[key])", 'for(const [key,value] of Object.entries(env))if(value)')
   .replace('check(providerFamily(key),()=>assert.ok(', 'assert.ok(')

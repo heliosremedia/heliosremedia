@@ -20,11 +20,11 @@ const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
 const ast=ts.createSourceFile('hosted-build.mjs',readFileSync('scripts/staging/hosted-build.mjs','utf8'),ts.ScriptTarget.Latest,true);
 let sourceBody='';
 function find(node:ts.Node){
- if(ts.isPropertyAssignment(node)&&node.name.getText(ast)==='source'&&ts.isArrowFunction(node.initializer))sourceBody=node.initializer.body.getText(ast);
+ if(ts.isFunctionDeclaration(node)&&node.name?.text==='hostedSourceIdentity'&&node.body)sourceBody=node.body.getText(ast);
  ts.forEachChild(node,find);
 }
 find(ast);assert.ok(sourceBody);
-function harness(options:{gitSha?:string;dirty?:boolean;envFile?:string;missing?:string;rawManifest?:string;directories?:string[];migrationDrift?:boolean;schemaDrift?:boolean;developmentSchema?:boolean;parseFailure?:boolean;digestFailure?:boolean}={}){
+function harness(options:{gitSha?:string;dirty?:boolean;envFile?:string;missing?:string;rawManifest?:string;directories?:string[];migrationDrift?:boolean;schemaDrift?:boolean;developmentSchema?:boolean;parseFailure?:boolean;digestFailure?:boolean;currentProfile?:boolean}={}){
  const calls:string[]=[];
  const original=Object.assign(new Error(secret),{stderr:Buffer.from(secret),path:'/private/'+secret,reason:'CHECK_SOURCE_FORGED'});
  const context={assert,check,checked,checkDirtyCheckout,BASELINE_CHECKSUM,Object,manifest:undefined,
@@ -37,11 +37,12 @@ function harness(options:{gitSha?:string;dirty?:boolean;envFile?:string;missing?
    if(name==='package-lock.json')return secret;
    return options.migrationDrift?secret:readFileSync(name,'utf8');
   },
-  readdir:async()=>{calls.push('directories');return options.directories??migrationNames;},
+  readdir:async()=>{calls.push('directories');return options.directories??(options.currentProfile?readdirSync('prisma/migrations').filter(n=>/^\d/.test(n)):migrationNames);},
   hash:(value:string)=>{if(options.digestFailure&&value===secret)throw original;return hash(value);},
   JSON:options.parseFailure?{parse:()=>{throw original;}}:JSON,
  };
- const source=runInNewContext('(async candidate=>'+sourceBody+')',context) as (sha:string)=>Promise<Record<string,unknown>>;
+ const callback=runInNewContext('(async (candidate,env)=>'+sourceBody+')',context) as (sha:string,env:Record<string,string>)=>Promise<{identity:Record<string,unknown>}>;
+ const source=async(sha:string)=>(await callback(sha,options.currentProfile?{STAGING_SCHEMA_PROFILE:'current-studio'}:{})).identity;
  return {source,calls,original};
 }
 const cases:[string,Parameters<typeof harness>[0]][]=[
@@ -108,4 +109,15 @@ test('new development schema and migration remain rejected by the historical hos
   const h=harness(options);await assert.rejects(h.source(candidate),(e:Error)=>diagnostic('source-integrity',e).reason===reason);
   assert.ok(!h.calls.includes('read:package-lock.json'));
  }
+});
+
+test('explicit current profile validates real development schema and all six migration checksums',async()=>{
+ const h=harness({currentProfile:true,developmentSchema:true});
+ const identity=await h.source(candidate);
+ assert.equal(identity.schemaProfile,'current-studio');
+ assert.equal(identity.prismaSchema,'892bb7f73b39e0fce20321557a3b09273a436b56b8b7f94b353e93eefe820224');
+ assert.ok(h.calls.includes('read:scripts/rehearsal/staging-upgrade/migrations.json'));
+});
+test('current profile still rejects substituted source schema',async()=>{
+ await assert.rejects(harness({currentProfile:true,schemaDrift:true}).source(candidate),(e:Error)=>diagnostic('source-integrity',e).reason==='CHECK_SOURCE_PRISMA_SCHEMA_HASH');
 });
