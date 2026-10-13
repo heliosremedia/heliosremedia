@@ -10,13 +10,17 @@ on:
         description: Explicit database track
         required: true
         type: choice
-        options: [clean-bootstrap, current-baseline, current-studio-upgrade]
+        options: [clean-bootstrap, current-baseline, current-studio-upgrade, persistent-owner-credentials]
       executor_sha:
         description: Exact protected executor HEAD; required for current-studio-upgrade
         required: false
         type: string
       upgrade_confirmation:
         description: For current-studio-upgrade enter upgrade-six-reviewed-migrations-only
+        required: false
+        type: string
+      owner_confirmation:
+        description: For persistent-owner-credentials enter initialize-two-synthetic-owner-passwords-only
         required: false
         type: string
       confirmation:
@@ -31,7 +35,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   rehearsal:
-    if: inputs.track != 'current-studio-upgrade' && github.repository == 'heliosremedia/heliosremedia' && github.ref == 'refs/heads/codex/v2-neon-staging-bootstrap' && github.sha == inputs.candidate_sha
+    if: (inputs.track == 'clean-bootstrap' || inputs.track == 'current-baseline') && github.repository == 'heliosremedia/heliosremedia' && github.ref == 'refs/heads/codex/v2-neon-staging-bootstrap' && github.sha == inputs.candidate_sha
     environment: helios-v2-staging-bootstrap
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -137,5 +141,47 @@ jobs:
         with:
           name: staging-current-upgrade-${{ github.run_id }}-${{ github.run_attempt }}
           path: staging-evidence/current-upgrade-live.json
+          if-no-files-found: error
+          retention-days: 30
+
+  initialize_owners:
+    if: inputs.track == 'persistent-owner-credentials' && github.repository == 'heliosremedia/heliosremedia' && github.ref == 'refs/heads/codex/v2-neon-staging-bootstrap' && github.sha == inputs.executor_sha && inputs.candidate_sha == 'b4bd905041da9223ed7314d5000914addfead53d' && inputs.owner_confirmation == 'initialize-two-synthetic-owner-passwords-only'
+    environment: helios-v2-staging-bootstrap
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout independently qualified owner credential source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: b4bd905041da9223ed7314d5000914addfead53d
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Check owner admission without provider credentials
+        run: node --test scripts/staging/current-owner.test.mjs
+      - name: Initialize only existing synthetic owner credentials
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          STAGING_GITHUB_READ_TOKEN: ${{ secrets.STAGING_GITHUB_READ_TOKEN }}
+          STAGING_NEON_API_KEY: ${{ secrets.STAGING_NEON_API_KEY }}
+          STAGING_DIRECT_URL: ${{ secrets.STAGING_DIRECT_URL }}
+          STAGING_OWNER_PASSWORD_A: ${{ secrets.STAGING_OWNER_PASSWORD_A }}
+          STAGING_OWNER_PASSWORD_B: ${{ secrets.STAGING_OWNER_PASSWORD_B }}
+          STAGING_EXECUTOR_SHA: ${{ inputs.executor_sha }}
+          STAGING_CANDIDATE_SHA: b4bd905041da9223ed7314d5000914addfead53d
+          STAGING_TRACK: persistent-owner-credentials
+          STAGING_CONFIRMATION: ${{ inputs.confirmation }}
+          STAGING_OWNER_CONFIRMATION: ${{ inputs.owner_confirmation }}
+          STAGING_REGRESSION_RUN: '38400798944'
+          STAGING_OWNER_REHEARSAL_RUN: '38400798857'
+        run: node scripts/staging/owner-live.mjs
+      - name: Retain credential-free owner initialization receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: staging-owner-credentials-${{ github.run_id }}-${{ github.run_attempt }}
+          path: staging-evidence/owner-credentials-live.json
           if-no-files-found: error
           retention-days: 30

@@ -1,7 +1,7 @@
 name: V2 staging executor credential-free contract
 on:
   push:
-    branches: ['codex/v2-neon-staging-bootstrap', 'codex/v2-staging-upgrade-executor', 'codex/v2-staging-upgrade-checksum-fix']
+    branches: ['codex/v2-neon-staging-bootstrap', 'codex/v2-staging-upgrade-executor', 'codex/v2-staging-upgrade-checksum-fix', 'codex/v2-owner-credential-executor']
 permissions:
   contents: read
 jobs:
@@ -17,6 +17,6 @@ jobs:
         with:
           node-version: '24'
       - run: npm ci --ignore-scripts
-      - run: node --experimental-strip-types --test lib/staging-bootstrap-policy.test.ts
+      - run: node --experimental-strip-types --test lib/staging-bootstrap-policy.test.ts lib/staging-owner-workflow.test.ts
       - run: ./node_modules/.bin/eslint scripts/staging/*.mjs lib/staging-bootstrap-policy.test.ts
       - run: git show --format= --check HEAD
