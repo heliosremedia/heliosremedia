@@ -41,7 +41,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   qualify:
-    if: ${{ !inputs.inspect_only && github.repository == 'heliosremedia/heliosremedia' && github.ref == 'refs/heads/codex/v2-neon-staging-bootstrap' && github.sha == inputs.executor_sha && inputs.candidate_sha == '2999055b2b59467fcfef446c33a47212e72d4712' }}
+    if: ${{ !inputs.inspect_only && inputs.track != 'current-owner-preview' && github.repository == 'heliosremedia/heliosremedia' && github.ref == 'refs/heads/codex/v2-neon-staging-bootstrap' && github.sha == inputs.executor_sha && inputs.candidate_sha == '2999055b2b59467fcfef446c33a47212e72d4712' }}
     environment: helios-v2-staging-bootstrap
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -127,7 +127,7 @@ jobs:
           if-no-files-found: warn
 
   qualify_current:
-    if: inputs.track == 'current-owner-preview' && github.repository == 'heliosremedia/heliosremedia' && github.ref == 'refs/heads/codex/v2-neon-staging-bootstrap' && github.sha == inputs.executor_sha && inputs.candidate_sha == '2f890c32d6ba627e3af49c294f15b7fb61773394' && inputs.current_confirmation == 'retain-current-preview-for-synthetic-owner-testing-only'
+    if: ${{ !inputs.inspect_only && inputs.track == 'current-owner-preview' && github.repository == 'heliosremedia/heliosremedia' && github.ref == 'refs/heads/codex/v2-neon-staging-bootstrap' && github.sha == inputs.executor_sha && inputs.candidate_sha == '2f890c32d6ba627e3af49c294f15b7fb61773394' && inputs.current_confirmation == 'retain-current-preview-for-synthetic-owner-testing-only' }}
     environment: helios-v2-staging-bootstrap
     runs-on: ubuntu-latest
     timeout-minutes: 35
