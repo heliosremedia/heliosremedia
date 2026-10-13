@@ -19,7 +19,7 @@ try{
  const stamp='2026-10-13T00:00:00Z';
  for(const id of OWNER_WORKSPACES){
   await db.query('INSERT INTO "Workspace" (id,name,slug,"updatedAt") VALUES ($1,$1,$1,$2)',[id,stamp]);
-  await db.query('INSERT INTO "AdminUser" (id,email,"displayName",role,"workspaceId",disciplines,"updatedAt") VALUES ($1,$2,\'Synthetic owner\',\'OWNER\',$3,\'{}\',$4)',[id+'-owner',id+'@example.test',id,stamp]);
+  await db.query('INSERT INTO "AdminUser" (id,email,"displayName",role,"workspaceId",disciplines,"sessionVersion","updatedAt") VALUES ($1,$2,\'Synthetic owner\',\'OWNER\',$3,\'{}\',1,$4)',[id+'-owner',id+'@example.test',id,stamp]);
   await db.query('INSERT INTO "WorkspaceMembership" (id,"workspaceId","userId",role,status,"updatedAt") VALUES ($1,$2,$3,\'OWNER\',\'ACTIVE\',$4)',[id+'-membership',id,id+'-owner',stamp]);
   await db.query('INSERT INTO "SiteSettings" (id,"workspaceId","updatedAt") VALUES ($1,$2,$3)',[id+'-settings',id,stamp]);
   await db.query('INSERT INTO "Project" (id,"workspaceId",title,slug,status,"updatedAt") VALUES ($1,$2,\'Synthetic project\',$1,\'PUBLISHED\',$3)',[id+'-project',id,stamp]);
