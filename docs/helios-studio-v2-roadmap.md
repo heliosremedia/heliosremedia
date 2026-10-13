@@ -1,5 +1,10 @@
 # Helios Studio V2 Delivery Roadmap
 
+## Current owner-testing milestone — October 13, 2026
+
+Persistent synthetic-owner credentials and a current-source protected Preview are now live-qualified. Owner initialization 38416979449 and Preview qualification 38417689573 succeeded after actual protected review; both credential-free artifacts were independently checked against GitHub SHA256 metadata and ZIP CRC. Both companies passed ordinary password login, session refresh at phone/desktop widths, logout/re-login and owned/foreign access checks. Current build source 2f890c32d6ba627e3af49c294f15b7fb61773394; exact existing staging resources retained, schema/ledger unchanged, temporary run configuration removed and automatic-build suppression restored. Testing links, email/password mapping, artifact digests and access requirements are in the canonical recovery checkpoint. Vercel Deployment Protection remains enabled. This milestone supersedes historical missing-password/waiting/no-URL entries below. It does not qualify real-company onboarding, external provider activation, First Light or production. Production ON HOLD. Never repeat completed migration 38336325763, credential initialization 38416979449 or successful Preview dispatch 38417689573.
+
+
 ## Active delivery direction: October 8, 2026
 
 Owner directive: protect the existing foundation while building the production-intended application. Phase numbers describe capability areas, not a requirement to finish every hardening item before starting product work. All existing qualification and release gates remain. Production ON HOLD.
