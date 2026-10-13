@@ -1,4 +1,5 @@
 import "server-only";
+import { requireWorkspaceScheduledAction } from "@/lib/workspace-lifecycle/state";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { requireLockedWorkspaceAdministrator, type WorkspaceWriteActor } from "@/lib/workspace-write-access";
@@ -33,4 +34,5 @@ export async function requireNewsletterDeliveryAccess(
     }, select: { id: true },
   });
   if (!job) throw new Error("NEWSLETTER_DELIVERY_CLAIM_EXPIRED");
+  await requireWorkspaceScheduledAction(tx, workspaceId, intendedSendAt);
 }

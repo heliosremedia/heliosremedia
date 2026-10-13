@@ -2,10 +2,11 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { setMarketingPreference } from "@/lib/client-communications/preferences";
+import { resolveCampaignWorkspace } from "@/lib/client-communications/campaign-ownership";
 import { processPermanentBounce } from "@/lib/client-communications/bounces";
 import {
   diagnosticEmails,
-  normalizedResendStatus,
+  parseResendEvent,
   safeEventDate,
 } from "@/lib/client-communications/resend-webhook-core";
 
@@ -33,32 +34,6 @@ function verifyWebhook(rawBody: string, headers: Headers) {
   }
 }
 
-type ResendEvent = {
-  type?: string;
-  created_at?: string;
-  data?: {
-    email_id?: string;
-    to?: unknown;
-    tags?: unknown;
-    click?: { link?: string };
-    bounce?: { type?: string; subtype?: string; message?: string };
-  };
-};
-
-function diagnosticCampaignId(tags: unknown) {
-  if (Array.isArray(tags)) {
-    const tag = tags.find((item) => item && typeof item === "object" &&
-      "name" in item && item.name === "campaign_id" && "value" in item);
-    return tag && typeof tag === "object" && "value" in tag && typeof tag.value === "string"
-      ? tag.value : null;
-  }
-  if (tags && typeof tags === "object" && "campaign_id" in tags) {
-    const value = (tags as { campaign_id?: unknown }).campaign_id;
-    return typeof value === "string" ? value : null;
-  }
-  return null;
-}
-
 function safeReject(reason: string, request: Request) {
   console.warn("Resend webhook rejected", {
     reason,
@@ -75,34 +50,52 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false }, { status: 401 });
   }
 
-  let event: ResendEvent;
+  let payload: unknown;
   try {
-    event = JSON.parse(rawBody) as ResendEvent;
+    payload = JSON.parse(rawBody);
   } catch {
     safeReject("invalid_json", request);
     return NextResponse.json({ success: false }, { status: 400 });
   }
-  const normalizedStatus = normalizedResendStatus(event.type);
-  if (!normalizedStatus) {
+  const parsed = parseResendEvent(payload);
+  if (parsed.kind === "invalid") {
+    safeReject("invalid_payload", request);
+    return NextResponse.json({ success: false }, { status: 400 });
+  }
+  if (parsed.kind === "ignored") {
     return NextResponse.json({ success: true, ignored: true });
   }
+  const { event, normalizedStatus } = parsed;
   const providerMessageId = event.data?.email_id?.trim() || null;
   const occurredAt = safeEventDate(event.created_at, receivedAt);
 
+  let admitted = false;
   try {
     const existing = await prisma.resendWebhookEvent.findUnique({
       where: { providerEventId },
-      select: { processingStatus: true },
+      select: { processingStatus: true, providerMessageId: true, eventType: true },
     });
+    // A retry may resume processing, but cannot redefine the stored event identity.
+    if (existing && (existing.providerMessageId !== providerMessageId || existing.eventType !== event.type)) {
+      safeReject("event_identity_conflict", request);
+      return NextResponse.json({ success: false }, { status: 409 });
+    }
+    if (existing?.processingStatus === "PROCESSING") {
+      return NextResponse.json({ success: false }, { status: 503 });
+    }
     if (existing && existing.processingStatus !== "FAILED_RETRYABLE") {
       return NextResponse.json({ success: true, duplicate: true });
     }
 
     if (existing) {
-      await prisma.resendWebhookEvent.update({
-        where: { providerEventId },
+      // The earlier read is not a claim: another retry may have already won.
+      const claimed = await prisma.resendWebhookEvent.updateMany({
+        where: { providerEventId, providerMessageId, eventType: event.type, processingStatus: "FAILED_RETRYABLE" },
         data: { processingStatus: "PROCESSING", reason: null, processedAt: null },
       });
+      if (claimed.count !== 1) {
+        return NextResponse.json({ success: false }, { status: 503 });
+      }
     } else {
       await prisma.resendWebhookEvent.create({
         data: {
@@ -117,6 +110,8 @@ export async function POST(request: Request) {
       });
     }
 
+    admitted = true;
+
     const matches = providerMessageId ? await prisma.campaignRecipient.findMany({
       where: { providerMessageId },
       take: 2,
@@ -124,22 +119,42 @@ export async function POST(request: Request) {
         id: true,
         clientId: true,
         email: true,
-        campaign: { select: { createdBy: { select: { workspaceId: true } } } },
+        campaign: { select: { workspaceId: true } },
       },
     }) : [];
-    const referralCommunication = matches.length === 0 && providerMessageId
-      ? await prisma.referralCommunication.findFirst({
+    const referralMatches = providerMessageId
+      ? await prisma.referralCommunication.findMany({
         where: { providerMessageId },
+        take: 2,
         select: {
           id: true,
           invitationId: true,
           campaignId: true,
           submissionId: true,
-          campaign: { select: { createdBy: { select: { workspaceId: true } } } },
+          campaign: { select: { workspaceId: true } },
         },
       })
-      : null;
+      : [];
+    // A verified signature authenticates the event, not a choice between local
+    // records. Require one message relationship across both delivery families.
+    if (matches.length + referralMatches.length > 1) {
+      await prisma.resendWebhookEvent.update({
+        where: { providerEventId },
+        data: {
+          workspaceId: null,
+          clientId: null,
+          campaignRecipientId: null,
+          normalizedEmail: null,
+          processingStatus: "UNMATCHED_AMBIGUOUS_MESSAGE_ID",
+          reason: "Multiple local delivery records share this provider message ID; reconciliation is required.",
+          processedAt: new Date(),
+        },
+      });
+      return NextResponse.json({ success: true, matched: false });
+    }
+    const referralCommunication = referralMatches[0];
     if (referralCommunication) {
+      const workspaceId = await resolveCampaignWorkspace(referralCommunication.campaign.workspaceId);
       const referralStatus = {
         SENT: "SENT",
         DELIVERED: "DELIVERED",
@@ -175,7 +190,7 @@ export async function POST(request: Request) {
         prisma.resendWebhookEvent.update({
           where: { providerEventId },
           data: {
-            workspaceId: referralCommunication.campaign.createdBy.workspaceId,
+            workspaceId,
             processingStatus: "PROCESSED",
             processedAt: new Date(),
           },
@@ -185,16 +200,11 @@ export async function POST(request: Request) {
     }
     if (matches.length !== 1) {
       const diagnosticEmail = diagnosticEmails(event.data?.to)[0] || null;
-      const campaignId = diagnosticCampaignId(event.data?.tags);
-      const diagnosticCampaign = campaignId ? await prisma.emailCampaign.findUnique({
-        where: { id: campaignId },
-        select: { createdBy: { select: { workspaceId: true } } },
-      }) : null;
       await prisma.resendWebhookEvent.update({
         where: { providerEventId },
         data: {
           normalizedEmail: diagnosticEmail,
-          workspaceId: diagnosticCampaign?.createdBy.workspaceId,
+          workspaceId: null,
           processingStatus: providerMessageId
             ? matches.length ? "UNMATCHED_AMBIGUOUS_MESSAGE_ID" : "UNMATCHED_MESSAGE_ID"
             : "UNMATCHED_MISSING_MESSAGE_ID",
@@ -205,7 +215,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, matched: false });
     }
 
+    const followUpRequired = event.type === "email.bounced" || event.type === "email.complained";
     const recipient = matches[0];
+    const workspaceId = await resolveCampaignWorkspace(recipient.campaign.workspaceId);
     await prisma.$transaction([
       prisma.campaignDeliveryEvent.upsert({
         where: { providerEventId },
@@ -226,12 +238,12 @@ export async function POST(request: Request) {
       prisma.resendWebhookEvent.update({
         where: { providerEventId },
         data: {
-          workspaceId: recipient.campaign.createdBy.workspaceId,
+          workspaceId,
           clientId: recipient.clientId,
           campaignRecipientId: recipient.id,
           normalizedEmail: recipient.email.trim().toLowerCase(),
-          processingStatus: "PROCESSED",
-          processedAt: new Date(),
+          processingStatus: followUpRequired ? "PROCESSING" : "PROCESSED",
+          processedAt: followUpRequired ? null : new Date(),
         },
       }),
     ]);
@@ -259,18 +271,26 @@ export async function POST(request: Request) {
           update: { releasedAt: null, reason: "COMPLAINT", clientId: recipient.clientId },
         }),
       ]);
-      await setMarketingPreference({
-        email,
-        status: "UNSUBSCRIBED",
-        source: "RESEND_WEBHOOK",
-        reason: "COMPLAINT",
-        messageId: providerMessageId || undefined,
+      await prisma.$transaction(async (transaction) => {
+        await setMarketingPreference({
+          email,
+          status: "UNSUBSCRIBED",
+          source: "RESEND_WEBHOOK",
+          reason: "COMPLAINT",
+          messageId: providerMessageId || undefined,
+        }, transaction);
+        await transaction.resendWebhookEvent.update({
+          where: { providerEventId },
+          data: { processingStatus: "PROCESSED", processedAt: new Date() },
+        });
       });
     }
     return NextResponse.json({ success: true, matched: true });
   } catch (error) {
-    await prisma.resendWebhookEvent.updateMany({
-      where: { providerEventId },
+    // A failed insert may mean another request owns this event. Only a request
+    // that completed admission may record its subsequent processing failure.
+    if (admitted) await prisma.resendWebhookEvent.updateMany({
+      where: { providerEventId, processingStatus: "PROCESSING" },
       data: {
         processingStatus: "FAILED_RETRYABLE",
         reason: error instanceof Error ? error.name.slice(0, 120) : "UnknownError",

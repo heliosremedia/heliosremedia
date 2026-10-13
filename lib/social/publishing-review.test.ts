@@ -50,7 +50,8 @@ test('publishing review runs real authorization and relational SQL without leaki
         SELECT 'attempt-'||n,'job-a',n,'FAILED','PRIVATE reference','PRIVATE provider error' FROM generate_series(1,12) AS n;
       INSERT INTO "SocialPublishingAttempt" (id,"jobId","attemptNumber",status) VALUES ('foreign-attempt','job-b',1,'PUBLISHED');
     `);
-    const guard = load('../workspace-write-access.ts', { './workspace-context-core.ts': { tenantContextEnabled: () => true }, './workspace-membership-core.ts': { resolveMembershipAccess } });
+    const guard = load('../workspace-write-access.ts', { './workspace-lifecycle/state.ts': { workspaceIsActive: async () => true },
+    './workspace-context-core.ts': { tenantContextEnabled: () => true }, './workspace-membership-core.ts': { resolveMembershipAccess } });
     const prisma = { $transaction: (read: (tx: unknown) => Promise<unknown>) => db.transaction(async sql => read({
       $queryRaw: async (parts: TemplateStringsArray, ...values: unknown[]) => (await sql.query(parts.reduce((query, part, index) => query + (index ? `$${index}` : '') + part, ''), values)).rows,
       adminUser: { findFirst: async () => (await sql.query(`SELECT * FROM "AdminUser" WHERE id='actor'`)).rows[0] },

@@ -17,9 +17,10 @@ export async function POST(request: Request) {
     const fileSize = typeof body.fileSize === "number" ? body.fileSize : Number.NaN;
     if (!kind || !imageTypes.has(fileType) || !Number.isSafeInteger(fileSize) || fileSize <= 0 || fileSize > 25 * 1024 * 1024) return NextResponse.json({ success: false, error: "Upload a JPG, PNG, WebP, or AVIF image under 25 MB." }, { status: 400 });
     const key = createPhotoComparisonImageKey(session.workspaceId, kind, fileType);
-    const uploadUrl = await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, kind: "photo-comparison", key, byteSize: fileSize }, () => createPresignedUploadUrl(key, fileType));
+    const uploadUrl = await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, sessionVersion: session.sessionVersion, kind: "photo-comparison", key, byteSize: fileSize }, () => createPresignedUploadUrl(key, fileType));
     return NextResponse.json({ success: true, upload: { key, uploadUrl, publicUrl: getPublicAssetUrl(key), contentType: fileType } });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Upload access is no longer available." }, { status: 403 });
     console.error("Unable to prepare photo comparison upload:", error);
     return NextResponse.json({ success: false, error: "The image upload could not be prepared." }, { status: 500 });
   }

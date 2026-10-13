@@ -74,4 +74,10 @@ test("edition transition route supplies trusted actor/version and reports in-fli
     conflict = false;
   }
   assert.equal(calls, 6);
+  for (const expectedVersion of [3, 5, -1, "4", null]) {
+    const response = await api.POST(new Request("https://studio.example", { method: "POST", body: JSON.stringify({ action: "reschedule", expectedVersion, intendedSendAt: "2027-01-01" }) }), { params: Promise.resolve({ editionId: "edition" }) });
+    assert.equal(response.status, 409); assert.equal(calls, 6);
+  }
+  const current = await api.POST(new Request("https://studio.example", { method: "POST", body: JSON.stringify({ action: "reschedule", expectedVersion: 4, intendedSendAt: "2027-01-01" }) }), { params: Promise.resolve({ editionId: "edition" }) });
+  assert.equal(current.status, 200); assert.equal(calls, 7);
 });

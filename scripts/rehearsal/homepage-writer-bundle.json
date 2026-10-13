@@ -45,7 +45,7 @@
     },
     {
       "path": "lib/workspace-write-access.ts",
-      "sha256": "efa4c1fad0e94f600b252b14416fd19054da9557ee0a4dc91b4845e85996a656"
+      "sha256": "c8fa3962c89a32f5f8b8227c21938aeae3e745e77f2633152773b02d43de66b7"
     },
     {
       "path": "lib/workspace-membership-core.ts",
@@ -58,6 +58,14 @@
     {
       "path": "lib/auth/session.ts",
       "sha256": "82d67b679f11a43530a1ca26bd84692bb3fbb3e77a07685e5e150c1ae0c1f78e"
+    },
+    {
+      "path": "lib/workspace-memberships.ts",
+      "sha256": "4654af21ca9919d18cf513cb275593942301929f965e05f29b9a184f8bb0d6b1"
+    },
+    {
+      "path": "lib/workspace-lifecycle/state.ts",
+      "sha256": "29e67c29ada5ab8a61fde74852fbeaf3ff25fd7dcba92eafa5f0832742a6f325"
     }
   ]
 }

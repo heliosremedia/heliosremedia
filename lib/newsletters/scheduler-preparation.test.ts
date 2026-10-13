@@ -54,7 +54,7 @@ function fixture(options: { paused?: boolean; foreign?: boolean; legacy?: boolea
     } },
   };
   const modules: Record<string, unknown> = {
-    'server-only': {}, 'node:crypto': {},
+    'server-only': {}, "@/lib/workspace-lifecycle/state": { lifecycleEnabled: () => false, workspaceIsActive: async () => true, requireWorkspaceScheduledAction: async () => {} }, 'node:crypto': {},
     './ownership': { resolveNewsletterWorkspace: async (owner: unknown) => {
       events.push('resolve-owner'); assert.equal(owner, options.legacy || options.ambiguous ? null : 'a');
       if (options.ambiguous) throw new Error('ownership must be configured');

@@ -1,4 +1,5 @@
 import "server-only";
+import { requireWorkspaceScheduledAction } from "@/lib/workspace-lifecycle/state";
 import { prisma } from "@/lib/prisma";
 import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { resolveNewsletterWorkspace } from "./ownership";
@@ -30,6 +31,7 @@ export async function markNewsletterApprovalMissed(input: { id: string; editionI
       leaseExpiresAt: { gt: now }, dueAt: edition.intendedSendAt, AND: [{ dueAt: { lte: now } }],
     }, select: { id: true } });
     if (!claim) throw new Error("NEWSLETTER_APPROVAL_CLAIM_EXPIRED");
+    await requireWorkspaceScheduledAction(tx, workspaceId, edition.intendedSendAt);
     const states = ["AWAITING_GENERATION", "GENERATING", "DRAFT_GENERATED", "NEEDS_REVIEW", "APPROVED", "GENERATION_FAILED"] as const;
     if (edition.series.status !== "ACTIVE" || !states.some(status => status === edition.status)) return { changed: false };
     const changed = await tx.newsletterEdition.updateMany({ where: {

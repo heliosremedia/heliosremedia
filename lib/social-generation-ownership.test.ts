@@ -58,6 +58,7 @@ test("social generation uses company identity and commits through the existing g
   let edits = 0;
   let completed = 0;
   let failures = 0;
+  let groundedDraft: Record<string, unknown> = { caption: "Grounded draft", openingHook: "", hashtags: [], callToAction: "", onScreenText: "", videoConcept: "", altText: "" };
   const variant = { id: "variant", platform: "FACEBOOK", status: "APPROVED", caption: "Before", contentVersion: 3 };
   const campaign = { id: "campaign", verifiedSourceFacts: {}, variants: [variant] };
   const brief = { positioning: "Creative direction", themes: ["Photography"], cadence: "Weekly", formats: ["Post"], platformConsiderations: "Clear copy", callsToAction: "Learn more" };
@@ -86,7 +87,7 @@ test("social generation uses company identity and commits through the existing g
     fetch: async (_url: string, options: { body: string }) => {
       fetches++; const body = JSON.parse(options.body);
       if (body.text.format.type === "json_object") { assert.match(body.instructions, /Social Studio for Company A/); assert.doesNotMatch(body.instructions, /Helios/); return Response.json({ output_text: JSON.stringify({ campaignBrief: brief, FACEBOOK: { caption: "New draft" } }) }); }
-      return Response.json({ output_text: JSON.stringify({ campaignBrief: brief, platforms: { FACEBOOK: { caption: "Grounded draft" } }, unsupportedClaims: [] }) });
+      return Response.json({ output_text: JSON.stringify({ campaignBrief: brief, platforms: { FACEBOOK: groundedDraft }, unsupportedClaims: [] }) });
     },
   });
   const call = () => api.POST(new Request("https://example.test/api", { method: "POST", body: JSON.stringify({ campaignId: "campaign", requestId: "request", workspaceId: "b" }) }));
@@ -96,6 +97,15 @@ test("social generation uses company identity and commits through the existing g
   claimError = ""; current = false; assert.equal((await call()).status, 409); assert.equal(edits, 0); assert.equal(completed, 0);
   current = true; editError = "SOCIAL_EDIT_CONFLICT"; assert.equal((await call()).status, 409); assert.equal(edits, 0); assert.equal(completed, 0);
   editError = ""; assert.equal((await call()).status, 200); assert.equal(edits, 1); assert.equal(completed, 1); assert.equal(failures, 2);
+  const validDraft = groundedDraft;
+  for (const malformed of [{}, { ...validDraft, caption: { leaked: "provider-private-detail" } }, { ...validDraft, hashtags: [42] }, { ...validDraft, unexpected: "provider-private-detail" }]) {
+    groundedDraft = malformed;
+    const failed = await call();
+    assert.equal(failed.status, 502, "Malformed grounding must fail before content persistence");
+    assert.doesNotMatch(await failed.text(), /provider-private-detail/);
+    assert.equal(edits, 1); assert.equal(completed, 1);
+  }
+  assert.equal(failures, 6);
 });
 
 test("new company social defaults omit Helios branding and geographic assumptions", async () => {

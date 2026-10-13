@@ -196,6 +196,7 @@ function routeFixture(db: PGlite) {
     'server-only': {}, 'next/server': { NextResponse: Response }, 'next/cache': { revalidatePath() { state.invalidations++; if (state.failInvalidation) throw new Error('PRIVATE synthetic invalidation failure'); } },
     '@/lib/prisma': { prisma }, '@/lib/auth/session': { getAdminSession: async () => state.session ? { userId: `operator-${state.company}`, workspaceId: state.company, role: state.role, sessionVersion: 7 } : null },
     '@/lib/workspace-context-core': { tenantContextEnabled: () => state.tenant },
+    './workspace-lifecycle/state.ts': { workspaceIsActive: async () => true },
     './workspace-context-core.ts': { tenantContextEnabled: () => state.tenant },
     './workspace-membership-core.ts': load('./workspace-membership-core.ts', {}),
     '@/lib/legal-html': { sanitizeLegalHtml },

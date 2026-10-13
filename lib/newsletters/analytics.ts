@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { requireLockedWorkspaceAdministrator, type WorkspaceWriteActor } from "@/lib/workspace-write-access";
+import { readCampaignUnsubscribeCounts } from "./unsubscribe-counts";
 import { summarizeNewsletterCampaign } from "./analytics-core";
 
 const selection = {
@@ -28,14 +29,9 @@ export async function getNewsletterAnalytics(editionId: string, inputActor: Work
       },
       orderBy: { edition: { intendedSendAt: "desc" } }, select: selection,
     });
-    // Global preference identities remain protected; only campaign-attributed events
-    // for the two already-authorized deliveries contribute to these aggregate counts.
     const campaignIds = [delivery.campaignId, ...(previousDelivery ? [previousDelivery.campaignId] : [])];
-    const preferenceEvents = await tx.marketingEmailPreferenceEvent.findMany({
-      where: { campaignId: { in: campaignIds }, status: "UNSUBSCRIBED" },
-      select: { campaignId: true, preferenceId: true },
-    });
-    const unsubscribeCount = (campaignId: string) => new Set(preferenceEvents.filter(event => event.campaignId === campaignId).map(event => event.preferenceId)).size;
+    const counts = await readCampaignUnsubscribeCounts(tx, actor.workspaceId, campaignIds);
+    const unsubscribeCount = (campaignId: string) => counts.get(campaignId) ?? 0;
     const current = summarizeNewsletterCampaign(delivery.campaign.recipients, delivery.eligibleCount, unsubscribeCount(delivery.campaignId));
     const previous = previousDelivery ? summarizeNewsletterCampaign(previousDelivery.campaign.recipients, previousDelivery.eligibleCount, unsubscribeCount(previousDelivery.campaignId)) : null;
     return { ...current, previous };

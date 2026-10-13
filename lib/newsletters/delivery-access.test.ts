@@ -22,7 +22,7 @@ test("delivery requires fresh administrator access or the edition's owned, due a
   };
   const exports: { requireNewsletterDeliveryAccess?: (tx: unknown, id: string, workspaceId: string, date: Date, context: unknown) => Promise<void> } = {};
   const modules: Record<string, unknown> = {
-    "server-only": {}, "@/lib/blog-ownership": { getContentOwnershipScope: async (workspaceId: string) => ({ workspaceId }) },
+    "server-only": {}, "@/lib/workspace-lifecycle/state": { lifecycleEnabled: () => false, workspaceIsActive: async () => true, requireWorkspaceScheduledAction: async () => {} }, "@/lib/blog-ownership": { getContentOwnershipScope: async (workspaceId: string) => ({ workspaceId }) },
     "@/lib/workspace-write-access": { requireLockedWorkspaceAdministrator: async () => { checks++; if (!admin) throw new Error("WORKSPACE_WRITE_FORBIDDEN"); } },
   };
   runInNewContext(ts.transpileModule(readFileSync(new URL("./delivery-access.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, {

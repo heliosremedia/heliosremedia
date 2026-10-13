@@ -1,3 +1,4 @@
+import { workspaceIsActive } from "./workspace-lifecycle/state.ts";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { tenantContextEnabled } from "./workspace-context-core.ts";
 import { resolveMembershipAccess } from "./workspace-membership-core.ts";
@@ -13,6 +14,7 @@ export async function checkLockedAccountMutation(
   tx: Prisma.TransactionClient, session: Session, targetId: string, change: Change,
 ) {
   await tx.$queryRaw`SELECT id FROM "Workspace" WHERE id = ${session.workspaceId} FOR UPDATE`;
+  if (!await workspaceIsActive(tx, session.workspaceId)) return "Workspace access is unavailable.";
   await tx.$queryRaw`SELECT id FROM "AdminUser" WHERE "workspaceId" = ${session.workspaceId} AND (id = ${session.userId} OR id = ${targetId}) ORDER BY id FOR UPDATE`;
   const enabled = tenantContextEnabled();
   if (enabled) {

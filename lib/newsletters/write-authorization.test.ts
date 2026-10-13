@@ -22,6 +22,7 @@ test("fresh administrator access rejects an editor membership despite a legacy o
     workspaceMembership: { findUnique: async () => ({ userId: "actor", workspaceId: "a", role, status }) },
   };
   const api = load<{ requireLockedWorkspaceAdministrator: (tx: unknown, actor: unknown) => Promise<unknown> }>("../workspace-write-access.ts", {
+    './workspace-lifecycle/state.ts': { workspaceIsActive: async () => true },
     "./workspace-context-core.ts": { tenantContextEnabled: () => true }, "./workspace-membership-core.ts": { resolveMembershipAccess },
   });
   const actor = { userId: "actor", workspaceId: "a", sessionVersion: 1 };

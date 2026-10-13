@@ -5,9 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { recurrenceDates, SOCIAL_PLATFORMS } from "./core";
 
 const dateKey = (value: Date) => [
-  value.getFullYear(),
-  String(value.getMonth() + 1).padStart(2, "0"),
-  String(value.getDate()).padStart(2, "0"),
+  value.getUTCFullYear(),
+  String(value.getUTCMonth() + 1).padStart(2, "0"),
+  String(value.getUTCDate()).padStart(2, "0"),
 ].join("-");
 
 export async function generateSeriesOccurrences(input: {

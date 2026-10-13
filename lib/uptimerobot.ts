@@ -1,4 +1,6 @@
 import "server-only";
+import { prisma } from "@/lib/prisma";
+import { tenantContextEnabled } from "@/lib/workspace-context-core";
 import { normalizeMonitorStatus, type MonitorTone } from "./uptimerobot-core";
 
 export type { MonitorTone } from "./uptimerobot-core";
@@ -14,14 +16,24 @@ export type MonitorSummary = {
   recoveryTime: string | null;
 };
 
-let cache: { value: MonitorSummary; expiresAt: number } | null = null;
+let cache: { workspaceId: string; value: MonitorSummary; expiresAt: number } | null = null;
 const empty = (tone: MonitorTone): MonitorSummary => ({ tone, stale: false, monitorName: null, lastSuccessfulCheck: null, lastAttemptedCheck: null, responseTimeMs: null, uptimePercent: null, recentIncident: null, recoveryTime: null });
 
-export async function getPublicMonitorSummary(fetcher: typeof fetch = fetch): Promise<MonitorSummary> {
-  const now = Date.now();
-  if (cache && cache.expiresAt > now) return cache.value;
+export async function getPublicMonitorSummary(workspaceId: string, fetcher: typeof fetch = fetch): Promise<MonitorSummary> {
+  // Global provider credentials are not a tenant monitor registry. Check current
+  // containment before consulting any cached provider result or credential.
+  if (!workspaceId || tenantContextEnabled()) return empty("NOT_CONFIGURED");
+  try {
+    const rows = await prisma.workspace.findMany({ take: 2, select: { id: true } });
+    if (rows.length !== 1 || rows[0].id !== workspaceId) return empty("NOT_CONFIGURED");
+  } catch {
+    return empty("UNKNOWN");
+  }
   const key = process.env.UPTIMEROBOT_API_KEY?.trim();
   if (!key) return empty("NOT_CONFIGURED");
+  const now = Date.now();
+  const ownedCache = cache?.workspaceId === workspaceId ? cache : null;
+  if (ownedCache && ownedCache.expiresAt > now) return ownedCache.value;
   const attemptedAt = new Date().toISOString();
   try {
     const response = await fetcher("https://api.uptimerobot.com/v3/monitors?limit=20", {
@@ -50,10 +62,10 @@ export async function getPublicMonitorSummary(fetcher: typeof fetch = fetch): Pr
       recentIncident: incident ? String(incident.reason || "Recent incident") : typeof monitor.recent_incident === "string" ? monitor.recent_incident : null,
       recoveryTime: incident && Number.isFinite(Number(incident.duration)) ? `${Number(incident.duration)} seconds` : typeof monitor.recovery_time === "string" ? monitor.recovery_time : null,
     };
-    cache = { value, expiresAt: now + 60_000 };
+    cache = { workspaceId, value, expiresAt: now + 60_000 };
     return value;
   } catch {
-    if (cache) return { ...cache.value, stale: true, lastAttemptedCheck: attemptedAt };
+    if (ownedCache) return { ...ownedCache.value, stale: true, lastAttemptedCheck: attemptedAt };
     return { ...empty("UNKNOWN"), lastAttemptedCheck: attemptedAt };
   }
 }

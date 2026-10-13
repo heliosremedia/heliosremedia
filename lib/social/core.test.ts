@@ -46,27 +46,27 @@ test("verified AI facts discard nested instructions", () => {
 
 test("series recurrence is deterministic and retry-safe at its source", () => {
   const weekly = recurrenceDates({
-    startsAt: new Date("2026-08-01T00:00:00"),
-    through: new Date("2026-08-31T23:59:59"),
+    startsAt: new Date("2026-08-01T00:00:00Z"),
+    through: new Date("2026-08-31T23:59:59Z"),
     frequency: "WEEKLY",
     interval: 1,
     dayOfWeek: 2,
     hour: 9,
     minute: 30,
   });
-  assert.deepEqual(weekly.map((value) => value.getDate()), [4, 11, 18, 25]);
+  assert.deepEqual(weekly.map((value) => value.getUTCDate()), [4, 11, 18, 25]);
   assert.equal(new Set(weekly.map((value) => value.toISOString())).size, weekly.length);
 
   const monthly = recurrenceDates({
-    startsAt: new Date("2026-01-31T00:00:00"),
-    through: new Date("2026-04-30T23:59:59"),
+    startsAt: new Date("2026-01-31T00:00:00Z"),
+    through: new Date("2026-04-30T23:59:59Z"),
     frequency: "MONTHLY",
     interval: 1,
     dayOfMonth: 31,
     hour: 8,
     minute: 0,
   });
-  assert.deepEqual(monthly.map((value) => [value.getMonth() + 1, value.getDate()]), [[1, 31], [2, 28], [3, 31], [4, 30]]);
+  assert.deepEqual(monthly.map((value) => [value.getUTCMonth() + 1, value.getUTCDate()]), [[1, 31], [2, 28], [3, 31], [4, 30]]);
 });
 
 test("AI campaign briefs require bounded structured output", () => {

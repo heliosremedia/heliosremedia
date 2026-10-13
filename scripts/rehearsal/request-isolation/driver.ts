@@ -1,0 +1,87 @@
+export { getProjectOrderReview } from "@/lib/project-order-review";
+export { getFeaturedProjectReview } from "@/lib/project-featured-review";
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { createSessionToken, SESSION_COOKIE } from '../../../lib/auth/token';
+import { prisma } from './database';
+export { prisma } from './database';
+
+export async function requireEmpty() {
+  const rows = await prisma.$queryRaw<{ tablename: string }[]>`SELECT tablename FROM pg_tables WHERE schemaname='public'`;
+  assert.equal(rows.length, 0, 'Refuse populated databases; never reset or repair');
+  const identity = await prisma.$queryRaw<{ name: string }[]>`SELECT current_database() AS name`;
+  assert.equal(identity[0].name, 'helios_packet19');
+}
+export async function seed(singleCompany = false) {
+  assert.equal(typeof singleCompany, 'boolean');
+  assert.equal(await prisma.workspace.count(), 0);
+  await seedSyntheticWorkspaces(singleCompany ? ['a'] : ['a', 'b']);
+}
+export async function seedSecondWorkspace() {
+  assert.deepEqual(await prisma.workspace.findMany({ select: { id: true } }), [{ id: 'a' }]);
+  await seedSyntheticWorkspaces(['b']);
+}
+async function seedSyntheticWorkspaces(ids: string[]) {
+  await prisma.$transaction(async tx => {
+    for (const id of ids) {
+      await tx.workspace.create({ data: { id, slug: `packet19-${id}`, name: `Synthetic ${id}` } });
+      await tx.adminUser.create({ data: { id: `u${id}`, workspaceId: id, email: `${id}@example.test`, displayName: `Synthetic ${id}`, role: 'OWNER', disciplines: [], sessionVersion: 1 } });
+      await tx.workspaceMembership.create({ data: { workspaceId: id, userId: `u${id}`, role: 'OWNER', status: 'ACTIVE' } });
+      await tx.workspaceDomain.create({ data: { workspaceId: id, hostname: `${id}.example.test`, purpose: 'PUBLIC_SITE', status: 'ACTIVE' } });
+      await tx.siteSettings.create({ data: { id: `settings-${id}`, workspaceId: id, businessName: `PACKET19 COMPANY ${id}`, bookingMode: 'UNAVAILABLE', bookingRequestEnabled: false, bookingHandoffEnabled: false } });
+      await tx.project.create({ data: { id: `p${id}`, workspaceId: id, slug: `packet19-project-${id}`, title: 'Shared project title', status: 'PUBLISHED' } });
+      await tx.service.create({ data: { id: `s${id}`, workspaceId: id, name: `Service ${id}`, slug: 'shared-service' } });
+      await tx.media.create({ data: { id: `m${id}`, projectId: `p${id}`, serviceId: `s${id}`, sourceType: 'UPLOADED_IMAGE', mediaCategory: 'PHOTOGRAPHY', storageKey: `workspaces/${id}/synthetic.jpg` } });
+      await tx.project.update({ where: { id: `p${id}` }, data: { heroMediaId: `m${id}` } });
+      await tx.homepageProject.create({ data: { id: `hp${id}`, projectId: `p${id}`, titleOverride: `PACKET19 INITIAL ${id}` } });
+    }
+  });
+}
+export function cookie(id: string) {
+  assert.ok(['a', 'b'].includes(id));
+  return `${SESSION_COOKIE}=${createSessionToken({ userId: `u${id}`, email: `${id}@example.test`, displayName: `Synthetic ${id}`, role: 'OWNER', sessionVersion: 1 })}`;
+}
+export async function snapshot(id: string) {
+  const rows = await prisma.homepageProject.findMany({ where: { project: { workspaceId: id } }, orderBy: { id: 'asc' } });
+  const revision = createHash('sha256').update(JSON.stringify([id, 'projects', rows.map(r => [r.id, r.projectId, r.displayOrder, r.updatedAt.toISOString()])])).digest('hex');
+  return { rows, revision };
+}
+export async function schemaFingerprint() {
+  const columns = await prisma.$queryRaw`SELECT table_name,column_name,data_type,is_nullable,column_default FROM information_schema.columns WHERE table_schema='public' ORDER BY table_name,ordinal_position`;
+  return createHash('sha256').update(JSON.stringify(columns)).digest('hex');
+}
+
+export async function schemaIndexFingerprint() {
+  const indexes = await prisma.$queryRaw`SELECT tablename,indexname,indexdef FROM pg_indexes WHERE schemaname='public' ORDER BY tablename,indexname`;
+  return createHash('sha256').update(JSON.stringify(indexes)).digest('hex');
+}
+
+export { readWorkspaceMarketingEligibility, setWorkspaceMarketingPreference } from "../../../lib/client-communications/workspace-consent";
+
+export { createWorkspaceCampaignPreferenceToken, consumeWorkspacePreferenceToken } from "../../../lib/client-communications/workspace-consent-tokens";
+
+export { eligibleMarketingAddresses, workspaceAddressIsMarketingEligible } from "../../../lib/client-communications/delivery-consent";
+
+export { readClientConsentProjection } from "../../../lib/client-communications/consent-projection";
+
+export { createCampaignDeliveryPreferenceToken } from "../../../lib/client-communications/campaign-consent-token";
+
+export { prepareNewsletterCampaignRetry } from "../../../lib/newsletters/delivery-campaign";
+
+export { readCampaignUnsubscribeCounts } from "../../../lib/newsletters/unsubscribe-counts";
+
+export { lockReferralPreparationSource, lockReferralPreparationClaim, referralPreparationWhere } from "../../../lib/referrals/preparation-claim";
+
+export { createReferralPreparationPreferenceToken } from "../../../lib/referrals/preparation-consent";
+
+export { transitionWorkspaceLifecycle, workspaceIsActive } from "../../../lib/workspace-lifecycle/core";
+
+export { hashPassword, verifyPassword } from "../../../lib/auth/password";
+
+export { claimDueNewsletterJobs, completeNewsletterJob } from "../../../lib/newsletters/scheduler";
+export { requireNewsletterDeliveryAccess } from "../../../lib/newsletters/delivery-access";
+export { requireNewsletterGenerationAccess } from "../../../lib/newsletters/generation-access";
+
+export { getNewsletterJobHealth } from "../../../lib/newsletters/job-health";
+
+export { markNewsletterApprovalMissed } from "@/lib/newsletters/missed-approval";

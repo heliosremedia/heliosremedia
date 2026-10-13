@@ -1,4 +1,5 @@
-import { resolveStreamAssetForAttachment } from "@/lib/workspace-assets";
+import { requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
+import { resolveProjectImageAssetForAttachment, resolveStreamAssetForAttachment } from "@/lib/workspace-assets";
 import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
@@ -39,6 +40,7 @@ type CreateMediaRequestBody = {
 };
 
 type UpdateMediaRequestBody = {
+  expectedUpdatedAt?: unknown;
   action?: unknown;
   mediaId?: unknown;
   externalUrl?: unknown;
@@ -150,6 +152,7 @@ export async function GET(_request: Request, { params }: MediaRouteProps) {
         displayOrder: true,
         visibility: true,
         createdAt: true,
+        updatedAt: true,
       },
     });
 
@@ -251,7 +254,6 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
     if (streamUid) {
       const selectedService = await resolveRequestedService();
       if (!selectedService) return NextResponse.json({ success: false, error: "Choose an active media service." }, { status: 409 });
-      const selectedCategory = mediaCategoryForServiceSlug(selectedService.slug);
       const altText = getOptionalText(body.altText);
       const caption = getOptionalText(body.caption);
       const visibility =
@@ -307,107 +309,112 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
         );
       }
 
-      const duplicate = await prisma.media.findFirst({
-        where: {
-          projectId,
-          provider: "CLOUDFLARE_STREAM",
-          externalId: streamUid,
-        },
-        select: {
-          id: true,
-          sourceType: true,
-          provider: true,
-          storageKey: true,
-          originalFilename: true,
-          altText: true,
-          caption: true,
-          mimeType: true,
-          externalUrl: true,
-          externalId: true,
-          fileSize: true,
-          width: true,
-          height: true,
-          aspectRatio: true,
-          mediaCategory: true,
-          serviceId: true,
-          displayOrder: true,
-          visibility: true,
-          createdAt: true,
-        },
-      });
-
-      if (duplicate) {
-        return NextResponse.json({
-          success: true,
-          media: { ...duplicate, publicUrl: "", isHero: false },
+      const result = await prisma.$transaction(async tx => {
+        await requireLockedWorkspaceEditor(tx, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+        await tx.$queryRaw`SELECT id FROM "Project" WHERE id=${projectId} AND "workspaceId"=${session.workspaceId} FOR UPDATE`;
+        if (!await tx.project.findFirst({ where: { id: projectId, workspaceId: session.workspaceId }, select: { id: true } })) throw new Error("STREAM_PROJECT_UNAVAILABLE");
+        await tx.$queryRaw`SELECT id FROM "Service" WHERE id=${selectedService.id} AND "workspaceId"=${session.workspaceId} FOR SHARE`;
+        const service = await tx.service.findFirst({ where: { id: selectedService.id, workspaceId: session.workspaceId, active: true, archivedAt: null }, select: { id: true, slug: true } });
+        if (!service) throw new Error("STREAM_SERVICE_UNAVAILABLE");
+        const providerNamespace = process.env.CLOUDFLARE_STREAM_ACCOUNT_ID?.trim();
+        if (!providerNamespace) throw new Error("INVALID_STREAM_ASSET");
+        await tx.$queryRaw`SELECT id FROM "WorkspaceAsset" WHERE provider='CLOUDFLARE_STREAM' AND "providerNamespace"=${providerNamespace} AND "providerKey"=${streamUid} FOR SHARE`;
+        const registered = await tx.workspaceAsset.findUnique({ where: { provider_providerNamespace_providerKey: { provider: "CLOUDFLARE_STREAM", providerNamespace, providerKey: streamUid } }, select: { id: true } });
+        if (!registered) await tx.$queryRaw`LOCK TABLE "Workspace", "WorkspaceAsset" IN SHARE MODE`;
+        const assetId = await resolveStreamAssetForAttachment(session.workspaceId, streamUid, tx);
+        const duplicate = await tx.media.findFirst({
+          where: {
+            projectId,
+            provider: "CLOUDFLARE_STREAM",
+            externalId: streamUid,
+          },
+          select: {
+            id: true,
+            sourceType: true,
+            provider: true,
+            storageKey: true,
+            originalFilename: true,
+            altText: true,
+            caption: true,
+            mimeType: true,
+            externalUrl: true,
+            externalId: true,
+            fileSize: true,
+            width: true,
+            height: true,
+            aspectRatio: true,
+            mediaCategory: true,
+            serviceId: true,
+            displayOrder: true,
+            visibility: true,
+            createdAt: true,
+            updatedAt: true,
+          },
         });
+
+        if (duplicate) return { media: duplicate, created: false };
+
+        const displayOrderResult = await tx.media.aggregate({
+          where: { projectId, serviceId: selectedService.id },
+          _max: { displayOrder: true },
+        });
+        const media = await tx.media.create({
+          data: {
+            projectId,
+            assetId,
+            sourceType: "UPLOADED_VIDEO",
+            provider: "CLOUDFLARE_STREAM",
+            mediaCategory: mediaCategoryForServiceSlug(service.slug),
+            serviceId: selectedService.id,
+            externalUrl: getCloudflareStreamEmbedUrl(streamUid),
+            externalId: streamUid,
+            originalFilename,
+            altText,
+            caption,
+            mimeType: mimeType || null,
+            fileSize,
+            width,
+            height,
+            aspectRatio: width && height ? width / height : null,
+            displayOrder: (displayOrderResult._max.displayOrder ?? -1) + 1,
+            visibility,
+          },
+          select: {
+            id: true,
+            sourceType: true,
+            provider: true,
+            storageKey: true,
+            originalFilename: true,
+            altText: true,
+            caption: true,
+            mimeType: true,
+            externalUrl: true,
+            externalId: true,
+            fileSize: true,
+            width: true,
+            height: true,
+            aspectRatio: true,
+            mediaCategory: true,
+            serviceId: true,
+            displayOrder: true,
+            visibility: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+
+        return { media, created: true };
+      });
+      if (result.created) {
+        revalidatePath("/portfolio");
+        revalidatePath(`/portfolio/${projectId}`);
       }
-
-      const assetId = await resolveStreamAssetForAttachment(session.workspaceId, streamUid);
-      const displayOrderResult = await prisma.media.aggregate({
-        where: { projectId, serviceId: selectedService.id },
-        _max: { displayOrder: true },
-      });
-      const media = await prisma.media.create({
-        data: {
-          projectId,
-          assetId,
-          sourceType: "UPLOADED_VIDEO",
-          provider: "CLOUDFLARE_STREAM",
-          mediaCategory: selectedCategory,
-          serviceId: selectedService.id,
-          externalUrl: getCloudflareStreamEmbedUrl(streamUid),
-          externalId: streamUid,
-          originalFilename,
-          altText,
-          caption,
-          mimeType: mimeType || null,
-          fileSize,
-          width,
-          height,
-          aspectRatio: width && height ? width / height : null,
-          displayOrder: (displayOrderResult._max.displayOrder ?? -1) + 1,
-          visibility,
-        },
-        select: {
-          id: true,
-          sourceType: true,
-          provider: true,
-          storageKey: true,
-          originalFilename: true,
-          altText: true,
-          caption: true,
-          mimeType: true,
-          externalUrl: true,
-          externalId: true,
-          fileSize: true,
-          width: true,
-          height: true,
-          aspectRatio: true,
-          mediaCategory: true,
-          serviceId: true,
-          displayOrder: true,
-          visibility: true,
-          createdAt: true,
-        },
-      });
-
-      revalidatePath("/portfolio");
-      revalidatePath(`/portfolio/${projectId}`);
-
-      return NextResponse.json(
-        {
-          success: true,
-          media: { ...media, publicUrl: "", isHero: false },
-        },
-        { status: 201 },
-      );
+      return NextResponse.json({ success: true, media: { ...result.media, publicUrl: "", isHero: false } }, { status: result.created ? 201 : 200 });
     }
 
     if (externalUrlInput) {
       const selectedService = await resolveRequestedService();
       if (!selectedService) return NextResponse.json({ success: false, error: "Choose an active media service." }, { status: 409 });
-      const selectedCategory = mediaCategoryForServiceSlug(selectedService.slug);
       const originalFilename =
         typeof body.originalFilename === "string"
           ? body.originalFilename.trim()
@@ -485,107 +492,126 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
         );
       }
 
-      const duplicate = await prisma.media.findFirst({
-        where: {
-          projectId,
-          externalUrl: resolvedMedia.externalUrl,
-        },
-        select: {
-          id: true,
-          sourceType: true,
-          provider: true,
-          storageKey: true,
-          originalFilename: true,
-          altText: true,
-          caption: true,
-          mimeType: true,
-          fileSize: true,
-          width: true,
-          height: true,
-          aspectRatio: true,
-          externalUrl: true,
-          externalId: true,
-          mediaCategory: true,
-          serviceId: true,
-          displayOrder: true,
-          visibility: true,
-          createdAt: true,
-        },
-      });
-
-      if (duplicate) {
-        return NextResponse.json({
-          success: true,
-          media: {
-            ...duplicate,
-            publicUrl: duplicate.storageKey
-              ? getPublicAssetUrl(duplicate.storageKey)
-              : "",
-            isHero: duplicate.id === project.heroMediaId,
+      return await prisma.$transaction(async tx => {
+        await requireLockedWorkspaceEditor(tx, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+        await tx.$queryRaw`SELECT id FROM "Project" WHERE id=${projectId} AND "workspaceId"=${session.workspaceId} FOR UPDATE`;
+        const project = await tx.project.findFirst({ where: { id: projectId, workspaceId: session.workspaceId }, select: { id: true, heroMediaId: true } });
+        if (!project) throw new Error("EXTERNAL_PROJECT_UNAVAILABLE");
+        await tx.$queryRaw`SELECT id FROM "Service" WHERE id=${selectedService.id} AND "workspaceId"=${session.workspaceId} FOR SHARE`;
+        const service = await tx.service.findFirst({ where: { id: selectedService.id, workspaceId: session.workspaceId, active: true, archivedAt: null }, select: { id: true, slug: true } });
+        if (!service) throw new Error("EXTERNAL_SERVICE_UNAVAILABLE");
+        let assetId: string | null = null;
+        if (resolvedMedia.databaseProvider === "CLOUDFLARE_STREAM") {
+          const providerNamespace = process.env.CLOUDFLARE_STREAM_ACCOUNT_ID?.trim();
+          const uid = resolvedMedia.externalId ?? "";
+          if (!providerNamespace) throw new Error("INVALID_STREAM_ASSET");
+          await tx.$queryRaw`SELECT id FROM "WorkspaceAsset" WHERE provider='CLOUDFLARE_STREAM' AND "providerNamespace"=${providerNamespace} AND "providerKey"=${uid} FOR SHARE`;
+          const registered = await tx.workspaceAsset.findUnique({ where: { provider_providerNamespace_providerKey: { provider: "CLOUDFLARE_STREAM", providerNamespace, providerKey: uid } }, select: { id: true } });
+          if (!registered) await tx.$queryRaw`LOCK TABLE "Workspace", "WorkspaceAsset" IN SHARE MODE`;
+          assetId = await resolveStreamAssetForAttachment(session.workspaceId, uid, tx);
+        }
+        const duplicate = await tx.media.findFirst({
+          where: {
+            projectId,
+            externalUrl: resolvedMedia.externalUrl,
+          },
+          select: {
+            id: true,
+            sourceType: true,
+            provider: true,
+            storageKey: true,
+            originalFilename: true,
+            altText: true,
+            caption: true,
+            mimeType: true,
+            fileSize: true,
+            width: true,
+            height: true,
+            aspectRatio: true,
+            externalUrl: true,
+            externalId: true,
+            mediaCategory: true,
+            serviceId: true,
+            displayOrder: true,
+            visibility: true,
+            createdAt: true,
+            updatedAt: true,
           },
         });
-      }
 
-      const assetId = resolvedMedia.databaseProvider === "CLOUDFLARE_STREAM"
-        ? await resolveStreamAssetForAttachment(session.workspaceId, resolvedMedia.externalId ?? "") : null;
-      const displayOrderResult = await prisma.media.aggregate({
-        where: {
-          projectId,
-          serviceId: selectedService.id,
-        },
-        _max: { displayOrder: true },
-      });
+        if (duplicate) {
+          return NextResponse.json({
+            success: true,
+            media: {
+              ...duplicate,
+              publicUrl: duplicate.storageKey
+                ? getPublicAssetUrl(duplicate.storageKey)
+                : "",
+              isHero: duplicate.id === project.heroMediaId,
+            },
+          });
+        }
 
-      const media = await prisma.media.create({
-        data: {
-          projectId,
-          assetId,
-          sourceType: resolvedMedia.sourceType,
-          provider: resolvedMedia.databaseProvider,
-          mediaCategory: selectedCategory,
-          serviceId: selectedService.id,
-          externalUrl: resolvedMedia.externalUrl,
-          externalId: resolvedMedia.externalId,
-          originalFilename,
-          altText,
-          caption,
-          displayOrder: (displayOrderResult._max.displayOrder ?? -1) + 1,
-          visibility,
-        },
-        select: {
-          id: true,
-          sourceType: true,
-          provider: true,
-          storageKey: true,
-          originalFilename: true,
-          altText: true,
-          caption: true,
-          mimeType: true,
-          fileSize: true,
-          width: true,
-          height: true,
-          aspectRatio: true,
-          externalUrl: true,
-          externalId: true,
-          mediaCategory: true,
-          serviceId: true,
-          displayOrder: true,
-          visibility: true,
-          createdAt: true,
-        },
-      });
-
-      return NextResponse.json(
-        {
-          success: true,
-          media: {
-            ...media,
-            publicUrl: "",
-            isHero: false,
+        const displayOrderResult = await tx.media.aggregate({
+          where: {
+            projectId,
+            serviceId: selectedService.id,
           },
-        },
-        { status: 201 },
-      );
+          _max: { displayOrder: true },
+        });
+
+        const media = await tx.media.create({
+          data: {
+            projectId,
+            assetId,
+            sourceType: resolvedMedia.sourceType,
+            provider: resolvedMedia.databaseProvider,
+            mediaCategory: mediaCategoryForServiceSlug(service.slug),
+            serviceId: selectedService.id,
+            externalUrl: resolvedMedia.externalUrl,
+            externalId: resolvedMedia.externalId,
+            originalFilename,
+            altText,
+            caption,
+            displayOrder: (displayOrderResult._max.displayOrder ?? -1) + 1,
+            visibility,
+          },
+          select: {
+            id: true,
+            sourceType: true,
+            provider: true,
+            storageKey: true,
+            originalFilename: true,
+            altText: true,
+            caption: true,
+            mimeType: true,
+            fileSize: true,
+            width: true,
+            height: true,
+            aspectRatio: true,
+            externalUrl: true,
+            externalId: true,
+            mediaCategory: true,
+            serviceId: true,
+            displayOrder: true,
+            visibility: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+
+        return NextResponse.json(
+          {
+            success: true,
+            media: {
+              ...media,
+              publicUrl: "",
+              isHero: false,
+            },
+          },
+          { status: 201 },
+        );
+      });
     }
 
     if (!key || !originalFilename || !mimeType || fileSize === null) {
@@ -677,6 +703,10 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
       );
     }
 
+    const assetId = await resolveProjectImageAssetForAttachment(
+      session.workspaceId, JSON.stringify([r2Config.accountId, r2Config.bucketName]), key, projectId,
+    );
+
     let verifiedFileSize = fileSize;
     try {
       const uploadedObject = await r2Client.send(
@@ -707,114 +737,140 @@ export async function POST(request: Request, { params }: MediaRouteProps) {
       );
     }
 
-    const existingMedia = await prisma.media.findFirst({
-      where: {
-        projectId,
-        storageKey: key,
-      },
-      select: {
-        id: true,
-        sourceType: true,
-        provider: true,
-        storageKey: true,
-        originalFilename: true,
-        altText: true,
-        caption: true,
-        mimeType: true,
-        externalUrl: true,
-        externalId: true,
-        fileSize: true,
-        width: true,
-        height: true,
-        aspectRatio: true,
-        mediaCategory: true,
-        serviceId: true,
-        displayOrder: true,
-        visibility: true,
-        createdAt: true,
-      },
-    });
-
-    if (existingMedia) {
-      return NextResponse.json({
-        success: true,
-        media: {
-          ...existingMedia,
-          publicUrl: getPublicAssetUrl(key),
-          isHero: existingMedia.id === project.heroMediaId,
+    return await prisma.$transaction(async tx => {
+      await requireLockedWorkspaceEditor(tx, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+      await tx.$queryRaw`SELECT id FROM "Project" WHERE id=${projectId} AND "workspaceId"=${session.workspaceId} FOR UPDATE`;
+      const project = await tx.project.findFirst({ where: { id: projectId, workspaceId: session.workspaceId }, select: { id: true, heroMediaId: true } });
+      if (!project) throw new Error("IMAGE_PROJECT_UNAVAILABLE");
+      await tx.$queryRaw`SELECT id FROM "Service" WHERE id=${selectedService.id} AND "workspaceId"=${session.workspaceId} FOR SHARE`;
+      const service = await tx.service.findFirst({ where: { id: selectedService.id, workspaceId: session.workspaceId, active: true, archivedAt: null }, select: { id: true, slug: true } });
+      if (!service || !key.startsWith(`projects/${projectId}/${mediaFolderForService(service)}/`)) throw new Error("IMAGE_SERVICE_UNAVAILABLE");
+      const providerNamespace = JSON.stringify([r2Config.accountId, r2Config.bucketName]);
+      await tx.$queryRaw`SELECT id FROM "WorkspaceAsset" WHERE provider='R2' AND "providerNamespace"=${providerNamespace} AND "providerKey"=${key} FOR SHARE`;
+      if (assetId === null) {
+        // Keep the temporary sole-workspace, unregistered legacy decision stable.
+        await tx.$queryRaw`LOCK TABLE "Workspace", "WorkspaceAsset" IN SHARE MODE`;
+      }
+      const admittedAssetId = await resolveProjectImageAssetForAttachment(session.workspaceId, providerNamespace, key, projectId, tx);
+      if (assetId !== null && admittedAssetId !== assetId) throw new Error("INVALID_IMAGE_ASSET");
+      const existingMedia = await tx.media.findFirst({
+        where: {
+          projectId,
+          storageKey: key,
+        },
+        select: {
+          id: true,
+          sourceType: true,
+          provider: true,
+          storageKey: true,
+          originalFilename: true,
+          altText: true,
+          caption: true,
+          mimeType: true,
+          externalUrl: true,
+          externalId: true,
+          fileSize: true,
+          width: true,
+          height: true,
+          aspectRatio: true,
+          mediaCategory: true,
+          serviceId: true,
+          displayOrder: true,
+          visibility: true,
+          createdAt: true,
+          updatedAt: true,
         },
       });
-    }
 
-    const displayOrderResult = await prisma.media.aggregate({
-      where: {
-        projectId,
-        serviceId: selectedService.id,
-      },
-      _max: {
-        displayOrder: true,
-      },
-    });
+      if (existingMedia) {
+        return NextResponse.json({
+          success: true,
+          media: {
+            ...existingMedia,
+            publicUrl: getPublicAssetUrl(key),
+            isHero: existingMedia.id === project.heroMediaId,
+          },
+        });
+      }
 
-    const displayOrder = (displayOrderResult._max.displayOrder ?? -1) + 1;
-
-    const aspectRatio = width && height ? width / height : null;
-
-    const media = await prisma.media.create({
-      data: {
-        projectId,
-        sourceType: "UPLOADED_IMAGE",
-        mediaCategory,
-        serviceId: selectedService.id,
-        storageKey: key,
-        originalFilename,
-        mimeType,
-        fileSize: verifiedFileSize,
-        width,
-        height,
-        aspectRatio,
-        displayOrder,
-        visibility: "VISIBLE",
-      },
-      select: {
-        id: true,
-        sourceType: true,
-        provider: true,
-        storageKey: true,
-        originalFilename: true,
-        altText: true,
-        caption: true,
-        mimeType: true,
-        externalUrl: true,
-        externalId: true,
-        fileSize: true,
-        width: true,
-        height: true,
-        aspectRatio: true,
-        mediaCategory: true,
-        serviceId: true,
-        displayOrder: true,
-        visibility: true,
-        createdAt: true,
-      },
-    });
-
-    await prisma.projectService.createMany({ data: [{ projectId, serviceId: selectedService.id }], skipDuplicates: true });
-
-    return NextResponse.json(
-      {
-        success: true,
-        media: {
-          ...media,
-          publicUrl: getPublicAssetUrl(key),
-          isHero: false,
+      const displayOrderResult = await tx.media.aggregate({
+        where: {
+          projectId,
+          serviceId: selectedService.id,
         },
-      },
-      {
-        status: 201,
-      },
-    );
+        _max: {
+          displayOrder: true,
+        },
+      });
+
+      const displayOrder = (displayOrderResult._max.displayOrder ?? -1) + 1;
+
+      const aspectRatio = width && height ? width / height : null;
+
+      const media = await tx.media.create({
+        data: {
+          projectId,
+          sourceType: "UPLOADED_IMAGE",
+          assetId: admittedAssetId,
+          mediaCategory,
+          serviceId: selectedService.id,
+          storageKey: key,
+          originalFilename,
+          mimeType,
+          fileSize: verifiedFileSize,
+          width,
+          height,
+          aspectRatio,
+          displayOrder,
+          visibility: "VISIBLE",
+        },
+        select: {
+          id: true,
+          sourceType: true,
+          provider: true,
+          storageKey: true,
+          originalFilename: true,
+          altText: true,
+          caption: true,
+          mimeType: true,
+          externalUrl: true,
+          externalId: true,
+          fileSize: true,
+          width: true,
+          height: true,
+          aspectRatio: true,
+          mediaCategory: true,
+          serviceId: true,
+          displayOrder: true,
+          visibility: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      await tx.projectService.createMany({ data: [{ projectId, serviceId: selectedService.id }], skipDuplicates: true });
+
+      return NextResponse.json(
+        {
+          success: true,
+          media: {
+            ...media,
+            publicUrl: getPublicAssetUrl(key),
+            isHero: false,
+          },
+        },
+        {
+          status: 201,
+        },
+      );
+    });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Upload access is no longer available." }, { status: 403 });
+    if (error instanceof Error && ["IMAGE_PROJECT_UNAVAILABLE", "STREAM_PROJECT_UNAVAILABLE", "EXTERNAL_PROJECT_UNAVAILABLE"].includes(error.message)) return NextResponse.json({ success: false, error: "Project not found." }, { status: 404 });
+    if (error instanceof Error && ["IMAGE_SERVICE_UNAVAILABLE", "STREAM_SERVICE_UNAVAILABLE", "EXTERNAL_SERVICE_UNAVAILABLE"].includes(error.message)) return NextResponse.json({ success: false, error: "Select an active service collection." }, { status: 409 });
+    if (error instanceof Error && error.message === "INVALID_IMAGE_ASSET") {
+      return NextResponse.json({ success: false, error: "This image is not available to this company. Upload it again from this project." }, { status: 400 });
+    }
     if (error instanceof Error && error.message === "INVALID_STREAM_ASSET") {
       return NextResponse.json({ success: false, error: "This video is not available to this company. Upload it again from this project." }, { status: 400 });
     }
@@ -856,6 +912,11 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
     }
 
     if (action === "update-asset") {
+      const expectedUpdatedAt = typeof body.expectedUpdatedAt === "string" ? body.expectedUpdatedAt : "";
+      const expectedTime = Date.parse(expectedUpdatedAt);
+      if (!Number.isFinite(expectedTime) || new Date(expectedTime).toISOString() !== expectedUpdatedAt) {
+        return NextResponse.json({ success: false, error: "Reload this asset before saving. A reviewed revision is required.", reloadRequired: true }, { status: 409 });
+      }
       const mediaId =
         typeof body.mediaId === "string" ? body.mediaId.trim() : "";
       const originalFilename =
@@ -869,7 +930,6 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
       const requestedServiceId = typeof body.serviceId === "string" ? body.serviceId.trim() : "";
       const destinationService = await prisma.service.findFirst({ where: { id: requestedServiceId, workspaceId: session.workspaceId, active: true, archivedAt: null }, select: { id: true, slug: true } });
       if (!destinationService) return NextResponse.json({ success: false, error: "Select an active service destination." }, { status: 409 });
-      const destinationCategory = mediaCategoryForServiceSlug(destinationService.slug);
       const visibility =
         typeof body.visibility === "string" ? body.visibility.trim() : "";
       const externalUrlInput =
@@ -948,155 +1008,181 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
         );
       }
 
-      const existingMedia = await prisma.media.findFirst({
-        where: {
-          id: mediaId,
-          projectId,
-        },
-        select: {
-          id: true,
+      return await prisma.$transaction(async tx => {
+        await requireLockedWorkspaceEditor(tx, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+        await tx.$queryRaw`SELECT id FROM "Project" WHERE id=${projectId} AND "workspaceId"=${session.workspaceId} FOR UPDATE`;
+        if (!await tx.project.findFirst({ where: { id: projectId, workspaceId: session.workspaceId }, select: { id: true } })) throw new Error("MEDIA_PROJECT_UNAVAILABLE");
+        await tx.$queryRaw`SELECT id FROM "Service" WHERE id=${requestedServiceId} AND "workspaceId"=${session.workspaceId} FOR SHARE`;
+        const destinationService = await tx.service.findFirst({ where: { id: requestedServiceId, workspaceId: session.workspaceId, active: true, archivedAt: null }, select: { id: true, slug: true } });
+        if (!destinationService) throw new Error("MEDIA_SERVICE_UNAVAILABLE");
+        const destinationCategory = mediaCategoryForServiceSlug(destinationService.slug);
+        await tx.$queryRaw`SELECT id FROM "Media" WHERE id=${mediaId} AND "projectId"=${projectId} FOR UPDATE`;
+        const existingMedia = await tx.media.findFirst({
+          where: {
+            id: mediaId,
+            projectId,
+          },
+          select: {
+            id: true,
+            mediaCategory: true,
+            serviceId: true,
+            sourceType: true,
+            updatedAt: true,
+            externalUrl: true,
+          },
+        });
+
+        if (!existingMedia) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: "The selected asset was not found.",
+            },
+            {
+              status: 404,
+            },
+          );
+        }
+
+        if (existingMedia.updatedAt.toISOString() !== expectedUpdatedAt) {
+          return NextResponse.json({ success: false, error: "This asset changed after you opened it. Copy your draft and reload the saved media before editing again.", reloadRequired: true }, { status: 409 });
+        }
+
+        let displayOrder: number | undefined;
+        let resolvedExternalMedia:
+          | ReturnType<typeof resolveExternalMedia>
+          | undefined;
+
+        if (existingMedia.externalUrl) {
+          if (!externalUrlInput) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: "An external media URL is required for this asset.",
+              },
+              { status: 400 },
+            );
+          }
+
+          try {
+            resolvedExternalMedia = resolveExternalMedia(externalUrlInput);
+          } catch (error) {
+            return NextResponse.json(
+              {
+                success: false,
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "The external media URL is not supported.",
+              },
+              { status: 400 },
+            );
+          }
+        }
+
+        let externalAssetId: string | null | undefined;
+        if (resolvedExternalMedia && resolvedExternalMedia.externalUrl !== existingMedia.externalUrl) {
+          externalAssetId = null;
+          if (resolvedExternalMedia.databaseProvider === "CLOUDFLARE_STREAM") {
+            const providerNamespace = process.env.CLOUDFLARE_STREAM_ACCOUNT_ID?.trim();
+            const uid = resolvedExternalMedia.externalId ?? "";
+            if (!providerNamespace) throw new Error("INVALID_STREAM_ASSET");
+            await tx.$queryRaw`SELECT id FROM "WorkspaceAsset" WHERE provider='CLOUDFLARE_STREAM' AND "providerNamespace"=${providerNamespace} AND "providerKey"=${uid} FOR SHARE`;
+            const registered = await tx.workspaceAsset.findUnique({ where: { provider_providerNamespace_providerKey: { provider: "CLOUDFLARE_STREAM", providerNamespace, providerKey: uid } }, select: { id: true } });
+            if (!registered) await tx.$queryRaw`LOCK TABLE "Workspace", "WorkspaceAsset" IN SHARE MODE`;
+            externalAssetId = await resolveStreamAssetForAttachment(session.workspaceId, uid, tx);
+          }
+        }
+
+        if (existingMedia.serviceId !== destinationService.id) {
+          const displayOrderResult = await tx.media.aggregate({
+            where: {
+              projectId,
+              serviceId: destinationService.id,
+            },
+            _max: {
+              displayOrder: true,
+            },
+          });
+
+          displayOrder = (displayOrderResult._max.displayOrder ?? -1) + 1;
+
+          await tx.projectMediaCollectionHero.deleteMany({
+            where: { projectId, mediaId },
+          });
+        }
+
+        const updatedMedia = await tx.media.update({
+          where: {
+            id: mediaId, projectId, project: { workspaceId: session.workspaceId },
+          },
+          data: {
+            updatedAt: new Date(Math.max(Date.now(), existingMedia.updatedAt.getTime() + 1)),
+            ...(externalAssetId === undefined ? {} : { assetId: externalAssetId }),
+            originalFilename,
+            altText,
+            caption,
+            mediaCategory: destinationCategory,
+            serviceId: destinationService.id,
+            visibility,
+            ...(resolvedExternalMedia
+              ? {
+                  sourceType: resolvedExternalMedia.sourceType,
+                  provider: resolvedExternalMedia.databaseProvider,
+                  externalUrl: resolvedExternalMedia.externalUrl,
+                  externalId: resolvedExternalMedia.externalId,
+                }
+              : {}),
+            ...(displayOrder === undefined
+              ? {}
+              : {
+                  displayOrder,
+                }),
+          },
+          select: {
+            id: true,
+            sourceType: true,
+            provider: true,
+            storageKey: true,
+            originalFilename: true,
+            altText: true,
+            caption: true,
+            mimeType: true,
+            externalUrl: true,
+            externalId: true,
+            fileSize: true,
+            width: true,
+            height: true,
+            aspectRatio: true,
           mediaCategory: true,
           serviceId: true,
-          sourceType: true,
-          externalUrl: true,
-        },
-      });
-
-      if (!existingMedia) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "The selected asset was not found.",
+          displayOrder: true,
+            visibility: true,
+            createdAt: true,
+            updatedAt: true,
           },
-          {
-            status: 404,
-          },
-        );
-      }
+        });
 
-      let displayOrder: number | undefined;
-      let resolvedExternalMedia:
-        | ReturnType<typeof resolveExternalMedia>
-        | undefined;
-
-      if (existingMedia.externalUrl) {
-        if (!externalUrlInput) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: "An external media URL is required for this asset.",
-            },
-            { status: 400 },
-          );
-        }
-
-        try {
-          resolvedExternalMedia = resolveExternalMedia(externalUrlInput);
-        } catch (error) {
-          return NextResponse.json(
-            {
-              success: false,
-              error:
-                error instanceof Error
-                  ? error.message
-                  : "The external media URL is not supported.",
-            },
-            { status: 400 },
-          );
-        }
-      }
-
-      const externalAssetId = resolvedExternalMedia && resolvedExternalMedia.externalUrl !== existingMedia.externalUrl
-        ? resolvedExternalMedia.databaseProvider === "CLOUDFLARE_STREAM"
-          ? await resolveStreamAssetForAttachment(session.workspaceId, resolvedExternalMedia.externalId ?? "") : null
-        : undefined;
-
-      if (existingMedia.serviceId !== destinationService.id) {
-        const displayOrderResult = await prisma.media.aggregate({
+        const collectionHero = await tx.projectMediaCollectionHero.findUnique({
           where: {
-            projectId,
-            serviceId: destinationService.id,
+            projectId_serviceId: {
+              projectId,
+              serviceId: updatedMedia.serviceId,
+            },
           },
-          _max: {
-            displayOrder: true,
-          },
+          select: { mediaId: true },
         });
 
-        displayOrder = (displayOrderResult._max.displayOrder ?? -1) + 1;
-
-        await prisma.projectMediaCollectionHero.deleteMany({
-          where: { projectId, mediaId },
-        });
-      }
-
-      const updatedMedia = await prisma.media.update({
-        where: {
-          id: mediaId, projectId, project: { workspaceId: session.workspaceId },
-        },
-        data: {
-          ...(externalAssetId === undefined ? {} : { assetId: externalAssetId }),
-          originalFilename,
-          altText,
-          caption,
-          mediaCategory: destinationCategory,
-          serviceId: destinationService.id,
-          visibility,
-          ...(resolvedExternalMedia
-            ? {
-                sourceType: resolvedExternalMedia.sourceType,
-                provider: resolvedExternalMedia.databaseProvider,
-                externalUrl: resolvedExternalMedia.externalUrl,
-                externalId: resolvedExternalMedia.externalId,
-              }
-            : {}),
-          ...(displayOrder === undefined
-            ? {}
-            : {
-                displayOrder,
-              }),
-        },
-        select: {
-          id: true,
-          sourceType: true,
-          provider: true,
-          storageKey: true,
-          originalFilename: true,
-          altText: true,
-          caption: true,
-          mimeType: true,
-          externalUrl: true,
-          externalId: true,
-          fileSize: true,
-          width: true,
-          height: true,
-          aspectRatio: true,
-        mediaCategory: true,
-        serviceId: true,
-        displayOrder: true,
-          visibility: true,
-          createdAt: true,
-        },
-      });
-
-      const collectionHero = await prisma.projectMediaCollectionHero.findUnique({
-        where: {
-          projectId_serviceId: {
-            projectId,
-            serviceId: updatedMedia.serviceId,
+        return NextResponse.json({
+          success: true,
+          media: {
+            ...updatedMedia,
+            publicUrl: updatedMedia.storageKey
+              ? getPublicAssetUrl(updatedMedia.storageKey)
+              : "",
+            isHero: updatedMedia.id === collectionHero?.mediaId,
           },
-        },
-        select: { mediaId: true },
-      });
-
-      return NextResponse.json({
-        success: true,
-        media: {
-          ...updatedMedia,
-          publicUrl: updatedMedia.storageKey
-            ? getPublicAssetUrl(updatedMedia.storageKey)
-            : "",
-          isHero: updatedMedia.id === collectionHero?.mediaId,
-        },
+        });
       });
     }
 
@@ -1180,6 +1266,11 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
       }
 
       const savedMediaIds = await prisma.$transaction(async (transaction) => {
+        await requireLockedWorkspaceEditor(transaction, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+        await transaction.$queryRaw`SELECT id FROM "Project" WHERE id=${projectId} AND "workspaceId"=${session.workspaceId} FOR UPDATE`;
+        if (!await transaction.project.findFirst({ where: { id: projectId, workspaceId: session.workspaceId }, select: { id: true } })) throw new Error("MEDIA_PROJECT_UNAVAILABLE");
+        await transaction.$queryRaw`SELECT id FROM "Media" WHERE "projectId"=${projectId} ORDER BY id FOR UPDATE`;
+
         const collectionMedia = await transaction.media.findMany({
           where: {
             projectId,
@@ -1249,7 +1340,6 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
       const requestedServiceId = typeof body.serviceId === "string" ? body.serviceId.trim() : "";
       const destinationService = await prisma.service.findFirst({ where: { id: requestedServiceId, workspaceId: session.workspaceId, active: true, archivedAt: null }, select: { id: true, name: true, slug: true } });
       if (!destinationService) return NextResponse.json({ success: false, error: "Select an active destination service." }, { status: 409 });
-      const destinationCategory = mediaCategoryForServiceSlug(destinationService.slug);
 
       if (!isMediaCategory(requestedMediaCategory)) {
         return NextResponse.json({ success: false, error: "Select a valid destination collection." }, { status: 400 });
@@ -1259,6 +1349,15 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
       }
 
       const result = await prisma.$transaction(async (transaction) => {
+        await requireLockedWorkspaceEditor(transaction, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+        await transaction.$queryRaw`SELECT id FROM "Project" WHERE id=${projectId} AND "workspaceId"=${session.workspaceId} FOR UPDATE`;
+        if (!await transaction.project.findFirst({ where: { id: projectId, workspaceId: session.workspaceId }, select: { id: true } })) throw new Error("MEDIA_PROJECT_UNAVAILABLE");
+        await transaction.$queryRaw`SELECT id FROM "Service" WHERE id=${requestedServiceId} AND "workspaceId"=${session.workspaceId} FOR SHARE`;
+        const destinationService = await transaction.service.findFirst({ where: { id: requestedServiceId, workspaceId: session.workspaceId, active: true, archivedAt: null }, select: { id: true, name: true, slug: true } });
+        if (!destinationService) throw new Error("MEDIA_SERVICE_UNAVAILABLE");
+        const destinationCategory = mediaCategoryForServiceSlug(destinationService.slug);
+        await transaction.$queryRaw`SELECT id FROM "Media" WHERE "projectId"=${projectId} ORDER BY id FOR UPDATE`;
+
         const selectedMedia = await transaction.media.findMany({
           where: { projectId, id: { in: mediaIds } },
           select: { id: true, mediaCategory: true, serviceId: true },
@@ -1280,15 +1379,15 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
           data: { mediaCategory: destinationCategory, serviceId: destinationService.id, displayOrder: startingDisplayOrder + index },
         })));
         await transaction.projectService.createMany({ data: [{ projectId, serviceId: destinationService.id }], skipDuplicates: true });
-        return { startingDisplayOrder };
+        return { startingDisplayOrder, destinationService, destinationCategory };
       });
 
       return NextResponse.json({
         success: true,
         mediaIds,
-        mediaCategory: destinationCategory,
-        serviceId: destinationService.id,
-        message: `${mediaIds.length} ${mediaIds.length === 1 ? "asset" : "assets"} moved to ${destinationService.name}`,
+        mediaCategory: result.destinationCategory,
+        serviceId: result.destinationService.id,
+        message: `${mediaIds.length} ${mediaIds.length === 1 ? "asset" : "assets"} moved to ${result.destinationService.name}`,
         startingDisplayOrder: result.startingDisplayOrder,
       });
     }
@@ -1309,34 +1408,27 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
         );
       }
 
-      const media = await prisma.media.findFirst({
-        where: {
-          id: mediaId,
-          projectId,
-        },
-        select: {
-          id: true,
-          sourceType: true,
-          storageKey: true,
-          mediaCategory: true,
-          serviceId: true,
-          displayOrder: true,
-        },
-      });
-
-      if (!media || media.sourceType !== "UPLOADED_IMAGE" || !media.storageKey) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Only uploaded images can be used as the project hero.",
+      const media = await prisma.$transaction(async (transaction) => {
+        await requireLockedWorkspaceEditor(transaction, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+        await transaction.$queryRaw`SELECT id FROM "Project" WHERE id=${projectId} AND "workspaceId"=${session.workspaceId} FOR UPDATE`;
+        if (!await transaction.project.findFirst({ where: { id: projectId, workspaceId: session.workspaceId }, select: { id: true } })) throw new Error("MEDIA_PROJECT_UNAVAILABLE");
+        await transaction.$queryRaw`SELECT id FROM "Media" WHERE "projectId"=${projectId} ORDER BY id FOR UPDATE`;
+        const media = await transaction.media.findFirst({
+          where: {
+            id: mediaId,
+            projectId,
           },
-          {
-            status: 404,
+          select: {
+            id: true,
+            sourceType: true,
+            storageKey: true,
+            mediaCategory: true,
+            serviceId: true,
+            displayOrder: true,
           },
-        );
-      }
+        });
 
-      await prisma.$transaction(async (transaction) => {
+        if (!media || media.sourceType !== "UPLOADED_IMAGE" || !media.storageKey) throw new Error("MEDIA_HERO_UNAVAILABLE");
         const collectionMedia = await transaction.media.findMany({
           where: { projectId, serviceId: media.serviceId },
           orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
@@ -1374,6 +1466,7 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
             data: { heroMediaId: media.id },
           });
         }
+        return media;
       });
 
       revalidatePath("/services");
@@ -1389,34 +1482,28 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
     }
 
     if (action === "set-social-image") {
-      const ownedProject = await prisma.project.findFirst({
-        where: { id: projectId, workspaceId: session.workspaceId },
-        select: { id: true },
-      });
-      if (!ownedProject) {
-        return NextResponse.json({ success: false, error: "Project not found." }, { status: 404 });
-      }
       const mediaId = typeof body.mediaId === "string" ? body.mediaId.trim() : "";
-      if (!mediaId) {
-        await prisma.project.update({ where: { id: projectId }, data: { socialImageMediaId: null } });
-        revalidatePath("/portfolio");
-        revalidatePath("/portfolio/[slug]", "page");
-        return NextResponse.json({ success: true, socialImageMediaId: null });
-      }
-      const media = await prisma.media.findFirst({
-        where: {
-          id: mediaId, projectId, sourceType: "UPLOADED_IMAGE", storageKey: { not: null },
-          visibility: "VISIBLE", mimeType: { in: ["image/jpeg", "image/png", "image/webp"] },
-        },
-        select: { id: true },
+      const socialImageMediaId = await prisma.$transaction(async (transaction) => {
+        await requireLockedWorkspaceEditor(transaction, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+        await transaction.$queryRaw`SELECT id FROM "Project" WHERE id=${projectId} AND "workspaceId"=${session.workspaceId} FOR UPDATE`;
+        if (!await transaction.project.findFirst({ where: { id: projectId, workspaceId: session.workspaceId }, select: { id: true } })) throw new Error("MEDIA_PROJECT_UNAVAILABLE");
+        if (mediaId) {
+          await transaction.$queryRaw`SELECT id FROM "Media" WHERE id=${mediaId} AND "projectId"=${projectId} FOR UPDATE`;
+          const media = await transaction.media.findFirst({
+            where: {
+              id: mediaId, projectId, sourceType: "UPLOADED_IMAGE", storageKey: { not: null },
+              visibility: "VISIBLE", mimeType: { in: ["image/jpeg", "image/png", "image/webp"] },
+            },
+            select: { id: true },
+          });
+          if (!media) throw new Error("MEDIA_SOCIAL_IMAGE_UNAVAILABLE");
+        }
+        await transaction.project.update({ where: { id: projectId }, data: { socialImageMediaId: mediaId || null } });
+        return mediaId || null;
       });
-      if (!media) {
-        return NextResponse.json({ success: false, error: "Choose a visible JPEG, PNG, or WebP project image." }, { status: 400 });
-      }
-      await prisma.project.update({ where: { id: projectId }, data: { socialImageMediaId: media.id } });
       revalidatePath("/portfolio");
       revalidatePath("/portfolio/[slug]", "page");
-      return NextResponse.json({ success: true, socialImageMediaId: media.id });
+      return NextResponse.json({ success: true, socialImageMediaId });
     }
 
     return NextResponse.json(
@@ -1429,6 +1516,12 @@ export async function PATCH(request: Request, { params }: MediaRouteProps) {
       },
     );
   } catch (error) {
+    if (error instanceof Error && error.message === "MEDIA_HERO_UNAVAILABLE") return NextResponse.json({ success: false, error: "Only uploaded images can be used as the project hero." }, { status: 404 });
+    if (error instanceof Error && error.message === "MEDIA_SOCIAL_IMAGE_UNAVAILABLE") return NextResponse.json({ success: false, error: "Choose a visible JPEG, PNG, or WebP project image." }, { status: 400 });
+    if (error instanceof Error && error.message === "BULK_MEDIA_NOT_FOUND") return NextResponse.json({ success: false, error: "The selected assets were not found." }, { status: 404 });
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Media access is no longer available." }, { status: 403 });
+    if (error instanceof Error && error.message === "MEDIA_PROJECT_UNAVAILABLE") return NextResponse.json({ success: false, error: "Project not found." }, { status: 404 });
+    if (error instanceof Error && error.message === "MEDIA_SERVICE_UNAVAILABLE") return NextResponse.json({ success: false, error: "Select an active service destination." }, { status: 409 });
     if (error instanceof Error && error.message === "INVALID_STREAM_ASSET") return NextResponse.json({ success: false, error: "This video is not available to this company. Upload it again from this project." }, { status: 400 });
     if (error instanceof StaleMediaCollectionError) {
       return NextResponse.json(
@@ -1489,47 +1582,55 @@ export async function DELETE(request: Request, { params }: MediaRouteProps) {
       );
     }
 
-    const media = await prisma.media.findFirst({
-      where: {
-        id: mediaId,
-        projectId,
-        project: { workspaceId: session.workspaceId },
-      },
-      select: {
-        id: true,
-        storageKey: true,
-        provider: true,
-        externalId: true,
-      },
-    });
-
-    if (!media) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "The selected asset was not found.",
+    return await prisma.$transaction(async (transaction) => {
+      await requireLockedWorkspaceEditor(transaction, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+      await transaction.$queryRaw`SELECT id FROM "Project" WHERE id=${projectId} AND "workspaceId"=${session.workspaceId} FOR UPDATE`;
+      if (!await transaction.project.findFirst({ where: { id: projectId, workspaceId: session.workspaceId }, select: { id: true } })) throw new Error("MEDIA_PROJECT_UNAVAILABLE");
+      await transaction.$queryRaw`SELECT id FROM "Media" WHERE id=${mediaId} AND "projectId"=${projectId} FOR UPDATE`;
+      const media = await transaction.media.findFirst({
+        where: {
+          id: mediaId,
+          projectId,
+          project: { workspaceId: session.workspaceId },
         },
-        {
-          status: 404,
+        select: {
+          id: true,
+          storageKey: true,
+          provider: true,
+          externalId: true,
         },
-      );
-    }
+      });
 
-    const deleted = await prisma.media.deleteMany({
-      where: { id: media.id, projectId, project: { workspaceId: session.workspaceId } },
-    });
-    if (deleted.count !== 1) return NextResponse.json({ success: false, error: "The selected asset changed before deletion." }, { status: 409 });
+      if (!media) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "The selected asset was not found.",
+          },
+          {
+            status: 404,
+          },
+        );
+      }
 
-    // Database ownership does not prove exclusive ownership of an R2 key or
-    // provider ID. Retain objects until the shared asset registry can verify it.
-    const storageCleanupPending = Boolean(media.storageKey || (media.provider === "CLOUDFLARE_STREAM" && media.externalId));
+      const deleted = await transaction.media.deleteMany({
+        where: { id: media.id, projectId, project: { workspaceId: session.workspaceId } },
+      });
+      if (deleted.count !== 1) return NextResponse.json({ success: false, error: "The selected asset changed before deletion." }, { status: 409 });
 
-    return NextResponse.json({
-      success: true,
-      deletedMediaId: media.id,
-      storageCleanupPending,
+      // Database ownership does not prove exclusive ownership of an R2 key or
+      // provider ID. Retain objects until the shared asset registry can verify it.
+      const storageCleanupPending = Boolean(media.storageKey || (media.provider === "CLOUDFLARE_STREAM" && media.externalId));
+
+      return NextResponse.json({
+        success: true,
+        deletedMediaId: media.id,
+        storageCleanupPending,
+      });
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Media access is no longer available." }, { status: 403 });
+    if (error instanceof Error && error.message === "MEDIA_PROJECT_UNAVAILABLE") return NextResponse.json({ success: false, error: "Project not found." }, { status: 404 });
     console.error("Unable to delete project media:", error);
 
     return NextResponse.json(

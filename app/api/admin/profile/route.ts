@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/auth/session";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
-import { recordAuditEvent } from "@/lib/audit";
+import { requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -54,26 +54,34 @@ export async function PATCH(request: Request) {
     const notificationPreferences = body.notificationPreferences && typeof body.notificationPreferences === "object"
       ? body.notificationPreferences as Record<string, boolean>
       : {};
-    const updated = await prisma.adminUser.update({
-      where: { id: current.id },
-      data: {
-        firstName, lastName, displayName, title, email, phone, notificationPreferences,
-        ...(passwordChanged ? { passwordHash: await hashPassword(newPassword), sessionVersion: { increment: 1 }, failedLoginCount: 0, lockedUntil: null } : {}),
-        ...(emailChanged ? { sessionVersion: { increment: 1 } } : {}),
-      },
-      select: { id: true, firstName: true, lastName: true, displayName: true, title: true, email: true, phone: true, notificationPreferences: true },
-    });
-    if (emailChanged || passwordChanged) {
-      await recordAuditEvent({
-        actorId: current.id, actorEmail: current.email,
-        action: emailChanged ? "PROFILE_EMAIL_CHANGED" : "PROFILE_PASSWORD_CHANGED",
-        entityType: "AdminUser", entityId: current.id,
-        summary: emailChanged ? "Administrator verified and changed their account email." : "Administrator changed their password and revoked existing sessions.",
+    const passwordHash = passwordChanged ? await hashPassword(newPassword) : null;
+    const updated = await prisma.$transaction(async tx => {
+      await requireLockedWorkspaceEditor(tx, session);
+      const locked = await tx.adminUser.findFirst({ where: { id: session.userId, workspaceId: session.workspaceId } });
+      if (!locked || locked.email !== current.email || locked.passwordHash !== current.passwordHash) throw new Error("WORKSPACE_WRITE_FORBIDDEN");
+      const saved = await tx.adminUser.update({
+        where: { id: current.id, workspaceId: session.workspaceId },
+        data: {
+          firstName, lastName, displayName, title, email, phone, notificationPreferences,
+          ...(passwordHash ? { passwordHash, sessionVersion: { increment: 1 }, failedLoginCount: 0, lockedUntil: null } : {}),
+          ...(emailChanged ? { sessionVersion: { increment: 1 } } : {}),
+        },
+        select: { id: true, firstName: true, lastName: true, displayName: true, title: true, email: true, phone: true, notificationPreferences: true },
       });
-    }
+      if (emailChanged || passwordChanged) {
+        await tx.auditEvent.create({ data: {
+          workspaceId: session.workspaceId, actorId: current.id, actorEmail: current.email,
+          action: emailChanged ? "PROFILE_EMAIL_CHANGED" : "PROFILE_PASSWORD_CHANGED",
+          entityType: "AdminUser", entityId: current.id,
+          summary: emailChanged ? "Administrator verified and changed their account email." : "Administrator changed their password and revoked existing sessions.",
+        } });
+      }
+      return saved;
+    });
     revalidatePath("/admin/users");
     return NextResponse.json({ success: true, user: updated, signedOut: emailChanged || passwordChanged });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Workspace access is unavailable." }, { status: 403 });
     const messages: Record<string, string> = {
       INVALID_INPUT: "Complete the required fields and stay within the displayed limits.",
       INVALID_EMAIL: "Enter a valid email address.",

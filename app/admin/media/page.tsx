@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { requireAdminSession } from "@/lib/auth/session";
 
 import type { Prisma } from "@/app/generated/prisma/client";
 import {
@@ -8,6 +10,7 @@ import {
   type MediaCategory,
 } from "@/lib/media-collections";
 import { prisma } from "@/lib/prisma";
+import { publishingStorageReferenceMatches } from "@/lib/social/publishing-payload";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 
 import MediaLibraryGrid, { type LibraryMediaItem } from "./MediaLibraryGrid";
@@ -80,6 +83,7 @@ function formatNumber(value: number) {
 export default async function MediaLibraryPage({
   searchParams,
 }: MediaLibraryPageProps) {
+  const session = await requireAdminSession();
   const params = await searchParams;
   const search = getParam(params.search);
   const requestedCategory = getParam(params.category).toUpperCase();
@@ -100,7 +104,16 @@ export default async function MediaLibraryPage({
     projectId,
   };
 
+  const activeProject = projectId
+    ? await prisma.project.findFirst({
+        where: { id: projectId, workspaceId: session.workspaceId },
+        select: { id: true, title: true },
+      })
+    : null;
+  if (projectId && !activeProject) notFound();
+  const ownedMedia = { project: { workspaceId: session.workspaceId } };
   const where: Prisma.MediaWhereInput = {
+    ...ownedMedia,
     ...(category !== "ALL" ? { mediaCategory: category } : {}),
     ...(visibility !== "ALL" ? { visibility } : {}),
     ...(projectId ? { projectId } : {}),
@@ -158,10 +171,10 @@ export default async function MediaLibraryPage({
 
   const [totalAssets, visibleAssets, hiddenAssets, projectCount, resultCount] =
     await Promise.all([
-      prisma.media.count(),
-      prisma.media.count({ where: { visibility: "VISIBLE" } }),
-      prisma.media.count({ where: { visibility: "HIDDEN" } }),
-      prisma.project.count({ where: { media: { some: {} } } }),
+      prisma.media.count({ where: ownedMedia }),
+      prisma.media.count({ where: { ...ownedMedia, visibility: "VISIBLE" } }),
+      prisma.media.count({ where: { ...ownedMedia, visibility: "HIDDEN" } }),
+      prisma.project.count({ where: { workspaceId: session.workspaceId, media: { some: {} } } }),
       prisma.media.count({ where }),
     ]);
   const totalPages = Math.max(1, Math.ceil(resultCount / PAGE_SIZE));
@@ -186,6 +199,7 @@ export default async function MediaLibraryPage({
       externalUrl: true,
       createdAt: true,
       heroForProject: {
+        where: { workspaceId: session.workspaceId },
         select: {
           id: true,
         },
@@ -200,12 +214,6 @@ export default async function MediaLibraryPage({
       },
     },
   });
-  const activeProject = projectId
-    ? await prisma.project.findUnique({
-        where: { id: projectId },
-        select: { id: true, title: true },
-      })
-    : null;
   const items: LibraryMediaItem[] = media.map((item) => ({
     id: item.id,
     originalFilename: item.originalFilename,
@@ -219,7 +227,8 @@ export default async function MediaLibraryPage({
     collectionLabel: getMediaCollection(item.mediaCategory).label,
     visibility: item.visibility,
     createdAt: item.createdAt.toISOString(),
-    publicUrl: item.storageKey ? getPublicAssetUrl(item.storageKey) : null,
+    publicUrl: item.storageKey && publishingStorageReferenceMatches(session.workspaceId, item.project.id, item.storageKey)
+      ? getPublicAssetUrl(item.storageKey) : null,
     externalUrl: item.externalUrl,
     isHero: Boolean(item.heroForProject),
     projectFilterUrl: buildLibraryUrl(filters, {
@@ -241,17 +250,17 @@ export default async function MediaLibraryPage({
           <h1 className="mt-3 text-3xl font-light tracking-[-0.03em] text-white sm:text-4xl">
             Media library
           </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/40">
-            Search, inspect, and trace every project asset from one global DAM
-            workspace.
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/65">
+            Search and inspect assets in your current workspace. Open a project
+            to add media or edit its details.
           </p>
         </div>
 
         <Link
-          href="/admin/projects"
+          href={activeProject ? `/admin/projects/${activeProject.id}#project-media` : "/admin/projects"}
           className="admin-btn-link"
         >
-          Upload through a project
+          {activeProject ? "Manage project media" : "Choose a project to add media"}
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
@@ -274,7 +283,7 @@ export default async function MediaLibraryPage({
           {
             label: "Total assets",
             value: totalAssets,
-            detail: "Across the DAM",
+            detail: "In this workspace",
           },
           { label: "Visible", value: visibleAssets, detail: "Portfolio ready" },
           { label: "Hidden", value: hiddenAssets, detail: "Internal only" },
@@ -284,14 +293,14 @@ export default async function MediaLibraryPage({
             key={stat.label}
             className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5"
           >
-            <p className="text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-white/30">
+            <p className="text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-white/65">
               {stat.label}
             </p>
             <div className="mt-5 flex items-end justify-between gap-4">
               <p className="font-display text-4xl font-light leading-none text-white">
                 {formatNumber(stat.value)}
               </p>
-              <p className="text-right text-[0.65rem] text-white/25">
+              <p className="text-right text-[0.65rem] text-white/65">
                 {stat.detail}
               </p>
             </div>
@@ -318,7 +327,7 @@ export default async function MediaLibraryPage({
                 aria-hidden="true"
                 viewBox="0 0 24 24"
                 fill="none"
-                className="h-4 w-4 shrink-0 text-white/25"
+                className="h-4 w-4 shrink-0 text-white/65"
               >
                 <circle
                   cx="11"
@@ -339,7 +348,7 @@ export default async function MediaLibraryPage({
                 name="search"
                 defaultValue={search}
                 placeholder="Search filename, metadata, project, or location"
-                className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/20"
+                className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/65"
               />
             </label>
 
@@ -362,7 +371,7 @@ export default async function MediaLibraryPage({
         </div>
 
         <div className="border-t border-white/[0.07] px-4 py-4 sm:px-5">
-          <p className="mb-3 text-[0.52rem] font-semibold uppercase tracking-[0.17em] text-white/20">
+          <p className="mb-3 text-[0.52rem] font-semibold uppercase tracking-[0.17em] text-white/65">
             Collection
           </p>
           <div className="flex gap-2 overflow-x-auto pb-1">
@@ -370,8 +379,8 @@ export default async function MediaLibraryPage({
               href={buildLibraryUrl(filters, { category: "ALL" })}
               className={`shrink-0 rounded-full border px-3.5 py-2 text-[0.52rem] font-semibold uppercase tracking-[0.13em] transition ${
                 category === "ALL"
-                  ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] text-black"
-                  : "border-white/10 text-white/35 hover:border-white/25 hover:text-white"
+                  ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] text-black!"
+                  : "border-white/10 text-white/65 hover:border-white/25 hover:text-white"
               }`}
             >
               All collections
@@ -382,8 +391,8 @@ export default async function MediaLibraryPage({
                 href={buildLibraryUrl(filters, { category: collection.value })}
                 className={`shrink-0 rounded-full border px-3.5 py-2 text-[0.52rem] font-semibold uppercase tracking-[0.13em] transition ${
                   category === collection.value
-                    ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] text-black"
-                    : "border-white/10 text-white/35 hover:border-white/25 hover:text-white"
+                    ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] text-black!"
+                    : "border-white/10 text-white/65 hover:border-white/25 hover:text-white"
                 }`}
               >
                 {collection.label}
@@ -401,7 +410,7 @@ export default async function MediaLibraryPage({
                 className={`rounded-full border px-3.5 py-2 text-[0.52rem] font-semibold uppercase tracking-[0.13em] transition ${
                   visibility === option
                     ? "border-white/25 bg-white/[0.08] text-white"
-                    : "border-white/10 text-white/30 hover:border-white/20 hover:text-white/65"
+                    : "border-white/10 text-white/65 hover:border-white/20 hover:text-white/65"
                 }`}
               >
                 {option === "ALL" ? "All visibility" : option.toLowerCase()}
@@ -422,7 +431,7 @@ export default async function MediaLibraryPage({
             )}
           </div>
 
-          <p className="text-xs text-white/25">
+          <p className="text-xs text-white/65">
             {formatNumber(firstResult)}–{formatNumber(lastResult)} of{" "}
             {formatNumber(resultCount)}
           </p>
@@ -434,17 +443,18 @@ export default async function MediaLibraryPage({
       ) : (
         <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02] px-6 py-20 text-center">
           <h2 className="font-display text-3xl font-light text-white">
-            No assets match these filters.
+            {hasFilters ? "No assets match these filters." : "Add your first project media."}
           </h2>
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/35">
-            Adjust the collection, visibility, or search terms to broaden the
-            library view.
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/65">
+            {hasFilters
+              ? "Adjust the filters, or open the project to add media."
+              : "Media belongs to a project. Choose an existing project or create a draft to get started."}
           </p>
           <Link
-            href="/admin/media"
+            href={activeProject ? `/admin/projects/${activeProject.id}#project-media` : hasFilters ? "/admin/media" : "/admin/projects/new"}
             className="mt-6 admin-btn-secondary"
           >
-            View all assets
+            {activeProject ? "Add project media" : hasFilters ? "View all assets" : "Create a project"}
           </Link>
         </section>
       )}
@@ -465,7 +475,7 @@ export default async function MediaLibraryPage({
             <span />
           )}
 
-          <p className="text-xs text-white/30">
+          <p className="text-xs text-white/65">
             Page {page} of {totalPages}
           </p>
 

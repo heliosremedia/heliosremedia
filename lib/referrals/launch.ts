@@ -1,13 +1,15 @@
 import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { legacyReferralExecutionWorkspace } from "./ownership";
 import "server-only";
+import { lockReferralPreparationClaim, referralPreparationWhere, type ReferralPreparationClaim } from "./preparation-claim";
 
 import { createHash, randomUUID } from "node:crypto";
 import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { recordAuditEvent } from "@/lib/audit";
 import { getSiteUrl } from "@/lib/site";
-import { generatePreferenceToken, hashPreferenceToken, MARKETING_TOKEN_TTL_DAYS } from "@/lib/client-communications/preferences";
+import { createReferralPreparationPreferenceToken } from "./preparation-consent";
+import { generatePreferenceToken } from "@/lib/client-communications/preferences";
 import { personalizeReferralCopy, renderReferralInvitationEmail } from "./email-renderer";
 import { createReferralCredentials } from "./tokens";
 import {
@@ -233,7 +235,7 @@ function launchPlan(snapshot: ApprovedSnapshot, campaign: {
 async function prepareBatch(campaign: {
   id: string; publicTitle: string; referralExpirationDays: number; approvedRevisionId: string | null;
 }, snapshot: ApprovedSnapshot, recipients: ApprovedRecipient[], batchNumber: number, attemptId: string,
-plan: ReturnType<typeof launchPlan>) {
+plan: ReturnType<typeof launchPlan>, claim: ReferralPreparationClaim) {
   const prepared = recipients.map(recipient => ({
     recipient,
     credentials: createReferralCredentials(),
@@ -242,6 +244,7 @@ plan: ReturnType<typeof launchPlan>) {
   for (let collisionAttempt = 0; collisionAttempt < 3; collisionAttempt += 1) {
     try {
       await prisma.$transaction(async tx => {
+        await lockReferralPreparationClaim(tx, claim);
         for (const item of prepared) {
           const advocate = await tx.referralAdvocate.upsert({
             where: { campaignId_clientId: { campaignId: campaign.id, clientId: item.recipient.id } },
@@ -262,16 +265,8 @@ plan: ReturnType<typeof launchPlan>) {
               expiresAt: new Date(Date.now() + campaign.referralExpirationDays * 86_400_000),
             },
           });
-          const preference = await tx.marketingEmailPreference.upsert({
-            where: { normalizedEmail: item.recipient.email.trim().toLowerCase() },
-            create: { normalizedEmail: item.recipient.email.trim().toLowerCase(), status: "UNKNOWN", source: "REFERRAL_CAMPAIGN" },
-            update: {},
-          });
-          await tx.marketingEmailPreferenceToken.create({
-            data: {
-              preferenceId: preference.id, tokenHash: hashPreferenceToken(item.unsubscribeToken),
-              expiresAt: new Date(Date.now() + MARKETING_TOKEN_TTL_DAYS * 86_400_000), campaignId: campaign.id,
-            },
+          const unsubscribeToken = await createReferralPreparationPreferenceToken(tx, claim, {
+            clientId: item.recipient.id, invitationId: invitation.id, email: item.recipient.email, tokenSeed: item.unsubscribeToken,
           });
           const referralUrl = `${getSiteUrl()}/refer/${encodeURIComponent(item.credentials.token)}`;
           const variables = {
@@ -285,7 +280,7 @@ plan: ReturnType<typeof launchPlan>) {
               recipientEmail: item.recipient.email, recipientName: item.recipient.displayName,
               subject: personalizeReferralCopy(invitation.subject, variables),
               htmlSnapshot: renderReferralInvitationEmail({
-                body, previewText: invitation.previewText, unsubscribeToken: item.unsubscribeToken,
+                body, previewText: invitation.previewText, unsubscribeToken,
                 referralUrl, referralCode: item.credentials.code, campaignTitle: campaign.publicTitle,
               }),
               contentHash: createHash("sha256").update(body).digest("hex"), scheduledAt: null,
@@ -300,7 +295,7 @@ plan: ReturnType<typeof launchPlan>) {
                 recipientEmail: item.recipient.email, recipientName: item.recipient.displayName,
                 subject: `A gentle reminder: ${invitation.subject}`,
                 htmlSnapshot: renderReferralInvitationEmail({
-                  body: followUpBody, previewText: invitation.previewText, unsubscribeToken: item.unsubscribeToken,
+                  body: followUpBody, previewText: invitation.previewText, unsubscribeToken,
                   referralUrl, referralCode: item.credentials.code, campaignTitle: campaign.publicTitle,
                 }),
                 contentHash: createHash("sha256").update(followUpBody).digest("hex"),
@@ -345,20 +340,23 @@ export async function processReferralLaunch(campaignId: string, attemptId: strin
   const approvedSnapshot = campaign.approvedRevision.snapshot;
   if (!approvedSnapshot || typeof approvedSnapshot !== "object" || Array.isArray(approvedSnapshot)
     || ("workspaceId" in approvedSnapshot && approvedSnapshot.workspaceId !== workspaceId)) return null;
+  if (campaign.approvedRevision.campaignId !== campaign.id || campaign.launchRevisionId !== campaign.approvedRevisionId) return null;
   const processingStartedAt = new Date();
+  const claim: ReferralPreparationClaim = { workspaceId, storedWorkspaceId: campaign.workspaceId, campaignId,
+    revisionId: campaign.approvedRevisionId!, campaignVersion: campaign.rowVersion, attemptId,
+    leaseExpiresAt: new Date(processingStartedAt.getTime() + LEASE_MS) };
   const ownsAttempt = await prisma.$transaction(async tx => {
     const acquired = await tx.referralCampaign.updateMany({
       where: {
-        id: campaignId,
-        status: "LAUNCHING",
-        launchAttemptId: attemptId,
-        launchFailedAt: null,
+        id: campaignId, workspaceId: campaign.workspaceId, rowVersion: campaign.rowVersion,
+        approvedRevisionId: campaign.approvedRevisionId, launchRevisionId: campaign.approvedRevisionId,
+        status: "LAUNCHING", launchAttemptId: attemptId, launchFailedAt: null,
         OR: [
           { launchLeaseExpiresAt: null },
           { launchLeaseExpiresAt: { lt: processingStartedAt } },
         ],
       },
-      data: { launchLeaseExpiresAt: new Date(processingStartedAt.getTime() + LEASE_MS) },
+      data: { launchLeaseExpiresAt: claim.leaseExpiresAt },
     });
     if (acquired.count !== 1) return false;
     await tx.referralAuditEvent.create({
@@ -414,20 +412,23 @@ export async function processReferralLaunch(campaignId: string, attemptId: strin
         expectedCount: audience.length,
         preparedCount: campaign.preparedAdvocateCount,
       });
-      await prepareBatch(campaign, snapshot, batches[batchIndex], batchNumber, attemptId, plan);
+      await prepareBatch(campaign, snapshot, batches[batchIndex], batchNumber, attemptId, plan, claim);
       const [advocates, invitations, communications] = await Promise.all([
         prisma.referralAdvocate.count({ where: { campaignId } }),
         prisma.referralInvitation.count({ where: { campaignId, approvedRevisionId: campaign.approvedRevisionId, status: { not: "CANCELLED" } } }),
         prisma.referralCommunication.count({ where: { campaignId, status: { not: "CANCELLED" }, invitation: { approvedRevisionId: campaign.approvedRevisionId } } }),
       ]);
-      await prisma.referralCampaign.updateMany({
-        where: { id: campaignId, status: "LAUNCHING", launchAttemptId: attemptId },
+      const nextLease = new Date(Date.now() + LEASE_MS);
+      const renewed = await prisma.referralCampaign.updateMany({
+        where: referralPreparationWhere(claim),
         data: {
           preparedAdvocateCount: advocates, preparedInvitationCount: invitations,
           preparedCommunicationCount: communications, launchBatch: batchNumber,
-          launchLeaseExpiresAt: new Date(Date.now() + LEASE_MS),
+          launchLeaseExpiresAt: nextLease,
         },
       });
+      if (renewed.count !== 1) throw new ReferralLaunchConflictError("Campaign launch lease changed before progress settlement.");
+      claim.leaseExpiresAt = nextLease;
       launchLog("batch_completed", {
         campaignId,
         launchAttemptId: attemptId,
@@ -450,7 +451,7 @@ export async function processReferralLaunch(campaignId: string, attemptId: strin
     const completedAt = new Date();
     await prisma.$transaction(async tx => {
       const completed = await tx.referralCampaign.updateMany({
-        where: { id: campaignId, status: "LAUNCHING", launchAttemptId: attemptId, approvedRevisionId: campaign.approvedRevisionId },
+        where: referralPreparationWhere(claim),
         data: {
           status: "APPROVED", activatedAt: null, launchCompletedAt: completedAt,
           deliveryScheduledAt: null, scheduleConfirmedAt: null, scheduledById: null,
@@ -484,7 +485,7 @@ export async function processReferralLaunch(campaignId: string, attemptId: strin
     ]);
     await prisma.$transaction(async tx => {
       const failed = await tx.referralCampaign.updateMany({
-        where: { id: campaignId, status: "LAUNCHING", launchAttemptId: attemptId },
+        where: referralPreparationWhere(claim),
         data: {
           launchFailedAt: new Date(), launchLeaseExpiresAt: null,
           preparedAdvocateCount: advocates,

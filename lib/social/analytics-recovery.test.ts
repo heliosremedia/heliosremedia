@@ -36,7 +36,8 @@ test('reviewed analytics cancellation requires fresh administration, fences the 
         ('job-b','connection-b','RUNNING','foreign-claim','2026-09-01Z',0,'2026-09-01Z',NULL);
     `);
     const guard = load('../workspace-write-access.ts', {
-      './workspace-context-core.ts': { tenantContextEnabled: () => true },
+      './workspace-lifecycle/state.ts': { workspaceIsActive: async () => true },
+    './workspace-context-core.ts': { tenantContextEnabled: () => true },
       './workspace-membership-core.ts': { resolveMembershipAccess },
     });
     const prisma = { $transaction: async (write: (tx: unknown) => Promise<unknown>) => {

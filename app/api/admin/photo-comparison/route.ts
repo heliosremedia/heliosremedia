@@ -1,9 +1,11 @@
+import { requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
+import { tenantContextEnabled } from "@/lib/workspace-context-core";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import type { Prisma } from "@/app/generated/prisma/client";
 import { getAdminSession } from "@/lib/auth/session";
-import { verifyRegisteredBrandImage } from "@/lib/workspace-brand-assets";
+import { verifyRegisteredBrandImage, lockRegisteredBrandImage } from "@/lib/workspace-brand-assets";
 import { resolvePhotoComparisonImage } from "@/lib/photo-comparison-storage";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { defaultPhotoComparisonContent, getPhotoComparisonPage, type PhotoComparisonContent } from "@/lib/photo-comparison";
@@ -82,9 +84,25 @@ export async function PATCH(request: Request) {
     const detailImageAlt = requiredText(body.detailImageAlt, 240);
 
     const page = await prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM "Workspace" WHERE id = ${session.workspaceId} FOR UPDATE`;
+      await requireLockedWorkspaceEditor(tx, { workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+      if (!tenantContextEnabled()) await tx.$queryRaw`LOCK TABLE "Workspace" IN SHARE MODE`;
+      await tx.$queryRaw`SELECT id FROM "PhotoComparisonPage" WHERE "workspaceId"=${workspaceId} FOR UPDATE`;
+      await tx.$queryRaw`SELECT pair.id FROM "PhotoComparisonPair" pair JOIN "PhotoComparisonPage" page ON page.id=pair."pageId" WHERE page."workspaceId"=${workspaceId} ORDER BY pair.id FOR UPDATE OF pair`;
       const current = await tx.photoComparisonPage.findUnique({ where: { workspaceId: session.workspaceId }, select: { updatedAt: true } });
       if ((current?.updatedAt.getTime() ?? null) !== (existingPage.updatedAt?.getTime() ?? null)) throw new Error("COMPARISON_CONFLICT");
+      const currentPage = await getPhotoComparisonPage(workspaceId, tx);
+      const imageReferences = (value: typeof existingPage) => JSON.stringify([
+        value.detailImageStorageKey, value.detailImageUrl,
+        value.pairs.map(pair => [pair.id, pair.standardImageStorageKey, pair.standardImageUrl, pair.editorialImageStorageKey, pair.editorialImageUrl]),
+      ]);
+      if (imageReferences(currentPage) !== imageReferences(existingPage)) throw new Error("COMPARISON_CONFLICT");
+      for (const [position, pair] of pairData.entries()) {
+        const submitted = pairs[position] as Record<string, unknown>;
+        const previous = currentPage.pairs.find(value => value.id === submitted.id);
+        await lockRegisteredBrandImage(tx, { workspaceId, kind: "photo-comparison", key: pair.standardImageStorageKey, existingKey: previous?.standardImageStorageKey });
+        await lockRegisteredBrandImage(tx, { workspaceId, kind: "photo-comparison", key: pair.editorialImageStorageKey, existingKey: previous?.editorialImageStorageKey });
+      }
+      await lockRegisteredBrandImage(tx, { workspaceId, kind: "photo-comparison", key: detailImageStorageKey, existingKey: currentPage.detailImageStorageKey });
       const saved = await tx.photoComparisonPage.upsert({ where: { workspaceId: session.workspaceId }, create: { workspaceId: session.workspaceId, active: body.active !== false, content: content as unknown as Prisma.InputJsonValue, detailImageStorageKey, detailImageUrl, detailImageAlt }, update: { active: body.active !== false, content: content as unknown as Prisma.InputJsonValue, detailImageStorageKey, detailImageUrl, detailImageAlt } });
       await tx.photoComparisonPair.deleteMany({ where: { pageId: saved.id } });
       await tx.photoComparisonPair.createMany({ data: pairData.map((pair) => ({ ...pair, pageId: saved.id })) });
@@ -93,6 +111,7 @@ export async function PATCH(request: Request) {
     revalidatePath("/photo-finishes"); revalidatePath("/services"); revalidatePath("/portfolio"); revalidatePath("/admin/photo-comparison");
     return NextResponse.json({ success: true, page });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Comparison access is no longer available." }, { status: 403 });
     if (error instanceof Error && error.message === "COMPARISON_CONFLICT") return NextResponse.json({ success: false, error: "The comparison page changed. Refresh and try again." }, { status: 409 });
     if (error instanceof Error && ["INVALID_TEXT", "INVALID_PAIRS", "INVALID_IMAGE", "INVALID_BRAND_IMAGE"].includes(error.message)) return NextResponse.json({ success: false, error: "Complete every required field and image pair before publishing." }, { status: 400 });
     console.error("Unable to save photo comparison:", error);

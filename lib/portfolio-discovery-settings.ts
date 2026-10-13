@@ -49,7 +49,7 @@ export async function getPortfolioDiscoverySettings(workspaceId: string): Promis
 }
 
 export async function getFeaturedProjectOrder(workspaceId: string) {
-  const event = await prisma.auditEvent.findFirst({ where: { ...await getContentOwnershipScope(workspaceId), action: "FEATURED_PROJECTS_FINALIZED", entityType: "Project", entityId: workspaceId }, orderBy: { createdAt: "desc" }, select: { metadata: true } });
+  const event = await prisma.auditEvent.findFirst({ where: { ...await getContentOwnershipScope(workspaceId), action: "FEATURED_PROJECTS_FINALIZED", entityType: "Project", entityId: workspaceId }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { metadata: true } });
   if (!event?.metadata || typeof event.metadata !== "object" || Array.isArray(event.metadata)) return [];
   return strings((event.metadata as Record<string, unknown>).projectIds).slice(0, 6);
 }

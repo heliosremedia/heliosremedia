@@ -352,6 +352,11 @@ export async function POST(request: Request, context: Context) {
       const audience = await approveAndSchedule(editionId, session);
       message = `Approved and scheduled for ${audience.eligible.length} currently eligible recipients.`;
     } else if (action === "revoke-approval" || action === "cancel" || action === "reschedule") {
+      // New clients submit the revision the owner actually reviewed. Existing
+      // callers retain their current-request revision check.
+      if (body.expectedVersion !== undefined && (!Number.isSafeInteger(body.expectedVersion) || body.expectedVersion !== authorizedEdition.rowVersion)) {
+        throw new Error("NEWSLETTER_EDITION_CHANGED");
+      }
       await transitionNewsletterEdition({
         actor: session, editionId, expectedVersion: authorizedEdition.rowVersion, action,
         ...(action === "reschedule" ? { intendedSendAt: new Date(clean(body.intendedSendAt, 100)) } : {}),

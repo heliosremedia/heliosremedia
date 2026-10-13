@@ -19,9 +19,10 @@ export async function POST(request: Request) {
     if (!location) return NextResponse.json({ success: false, error: "Location page not found." }, { status: 404 });
     validateImageUpload(file);
     const key = createLocationFeatureImageKey(session.workspaceId, location.id, file.type);
-    const uploadUrl = await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, kind: "locations", key, byteSize: file.size }, () => createPresignedUploadUrl(key, file.type));
+    const uploadUrl = await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, sessionVersion: session.sessionVersion, kind: "locations", key, byteSize: file.size }, () => createPresignedUploadUrl(key, file.type));
     return NextResponse.json({ success: true, upload: { key, publicUrl: getPublicAssetUrl(key), uploadUrl, contentType: file.type } });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Upload access is no longer available." }, { status: 403 });
     console.error("Unable to prepare location image upload", { category: "request_failed" });
     return NextResponse.json({ success: false, error: "Upload a JPG, PNG, WebP, or AVIF image smaller than 25 MB." }, { status: 400 });
   }

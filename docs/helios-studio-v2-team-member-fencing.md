@@ -1,0 +1,9 @@
+# Packet 75: Team-member mutation authority
+
+Eight pre-fix actual-handler failures demonstrate stale editor/asset authority, portrait replacement during inspection, and collection changes outside the reorder transaction. Twelve focused tests preserve the four branch success contracts and require denial before mutation; existing portrait ownership tests retain their assertions with transaction-capable fixtures.
+
+Create/update/reorder/delete now require current locked editor/session authority. Content ownership is recalculated on the transaction connection; the selected row or complete collection is locked before use. Create/update lock and revalidate the submitted portrait registry authority after provider inspection; changed current portrait references require a new submission with 409. Reorder preserves the existing complete-list and ordinal API, with scoped count checks and atomic updates. Delete returns 404 for missing/foreign records and retains the portrait and registry rather than attempting provider cleanup.
+
+Both-company disposable runtime qualifies 42 observed races: create/update 24, reorder 10, deletion 8. It also verifies foreign/unowned denial, required profile fields, owned portrait replacement/clearing and exact legacy retention, injected rollback, serialized complete orders, single-winner concurrent deletion and inert retry, and unchanged foreign content/registrations. Signed URLs are never followed; image inspection uses the explicit no-network adapter. There is no provider deletion or schema change.
+
+Published-head regression/TypeScript/Chromium, runtime artifact download/hash/parse, schema/index/access postflight and merge-tree equality remain gates. This is the team-member route's request/database boundary, not hosted portrait delivery or the whole About surface. Phase 1 remains open; production ON HOLD.

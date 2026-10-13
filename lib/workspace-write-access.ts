@@ -1,3 +1,4 @@
+import { workspaceIsActive } from "./workspace-lifecycle/state.ts";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { tenantContextEnabled } from "./workspace-context-core.ts";
 import { resolveMembershipAccess } from "./workspace-membership-core.ts";
@@ -7,6 +8,7 @@ export type WorkspaceWriteActor = { userId: string; workspaceId: string; session
 /** Use the same workspace/account lock order as account and membership mutations. */
 export async function requireLockedWorkspaceEditor(tx: Prisma.TransactionClient, actor: WorkspaceWriteActor) {
   await tx.$queryRaw`SELECT id FROM "Workspace" WHERE id = ${actor.workspaceId} FOR UPDATE`;
+  if (!await workspaceIsActive(tx, actor.workspaceId)) throw new Error("WORKSPACE_WRITE_FORBIDDEN");
   await tx.$queryRaw`SELECT id FROM "AdminUser" WHERE id = ${actor.userId} AND "workspaceId" = ${actor.workspaceId} FOR UPDATE`;
   const enabled = tenantContextEnabled();
   if (enabled) await tx.$queryRaw`SELECT id FROM "WorkspaceMembership" WHERE "userId" = ${actor.userId} AND "workspaceId" = ${actor.workspaceId} FOR UPDATE`;
