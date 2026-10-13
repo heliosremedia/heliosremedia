@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       candidate_sha:
-        description: Exact reviewed branch head SHA
+        description: Exact reviewed application source SHA; executor HEAD for legacy tracks
         required: true
         type: string
       track:
@@ -98,7 +98,7 @@ jobs:
           retention-days: 30
 
   upgrade_current:
-    if: inputs.track == 'current-studio-upgrade' && github.repository == 'heliosremedia/heliosremedia' && github.ref == 'refs/heads/codex/v2-neon-staging-bootstrap' && github.sha == inputs.executor_sha && inputs.candidate_sha == 'f38e5e544e47f02891626395f79c80c9eae5eb1d' && inputs.upgrade_confirmation == 'upgrade-six-reviewed-migrations-only'
+    if: inputs.track == 'current-studio-upgrade' && github.repository == 'heliosremedia/heliosremedia' && github.ref == 'refs/heads/codex/v2-neon-staging-bootstrap' && github.sha == inputs.executor_sha && inputs.candidate_sha == '963d33ee9858d6a4d5b4f60131b4b6e07db4a79d' && inputs.upgrade_confirmation == 'upgrade-six-reviewed-migrations-only'
     environment: helios-v2-staging-bootstrap
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -106,7 +106,7 @@ jobs:
       - name: Checkout independently qualified current upgrade source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
-          ref: f38e5e544e47f02891626395f79c80c9eae5eb1d
+          ref: 963d33ee9858d6a4d5b4f60131b4b6e07db4a79d
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
@@ -126,11 +126,11 @@ jobs:
           STAGING_NEON_API_KEY: ${{ secrets.STAGING_NEON_API_KEY }}
           STAGING_DIRECT_URL: ${{ secrets.STAGING_DIRECT_URL }}
           STAGING_EXECUTOR_SHA: ${{ inputs.executor_sha }}
-          STAGING_CANDIDATE_SHA: f38e5e544e47f02891626395f79c80c9eae5eb1d
+          STAGING_CANDIDATE_SHA: 963d33ee9858d6a4d5b4f60131b4b6e07db4a79d
           STAGING_CONFIRMATION: ${{ inputs.confirmation }}
           STAGING_UPGRADE_CONFIRMATION: ${{ inputs.upgrade_confirmation }}
-          STAGING_REGRESSION_RUN: '38332366975'
-          STAGING_UPGRADE_RUN: '38332366928'
+          STAGING_REGRESSION_RUN: '38334991100'
+          STAGING_UPGRADE_RUN: '38334991003'
         run: node scripts/staging/current-upgrade-live.mjs
       - name: Retain sanitized schema upgrade receipt
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
