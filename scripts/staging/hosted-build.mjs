@@ -10,14 +10,21 @@ import {hostedDigest} from './hosted-digest.mjs';
 import {runtime,provenance,receipt,HOSTED} from './hosted-policy.mjs';
 import {TARGET,jsonGet,targetConnection} from './policy.mjs';
 import {schemaSnapshot,readLedger,classify,hash} from '../migrations/bootstrap/inspect.mjs';
+import {verifyUpgradeSnapshot} from './current-upgrade-policy.mjs';
 import {BASELINE_CHECKSUM,CURRENT_SCHEMA} from '../release/policy.mjs';
 import {generatedClientCheck} from '../release/gate.mjs';
-export async function databaseState(db,manifest){
+export async function databaseState(db,manifest,profile){
+ assert.ok(profile===undefined||profile==='current-studio','Unknown staging schema profile');
  await db.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
  try{
   await checked('DATABASE_CONNECTED_NAME', async ()=>assert.equal((await db.query('SELECT current_database() name')).rows[0].name,TARGET.database));
   await checked('DATABASE_CONNECTED_VERSION', async ()=>assert.equal(Math.floor(Number((await db.query('SHOW server_version_num')).rows[0].server_version_num)/10000),16));
   const schema=await schemaSnapshot(db),ledger=await readLedger(db);
+  if(profile==='current-studio'){
+   verifyUpgradeSnapshot({schemaHash:hash(schema),ledger},'current');
+   await db.query('COMMIT');
+   return {state:'current-compatible-ledger',track:'current-studio',schemaHash:hash(schema),ledgerHash:hash(ledger)};
+  }
   check('DATABASE_SCHEMA_HASH', ()=>assert.equal(hash(schema),CURRENT_SCHEMA,'Unreviewed schema'));
   const state=classify({ledger,schema,current:schema,historical:{},manifest,baselineChecksum:BASELINE_CHECKSUM});
   check('DATABASE_LEDGER_CLASSIFICATION', ()=>assert.equal(state.state,'current-compatible-ledger'));check('DATABASE_LEDGER_TRACK', ()=>assert.equal(state.track,'baseline'));
@@ -31,7 +38,7 @@ export async function executeHosted(deps,env){
   phase='provider-provenance';const proof=provenance(await deps.metadata(),env);
   phase='source-integrity';const identity=await deps.source(candidate);
   phase='database-preflight';const before=await deps.inspect();
-  assert.equal(before.state,'current-compatible-ledger');assert.equal(before.track,'baseline');
+  assert.equal(before.state,'current-compatible-ledger');assert.equal(before.track,proof.schemaProfile==='current-studio'?'current-studio':'baseline');
   phase='application-build';await deps.build();
   phase='database-postflight';const after=await deps.inspect();
   phase='artifact-digest';const result=receipt(proof,before,after,identity,await deps.digest());
@@ -55,15 +62,9 @@ export async function main(env=process.env){
     db=new pg.Client(connection);await db.connect();assert.equal((await db.query('SELECT pg_try_advisory_lock(1200318) locked')).rows[0].locked,true);return {project,deployment,domains,run,jobs};
    },
    source:async candidate=>{
-    check('SOURCE_CANDIDATE_SHA',()=>assert.equal(execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),candidate));check('SOURCE_CLEAN_CHECKOUT',()=>checkDirtyCheckout(()=>execFileSync('git',['diff','--quiet','HEAD','--'])));
-    for(const name of ['.env','.env.local','.env.production','.env.production.local']){let exists=true;try{await access(name);}catch{exists=false;}check('SOURCE_ENVIRONMENT_FILE',()=>assert.equal(exists,false,'Environment file not allowed'));}
-    const raw=await checked('SOURCE_MANIFEST_READ',()=>readFile('scripts/migrations/bootstrap/history-sha256.json','utf8'));check('SOURCE_MANIFEST_HASH',()=>assert.equal(hash(raw),'8cb9e5d72af3c2353018a3099d14172794e165a5e54ee11b02e80c46a5e6437a'));manifest=check('SOURCE_MANIFEST_PARSE',()=>JSON.parse(raw));
-    await checked('SOURCE_MIGRATION_DIRECTORY_SET',async()=>assert.deepEqual((await readdir('prisma/migrations')).filter(n=>/^\d/.test(n)).sort(),Object.keys(manifest).sort()));
-    for(const [name,h] of Object.entries(manifest))await checked('SOURCE_HISTORICAL_MIGRATION_CHECKSUM',async()=>assert.equal(hash(await readFile('prisma/migrations/'+name+'/migration.sql','utf8')),h));
-    const schema=await checked('SOURCE_PRISMA_SCHEMA_HASH',async()=>hash(await readFile('prisma/schema.prisma','utf8')));check('SOURCE_PRISMA_SCHEMA_HASH',()=>assert.equal(schema,'ede3650c4b65f8704a125672ed32f7b7110a78a83cdacf14744e6419d02a0892'));
-    return {migrationManifest:check('SOURCE_MANIFEST_HASH',()=>hash(raw)),prismaSchema:schema,baselineChecksum:BASELINE_CHECKSUM,lockfile:await checked('SOURCE_LOCKFILE_READ_DIGEST',async()=>hash(await readFile('package-lock.json','utf8')))};
+    const result=await hostedSourceIdentity(candidate,env);manifest=result.manifest;return result.identity;
    },
-   inspect:()=>databaseState(db,manifest),
+   inspect:()=>databaseState(db,manifest,env.STAGING_SCHEMA_PROFILE),
    build:()=>buildApplication(env),
    digest:()=>hostedDigest(),
    persist:async result=>{await mkdir('staging-evidence',{recursive:true});await writeFile('staging-evidence/hosted-build.json',JSON.stringify(result,null,2)+'\n');},
@@ -76,8 +77,28 @@ export async function main(env=process.env){
 export async function buildApplication(env){
     // Admission credentials never enter the Next child process.
     const child={PATH:env.PATH,HOME:env.HOME,NODE_ENV:'production',NEXT_TELEMETRY_DISABLED:'1',DATABASE_URL:env.DATABASE_URL,DIRECT_URL:env.DIRECT_URL,AUTH_SECRET:env.AUTH_SECRET,STUDIO_V2_TENANT_CONTEXT_ENABLED:'true',VERCEL:'1',VERCEL_ENV:'preview',VERCEL_PROJECT_ID:HOSTED.project,STAGING_HOSTED_ADMISSION:'preview-only',VERCEL_URL:env.VERCEL_URL};
+    if(env.STAGING_SCHEMA_PROFILE==='current-studio'){
+      child.STAGING_SCHEMA_PROFILE='current-studio';
+      child.STUDIO_V2_SHELL_ENABLED=env.STUDIO_V2_SHELL_ENABLED;
+      child.STUDIO_V2_SHELL_WORKSPACE_IDS=env.STUDIO_V2_SHELL_WORKSPACE_IDS;
+    }
     for(const pkg of ['prisma','@prisma/client'])assert.equal(JSON.parse(await readFile('node_modules/'+pkg+'/package.json','utf8')).version,'7.8.0');
     execFileSync(process.execPath,['node_modules/prisma/build/index.js','generate'],{env:child,stdio:'pipe'});
     await generatedClientCheck(process.cwd());
     execFileSync(process.execPath,['node_modules/next/dist/bin/next','build'],{env:child,stdio:'pipe'});
+}
+
+export async function hostedSourceIdentity(candidate,env){
+ let manifest;
+
+    check('SOURCE_CANDIDATE_SHA',()=>assert.equal(execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),candidate));check('SOURCE_CLEAN_CHECKOUT',()=>checkDirtyCheckout(()=>execFileSync('git',['diff','--quiet','HEAD','--'])));
+    for(const name of ['.env','.env.local','.env.production','.env.production.local']){let exists=true;try{await access(name);}catch{exists=false;}check('SOURCE_ENVIRONMENT_FILE',()=>assert.equal(exists,false,'Environment file not allowed'));}
+    const raw=await checked('SOURCE_MANIFEST_READ',()=>readFile('scripts/migrations/bootstrap/history-sha256.json','utf8'));check('SOURCE_MANIFEST_HASH',()=>assert.equal(hash(raw),'8cb9e5d72af3c2353018a3099d14172794e165a5e54ee11b02e80c46a5e6437a'));manifest=check('SOURCE_MANIFEST_PARSE',()=>JSON.parse(raw));
+    if(env.STAGING_SCHEMA_PROFILE==='current-studio')manifest={...manifest,...JSON.parse(await readFile('scripts/rehearsal/staging-upgrade/migrations.json','utf8'))};
+    await checked('SOURCE_MIGRATION_DIRECTORY_SET',async()=>assert.deepEqual((await readdir('prisma/migrations')).filter(n=>/^\d/.test(n)).sort(),Object.keys(manifest).sort()));
+    for(const [name,h] of Object.entries(manifest))await checked('SOURCE_HISTORICAL_MIGRATION_CHECKSUM',async()=>assert.equal(hash(await readFile('prisma/migrations/'+name+'/migration.sql','utf8')),h));
+    const schema=await checked('SOURCE_PRISMA_SCHEMA_HASH',async()=>hash(await readFile('prisma/schema.prisma','utf8')));check('SOURCE_PRISMA_SCHEMA_HASH',()=>assert.equal(schema,env.STAGING_SCHEMA_PROFILE==='current-studio'?'892bb7f73b39e0fce20321557a3b09273a436b56b8b7f94b353e93eefe820224':'ede3650c4b65f8704a125672ed32f7b7110a78a83cdacf14744e6419d02a0892'));
+    const identity={...(env.STAGING_SCHEMA_PROFILE?{schemaProfile:env.STAGING_SCHEMA_PROFILE,combinedMigrationManifest:hash(JSON.stringify(manifest))}:{}),migrationManifest:check('SOURCE_MANIFEST_HASH',()=>hash(raw)),prismaSchema:schema,baselineChecksum:BASELINE_CHECKSUM,lockfile:await checked('SOURCE_LOCKFILE_READ_DIGEST',async()=>hash(await readFile('package-lock.json','utf8')))};
+    return {identity,manifest};
+
 }
