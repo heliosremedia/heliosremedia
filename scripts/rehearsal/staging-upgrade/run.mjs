@@ -10,6 +10,7 @@ import {schemaSnapshot, readLedger, hash, inspect} from '../../migrations/bootst
 import {verifyPrismaModel} from '../../migrations/bootstrap/equivalence.mjs';
 import {snapshot} from '../restoration/core.mjs';
 import {verifyUpgradeSnapshot} from '../../staging/current-upgrade-policy.mjs';
+import {verifiedCurrentMigrationSource} from '../../staging/current-upgrade-source.mjs';
 import {executeCurrentUpgrade} from '../../staging/current-upgrade-execute.mjs';
 import {CURRENT_SCHEMA, BASELINE_CHECKSUM} from '../../release/policy.mjs';
 
@@ -23,13 +24,7 @@ execFileSync('git',['diff','--quiet','HEAD','--']);
 const hostedSource='2999055b2b59467fcfef446c33a47212e72d4712';
 const scratch=await mkdtemp(join(tmpdir(),'studio-staging-upgrade-'));
 const old=join(scratch,'hosted-source');
-const extensions=JSON.parse(await readFile('scripts/rehearsal/staging-upgrade/migrations.json','utf8'));
-const manifest=JSON.parse(await readFile('scripts/migrations/bootstrap/history-sha256.json','utf8'));
-assert.equal(hash(await readFile('scripts/migrations/bootstrap/history-sha256.json','utf8')),'8cb9e5d72af3c2353018a3099d14172794e165a5e54ee11b02e80c46a5e6437a');
-assert.equal(Object.keys(extensions).length,6);
-assert.deepEqual((await readdir('prisma/migrations')).filter(n=>/^\d/.test(n)).sort(),[...Object.keys(manifest),...Object.keys(extensions)].sort());
-for(const [name,checksum] of Object.entries({...manifest,...extensions}))
-  assert.equal(hash(await readFile('prisma/migrations/'+name+'/migration.sql','utf8')),checksum,'Immutable migration '+name);
+const {extensions,history:manifest}=await verifiedCurrentMigrationSource();
 const control=new pg.Client({connectionString:databaseUrl('packet11_control')});
 const clients=[];
 async function connect(name){const db=new pg.Client({connectionString:databaseUrl(name)});await db.connect();clients.push(db);return db;}
