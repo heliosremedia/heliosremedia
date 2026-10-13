@@ -13,7 +13,7 @@ PR #432 merged into `codex/v2-hosted-access-owner-action` at `3ecb648b30645fd9f9
 
 The documentation commit carrying this checkpoint follows that merge without changing application/test/runtime source. Check live HEAD for it or newer work before acting. No unfinished implementation is left on these three PRs. Post-merge regression `38191421425` passed on `3ecb648b30645fd9f9c16d8fe16537ed26c6dba7`; verified again October 13 UTC without rerunning it.
 
-Protected inspector: `codex/v2-neon-staging-bootstrap` remains `b78600b3080dfa97dc263b13c2fca6bae30bf158` (#428). Its existing regression/contract runs `38177277278`, `38177277212`, `38177277232` passed. This older executor is separate from the application branch; do not merge its application baseline.
+Protected executor: `codex/v2-neon-staging-bootstrap` is now `89b69ca787f68641be5e9fb1d67a49f834e931c6` (#436), tree `0c2b5a6a9b60c2f0f7683fd3d8ff1ca9f95b7762`. #436 candidate `6f6d84ef2216125151c1989d018936949c8a5bcd` passed credential-free contract `38332844774` and executor regression `38332844723` (1,572 tests, TypeScript, configured Chromium); candidate/prospective/post-merge trees matched. The read-only inspection was completed on the earlier `b78600b3080dfa97dc263b13c2fca6bae30bf158` (#428). Its existing regression/contract runs `38177277278`, `38177277212`, `38177277232` passed. This older executor is separate from the application branch; do not merge its application baseline.
 
 ## Usable product progress
 
@@ -72,8 +72,8 @@ Existing targets:
 
 1. Inspection `38329475195` is complete and independently verified. Do not replay it. The ready branch is on the old schema, with no active owner having a stored password.
 2. #434/#435 qualified exact schema/ledger admission and the real upgrade runner on disposable PostgreSQL. #435 regression `38332366975` passed 54 new policy/invocation cases, 1,860 existing tests, TypeScript and all Chromium; rehearsal `38332366928` passed preservation, six executed migrations, Prisma equivalence, repeat no-op and failure/drift/concurrent/already-current rejection.
-3. PR #436 on `codex/v2-staging-upgrade-executor`, candidate `6f6d84ef2216125151c1989d018936949c8a5bcd`, pins the qualified source and successful run IDs into the existing protected bootstrap workflow. Contract `38332844774` passed; regression `38332844723` and final merge gates are pending. No migration run is dispatched. Keep the existing environment review, no-admin-bypass, ready guard and exact target.
-4. After qualified executor integration, dispatch the explicit six-migration track once. If GitHub requests review, give Jake that actual run; standing development authority does not bypass environment protection. Independently inspect the schema-upgrade receipt before further mutations. On uncertainty, inspect read-only; never blindly retry/repair.
+3. #436 is integrated on the protected executor. Upgrade run [38333803845](https://github.com/heliosremedia/heliosremedia/actions/runs/38333803845) was dispatched once after checking for equivalent active work; it is waiting for `helios-v2-staging-bootstrap` environment review. Legacy rehearsal job is skipped. No live migration has run.
+4. Jake's exact GitHub gate: **Review deployments → select helios-v2-staging-bootstrap → Approve and deploy**. This run applies only the six qualified database migrations and does not deploy Vercel or set owner credentials. Preserve no-admin-bypass/ready protections; do not redispatch while waiting. After completion independently inspect its receipt. On uncertainty use read-only inspection, never blind retry/repair.
 5. Current-source hosted build admission, persistent owner login and Studio workspace allowlisting remain incomplete. Existing hosted qualification restores its temporary hostname/configuration changes, so historical success did not leave a persistent owner-testing URL. Prepare these next under current source/schema provenance and existing provider restrictions; do not recreate infrastructure.
 
 #434 rehearsal artifact `11782518764`: SHA256 `2f423c5c25cfe65684d1ca0e90d143fcea5efb0747bf498ddc154df5c8c0f05e`; regression archive `11782899227`: `3c70d42898e1eb27ae3497039f867f125201ee8486bd63570a28ecd9e326a653`. #435 rehearsal `11782914230`: `202c96f99a67c17b85e43fcfce01208bcdf76043cd391603b6848ff78144aab3`; regression archive `11783219953`: `6cce0a01322b0e923d075fbcacff342825fde5e90bf63597099a4863d5d145f7`. All independently downloaded, compared with GitHub SHA256 metadata and ZIP CRC checked; runtime receipts inspected. UI is unchanged; prior responsive visual verification is reused. The ancestry-only #435 reconciliation changed no bytes and did not rerun expensive suites.
@@ -92,10 +92,23 @@ Completed inspection inputs (historical record, not an instruction to redispatch
 The sentinels cannot admit deployment. Inspection uses provider GETs and a read-only database transaction/rollback only if the ready guard passes. No provider activation, real customer onboarding, billing, destructive operation or production change is authorized. Production remains ON HOLD.
 
 
+## Current upgrade dispatch inputs
+
+| Input | Value |
+| --- | --- |
+| Branch | `codex/v2-neon-staging-bootstrap` |
+| executor_sha | `89b69ca787f68641be5e9fb1d67a49f834e931c6` |
+| candidate_sha | `f38e5e544e47f02891626395f79c80c9eae5eb1d` |
+| track | `current-studio-upgrade` |
+| confirmation | `calm-shape-83359560/br-young-math-arj7l4r3/helios_v2_staging` |
+| upgrade_confirmation | `upgrade-six-reviewed-migrations-only` |
+
 ## Current handoff
 
 #433, #434 and #435 are integrated and independently qualified. Last verified code integration is `2d9300c825e338de33c81183eaf41353a43d9f51`; this documentation-only checkpoint follows it without changing the qualified code. Protected inspection resolved the former authentication/dispatch and Neon-state uncertainty.
 
-Active work: finish #436 executor qualification and install its pinned six-migration track on the protected executor. Candidate source is #435's independently qualified `f38e5e544e47f02891626395f79c80c9eae5eb1d`. Executor remains `b78600b3080dfa97dc263b13c2fca6bae30bf158` until that PR qualifies and merges. No migration, Vercel setting, password or deployment changed.
+Active work: #437 on `codex/v2-current-hosted-admission`, candidate `c89af728c0d685be8e0dc6995367f4ca7f16610e`, qualifies explicit current Studio build admission on the maintained integration source branch and exact 25-entry schema. Current regression `38334090756` / rehearsal `38334090745` are in progress; do not merge before remaining gates pass.
 
-Next implementation: current Studio hosted build admission, followed by persistent owner setup and hosted workflow testing. Production ON HOLD; owner access and First Light remain unqualified.
+Initial #437 source `51b271fb72f59e7fc5366479420eea7323eb4972` passed real Next build/generated-client/PostgreSQL pre/postflight with synthetic provider metadata in `38333592245`. Artifact `11783917130` independently downloaded and CRC/hash verified: SHA256 `0e1603b4a4abcf63497badcf65b5ce4d215cf4e93fa242fcde7499956f318482`; build receipt and current catalog inspected. Regression `38333592281` exposed 21 harness/fingerprint failures after the source callback was extracted. Corrective commit changes only tests: execute the extracted helper, retain all legacy rejection/redaction cases, add current-profile source cases, preserve the original legacy runtime fingerprint, and explicitly pin the reviewed expanded build contract. No application/admission implementation changed in that correction. Final current-candidate gates remain pending.
+
+Protected upgrade run `38333803845` is waiting for its existing owner environment review. No live migration, Vercel setting, password or deployment changed. After that gate: independently verify the upgrade receipt, finish #437 current-source build admission, then implement persistent owner setup and hosted workflow testing. Production ON HOLD; owner access and First Light remain unqualified.
