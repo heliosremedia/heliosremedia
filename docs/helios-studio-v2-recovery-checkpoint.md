@@ -183,3 +183,30 @@ Exact-source regression `38409592844` and native-build/PostgreSQL rehearsal `384
 #442 is the separate protected Preview workflow pin. Initial candidate `698c955b45af9fc1245fdf24515a6e5251d5aba3` passed its contract, then full regression `38411184369` caught the inspection-job test consuming the newly appended current job. Review also required explicit !inputs.inspect_only on the current job. Follow-up `f419d8992f63acba1b80770f22a64023d55fbb92` adds that guard, excludes current track from legacy qualification, bounds the inspection test to one top-level job, and preserves its no-mutation/no-bypass assertions. Contract `38411870626` passed; regression `38411870709` is running. No live Preview attempt has been dispatched.
 
 Approved owner run `38406194120` remains failed at credential-input, before provider/database reads. Masked log entries independently confirm both secret inputs reached the step. Do not change environment wiring or weaken the password rule to hide this rejection. User must directly correct distinct 24–256 character password values without whitespace/control characters. No stored owner passwords were changed by that run, and no live operation has been retried. Complete #442 qualification, then hand off correction before a new bounded owner initialization. Production ON HOLD.
+
+## Current handoff after #441/#442 qualification
+
+#441 source remains integrated at `2f890c32d6ba627e3af49c294f15b7fb61773394`. Its integration regression `38410895761` completed successfully. Source feature qualification, native-build/PostgreSQL receipts and independent archive verification are recorded above; no application UI bytes changed.
+
+#442 is now merged into protected executor at `9e7dcfc4611ed21e19d7fc1b7a42ff1da109c68d`. Final candidate `f419d8992f63acba1b80770f22a64023d55fbb92`, prospective merge and post-merge tree all `c01f48dfee143bdcf7dccd91eb85af2bb500599a`. Contract `38411870626` and exact executor regression `38411870709` passed (1,578 tests, TypeScript, configured Chromium). The inspection job remains read-only; both deployment tracks explicitly reject inspection mode. This is a protected workflow-only change, not a live Preview deployment.
+
+### Immediate required credential correction
+
+Approved run `38406194120` failed at credential-input and changed no database rows or owner passwords. Both A/B secrets reached the step as masked values. One or more values failed the existing distinct 24–256 character/no-whitespace-or-control-character rule. No value or length was retrieved. User must directly edit STAGING_OWNER_PASSWORD_A and STAGING_OWNER_PASSWORD_B in environment helios-v2-staging-bootstrap. Recommended entry: two different password-manager-generated 32-character values, copied without leading/trailing whitespace or line breaks. Browser policy requires user entry/submission. Keep these values for normal synthetic-owner login and never paste them into chat.
+
+After user correction, do not rerun the old migration. A fresh bounded credential-only dispatch may use the existing named track on the current qualified executor HEAD `9e7dcfc4611ed21e19d7fc1b7a42ff1da109c68d`, candidate `b4bd905041da9223ed7314d5000914addfead53d`, track persistent-owner-credentials, the established exact target confirmation and initialize-two-synthetic-owner-passwords-only. Verify no equivalent active run before dispatch and preserve actual environment review. The unchanged initializer will reject any existing credentials rather than rotate or repair them. Inspect the resulting independent receipt before proceeding.
+
+### Prepared current Preview execution — not dispatched
+
+| Input | Exact value |
+| --- | --- |
+| Workflow | v2-vercel-staging-qualification.yml |
+| Branch | codex/v2-neon-staging-bootstrap |
+| executor_sha | 9e7dcfc4611ed21e19d7fc1b7a42ff1da109c68d |
+| candidate_sha | 2f890c32d6ba627e3af49c294f15b7fb61773394 |
+| track | current-owner-preview |
+| current_confirmation | retain-current-preview-for-synthetic-owner-testing-only |
+| confirmation | calm-shape-83359560/br-young-math-arj7l4r3/helios_v2_staging |
+| inspect_only | false |
+
+The workflow statically pins integration regression 38410895761 and rehearsal 38409592404 / source 78fac8d545cd8ae52237dbca209176a8619530d7. It does not initialize credentials or migrate. Run only after verified owner initialization. Honor the existing protected review, independently verify the final safe receipt and actual owner login/refresh/logout/tenant isolation, and claim a testing URL only after all live gates pass. No live Preview, Vercel configuration or production change occurred in this continuation. No current testing URL or First Light is qualified. Production ON HOLD.
