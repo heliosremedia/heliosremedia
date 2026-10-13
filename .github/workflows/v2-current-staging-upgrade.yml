@@ -1,7 +1,7 @@
 name: V2 current staging upgrade rehearsal
 on:
   push:
-    branches: ['codex/v2-current-staging-upgrade', 'codex/v2-staging-current-admission']
+    branches: ['codex/v2-current-staging-upgrade', 'codex/v2-staging-current-admission', 'codex/v2-staging-current-executor']
 permissions:
   contents: read
 concurrency:
@@ -40,7 +40,7 @@ jobs:
           git fetch --depth 1 origin 2999055b2b59467fcfef446c33a47212e72d4712
       - run: npm ci --ignore-scripts
       - name: Check exact current upgrade admission
-        run: node --test scripts/staging/current-upgrade-policy.test.mjs
+        run: node --test scripts/staging/current-upgrade-*.test.mjs
       - name: Rehearse six current migrations on the hosted baseline
         run: node scripts/rehearsal/staging-upgrade/run.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

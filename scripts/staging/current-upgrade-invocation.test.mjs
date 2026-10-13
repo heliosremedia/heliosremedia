@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {upgradeInvocation,qualifiedUpgradeRun} from './current-upgrade-invocation.mjs';
+const sha='a'.repeat(40),candidate='b'.repeat(40);
+const env={GITHUB_ACTIONS:'true',GITHUB_REPOSITORY:'heliosremedia/heliosremedia',GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_REF:'refs/heads/codex/v2-neon-staging-bootstrap',GITHUB_WORKFLOW_REF:'heliosremedia/heliosremedia/.github/workflows/v2-neon-staging-bootstrap.yml@refs/heads/codex/v2-neon-staging-bootstrap',GITHUB_SHA:sha,STAGING_EXECUTOR_SHA:sha,STAGING_CANDIDATE_SHA:candidate,STAGING_CONFIRMATION:'calm-shape-83359560/br-young-math-arj7l4r3/helios_v2_staging',STAGING_UPGRADE_CONFIRMATION:'upgrade-six-reviewed-migrations-only',STAGING_REGRESSION_RUN:'123',STAGING_UPGRADE_RUN:'456'};
+test('admits protected exact invocation',()=>assert.equal(upgradeInvocation(env,candidate),candidate));
+for(const key of Object.keys(env))test('rejects invalid '+key,()=>assert.throws(()=>upgradeInvocation({...env,[key]:'invalid'},candidate)));
+for(const key of ['VERCEL','VERCEL_ENV','HELIOS_RELEASE_TARGET'])test('rejects hosted '+key,()=>assert.throws(()=>upgradeInvocation({...env,[key]:'production'},candidate)));
+test('rejects different checked out source',()=>assert.throws(()=>upgradeInvocation(env,sha)));
+const path='.github/workflows/v2-current-staging-upgrade.yml';
+const run={head_sha:candidate,event:'push',path,repository:{full_name:'heliosremedia/heliosremedia'},status:'completed',conclusion:'success'};
+test('accepts exact completed source qualification',()=>qualifiedUpgradeRun(run,candidate,path));
+for(const [key,value] of Object.entries({head_sha:sha,event:'pull_request',path:'.github/workflows/unrelated.yml',repository:{full_name:'other/repo'},status:'in_progress',conclusion:'failure'}))test('rejects qualification mismatch '+key,()=>assert.throws(()=>qualifiedUpgradeRun({...run,[key]:value},candidate,path)));
