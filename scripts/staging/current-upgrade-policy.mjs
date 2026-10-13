@@ -52,5 +52,7 @@ export function verifyUpgradeTransition(before, after) {
   verifyUpgradeSnapshot(before, 'baseline');
   verifyUpgradeSnapshot(after, 'current');
   assert.deepEqual(after.ledger.filter(row => Object.hasOwn(baseline, row.migration_name)), before.ledger, 'Existing ledger rows changed');
+  for (const row of after.ledger.filter(row => !Object.hasOwn(baseline, row.migration_name)))
+    assert.ok(row.applied_steps_count > 0, 'New migrations must have executed steps, not resolved bookkeeping');
   return { existingLedgerRowsPreserved: true, addedMigrations: 6, automaticRepair: false };
 }
