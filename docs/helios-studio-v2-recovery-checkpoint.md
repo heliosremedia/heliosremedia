@@ -2,6 +2,28 @@
 
 Updated October 13, 2026 (UTC). **Production ON HOLD.** Live GitHub is authoritative. This is the single current continuity record; historical evidence remains in the progress ledger and [prior checkpoint](https://github.com/heliosremedia/heliosremedia/blob/e0f57719355a03a3e63918928173c6697f01d813/docs/helios-studio-v2-recovery-checkpoint.md). The owner's continuous-development directive supersedes the earlier temporary feature pause.
 
+## Current status — October 13, 2026, 11:39 MDT
+
+**Persistent synthetic-owner login and current-source staging Preview are now live-qualified.** Protected run [38417689573](https://github.com/heliosremedia/heliosremedia/actions/runs/38417689573) completed successfully after actual owner review. This section supersedes historical waiting, missing-password and no-testing-URL statements below. Production remains ON HOLD; provider activation, real tenant onboarding and First Light are not qualified.
+
+- Application source: 2f890c32d6ba627e3af49c294f15b7fb61773394 (#441). Executor: 9e7dcfc4611ed21e19d7fc1b7a42ff1da109c68d (#442). Only later documentation differs from the current application source.
+- qualify_current job 115366401234 passed all steps, including 41 credential-free policy tests, native Preview/ordinary owner qualification and independent suppression restoration. Historical qualify/inspect were skipped. No migration or credential initialization was repeated.
+- Artifact 11834213587, staging-current-owner-preview-38417689573-1, independently downloaded; SHA256 3f5e3b91606d01bdea366aa03c93d7fa18ddaf5d1039a009ebfcdbd9039e98e9 matched GitHub metadata; ZIP CRC passed; current-owner-preview.json inspected. success:true, ownerAccessQualified:true, failures:[], persistentHostnameBindings:true.
+- READY Preview dpl_5kwK1bUf2ZasbbB8WhsSsPjFmEt2 belongs to exact existing staging project/team and source. Checksummed native build receipt checksum 1d64f57e0672404e83d4e4ad8b48778b023fe96e6133ccf207b06211c8b984b0; buildDigest 3d7f24aea54deafcee3a25a965a12fa33983bc9e462bd4b325a105ee99386dc9. Before/after current schema 9a0c9c3ca2796e8f4c640c652e51fd0c7132bd30b8f59ab5e755327009ba8d3f and ledger c180e1f22e689cdff0598a535176443b3ba37eefe25e07e77354226534ff89e8 match.
+- Both owners used actual ordinary LoginForm/password flow, reached Command Center, refreshed at 390/1440 widths without page errors/overflow, read own media (200), rejected foreign media (404), rejected the other owner's password (401), logged out and signed back in with persisted passwords. External browser requests:0. Postflight validates only allowed hostname/auth-metadata/audit transitions; existing credentials/unrelated data/schema/ledger preserved.
+- Run-owned temporary Preview configuration removed, automatic builds suppressed again, verified hostname bindings retained. The deployed configuration retains its captured auth/database settings; no production configuration changed. The receipt's coarse events reason labels classify sanitized log text and are not lifecycle failures; failures is empty and every admission/qualification/cleanup gate passed.
+
+| Workspace | Email | Password | Verified testing URL |
+| --- | --- | --- | --- |
+| packet16-a | packet16-a@example.test | Owner's saved STAGING_OWNER_PASSWORD_A | [Company A](https://helios-v2-staging-kou4v5ib4-helios-real-estate-media.vercel.app/login?next=%2Fadmin%2Fstudio) |
+| packet16-b | packet16-b@example.test | Owner's saved STAGING_OWNER_PASSWORD_B | [Company B](https://helios-v2-staging-git-codex-v2-ba2354-helios-real-estate-media.vercel.app/login?next=%2Fadmin%2Fstudio) |
+
+Vercel Deployment Protection remains enabled. Independent unauthenticated URL checks reached Vercel sign-in, as expected; users must authenticate with their existing authorized Vercel account before ordinary application login. Hosted qualification used the existing configured testing credential, not disabled protection or minted app sessions. Do not expose passwords/bypass credentials or broaden access controls. No testing URL contains a secret.
+
+Recovery tooling: prior local worktree path was missing (-32603 No such file or directory); GitHub source reads worked and scratch Python independently verified the artifact. Vercel connector deployment listing returned 403 Forbidden for the exact team/project; local Vercel CLI absent. No unchanged retries or scope changes. GitHub protected runner's separately configured provider credentials completed all live gates.
+
+Next: owner can inspect this qualified synthetic Studio using the retained links. Continue ordinary reversible non-production product work from live integration, keeping this Preview's source provenance explicit and preserving existing controls. Do not recreate infrastructure, rerun completed migration 38336325763, replay credential initialization 38416979449, or duplicate this successful Preview run. Current qualification establishes hosted access, not full-product completion or real-company onboarding.
+
 ## Verified integration
 
 Latest staging dependency integration: PR #437 at `f1d58c8061be4706b7a6a716e217a14afafb3e57`, post-merge tree `9e53cf8f522a03e352d974f5a138a961e2b66fa0`. Qualified execution source `963d33ee9858d6a4d5b4f60131b4b6e07db4a79d`, tree `458785c77d0fb03c4651712d17b3a4754f740d79`; final head `831e36b31460278d5a71f5a165d11f4f55f68bed` differs only in this checkpoint, verified by GitHub comparison. Prospective/post-merge trees match. #434/#435 added exact schema admission and the rehearsed upgrade runner; #437 fixes UTF-8 source validation and qualifies current-source hosted builds. The six reviewed migrations have now been applied to live staging by completed run 38336325763; independent receipt verification is recorded below.
