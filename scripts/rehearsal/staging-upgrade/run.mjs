@@ -9,6 +9,7 @@ import {prepareArtifact, prisma, databaseUrl, command} from '../../migrations/bo
 import {schemaSnapshot, readLedger, hash, inspect} from '../../migrations/bootstrap/inspect.mjs';
 import {verifyPrismaModel} from '../../migrations/bootstrap/equivalence.mjs';
 import {snapshot} from '../restoration/core.mjs';
+import {verifyUpgradeSnapshot, verifyUpgradeTransition} from '../../staging/current-upgrade-policy.mjs';
 import {CURRENT_SCHEMA, BASELINE_CHECKSUM} from '../../release/policy.mjs';
 
 assert.equal(process.env.STUDIO_STAGING_UPGRADE, 'isolated-only');
@@ -50,6 +51,8 @@ try {
   const admission=await inspect(db,{current:beforeSchema,historical:{},manifest,baselineChecksum:BASELINE_CHECKSUM});
   assert.equal(admission.state,'current-compatible-ledger');assert.equal(admission.track,'baseline');
   assert.equal(beforeLedger.length,19);
+  const beforeUpgrade={schemaHash:hash(beforeSchema),ledger:beforeLedger};
+  verifyUpgradeSnapshot(beforeUpgrade,'baseline');
   // Stored private project data in two companies must survive the upgrade exactly.
   for(const id of ['upgrade-a','upgrade-b']) {
     await db.query('INSERT INTO "Workspace" (id,name,slug,"updatedAt") VALUES ($1,$1,$1,$2)',[id,'2026-09-26T12:00:00Z']);
@@ -62,6 +65,7 @@ try {
   }
   await prisma(artifact,'packet11_clean',['migrate','deploy']);
   const afterSchema=await schemaSnapshot(db),afterLedger=await readLedger(db),afterData=await snapshot(db);
+  const upgradeAdmission=verifyUpgradeTransition(beforeUpgrade,{schemaHash:hash(afterSchema),ledger:afterLedger});
   assert.deepEqual(afterLedger.filter(r=>!Object.hasOwn(extensions,r.migration_name)),beforeLedger,'Existing ledger rows unchanged');
   const added=afterLedger.filter(r=>Object.hasOwn(extensions,r.migration_name));
   assert.equal(added.length,6);
@@ -82,7 +86,7 @@ try {
   assert.deepEqual(await schemaSnapshot(db),afterSchema);
   assert.deepEqual(await snapshot(db),afterData);
   await mkdir('staging-evidence',{recursive:true});
-  await writeFile('staging-evidence/current-upgrade.json',JSON.stringify({candidate,hostedSource,result:'passed',baselineChecksum:BASELINE_CHECKSUM,beforeSchemaHash:hash(beforeSchema),afterSchemaHash:hash(afterSchema),beforeLedgerHash:hash(beforeLedger),afterLedgerHash:hash(afterLedger),migrations:extensions,existingLedgerRowsPreserved:true,twoCompanyRowsPreserved:true,noImplicitEnrollment:true,prismaModelEquivalent:true,repeatedDeployNoOp:true,hosted:false,deployable:false},null,2)+'\n');
+  await writeFile('staging-evidence/current-upgrade.json',JSON.stringify({candidate,hostedSource,result:'passed',baselineChecksum:BASELINE_CHECKSUM,beforeSchemaHash:hash(beforeSchema),afterSchemaHash:hash(afterSchema),beforeLedgerHash:hash(beforeLedger),afterLedgerHash:hash(afterLedger),migrations:extensions,upgradeAdmission,existingLedgerRowsPreserved:true,twoCompanyRowsPreserved:true,noImplicitEnrollment:true,prismaModelEquivalent:true,repeatedDeployNoOp:true,hosted:false,deployable:false},null,2)+'\n');
   console.log('CURRENT_STAGING_UPGRADE_REHEARSAL_PASSED');
 } finally {
   process.chdir(root);
