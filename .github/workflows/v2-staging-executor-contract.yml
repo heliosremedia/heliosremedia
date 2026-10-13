@@ -1,7 +1,7 @@
 name: V2 staging executor credential-free contract
 on:
   push:
-    branches: ['codex/v2-neon-staging-bootstrap']
+    branches: ['codex/v2-neon-staging-bootstrap', 'codex/v2-staging-upgrade-executor']
 permissions:
   contents: read
 jobs:
