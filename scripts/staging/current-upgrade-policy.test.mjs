@@ -45,3 +45,14 @@ test('rejects altered original completion time after migration',()=>{
   after.ledger[0].finished_at='2026-10-10T10:02:00Z';
   assert.throws(()=>verifyUpgradeTransition(before,after),/Existing ledger rows changed/);
 });
+
+test('rejects a new migration marked resolved without execution',()=>{
+  const after=snapshot('current');
+  after.ledger.find(row=>Object.hasOwn(extensions,row.migration_name)).applied_steps_count=0;
+  assert.throws(()=>verifyUpgradeTransition(snapshot('baseline'),after),/must have executed steps/);
+});
+test('preserves historical resolved baseline rows without weakening new migration execution',()=>{
+  const before=snapshot('baseline'),after=snapshot('current');
+  before.ledger[0].applied_steps_count=0;after.ledger[0].applied_steps_count=0;
+  assert.equal(verifyUpgradeTransition(before,after).addedMigrations,6);
+});

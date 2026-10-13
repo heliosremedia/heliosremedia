@@ -9,7 +9,8 @@ import {prepareArtifact, prisma, databaseUrl, command} from '../../migrations/bo
 import {schemaSnapshot, readLedger, hash, inspect} from '../../migrations/bootstrap/inspect.mjs';
 import {verifyPrismaModel} from '../../migrations/bootstrap/equivalence.mjs';
 import {snapshot} from '../restoration/core.mjs';
-import {verifyUpgradeSnapshot, verifyUpgradeTransition} from '../../staging/current-upgrade-policy.mjs';
+import {verifyUpgradeSnapshot} from '../../staging/current-upgrade-policy.mjs';
+import {executeCurrentUpgrade} from '../../staging/current-upgrade-execute.mjs';
 import {CURRENT_SCHEMA, BASELINE_CHECKSUM} from '../../release/policy.mjs';
 
 assert.equal(process.env.STUDIO_STAGING_UPGRADE, 'isolated-only');
@@ -58,35 +59,37 @@ try {
     await db.query('INSERT INTO "Workspace" (id,name,slug,"updatedAt") VALUES ($1,$1,$1,$2)',[id,'2026-09-26T12:00:00Z']);
     await db.query('INSERT INTO "Project" (id,"workspaceId",title,slug,status,"updatedAt") VALUES ($1,$2,$1,$1,\'DRAFT\',$3)',[id+'-project',id,'2026-09-26T12:00:00Z']);
   }
-  const beforeData=await snapshot(db);
   for(const name of Object.keys(extensions).sort()) {
     await mkdir(join(artifact.dir,'migrations',name));
     await writeFile(join(artifact.dir,'migrations',name,'migration.sql'),await readFile('prisma/migrations/'+name+'/migration.sql'));
   }
-  await prisma(artifact,'packet11_clean',['migrate','deploy']);
+  let attempts=0;
+  await assert.rejects(executeCurrentUpgrade(db,async()=>{attempts++;throw new Error('synthetic failure');}),/synthetic failure/);
+  assert.equal(attempts,1,'Never retry a failed migration');
+  assert.deepEqual(await readLedger(db),beforeLedger);
+  await db.query('CREATE TABLE staging_upgrade_unexpected (id integer)');
+  attempts=0;
+  await assert.rejects(executeCurrentUpgrade(db,async()=>{attempts++;}),/Catalog differs/);
+  assert.equal(attempts,0,'Schema drift must block before Prisma');
+  await db.query('DROP TABLE staging_upgrade_unexpected');
+  const other=await connect('packet11_clean');
+  await other.query('SELECT pg_advisory_lock(1200318)');
+  await assert.rejects(executeCurrentUpgrade(db,async()=>{attempts++;}),/Another release owns/);
+  assert.equal(attempts,0,'Concurrent release must block before Prisma');
+  await other.query('SELECT pg_advisory_unlock(1200318)');
+  const execution=await executeCurrentUpgrade(db,()=>prisma(artifact,'packet11_clean',['migrate','deploy']));
+  attempts=0;
+  await assert.rejects(executeCurrentUpgrade(db,async()=>{attempts++;}),/Catalog differs/);
+  assert.equal(attempts,0,'Already-current targets require review, never blind replay');
   const afterSchema=await schemaSnapshot(db),afterLedger=await readLedger(db),afterData=await snapshot(db);
-  const upgradeAdmission=verifyUpgradeTransition(beforeUpgrade,{schemaHash:hash(afterSchema),ledger:afterLedger});
-  assert.deepEqual(afterLedger.filter(r=>!Object.hasOwn(extensions,r.migration_name)),beforeLedger,'Existing ledger rows unchanged');
-  const added=afterLedger.filter(r=>Object.hasOwn(extensions,r.migration_name));
-  assert.equal(added.length,6);
-  for(const r of added){assert.equal(r.checksum,extensions[r.migration_name]);assert.ok(r.finished_at&&!r.rolled_back_at&&r.applied_steps_count>0);}
-  for(const [table,rows] of Object.entries(beforeData)) {
-    if(table==='_prisma_migrations')continue;
-    const normalized=structuredClone(afterData[table]);
-    if(table==='Workspace')for(const row of normalized){assert.equal(row.lifecycleState,'ACTIVE');assert.equal(row.lifecycleRevision,0);assert.equal(row.lastReactivatedAt,null);delete row.lifecycleState;delete row.lifecycleRevision;delete row.lastReactivatedAt;}
-    assert.deepEqual(normalized,rows,'Stored rows retained: '+table);
-  }
-  for(const table of Object.keys(afterData).filter(t=>!Object.hasOwn(beforeData,t)))assert.deepEqual(afterData[table],[],'No implicit enrollment: '+table);
+  const upgradeAdmission=execution.admission;
+  assert.equal(execution.existingDataPreserved,true);
   const model=await connect('packet11_model');
   const sql=await command(process.execPath,['node_modules/prisma/build/index.js','migrate','diff','--from-empty','--to-schema','prisma/schema.prisma','--script'],{DIRECT_URL:databaseUrl('packet11_control')});
   await model.query(sql);
   verifyPrismaModel(afterSchema,await schemaSnapshot(model));
-  await prisma(artifact,'packet11_clean',['migrate','deploy']);
-  assert.deepEqual(await readLedger(db),afterLedger,'Second deployment is a no-op');
-  assert.deepEqual(await schemaSnapshot(db),afterSchema);
-  assert.deepEqual(await snapshot(db),afterData);
   await mkdir('staging-evidence',{recursive:true});
-  await writeFile('staging-evidence/current-upgrade.json',JSON.stringify({candidate,hostedSource,result:'passed',baselineChecksum:BASELINE_CHECKSUM,beforeSchemaHash:hash(beforeSchema),afterSchemaHash:hash(afterSchema),beforeLedgerHash:hash(beforeLedger),afterLedgerHash:hash(afterLedger),migrations:extensions,upgradeAdmission,existingLedgerRowsPreserved:true,twoCompanyRowsPreserved:true,noImplicitEnrollment:true,prismaModelEquivalent:true,repeatedDeployNoOp:true,hosted:false,deployable:false},null,2)+'\n');
+  await writeFile('staging-evidence/current-upgrade.json',JSON.stringify({candidate,hostedSource,result:'passed',baselineChecksum:BASELINE_CHECKSUM,beforeSchemaHash:hash(beforeSchema),afterSchemaHash:hash(afterSchema),beforeLedgerHash:hash(beforeLedger),afterLedgerHash:hash(afterLedger),migrations:extensions,upgradeAdmission,execution,negativeGates:{failedDeployNotRetried:true,schemaDriftBlocked:true,concurrentReleaseBlocked:true,alreadyCurrentReplayBlocked:true},existingLedgerRowsPreserved:true,twoCompanyRowsPreserved:true,noImplicitEnrollment:true,prismaModelEquivalent:true,repeatedDeployNoOp:true,hosted:false,deployable:false},null,2)+'\n');
   console.log('CURRENT_STAGING_UPGRADE_REHEARSAL_PASSED');
 } finally {
   process.chdir(root);
