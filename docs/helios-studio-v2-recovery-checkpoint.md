@@ -6,7 +6,7 @@ Updated October 12, 2026 (UTC). **Production ON HOLD.** Live GitHub is authorita
 
 PR #432 merged into `codex/v2-hosted-access-owner-action` at `3ecb648b30645fd9f9c16d8fe16537ed26c6dba7`. Qualified candidate `b9e46c56ae047cab3f1a48b1d9a5884237c7f079`; candidate, prospective merge and post-merge tree all `1c2220359f2b2db0151542b3ae583437698fff57`. #430 integrated at `5bf220625c3d7cd6520146d325c64beaee39e933`; #431 at `20a2d61d41c14ca59cc2331c3ffce332cf248352`.
 
-The documentation commit carrying this checkpoint follows that merge without changing application/test/runtime source. Check live HEAD for it or newer work before acting. No unfinished implementation is left on these three PRs. Integration-triggered CI may run separately; the exact merged tree already passed both required candidate workflows.
+The documentation commit carrying this checkpoint follows that merge without changing application/test/runtime source. Check live HEAD for it or newer work before acting. No unfinished implementation is left on these three PRs. Post-merge regression `38191421425` passed on `3ecb648b30645fd9f9c16d8fe16537ed26c6dba7`; verified again October 13 UTC without rerunning it.
 
 Protected inspector: `codex/v2-neon-staging-bootstrap` remains `b78600b3080dfa97dc263b13c2fca6bae30bf158` (#428). Its existing regression/contract runs `38177277278`, `38177277212`, `38177277232` passed. This older executor is separate from the application branch; do not merge its application baseline.
 
@@ -79,3 +79,10 @@ Existing targets:
 | hosted_confirmation | `read-only-inspection` |
 
 The sentinels cannot admit deployment. Inspection uses provider GETs and a read-only database transaction/rollback only if the ready guard passes. No provider activation, real customer onboarding, billing, destructive operation or production change is authorized. Production remains ON HOLD.
+
+
+## October 13 UTC continuation: owner sign-in recovery
+
+Live recovery found integration HEAD `194a32049bf574aa2b539184bef1fab67044744d` and executor `b78600b3080dfa97dc263b13c2fca6bae30bf158` unchanged; no active workflow or newer product PR. Existing protected inspection history still ends at `38159974154`. Current connector inventory has no dispatch action and gh is absent. A fresh browser check found GitHub signed out. Secure browser authentication reached Google's password stage, but automatic approval review rejected password entry because the page reported a wrong password; the user must choose retry or another sign-in method. No password or credential was read, no alternate path bypassed the rejection, and no inspection was dispatched. Smallest access restoration: complete GitHub authentication through the supported secure browser flow (user chooses the next method); then recheck duplicate runs, dispatch exact inspection-only inputs, and preserve environment review. This is an authentication requirement, not missing owner development authorization.
+
+Active bounded work on `codex/v2-owner-login-recovery`: the login form currently exposes raw transport/JSON errors and unlocks immediately after requesting navigation. Add clear connection recovery, prevent duplicate pending submissions, preserve entered fields on failure and keep submission locked during confirmed navigation. Authentication API, password policy, cookies, session/tenant controls, schema, provider settings and deployment remain unchanged. Add styled 390/1440 actual-component Chromium coverage with synthetic credentials/transport. Existing #432 actual-server ordinary-password evidence remains valid for unchanged backend contracts. Required regression/TypeScript/Chromium, independent responsive artifact inspection and merge-tree verification pending. Local Next package documentation is unavailable in this scratch workspace; the official App Router useRouter guide was reviewed and existing replace/refresh calls retained. Production ON HOLD.
