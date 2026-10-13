@@ -64,9 +64,11 @@ test('wrong database or writable transaction stops before schema inspection and 
 test('inspection mode retains the existing owner environment gate and cannot enter deployment job', () => {
   const workflow = readFileSync('.github/workflows/v2-vercel-staging-qualification.yml', 'utf8');
   assert.match(workflow, /!inputs\.inspect_only &&/); assert.match(workflow, /default: false/);
-  const inspection = workflow.slice(workflow.indexOf('\n  inspect:'));
+  const inspection = workflow.slice(workflow.indexOf('\n  inspect:')).split(/\n  [a-zA-Z_][a-zA-Z0-9_]*:/).slice(1, 2).join('');
   assert.match(inspection, /if: inputs\.inspect_only &&/); assert.match(inspection, /environment: helios-v2-staging-bootstrap/); assert.match(inspection, /github\.sha == inputs\.executor_sha/);
   assert.doesNotMatch(inspection, /actions\/live\.mjs|migrate|db push|--prod|BYPASS_SECRET|STAGING_HOSTED_CONFIRMATION/);
+  const current = workflow.slice(workflow.indexOf('\n  qualify_current:'));
+  if (current.includes('qualify_current:')) assert.match(current, /if: \$\{\{ !inputs\.inspect_only && inputs\.track == 'current-owner-preview'/);
   const script = readFileSync('scripts/staging/readonly-inspection.mjs', 'utf8');
   assert.match(script, /protection\(await jsonGet/); assert.doesNotMatch(script, /method: '(POST|PATCH|DELETE)'/);
 });
