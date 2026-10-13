@@ -10,19 +10,28 @@ on:
         description: Explicit database track
         required: true
         type: choice
-        options: [clean-bootstrap, current-baseline]
+        options: [clean-bootstrap, current-baseline, current-studio-upgrade]
+      executor_sha:
+        description: Exact protected executor HEAD; required for current-studio-upgrade
+        required: false
+        type: string
+      upgrade_confirmation:
+        description: For current-studio-upgrade enter upgrade-six-reviewed-migrations-only
+        required: false
+        type: string
       confirmation:
         description: Enter calm-shape-83359560/br-young-math-arj7l4r3/helios_v2_staging
         required: true
         type: string
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: helios-v2-staging-bootstrap
   cancel-in-progress: false
 jobs:
   rehearsal:
-    if: github.repository == 'heliosremedia/heliosremedia' && github.ref == 'refs/heads/codex/v2-neon-staging-bootstrap' && github.sha == inputs.candidate_sha
+    if: inputs.track != 'current-studio-upgrade' && github.repository == 'heliosremedia/heliosremedia' && github.ref == 'refs/heads/codex/v2-neon-staging-bootstrap' && github.sha == inputs.candidate_sha
     environment: helios-v2-staging-bootstrap
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -85,5 +94,48 @@ jobs:
         with:
           name: neon-staging-bootstrap-${{ github.sha }}-${{ github.run_id }}
           path: staging-evidence/bootstrap.json
+          if-no-files-found: error
+          retention-days: 30
+
+  upgrade_current:
+    if: inputs.track == 'current-studio-upgrade' && github.repository == 'heliosremedia/heliosremedia' && github.ref == 'refs/heads/codex/v2-neon-staging-bootstrap' && github.sha == inputs.executor_sha && inputs.candidate_sha == 'f38e5e544e47f02891626395f79c80c9eae5eb1d' && inputs.upgrade_confirmation == 'upgrade-six-reviewed-migrations-only'
+    environment: helios-v2-staging-bootstrap
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout independently qualified current upgrade source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: f38e5e544e47f02891626395f79c80c9eae5eb1d
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Fetch immutable baseline and historical staging source
+        run: |
+          git fetch --depth 1 origin 72dab34568cb6885f3e93b5ed9db38edca156835
+          git fetch --depth 1 origin 2999055b2b59467fcfef446c33a47212e72d4712
+      - run: npm ci --ignore-scripts
+      - name: Check admission without provider credentials
+        run: node --test scripts/staging/current-upgrade-*.test.mjs
+      - name: Apply only the six qualified staging migrations
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          STAGING_GITHUB_READ_TOKEN: ${{ secrets.STAGING_GITHUB_READ_TOKEN }}
+          STAGING_NEON_API_KEY: ${{ secrets.STAGING_NEON_API_KEY }}
+          STAGING_DIRECT_URL: ${{ secrets.STAGING_DIRECT_URL }}
+          STAGING_EXECUTOR_SHA: ${{ inputs.executor_sha }}
+          STAGING_CANDIDATE_SHA: f38e5e544e47f02891626395f79c80c9eae5eb1d
+          STAGING_CONFIRMATION: ${{ inputs.confirmation }}
+          STAGING_UPGRADE_CONFIRMATION: ${{ inputs.upgrade_confirmation }}
+          STAGING_REGRESSION_RUN: '38332366975'
+          STAGING_UPGRADE_RUN: '38332366928'
+        run: node scripts/staging/current-upgrade-live.mjs
+      - name: Retain sanitized schema upgrade receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: staging-current-upgrade-${{ github.run_id }}-${{ github.run_attempt }}
+          path: staging-evidence/current-upgrade-live.json
           if-no-files-found: error
           retention-days: 30
