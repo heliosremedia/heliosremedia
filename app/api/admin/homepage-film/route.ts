@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/auth/session";
 import { getSiteSettingsWriteTarget } from "@/lib/site-settings-ownership";
-import { verifyRegisteredBrandImage } from "@/lib/workspace-brand-assets";
+import { lockRegisteredBrandImage, verifyRegisteredBrandImage } from "@/lib/workspace-brand-assets";
 import { resolveFeaturedFilmAsset } from "@/lib/homepage-film-ownership";
 import { requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
@@ -51,6 +51,8 @@ export async function PATCH(request: Request) {
       await requireLockedWorkspaceEditor(tx, session);
       const currentTarget = await getSiteSettingsWriteTarget(session.workspaceId, tx);
       if (JSON.stringify(currentTarget) !== JSON.stringify(target)) throw new Error("FILM_SETTINGS_CHANGED");
+      await lockRegisteredBrandImage(tx, { workspaceId: session.workspaceId, kind: "site-featured-film", key: video.key, existingKey: existing?.featuredFilmVideoStorageKey });
+      await lockRegisteredBrandImage(tx, { workspaceId: session.workspaceId, kind: "site-featured-film", key: poster.key, existingKey: existing?.featuredFilmPosterStorageKey });
       if (existing) {
         const changed = await tx.siteSettings.updateMany({ where: { AND: [currentTarget.where, { id: existing.id, workspaceId: existing.workspaceId, updatedAt: existing.updatedAt }] }, data: {
           ...data, updatedAt: new Date(Math.max(Date.now(), existing.updatedAt.getTime() + 1)),

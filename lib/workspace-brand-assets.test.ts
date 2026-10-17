@@ -23,7 +23,7 @@ test("brand attachment requires registry evidence before object access, preservi
   let companies = [{ id: "a" }];
   const env = { STUDIO_V2_ASSET_OWNERSHIP_ENABLED: "false" };
   const api = load<BrandApi>("./workspace-brand-assets.ts", {
-    "server-only": {}, "@/lib/r2": r2, "@/lib/workspace-brand-storage": policy,
+    "server-only": {}, "@/lib/workspace-write-access": {}, "@/lib/r2": r2, "@/lib/workspace-brand-storage": policy,
     "@/lib/workspace-context-core": { tenantContextEnabled: () => enabled },
     "@/lib/content-image-storage": { verifyContentImage: async () => { checks++; } },
     "@/lib/prisma": { prisma: {
@@ -53,9 +53,14 @@ test("brand upload cannot grant or write a key before registering immutable owne
   const events: string[] = [];
   let collision = false;
   let stale = false;
+  let forbidden = false;
+  const authorize = async (_tx: unknown, actor: { workspaceId: string; userId: string; sessionVersion: number }) => {
+    assert.equal(actor.workspaceId, "a"); assert.equal(actor.userId, "actor"); assert.equal(actor.sessionVersion, 7);
+    if (forbidden) throw new Error("WORKSPACE_WRITE_FORBIDDEN");
+  };
   const api = load<BrandApi>("./workspace-brand-assets.ts", {
-    "server-only": {}, "@/lib/r2": r2, "@/lib/workspace-brand-storage": policy, "@/lib/workspace-context-core": {}, "@/lib/content-image-storage": {},
-    "@/lib/prisma": { prisma: { workspaceAsset: {
+    "server-only": {}, "@/lib/workspace-write-access": { requireLockedWorkspaceEditor: authorize, requireLockedWorkspaceAdministrator: authorize }, "@/lib/r2": r2, "@/lib/workspace-brand-storage": policy, "@/lib/workspace-context-core": {}, "@/lib/content-image-storage": {},
+    "@/lib/prisma": { prisma: { $transaction: async function (fn: (tx: unknown) => Promise<unknown>): Promise<unknown> { return fn(this); }, workspaceAsset: {
       create: async ({ data }: { data: { workspaceId: string; provider: string; providerKey: string; byteSize: bigint } }) => {
         events.push("register"); assert.equal(data.workspaceId, "a"); assert.equal(data.provider, "R2"); assert.equal(data.providerKey, key); assert.equal(data.byteSize, BigInt(100)); if (collision) throw new Error("duplicate provider identity"); return { id: "asset" };
       },
@@ -64,7 +69,7 @@ test("brand upload cannot grant or write a key before registering immutable owne
       },
     } } },
   });
-  const input = { workspaceId: "a", actorId: "actor", kind: "testimonials" as const, key, byteSize: 100 };
+  const input = { workspaceId: "a", actorId: "actor", sessionVersion: 7, kind: "testimonials" as const, key, byteSize: 100 };
   const provision = async () => { events.push("provision"); return "signed-url"; };
   assert.equal(await api.withBrandUploadAsset(input, provision), "signed-url");
   assert.deepEqual(events.splice(0), ["register", "provision", "UPLOAD_PROVISIONED"]);
@@ -73,6 +78,9 @@ test("brand upload cannot grant or write a key before registering immutable owne
   stale = true; await assert.rejects(api.withBrandUploadAsset(input, provision), /INVALID_BRAND_IMAGE/); assert.deepEqual(events.splice(0), ["register", "provision", "UPLOAD_PROVISIONED", "FAILED"]);
   await assert.rejects(api.withBrandUploadAsset({ ...input, key: "workspaces/b/testimonials/image.webp" }, provision), /INVALID_BRAND_IMAGE/);
   await assert.rejects(api.withBrandUploadAsset({ ...input, byteSize: -1 }, provision), /INVALID_BRAND_IMAGE/);
+  assert.deepEqual(events, []);
+  forbidden = true;
+  await assert.rejects(api.withBrandUploadAsset(input, provision), /WORKSPACE_WRITE_FORBIDDEN/);
   assert.deepEqual(events, []);
 });
 
@@ -84,14 +92,14 @@ for (const kind of ["testimonials", "trusted-logos"] as const) {
     const ownedKey = `workspaces/a/${kind}/image.webp`;
     const api = load<{ POST: (request: Request) => Promise<Response> }>(`../app/api/admin/${kind}/presign/route.ts`, {
       "next/server": { NextResponse: Response },
-      "@/lib/auth/session": { getAdminSession: async () => ({ role, userId: "actor", workspaceId: "a" }) },
+      "@/lib/auth/session": { getAdminSession: async () => ({ role, userId: "actor", sessionVersion: 7, workspaceId: "a" }) },
       "@/lib/r2-upload": {
         validateImageUpload() {}, createTestimonialImageKey: () => ownedKey, createTrustedLogoKey: () => ownedKey,
         getPublicAssetUrl: (value: string) => `https://assets.example.test/${value}`,
         createPresignedUploadUrl: async (value: string) => { assert.equal(registered, true); assert.equal(value, ownedKey); signed++; return "signed-url"; },
       },
-      "@/lib/workspace-brand-assets": { withBrandUploadAsset: async (input: { workspaceId: string; key: string; actorId: string }, fn: () => Promise<string>) => {
-        assert.equal(input.workspaceId, "a"); assert.equal(input.actorId, "actor"); assert.equal(input.key, ownedKey); registered = true; return fn();
+      "@/lib/workspace-brand-assets": { withBrandUploadAsset: async (input: { sessionVersion: number; workspaceId: string; key: string; actorId: string }, fn: () => Promise<string>) => {
+        assert.equal(input.sessionVersion, 7); assert.equal(input.workspaceId, "a"); assert.equal(input.actorId, "actor"); assert.equal(input.key, ownedKey); registered = true; return fn();
       } },
     });
     const call = () => api.POST(new Request("https://example.test/api", { method: "POST", body: JSON.stringify({ fileName: "image.webp", fileType: "image/webp", fileSize: 100, workspaceId: "b", key: "workspaces/b/foreign.webp" }) }));
@@ -107,10 +115,10 @@ test("server logo upload registers the server-generated key before writing bytes
   class PutObjectCommand { input: Record<string, unknown>; constructor(input: Record<string, unknown>) { this.input = input; } }
   const api = load<{ POST: (request: Request) => Promise<Response> }>("../app/api/admin/trusted-logos/upload/route.ts", {
     "@aws-sdk/client-s3": { PutObjectCommand }, "next/server": { NextResponse: Response },
-    "@/lib/auth/session": { getAdminSession: async () => ({ role: "EDITOR", userId: "actor", workspaceId: "a" }) },
+    "@/lib/auth/session": { getAdminSession: async () => ({ role: "EDITOR", userId: "actor", sessionVersion: 7, workspaceId: "a" }) },
     "@/lib/r2-upload": { validateImageUpload() {}, createTrustedLogoKey: () => ownedKey, getPublicAssetUrl: () => "https://assets.example.test/image.webp" },
     "@/lib/r2": { ...r2, r2Client: { send: async (command: PutObjectCommand) => { assert.equal(registered, true); assert.equal(command.input.Key, ownedKey); writes++; } } },
-    "@/lib/workspace-brand-assets": { withBrandUploadAsset: async (input: { workspaceId: string; key: string }, fn: () => Promise<unknown>) => { assert.equal(input.workspaceId, "a"); assert.equal(input.key, ownedKey); registered = true; return fn(); } },
+    "@/lib/workspace-brand-assets": { withBrandUploadAsset: async (input: { sessionVersion: number; workspaceId: string; key: string }, fn: () => Promise<unknown>) => { assert.equal(input.sessionVersion, 7); assert.equal(input.workspaceId, "a"); assert.equal(input.key, ownedKey); registered = true; return fn(); } },
   }, { File, Buffer });
   const form = new FormData(); form.set("image", new File(["image"], "image.webp", { type: "image/webp" }));
   const response = await api.POST(new Request("https://example.test/api", { method: "POST", body: form }));
@@ -126,14 +134,14 @@ for (const route of ["brand-logo", "brand-monogram", "favicon", "social-image", 
     let signed = 0;
     const keyFor = (workspaceId: string) => { assert.equal(workspaceId, "a"); return ownedKey; };
     const api = load<{ POST: (request: Request) => Promise<Response> }>(`../app/api/admin/site-settings/${route}/presign/route.ts`, {
-      "next/server": { NextResponse: Response }, "@/lib/auth/session": { getAdminSession: async () => ({ role: "ADMIN", userId: "actor", workspaceId: "a" }) },
+      "next/server": { NextResponse: Response }, "@/lib/auth/session": { getAdminSession: async () => ({ role: "ADMIN", userId: "actor", sessionVersion: 7, workspaceId: "a" }) },
       "@/lib/r2-upload": {
         createBrandLogoKey: keyFor, createBrandMonogramKey: keyFor, createFaviconKey: keyFor, createDefaultSocialImageKey: keyFor, createHomepageSectionImageKey: keyFor, createSiteHeroKey: keyFor,
         validateImageUpload() {}, getPublicAssetUrl: (key: string) => `https://assets.test/${key}`,
         createPresignedUploadUrl: async (key: string) => { assert.equal(registered, true); assert.equal(key, ownedKey); signed++; return "signed-url"; },
       },
-      "@/lib/workspace-brand-assets": { withBrandUploadAsset: async (input: { workspaceId: string; actorId: string; kind: string; key: string; byteSize: number }, fn: () => Promise<string>) => {
-        assert.equal(input.workspaceId, "a"); assert.equal(input.actorId, "actor"); assert.equal(input.kind, kind); assert.equal(input.key, ownedKey); assert.equal(input.byteSize, 100);
+      "@/lib/workspace-brand-assets": { withBrandUploadAsset: async (input: { sessionVersion: number; workspaceId: string; actorId: string; kind: string; key: string; byteSize: number }, fn: () => Promise<string>) => {
+        assert.equal(input.sessionVersion, 7); assert.equal(input.workspaceId, "a"); assert.equal(input.actorId, "actor"); assert.equal(input.kind, kind); assert.equal(input.key, ownedKey); assert.equal(input.byteSize, 100);
         if (!allow) throw new Error("INVALID_BRAND_IMAGE"); registered = true; return fn();
       } },
     }, { console: { error() {} } });
@@ -148,7 +156,7 @@ test("hero registry permits only explicit video and poster formats in the owned 
   let owner = "a";
   let status = "UPLOAD_PROVISIONED";
   const api = load<BrandApi>("./workspace-brand-assets.ts", {
-    "server-only": {}, "@/lib/r2": r2, "@/lib/workspace-brand-storage": policy, "@/lib/workspace-context-core": { tenantContextEnabled: () => true },
+    "server-only": {}, "@/lib/workspace-write-access": {}, "@/lib/r2": r2, "@/lib/workspace-brand-storage": policy, "@/lib/workspace-context-core": { tenantContextEnabled: () => true },
     "@/lib/content-image-storage": { verifyContentImage: async () => { checks++; } },
     "@/lib/prisma": { prisma: { workspaceAsset: { findUnique: async () => ({ id: "asset", workspaceId: owner, status }) } } },
   });
@@ -167,10 +175,10 @@ for (const [route, kind] of [["about", "about"], ["team-members", "team"]] as co
     const ownedKey = `workspaces/a/${kind}/image.webp`;
     const keyFor = (workspaceId: string) => { assert.equal(workspaceId, "a"); return ownedKey; };
     const api = load<{ POST: (request: Request) => Promise<Response> }>(`../app/api/admin/${route}/presign/route.ts`, {
-      "next/server": { NextResponse: Response }, "@/lib/auth/session": { getAdminSession: async () => ({ role: "EDITOR", userId: "actor", workspaceId: "a" }) },
+      "next/server": { NextResponse: Response }, "@/lib/auth/session": { getAdminSession: async () => ({ role: "EDITOR", userId: "actor", sessionVersion: 7, workspaceId: "a" }) },
       "@/lib/r2-upload": { createAboutPageImageKey: keyFor, createTeamMemberPortraitKey: keyFor, getPublicAssetUrl: () => "https://assets.test/image.webp", createPresignedUploadUrl: async () => { assert.equal(registered, true); signed++; return "signed-url"; } },
-      "@/lib/workspace-brand-assets": { withBrandUploadAsset: async (input: { workspaceId: string; actorId: string; kind: string; key: string }, fn: () => Promise<string>) => {
-        assert.equal(input.workspaceId, "a"); assert.equal(input.actorId, "actor"); assert.equal(input.kind, kind); assert.equal(input.key, ownedKey);
+      "@/lib/workspace-brand-assets": { withBrandUploadAsset: async (input: { sessionVersion: number; workspaceId: string; actorId: string; kind: string; key: string }, fn: () => Promise<string>) => {
+        assert.equal(input.sessionVersion, 7); assert.equal(input.workspaceId, "a"); assert.equal(input.actorId, "actor"); assert.equal(input.kind, kind); assert.equal(input.key, ownedKey);
         if (!allow) throw new Error("INVALID_BRAND_IMAGE"); registered = true; return fn();
       } },
     }, { console: { error() {} } });
@@ -179,3 +187,92 @@ for (const [route, kind] of [["about", "about"], ["team-members", "team"]] as co
     const response = await call(); assert.equal(response.status, 500); assert.equal((await response.json()).upload, undefined); assert.equal(signed, 1);
   });
 }
+
+test("email campaign upload uses server company and administrator admission before signing", async () => {
+  let role = "OWNER", denied = false, registered = false, signs = 0;
+  const api = load<{ POST: (request: Request) => Promise<Response> }>("../app/api/admin/email-images/presign/route.ts", {
+    "next/server": { NextResponse: Response },
+    "@/lib/auth/session": { getAdminSession: async () => ({ role, userId: "actor", workspaceId: "a", sessionVersion: 7 }) },
+    "@/lib/r2-upload": {
+      validateImageUpload() {}, createEmailCampaignImageKey: (workspaceId: string) => { assert.equal(workspaceId, "a"); return "workspaces/a/email-campaign/image.png"; },
+      getPublicAssetUrl: (key: string) => `https://assets.example.test/${key}`,
+      createPresignedUploadUrl: async () => { assert.equal(registered, true); signs++; return "synthetic-url"; },
+    },
+    "@/lib/workspace-brand-assets": { withBrandUploadAsset: async (input: { workspaceId: string; actorId: string; sessionVersion: number; kind: string; key: string; byteSize: number }, fn: () => Promise<string>) => {
+      assert.equal(input.workspaceId, "a"); assert.equal(input.actorId, "actor"); assert.equal(input.sessionVersion, 7);
+      assert.equal(input.kind, "email-campaign"); assert.equal(input.key, "workspaces/a/email-campaign/image.png"); assert.equal(input.byteSize, 100);
+      if (denied) throw new Error("WORKSPACE_WRITE_FORBIDDEN"); registered = true; return fn();
+    } },
+  });
+  const call = () => api.POST(new Request("https://b.example.test/api", { method: "POST", body: JSON.stringify({ fileType: "image/png", fileSize: 100, workspaceId: "b", key: "email/campaigns/foreign.png" }) }));
+  assert.equal((await call()).status, 200); assert.equal(signs, 1);
+  denied = true; const response = await call(); assert.equal(response.status, 403); assert.equal((await response.json()).upload, undefined); assert.equal(signs, 1);
+  role = "EDITOR"; assert.equal((await call()).status, 403); assert.equal(signs, 1);
+});
+
+test("email campaign registry requires administrator guard and company key before provider work", async () => {
+  let grants = 0, creates = 0, denied = false;
+  const tx = { workspaceAsset: { create: async () => { creates++; return { id: "asset" }; } } };
+  const api = load<BrandApi>("./workspace-brand-assets.ts", {
+    "server-only": {}, "@/lib/r2": r2, "@/lib/workspace-brand-storage": policy, "@/lib/workspace-context-core": {}, "@/lib/content-image-storage": {},
+    "@/lib/workspace-write-access": {
+      requireLockedWorkspaceEditor: () => { throw new Error("Editor threshold must not admit campaign uploads"); },
+      requireLockedWorkspaceAdministrator: async (actual: unknown) => { assert.equal(actual, tx); if (denied) throw new Error("WORKSPACE_WRITE_FORBIDDEN"); },
+    },
+    "@/lib/prisma": { prisma: { $transaction: async (fn: (value: unknown) => Promise<unknown>) => fn(tx), workspaceAsset: { updateMany: async () => ({ count: 1 }) } } },
+  });
+  const input = { workspaceId: "a", actorId: "actor", sessionVersion: 7, kind: "email-campaign" as const, key: "workspaces/a/email-campaign/image.png", byteSize: 100 };
+  const provision = async () => { grants++; return "synthetic-url"; };
+  await api.withBrandUploadAsset(input, provision); assert.equal(creates, 1); assert.equal(grants, 1);
+  denied = true; await assert.rejects(api.withBrandUploadAsset(input, provision), /WORKSPACE_WRITE_FORBIDDEN/);
+  await assert.rejects(api.withBrandUploadAsset({ ...input, key: "workspaces/b/email-campaign/image.png" }, provision), /INVALID_BRAND_IMAGE/);
+  await assert.rejects(api.withBrandUploadAsset({ ...input, key: "email/campaigns/image.png" }, provision), /INVALID_BRAND_IMAGE/);
+  assert.equal(creates, 1); assert.equal(grants, 1);
+});
+
+test("actual campaign key generator partitions identical filenames by company", () => {
+  const api = load<typeof import('./r2-upload')>('./r2-upload.ts', {
+    '@/lib/workspace-brand-storage': policy, crypto: { randomUUID: () => '12345678-synthetic' },
+    '@aws-sdk/client-s3': {}, '@aws-sdk/s3-request-presigner': {}, '@/lib/r2': r2,
+  });
+  const a = api.createEmailCampaignImageKey('a', 'image/png');
+  const b = api.createEmailCampaignImageKey('b', 'image/png');
+  assert.match(a, /^workspaces\/a\/email-campaign\/[a-zA-Z0-9_-]+\.png$/);
+  assert.match(b, /^workspaces\/b\/email-campaign\/[a-zA-Z0-9_-]+\.png$/);
+  assert.notEqual(a, b);
+  assert.throws(() => api.createEmailCampaignImageKey('../b', 'image/png'), /INVALID_BRAND_IMAGE/);
+});
+
+test("commit image validation locks current registry authority without provider work, including an absent legacy row", async () => {
+  let asset: { id: string; workspaceId: string; status: string } | null = { id: "asset", workspaceId: "a", status: "READY" };
+  let insertAfterMiss = false;
+  const locks: string[] = [];
+  const tx = {
+    $queryRaw: async (parts: TemplateStringsArray) => {
+      const sql = parts.join("?"); locks.push(sql);
+      if (sql.startsWith("SELECT")) {
+        const result = asset ? [{ id: asset.id }] : [];
+        if (insertAfterMiss) asset = { id: "inserted", workspaceId: "b", status: "READY" };
+        return result;
+      }
+      return [];
+    },
+    workspaceAsset: { findUnique: async () => asset },
+    workspace: { findMany: async () => [{ id: "a" }] },
+  };
+  const api = load<BrandApi>("./workspace-brand-assets.ts", {
+    "server-only": {}, "@/lib/workspace-write-access": {}, "@/lib/r2": r2, "@/lib/workspace-brand-storage": policy,
+    "@/lib/workspace-context-core": { tenantContextEnabled: () => true },
+    "@/lib/content-image-storage": { verifyContentImage: () => { throw new Error("Provider forbidden in transaction"); } },
+    "@/lib/prisma": { prisma: { workspaceAsset: { findUnique: () => { throw new Error("Must use transaction"); } } } },
+  });
+  const input = { workspaceId: "a", kind: "testimonials" as const, key };
+  const locked = tx as unknown as Parameters<BrandApi['lockRegisteredBrandImage']>[0];
+  await api.lockRegisteredBrandImage(locked, input); assert.match(locks.pop()!, /FOR SHARE/);
+  asset.status = "QUARANTINED"; await assert.rejects(api.lockRegisteredBrandImage(locked, input), /INVALID_BRAND_IMAGE/);
+  asset.status = "READY"; asset.workspaceId = "b"; await assert.rejects(api.lockRegisteredBrandImage(locked, input), /INVALID_BRAND_IMAGE/);
+  asset = null; const legacy = { ...input, key: "testimonials/legacy.webp", existingKey: "testimonials/legacy.webp" };
+  await api.lockRegisteredBrandImage(locked, legacy); assert.match(locks.pop()!, /LOCK TABLE "Workspace", "WorkspaceAsset" IN SHARE MODE/);
+  insertAfterMiss = true; await assert.rejects(api.lockRegisteredBrandImage(locked, legacy), /INVALID_BRAND_IMAGE/);
+  assert.match(locks.pop()!, /LOCK TABLE/);
+});

@@ -57,7 +57,7 @@ test("full settings save rejects foreign keys before storage access and derives 
       "@/lib/workspace-brand-storage": brandPolicy,
       "@/lib/site-hero-ownership": { resolveSiteHeroUrl: () => ({ url: null, key: null }) },
       "@/lib/r2-upload": { getPublicAssetUrl: (key: string) => `https://assets.example/${key}` },
-      "@/lib/workspace-brand-assets": { verifyRegisteredBrandImage: async (input: { key: string | null }) => { if (input.key && company === "unregistered") throw new Error("INVALID_BRAND_IMAGE"); if (input.key) checks++; } },
+      "@/lib/workspace-brand-assets": { lockRegisteredBrandImage: async () => {}, verifyRegisteredBrandImage: async (input: { key: string | null }) => { if (input.key && company === "unregistered") throw new Error("INVALID_BRAND_IMAGE"); if (input.key) checks++; } },
       "@/lib/content-image-storage": { verifyContentImage: async (key: string | null) => { if (key) checks++; }, deleteContentImage: async () => { throw new Error("Deletion is forbidden"); } },
       "@/lib/prisma": { prisma: { $transaction: async (fn: (tx: unknown) => Promise<unknown>) => fn({ siteSettings: {
         create: async ({ data }: { data: { workspaceId: string; brandLogoUrl: string } }) => {

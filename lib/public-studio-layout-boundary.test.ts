@@ -110,8 +110,14 @@ test('route grouping preserves every existing public page URL without placing St
   assert.deepEqual(pages.sort(), ['/', '/about', '/blog', '/blog/[slug]', '/book', '/client-portal', '/client-portal/[slug]',
     '/client-portal/[slug]/complete-registration', '/contact', '/faq', '/films', '/google-business-integration', '/inquire',
     '/locations/[city]', '/photo-finishes', '/portfolio', '/portfolio/[slug]', '/portfolio/films', '/portfolio/gallery', '/privacy',
-    '/refer/[token]', '/refer/test/[token]', '/reviews', '/services', '/services/[slug]', '/terms', '/unsubscribe'].sort());
-  for (const path of ['app/admin/layout.tsx', 'app/login/page.tsx', 'app/accept-invite/page.tsx']) assert.ok(readFileSync(path, 'utf8'));
+    '/refer/[token]', '/refer/test/[token]', '/reviews', '/services', '/services/[slug]', '/terms'].sort());
+  for (const path of ['app/admin/layout.tsx', 'app/login/page.tsx', 'app/accept-invite/page.tsx', 'app/unsubscribe/page.tsx']) assert.ok(readFileSync(path, 'utf8'));
+  const optoutPage = readFileSync('app/unsubscribe/page.tsx', 'utf8');
+  assert.match(optoutPage, /await connection\(\)/);
+  assert.doesNotMatch(optoutPage, /getSiteSettings|getPublicWorkspaceId/);
+  const optout = readFileSync('app/unsubscribe/UnsubscribeForm.tsx', 'utf8');
+  assert.match(optout, /fetch\("\/api\/unsubscribe"/);
+  assert.doesNotMatch(optout, /getSiteSettings|getPublicWorkspaceId|Navbar|Footer/);
   const admin = readFileSync('app/admin/layout.tsx', 'utf8');
   assert.match(admin, /robots: \{ index: false, follow: false \}/);
   const footer = readFileSync('app/components/Footer.tsx', 'utf8');

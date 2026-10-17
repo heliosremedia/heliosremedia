@@ -1,0 +1,11 @@
+{
+  "kind": "known-gap-probe-not-qualification",
+  "sourceSha256": "6297a77aefb7008ebfbb009557150babe91e3fa6a724c400f5befbf80a033e55",
+  "inMemoryOnly": true,
+  "providersCalled": false,
+  "suspendedSendClaimed": true,
+  "overdueAfterReactivationClaimed": true,
+  "previouslyApprovedFutureScheduleStillEligible": true,
+  "uncertainAttemptRemainsUnclaimed": true,
+  "decisionRequired": "Preserve still-future schedules or require new approval for every pre-suspension schedule"
+}

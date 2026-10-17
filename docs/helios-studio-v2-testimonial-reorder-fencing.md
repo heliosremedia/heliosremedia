@@ -1,0 +1,9 @@
+# Packet 70: Testimonial reorder admission and collection fencing
+
+Two actual-handler reproductions failed against integrated Packet 69: editor revocation immediately before transaction admission still returned 200, and a new collection member inserted between validation and the transaction still allowed an incomplete reorder. The new tests expect 403/409 and zero writes; both fail on the old implementation and pass after the bounded correction.
+
+Reorder now locks current editor/session authority and calculates content ownership using the transaction connection. It locks scoped testimonial rows in stable ID order, then validates the complete ID set and current row versions before any writes. The existing Workspace row lock also blocks concurrent insertion/transfer into that workspace through the foreign key. A sole-workspace legacy scope additionally holds Workspace and Testimonial table locks so null-owner insertions cannot invalidate that set. The existing ordering increments and response version contract remain. A stale collection/version returns 409; stale actor access returns 403.
+
+Both-company actual HTTP/PostgreSQL qualification covers twelve observed races across revocation, demotion, session changes, insertion, ownership transfer and row-version changes. It rejects foreign IDs and duplicates; a temporary trigger fails after an earlier positional write to prove order/version rollback. Concurrent requests sharing old versions produce one success and one 409. Old-version replay leaves rows unchanged; a current-version retry succeeds in each direction. Trigger/function cleanup and schema/index/access postflight remain required.
+
+No create/update/delete policy changes, provider requests, schema migrations, credentials or production operations. This qualifies the isolated reorder boundary, not the complete testimonial family or hosted parity. Phase 1 remains open; production ON HOLD.

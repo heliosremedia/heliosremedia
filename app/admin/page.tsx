@@ -84,7 +84,7 @@ export default async function AdminPage({
   const days = [7, 30, 90].includes(requested) ? requested : 30;
   const [dashboard, monitor, user] = await Promise.all([
     getDashboardData(session.workspaceId, days),
-    getPublicMonitorSummary(),
+    getPublicMonitorSummary(session.workspaceId),
     prisma.adminUser.findFirst({
       where: { id: session.userId, workspaceId: session.workspaceId },
       select: { dashboardPreferences: true },

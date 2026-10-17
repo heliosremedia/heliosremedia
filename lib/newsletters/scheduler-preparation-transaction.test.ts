@@ -24,7 +24,7 @@ test('recurrence preparation commits edition, jobs and dates atomically and pres
     `);
     type Values = Record<string, unknown>;
     const modules: Record<string, unknown> = {
-      'server-only': {}, 'node:crypto': {},
+      'server-only': {}, "@/lib/workspace-lifecycle/state": { lifecycleEnabled: () => false, workspaceIsActive: async () => true, requireWorkspaceScheduledAction: async () => {} }, 'node:crypto': {},
       './ownership': { resolveNewsletterWorkspace: async (id: string) => id },
       '@/lib/blog-ownership': { getContentOwnershipScope: async (workspaceId: string) => ({ workspaceId }) },
       './recurrence': { nextOccurrence: () => nextSendAt, generationDateForSend: () => nextGenerationAt },

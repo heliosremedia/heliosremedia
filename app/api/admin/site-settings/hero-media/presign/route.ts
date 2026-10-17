@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     }
 
     const key = createSiteHeroKey(session.workspaceId, kind, fileType);
-    const uploadUrl = await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, kind: "site-hero", key, byteSize: fileSize }, () => createPresignedUploadUrl(key, fileType));
+    const uploadUrl = await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, sessionVersion: session.sessionVersion, kind: "site-hero", key, byteSize: fileSize }, () => createPresignedUploadUrl(key, fileType));
 
     return NextResponse.json({
       success: true,
@@ -76,6 +76,7 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Upload access is no longer available." }, { status: 403 });
     console.error("Unable to prepare homepage hero upload:", error);
     return NextResponse.json(
       { success: false, error: "The homepage hero upload could not be prepared." },

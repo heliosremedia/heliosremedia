@@ -88,25 +88,26 @@ export function recurrenceDates(input: {
   hour: number;
   minute: number;
 }) {
+  // Stored date-only boundaries use UTC calendar fields; convert to the series zone only when scheduling.
   const interval = Math.min(52, Math.max(1, Math.trunc(input.interval)));
   const results: Date[] = [];
   const cursor = new Date(input.startsAt);
-  cursor.setSeconds(0, 0);
+  cursor.setUTCSeconds(0, 0);
   if (input.frequency === "WEEKLY") {
-    const wanted = Math.min(6, Math.max(0, input.dayOfWeek ?? cursor.getDay()));
-    cursor.setDate(cursor.getDate() + ((wanted - cursor.getDay() + 7) % 7));
+    const wanted = Math.min(6, Math.max(0, input.dayOfWeek ?? cursor.getUTCDay()));
+    cursor.setUTCDate(cursor.getUTCDate() + ((wanted - cursor.getUTCDay() + 7) % 7));
   } else {
-    const wanted = Math.min(31, Math.max(1, input.dayOfMonth ?? cursor.getDate()));
-    cursor.setDate(Math.min(wanted, new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate()));
+    const wanted = Math.min(31, Math.max(1, input.dayOfMonth ?? cursor.getUTCDate()));
+    cursor.setUTCDate(Math.min(wanted, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 0)).getUTCDate()));
   }
-  cursor.setHours(input.hour, input.minute, 0, 0);
+  cursor.setUTCHours(input.hour, input.minute, 0, 0);
   while (cursor <= input.through && results.length < 104) {
     if (cursor >= input.startsAt) results.push(new Date(cursor));
-    if (input.frequency === "WEEKLY") cursor.setDate(cursor.getDate() + 7 * interval);
+    if (input.frequency === "WEEKLY") cursor.setUTCDate(cursor.getUTCDate() + 7 * interval);
     else {
-      const wanted = Math.min(31, Math.max(1, input.dayOfMonth ?? cursor.getDate()));
-      cursor.setMonth(cursor.getMonth() + interval, 1);
-      cursor.setDate(Math.min(wanted, new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate()));
+      const wanted = Math.min(31, Math.max(1, input.dayOfMonth ?? cursor.getUTCDate()));
+      cursor.setUTCMonth(cursor.getUTCMonth() + interval, 1);
+      cursor.setUTCDate(Math.min(wanted, new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 0)).getUTCDate()));
     }
   }
   return results;

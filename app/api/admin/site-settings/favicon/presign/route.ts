@@ -15,6 +15,7 @@ export async function POST(request: Request) {
     if (file.type !== "image/png") return NextResponse.json({ success: false, error: "Use a square PNG so the favicon remains crisp and transparent." }, { status: 400 });
     if (file.size > 5 * 1024 * 1024) return NextResponse.json({ success: false, error: "Favicons must be smaller than 5 MB." }, { status: 400 });
     const key = createFaviconKey(session.workspaceId, file.type);
-    return NextResponse.json({ success: true, upload: { key, uploadUrl: await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, kind: "site-brand", key, byteSize: file.size }, () => createPresignedUploadUrl(key, file.type)), publicUrl: getPublicAssetUrl(key), contentType: file.type } });
-  } catch (error) { return NextResponse.json({ success: false, error: error instanceof Error ? error.message : "Unable to prepare favicon upload." }, { status: 400 }); }
+    return NextResponse.json({ success: true, upload: { key, uploadUrl: await withBrandUploadAsset({ workspaceId: session.workspaceId, actorId: session.userId, sessionVersion: session.sessionVersion, kind: "site-brand", key, byteSize: file.size }, () => createPresignedUploadUrl(key, file.type)), publicUrl: getPublicAssetUrl(key), contentType: file.type } });
+  } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "Upload access is no longer available." }, { status: 403 }); return NextResponse.json({ success: false, error: error instanceof Error ? error.message : "Unable to prepare favicon upload." }, { status: 400 }); }
 }

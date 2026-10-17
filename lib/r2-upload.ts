@@ -267,7 +267,7 @@ export function createPhotoComparisonImageKey(
   return `${brandAssetPrefix(workspaceId, "photo-comparison")}${kind}-${timestamp}-${randomUUID().slice(0, 8)}.${extensionFromMime(mimeType)}`;
 }
 
-export function createEmailCampaignImageKey(mimeType: string) {
+export function createEmailCampaignImageKey(workspaceId: string, mimeType: string) {
   const timestamp = new Date()
     .toISOString()
     .replace(/[-:]/g, "")
@@ -275,7 +275,7 @@ export function createEmailCampaignImageKey(mimeType: string) {
     .replace("T", "-");
   const id = randomUUID().slice(0, 8);
 
-  return `email/campaigns/${timestamp}-${id}.${extensionFromMime(mimeType)}`;
+  return `${brandAssetPrefix(workspaceId, "email-campaign")}${timestamp}-${id}.${extensionFromMime(mimeType)}`;
 }
 
 export function createNewsletterImageKey(workspaceId: string, mimeType: string) {

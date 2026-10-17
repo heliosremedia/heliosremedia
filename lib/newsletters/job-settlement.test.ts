@@ -31,7 +31,7 @@ test('terminal write errors cannot reclassify execution, expose private errors o
         return mode === 'confirmed';
       };
       const api = load<Settlement>('./job-settlement.ts', {
-        'server-only': {}, './scheduler': {
+        'server-only': {}, "@/lib/workspace-lifecycle/state": { lifecycleEnabled: () => false, workspaceIsActive: async () => true, requireWorkspaceScheduledAction: async () => {} }, './scheduler': {
           completeNewsletterJob: (supplied: Job) => write('COMPLETED', supplied),
           failNewsletterJob: (supplied: Job, error: unknown) => write('FAILED', supplied, error),
           deferUnstartedNewsletterJob: (supplied: Job) => write('DEFERRED', supplied),
@@ -60,7 +60,7 @@ test('actual settlement predicates preserve newer claims and settled records acr
     `);
     type Values = Record<string, unknown>;
     const scheduler = load<Record<string, unknown>>('./scheduler.ts', {
-      'server-only': {}, 'node:crypto': {}, './recurrence': {}, './ownership': {}, '@/lib/blog-ownership': {},
+      'server-only': {}, "@/lib/workspace-lifecycle/state": { lifecycleEnabled: () => false, workspaceIsActive: async () => true, requireWorkspaceScheduledAction: async () => {} }, 'node:crypto': {}, './recurrence': {}, './ownership': {}, '@/lib/blog-ownership': {},
       '@/lib/prisma': { prisma: { newsletterJob: { updateMany: async ({ where, data }: { where: Values; data: Values }) => {
         assert.deepEqual(Object.keys(where).sort(), ['claimToken', 'id', 'status']);
         assert.equal(where.status, 'CLAIMED');
@@ -71,7 +71,7 @@ test('actual settlement predicates preserve newer claims and settled records acr
         return { count: (await db.query(`UPDATE "NewsletterJob" SET ${assignments} WHERE ${predicates}`, values)).affectedRows };
       } } } },
     });
-    const api = load<Settlement>('./job-settlement.ts', { 'server-only': {}, './scheduler': scheduler });
+    const api = load<Settlement>('./job-settlement.ts', { 'server-only': {}, "@/lib/workspace-lifecycle/state": { lifecycleEnabled: () => false, workspaceIsActive: async () => true, requireWorkspaceScheduledAction: async () => {} }, './scheduler': scheduler });
     const snapshot = async () => (await db.query(`SELECT * FROM "NewsletterJob" ORDER BY id`)).rows;
     const before = await snapshot();
     for (const id of ['job-b', 'new-claim', 'recovered', 'completed', 'missing']) {

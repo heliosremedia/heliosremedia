@@ -61,6 +61,7 @@ export type ProjectMediaItem = {
   displayOrder: number;
   visibility: string;
   createdAt: string;
+  updatedAt?: string;
   publicUrl: string;
   isHero: boolean;
 };
@@ -89,6 +90,7 @@ type ReorderMediaResponse = {
 };
 
 type UpdateAssetResponse = {
+  reloadRequired?: boolean;
   success: boolean;
   error?: string;
   media?: ProjectMediaItem;
@@ -646,6 +648,10 @@ export default function ProjectMediaManager({
   const [editingMediaId, setEditingMediaId] = useState<string | null>(null);
   const [deletingMediaId, setDeletingMediaId] = useState<string | null>(null);
   const [updatingAssetId, setUpdatingAssetId] = useState<string | null>(null);
+  const [assetReloadRequired, setAssetReloadRequired] = useState(false);
+  const [editingRevision, setEditingRevision] = useState<string | undefined>();
+  const assetSaveRef = useRef(false);
+  const assetReviewRef = useRef(false);
   const [assetError, setAssetError] = useState<string | null>(null);
   const [assetDraft, setAssetDraft] = useState<AssetDraft | null>(null);
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
@@ -1044,52 +1050,62 @@ export default function ProjectMediaManager({
 
   const updateAsset = useCallback(
     async (item: ProjectMediaItem, draft: AssetDraft) => {
+      if (assetSaveRef.current || assetReviewRef.current) return false;
+      const requireReview = (message: string) => {
+        assetReviewRef.current = true;
+        setAssetReloadRequired(true);
+        setAssetError(message);
+      };
+      if (!item.updatedAt || !Number.isFinite(Date.parse(item.updatedAt))) {
+        requireReview("Reload saved media before editing. This asset has no reviewed revision.");
+        return false;
+      }
+      assetSaveRef.current = true;
       try {
         setUpdatingAssetId(item.id);
         setAssetError(null);
-
         const response = await fetch(`/api/admin/projects/${projectId}/media`, {
           method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            action: "update-asset",
-            mediaId: item.id,
-            ...draft,
-          }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "update-asset", mediaId: item.id, expectedUpdatedAt: item.updatedAt, ...draft }),
         });
-
         const data = (await response.json()) as UpdateAssetResponse;
-
         if (!response.ok || !data.success || !data.media) {
-          throw new Error(data.error || "The asset could not be updated.");
+          const message = data.error || "The asset could not be updated.";
+          if (data.reloadRequired || [401, 403, 404, 409].includes(response.status) || response.status >= 500 || response.ok) {
+            requireReview(`${message} Copy your draft and reload saved media before another edit.`);
+          } else setAssetError(message);
+          return false;
         }
-
         const updatedMedia = data.media;
-
-        setMedia((currentMedia) =>
-          currentMedia.map((currentItem) =>
-            currentItem.id === updatedMedia.id ? updatedMedia : currentItem,
-          ),
-        );
+        if (updatedMedia.id !== item.id || !updatedMedia.updatedAt || !(Date.parse(updatedMedia.updatedAt) > Date.parse(item.updatedAt))) {
+          throw new Error("Unconfirmed media revision");
+        }
+        setMedia(current => current.map(currentItem => currentItem.id === updatedMedia.id ? updatedMedia : currentItem));
         router.refresh();
-
         return true;
-      } catch (updateError) {
-        console.error("Unable to update project asset:", updateError);
-        setAssetError(
-          updateError instanceof Error
-            ? updateError.message
-            : "The asset could not be updated.",
-        );
+      } catch {
+        requireReview("The save result is uncertain. Your draft is preserved. Copy it and reload saved media to review the result before editing again.");
         return false;
       } finally {
+        assetSaveRef.current = false;
         setUpdatingAssetId(null);
       }
     },
     [projectId, router],
   );
+
+  const closeAssetEditor = useCallback(() => {
+    if (assetSaveRef.current) return;
+    if (assetReviewRef.current && !window.confirm("Close this unsaved draft? Copy any text you need before closing.")) return;
+    setEditingMediaId(null);
+    setAssetDraft(null);
+  }, []);
+
+  const reloadSavedMedia = () => {
+    if (assetSaveRef.current) return;
+    if (window.confirm("Reload saved media? Copy your unsaved draft first. Reloading discards local edits.")) window.location.reload();
+  };
 
   const beginEditingAsset = useCallback(
     (mediaId: string) => {
@@ -1108,6 +1124,7 @@ export default function ProjectMediaManager({
         serviceId: item.serviceId,
         visibility: item.visibility === "HIDDEN" ? "HIDDEN" : "VISIBLE",
       });
+      setEditingRevision(item.updatedAt);
       setEditingMediaId(item.id);
       setOpenMenuId(null);
       setAssetError(null);
@@ -1120,13 +1137,13 @@ export default function ProjectMediaManager({
       return;
     }
 
-    const didSave = await updateAsset(editingMedia, assetDraft);
+    const didSave = await updateAsset({ ...editingMedia, updatedAt: editingRevision }, assetDraft);
 
     if (didSave) {
       setEditingMediaId(null);
       setAssetDraft(null);
     }
-  }, [assetDraft, editingMedia, updateAsset]);
+  }, [assetDraft, editingMedia, editingRevision, updateAsset]);
 
   const toggleAssetVisibility = useCallback(
     async (mediaId: string) => {
@@ -1529,13 +1546,12 @@ export default function ProjectMediaManager({
     document.body.style.overflow = "hidden";
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || updatingAssetId) {
+      if (event.key !== "Escape" || updatingAssetId || assetSaveRef.current) {
         return;
       }
 
-      setEditingMediaId(null);
-      setDeletingMediaId(null);
-      setAssetDraft(null);
+      if (editingMedia) closeAssetEditor();
+      else setDeletingMediaId(null);
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -1544,11 +1560,12 @@ export default function ProjectMediaManager({
       document.body.style.overflow = originalOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [deletingMedia, editingMedia, updatingAssetId]);
+  }, [deletingMedia, editingMedia, updatingAssetId, closeAssetEditor]);
 
   return (
     <>
       <p className="sr-only" aria-live="polite" role="status">{announcement}</p>
+      {assetReloadRequired && !editingMedia && <div role="alert" className="mb-5 rounded-xl border border-amber-200/20 p-4 text-sm text-white/75"><p>Metadata saves are paused. Reload saved media to review the last result before editing again.</p><button type="button" onClick={reloadSavedMedia} className="admin-btn-secondary mt-3">Reload saved media</button></div>}
       <div className="space-y-8">
         <MediaUploader
           projectId={projectId}
@@ -2304,12 +2321,7 @@ export default function ProjectMediaManager({
         >
           <button
             type="button"
-            onClick={() => {
-              if (!updatingAssetId) {
-                setEditingMediaId(null);
-                setAssetDraft(null);
-              }
-            }}
+            onClick={closeAssetEditor}
             className="absolute inset-0 h-full w-full cursor-default"
             aria-label="Close asset editor"
           />
@@ -2334,21 +2346,16 @@ export default function ProjectMediaManager({
                   Edit asset details
                 </h3>
 
-                <p className="mt-2 text-sm leading-6 text-white/35">
+                <p className="mt-2 text-sm leading-6 text-white/65">
                   Update portfolio metadata, visibility, and collection.
                 </p>
               </div>
 
               <button
                 type="button"
-                onClick={() => {
-                  if (!updatingAssetId) {
-                    setEditingMediaId(null);
-                    setAssetDraft(null);
-                  }
-                }}
+                onClick={closeAssetEditor}
                 disabled={updatingAssetId !== null}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 text-white/45 transition hover:border-white/25 hover:bg-white/[0.05] hover:text-white disabled:cursor-wait disabled:opacity-40"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 text-white/65 transition hover:border-white/25 hover:bg-white/[0.05] hover:text-white disabled:cursor-wait disabled:opacity-40"
                 aria-label="Close asset editor"
               >
                 <svg
@@ -2367,9 +2374,9 @@ export default function ProjectMediaManager({
               </button>
             </div>
 
-            <div className="space-y-7 px-6 py-7 sm:px-8">
+            <fieldset disabled={updatingAssetId !== null} className="min-w-0 space-y-7 px-6 py-7 sm:px-8">
               <label className="block">
-                <span className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/45">
+                <span className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/65">
                   Asset filename
                 </span>
 
@@ -2394,7 +2401,7 @@ export default function ProjectMediaManager({
 
               {editingMedia.externalUrl && (
                 <label className="block">
-                  <span className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/45">
+                  <span className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/65">
                     External media URL
                   </span>
 
@@ -2423,7 +2430,7 @@ export default function ProjectMediaManager({
               )}
 
               <label className="block">
-                <span className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/45">
+                <span className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/65">
                   Alt text
                 </span>
 
@@ -2447,7 +2454,7 @@ export default function ProjectMediaManager({
               </label>
 
               <label className="block">
-                <span className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/45">
+                <span className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/65">
                   Caption
                 </span>
 
@@ -2471,7 +2478,7 @@ export default function ProjectMediaManager({
               </label>
 
               <fieldset>
-                <legend className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/45">
+                <legend className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/65">
                   Portfolio visibility
                 </legend>
 
@@ -2497,7 +2504,7 @@ export default function ProjectMediaManager({
                         className={`rounded-xl border px-4 py-3 text-left transition ${
                           isSelected
                             ? "border-[var(--helios-orange)]/50 bg-[var(--helios-orange)]/[0.08] text-white"
-                            : "border-white/[0.08] bg-white/[0.02] text-white/40 hover:border-white/20 hover:text-white/70"
+                            : "border-white/[0.08] bg-white/[0.02] text-white/65 hover:border-white/20 hover:text-white/70"
                         }`}
                       >
                         <span className="block text-xs font-semibold uppercase tracking-[0.14em]">
@@ -2516,7 +2523,7 @@ export default function ProjectMediaManager({
               </fieldset>
 
               <fieldset>
-                <legend className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/45">
+                <legend className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/65">
                   Media collection
                 </legend>
 
@@ -2543,7 +2550,7 @@ export default function ProjectMediaManager({
                         className={`min-h-12 rounded-xl border px-4 py-3 text-left text-xs transition ${
                           isSelected
                             ? "border-[var(--helios-orange)]/50 bg-[var(--helios-orange)]/[0.08] text-white"
-                            : "border-white/[0.08] bg-white/[0.02] text-white/40 hover:border-white/20 hover:text-white/70"
+                            : "border-white/[0.08] bg-white/[0.02] text-white/65 hover:border-white/20 hover:text-white/70"
                         }`}
                       >
                         {service.name}
@@ -2554,19 +2561,17 @@ export default function ProjectMediaManager({
               </fieldset>
 
               {assetError && (
-                <p className="rounded-xl border border-red-300/15 bg-red-300/[0.05] px-4 py-3 text-sm text-red-200/80">
+                <p role="alert" className="rounded-xl border border-red-300/15 bg-red-300/[0.05] px-4 py-3 text-sm text-red-200/80">
                   {assetError}
                 </p>
               )}
-            </div>
+            </fieldset>
 
+            {assetReloadRequired && <div className="px-6 pb-5 sm:px-8"><p className="mb-3 text-sm text-white/65">Metadata saves are paused until you review the saved media. Your draft remains above for copying.</p><button type="button" onClick={reloadSavedMedia} className="admin-btn-secondary">Reload saved media</button></div>}
             <div className="flex flex-col-reverse gap-3 border-t border-white/[0.08] px-6 py-5 sm:flex-row sm:justify-end sm:px-8">
               <button
                 type="button"
-                onClick={() => {
-                  setEditingMediaId(null);
-                  setAssetDraft(null);
-                }}
+                onClick={closeAssetEditor}
                 disabled={updatingAssetId !== null}
                 className="admin-btn-secondary"
               >
@@ -2576,7 +2581,7 @@ export default function ProjectMediaManager({
               <button
                 type="submit"
                 disabled={
-                  updatingAssetId !== null ||
+                  assetReloadRequired || updatingAssetId !== null ||
                   !assetDraft.originalFilename.trim() ||
                   (Boolean(editingMedia.externalUrl) &&
                     !assetDraft.externalUrl.trim())

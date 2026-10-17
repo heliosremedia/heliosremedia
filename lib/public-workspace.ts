@@ -1,3 +1,4 @@
+import { workspaceIsActive } from "@/lib/workspace-lifecycle/state";
 import "server-only";
 
 import { headers } from "next/headers";
@@ -30,13 +31,16 @@ export async function getPublicWorkspaceId() {
     where: { hostname },
     select: { workspaceId: true, purpose: true, status: true },
   });
-  if (domain?.purpose === "PUBLIC_SITE" && domain.status === "ACTIVE") return domain.workspaceId;
+  if (domain?.purpose === "PUBLIC_SITE" && domain.status === "ACTIVE") {
+    if (!await workspaceIsActive(prisma, domain.workspaceId)) throw new Error("Public workspace is unavailable.");
+    return domain.workspaceId;
+  }
 
   if (process.env.NODE_ENV !== "production" && isLocalWorkspaceHostname(hostname)) {
     const localWorkspaceSlug = process.env.STUDIO_V2_LOCAL_WORKSPACE_SLUG?.trim();
     if (localWorkspaceSlug) {
       const workspace = await prisma.workspace.findUnique({ where: { slug: localWorkspaceSlug }, select: { id: true } });
-      if (workspace) return workspace.id;
+      if (workspace && await workspaceIsActive(prisma, workspace.id)) return workspace.id;
     }
   }
 

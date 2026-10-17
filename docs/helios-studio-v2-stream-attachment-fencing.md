@@ -1,0 +1,11 @@
+# Packet 63 — Direct Stream attachment transaction fencing
+
+Direct Stream UID attachment used early access/project/service reads and returned a duplicate before consulting the current asset registry. Concurrent retries could also race the duplicate lookup and create multiple media rows.
+
+The direct UID POST branch now locks current workspace/account/membership authority, the owned project, active service and exact Stream account/UID registration. It resolves the registry on that transaction's connection before duplicate lookup or creation. The owned project lock serializes competing attachments. Current service state supplies the media category. The bounded unregistered sole-workspace fallback holds workspace/asset table share locks until commit. Provider provisioning and URL/UID validation contracts remain unchanged.
+
+Cache invalidation occurs after the transaction commits on creation. Duplicate responses still return 200 and new media 201, but both now require current asset authority. Revoked/demoted/invalidated access returns 403; unavailable project/service returns 404/409; unknown, foreign or unusable registry state returns 400. This does not alter existing media records or introduce a new cross-project reuse policy.
+
+Actual-route fixtures retain owned/foreign asset rejection and role compatibility. HTTP/PostgreSQL qualification uses a synthetic provisioned UID and observes twelve lock-blocked access/service/asset changes across two companies. It verifies concurrent retries leave one asset-linked media row, quarantined assets cannot bypass validation through the duplicate path, and an injected failed Media insert leaves rows unchanged. Temporary test trigger/function cleanup is mandatory. The fixed synthetic Stream account in the rehearsal environment matches the existing no-network provider namespace; no upload URL is followed and attachment makes no provider call.
+
+The external-URL creation and replacement branches remain separate work, as do generic media edits, reorder/hero and deletion. The shared registry helper accepts an optional transaction connection without changing those other callers' current behavior. No schema/migration, credentials, real provider transfer or production action. Phase 1 remains open; production ON HOLD.

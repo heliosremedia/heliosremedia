@@ -1,3 +1,4 @@
+import { requireLockedWorkspaceEditor } from "@/lib/workspace-write-access";
 import { getAdminSession } from "@/lib/auth/session";
 import { getWorkspaceSingletonTarget } from "@/lib/workspace-singleton";
 import { resolveBrandImage } from "@/lib/workspace-brand-storage";
@@ -9,7 +10,7 @@ import { NextResponse } from "next/server";
 
 import type { Prisma } from "@/app/generated/prisma/client";
 import type { AboutListItem } from "@/lib/about-page";
-import { verifyRegisteredBrandImage } from "@/lib/workspace-brand-assets";
+import { verifyRegisteredBrandImage, lockRegisteredBrandImage } from "@/lib/workspace-brand-assets";
 import { prisma } from "@/lib/prisma";
 
 const imageFields = [
@@ -115,14 +116,29 @@ export async function PATCH(request: Request) {
       process: items(body.process) as unknown as Prisma.InputJsonValue,
     };
 
-    const content = await prisma.aboutPageContent.upsert({ where: target.where, create: { ...target.createIdentity, ...data }, update: data });
-
-    const storageCleanupPending = imageFields.some((field) => Boolean(existing?.[field.storage] && existing[field.storage] !== images[field.storage]));
+    const result = await prisma.$transaction(async tx => {
+      await requireLockedWorkspaceEditor(tx, { workspaceId: session.workspaceId, userId: session.userId, sessionVersion: session.sessionVersion });
+      if (!tenantContextEnabled()) await tx.$queryRaw`LOCK TABLE "Workspace" IN SHARE MODE`;
+      const currentTarget = await getWorkspaceSingletonTarget(session.workspaceId, tx);
+      if (JSON.stringify(currentTarget) !== JSON.stringify(target)) throw new Error("ABOUT_CONFLICT");
+      await tx.$queryRaw`SELECT id FROM "AboutPageContent" WHERE id=${currentTarget.createIdentity.id} OR "workspaceId"=${session.workspaceId} ORDER BY id FOR UPDATE`;
+      const current = await tx.aboutPageContent.findUnique({ where: currentTarget.where });
+      if ((current?.id ?? null) !== (existing?.id ?? null) || imageFields.some(field =>
+        (current?.[field.storage] ?? null) !== (existing?.[field.storage] ?? null) || (current?.[field.url] ?? null) !== (existing?.[field.url] ?? null))) throw new Error("ABOUT_CONFLICT");
+      for (const field of imageFields) {
+        await lockRegisteredBrandImage(tx, { workspaceId: session.workspaceId, kind: "about", key: images[field.storage], existingKey: current?.[field.storage] });
+      }
+      const content = await tx.aboutPageContent.upsert({ where: currentTarget.where, create: { ...currentTarget.createIdentity, ...data }, update: data });
+      const storageCleanupPending = imageFields.some(field => Boolean(current?.[field.storage] && current[field.storage] !== images[field.storage]));
+      return { content, storageCleanupPending };
+    });
 
     revalidatePath("/about");
     revalidatePath("/admin/about");
-    return NextResponse.json({ success: true, content, storageCleanupPending });
+    return NextResponse.json({ success: true, ...result });
   } catch (error) {
+    if (error instanceof Error && error.message === "WORKSPACE_WRITE_FORBIDDEN") return NextResponse.json({ success: false, error: "About access is no longer available." }, { status: 403 });
+    if (error instanceof Error && error.message === "ABOUT_CONFLICT") return NextResponse.json({ success: false, error: "The About images changed. Refresh and try again." }, { status: 409 });
     if (error instanceof Error && ["INVALID_TEXT", "INVALID_ITEMS", "INVALID_IMAGE", "INVALID_BRAND_IMAGE"].includes(error.message)) {
       return NextResponse.json({ success: false, error: "Complete the About fields with valid text and images." }, { status: 400 });
     }

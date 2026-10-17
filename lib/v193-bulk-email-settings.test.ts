@@ -12,7 +12,7 @@ test("signed bounce processing is idempotent and provider-message owned", () => 
   assert.match(processor, /providerEventId/);
   assert.match(processor, /FAILED_RETRYABLE/);
   assert.match(processor, /providerMessageId/);
-  assert.match(processor, /createdBy: \{ select: \{ workspaceId: true \} \}/);
+  assert.match(processor, /resolveCampaignWorkspace\(recipient\.campaign\.workspaceId\)/);
   assert.match(processor, /REJECTED_AMBIGUOUS_OWNER/);
   assert.match(processor, /IGNORED_OUT_OF_ORDER/);
   assert.match(processor, /skipDuplicates: true/);

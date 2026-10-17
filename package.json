@@ -15,7 +15,8 @@
     "test:legal-browser": "node scripts/browser/run-legal-editor.mjs",
     "test:settings-browser": "node scripts/browser/run-settings-editor.mjs",
     "test:film-browser": "node scripts/browser/run-film-editor.mjs",
-    "test:curation-browser": "node scripts/browser/run-curation-editor.mjs"
+    "test:curation-browser": "node scripts/browser/run-curation-editor.mjs",
+    "test:inquiry-browser": "node scripts/browser/run-inquiry-workflow.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1089.0",

@@ -42,15 +42,18 @@ test("team portrait creation rejects foreign keys before storage and derives own
   for (const company of ["a", "b", "unregistered"]) {
     let writes = 0;
     let checks = 0;
+    const tx = { $queryRaw: async () => [], teamMember: { aggregate: async () => ({ _max: { displayOrder: null } }), create: async ({ data }: { data: { workspaceId: string; portraitUrl: string } }) => { assert.equal(data.workspaceId, "a"); assert.equal(data.portraitUrl, "https://assets.example/workspaces/a/team/portrait.jpg"); writes++; return { id: "profile" }; } } };
     const loaded = load("../app/api/admin/team-members/route.ts", {
       "@/lib/auth/session": { getAdminSession: async () => ({ role: "EDITOR", workspaceId: "a" }) },
       "@/lib/blog-ownership": { getContentOwnershipScope: async () => ({ workspaceId: "a" }) },
       "@/lib/workspace-brand-storage": brandPolicy,
       "@/lib/r2-upload": { getPublicAssetUrl: (key: string) => `https://assets.example/${key}` },
-      "@/lib/workspace-brand-assets": { verifyRegisteredBrandImage: async () => { if (company === "unregistered") throw new Error("INVALID_BRAND_IMAGE"); checks++; } },
+      "@/lib/workspace-brand-assets": { lockRegisteredBrandImage: async () => {}, verifyRegisteredBrandImage: async () => { if (company === "unregistered") throw new Error("INVALID_BRAND_IMAGE"); checks++; } },
       "@/lib/team-members": { teamMemberCategories: ["PRODUCTION"], teamMemberSelect: {} },
       "next/cache": { revalidatePath() {} }, "next/server": { NextResponse: { json: (body: unknown, init?: ResponseInit) => Response.json(body, init) } },
-      "@/lib/prisma": { prisma: { teamMember: { aggregate: async () => ({ _max: { displayOrder: null } }), create: async ({ data }: { data: { workspaceId: string; portraitUrl: string } }) => { assert.equal(data.workspaceId, "a"); assert.equal(data.portraitUrl, "https://assets.example/workspaces/a/team/portrait.jpg"); writes++; return { id: "profile" }; } } } },
+      "@/lib/workspace-write-access": { requireLockedWorkspaceEditor: async () => {} },
+      "@/lib/workspace-context-core": { tenantContextEnabled: () => true },
+      "@/lib/prisma": { prisma: { ...tx, $transaction: (fn: (client: typeof tx) => unknown) => fn(tx) } },
     });
     const response = await loaded.POST(new Request("http://localhost", { method: "POST", body: JSON.stringify({ name: "Person", title: "Photographer", biography: "Biography", portraitStorageKey: `workspaces/${company === "unregistered" ? "a" : company}/team/portrait.jpg`, portraitUrl: "https://forged.example/image.jpg" }) })) as Response;
     assert.equal(response.status, company === "a" ? 201 : 400); assert.equal(writes, company === "a" ? 1 : 0); assert.equal(checks, writes);

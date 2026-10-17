@@ -1,0 +1,3775 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ProjectStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum BlogPostStatus {
+  DRAFT
+  NEEDS_REVIEW
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum BlogSeriesStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum BlogSeriesCadence {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+enum MediaSourceType {
+  UPLOADED_IMAGE
+  UPLOADED_VIDEO
+  VIDEO_EMBED
+  EXTERNAL_LINK
+  TOUR_EMBED
+}
+
+enum MediaCategory {
+  PHOTOGRAPHY
+  DRONE_PHOTOGRAPHY
+  CINEMATIC_FILM
+  VERTICAL_REEL
+  AGENT_BRANDING
+  SOCIAL_CONTENT
+  FLOOR_PLAN
+  PROPERTY_WEBSITE
+  MATTERPORT
+  OTHER
+}
+
+enum MediaVisibility {
+  VISIBLE
+  HIDDEN
+}
+
+enum VideoOfferingGroup {
+  CINEMATIC_FILM
+  SOCIAL_MEDIA_REEL
+}
+
+enum ExternalProvider {
+  CLOUDFLARE_STREAM
+  YOUTUBE
+  VIMEO
+  MATTERPORT
+  PROPERTY_WEBSITE
+  OTHER
+}
+
+enum CtaActionType {
+  BOOKING
+  PHONE
+  EMAIL
+  INTERNAL
+  EXTERNAL
+}
+
+enum CtaPlacementSlot {
+  HOME_PRIMARY
+  ABOUT_FOOTER
+  SERVICES_FOOTER
+  FAQ_FOOTER
+  PORTFOLIO_FOOTER
+}
+
+enum AdminRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum WorkspaceMembershipStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  REVOKED
+}
+
+enum WorkspaceDomainPurpose {
+  PUBLIC_SITE
+  ADMIN_ALIAS
+  TRACKING
+  EMAIL_LINK
+}
+
+enum WorkspaceDomainStatus {
+  PENDING
+  VERIFYING
+  ACTIVE
+  FAILED
+  SUSPENDED
+}
+
+enum GoogleBusinessConnectionStatus {
+  NEEDS_LOCATION
+  CONNECTED
+  ERROR
+  REVOKED
+}
+
+enum GoogleReviewSyncStatus {
+  CURRENT
+  ERROR
+}
+
+enum PortfolioAnalyticsEventName {
+  PORTFOLIO_VIEW
+  PROJECT_VIEW
+  PORTFOLIO_CARD_CLICK
+  PORTFOLIO_FILTER_USE
+  GALLERY_IMAGE_OPEN
+  VIDEO_START
+  VIDEO_PROGRESS_25
+  VIDEO_PROGRESS_50
+  VIDEO_PROGRESS_75
+  VIDEO_COMPLETE
+  PROJECT_SHARE
+  CTA_CLICK
+  OUTBOUND_LINK_CLICK
+}
+
+enum EmailCampaignStatus {
+  DRAFT
+  SCHEDULED
+  PROCESSING
+  SENDING
+  SENT
+  PARTIAL
+  FAILED
+  CANCELLED
+}
+
+enum CampaignRecipientStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum CommunicationEmailStatus {
+  VALID
+  INVALID
+  BOUNCED
+  COMPLAINED
+}
+
+enum MarketingEmailPreferenceStatus {
+  SUBSCRIBED
+  UNSUBSCRIBED
+  SUPPRESSED
+  PENDING_CONFIRMATION
+  UNKNOWN
+}
+
+enum NewsletterSeriesStatus {
+  ACTIVE
+  PAUSED
+}
+
+enum NewsletterEditionStatus {
+  AWAITING_GENERATION
+  GENERATING
+  DRAFT_GENERATED
+  NEEDS_REVIEW
+  APPROVED
+  SCHEDULED
+  SENDING
+  SENT
+  PAUSED
+  MISSED_APPROVAL
+  GENERATION_FAILED
+  SEND_FAILED
+  PARTIALLY_SENT
+  CANCELLED
+}
+
+enum NewsletterBlockType {
+  HERO
+  OPENING_NOTE
+  FEATURED_STORY
+  PORTFOLIO_SPOTLIGHT
+  HELPFUL_TIP
+  SERVICE_SPOTLIGHT
+  EVENT_ANNOUNCEMENT
+  IMAGE
+  CALL_TO_ACTION
+  DIVIDER
+  SPACER
+  CLOSING_NOTE
+}
+
+enum NewsletterRecurrenceKind {
+  DAY_OF_MONTH
+  NTH_WEEKDAY
+}
+
+enum NewsletterWeekOrdinal {
+  FIRST
+  SECOND
+  THIRD
+  FOURTH
+  LAST
+}
+
+enum NewsletterGenerationMode {
+  RECURRENCE
+  DAYS_BEFORE_SEND
+  MANUAL
+}
+
+enum NewsletterGenerationStatus {
+  CLAIMED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  INSUFFICIENT_CONTENT
+}
+
+enum NewsletterJobType {
+  GENERATE
+  SEND
+  MISSED_APPROVAL
+  NOTIFY
+}
+
+enum NewsletterDeliveryAttemptStatus {
+  PREPARED
+  ACCEPTED
+  UNCERTAIN
+  REJECTED
+}
+
+enum NewsletterJobStatus {
+  PENDING
+  CLAIMED
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum InquiryStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  BOOKED
+  CLOSED
+  SPAM
+}
+
+enum ReferralCampaignStatus {
+  DRAFT
+  APPROVED
+  LAUNCHING
+  ACTIVE
+  PAUSED
+  COMPLETED
+  EXPIRED
+  CANCELLED
+  ARCHIVED
+}
+
+enum ReferralAudienceMode {
+  INDIVIDUALS
+  GROUPS
+  FILTERED
+  ALL_ELIGIBLE
+}
+
+enum ReferralInvitationStatus {
+  DRAFT
+  APPROVED
+  SCHEDULED
+  SENDING
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  FAILED
+  UNSUBSCRIBED
+  CANCELLED
+}
+
+enum ReferralStatus {
+  INVITED
+  VISITED
+  SUBMITTED
+  CONTACTED
+  QUALIFIED
+  BOOKED
+  COMPLETED
+  REWARD_ELIGIBLE
+  REWARD_ISSUED
+  DISQUALIFIED
+  DECLINED
+  EXPIRED
+  DUPLICATE
+  CANCELLED
+  NEEDS_REVIEW
+}
+
+enum ReferralAttributionStatus {
+  CONFIRMED
+  NEEDS_REVIEW
+  REJECTED
+}
+
+enum ReferralRewardType {
+  ACCOUNT_CREDIT
+  PERCENTAGE_DISCOUNT
+  FIXED_VALUE_GIFT
+  COMPLIMENTARY_SERVICE
+  CUSTOM
+  NONE
+}
+
+enum ReferralRewardStatus {
+  NOT_ELIGIBLE
+  PENDING_REVIEW
+  ELIGIBLE
+  APPROVED
+  ISSUED
+  DECLINED
+  REVERSED
+}
+
+enum ReferralCommunicationKind {
+  INVITATION
+  FOLLOW_UP
+  REFERRAL_RECEIVED
+  REFERRED_PERSON_ACKNOWLEDGMENT
+  QUALIFIED_UPDATE
+  COMPLETION_THANK_YOU
+  REWARD_ELIGIBLE
+  REWARD_ISSUED
+  TEST
+}
+
+enum ReferralCommunicationStatus {
+  DRAFT
+  APPROVED
+  SCHEDULED
+  SENDING
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  FAILED
+  CANCELLED
+  UNSUBSCRIBED
+}
+
+enum HomepageCardMediaMode {
+  IMAGE
+  LIBRARY_VIDEO
+  UPLOADED_VIDEO
+}
+
+enum SocialSourceType {
+  PROJECT
+  PORTFOLIO_ITEM
+  MEDIA_LIBRARY
+  BLOG
+  NEWSLETTER
+  UPLOADED_IMAGE
+  UPLOADED_VIDEO
+  AI_GENERATED_IMAGE
+  BLANK
+}
+
+enum SocialPlatform {
+  INSTAGRAM
+  FACEBOOK
+  LINKEDIN
+  TIKTOK
+  OTHER
+}
+
+enum SocialVariantStatus {
+  DRAFT
+  NEEDS_REVIEW
+  CHANGES_REQUESTED
+  APPROVED
+  SCHEDULED
+  READY_TO_PUBLISH
+  PUBLISHED
+  FAILED
+  ARCHIVED
+}
+
+enum SocialApprovalAction {
+  SUBMITTED
+  APPROVED
+  CHANGES_REQUESTED
+  REVOKED
+  RESTORED
+}
+
+enum SocialCampaignStatus {
+  DRAFT
+  IN_PROGRESS
+  READY_FOR_REVIEW
+  APPROVED
+  ARCHIVED
+}
+
+enum SocialSeriesStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum SocialRecurrenceFrequency {
+  WEEKLY
+  MONTHLY
+}
+
+enum SocialGeneratedAssetKind {
+  AI_GENERATED
+  AI_ASSISTED_DERIVATIVE
+}
+
+enum SocialAutopilotWeekStatus {
+  GENERATING
+  DRAFT_REVIEW_REQUIRED
+  PARTIALLY_APPROVED
+  APPROVED
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum SocialAutopilotRunStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  PARTIAL
+  FAILED
+  CANCELLED
+}
+
+enum SocialAutopilotVerificationStatus {
+  VERIFIED
+  VERIFIED_WITH_SOURCES
+  NEEDS_REVIEW
+  BLOCKED_MISSING_INFORMATION
+}
+
+enum SocialConnectionState {
+  PENDING
+  ACTIVE
+  EXPIRING
+  EXPIRED
+  REVOKED
+  NOT_CONFIGURED
+  PROVIDER_CREDENTIALS_MISSING
+  APP_REVIEW_REQUIRED
+  READY_TO_CONNECT
+  MANUAL_WORKFLOW
+  CONNECTION_PLANNED
+  CONNECTED
+  CONNECTED_DIRECT_PUBLISHING_DISABLED
+  REAUTHORIZATION_REQUIRED
+  PERMISSION_MISSING
+  DISCONNECTED
+  ERROR
+  DRAFT_TRANSFER_ONLY
+}
+
+enum AvailabilityStatus {
+  AVAILABLE
+  ADVISORY
+  CRITICAL
+}
+
+enum OperationalIncidentState {
+  OPEN
+  RECOVERED
+}
+
+enum SocialPublishingJobStatus {
+  SCHEDULED
+  VALIDATING
+  READY
+  PUBLISHING
+  PROVIDER_PROCESSING
+  PUBLISHED
+  TRANSFERRED_AS_DRAFT
+  REQUIRES_MANUAL_COMPLETION
+  DELAYED
+  RETRY_SCHEDULED
+  FAILED
+  CANCELLED
+  REAUTHORIZATION_REQUIRED
+  MANUAL_FALLBACK
+}
+
+enum SocialPublishingErrorCategory {
+  AUTHENTICATION
+  PERMISSION
+  VALIDATION
+  RATE_LIMIT
+  TRANSIENT
+  PROVIDER_PROCESSING
+  AMBIGUOUS
+  CONFIGURATION
+  CANCELLED
+  UNKNOWN
+}
+
+enum SocialPublicationMethod {
+  AUTOMATED
+  MANUAL
+  DRAFT_TRANSFER
+}
+
+enum SocialMetricAvailability {
+  AVAILABLE
+  NOT_AVAILABLE
+  PERMISSION_REQUIRED
+  NOT_SUPPORTED
+  AWAITING_DATA
+  CONNECTION_REQUIRED
+  REFRESH_FAILED
+  OUTSIDE_AVAILABLE_HISTORY
+}
+
+enum SocialMetricPeriod {
+  CUMULATIVE
+  DAILY
+  PERIOD
+  LIFETIME
+  CURRENT
+  PROVIDER_RATE
+}
+
+enum SocialAnalyticsJobStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  PARTIAL
+  RETRY_SCHEDULED
+  FAILED
+  CANCELLED
+}
+
+enum BookingMode {
+  ONLINE
+  UNAVAILABLE
+  PAUSED
+}
+
+enum LegalDocumentType {
+  PRIVACY_POLICY
+  TERMS_OF_SERVICE
+}
+
+enum ClientPortalProvider {
+  HDPHOTOHUB
+  EXTERNAL
+}
+
+enum ClientPortalChallengePurpose {
+  LOGIN
+  REGISTER
+}
+
+enum TeamMemberCategory {
+  LEADERSHIP
+  PRODUCTION
+  POST_PRODUCTION
+  CLIENT_CARE
+  MARKETING
+  OPERATIONS
+}
+
+enum TeamDiscipline {
+  PHOTOGRAPHER
+  VIDEOGRAPHER
+  DRONE_PILOT
+  EDITOR
+  CREATIVE_DIRECTOR
+  OTHER
+}
+
+enum WorkspaceUserState {
+  ACTIVE
+  DEACTIVATED
+}
+
+model TeamMember {
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  @@index([workspaceId])
+
+  id String @id @default(cuid())
+
+  name      String
+  title     String
+  biography String
+  category  TeamMemberCategory @default(PRODUCTION)
+
+  portraitStorageKey String?
+  portraitUrl        String?
+  portraitAlt        String?
+  focalX             Float   @default(0.5)
+  focalY             Float   @default(0.25)
+
+  displayOrder Int     @default(0)
+  visible      Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([visible, displayOrder])
+  @@index([category, displayOrder])
+}
+
+model Project {
+  id               String    @id @default(cuid())
+  workspaceId      String
+  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  title            String
+  slug             String    @unique
+  shortDescription String?
+  description      String?
+
+  city          String?
+  state         String?
+  locationLabel String?
+  projectType   String?
+  propertyType  String?
+
+  status            ProjectStatus @default(DRAFT)
+  featured          Boolean       @default(false)
+  featuredStartedAt DateTime?
+  featuredExpiresAt DateTime?
+  displayOrder      Int           @default(0)
+
+  heroMediaId        String? @unique
+  thumbnailMediaId   String? @unique
+  socialImageMediaId String? @unique
+
+  seoTitle       String?
+  seoDescription String?
+
+  publishedAt DateTime?
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  heroMedia        Media? @relation("ProjectHeroMedia", fields: [heroMediaId], references: [id], onDelete: SetNull)
+  thumbnailMedia   Media? @relation("ProjectThumbnailMedia", fields: [thumbnailMediaId], references: [id], onDelete: SetNull)
+  socialImageMedia Media? @relation("ProjectSocialImageMedia", fields: [socialImageMediaId], references: [id], onDelete: SetNull)
+
+  media                  Media[]                      @relation("ProjectMedia")
+  details                ProjectDetails?
+  services               ProjectService[]
+  tags                   ProjectTag[]
+  homepagePlacement      HomepageProject?
+  previewLinks           ProjectPreviewLink[]
+  collectionHeroes       ProjectMediaCollectionHero[]
+  socialCampaigns        SocialCampaign[]
+  socialCampaignProjects SocialCampaignProject[]
+  contributors           ProjectContributor[]
+  agents                 ProjectAgent[]
+  analyticsEvents        PortfolioAnalyticsEvent[]
+
+  @@index([status])
+  @@index([workspaceId, status])
+  @@index([featured])
+  @@index([workspaceId, featured, featuredExpiresAt])
+  @@index([displayOrder])
+  @@index([publishedAt])
+  @@index([status, displayOrder])
+}
+
+model ProjectAgent {
+  id                  String               @id @default(cuid())
+  projectId           String
+  project             Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workspaceId         String
+  workspace           Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  clientId            String?
+  client              CommunicationClient? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  displayNameSnapshot String
+  brokerageSnapshot   String?
+  displayOrder        Int                  @default(0)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([projectId, displayOrder])
+  @@index([workspaceId, clientId])
+}
+
+model ProjectContributor {
+  id String @id @default(cuid())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  adminUserId String?
+  adminUser   AdminUser? @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  displayNameSnapshot String
+  titleSnapshot       String?
+  disciplinesSnapshot Json
+  externalName        String?
+  externalDiscipline  String?
+  public              Boolean @default(true)
+  displayOrder        Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, adminUserId])
+  @@index([projectId, displayOrder])
+  @@index([workspaceId, adminUserId])
+}
+
+model ProjectDetails {
+  id        String  @id @default(cuid())
+  projectId String  @unique
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  listingAgent     String?
+  brokerage        String?
+  builder          String?
+  architect        String?
+  interiorDesigner String?
+
+  price        Decimal? @db.Decimal(14, 2)
+  squareFeet   Int?
+  bedrooms     Float?
+  bathrooms    Float?
+  lotSize      String?
+  neighborhood String?
+
+  // Internal-only lookup value. Never rendered on public project pages.
+  propertyAddress String?
+
+  propertyWebsiteUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Media {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation("ProjectMedia", fields: [projectId], references: [id], onDelete: Cascade)
+
+  sourceType    MediaSourceType
+  mediaCategory MediaCategory
+  serviceId     String
+  service       Service           @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  provider      ExternalProvider?
+
+  storageKey       String?
+  originalFilename String?
+  mimeType         String?
+  externalUrl      String?
+  externalId       String?
+
+  altText String?
+  caption String?
+
+  width       Int?
+  height      Int?
+  aspectRatio Float?
+  fileSize    Int?
+
+  focalX Float @default(0.5)
+  focalY Float @default(0.5)
+
+  displayOrder Int             @default(0)
+  visibility   MediaVisibility @default(VISIBLE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  heroForProject              Project?                    @relation("ProjectHeroMedia")
+  thumbnailForProject         Project?                    @relation("ProjectThumbnailMedia")
+  socialImageForProject       Project?                    @relation("ProjectSocialImageMedia")
+  homepageWorkCards           HomepageWorkCard[]
+  collectionHero              ProjectMediaCollectionHero?
+  featuredBlogPosts           BlogPost[]
+  socialVariants              SocialVariantMedia[]
+  socialCampaignMedia         SocialCampaignMedia[]
+  socialGeneratedAssetSources SocialGeneratedAsset[]      @relation("SocialGeneratedAssetSource")
+  comparisonPlacement         VideoComparisonPlacement?
+
+  assetId String?
+  asset WorkspaceAsset? @relation(fields: [assetId], references: [id], onDelete: Restrict)
+
+  @@index([assetId])
+  @@index([projectId])
+  @@index([projectId, displayOrder])
+  @@index([projectId, visibility])
+  @@index([mediaCategory])
+  @@index([serviceId])
+  @@index([sourceType])
+}
+
+model VideoOffering {
+  id                   String                     @id
+  workspaceId          String
+  workspace            Workspace                  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  publicName           String
+  positioningStatement String
+  publicDescription    String
+  offeringGroup        VideoOfferingGroup
+  comparisonOrder      Int                        @default(0)
+  active               Boolean                    @default(true)
+  priceLabel           String?
+  runtimeGuidance      String?
+  orientation          String?
+  bestForDescription   String?
+  featureDistinctions  Json?
+  bookingDestination   String?
+  placements           VideoComparisonPlacement[]
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+
+  @@unique([workspaceId, publicName])
+  @@index([workspaceId, active, offeringGroup, comparisonOrder])
+}
+
+model VideoComparisonPlacement {
+  id                String        @id @default(cuid())
+  workspaceId       String
+  workspace         Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  mediaId           String        @unique
+  media             Media         @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  offeringId        String
+  offering          VideoOffering @relation(fields: [offeringId], references: [id], onDelete: Cascade)
+  showOnComparison  Boolean       @default(false)
+  featuredExample   Boolean       @default(false)
+  comparisonOrder   Int           @default(0)
+  publicTitle       String?
+  posterOverrideUrl String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([workspaceId, showOnComparison])
+  @@index([offeringId, showOnComparison, comparisonOrder])
+}
+
+model PhotoComparisonPage {
+  id          String    @id @default(cuid())
+  workspaceId String    @unique
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  active      Boolean   @default(true)
+  content     Json
+
+  detailImageStorageKey String?
+  detailImageUrl        String?
+  detailImageAlt        String
+
+  pairs PhotoComparisonPair[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PhotoComparisonPair {
+  id             String              @id @default(cuid())
+  pageId         String
+  page           PhotoComparisonPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  label          String
+  editorialStyle String?
+  alt            String
+  caption        String?
+  active         Boolean             @default(true)
+  position       Int                 @default(0)
+
+  standardImageStorageKey  String?
+  standardImageUrl         String
+  editorialImageStorageKey String?
+  editorialImageUrl        String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([pageId, active, position])
+}
+
+model ProjectMediaCollectionHero {
+  projectId     String
+  mediaCategory MediaCategory
+  serviceId     String
+  mediaId       String        @unique
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  media   Media   @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([projectId, serviceId])
+  @@index([mediaCategory])
+  @@index([serviceId])
+}
+
+model Service {
+  id                  String    @id @default(cuid())
+  name                String
+  slug                String
+  workspaceId         String
+  workspace           Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  description         String?
+  // Retained for backward compatibility; public service imagery now comes
+  // from each project's matching media-collection hero.
+  heroImageStorageKey String?
+  heroImageAlt        String?
+  displayOrder        Int       @default(0)
+  active              Boolean   @default(true)
+  archivedAt          DateTime?
+
+  projects         ProjectService[]
+  inquiries        InquiryService[]
+  homepageWorkCard HomepageWorkCard?
+  media            Media[]
+  collectionHeroes ProjectMediaCollectionHero[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([workspaceId, slug])
+  @@index([workspaceId, active, archivedAt, displayOrder])
+}
+
+model ProjectService {
+  projectId String
+  serviceId String
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([projectId, serviceId])
+  @@index([serviceId])
+}
+
+model Tag {
+  id   String @id @default(cuid())
+  name String
+  slug String @unique
+
+  projects ProjectTag[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProjectTag {
+  projectId String
+  tagId     String
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([projectId, tagId])
+  @@index([tagId])
+}
+
+model FaqCategory {
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  id           String  @id @default(cuid())
+  name         String
+  slug         String  @unique
+  description  String?
+  displayOrder Int     @default(0)
+  active       Boolean @default(true)
+
+  faqs Faq[]
+
+  @@index([workspaceId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, displayOrder])
+}
+
+model Faq {
+  id         String      @id @default(cuid())
+  categoryId String
+  category   FaqCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  question     String
+  answer       String
+  displayOrder Int     @default(0)
+  published    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId, displayOrder])
+  @@index([published])
+  @@index([published, categoryId])
+}
+
+model Testimonial {
+  id String @id @default(cuid())
+
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  agentName   String
+  jobTitle    String?
+  brokerage   String?
+  testimonial String
+
+  photoStorageKey  String?
+  photoUrl         String?
+  photoAlt         String?
+  sourceUrl        String?
+  sourceProvider   String    @default("MANUAL")
+  externalReviewId String? @unique
+  reviewerPhotoUrl String?
+  reviewedAt       DateTime?
+
+  focalX Float @default(0.5)
+  focalY Float @default(0.2)
+  rating Int   @default(5)
+
+  displayOrder Int     @default(0)
+  published    Boolean @default(false)
+  featured     Boolean @default(false)
+  rowVersion   Int     @default(0)
+
+  googleBusinessReview GoogleBusinessReview?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workspaceId, published, displayOrder])
+  @@index([workspaceId, featured])
+  @@index([workspaceId, sourceProvider, published, displayOrder])
+  @@unique([workspaceId, externalReviewId])
+}
+
+model TrustedLogo {
+  id String @id @default(cuid())
+
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  organizationName String
+  logoStorageKey   String?
+  logoUrl          String?
+  logoAlt          String?
+  websiteUrl       String?
+
+  monochrome     Boolean @default(true)
+  displayColor   String  @default("#D8D3CC")
+  displayOpacity Float   @default(0.68)
+  displayScale   Float   @default(1)
+
+  displayOrder Int     @default(0)
+  published    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workspaceId, published, displayOrder])
+}
+
+model HomepageProject {
+  id        String  @id @default(cuid())
+  projectId String  @unique
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  titleOverride String?
+  displayOrder  Int     @default(0)
+  active        Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, displayOrder])
+}
+
+model HomepageWorkCard {
+  id        String  @id @default(cuid())
+  serviceId String  @unique
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  titleOverride       String?
+  destinationOverride String?
+  displayOrder        Int     @default(0)
+  active              Boolean @default(true)
+
+  imageStorageKey String?
+  imageUrl        String?
+  imageAlt        String?
+
+  mediaMode       HomepageCardMediaMode @default(IMAGE)
+  featuredMediaId String?
+  featuredMedia   Media?                @relation(fields: [featuredMediaId], references: [id], onDelete: SetNull)
+
+  videoStorageKey String?
+  videoUrl        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, displayOrder])
+  @@index([featuredMediaId])
+}
+
+model SiteSettings {
+  id          String     @id @default("default")
+  workspaceId String?    @unique
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  businessName              String      @default("Helios Real Estate Media")
+  phoneDisplay              String      @default("970.682.5533")
+  phoneE164                 String      @default("+19706825533")
+  email                     String?
+  bookingUrl                String?
+  bookingMode               BookingMode @default(ONLINE)
+  bookingHeadline           String?     @default("Online booking is temporarily unavailable")
+  bookingExplanation        String?
+  bookingEstimatedRestoreAt DateTime?
+  bookingContactPhone       String?
+  bookingContactEmail       String?
+  bookingBannerMessage      String?
+  bookingBannerEnabled      Boolean     @default(true)
+  bookingRequestEnabled     Boolean     @default(true)
+  bookingHandoffEnabled     Boolean     @default(true)
+  bookingProviderName       String?
+  bookingEyebrow            String?
+  bookingHandoffHeadline    String?
+  bookingHandoffExplanation String?
+  bookingPrimaryLabel       String?
+  bookingCallLabel          String?
+  bookingEmailLabel         String?
+  bookingPhoneVisible       Boolean     @default(true)
+  bookingEmailVisible       Boolean     @default(true)
+  googleReviewDisplayMode   String      @default("FOUR_AND_FIVE")
+
+  heroVideoUrl             String?
+  heroPosterUrl            String?            @default("/work/featured-estate.jpg")
+  heroPosterAlt            String?            @default("Luxury real estate exterior photographed by Helios Real Estate Media")
+  heroEyebrow              String?            @default("Fort Collins, Colorado")
+  heroHeadlineLineOne      String?            @default("Luxury Marketing")
+  heroHeadlineLineTwo      String?            @default("for Exceptional Homes")
+  heroBody                 String?            @default("Photography, cinematic films, aerial imagery, and branding crafted to elevate Northern Colorado's most exceptional homes.")
+  heroPrimaryLabel         String?            @default("Book Now")
+  heroPrimaryDestination   String?
+  heroSecondaryLabel       String?            @default("View Portfolio")
+  heroSecondaryDestination String?            @default("/portfolio")
+  availabilityEnabled      Boolean            @default(false)
+  availabilityLabel        String?            @default("Now booking")
+  availabilityMessage      String?
+  availabilityStatus       AvailabilityStatus @default(AVAILABLE)
+
+  heliosStandardImageStorageKey String?
+  heliosStandardImageUrl        String?
+  heliosStandardImageAlt        String? @default("Luxury interior photographed by Helios Real Estate Media")
+
+  primaryConversionImageStorageKey String?
+  primaryConversionImageUrl        String?
+  primaryConversionImageAlt        String? @default("Architectural living room photographed by Helios Real Estate Media")
+
+  brandLogoStorageKey String?
+  brandLogoUrl        String?
+  brandLogoAlt        String? @default("Helios Real Estate Media")
+
+  brandMonogramStorageKey String?
+  brandMonogramUrl        String?
+
+  faviconStorageKey String?
+  faviconUrl        String?
+  faviconVersion    Int     @default(0)
+
+  defaultSocialImageStorageKey String?
+  defaultSocialImageUrl        String?
+  defaultSocialImageAlt        String?
+  defaultSocialImageVersion    Int     @default(0)
+
+  featuredFilmEnabled          Boolean @default(false)
+  featuredFilmVideoStorageKey  String?
+  featuredFilmVideoUrl         String?
+  featuredFilmPosterStorageKey String?
+  featuredFilmPosterUrl        String?
+  featuredFilmDestination      String? @default("/portfolio?service=cinematic-films")
+
+  locationLabel          String  @default("Fort Collins, Colorado")
+  serviceArea            String  @default("Northern Colorado")
+  serviceAreaDescription String?
+  footerDescription      String?
+
+  standardEyebrow            String? @default("The Helios Standard")
+  standardHeading            String? @default("Presentation Changes")
+  standardHeadingAccent      String? @default("Perception.")
+  standardHeadingLineOne     String? @default("Presentation")
+  standardHeadingLineTwo     String? @default("Changes Perception.")
+  standardBody               String? @default("Exceptional homes deserve more than documentation. They deserve a presentation that shapes how they are seen, remembered, and valued.")
+  standardPrinciples         Json?
+  workEyebrow                String? @default("Our Work")
+  workHeading                String? @default("Crafted to Capture")
+  workHeadingLineOne         String? @default("Crafted to")
+  workHeadingLineTwo         String? @default("Capture")
+  workHeadingAccent          String? @default("Attention.")
+  workBody                   String? @default("Every image, every frame, and every film is crafted to elevate perception, command attention, and inspire confidence before the first showing.")
+  workButtonLabel            String? @default("Explore Portfolio")
+  workButtonDestination      String? @default("/portfolio")
+  featuredProjectEyebrow     String? @default("Featured Project")
+  portfolioEyebrow           String? @default("Complete Portfolio")
+  portfolioHeading           String? @default("Explore the Full Collection.")
+  portfolioButtonLabel       String? @default("View Complete Portfolio")
+  portfolioButtonDestination String? @default("/portfolio")
+  approachEyebrow            String? @default("Our Approach")
+  approachHeading            String? @default("We Build")
+  approachHeadingAccent      String? @default("Perceived Value.")
+  approachHeadingLineOne     String? @default("We Build")
+  approachHeadingLineTwo     String? @default("Perceived Value.")
+  approachBody               String? @default("Every listing is treated like a campaign. Every image, frame, and film is shaped to capture attention, create emotion, and elevate the way a property is perceived.")
+  approachCards              Json?
+  approachTagline            String? @default("Light. Clarity. Vision.")
+  approachButtonLabel        String? @default("Discover Helios")
+  approachButtonDestination  String? @default("/about")
+  headerNavigation           Json?
+  footerNavigation           Json?
+  conversionImageCaption     String? @default("Presentation shapes perception.")
+
+  websiteUrl   String?
+  instagramUrl String?
+  facebookUrl  String?
+  youtubeUrl   String?
+  linkedinUrl  String?
+
+  brandVoice           String?
+  brandAudience        String?
+  brandWritingGuidance String?
+  defaultBlogAuthor    String?
+
+  defaultSeoTitle       String @default("Helios Real Estate Media")
+  defaultSeoDescription String @default("Luxury real estate photography, cinematic films, and branding for Northern Colorado's finest homes.")
+
+  privacyPolicyPublished  Boolean @default(false)
+  termsOfServicePublished Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BlogPost {
+  id String @id @default(cuid())
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  @@index([workspaceId])
+
+  title    String
+  slug     String  @unique
+  excerpt  String?
+  content  String
+  author   String?
+  category String?
+
+  status      BlogPostStatus @default(DRAFT)
+  scheduledAt DateTime?
+  publishedAt DateTime?
+  archivedAt  DateTime?
+
+  featuredMediaId String?
+  featuredMedia   Media?  @relation(fields: [featuredMediaId], references: [id], onDelete: SetNull)
+
+  featuredImageStorageKey String?
+  featuredImageUrl        String?
+  featuredImageAlt        String?
+
+  seoTitle       String?
+  seoDescription String?
+  canonicalUrl   String?
+
+  socialCaption String?
+  sourceLinks   Json?
+
+  seriesId          String?
+  series            BlogSeries?        @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  intendedPublishAt DateTime?
+  aiGenerated       Boolean            @default(false)
+  manualContent     Boolean            @default(false)
+  generationNotes   Json?
+  revisions         BlogPostRevision[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, publishedAt])
+  @@index([category])
+  @@index([featuredMediaId])
+  @@index([seriesId, intendedPublishAt])
+}
+
+model BlogSeries {
+  id String @id @default(cuid())
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  @@index([workspaceId])
+
+  name             String
+  purpose          String
+  targetAudience   String
+  cadence          BlogSeriesCadence @default(BIWEEKLY)
+  generationHour   Int               @default(8)
+  leadDays         Int               @default(7)
+  nextGenerationAt DateTime?
+  nextPublishAt    DateTime?
+  timezone         String            @default("America/Denver")
+
+  contentPillars   Json
+  brandVoice       String
+  prioritizeTopics String?
+  avoidTopics      String?
+  targetLength     Int              @default(1000)
+  seoFocus         String?
+  preferredCta     String?
+  imagePreferences String?
+  status           BlogSeriesStatus @default(ACTIVE)
+  lastPillarIndex  Int              @default(-1)
+
+  posts     BlogPost[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([status, nextGenerationAt])
+}
+
+model BlogPostRevision {
+  id String @id @default(cuid())
+
+  postId         String
+  post           BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  title          String
+  excerpt        String?
+  content        String
+  seoTitle       String?
+  seoDescription String?
+  sourceLinks    Json?
+  changeSummary  String
+  aiGenerated    Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([postId, createdAt])
+}
+
+model LocationPage {
+  id String @id @default(cuid())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  slug           String
+  city           String
+  state          String  @default("Colorado")
+  county         String
+  seoTitle       String
+  seoDescription String
+  heroLead       String
+  introduction   String
+  marketTitle    String
+  marketCopy     String
+  localDetails   Json
+  serviceArea    String
+  ctaHeadline    String?
+
+  featureImageStorageKey String?
+  featureImageUrl        String?
+  featureImageAlt        String?
+  featureImageFocalX     Float   @default(0.5)
+  featureImageFocalY     Float   @default(0.5)
+
+  published    Boolean @default(false)
+  displayOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([workspaceId, slug])
+  @@index([workspaceId, published, displayOrder])
+}
+
+model ClientPortal {
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  @@index([workspaceId, active, displayOrder])
+
+  id          String               @id @default(cuid())
+  name        String
+  slug        String               @unique
+  description String?
+  provider    ClientPortalProvider @default(HDPHOTOHUB)
+
+  hdphGroupId     Int?
+  loginUrl        String?
+  registrationUrl String?
+  bookingUrl      String?
+
+  registrationEnabled Boolean @default(true)
+  isDefault           Boolean @default(false)
+  active              Boolean @default(true)
+  displayOrder        Int     @default(0)
+
+  challenges ClientPortalChallenge[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, displayOrder])
+  @@index([provider])
+}
+
+model ClientPortalChallenge {
+  id                 String                       @id @default(cuid())
+  portalId           String
+  portal             ClientPortal                 @relation(fields: [portalId], references: [id], onDelete: Cascade)
+  purpose            ClientPortalChallengePurpose
+  email              String
+  tokenHash          String                       @unique
+  requestFingerprint String?
+
+  firstName String?
+  lastName  String?
+  phone     String?
+
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([portalId, email])
+  @@index([requestFingerprint, createdAt])
+  @@index([expiresAt])
+}
+
+model AboutPageContent {
+  workspaceId String? @unique
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  @@index([workspaceId])
+
+  id String @id @default("default")
+
+  heroEyebrow  String @default("About Helios")
+  heroHeadline String @default("Presentation shapes perception.")
+  heroBody     String @default("Helios is a Northern Colorado real estate media studio built around one belief: thoughtful presentation changes how a property is seen, remembered, and valued.")
+
+  heroImageStorageKey String?
+  heroImageUrl        String?
+  heroImageAlt        String  @default("Refined contemporary interior photographed by Helios Real Estate Media")
+
+  storyEyebrow   String @default("Why we exist")
+  storyIntro     String @default("Real estate media is often treated as documentation. We see it as positioning—the first signal of care, quality, and value a buyer receives.")
+  storyHeadline  String @default("We create the visual language that helps exceptional properties feel impossible to overlook.")
+  storyBodyLeft  String @default("Photography, cinematic film, aerial perspectives, agent branding, and social content are approached as parts of the same campaign. The result is more coherent, more useful, and more memorable than a collection of disconnected deliverables.")
+  storyBodyRight String @default("We work with agents, builders, designers, and property professionals who understand that presentation is not decoration. It is a strategic part of how trust is earned and value is communicated.")
+
+  founderEnabled   Boolean @default(false)
+  founderEyebrow   String  @default("Meet Helios")
+  founderFirstName String  @default("Jake")
+  founderRole      String  @default("Founder · Creative · Storyteller")
+  founderBody      String  @default("Helios was built on a simple belief: real estate media can do more than document a home. It can elevate it.\n\nEvery listing has a story, and every agent deserves marketing that reflects the work they’ve put into earning it.\n\nWhen you work with Helios, you’re not just getting photos or video. You’re getting a partner who cares about the final result.")
+  founderSignature String  @default("Jake Guerin")
+  founderTitle     String  @default("Founder of Helios")
+  founderTeamNote  String  @default("Today, Helios is powered by a growing team of photographers, editors, and creatives who share the same commitment to quality.")
+
+  founderImageStorageKey String?
+  founderImageUrl        String?
+  founderImageAlt        String  @default("Jake Guerin, founder of Helios Real Estate Media")
+
+  principlesEyebrow  String @default("The Helios point of view")
+  principlesHeadline String @default("Beauty with a purpose.")
+  principlesIntro    String @default("A clear set of principles keeps the work consistent while every property remains distinct.")
+  principles         Json
+
+  galleryOneStorageKey   String?
+  galleryOneUrl          String?
+  galleryOneAlt          String  @default("Luxury interior media created by Helios")
+  galleryTwoStorageKey   String?
+  galleryTwoUrl          String?
+  galleryTwoAlt          String  @default("Architectural detail photographed by Helios")
+  galleryThreeStorageKey String?
+  galleryThreeUrl        String?
+  galleryThreeAlt        String  @default("Elevated property photography by Helios")
+
+  processEyebrow  String @default("The client experience")
+  processHeadline String @default("Considered from first call to final delivery.")
+  process         Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LegalDocument {
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  @@index([workspaceId])
+
+  id        String            @id @default(cuid())
+  type      LegalDocumentType
+  title     String
+  content   String
+  published Boolean           @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published])
+  @@unique([workspaceId, type])
+}
+
+model CallToAction {
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  @@index([workspaceId])
+
+  id String @id @default(cuid())
+
+  internalName String
+  eyebrow      String?
+  headline     String
+  body         String?
+
+  primaryLabel      String
+  primaryActionType CtaActionType
+  primaryValue      String?
+
+  secondaryLabel      String?
+  secondaryActionType CtaActionType?
+  secondaryValue      String?
+
+  published Boolean @default(false)
+
+  placements CtaPlacement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published])
+}
+
+model CtaPlacement {
+  id    String           @id @default(cuid())
+  slot  CtaPlacementSlot @unique
+  ctaId String
+  cta   CallToAction     @relation(fields: [ctaId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ctaId])
+}
+
+model AdminUser {
+  id String @id @default(cuid())
+
+  email                       String             @unique
+  displayName                 String
+  title                       String?
+  legacyDisplayName           String?
+  firstName                   String?
+  lastName                    String?
+  phone                       String?
+  profilePhotoStorageKey      String?
+  profilePhotoUrl             String?
+  notificationPreferences     Json?
+  disciplines                 TeamDiscipline[]
+  state                       WorkspaceUserState @default(ACTIVE)
+  role                        AdminRole          @default(EDITOR)
+  active                      Boolean            @default(true)
+  passwordHash                String?
+  sessionVersion              Int                @default(0)
+  navigationFavorites         Json?
+  homepageCurationPreferences Json?
+  dashboardPreferences        Json?
+  workspaceId                 String
+  workspace                   Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+
+  auditEvents                   AuditEvent[]
+  assignedInquiries             Inquiry[]                       @relation("InquiryAssignee")
+  inquiryNotes                  InquiryNote[]
+  inquiryActivities             InquiryActivity[]
+  previewLinks                  ProjectPreviewLink[]
+  invitationsCreated            AdminInvitation[]               @relation("InvitationCreator")
+  emailCampaigns                EmailCampaign[]
+  newsletterSeriesCreated       NewsletterSeries[]              @relation("NewsletterSeriesCreator")
+  newsletterEditionsCreated     NewsletterEdition[]             @relation("NewsletterEditionCreator")
+  newsletterRevisions           NewsletterRevision[]
+  newsletterApprovals           NewsletterApproval[]
+  newsletterImageAssets         NewsletterImageAsset[]
+  referralCampaignsCreated      ReferralCampaign[]              @relation("ReferralCampaignCreator")
+  referralCampaignApprovals     ReferralCampaignRevision[]      @relation("ReferralRevisionApprover")
+  referralStatusEvents          ReferralStatusEvent[]
+  referralRewardsApproved       ReferralReward[]                @relation("ReferralRewardApprover")
+  referralRewardsIssued         ReferralReward[]                @relation("ReferralRewardIssuer")
+  referralAuditEvents           ReferralAuditEvent[]
+  referralTestTokens            ReferralTestToken[]
+  marketingPreferencesActed     MarketingEmailPreference[]
+  marketingPreferenceEvents     MarketingEmailPreferenceEvent[]
+  socialCampaignsCreated        SocialCampaign[]                @relation("SocialCampaignCreator")
+  socialCampaignsEdited         SocialCampaign[]                @relation("SocialCampaignEditor")
+  socialSeriesCreated           SocialSeries[]                  @relation("SocialSeriesCreator")
+  socialSeriesEdited            SocialSeries[]                  @relation("SocialSeriesEditor")
+  socialGeneratedAssetsReviewed SocialGeneratedAsset[]          @relation("SocialGeneratedAssetReviewer")
+  socialVariantsEdited          SocialVariant[]                 @relation("SocialVariantEditor")
+  socialApprovalEvents          SocialApprovalEvent[]
+  socialPublications            SocialPublication[]
+  socialConnectionsEnabled      SocialConnection[]              @relation("SocialConnectionEnabledBy")
+  socialConnectionAudits        SocialConnectionAudit[]
+  socialOAuthSessions           SocialOAuthSession[]
+  socialPublishingApprovals     SocialPublishingSnapshot[]      @relation("SocialPublishingApprovedBy")
+  socialRecommendationsActed    SocialAnalyticsRecommendation[] @relation("SocialRecommendationActor")
+  projectCredits                ProjectContributor[]
+  portfolioAnalyticsEvents      PortfolioAnalyticsEvent[]
+  googleBusinessConnections     GoogleBusinessConnection[]      @relation("GoogleBusinessConnectionActor")
+  workspaceMemberships          WorkspaceMembership[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, role])
+  @@index([workspaceId])
+}
+
+model Workspace {
+  id   String @id @default(cuid())
+  name String
+  slug String @unique
+
+  users                     AdminUser[]
+  socialCampaigns           SocialCampaign[]
+  socialSeries              SocialSeries[]
+  socialGeneratedAssets     SocialGeneratedAsset[]
+  socialSettings            SocialStudioSettings[]
+  socialConnections         SocialConnection[]
+  socialAutopilotSettings   SocialAutopilotSettings?
+  socialAutopilotWeeks      SocialAutopilotWeek[]
+  socialAutopilotRuns       SocialAutopilotRun[]
+  socialOAuthSessions       SocialOAuthSession[]
+  siteSettings              SiteSettings?
+  projectContributors       ProjectContributor[]
+  portfolioAnalyticsEvents  PortfolioAnalyticsEvent[]
+  projects                  Project[]
+  projectAgents             ProjectAgent[]
+  communicationClients      CommunicationClientWorkspace[]
+  invitations               AdminInvitation[]
+  clientSyncRuns            ClientSyncRun[]
+  resendWebhookEvents       ResendWebhookEvent[]
+  services                  Service[]
+  locationPages             LocationPage[]
+  videoOfferings            VideoOffering[]
+  videoComparisonPlacements VideoComparisonPlacement[]
+  photoComparisonPage       PhotoComparisonPage?
+  googleBusinessConnection  GoogleBusinessConnection?
+  googleBusinessReviews     GoogleBusinessReview[]
+  memberships               WorkspaceMembership[]
+  domains                   WorkspaceDomain[]
+  testimonials              Testimonial[]
+  trustedLogos              TrustedLogo[]
+  blogPosts                 BlogPost[]
+  blogSeries                BlogSeries[]
+  newsletterSeries          NewsletterSeries[]
+  newsletterImages          NewsletterImageAsset[]
+  communicationGroups       CommunicationGroup[]
+  faqCategories             FaqCategory[]
+  legalDocuments            LegalDocument[]
+  callsToAction             CallToAction[]
+  emailCampaigns            EmailCampaign[]
+  aboutPageContent          AboutPageContent?
+  teamMembers               TeamMember[]
+  inquiries                 Inquiry[]
+  auditEvents               AuditEvent[]
+  clientPortals             ClientPortal[]
+  referralCampaigns         ReferralCampaign[]
+  assets                    WorkspaceAsset[]
+  newsletterDeliveryAttempts NewsletterDeliveryAttempt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WorkspaceMembership {
+  id String @id @default(cuid())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String
+  user        AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  role   AdminRole                 @default(EDITOR)
+  status WorkspaceMembershipStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([workspaceId, userId])
+  @@index([userId, status])
+  @@index([workspaceId, status, role])
+}
+
+model WorkspaceDomain {
+  id String @id @default(cuid())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  hostname          String                 @unique
+  purpose           WorkspaceDomainPurpose @default(PUBLIC_SITE)
+  status            WorkspaceDomainStatus  @default(PENDING)
+  primary           Boolean                @default(false)
+  verificationToken String?
+  verifiedAt        DateTime?
+  lastCheckedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workspaceId, purpose, status])
+  @@index([workspaceId, primary])
+}
+
+model GoogleBusinessConnection {
+  id String @id @default(cuid())
+
+  workspaceId String    @unique
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  status GoogleBusinessConnectionStatus @default(NEEDS_LOCATION)
+
+  refreshTokenCiphertext String
+  accountResourceName    String?
+  accountDisplayName     String?
+  locationResourceName   String?
+  locationTitle          String?
+  locationAddress        String?
+  availableLocations     Json?
+
+  lastSyncAt     DateTime?
+  lastSyncStatus GoogleReviewSyncStatus?
+  lastSyncError  String?
+  connectedAt    DateTime?
+  disconnectedAt DateTime?
+
+  connectedById String?
+  connectedBy   AdminUser? @relation("GoogleBusinessConnectionActor", fields: [connectedById], references: [id], onDelete: SetNull)
+
+  reviews GoogleBusinessReview[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, updatedAt])
+}
+
+model GoogleBusinessOAuthState {
+  id String @id @default(cuid())
+
+  stateHash              String    @unique
+  codeVerifierCiphertext String
+  workspaceId            String
+  adminUserId            String
+  expiresAt              DateTime
+  consumedAt             DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([workspaceId, adminUserId, expiresAt])
+  @@index([expiresAt])
+}
+
+model GoogleBusinessReview {
+  id String @id @default(cuid())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  connectionId String
+  connection   GoogleBusinessConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  googleReviewId           String
+  reviewerName             String
+  reviewerPhotoUrl         String?
+  starRating               Int
+  reviewText               String?
+  reviewCreatedAt          DateTime?
+  reviewUpdatedAt          DateTime?
+  businessReplyText        String?
+  businessReplyUpdatedAt   DateTime?
+  lastSyncedAt             DateTime               @default(now())
+  syncStatus               GoogleReviewSyncStatus @default(CURRENT)
+  syncError                String?
+  publicVisibilityOverride Boolean?
+
+  testimonialId String?      @unique
+  testimonial   Testimonial? @relation(fields: [testimonialId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([connectionId, googleReviewId])
+  @@index([workspaceId, reviewUpdatedAt])
+  @@index([workspaceId, testimonialId])
+}
+
+model PortfolioAnalyticsEvent {
+  id String @id @default(cuid())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  eventName      PortfolioAnalyticsEventName
+  eventKey       String?                     @unique
+  sessionId      String
+  deviceCategory String
+  trafficSource  String
+  referrerHost   String?
+  channel        String?
+  target         String?
+  metadata       Json?
+  occurredAt     DateTime                    @default(now())
+  createdAt      DateTime                    @default(now())
+  adminUser      AdminUser?                  @relation(fields: [adminUserId], references: [id])
+  adminUserId    String?
+
+  @@index([workspaceId, occurredAt])
+  @@index([workspaceId, eventName, occurredAt])
+  @@index([workspaceId, projectId, occurredAt])
+  @@index([projectId, eventName, occurredAt])
+  @@index([sessionId, occurredAt])
+}
+
+model SocialCampaign {
+  id String @id @default(cuid())
+
+  internalName           String
+  description            String?
+  purpose                String?
+  status                 SocialCampaignStatus @default(DRAFT)
+  sourceType             SocialSourceType
+  sourceRecordIds        Json?
+  verifiedSourceFacts    Json?
+  targetAudience         String?
+  brandVoice             String?
+  primaryMessage         String?
+  objective              String?
+  desiredCallToAction    String?
+  destinationLink        String?
+  selectedPlatforms      Json
+  scheduleNotes          String?
+  internalNotes          String?
+  startAt                DateTime?
+  endAt                  DateTime?
+  internalAiInstructions String?
+  generationStatus       String?
+  generationError        String?
+  generationRequestId    String?              @unique
+
+  sourceProjectId String?
+  sourceProject   Project? @relation(fields: [sourceProjectId], references: [id], onDelete: SetNull)
+
+  createdById    String
+  createdBy      AdminUser @relation("SocialCampaignCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  lastEditedById String
+  lastEditedBy   AdminUser @relation("SocialCampaignEditor", fields: [lastEditedById], references: [id], onDelete: Restrict)
+  workspaceId    String
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  variants                 SocialVariant[]
+  projects                 SocialCampaignProject[]
+  media                    SocialCampaignMedia[]
+  seriesLinks              SocialSeriesCampaign[]
+  occurrences              SocialSeriesOccurrence[]
+  analyticsRecommendations SocialAnalyticsRecommendation[]
+  autopilotDraft           SocialAutopilotDraft?
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([createdById, updatedAt])
+  @@index([workspaceId, updatedAt])
+  @@index([workspaceId, status, updatedAt])
+  @@index([sourceType, sourceProjectId])
+  @@index([archivedAt, updatedAt])
+}
+
+model SocialAutopilotSettings {
+  id          String    @id @default(cuid())
+  workspaceId String    @unique
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  enabled                 Boolean   @default(false)
+  postsPerWeek            Int       @default(4)
+  enabledPlatforms        Json
+  preferredPublishingDays Json
+  preferredTimeWindows    Json
+  contentMix              Json
+  portfolioFirst          Boolean   @default(true)
+  aiImagesEnabled         Boolean   @default(false)
+  seasonalContentEnabled  Boolean   @default(true)
+  educationalEnabled      Boolean   @default(true)
+  externalResearchEnabled Boolean   @default(false)
+  promotionalLimit        Int       @default(1)
+  geographicMarket        String?
+  hashtagLimit            Int       @default(5)
+  notificationRecipients  Json
+  generationDay           Int       @default(1)
+  generationLocalTime     String    @default("08:00")
+  timeZone                String    @default("America/Denver")
+  reminderHours           Json
+  contentCooldowns        Json
+  callsToAction           Json
+  exclusions              Json
+  nextGenerationAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SocialAutopilotWeek {
+  id                String                    @id @default(cuid())
+  workspaceId       String
+  workspace         Workspace                 @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  weekStart         DateTime
+  weekEnd           DateTime
+  status            SocialAutopilotWeekStatus @default(GENERATING)
+  inputDigest       String
+  generationVersion Int                       @default(1)
+  lockedAt          DateTime?
+  lockedBy          String?
+  reviewNotifiedAt  DateTime?
+  reminderSentAt    DateTime?
+  lastErrorCode     String?
+  lastErrorMessage  String?
+
+  drafts SocialAutopilotDraft[]
+  runs   SocialAutopilotRun[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([workspaceId, weekStart])
+  @@index([workspaceId, status, weekStart])
+}
+
+model SocialAutopilotDraft {
+  id                 String                            @id @default(cuid())
+  weekId             String
+  week               SocialAutopilotWeek               @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  campaignId         String                            @unique
+  campaign           SocialCampaign                    @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  pillar             String
+  reasoning          String?
+  verificationStatus SocialAutopilotVerificationStatus @default(NEEDS_REVIEW)
+  sourceReferences   Json?
+  externalSources    Json?
+  suggestedAt        DateTime?
+  rejectedAt         DateTime?
+  revisionRequest    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([weekId, suggestedAt])
+}
+
+model SocialAutopilotRun {
+  id             String                   @id @default(cuid())
+  workspaceId    String
+  workspace      Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  weekId         String?
+  week           SocialAutopilotWeek?     @relation(fields: [weekId], references: [id], onDelete: SetNull)
+  idempotencyKey String                   @unique
+  trigger        String
+  status         SocialAutopilotRunStatus @default(PENDING)
+  step           String?
+  attemptCount   Int                      @default(0)
+  startedAt      DateTime?
+  completedAt    DateTime?
+  nextRetryAt    DateTime?
+  errorCode      String?
+  errorMessage   String?
+  metadata       Json?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  @@index([workspaceId, status, createdAt])
+  @@index([weekId, createdAt])
+}
+
+model SocialCampaignProject {
+  campaignId String
+  campaign   SocialCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  projectId  String
+  project    Project        @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  createdAt  DateTime       @default(now())
+
+  @@id([campaignId, projectId])
+  @@index([projectId])
+}
+
+model SocialCampaignMedia {
+  campaignId   String
+  campaign     SocialCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  mediaId      String
+  media        Media          @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+  displayOrder Int            @default(0)
+  createdAt    DateTime       @default(now())
+
+  @@id([campaignId, mediaId])
+  @@index([mediaId])
+}
+
+model SocialSeries {
+  id                  String                    @id @default(cuid())
+  workspaceId         String
+  workspace           Workspace                 @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  name                String
+  description         String?
+  objective           String?
+  defaultPlatforms    Json
+  frequency           SocialRecurrenceFrequency
+  interval            Int                       @default(1)
+  dayOfWeek           Int?
+  dayOfMonth          Int?
+  localTime           String
+  timeZone            String                    @default("America/Denver")
+  defaultTone         String?
+  defaultCallToAction String?
+  promptGuidance      String?
+  status              SocialSeriesStatus        @default(ACTIVE)
+  startsAt            DateTime
+  endsAt              DateTime?
+  generationThrough   DateTime?
+  createdById         String
+  createdBy           AdminUser                 @relation("SocialSeriesCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  lastEditedById      String
+  lastEditedBy        AdminUser                 @relation("SocialSeriesEditor", fields: [lastEditedById], references: [id], onDelete: Restrict)
+  campaigns           SocialSeriesCampaign[]
+  occurrences         SocialSeriesOccurrence[]
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  @@index([workspaceId, status, updatedAt])
+}
+
+model SocialSeriesCampaign {
+  seriesId   String
+  series     SocialSeries   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  campaignId String
+  campaign   SocialCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  createdAt  DateTime       @default(now())
+
+  @@id([seriesId, campaignId])
+  @@index([campaignId])
+}
+
+model SocialSeriesOccurrence {
+  id                  String          @id @default(cuid())
+  seriesId            String
+  series              SocialSeries    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  campaignId          String?
+  campaign            SocialCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  variantId           String?
+  variant             SocialVariant?  @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  platform            SocialPlatform
+  scheduledAt         DateTime
+  timeZone            String
+  sequence            Int
+  editedIndependently Boolean         @default(false)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  @@unique([seriesId, platform, scheduledAt])
+  @@index([seriesId, scheduledAt])
+  @@index([campaignId])
+  @@index([variantId])
+}
+
+model SocialVariant {
+  id String @id @default(cuid())
+
+  campaignId String
+  campaign   SocialCampaign @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+
+  platform SocialPlatform
+  postType String
+  status   SocialVariantStatus @default(DRAFT)
+
+  caption         String?
+  openingHook     String?
+  hashtags        Json?
+  callToAction    String?
+  destinationLink String?
+  altText         String?
+  onScreenText    String?
+  videoConcept    String?
+  suggestedCover  String?
+  platformNotes   String?
+  internalNotes   String?
+  aiMetadata      Json?
+  contentVersion  Int     @default(1)
+
+  scheduledAt       DateTime?
+  scheduledTimeZone String    @default("America/Denver")
+  scheduleVersion   Int       @default(0)
+  readyProcessedAt  DateTime?
+  approvalActorId   String?
+  approvedAt        DateTime?
+  publishedAt       DateTime?
+  publicUrl         String?
+  publicationNotes  String?
+  archivedAt        DateTime?
+
+  lastEditedById String?
+  lastEditedBy   AdminUser? @relation("SocialVariantEditor", fields: [lastEditedById], references: [id], onDelete: SetNull)
+
+  media                    SocialVariantMedia[]
+  approvals                SocialApprovalEvent[]
+  publications             SocialPublication[]
+  publishingSnapshots      SocialPublishingSnapshot[]
+  publishingJobs           SocialPublishingJob[]
+  metricSnapshots          SocialMetricSnapshot[]
+  analyticsRecommendations SocialAnalyticsRecommendation[]
+  seriesOccurrences        SocialSeriesOccurrence[]
+  generatedAssets          SocialGeneratedAsset[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([campaignId, platform])
+  @@index([status, scheduledAt])
+  @@index([campaignId, status])
+  @@index([platform, status])
+}
+
+model SocialGeneratedAsset {
+  id            String                   @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  variantId     String
+  variant       SocialVariant            @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  kind          SocialGeneratedAssetKind
+  publicUrl     String
+  sourceMediaId String?
+  sourceMedia   Media?                   @relation("SocialGeneratedAssetSource", fields: [sourceMediaId], references: [id], onDelete: SetNull)
+  promptDigest  String?
+  provider      String?
+  model         String?
+  disclosure    String
+  reviewedAt    DateTime?
+  reviewedById  String?
+  reviewedBy    AdminUser?               @relation("SocialGeneratedAssetReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  createdAt     DateTime                 @default(now())
+
+  @@index([workspaceId, createdAt])
+  @@index([variantId])
+  @@index([sourceMediaId])
+}
+
+model SocialVariantMedia {
+  id String @id @default(cuid())
+
+  variantId String
+  variant   SocialVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  mediaId   String
+  media     Media         @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+
+  displayOrder Int     @default(0)
+  altText      String?
+  cropAspect   String?
+  cropX        Float   @default(0.5)
+  cropY        Float   @default(0.5)
+  cropScale    Float   @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([variantId, mediaId])
+  @@index([variantId, displayOrder])
+  @@index([mediaId])
+}
+
+model SocialApprovalEvent {
+  id String @id @default(cuid())
+
+  variantId      String
+  variant        SocialVariant        @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  actorId        String
+  actor          AdminUser            @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  action         SocialApprovalAction
+  contentVersion Int
+  reason         String?
+  createdAt      DateTime             @default(now())
+
+  @@index([variantId, createdAt])
+  @@index([actorId, createdAt])
+}
+
+model SocialPublication {
+  id String @id @default(cuid())
+
+  variantId       String
+  variant         SocialVariant          @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  actorId         String
+  actor           AdminUser              @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  publishedAt     DateTime
+  publicUrl       String?
+  notes           String?
+  externalPostId  String?
+  connectionId    String?
+  connection      SocialConnection?      @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  metricSnapshots SocialMetricSnapshot[]
+  createdAt       DateTime               @default(now())
+
+  @@index([variantId, publishedAt])
+  @@index([actorId, publishedAt])
+  @@index([connectionId, publishedAt])
+}
+
+model SocialStudioSettings {
+  id          String    @id @default(cuid())
+  workspaceId String    @unique
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  brandVoice          String
+  primaryAudience     String
+  writingGuardrails   String
+  defaultCallToAction String?
+  hashtagGuidance     String?
+  platformGuidance    Json?
+  prohibitedTopics    String?
+  cadenceGoals        Json?
+  timeZone            String  @default("America/Denver")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SocialConnection {
+  id String @id @default(cuid())
+
+  platform                    SocialPlatform
+  workspaceId                 String
+  workspace                   Workspace                  @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  state                       SocialConnectionState      @default(NOT_CONFIGURED)
+  intendedAccountName         String?
+  supportedWorkflow           String                     @default("Manual publishing and export")
+  manualPublishingUrl         String?
+  configurationMetadata       Json?
+  providerAccountId           String?
+  parentProviderAccountId     String?
+  providerUsername            String?
+  profileImageUrl             String?
+  encryptedTokenPayload       String?
+  grantedScopes               Json?
+  supportedPostTypes          Json?
+  directPublishingEnabled     Boolean                    @default(false)
+  directPublishingEnabledAt   DateTime?
+  directPublishingEnabledById String?
+  directPublishingEnabledBy   AdminUser?                 @relation("SocialConnectionEnabledBy", fields: [directPublishingEnabledById], references: [id], onDelete: SetNull)
+  tokenExpiresAt              DateTime?
+  lastAuthorizationCheckAt    DateTime?
+  lastConnectionTestAt        DateTime?
+  lastConnectionTestSuccessAt DateTime?
+  lastPublishingAttemptAt     DateTime?
+  lastSuccessfulPublicationAt DateTime?
+  lastProviderErrorCode       String?
+  lastProviderErrorMessage    String?
+  disconnectedAt              DateTime?
+  audits                      SocialConnectionAudit[]
+  snapshots                   SocialPublishingSnapshot[]
+  jobs                        SocialPublishingJob[]
+  publications                SocialPublication[]
+  metricSnapshots             SocialMetricSnapshot[]
+  analyticsJobs               SocialAnalyticsJob[]
+  analyticsPermissionState    SocialMetricAvailability   @default(CONNECTION_REQUIRED)
+  analyticsLastSuccessfulAt   DateTime?
+  analyticsLastAttemptAt      DateTime?
+  analyticsFailureCount       Int                        @default(0)
+  analyticsError              String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([workspaceId, platform, providerAccountId])
+  @@index([workspaceId, platform, state])
+  @@index([directPublishingEnabled, state])
+}
+
+model SocialOAuthSession {
+  id                     String    @id @default(cuid())
+  workspaceId            String
+  workspace              Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId                 String
+  user                   AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider               String
+  stateHash              String    @unique
+  safeReturnPath         String
+  encryptedTokenPayload  String?
+  discoveredDestinations Json?
+  expiresAt              DateTime
+  authorizedAt           DateTime?
+  consumedAt             DateTime?
+  createdAt              DateTime  @default(now())
+
+  @@index([workspaceId, provider, expiresAt])
+  @@index([userId, expiresAt])
+}
+
+model OperationalIncident {
+  id                String                   @id @default(cuid())
+  providerEventId   String                   @unique
+  monitorName       String?
+  monitorExternalId String?
+  state             OperationalIncidentState
+  startedAt         DateTime
+  recoveredAt       DateTime?
+  responseTimeMs    Int?
+  sanitizedSummary  String?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  @@index([state, startedAt])
+}
+
+model SocialConnectionAudit {
+  id                String           @id @default(cuid())
+  connectionId      String
+  connection        SocialConnection @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  actorId           String?
+  actor             AdminUser?       @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action            String
+  sanitizedMetadata Json?
+  createdAt         DateTime         @default(now())
+
+  @@index([connectionId, createdAt])
+  @@index([actorId, createdAt])
+}
+
+model SocialPublishingSnapshot {
+  id             String                @id @default(cuid())
+  variantId      String
+  variant        SocialVariant         @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  connectionId   String
+  connection     SocialConnection      @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  contentVersion Int
+  contentDigest  String
+  payload        Json
+  approvedById   String
+  approvedBy     AdminUser             @relation("SocialPublishingApprovedBy", fields: [approvedById], references: [id], onDelete: Restrict)
+  approvedAt     DateTime
+  scheduledAt    DateTime
+  invalidatedAt  DateTime?
+  createdAt      DateTime              @default(now())
+  jobs           SocialPublishingJob[]
+
+  @@unique([variantId, connectionId, contentVersion, scheduledAt])
+  @@index([variantId, invalidatedAt])
+  @@index([connectionId, createdAt])
+}
+
+model SocialPublishingJob {
+  id                   String                         @id @default(cuid())
+  variantId            String
+  variant              SocialVariant                  @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  connectionId         String
+  connection           SocialConnection               @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  snapshotId           String
+  snapshot             SocialPublishingSnapshot       @relation(fields: [snapshotId], references: [id], onDelete: Restrict)
+  idempotencyKey       String                         @unique
+  status               SocialPublishingJobStatus      @default(SCHEDULED)
+  scheduledAt          DateTime
+  nextAttemptAt        DateTime
+  claimedAt            DateTime?
+  claimToken           String?
+  attempts             Int                            @default(0)
+  maxAttempts          Int                            @default(5)
+  providerSubmissionId String?
+  externalPostId       String?
+  publicUrl            String?
+  lastErrorCategory    SocialPublishingErrorCategory?
+  lastErrorMessage     String?
+  completedAt          DateTime?
+  cancelledAt          DateTime?
+  createdAt            DateTime                       @default(now())
+  updatedAt            DateTime                       @updatedAt
+  attemptsLog          SocialPublishingAttempt[]
+
+  @@index([status, nextAttemptAt])
+  @@index([variantId, createdAt])
+  @@index([connectionId, status])
+}
+
+model SocialPublishingAttempt {
+  id                   String                         @id @default(cuid())
+  jobId                String
+  job                  SocialPublishingJob            @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  attemptNumber        Int
+  status               SocialPublishingJobStatus
+  providerSubmissionId String?
+  externalPostId       String?
+  publicUrl            String?
+  errorCategory        SocialPublishingErrorCategory?
+  sanitizedError       String?
+  durationMs           Int?
+  createdAt            DateTime                       @default(now())
+
+  @@unique([jobId, attemptNumber])
+  @@index([jobId, createdAt])
+}
+
+model SocialMetricSnapshot {
+  id                 String                   @id @default(cuid())
+  connectionId       String
+  connection         SocialConnection         @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  variantId          String?
+  variant            SocialVariant?           @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  publicationId      String?
+  publication        SocialPublication?       @relation(fields: [publicationId], references: [id], onDelete: Restrict)
+  platform           SocialPlatform
+  externalAccountId  String
+  externalPostId     String?
+  normalizedCategory String?
+  providerMetricName String
+  metricDefinition   String
+  value              Decimal?
+  periodType         SocialMetricPeriod
+  periodStart        DateTime?
+  periodEnd          DateTime?
+  measuredAt         DateTime
+  availability       SocialMetricAvailability @default(AVAILABLE)
+  unavailableReason  String?
+  importSource       String
+  providerApiVersion String?
+  sourceFingerprint  String                   @unique
+  createdAt          DateTime                 @default(now())
+
+  @@index([connectionId, measuredAt])
+  @@index([variantId, measuredAt])
+  @@index([platform, normalizedCategory, measuredAt])
+  @@index([publicationId, measuredAt])
+}
+
+model SocialAnalyticsJob {
+  id                String                   @id @default(cuid())
+  connectionId      String
+  connection        SocialConnection         @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  status            SocialAnalyticsJobStatus @default(PENDING)
+  rangeStart        DateTime
+  rangeEnd          DateTime
+  idempotencyKey    String                   @unique
+  attempts          Int                      @default(0)
+  nextAttemptAt     DateTime
+  claimedAt         DateTime?
+  claimToken        String?
+  lastErrorCategory String?
+  lastErrorMessage  String?
+  importedSnapshots Int                      @default(0)
+  durationMs        Int?
+  completedAt       DateTime?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([connectionId, createdAt])
+}
+
+model SocialAnalyticsRecommendation {
+  id             String          @id @default(cuid())
+  campaignId     String?
+  campaign       SocialCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  variantId      String?
+  variant        SocialVariant?  @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  title          String
+  recommendation String
+  evidence       Json
+  platforms      Json
+  sampleSize     Int
+  metricName     String
+  confidence     String
+  rangeStart     DateTime
+  rangeEnd       DateTime
+  status         String          @default("ACTIVE")
+  actedById      String?
+  actedBy        AdminUser?      @relation("SocialRecommendationActor", fields: [actedById], references: [id], onDelete: SetNull)
+  actedAt        DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([status, createdAt])
+  @@index([campaignId, createdAt])
+}
+
+model CommunicationClient {
+  id String @id @default(cuid())
+
+  hdPhotoHubUserId Int     @unique
+  firstName        String
+  lastName         String
+  displayName      String
+  email            String
+  normalizedEmail  String
+  phone            String?
+  normalizedPhone  String?
+
+  createdAt                  DateTime                       @default(now())
+  updatedAt                  DateTime                       @updatedAt
+  lastSyncedAt               DateTime
+  groupMemberships           CommunicationGroupMembership[]
+  emailSubscribed            Boolean                        @default(true)
+  unsubscribedAt             DateTime?
+  archivedAt                 DateTime?
+  emailStatus                CommunicationEmailStatus       @default(VALID)
+  emailStatusUpdatedAt       DateTime?
+  campaignRecipients         CampaignRecipient[]
+  newsletterSeriesSelections NewsletterSeriesRecipient[]
+  newsletterSuppressions     CommunicationSuppression[]     @relation("SuppressedClient")
+  referralAdvocates          ReferralAdvocate[]
+  referralSubmissions        ReferralSubmission[]           @relation("ReferralMatchedClient")
+  referralAudiences          ReferralCampaignAudience[]
+  resendWebhookEvents        ResendWebhookEvent[]
+  workspaceMemberships       CommunicationClientWorkspace[]
+  projectAgents              ProjectAgent[]
+
+  @@index([displayName])
+  @@index([normalizedEmail])
+  @@index([lastSyncedAt])
+  @@index([emailSubscribed, emailStatus, archivedAt])
+}
+
+model CommunicationClientWorkspace {
+  id          String              @id @default(cuid())
+  workspaceId String
+  workspace   Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  clientId    String
+  client      CommunicationClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  brokerage   String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@unique([workspaceId, clientId])
+  @@index([workspaceId, brokerage])
+}
+
+model ClientSyncRun {
+  id String @id @default(cuid())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  providerKey   String
+  providerLabel String
+  status        String
+  importedCount Int       @default(0)
+  updatedCount  Int       @default(0)
+  skippedCount  Int       @default(0)
+  errorCount    Int       @default(0)
+  errorCategory String?
+  startedAt     DateTime  @default(now())
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([workspaceId, startedAt])
+  @@index([workspaceId, providerKey, startedAt])
+}
+
+model EmailCampaign {
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  @@index([workspaceId])
+
+  id String @id @default(cuid())
+
+  subject             String
+  previewText         String?
+  body                String
+  templateKey         String              @default("SIGNATURE")
+  imageUrl            String?
+  imageAlt            String?
+  imageCaption        String?
+  imageLink           String?
+  status              EmailCampaignStatus @default(DRAFT)
+  recipientMode       String
+  selection           Json
+  recipientCount      Int                 @default(0)
+  sentCount           Int                 @default(0)
+  failedCount         Int                 @default(0)
+  sentAt              DateTime?
+  scheduledAt         DateTime?
+  scheduledTimeZone   String?
+  scheduledById       String?
+  cancelledAt         DateTime?
+  processingStartedAt DateTime?
+  scheduleError       String?
+  rowVersion          Int                 @default(1)
+
+  createdById        String
+  createdBy          AdminUser           @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  recipients         CampaignRecipient[]
+  newsletterDelivery NewsletterDelivery?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([status, scheduledAt])
+}
+
+model CampaignRecipient {
+  id String @id @default(cuid())
+
+  campaignId        String
+  campaign          EmailCampaign           @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  clientId          String
+  client            CommunicationClient     @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  email             String
+  displayName       String
+  firstNameSnapshot String?
+  lastNameSnapshot  String?
+  fullNameSnapshot  String?
+  phoneSnapshot     String?
+  status            CampaignRecipientStatus @default(PENDING)
+  providerMessageId String?
+  error             String?
+  sentAt            DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events              CampaignDeliveryEvent[]
+  resendWebhookEvents ResendWebhookEvent[]
+
+  @@unique([campaignId, clientId])
+  @@index([campaignId, status])
+  @@index([clientId])
+  @@index([providerMessageId])
+}
+
+model ResendWebhookEvent {
+  id String @id @default(cuid())
+
+  providerEventId     String               @unique
+  providerMessageId   String?
+  eventType           String
+  processingStatus    String
+  workspaceId         String?
+  workspace           Workspace?           @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  clientId            String?
+  client              CommunicationClient? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  campaignRecipientId String?
+  campaignRecipient   CampaignRecipient?   @relation(fields: [campaignRecipientId], references: [id], onDelete: SetNull)
+  normalizedEmail     String?
+  bounceType          String?
+  bounceSubtype       String?
+  reason              String?
+  normalizedStatus    String?
+  occurredAt          DateTime
+  receivedAt          DateTime             @default(now())
+  processedAt         DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([processingStatus])
+  @@index([workspaceId])
+  @@index([providerMessageId])
+  @@index([clientId])
+}
+
+model CampaignDeliveryEvent {
+  id String @id @default(cuid())
+
+  providerEventId     String            @unique
+  providerMessageId   String
+  campaignRecipientId String
+  campaignRecipient   CampaignRecipient @relation(fields: [campaignRecipientId], references: [id], onDelete: Cascade)
+  eventType           String
+  providerEventType   String?
+  normalizedStatus    String?
+  linkUrl             String?
+  occurredAt          DateTime
+  receivedAt          DateTime          @default(now())
+  processedAt         DateTime?
+  payload             Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([campaignRecipientId, eventType])
+  @@index([providerMessageId, occurredAt])
+}
+
+model CommunicationGroup {
+  id String @id @default(cuid())
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  @@index([workspaceId])
+
+  name              String
+  normalizedName    String                         @unique
+  memberships       CommunicationGroupMembership[]
+  newsletterSeries  NewsletterSeriesGroup[]
+  referralAudiences ReferralCampaignAudience[]
+  systemKey         String?                        @unique
+  systemManaged     Boolean                        @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+}
+
+model CommunicationGroupMembership {
+  id String @id @default(cuid())
+
+  groupId  String
+  group    CommunicationGroup  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  clientId String
+  client   CommunicationClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([groupId, clientId])
+  @@index([clientId])
+}
+
+model CommunicationSuppression {
+  id String @id @default(cuid())
+
+  normalizedEmail String
+  reason          String
+  provider        String?
+  providerEventId String?              @unique
+  clientId        String?
+  client          CommunicationClient? @relation("SuppressedClient", fields: [clientId], references: [id], onDelete: SetNull)
+  suppressedAt    DateTime             @default(now())
+  releasedAt      DateTime?
+  metadata        Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([normalizedEmail, releasedAt])
+  @@index([clientId, releasedAt])
+}
+
+model MarketingEmailPreference {
+  id String @id @default(cuid())
+
+  normalizedEmail   String                          @unique
+  status            MarketingEmailPreferenceStatus  @default(UNKNOWN)
+  effectiveAt       DateTime                        @default(now())
+  source            String
+  reason            String?
+  messageId         String?
+  campaignId        String?
+  resubscribedAt    DateTime?
+  resubscribeMethod String?
+  actingAdminId     String?
+  actingAdmin       AdminUser?                      @relation(fields: [actingAdminId], references: [id], onDelete: SetNull)
+  history           MarketingEmailPreferenceEvent[]
+  tokens            MarketingEmailPreferenceToken[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, effectiveAt])
+}
+
+model MarketingEmailPreferenceEvent {
+  id String @id @default(cuid())
+
+  preferenceId   String
+  preference     MarketingEmailPreference        @relation(fields: [preferenceId], references: [id], onDelete: Cascade)
+  previousStatus MarketingEmailPreferenceStatus?
+  status         MarketingEmailPreferenceStatus
+  source         String
+  reason         String?
+  messageId      String?
+  campaignId     String?
+  actorId        String?
+  actor          AdminUser?                      @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  metadata       Json?
+  createdAt      DateTime                        @default(now())
+
+  @@index([preferenceId, createdAt])
+  @@index([status, createdAt])
+}
+
+model MarketingEmailPreferenceToken {
+  id String @id @default(cuid())
+
+  preferenceId String
+  preference   MarketingEmailPreference @relation(fields: [preferenceId], references: [id], onDelete: Cascade)
+  tokenHash    String                   @unique
+  expiresAt    DateTime
+  lastUsedAt   DateTime?
+  messageId    String?
+  campaignId   String?
+  createdAt    DateTime                 @default(now())
+
+  @@index([preferenceId, expiresAt])
+}
+
+model NewsletterSeries {
+  id String @id @default(cuid())
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  @@index([workspaceId])
+
+  name        String
+  description String?
+  status      NewsletterSeriesStatus @default(ACTIVE)
+  timeZone    String                 @default("America/Denver")
+
+  senderName                String?
+  senderEmail               String?
+  replyTo                   String?
+  brandInstructions         String?
+  toneInstructions          String?
+  goals                     String?
+  defaultContentPreferences Json?
+  defaultCallToAction       Json?
+
+  sendRecurrenceKind NewsletterRecurrenceKind
+  sendDayOfMonth     Int?
+  sendWeekOrdinal    NewsletterWeekOrdinal?
+  sendWeekday        Int?
+  sendLocalTime      String
+
+  generationMode           NewsletterGenerationMode
+  generationRecurrenceKind NewsletterRecurrenceKind?
+  generationDayOfMonth     Int?
+  generationWeekOrdinal    NewsletterWeekOrdinal?
+  generationWeekday        Int?
+  generationLocalTime      String?
+  generationDaysBeforeSend Int?
+
+  nextGenerationAt DateTime?
+  nextSendAt       DateTime?
+  lastGeneratedAt  DateTime?
+
+  createdById String
+  createdBy   AdminUser                   @relation("NewsletterSeriesCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  groups      NewsletterSeriesGroup[]
+  recipients  NewsletterSeriesRecipient[]
+  editions    NewsletterEdition[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, nextGenerationAt])
+  @@index([status, nextSendAt])
+  @@index([createdById])
+}
+
+model NewsletterSeriesGroup {
+  seriesId String
+  series   NewsletterSeries   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  groupId  String
+  group    CommunicationGroup @relation(fields: [groupId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@id([seriesId, groupId])
+  @@index([groupId])
+}
+
+model NewsletterSeriesRecipient {
+  seriesId String
+  series   NewsletterSeries    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  clientId String
+  client   CommunicationClient @relation(fields: [clientId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@id([seriesId, clientId])
+  @@index([clientId])
+}
+
+model NewsletterEdition {
+  id String @id @default(cuid())
+
+  seriesId String
+  series   NewsletterSeries        @relation(fields: [seriesId], references: [id], onDelete: Restrict)
+  cycleKey String
+  status   NewsletterEditionStatus @default(AWAITING_GENERATION)
+
+  subject               String?
+  subjectAlternatives   Json?
+  previewText           String?
+  contentNotes          Json?
+  internalNotes         String?
+  intendedSendAt        DateTime
+  generationDueAt       DateTime?
+  approvedRevisionId    String?   @unique
+  currentRevisionNumber Int       @default(0)
+  rowVersion            Int       @default(0)
+  warnings              Json?
+  cancelledAt           DateTime?
+  sentAt                DateTime?
+
+  createdById      String
+  createdBy        AdminUser                 @relation("NewsletterEditionCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  blocks           NewsletterBlock[]
+  revisions        NewsletterRevision[]      @relation("EditionRevisions")
+  approvedRevision NewsletterRevision?       @relation("ApprovedEditionRevision", fields: [approvedRevisionId], references: [id], onDelete: Restrict)
+  generationRuns   NewsletterGenerationRun[]
+  approvals        NewsletterApproval[]
+  delivery         NewsletterDelivery?
+  jobs             NewsletterJob[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([seriesId, cycleKey])
+  @@index([status, intendedSendAt])
+  @@index([status, generationDueAt])
+  @@index([createdById])
+}
+
+model NewsletterBlock {
+  id String @id @default(cuid())
+
+  editionId      String
+  edition        NewsletterEdition       @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  type           NewsletterBlockType
+  position       Int
+  internalLabel  String?
+  content        Json
+  aiGenerated    Boolean                 @default(false)
+  manuallyEdited Boolean                 @default(false)
+  contentVersion Int                     @default(1)
+  sources        NewsletterBlockSource[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([editionId, position])
+  @@index([editionId, type])
+}
+
+model NewsletterBlockSource {
+  id String @id @default(cuid())
+
+  blockId        String
+  block          NewsletterBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  sourceType     String
+  sourceId       String?
+  sourceTitle    String
+  sourceUrl      String?
+  sourceSnapshot Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([blockId])
+  @@index([sourceType, sourceId])
+}
+
+model NewsletterImageAsset {
+  id String @id @default(cuid())
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  @@index([workspaceId])
+
+  storageKey  String @unique
+  publicUrl   String
+  prompt      String
+  altText     String
+  attribution String
+  model       String
+  quality     String
+  width       Int
+  height      Int
+  fileSize    Int
+
+  createdById String
+  createdBy   AdminUser @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([createdById])
+}
+
+model NewsletterRevision {
+  id String @id @default(cuid())
+
+  editionId          String
+  edition            NewsletterEdition    @relation("EditionRevisions", fields: [editionId], references: [id], onDelete: Cascade)
+  approvedForEdition NewsletterEdition?   @relation("ApprovedEditionRevision")
+  approvals          NewsletterApproval[]
+  revisionNumber     Int
+  subject            String
+  previewText        String?
+  blocksSnapshot     Json
+  contentHash        String
+  changeSummary      String?
+  createdById        String?
+  createdBy          AdminUser?           @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@unique([editionId, revisionNumber])
+  @@index([editionId, createdAt])
+  @@index([contentHash])
+  @@index([createdById])
+}
+
+model NewsletterGenerationRun {
+  id String @id @default(cuid())
+
+  editionId            String
+  edition              NewsletterEdition          @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  status               NewsletterGenerationStatus
+  model                String?
+  promptVersion        String
+  instructionsSnapshot Json
+  sourceManifest       Json
+  outputSnapshot       Json?
+  errorCode            String?
+  errorMessage         String?
+  attempt              Int                        @default(1)
+  startedAt            DateTime                   @default(now())
+  completedAt          DateTime?
+
+  @@unique([editionId, attempt])
+  @@index([status, startedAt])
+}
+
+model NewsletterApproval {
+  id String @id @default(cuid())
+
+  editionId                  String
+  edition                    NewsletterEdition  @relation(fields: [editionId], references: [id], onDelete: Restrict)
+  revisionId                 String
+  revision                   NewsletterRevision @relation(fields: [revisionId], references: [id], onDelete: Restrict)
+  approvedById               String
+  approvedBy                 AdminUser          @relation(fields: [approvedById], references: [id], onDelete: Restrict)
+  approvedSendAt             DateTime
+  estimatedEligibleCount     Int
+  estimatedExcludedCount     Int
+  recipientSelectionSnapshot Json
+  revokedAt                  DateTime?
+  revocationReason           String?
+
+  approvedAt DateTime @default(now())
+
+  @@index([editionId, approvedAt])
+  @@index([approvedById, approvedAt])
+  @@index([revisionId])
+}
+
+model NewsletterDelivery {
+  id String @id @default(cuid())
+
+  editionId         String            @unique
+  edition           NewsletterEdition @relation(fields: [editionId], references: [id], onDelete: Restrict)
+  campaignId        String            @unique
+  campaign          EmailCampaign     @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  revisionId        String
+  attempts          NewsletterDeliveryAttempt[]
+  recipientSnapshot Json
+  eligibleCount     Int
+  excludedCount     Int
+  contentHash       String
+  startedAt         DateTime?
+  completedAt       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model NewsletterDeliveryAttempt {
+  id String @id @default(cuid())
+
+  workspaceId        String
+  workspace          Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  editionId          String
+  delivery           NewsletterDelivery @relation(fields: [editionId], references: [editionId], onDelete: Restrict)
+  revisionId         String
+  executionVersion   Int
+  batchNumber        Int
+  providerOperationId String
+  providerIdempotencyKey String
+  recipientIds       Json
+  payloadHash        String
+  status             NewsletterDeliveryAttemptStatus @default(PREPARED)
+  providerReceiptIds Json?
+  errorCode          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([editionId, executionVersion, batchNumber], map: "NewsletterDeliveryAttempt_execution_batch_key")
+  @@index([workspaceId, status, createdAt])
+}
+
+model NewsletterJob {
+  id String @id @default(cuid())
+
+  editionId        String
+  edition          NewsletterEdition   @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  type             NewsletterJobType
+  status           NewsletterJobStatus @default(PENDING)
+  dueAt            DateTime
+  idempotencyKey   String              @unique
+  claimToken       String?             @unique
+  claimedAt        DateTime?
+  leaseExpiresAt   DateTime?
+  completedAt      DateTime?
+  attempts         Int                 @default(0)
+  lastErrorCode    String?
+  lastErrorMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([editionId, type, dueAt])
+  @@index([status, dueAt])
+  @@index([editionId, type])
+}
+
+model ReferralCampaign {
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  @@index([workspaceId, status, createdAt])
+
+  id String @id @default(cuid())
+
+  internalName  String
+  publicTitle   String
+  purpose       String
+  status        ReferralCampaignStatus @default(DRAFT)
+  audienceMode  ReferralAudienceMode
+  audienceRules Json
+
+  referralOffer          String?
+  advocateReward         String?
+  referredCustomerOffer  String?
+  eligibilityRules       String?
+  qualificationRules     String?
+  rewardInstructions     String?
+  maxRewardsPerAdvocate  Int?
+  terms                  String
+  senderName             String?
+  senderEmail            String?
+  replyTo                String?
+  landingHeadline        String
+  landingBody            String
+  landingThankYou        String
+  privacyNotice          String
+  invitationSubject      String
+  invitationPreviewText  String?
+  invitationBody         String
+  followUpConfiguration  Json
+  communicationTemplates Json
+  aiMetadata             Json?
+
+  startsAt                   DateTime?
+  endsAt                     DateTime?
+  referralExpirationDays     Int       @default(90)
+  rowVersion                 Int       @default(0)
+  approvedRevisionId         String?   @unique
+  activatedAt                DateTime?
+  pausedAt                   DateTime?
+  launchStartedAt            DateTime?
+  launchCompletedAt          DateTime?
+  launchFailedAt             DateTime?
+  launchLeaseExpiresAt       DateTime?
+  launchingAdminId           String?
+  launchRevisionId           String?
+  launchAttemptId            String?   @unique
+  expectedAdvocateCount      Int?
+  preparedAdvocateCount      Int       @default(0)
+  preparedInvitationCount    Int       @default(0)
+  preparedCommunicationCount Int       @default(0)
+  launchBatch                Int       @default(0)
+  lastLaunchError            String?
+  deliveryScheduledAt        DateTime?
+  deliveryTimezone           String    @default("America/Denver")
+  scheduleConfirmedAt        DateTime?
+  scheduledById              String?
+  scheduleVersion            Int       @default(0)
+  scheduledRevisionId        String?
+  scheduledAudienceCount     Int?
+  scheduleCancelledAt        DateTime?
+  executionAuthorizedAt      DateTime?
+  lastWorkerActivityAt       DateTime?
+  lastProviderActivityAt     DateTime?
+
+  createdById String
+  createdBy   AdminUser @relation("ReferralCampaignCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  audiences        ReferralCampaignAudience[]
+  advocates        ReferralAdvocate[]
+  invitations      ReferralInvitation[]
+  links            ReferralLink[]
+  submissions      ReferralSubmission[]
+  revisions        ReferralCampaignRevision[] @relation("ReferralCampaignRevisions")
+  approvedRevision ReferralCampaignRevision?  @relation("ApprovedReferralRevision", fields: [approvedRevisionId], references: [id], onDelete: Restrict)
+  communications   ReferralCommunication[]
+  auditEvents      ReferralAuditEvent[]
+  testTokens       ReferralTestToken[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, startsAt, endsAt])
+  @@index([status, launchLeaseExpiresAt])
+  @@index([createdById, createdAt])
+}
+
+model ReferralCampaignAudience {
+  id String @id @default(cuid())
+
+  campaignId String
+  campaign   ReferralCampaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  groupId    String?
+  group      CommunicationGroup?  @relation(fields: [groupId], references: [id], onDelete: Restrict)
+  clientId   String?
+  client     CommunicationClient? @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  excluded   Boolean              @default(false)
+  reason     String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([campaignId, groupId, clientId, excluded])
+  @@index([campaignId, excluded])
+  @@index([groupId])
+  @@index([clientId])
+}
+
+model ReferralAdvocate {
+  id String @id @default(cuid())
+
+  campaignId             String
+  campaign               ReferralCampaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  clientId               String
+  client                 CommunicationClient @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  recommendationReason   String?
+  recommendationScore    Int?
+  recommendationWarnings Json?
+  dismissedAt            DateTime?
+  includedAt             DateTime?
+
+  invitations ReferralInvitation[]
+  links       ReferralLink[]
+  submissions ReferralSubmission[]
+  rewards     ReferralReward[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([campaignId, clientId])
+  @@index([clientId, createdAt])
+  @@index([campaignId, dismissedAt])
+}
+
+model ReferralInvitation {
+  id String @id @default(cuid())
+
+  campaignId         String
+  campaign           ReferralCampaign         @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  advocateId         String
+  advocate           ReferralAdvocate         @relation(fields: [advocateId], references: [id], onDelete: Restrict)
+  status             ReferralInvitationStatus @default(DRAFT)
+  subject            String
+  previewText        String?
+  body               String
+  approvedSnapshot   Json?
+  scheduledAt        DateTime?
+  sentAt             DateTime?
+  providerMessageId  String?
+  failureCode        String?
+  failureMessage     String?
+  followUpStoppedAt  DateTime?
+  approvedRevisionId String?
+
+  link           ReferralLink?
+  communications ReferralCommunication[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([campaignId, advocateId, approvedRevisionId])
+  @@index([campaignId, status, scheduledAt])
+  @@index([advocateId, createdAt])
+  @@index([providerMessageId])
+}
+
+model ReferralLink {
+  id String @id @default(cuid())
+
+  invitationId   String             @unique
+  invitation     ReferralInvitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  campaignId     String
+  campaign       ReferralCampaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  advocateId     String
+  advocate       ReferralAdvocate   @relation(fields: [advocateId], references: [id], onDelete: Restrict)
+  tokenHash      String             @unique
+  code           String             @unique
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  visitCount     Int                @default(0)
+  firstVisitedAt DateTime?
+  lastVisitedAt  DateTime?
+
+  submissions ReferralSubmission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([advocateId, createdAt])
+  @@index([campaignId, createdAt])
+  @@index([code, expiresAt])
+}
+
+model ReferralSubmission {
+  id String @id @default(cuid())
+
+  campaignId String
+  campaign   ReferralCampaign  @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  advocateId String?
+  advocate   ReferralAdvocate? @relation(fields: [advocateId], references: [id], onDelete: SetNull)
+  linkId     String?
+  link       ReferralLink?     @relation(fields: [linkId], references: [id], onDelete: SetNull)
+
+  firstName              String
+  lastName               String
+  email                  String
+  normalizedEmail        String
+  phone                  String?
+  normalizedPhone        String?
+  preferredContactMethod String
+  message                String?
+  submittedBy            String
+  consentAcknowledged    Boolean
+  consentText            String
+  consentedAt            DateTime
+  ipHash                 String?
+  userAgent              String?
+
+  status            ReferralStatus            @default(SUBMITTED)
+  attributionStatus ReferralAttributionStatus @default(CONFIRMED)
+  attributionReason String?
+  duplicateOfId     String?
+  duplicateOf       ReferralSubmission?       @relation("ReferralDuplicates", fields: [duplicateOfId], references: [id], onDelete: SetNull)
+  duplicates        ReferralSubmission[]      @relation("ReferralDuplicates")
+
+  matchedClientId String?
+  matchedClient   CommunicationClient? @relation("ReferralMatchedClient", fields: [matchedClientId], references: [id], onDelete: SetNull)
+  inquiryId       String?
+  inquiry         Inquiry?             @relation(fields: [inquiryId], references: [id], onDelete: SetNull)
+  externalOrderId String?
+  internalNotes   String?
+
+  statusEvents   ReferralStatusEvent[]
+  rewards        ReferralReward[]
+  communications ReferralCommunication[]
+  auditEvents    ReferralAuditEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([campaignId, status, createdAt])
+  @@index([advocateId, createdAt])
+  @@index([normalizedEmail, createdAt])
+  @@index([normalizedPhone, createdAt])
+  @@index([attributionStatus, createdAt])
+  @@index([inquiryId])
+}
+
+model ReferralStatusEvent {
+  id String @id @default(cuid())
+
+  submissionId String
+  submission   ReferralSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  fromStatus   ReferralStatus?
+  toStatus     ReferralStatus
+  reason       String?
+  actorId      String?
+  actor        AdminUser?         @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  metadata     Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([submissionId, createdAt])
+  @@index([actorId, createdAt])
+}
+
+model ReferralReward {
+  id String @id @default(cuid())
+
+  submissionId      String
+  submission        ReferralSubmission   @relation(fields: [submissionId], references: [id], onDelete: Restrict)
+  advocateId        String
+  advocate          ReferralAdvocate     @relation(fields: [advocateId], references: [id], onDelete: Restrict)
+  type              ReferralRewardType
+  status            ReferralRewardStatus @default(NOT_ELIGIBLE)
+  value             String?
+  eligibilityReason String?
+  fulfillmentNotes  String?
+  externalReference String?
+  approvedById      String?
+  approvedBy        AdminUser?           @relation("ReferralRewardApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt        DateTime?
+  issuedById        String?
+  issuedBy          AdminUser?           @relation("ReferralRewardIssuer", fields: [issuedById], references: [id], onDelete: SetNull)
+  issuedAt          DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([submissionId, advocateId])
+  @@index([status, createdAt])
+  @@index([advocateId, status])
+}
+
+model ReferralCommunication {
+  id String @id @default(cuid())
+
+  campaignId        String
+  campaign          ReferralCampaign            @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  invitationId      String?
+  invitation        ReferralInvitation?         @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+  submissionId      String?
+  submission        ReferralSubmission?         @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+  kind              ReferralCommunicationKind
+  status            ReferralCommunicationStatus @default(DRAFT)
+  recipientEmail    String
+  recipientName     String?
+  subject           String
+  htmlSnapshot      String?
+  contentHash       String?
+  scheduledAt       DateTime?
+  sentAt            DateTime?
+  providerMessageId String?
+  idempotencyKey    String?                     @unique
+  failureCode       String?
+  failureMessage    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([campaignId, status, scheduledAt])
+  @@index([invitationId, kind])
+  @@index([submissionId, kind])
+  @@index([providerMessageId])
+}
+
+model ReferralCampaignRevision {
+  id String @id @default(cuid())
+
+  campaignId          String
+  campaign            ReferralCampaign  @relation("ReferralCampaignRevisions", fields: [campaignId], references: [id], onDelete: Cascade)
+  approvedForCampaign ReferralCampaign? @relation("ApprovedReferralRevision")
+  revisionNumber      Int
+  snapshot            Json
+  contentHash         String
+  approvedById        String?
+  approvedBy          AdminUser?        @relation("ReferralRevisionApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt          DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@unique([campaignId, revisionNumber])
+  @@index([contentHash])
+  @@index([approvedById, approvedAt])
+}
+
+model ReferralAuditEvent {
+  id String @id @default(cuid())
+
+  campaignId   String?
+  campaign     ReferralCampaign?   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  submissionId String?
+  submission   ReferralSubmission? @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  actorId      String?
+  actor        AdminUser?          @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action       String
+  summary      String
+  metadata     Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([campaignId, createdAt])
+  @@index([submissionId, createdAt])
+  @@index([actorId, createdAt])
+}
+
+model ReferralCronInvocation {
+  id                           String    @id @default(cuid())
+  source                       String
+  environment                  String
+  startedAt                    DateTime  @default(now())
+  completedAt                  DateTime?
+  authenticated                Boolean   @default(false)
+  campaignsInspected           Int       @default(0)
+  campaignsEligible            Int       @default(0)
+  campaignsRejected            Int       @default(0)
+  communicationsDue            Int       @default(0)
+  communicationsClaimed        Int       @default(0)
+  communicationsSkipped        Int       @default(0)
+  providerSubmissionsAttempted Int       @default(0)
+  providerSubmissionsAccepted  Int       @default(0)
+  providerSubmissionsFailed    Int       @default(0)
+  terminalResult               String?
+  sanitizedError               String?
+
+  @@index([startedAt])
+  @@index([terminalResult, startedAt])
+}
+
+model ReferralTestToken {
+  id String @id @default(cuid())
+
+  campaignId     String
+  campaign       ReferralCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  createdById    String
+  createdBy      AdminUser        @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  recipientEmail String
+  tokenHash      String           @unique
+  expiresAt      DateTime
+  usedAt         DateTime?
+  revokedAt      DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([campaignId, createdAt])
+  @@index([createdById, createdAt])
+  @@index([expiresAt])
+}
+
+model AdminInvitation {
+  id          String           @id @default(cuid())
+  email       String
+  displayName String
+  title       String?
+  role        AdminRole        @default(EDITOR)
+  firstName   String?
+  lastName    String?
+  phone       String?
+  disciplines TeamDiscipline[]
+  workspaceId String
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tokenHash   String           @unique
+  createdById String
+  createdBy   AdminUser        @relation("InvitationCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime         @default(now())
+
+  @@index([email, createdAt])
+  @@index([workspaceId, expiresAt])
+  @@index([expiresAt])
+}
+
+model ProjectPreviewLink {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  tokenHash String  @unique
+  label     String?
+
+  createdById String
+  createdBy   AdminUser @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([projectId, createdAt])
+  @@index([expiresAt])
+}
+
+model Inquiry {
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  @@index([workspaceId, status, createdAt])
+
+  id String @id @default(cuid())
+
+  status InquiryStatus @default(NEW)
+  name   String
+  email  String
+  phone  String?
+
+  propertyAddress String?
+  city            String?
+  state           String?
+  postalCode      String?
+  desiredDate     DateTime?
+  message         String?
+
+  sourcePage  String?
+  referrer    String?
+  ctaName     String?
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  utmContent  String?
+  utmTerm     String?
+
+  ipHash    String?
+  userAgent String?
+  consent   Boolean @default(false)
+
+  assignedToId String?
+  assignedTo   AdminUser? @relation("InquiryAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  followUpAt   DateTime?
+
+  requestedServices   InquiryService[]
+  notes               InquiryNote[]
+  activities          InquiryActivity[]
+  referralSubmissions ReferralSubmission[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  lastActivityAt DateTime @default(now())
+
+  @@index([status, createdAt])
+  @@index([assignedToId, status])
+  @@index([followUpAt])
+  @@index([ipHash, createdAt])
+}
+
+model InquiryService {
+  inquiryId String
+  serviceId String
+  inquiry   Inquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  @@id([inquiryId, serviceId])
+  @@index([serviceId])
+}
+
+model InquiryNote {
+  id        String    @id @default(cuid())
+  inquiryId String
+  inquiry   Inquiry   @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    AdminUser @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  body      String
+  createdAt DateTime  @default(now())
+
+  @@index([inquiryId, createdAt])
+  @@index([authorId])
+}
+
+model InquiryActivity {
+  id        String     @id @default(cuid())
+  inquiryId String
+  inquiry   Inquiry    @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  actorId   String?
+  actor     AdminUser? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action    String
+  summary   String
+  metadata  Json?
+  createdAt DateTime   @default(now())
+
+  @@index([inquiryId, createdAt])
+  @@index([actorId])
+}
+
+model AuditEvent {
+  workspaceId String?
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  @@index([workspaceId, createdAt])
+
+  id String @id @default(cuid())
+
+  actorId    String?
+  actor      AdminUser? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorEmail String?
+
+  action     String
+  entityType String?
+  entityId   String?
+  summary    String
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId])
+}
+
+
+enum WorkspaceAssetProvider {
+  R2
+  CLOUDFLARE_STREAM
+}
+
+enum WorkspaceAssetStatus {
+  UPLOAD_PENDING
+  UPLOAD_PROVISIONED
+  READY
+  FAILED
+  QUARANTINED
+  RETIRED
+}
+
+model WorkspaceAsset {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  provider WorkspaceAssetProvider
+  providerNamespace String
+  providerKey String?
+  status WorkspaceAssetStatus @default(UPLOAD_PENDING)
+  byteSize BigInt?
+  provenance Json
+  uploadExpiresAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  media Media[]
+
+  @@unique([provider, providerNamespace, providerKey])
+  @@index([workspaceId, status, createdAt])
+}

@@ -1,4 +1,5 @@
 import "server-only";
+import { lifecycleEnabled } from "@/lib/workspace-lifecycle/state";
 import { prisma } from "@/lib/prisma";
 import { getContentOwnershipScope } from "@/lib/blog-ownership";
 import { requireLockedWorkspaceAdministrator, type WorkspaceWriteActor } from "@/lib/workspace-write-access";
@@ -8,6 +9,10 @@ export async function getNewsletterJobHealth(inputActor: WorkspaceWriteActor) {
   const actor = { ...inputActor };
   return prisma.$transaction(async tx => {
     await requireLockedWorkspaceAdministrator(tx, actor);
+    const workspace = lifecycleEnabled() ? await tx.workspace.findUnique({
+      where: { id: actor.workspaceId }, select: { lastReactivatedAt: true },
+    }) : null;
+    const cutoff = workspace?.lastReactivatedAt;
     const scope = await getContentOwnershipScope(actor.workspaceId);
     const owned = { edition: { series: scope } };
     const now = new Date();
@@ -30,6 +35,7 @@ export async function getNewsletterJobHealth(inputActor: WorkspaceWriteActor) {
           ? (!job.leaseExpiresAt || job.leaseExpiresAt <= now ? "REVIEW" as const : "ACTIVE" as const)
           : job.status === "FAILED" ? "FAILED" as const : "PENDING" as const,
         dueAt: job.dueAt.toISOString(), attempts: job.attempts,
+        heldForReactivation: Boolean(cutoff && job.type !== "NOTIFY" && job.dueAt <= cutoff),
         editionLabel: (job.edition.subject || `${job.edition.series.name} · ${job.edition.cycleKey}`).slice(0, 160),
         editionStatus: job.edition.status, seriesStatus: job.edition.series.status,
       })),
