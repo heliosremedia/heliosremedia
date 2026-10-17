@@ -95,6 +95,8 @@ try {
       await action.focus();assert.equal(await action.evaluate(node=>node===document.activeElement),true);
       assert.equal(writes,beforeWrites,'empty-state guidance never writes project data');
       assert.equal(await page.getByText(/drag rows to set/).count(),0);
+      const explanation=page.getByText(filteredEmpty?'Try another search or clear your filters to see all projects in this workspace.':'Start with the property details, then add media and services. Your project starts as a private draft.',{exact:true});
+      assert.ok(await explanation.evaluate(node=>{const child=node.getBoundingClientRect(),parent=node.parentElement.getBoundingClientRect();return Math.abs((child.left+child.right)-(parent.left+parent.right))<2;}),'empty-state explanation stays centered with its heading and action');
       await page.screenshot({path:`release-evidence/studio-project-empty-${filteredEmpty?'filtered':'first'}-${width}.png`});
     }
     assert.deepEqual(errors,[]);await page.close();
