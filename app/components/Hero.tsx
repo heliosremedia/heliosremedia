@@ -19,7 +19,7 @@ export default function Hero({ settings }: { settings: PublicSiteSettings }) {
   const posterAlt = settings.heroPosterAlt?.trim() || "";
 
   return (
-    <section className="relative min-h-[100svh] overflow-hidden bg-[var(--background)]">
+    <section className="relative overflow-hidden bg-[var(--background)] md:min-h-[100svh]">
       {poster ? (
         <div
           aria-hidden={posterAlt ? undefined : true}
@@ -63,7 +63,7 @@ export default function Hero({ settings }: { settings: PublicSiteSettings }) {
       <div className="pointer-events-none absolute inset-x-0 -bottom-px h-2 bg-[var(--background)]" />
       <div className="hero-grain pointer-events-none absolute inset-0 opacity-[0.045] mix-blend-soft-light" />
 
-      <div className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-7xl items-start px-5 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-[max(calc(7.5rem+env(safe-area-inset-top)),calc(var(--public-shell-offset,0px)+1.5rem))] sm:px-8 md:items-center md:px-10 md:pb-24 md:pt-52 lg:px-16">
+      <div className="relative z-10 mx-auto flex w-full max-w-7xl items-start px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-[max(calc(7.5rem+env(safe-area-inset-top)),calc(var(--public-shell-offset,0px)+1.5rem))] sm:px-8 md:min-h-[100svh] md:items-center md:px-10 md:pb-24 md:pt-52 lg:px-16">
         <div className="w-full max-w-[58rem] md:translate-y-5">
           {settings.heroEyebrow ? <motion.p className="mb-4 text-[0.64rem] font-semibold uppercase tracking-[0.28em] text-[var(--helios-orange)]" variants={reveal} initial={shouldReduceMotion ? false : "hidden"} animate="visible" transition={{ duration: shouldReduceMotion ? 0 : 0.75, delay: shouldReduceMotion ? 0 : 0.42, ease }}>{settings.heroEyebrow}</motion.p> : null}
           <motion.h1
