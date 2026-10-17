@@ -83,6 +83,20 @@ try {
     assert.equal(await page.getByRole('button',{name:'Select',exact:true}).isDisabled(),true);
     assert.equal(await page.getByRole('button',{name:'Move project Retained project',exact:true}).isDisabled(),true);
     assert.equal(await title.getAttribute('href'),'/admin/projects/draft?returnTo=%2Fadmin%2Fprojects%3Fstatus%3DDRAFT');
+    for (const filteredEmpty of [false,true]) {
+      const beforeWrites=writes;
+      await page.goto(origin+'/?empty=1'+(filteredEmpty?'&filtered=1':''));
+      await page.getByRole('heading',{name:filteredEmpty?'No projects match these filters.':'Create your first project',exact:true}).waitFor();
+      const action=page.getByRole('link',{name:filteredEmpty?'View all projects':'New project',exact:true});
+      assert.equal(await action.getAttribute('href'),filteredEmpty?'/admin/projects':'/admin/projects/new');
+      assert.equal(await page.getByRole('button',{name:'Select',exact:true}).isDisabled(),true);
+      if(!filteredEmpty)await page.getByText('Your project starts as a private draft.',{exact:false}).waitFor();
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+      await action.focus();assert.equal(await action.evaluate(node=>node===document.activeElement),true);
+      assert.equal(writes,beforeWrites,'empty-state guidance never writes project data');
+      assert.equal(await page.getByText(/drag rows to set/).count(),0);
+      await page.screenshot({path:`release-evidence/studio-project-empty-${filteredEmpty?'filtered':'first'}-${width}.png`});
+    }
     assert.deepEqual(errors,[]);await page.close();
   }
   console.log('PASS responsive project list at 390/1440: visible title/status/actions, preserved return filters, selection moves and keyboard ordering; synthetic transport only');
