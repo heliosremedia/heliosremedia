@@ -86,7 +86,7 @@ export default function HeliosStandard({
         <div className="hero-grain absolute inset-0 opacity-[0.018] mix-blend-soft-light" />
       </div>
 
-      <div className="relative z-10 pb-[clamp(4.5rem,7vw,6.5rem)] pt-[clamp(5rem,9vw,8rem)]">
+      <div className="relative z-10 pb-[clamp(4.5rem,7vw,6.5rem)] pt-8 md:pt-[clamp(5rem,9vw,8rem)]">
         <div className="mx-auto w-full max-w-[68rem] px-6 sm:px-8 lg:px-10">
           <div className="grid gap-10 lg:grid-cols-[0.9fr_1px_1.1fr] lg:items-center lg:gap-14">
             <motion.div
