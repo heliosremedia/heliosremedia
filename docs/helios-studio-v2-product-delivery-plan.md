@@ -10,7 +10,7 @@ Fresh GitHub clone; integration branch `codex/v2-hosted-access-owner-action` res
 
 Read `helios-studio-v2-recovery-checkpoint.md` for current verified SHAs and evidence. Policy, bounded newsletter safeguards, workspace shell, Command Center and job review are integrated. The private-project milestone now includes draft creation, information editing, registered synthetic media additions and metadata, reviewed services, setup navigation and private preview/revocation through #413, including reviewed unpublish/archive transitions. The complete actual Next/Server Action workflow qualifies on two companies, with separate responsive actual-component browser checks. Reviewed publishing and featured placement now extend that workflow; the six-project cap is shared across both writers and expired renewals consume capacity. Featured-list review/recovery, archived-to-draft restoration, responsive project browsing and reviewed project ordering are integrated and independently qualified; exact evidence is in the checkpoint. Persistent synthetic-owner access and current-source Preview were live-qualified on October 13; this does not qualify real-company onboarding or live providers.
 
-Next capability milestone: integrated owner testing of the existing inquiry-to-private-project workflow. Make first-project entry and empty-workspace recovery clear, then resolve observed workflow defects while maintaining provider containment. Do not repeat the completed protected staging migration, credential initialization or Preview qualification.
+Next capability milestone: integrated owner testing of the existing inquiry-to-private-project workflow. First-project entry and empty-workspace recovery are integrated in #444; continue resolving observed workflow defects while maintaining provider containment. Do not repeat the completed protected staging migration, credential initialization or Preview qualification.
 
 ## Bounded foundation-readiness assessment
 
@@ -44,13 +44,13 @@ The private owner path now includes draft creation, information editing, registe
 
 The service work corrected a demonstrated feature dependency: access and service validity were previously checked outside the replacement transaction, and stale selections could remove assignments added by media. Existing administrator/workspace/project locks, reviewed revision and saved-set comparison now protect that operation. Private-preview creation is separate from clipboard success, and uncertain results do not claim an empty list or an active link.
 
-October 10 recovery found the exact staging project through default connector scope; explicit team selectors returned empty/404. A September hosted qualification succeeded, but its source/schema and temporary synthetic authentication do not establish current owner access. Current Neon read-only discovery fails with an internal authorization error. No deployment settings changed.
+October 10 recovery found the exact staging project through default connector scope; explicit team selectors returned empty/404. A September hosted qualification succeeded, but its source/schema and temporary synthetic authentication do not establish current owner access. At that recovery, Neon read-only discovery failed with an internal authorization error. No deployment settings changed.
 
 ## Next authorized milestone — October 17
 
 Persistent hosted owner login and current-source Preview qualification completed October 13. Preserve the verified URLs and source provenance in the canonical checkpoint; never repeat migration 38336325763, credential initialization 38416979449 or Preview qualification 38417689573 merely to recover context.
 
-Continue integrated owner testing. The current bounded product slice gives a workspace without projects a clear private-draft starting point, distinguishes filtered-empty results, and disables selection when there are no rows. Qualify actual component behavior and responsive presentation before integration. Continue the inquiry → project → details/media/services → private review path without enabling external providers.
+Continue integrated owner testing. The completed #444 product slice gives a workspace without projects a clear private-draft starting point, distinguishes filtered-empty results, and disables selection when there are no rows. Exact-source regression 39067303009 passed; its independently verified artifact includes visually inspected 390/1440 presentation and centered explanatory text. Continue the inquiry → project → details/media/services → private review path without enabling external providers.
 
 PR #413 completes reviewed unpublish/archive actions; #418 adds current-access/revision checks, locked publishing requirements and shared six-feature capacity; #419 adds reviewed featured-list ordering and recovery. Preserve these contracts and the continuous two-company runtime evidence. No unrelated hardening program is authorized by this assessment.
 
