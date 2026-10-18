@@ -8,6 +8,7 @@ import { STUDIO_VERSION, STUDIO_VERSION_HREF } from "@/lib/version";
 
 type AdminSidebarProps = {
   isOpen: boolean;
+  desktopHidden: boolean;
   onClose: () => void;
   role: AdminRole;
   initialFavorites: string[];
@@ -368,6 +369,8 @@ function NavigationLink({
 
       <NavigationLink
         href={item.href}
+        target={item.href === "/admin/production-console" ? "_blank" : undefined}
+        rel={item.href === "/admin/production-console" ? "noopener noreferrer" : undefined}
         onClick={onClose}
         aria-current={active ? "page" : undefined}
         className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-3.5 text-[0.92rem]"
@@ -424,6 +427,7 @@ function NavigationLink({
 
 export default function AdminSidebar({
   isOpen,
+  desktopHidden,
   onClose,
   role,
   initialFavorites,
@@ -536,7 +540,8 @@ export default function AdminSidebar({
       />
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-white/[0.08] bg-[#0d0d0f] transition-transform duration-300 ease-[var(--ease-luxury)] lg:translate-x-0 ${
+        id="studio-navigation"
+        className={`fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-white/[0.08] bg-[#0d0d0f] transition-transform duration-300 ease-[var(--ease-luxury)] ${desktopHidden ? "lg:hidden" : "lg:translate-x-0"} ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -748,6 +753,20 @@ export default function AdminSidebar({
               />
             </svg>
           </Link>
+          {(role === "OWNER" || role === "ADMIN") && (
+            <a
+              href="/admin/production-console"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={onClose}
+              className="mt-2 flex items-center justify-between rounded-xl border border-white/[0.08] px-4 py-3 text-[0.62rem] uppercase tracking-[0.16em] text-white/45 transition hover:border-white/20 hover:text-white"
+            >
+              Upload Portal
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+                <path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </a>
+          )}
         </div>
       </aside>
     </>
