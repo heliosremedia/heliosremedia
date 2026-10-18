@@ -27,6 +27,11 @@ type NavigationGroup = {
 
 const navigation: NavigationItem[] = [
   {
+    label: "Upload Portal",
+    href: "/admin/production-console",
+    icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>,
+  },
+  {
     label: "Dashboard",
     href: "/admin",
     icon: (
@@ -293,7 +298,7 @@ const navigationGroups: NavigationGroup[] = [
   {
     id: "operations",
     label: "Operations",
-    hrefs: ["/admin/client-portals", "/admin/clients", "/admin/email-studio", "/admin/inquiries", "/admin/newsletter-studio", "/admin/projects", "/admin/portfolio-intelligence", "/admin/referral-studio", "/admin/social-studio"],
+    hrefs: ["/admin/production-console", "/admin/client-portals", "/admin/clients", "/admin/email-studio", "/admin/inquiries", "/admin/newsletter-studio", "/admin/projects", "/admin/portfolio-intelligence", "/admin/referral-studio", "/admin/social-studio"],
   },
   {
     id: "website-content",
@@ -347,6 +352,7 @@ function NavigationLink({
   savingFavorite?: boolean;
 }) {
   const active = isActivePath(pathname, item.href);
+  const NavigationLink = item.href === "/admin/production-console" ? "a" : Link;
 
   return (
     <div
@@ -360,7 +366,7 @@ function NavigationLink({
         <span className="absolute inset-y-3 left-0 w-px bg-[var(--helios-orange)]" />
       ) : null}
 
-      <Link
+      <NavigationLink
         href={item.href}
         onClick={onClose}
         aria-current={active ? "page" : undefined}
@@ -377,7 +383,7 @@ function NavigationLink({
         </span>
 
         <span className="truncate">{item.label}</span>
-      </Link>
+      </NavigationLink>
 
       {onToggleFavorite ? (
         <button
@@ -435,7 +441,7 @@ export default function AdminSidebar({
   } | null>(null);
   const visibleNavigation = navigation.filter(
     (item) =>
-      !["/admin/users", "/admin/newsletter-studio"].includes(item.href) ||
+      !["/admin/users", "/admin/newsletter-studio", "/admin/production-console"].includes(item.href) ||
       role === "OWNER" ||
       role === "ADMIN",
   );

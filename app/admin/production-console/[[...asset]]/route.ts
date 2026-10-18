@@ -9,7 +9,7 @@ export async function GET(request: Request, context: { params: Promise<{ asset?:
     login.searchParams.set("next", "/admin/production-console");
     return Response.redirect(login, 307);
   }
-  if (session.role !== "ADMIN") return new Response("Administrator access required.", { status: 403 });
+  if (!["OWNER", "ADMIN"].includes(session.role)) return new Response("Administrator access required.", { status: 403 });
   const { asset } = await context.params;
   const target = new URL("https://helios-upload-portal.vercel.app/api/portal");
   target.searchParams.set("asset", asset?.join("/") || "index.html");
