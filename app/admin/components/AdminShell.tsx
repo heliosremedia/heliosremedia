@@ -19,17 +19,20 @@ export default function AdminShell({
 }>) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const [desktopHidden, setDesktopHidden] = useState(false);
+
   return (
     <div className="admin-form-scope min-h-screen bg-[#09090a] text-[var(--foreground)]">
       <AdminSidebar
         isOpen={sidebarOpen}
+        desktopHidden={desktopHidden}
         onClose={() => setSidebarOpen(false)}
         role={session.role}
         initialFavorites={initialNavigationFavorites}
       />
 
-      <div className="lg:pl-60">
-        <AdminTopbar onMenuOpen={() => setSidebarOpen(true)} session={session} businessName={businessName} />
+      <div className={desktopHidden ? "" : "lg:pl-60"}>
+        <AdminTopbar desktopHidden={desktopHidden} onDesktopToggle={() => setDesktopHidden((hidden) => !hidden)} onMenuOpen={() => setSidebarOpen(true)} session={session} businessName={businessName} />
 
         <main className="min-h-[calc(100vh-4.5rem)] overflow-visible px-5 py-7 sm:px-8 lg:px-10 lg:py-8">
           <div className="mx-auto max-w-[96rem]">{children}</div>

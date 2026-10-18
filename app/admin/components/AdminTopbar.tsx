@@ -4,18 +4,35 @@ import LogoutButton from "./LogoutButton";
 
 type AdminTopbarProps = {
   onMenuOpen: () => void;
+  desktopHidden: boolean;
+  onDesktopToggle: () => void;
   session: AdminSession;
   businessName: string;
 };
 
 export default function AdminTopbar({
   onMenuOpen,
+  desktopHidden,
+  onDesktopToggle,
   session,
   businessName,
 }: AdminTopbarProps) {
   return (
     <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-white/[0.08] bg-[#09090a]/90 px-5 backdrop-blur-xl sm:px-8 lg:px-10">
       <div className="flex items-center gap-4">
+        <button
+          type="button"
+          aria-label={desktopHidden ? "Show sidebar" : "Hide sidebar"}
+          aria-expanded={!desktopHidden}
+          aria-controls="studio-navigation"
+          onClick={onDesktopToggle}
+          className="hidden h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/70 transition hover:border-white/20 hover:text-white lg:flex"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+            <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M9 4v16" stroke="currentColor" strokeWidth="1.5" />
+          </svg>
+        </button>
         <button
           type="button"
           aria-label="Open navigation"
