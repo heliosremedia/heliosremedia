@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { checkExistingConnection, v1CalendarMonth } from "./v1-check.ts";
+import { checkExistingConnection, v1CalendarMonth, v1Amount } from "./v1-check.ts";
 function fixture(options: { linked?: boolean; otherBrand?: boolean; duplicate?: boolean; date?: string; orderBrand?: number } = {}) {
   const calls: string[] = [];
   const orders = [100,200].map((total,i) => ({ oid: i+1, bid: options.orderBrand ?? 10, sid: i+100, date: options.date ?? '2026-10-08T12:00:00', total, taxamount: 0, returned: 0, tasks: [{ name: 'Photography', canceled: false }] }));
@@ -70,4 +70,16 @@ test('legacy v1 US timestamps support AM/PM and single-digit components', async 
 test('legacy v1 dates validate leap years, calendar limits and time ranges', () => {
   assert.equal(v1CalendarMonth('2/29/2024 12:00:00 PM'), '2024-02');
   for (const date of ['2/29/2026 12:00:00 PM', '13/1/2026 1:00:00 AM', '10/8/2026 0:00:00 AM', '10/8/2026 13:00:00 PM', '10/8/2026 1:60:00 AM', '10/8/2026 1:00:60 AM']) assert.throws(() => v1CalendarMonth(date));
+});
+
+test('v1 monetary formats preserve exact cents without rounding', () => {
+  for (const value of [1200.5, '1200.50', '1200.5000', '$1,200.50', ' 1,200.50 ']) assert.equal(v1Amount(value, 'total'), 120050);
+  for (const value of ['1200.501', '1,20.50', '1.200,50', true, {}, null, undefined, '']) assert.throws(() => v1Amount(value, 'total'), /total/);
+});
+test('missing optional amounts remain unknown rather than zero', () => {
+  assert.equal(v1Amount(undefined, 'returned', true), null);
+  assert.equal(v1Amount(null, 'taxamount', true), null);
+  assert.equal(v1Amount('', 'returned', true), null);
+  assert.equal(v1Amount(0, 'returned', true), 0);
+  assert.throws(() => v1Amount('invalid', 'returned', true), /returned/);
 });

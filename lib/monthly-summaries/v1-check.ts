@@ -2,6 +2,22 @@ import { moneyCents, positiveId, record } from "./core.ts";
 
 export class VerificationError extends Error {}
 
+export function v1Amount(value: unknown, field: "total" | "taxamount" | "returned", optional = false): number | null {
+  if (value === undefined || value === null || (typeof value === "string" && !value.trim())) {
+    if (optional) return null;
+    throw new VerificationError(`Required amount field '${field}' was not supplied.`);
+  }
+  // Accept USD grouping and insignificant trailing zeroes, but never round sub-cent values.
+  if (typeof value !== "string" && typeof value !== "number") throw new VerificationError(`Amount field '${field}' has an unexpected type (${typeof value}).`);
+  let text = String(value).trim();
+  if (/^-?\$?(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d+)?$/.test(text)) text = text.replace("$", "").replaceAll(",", "");
+  text = text.replace(/(\.\d{2})0+$/, "$1");
+  try { return moneyCents(text); } catch {
+    const shape = String(value).slice(0, 32).replace(/[0-9]/g, "#").replace(/[A-Za-z]/g, "A").replace(/[^#A$.,+\- ]/g, "?");
+    throw new VerificationError(`Amount field '${field}' cannot be read as exact cents (type: ${typeof value}; shape: ${shape}).`);
+  }
+}
+
 // Read the calendar month exactly as supplied; this is not a timezone conversion.
 export function v1CalendarMonth(value: unknown): string {
   if (typeof value !== "string") throw new VerificationError("Order date is missing or is not text.");
@@ -85,11 +101,16 @@ export async function checkExistingConnection(input: {
     if (site.sid !== order.sid || site.bid !== brandId) throw new VerificationError("Property does not match the order brand.");
     if (!Array.isArray(order.tasks)) throw new VerificationError("Order services are missing.");
     const tasks = order.tasks.map(record);
+    stage = "property-owner";
+    const siteOwnerMatches = !!site.user && record(site.user).uid === clientId;
     stage = "order-totals";
-    orders.push({ orderId: order.oid, siteId: order.sid, date: order.date, totalCents: moneyCents(order.total),
-      taxCents: moneyCents(order.taxamount), returnedCents: moneyCents(order.returned),
+    const totalCents = v1Amount(order.total, "total")!;
+    const taxCents = v1Amount(order.taxamount, "taxamount", true);
+    const returnedCents = v1Amount(order.returned, "returned", true);
+    orders.push({ orderId: order.oid, siteId: order.sid, date: order.date, totalCents, taxCents, returnedCents,
+      missingAmounts: [taxCents === null ? "taxamount" : null, returnedCents === null ? "returned" : null].filter(Boolean),
       address: [site.address, site.city, site.state].filter(Boolean).join(", "),
-      siteOwnerMatches: !!site.user && record(site.user).uid === clientId,
+      siteOwnerMatches,
       services: tasks.map(t => ({ name: String(t.name || ""), canceled: t.canceled === true })),
       hasCanceledTasks: tasks.some(t => t.canceled === true),
     });
@@ -98,7 +119,7 @@ export async function checkExistingConnection(input: {
   return { client: input.clientName.trim(), month: input.month, returnedOrderCount: list.length, orders, totalCents,
     matchesHistoricalReference: orders.length > 0 && totalCents === input.expectedTotalCents,
     reviewRequired: true,
-    notes: ["Read-only diagnostic. No report was saved and no email was sent.", "Month candidates use the calendar date supplied by the API, including v1 month/day/year AM/PM timestamps. Timezone and month-boundary behavior still need confirmation.", "Site owner is checked separately from the purchaser. The v1 schema does not expose an explicit billed-client ID.", "List completeness and canceled/returned amount semantics must be verified before automated generation."],
+    notes: ["Read-only diagnostic. No report was saved and no email was sent.", "Month candidates use the calendar date supplied by the API, including v1 month/day/year AM/PM timestamps. Timezone and month-boundary behavior still need confirmation.", "Site owner is checked separately from the purchaser. The v1 schema does not expose an explicit billed-client ID.", "Missing optional amounts are shown as not supplied, never assumed to be zero. List completeness and canceled/returned amount semantics still require review before automated generation."],
   };
   } catch (error) {
     const detail = error instanceof VerificationError ? error.message : stage === "workspace-association" ? "The client-directory database check failed." : "An API field was missing or had an unexpected format.";
