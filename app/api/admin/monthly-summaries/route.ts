@@ -3,6 +3,7 @@ import { getAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { accountCheckFailed } from "@/lib/monthly-summaries/review-status";
 import type { Summary } from "@/lib/monthly-summaries/core";
+import { useLegacySummaryReader } from "@/lib/monthly-summaries/reader-policy";
 import { connectionStatus } from "@/lib/monthly-summaries/hdphotohub";
 import { generateMonth, liveDeliveryApproved, reportFor, sendReport, settingsFor, retryAttempt } from "@/lib/monthly-summaries/service";
 import { previousMonth, requireCompletedMonth, TEST_EMAIL } from "@/lib/monthly-summaries/core";
@@ -47,7 +48,7 @@ export async function GET(request: Request) {
       settingsFor(session.workspaceId),
       prisma.monthlyMediaSummary.findMany({ where: { workspaceId: session.workspaceId, reportingMonth: month }, orderBy: { client: { displayName: "asc" } }, select: { snapshot: true, id: true, recipientEmail: true, status: true, generatedAt: true, acceptedAt: true, client: { select: { displayName: true } } } }),
     ]);
-    return response({ reports: reports.map(({ snapshot, ...report }) => ({ ...report, status: report.status === "NEEDS_REVIEW" && accountCheckFailed(snapshot as unknown as Summary) ? "CHECK_FAILED" : report.status })), settings: { automationEnabled: settings.automationEnabled, liveApproved: liveDeliveryApproved(), connected: Boolean(process.env.HDPH_API_KEY?.trim()) || (connectionStatus() && process.env.HDPH_SUMMARY_WORKSPACE_ID === session.workspaceId), reviewMode: Boolean(process.env.HDPH_API_KEY?.trim()), testEmail: TEST_EMAIL, sender: process.env.CAMPAIGN_EMAIL_FROM || process.env.PORTAL_EMAIL_FROM || "Sender not configured" } });
+    return response({ reports: reports.map(({ snapshot, ...report }) => ({ ...report, status: report.status === "NEEDS_REVIEW" && accountCheckFailed(snapshot as unknown as Summary) ? "CHECK_FAILED" : report.status })), settings: { automationEnabled: settings.automationEnabled, liveApproved: liveDeliveryApproved(), connected: useLegacySummaryReader(process.env) || (connectionStatus() && process.env.HDPH_SUMMARY_WORKSPACE_ID === session.workspaceId), reviewMode: useLegacySummaryReader(process.env), testEmail: TEST_EMAIL, sender: process.env.CAMPAIGN_EMAIL_FROM || process.env.PORTAL_EMAIL_FROM || "Sender not configured" } });
   } catch (error) { return response({ error: error instanceof Error ? error.message : "Monthly summaries could not be loaded." }, 400); }
 }
 export async function POST(request: Request) {
