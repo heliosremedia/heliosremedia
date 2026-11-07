@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 const key = process.env.HDPH_API_KEY?.trim();
 if (!key) { console.error('HDPH_API_KEY is required in the local secret environment. No requests were made.'); process.exit(1); }
+if (!process.env.HDPH_TEST_CLIENT_NAME?.trim()) { console.error('Set HDPH_TEST_CLIENT_NAME to the exact client name. No requests were made.'); process.exit(1); }
 const base = 'https://heliosrealestatemedia.hd.pics/api/v1';
 async function read(route, query = {}) {
   assert.ok(['/brand', '/users', '/orders', '/order', '/site'].includes(route));
@@ -15,10 +16,10 @@ async function read(route, query = {}) {
 try {
   const brand = await read('/brand');
   assert.ok(Number.isSafeInteger(brand.bid) && brand.bid > 0, 'Invalid brand response');
-  const clients = await read('/users', { name: 'Stephanie Nealy' });
+  const clients = await read('/users', { name: process.env.HDPH_TEST_CLIENT_NAME || '' });
   assert.ok(Array.isArray(clients), 'Invalid client search response');
-  const matches = clients.filter(c => c.name?.trim().toLowerCase() === 'stephanie nealy' && c.bid === brand.bid && c.type === 'client');
-  assert.equal(matches.length, 1, 'Expected one exact Stephanie Nealy client match; review identity before proceeding');
+  const matches = clients.filter(c => c.name?.trim().toLowerCase() === (process.env.HDPH_TEST_CLIENT_NAME || '').trim().toLowerCase() && c.bid === brand.bid && c.type === 'client');
+  assert.equal(matches.length, 1, 'Expected one exact test client client match; review identity before proceeding');
   const client = matches[0];
   const orders = await read('/orders', { uid: String(client.uid) });
   assert.ok(Array.isArray(orders), 'Invalid orders response');

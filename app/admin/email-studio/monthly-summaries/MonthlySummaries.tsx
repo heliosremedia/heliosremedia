@@ -14,7 +14,6 @@ async function api(query = "", payload?: object) {
   return result;
 }
 export default function MonthlySummaries({ initialMonth, isOwner }: { initialMonth: string; isOwner: boolean }) {
-  const [connectionCheck, setConnectionCheck] = useState<string>("");
   const [month, setMonth] = useState(initialMonth);
   const [reports, setReports] = useState<Report[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -60,16 +59,6 @@ export default function MonthlySummaries({ initialMonth, isOwner }: { initialMon
     } catch (e) { setError(e instanceof Error ? e.message : "Action failed."); }
     finally { setBusy(false); }
   }
-  async function checkConnection() {
-    setBusy(true); setError(""); setConnectionCheck("");
-    try {
-      const response = await fetch("/api/admin/monthly-summaries/connection-check", { method: "POST" });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
-      setConnectionCheck(JSON.stringify(result, null, 2));
-    } catch (e) { setError(e instanceof Error ? e.message : "Connection check failed."); }
-    finally { setBusy(false); }
-  }
   async function downloadPdf() {
     setBusy(true); setError("");
     try {
@@ -99,7 +88,7 @@ export default function MonthlySummaries({ initialMonth, isOwner }: { initialMon
       <p className="mt-4 text-xs leading-6 text-white/40">{settings?.liveApproved ? "Automation follows your saved preference. Existing unsubscribe and bounce protections apply." : "Internal testing only. Client delivery unlocks after the data, email design, and delivery safeguards are approved."}</p>
       <button className={`${button} mt-3`} disabled={busy || !settings || (!settings.liveApproved && !settings.automationEnabled)} onClick={() => action({ action: "settings", automationEnabled: !settings?.automationEnabled })}>{settings?.automationEnabled ? "Pause automation" : "Enable automation"}</button>
     </section>
-    {isOwner && <section className="rounded-2xl border border-white/10 p-5"><h2 className="text-lg text-white">Verify existing HDPhotoHub connection</h2><p className="mt-2 text-sm text-white/50">Read Stephanie Nealy’s October 2026 orders using the key already in Vercel. This does not save reports or send emails.</p><button className={`${button} mt-4`} disabled={busy} onClick={checkConnection}>{busy ? "Working…" : "Run read-only check"}</button>{connectionCheck && <pre className="mt-4 max-h-[600px] overflow-auto whitespace-pre-wrap break-words rounded-xl bg-black/30 p-4 text-xs text-white/70">{connectionCheck}</pre>}</section>}
+    {isOwner && <Link href="/admin/email-studio/monthly-summaries/verify" className="inline-block rounded-xl border border-white/15 px-4 py-3 text-sm text-white/80">Verify existing HDPhotoHub connection</Link>}
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">{counts.map(([label, count]) => <div key={label} className="rounded-xl border border-white/10 p-4"><p className="text-xs text-white/45">{label}</p><p className="mt-2 text-2xl font-light text-white">{count}</p></div>)}</div>
     <div className="flex flex-wrap items-end gap-3"><label className="text-xs text-white/50">Reporting month<input aria-label="Reporting month" type="month" min="2020-01" max={initialMonth} value={month} disabled={busy} onChange={e => { if (e.target.value) setMonth(e.target.value); }} className="mt-2 block rounded-xl border border-white/15 bg-[#171717] px-3 py-2.5 text-sm text-white" /></label><button className={button} disabled={busy || !settings?.connected} onClick={() => action({ action: "generate", month })}>{busy ? "Working…" : "Generate / refresh month"}</button><button className={button} disabled={busy} onClick={() => preview("")}>View design sample</button></div>
     {message && <p role="status" className="rounded-xl bg-emerald-300/10 p-4 text-sm text-emerald-100">{message}</p>}

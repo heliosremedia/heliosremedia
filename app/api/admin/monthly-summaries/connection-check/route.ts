@@ -11,7 +11,9 @@ export async function POST(request: Request) {
   const origin = request.headers.get("origin");
   if (origin && origin !== new URL(request.url).origin) return NextResponse.json({ error: "Invalid request origin." }, { status: 403, headers });
   try {
-    const result = await checkExistingConnection({ apiKey: process.env.HDPH_API_KEY || "", authorizeClient: async clientId => Boolean(await prisma.communicationClient.findFirst({
+    const input = await request.json();
+    if (typeof input.clientName !== "string" || typeof input.month !== "string" || typeof input.expectedTotalCents !== "number") return NextResponse.json({ error: "Enter the client, month, and expected purchase total." }, { status: 400, headers });
+    const result = await checkExistingConnection({ apiKey: process.env.HDPH_API_KEY || "", clientName: input.clientName, month: input.month, expectedTotalCents: input.expectedTotalCents, authorizeClient: async clientId => Boolean(await prisma.communicationClient.findFirst({
       where: { hdPhotoHubUserId: clientId, workspaceMemberships: { some: { workspaceId: session.workspaceId } } }, select: { id: true },
     })) });
     return NextResponse.json(result, { headers });

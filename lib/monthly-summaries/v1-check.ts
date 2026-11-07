@@ -3,10 +3,14 @@ import { moneyCents, positiveId, record } from "./core.ts";
 // Deliberately scoped to the approved historical validation case. No mutating API calls.
 export async function checkExistingConnection(input: {
   apiKey: string;
+  clientName: string;
+  month: string;
+  expectedTotalCents: number;
   authorizeClient: (clientId: number) => Promise<boolean>;
   fetcher?: typeof fetch;
 }) {
   if (!input.apiKey.trim()) throw new Error("The existing HDPhotoHub key is not configured.");
+  if (!input.clientName.trim() || input.clientName.length > 150 || !/^20\d{2}-(0[1-9]|1[0-2])$/.test(input.month) || !Number.isSafeInteger(input.expectedTotalCents) || input.expectedTotalCents < 0) throw new Error("Invalid verification inputs.");
   const fetcher = input.fetcher || fetch;
   async function read(endpoint: string, params: Record<string, string> = {}) {
     if (!["brand", "users", "orders", "order", "site"].includes(endpoint)) throw new Error("Unsupported read operation.");
@@ -19,10 +23,10 @@ export async function checkExistingConnection(input: {
   }
   const brand = record(await read("brand"));
   const brandId = positiveId(brand.bid);
-  const users = await read("users", { name: "Stephanie Nealy" });
+  const users = await read("users", { name: input.clientName.trim() });
   if (!Array.isArray(users)) throw new Error("Unexpected client search response.");
-  const matches = users.map(record).filter(c => String(c.name || `${c.firstname || ""} ${c.lastname || ""}`).trim().toLowerCase() === "stephanie nealy" && c.bid === brandId && c.type === "client");
-  if (matches.length !== 1) throw new Error("An exact, unique Stephanie Nealy account could not be identified.");
+  const matches = users.map(record).filter(c => String(c.name || `${c.firstname || ""} ${c.lastname || ""}`).trim().toLowerCase() === input.clientName.trim().toLowerCase() && c.bid === brandId && c.type === "client");
+  if (matches.length !== 1) throw new Error("An exact, unique client account could not be identified.");
   const clientId = positiveId(matches[0].uid);
   if (!(await input.authorizeClient(clientId))) throw new Error("The test client is not linked to your workspace. Sync the existing client directory first.");
   const list = await read("orders", { uid: String(clientId) });
@@ -33,7 +37,7 @@ export async function checkExistingConnection(input: {
     if (seen.has(id)) throw new Error("Duplicate order in the response. Review completeness before proceeding.");
     seen.add(id);
     if (positiveId(o.bid) !== brandId || typeof o.date !== "string" || !/^\d{4}-\d{2}-\d{2}T/.test(o.date)) throw new Error("Order brand or date could not be validated.");
-    return o.date.startsWith("2026-10-");
+    return o.date.startsWith(`${input.month}-`);
   });
   if (candidates.length > 20) throw new Error("Historical test exceeds the 20-order validation limit.");
   const orders = [];
@@ -53,9 +57,9 @@ export async function checkExistingConnection(input: {
     });
   }
   const totalCents = orders.reduce((sum, order) => sum + order.totalCents, 0);
-  return { client: "Stephanie Nealy", month: "2026-10", returnedOrderCount: list.length, orders, totalCents,
-    matchesHistoricalReference: orders.length === 2 && totalCents === 136999 && orders.map(o => o.totalCents).sort((a,b) => a-b).join(",") === "34208,102791",
+  return { client: input.clientName.trim(), month: input.month, returnedOrderCount: list.length, orders, totalCents,
+    matchesHistoricalReference: orders.length > 0 && totalCents === input.expectedTotalCents,
     reviewRequired: true,
-    notes: ["Read-only diagnostic. No report was saved and no email was sent.", "October candidates use the API date prefix. Timezone and month-boundary behavior still need confirmation.", "Site owner is checked separately from the purchaser. The v1 schema does not expose an explicit billed-client ID.", "List completeness and canceled/returned amount semantics must be verified before automated generation."],
+    notes: ["Read-only diagnostic. No report was saved and no email was sent.", "Month candidates use the API date prefix. Timezone and month-boundary behavior still need confirmation.", "Site owner is checked separately from the purchaser. The v1 schema does not expose an explicit billed-client ID.", "List completeness and canceled/returned amount semantics must be verified before automated generation."],
   };
 }
