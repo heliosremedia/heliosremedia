@@ -7,9 +7,14 @@ export function cleanServiceName(value: string) {
     .replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
     .replace(/\s+/g, " ").trim();
 }
-export function buildV1Preview(result: Awaited<ReturnType<typeof checkExistingConnection>>): Summary {
+type V1Result = Awaited<ReturnType<typeof checkExistingConnection>>;
+export function buildV1Preview(result: V1Result): Summary {
+  if (!result.matchesHistoricalReference) throw new PreviewValidationError("The API total must match the expected total before previewing.");
+  return buildV1Draft(result);
+}
+export function buildV1Draft(result: V1Result): Summary {
   requireCompletedMonth(result.month);
-  if (!result.matchesHistoricalReference || !result.orders.length) throw new PreviewValidationError("The API total must match the expected total before previewing.");
+  if (!result.orders.length) throw new PreviewValidationError("The API total must match the expected total before previewing.");
   const summary: Summary = { month: result.month, clientId: result.clientId, firstName: result.firstName, email: "", totalCents: 0, orderCount: 0, properties: [], issues: [], excludedOrderIds: [] };
   const properties = new Map<number, Summary["properties"][number]>();
   for (const order of result.orders) {

@@ -83,3 +83,13 @@ test('missing optional amounts remain unknown rather than zero', () => {
   assert.equal(v1Amount(0, 'returned', true), 0);
   assert.throws(() => v1Amount('invalid', 'returned', true), /returned/);
 });
+
+test('ID-based directory checks authorize before any upstream request and do not use name search', async()=>{
+ const f=fixture();await assert.rejects(checkExistingConnection({...f.input,clientId:99}),/workspace/);assert.equal(f.calls.length,0);
+ const original=f.input.fetcher;
+ const result=await checkExistingConnection({...f.input,clientId:20,clientName:'Changed display name',expectedTotalCents:undefined,fetcher:(async(url,init)=>{
+  if(new URL(String(url)).pathname.endsWith('/user'))return Response.json({uid:20,bid:10,type:'client',firstname:'Alex',email:'alex@example.test',status:'active'});
+  return original(url,init);
+ }) as typeof fetch});
+ assert.equal(result.clientId,20);assert.equal(result.email,'alex@example.test');assert.equal(result.matchesHistoricalReference,false);assert.ok(!f.calls.some(p=>p.endsWith('/users')));
+});

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { buildV1Preview, cleanServiceName } from "./v1-preview.ts";
 import { signPreview, verifyPreview, type PreviewPayload } from "./preview-token.ts";
 function example() {
-  return { clientId: 1, firstName: "Alex", client: "Alex Example", month: "2026-10", returnedOrderCount: 2, totalCents: 30000, matchesHistoricalReference: true, reviewRequired: true, notes: [], orders: [10000,20000].map((totalCents,i) => ({ orderId:i+1,siteId:5,date:'10/10/2026 1:00:00 PM',totalCents,taxCents:0,returnedCents:null,missingAmounts:['returned'],address:'Example property',siteOwnerMatches:true,hasCanceledTasks:false,services:[{name:'Photo Package <i>(Large)</i>',chargeCents:totalCents,canceled:false},{name:'Included floor plan',chargeCents:0,canceled:false}] })) };
+  return { email: "alex@example.test", accountStatus: "active", clientId: 1, firstName: "Alex", client: "Alex Example", month: "2026-10", returnedOrderCount: 2, totalCents: 30000, matchesHistoricalReference: true, reviewRequired: true, notes: [], orders: [10000,20000].map((totalCents,i) => ({ orderId:i+1,siteId:5,date:'10/10/2026 1:00:00 PM',totalCents,taxCents:0,returnedCents:null,missingAmounts:['returned'],address:'Example property',siteOwnerMatches:true,hasCanceledTasks:false,services:[{name:'Photo Package <i>(Large)</i>',chargeCents:totalCents,canceled:false},{name:'Included floor plan',chargeCents:0,canceled:false}] })) };
 }
 test('preview groups visits and includes charged labels without package components or duplicate names', () => {
  const summary=buildV1Preview(example());

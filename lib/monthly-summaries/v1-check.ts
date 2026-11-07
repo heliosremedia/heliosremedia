@@ -40,22 +40,23 @@ export function v1CalendarMonth(value: unknown): string {
   return `${year}-${month}`;
 }
 
-// Deliberately scoped to the approved historical validation case. No mutating API calls.
+// Read-only v1 account reader. Directory generation uses verified IDs, never name guesses.
 export async function checkExistingConnection(input: {
   apiKey: string;
   clientName: string;
   month: string;
-  expectedTotalCents: number;
+  expectedTotalCents?: number;
+  clientId?: number;
   authorizeClient: (clientId: number) => Promise<boolean>;
   fetcher?: typeof fetch;
 }) {
   let stage = "configuration";
   try {
   if (!input.apiKey.trim()) throw new VerificationError("The existing HDPhotoHub key is not configured.");
-  if (!input.clientName.trim() || input.clientName.length > 150 || !/^20\d{2}-(0[1-9]|1[0-2])$/.test(input.month) || !Number.isSafeInteger(input.expectedTotalCents) || input.expectedTotalCents < 0) throw new VerificationError("Invalid verification inputs.");
+  if (!input.clientName.trim() || input.clientName.length > 150 || !/^20\d{2}-(0[1-9]|1[0-2])$/.test(input.month) || (input.expectedTotalCents !== undefined && (!Number.isSafeInteger(input.expectedTotalCents) || input.expectedTotalCents < 0))) throw new VerificationError("Invalid verification inputs.");
   const fetcher = input.fetcher || fetch;
   async function read(endpoint: string, params: Record<string, string> = {}) {
-    if (!["brand", "users", "orders", "order", "site"].includes(endpoint)) throw new VerificationError("Unsupported read operation.");
+    if (!["brand", "users", "user", "orders", "order", "site"].includes(endpoint)) throw new VerificationError("Unsupported read operation.");
     let result: Response;
     try { result = await fetcher(`https://heliosrealestatemedia.hd.pics/api/v1/${endpoint}?${new URLSearchParams(params)}`, {
       method: "GET", headers: { api_key: input.apiKey, Accept: "application/json" },
@@ -64,14 +65,18 @@ export async function checkExistingConnection(input: {
     if (!result.ok) throw new VerificationError(`HDPhotoHub read failed (${result.status}).`);
     try { return await result.json(); } catch { throw new VerificationError("HDPhotoHub returned a non-JSON response."); }
   }
+  if (input.clientId !== undefined) {
+    stage = "workspace-association";
+    if (!(await input.authorizeClient(positiveId(input.clientId)))) throw new VerificationError("Client is not linked to this workspace.");
+  }
   stage = "brand";
   const brand = record(await read("brand"));
   const brandId = positiveId(brand.bid);
   stage = "client-search";
-  const users = await read("users", { name: input.clientName.trim() });
+  const users = input.clientId !== undefined ? [await read("user", { uid: String(input.clientId) })] : await read("users", { name: input.clientName.trim() });
   if (!Array.isArray(users)) throw new VerificationError("Unexpected client search response.");
   stage = "client-match";
-  const matches = users.map(record).filter(c => String(c.name || `${c.firstname || ""} ${c.lastname || ""}`).trim().toLowerCase() === input.clientName.trim().toLowerCase() && c.bid === brandId && c.type === "client");
+  const matches = users.map(record).filter(c => (input.clientId !== undefined ? c.uid === input.clientId : String(c.name || `${c.firstname || ""} ${c.lastname || ""}`).trim().toLowerCase() === input.clientName.trim().toLowerCase()) && c.bid === brandId && c.type === "client");
   if (matches.length !== 1) throw new VerificationError("An exact, unique client account could not be identified.");
   const clientId = positiveId(matches[0].uid);
   stage = "workspace-association";
@@ -116,7 +121,7 @@ export async function checkExistingConnection(input: {
     });
   }
   const totalCents = orders.reduce((sum, order) => sum + order.totalCents, 0);
-  return { clientId, firstName: String(matches[0].firstname || input.clientName.trim().split(/\s+/)[0]), client: input.clientName.trim(), month: input.month, returnedOrderCount: list.length, orders, totalCents,
+  return { clientId, email: String(matches[0].email || "").trim().toLowerCase(), accountStatus: String(matches[0].status || ""), firstName: String(matches[0].firstname || input.clientName.trim().split(/\s+/)[0]), client: input.clientName.trim(), month: input.month, returnedOrderCount: list.length, orders, totalCents,
     matchesHistoricalReference: orders.length > 0 && totalCents === input.expectedTotalCents,
     reviewRequired: true,
     notes: ["Read-only diagnostic. No report was saved and no email was sent.", "Month candidates use the calendar date supplied by the API, including v1 month/day/year AM/PM timestamps. Timezone and month-boundary behavior still need confirmation.", "Site owner is checked separately from the purchaser. The v1 schema does not expose an explicit billed-client ID.", "Missing optional amounts are shown as not supplied, never assumed to be zero. List completeness and canceled/returned amount semantics still require review before automated generation."],

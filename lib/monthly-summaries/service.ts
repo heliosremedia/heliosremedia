@@ -10,10 +10,11 @@ import { createSummaryReader, summaryConfiguration } from "./hdphotohub";
 import { positiveId, requireCompletedMonth, summarize, TEST_EMAIL, type Summary } from "./core";
 import { renderSummaryEmail, summarySubject } from "./email";
 import { summaryPdfAttachment } from "./pdf";
+import { prepareV1Month } from "./v1-month";
 import { deliveryEnabled, failureStatus } from "./delivery-policy";
 
 export function liveDeliveryApproved() {
-  return deliveryEnabled({ MONTHLY_SUMMARIES_LIVE_ENABLED: process.env.MONTHLY_SUMMARIES_LIVE_ENABLED, MONTHLY_SUMMARIES_DATA_APPROVED: process.env.MONTHLY_SUMMARIES_DATA_APPROVED });
+  return !process.env.HDPH_API_KEY?.trim() && deliveryEnabled({ MONTHLY_SUMMARIES_LIVE_ENABLED: process.env.MONTHLY_SUMMARIES_LIVE_ENABLED, MONTHLY_SUMMARIES_DATA_APPROVED: process.env.MONTHLY_SUMMARIES_DATA_APPROVED });
 }
 const json = (value: unknown) => JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 export const summaryHash = (summary: Summary) => createHash("sha256").update(JSON.stringify(summary)).digest("hex");
@@ -24,7 +25,8 @@ export async function settingsFor(workspaceId: string) {
 
 export async function generateMonth(workspaceId: string, month: string) {
   requireCompletedMonth(month);
-  summaryConfiguration(workspaceId);
+  const useV1 = Boolean(process.env.HDPH_API_KEY?.trim());
+  if (!useV1) summaryConfiguration(workspaceId);
   await settingsFor(workspaceId);
   const generationToken = randomUUID();
   const claimed = await prisma.monthlySummarySettings.updateMany({
@@ -33,10 +35,10 @@ export async function generateMonth(workspaceId: string, month: string) {
   });
   if (!claimed.count) throw new Error("A monthly generation is already running. Try again when it finishes.");
   try {
-    const reader = createSummaryReader(workspaceId);
+    const reader = useV1 ? null : createSummaryReader(workspaceId);
     const [orders, clients, settings] = await Promise.all([
-      reader.orders(month),
-      prisma.communicationClient.findMany({ where: { workspaceMemberships: { some: { workspaceId } } }, select: { id: true, hdPhotoHubUserId: true, normalizedEmail: true } }),
+      reader ? reader.orders(month) : Promise.resolve([]),
+      prisma.communicationClient.findMany({ where: { workspaceMemberships: { some: { workspaceId } } }, select: { id: true, hdPhotoHubUserId: true, normalizedEmail: true, displayName: true } }),
       settingsFor(workspaceId),
     ]);
     const byId = new Map(clients.map(client => [client.hdPhotoHubUserId, client]));
@@ -50,12 +52,12 @@ export async function generateMonth(workspaceId: string, month: string) {
       grouped.set(id, [...(grouped.get(id) || []), order]);
     }
     const exclusions = Array.isArray(settings.excludedOrderIds) ? settings.excludedOrderIds.map(positiveId) : [];
-    const prepared: { clientId: string; summary: Summary }[] = [];
+    const prepared: { clientId: string; summary: Summary }[] = useV1 ? await prepareV1Month({ month, clients, apiKey: process.env.HDPH_API_KEY! }) : [];
     for (const [id, clientOrders] of grouped) {
       const local = byId.get(id);
       if (!local) throw new Error(`Client ${id} is not linked to this workspace. Sync the client directory and regenerate; no partial month was saved.`);
-      const client = await reader.client(id);
-      const summary = summarize({ month, brandId: reader.brandId, client, orders: clientOrders, excludedOrderIds: exclusions });
+      const client = await reader!.client(id);
+      const summary = summarize({ month, brandId: reader!.brandId, client, orders: clientOrders, excludedOrderIds: exclusions });
       if (summary.email !== local.normalizedEmail) summary.issues.push("Client directory email differs from HDPhotoHub. Sync and review before sending.");
       prepared.push({ clientId: local.id, summary });
     }
@@ -67,7 +69,7 @@ export async function generateMonth(workspaceId: string, month: string) {
         const key = { workspaceId, hdPhotoHubClientId: summary.clientId, reportingMonth: month };
         const existing = await tx.monthlyMediaSummary.findUnique({ where: { workspaceId_hdPhotoHubClientId_reportingMonth: key } });
         if (existing && ["SENDING", "ACCEPTED", "UNCERTAIN"].includes(existing.status)) continue;
-        const status = summary.issues.length ? "NEEDS_REVIEW" : summary.orderCount ? "READY" : "NO_PURCHASES";
+        const status = summary.issues.length || (summary.source === "v1-review" && summary.orderCount) ? "NEEDS_REVIEW" : summary.orderCount ? "READY" : "NO_PURCHASES";
         const data = { clientId, recipientEmail: summary.email, snapshot: json(summary), contentHash: summaryHash(summary), generatedAt: new Date(), status };
         if (existing) {
           await tx.monthlyMediaSummary.updateMany({ where: { id: existing.id, status: { in: ["READY", "NEEDS_REVIEW", "NO_PURCHASES", "FAILED", "SUPPRESSED"] } }, data });
@@ -79,7 +81,7 @@ export async function generateMonth(workspaceId: string, month: string) {
         data: { status: "NO_PURCHASES" },
       });
     }, { timeout: 30_000 });
-    return { generated: prepared.length, ready: prepared.filter(p => !p.summary.issues.length && p.summary.orderCount).length, review: prepared.filter(p => p.summary.issues.length).length };
+    return { generated: prepared.filter(p => p.summary.orderCount || p.summary.issues.length).length, checked: prepared.length, ready: prepared.filter(p => p.summary.source !== "v1-review" && !p.summary.issues.length && p.summary.orderCount).length, review: prepared.filter(p => p.summary.issues.length || (p.summary.source === "v1-review" && p.summary.orderCount)).length };
   } finally {
     await prisma.monthlySummarySettings.updateMany({ where: { workspaceId, generationToken }, data: { generationToken: null, generationUntil: null } });
   }
@@ -96,8 +98,9 @@ export async function reportFor(workspaceId: string, reportId: string) {
 export async function sendReport(workspaceId: string, reportId: string, kind: "TEST" | "LIVE" | "RESEND", requestId: string) {
   if (!/^[a-f0-9-]{36}$/.test(requestId)) throw new Error("Invalid delivery request ID.");
   const { report, summary } = await reportFor(workspaceId, reportId);
-  if (summary.issues.length || !summary.orderCount || !["READY", "FAILED", "ACCEPTED"].includes(report.status)) throw new Error("This report is not ready to send.");
+  if (summary.issues.length || !summary.orderCount || !(kind === "TEST" ? ["READY", "FAILED", "ACCEPTED", "NEEDS_REVIEW"] : ["READY", "FAILED", "ACCEPTED"]).includes(report.status)) throw new Error("This report is not ready to send.");
   if (kind !== "TEST") {
+    if (summary.source === "v1-review") throw new Error("These v1 drafts are for internal review only. Client delivery is not enabled.");
     if (!liveDeliveryApproved()) throw new Error("Live delivery is locked pending data and rollout approval.");
     const settings = await settingsFor(workspaceId);
     if (!settings.automationEnabled || (settings.generationUntil && settings.generationUntil > new Date())) throw new Error("Automation is paused or generation is still running.");

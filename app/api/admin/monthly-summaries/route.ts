@@ -36,7 +36,7 @@ export async function GET(request: Request) {
     if (reportId) {
       const { report, summary } = await reportFor(session.workspaceId, reportId);
       if (wantsPdf) {
-        if (report.status === "NO_PURCHASES") return response({ error: "This report has no purchases. Regenerate before downloading." }, 409);
+        if (summary.issues.length || !summary.orderCount || report.status === "NO_PURCHASES") return response({ error: "This report has no purchases. Regenerate before downloading." }, 409);
         return await pdfResponse(summary);
       }
       return response({ summary, html: !summary.issues.length && summary.orderCount && report.status !== "NO_PURCHASES" ? renderSummaryEmail(summary) : null, history: report.attempts.map(a => ({ id: a.id, kind: a.kind, status: a.status, recipientEmail: a.recipientEmail, createdAt: a.createdAt, providerMessageId: a.providerMessageId, error: a.error, attemptCount: a.attemptCount })) });
@@ -45,7 +45,7 @@ export async function GET(request: Request) {
       settingsFor(session.workspaceId),
       prisma.monthlyMediaSummary.findMany({ where: { workspaceId: session.workspaceId, reportingMonth: month }, orderBy: { client: { displayName: "asc" } }, select: { id: true, recipientEmail: true, status: true, generatedAt: true, acceptedAt: true, client: { select: { displayName: true } } } }),
     ]);
-    return response({ reports, settings: { automationEnabled: settings.automationEnabled, liveApproved: liveDeliveryApproved(), connected: connectionStatus() && process.env.HDPH_SUMMARY_WORKSPACE_ID === session.workspaceId, testEmail: TEST_EMAIL, sender: process.env.CAMPAIGN_EMAIL_FROM || process.env.PORTAL_EMAIL_FROM || "Sender not configured" } });
+    return response({ reports, settings: { automationEnabled: settings.automationEnabled, liveApproved: liveDeliveryApproved(), connected: Boolean(process.env.HDPH_API_KEY?.trim()) || (connectionStatus() && process.env.HDPH_SUMMARY_WORKSPACE_ID === session.workspaceId), reviewMode: Boolean(process.env.HDPH_API_KEY?.trim()), testEmail: TEST_EMAIL, sender: process.env.CAMPAIGN_EMAIL_FROM || process.env.PORTAL_EMAIL_FROM || "Sender not configured" } });
   } catch (error) { return response({ error: error instanceof Error ? error.message : "Monthly summaries could not be loaded." }, 400); }
 }
 export async function POST(request: Request) {
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
       if (typeof input.month !== "string") return response({ error: "Select a reporting month." }, 400);
       const result = await generateMonth(session.workspaceId, input.month);
       await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: "MONTHLY_SUMMARIES_GENERATED", entityType: "MonthlyMediaSummary", summary: `Generated ${input.month} monthly summaries.`, metadata: result });
-      return response({ ...result, message: `${result.ready} ready; ${result.review} need review. No emails were sent.` });
+      return response({ ...result, message: `${result.checked} accounts checked; ${result.generated} reports; ${result.review} need review. No emails were sent.` });
     }
     if (input.action === "test") {
       if (typeof input.reportId !== "string" || typeof input.requestId !== "string") return response({ error: "Select a report to test." }, 400);
