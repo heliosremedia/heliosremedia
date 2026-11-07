@@ -5,6 +5,14 @@ export class VerificationError extends Error {}
 // Read the calendar month exactly as supplied; this is not a timezone conversion.
 export function v1CalendarMonth(value: unknown): string {
   if (typeof value !== "string") throw new VerificationError("Order date is missing or is not text.");
+  // The v1 response uses US-style month/day/year timestamps with AM/PM.
+  const legacy = /^(\d{1,2})\/(\d{1,2})\/(\d{4}) (\d{1,2}):(\d{2}):(\d{2}) (AM|PM)$/i.exec(value.trim());
+  if (legacy) {
+    const [, month, day, year, hour, minute, second, period] = legacy;
+    if (Number(hour) < 1 || Number(hour) > 12) throw new VerificationError("Order date has an invalid 12-hour time.");
+    const hour24 = Number(hour) % 12 + (period.toUpperCase() === "PM" ? 12 : 0);
+    return v1CalendarMonth(`${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T${String(hour24).padStart(2, "0")}:${minute}:${second}`);
+  }
   const match = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,7})?)?(?:Z|[+-](\d{2}):?(\d{2}))?)?$/.exec(value.trim());
   if (!match) {
     const shape = value.slice(0, 40).replace(/[0-9]/g, "#").replace(/[A-Za-z]/g, "A").replace(/[^#A /:.,+\-]/g, "?");
@@ -90,7 +98,7 @@ export async function checkExistingConnection(input: {
   return { client: input.clientName.trim(), month: input.month, returnedOrderCount: list.length, orders, totalCents,
     matchesHistoricalReference: orders.length > 0 && totalCents === input.expectedTotalCents,
     reviewRequired: true,
-    notes: ["Read-only diagnostic. No report was saved and no email was sent.", "Month candidates use the calendar date supplied by the API, including date-only and space-separated timestamps. Timezone and month-boundary behavior still need confirmation.", "Site owner is checked separately from the purchaser. The v1 schema does not expose an explicit billed-client ID.", "List completeness and canceled/returned amount semantics must be verified before automated generation."],
+    notes: ["Read-only diagnostic. No report was saved and no email was sent.", "Month candidates use the calendar date supplied by the API, including v1 month/day/year AM/PM timestamps. Timezone and month-boundary behavior still need confirmation.", "Site owner is checked separately from the purchaser. The v1 schema does not expose an explicit billed-client ID.", "List completeness and canceled/returned amount semantics must be verified before automated generation."],
   };
   } catch (error) {
     const detail = error instanceof VerificationError ? error.message : stage === "workspace-association" ? "The client-directory database check failed." : "An API field was missing or had an unexpected format.";

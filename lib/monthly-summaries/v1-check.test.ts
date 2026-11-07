@@ -59,3 +59,15 @@ test('invalid and ambiguous dates remain held', () => {
 test('cross-brand orders report a distinct brand failure', async () => {
   await assert.rejects(checkExistingConnection(fixture({orderBrand:99}).input), /\[order-brand-validation\]/);
 });
+
+test('legacy v1 US timestamps support AM/PM and single-digit components', async () => {
+  for (const date of ['10/8/2026 12:00:00 AM', '10/31/2026 11:59:59 PM', '10/8/2026 1:05:09 pm']) {
+    assert.equal(v1CalendarMonth(date), '2026-10');
+    assert.equal((await checkExistingConnection(fixture({date}).input)).matchesHistoricalReference, true);
+  }
+  assert.equal(v1CalendarMonth('9/23/2026 10:21:45 AM'), '2026-09');
+});
+test('legacy v1 dates validate leap years, calendar limits and time ranges', () => {
+  assert.equal(v1CalendarMonth('2/29/2024 12:00:00 PM'), '2024-02');
+  for (const date of ['2/29/2026 12:00:00 PM', '13/1/2026 1:00:00 AM', '10/8/2026 0:00:00 AM', '10/8/2026 13:00:00 PM', '10/8/2026 1:60:00 AM', '10/8/2026 1:00:60 AM']) assert.throws(() => v1CalendarMonth(date));
+});
