@@ -7,7 +7,7 @@ export type Summary = {
   month: string; clientId: number; firstName: string; email: string;
   properties: PropertySummary[]; totalCents: number; orderCount: number;
   issues: string[]; excludedOrderIds: number[];
-  source?: "v1-review"; reviewNotes?: string[];
+  verificationFailed?: boolean; source?: "v1-review"; reviewNotes?: string[];
 };
 export type RecordData = Record<string, unknown>;
 export function record(value: unknown): RecordData {

@@ -10,6 +10,7 @@ import { createSummaryReader, summaryConfiguration } from "./hdphotohub";
 import { positiveId, requireCompletedMonth, summarize, TEST_EMAIL, type Summary } from "./core";
 import { renderSummaryEmail, summarySubject } from "./email";
 import { summaryPdfAttachment } from "./pdf";
+import { draftStatus, generationCounts } from "./review-status";
 import { prepareV1Month } from "./v1-month";
 import { deliveryEnabled, failureStatus } from "./delivery-policy";
 
@@ -23,9 +24,10 @@ export async function settingsFor(workspaceId: string) {
   return prisma.monthlySummarySettings.upsert({ where: { workspaceId }, create: { workspaceId }, update: {} });
 }
 
-export async function generateMonth(workspaceId: string, month: string) {
+export async function generateMonth(workspaceId: string, month: string, onlyClientId?: string) {
   requireCompletedMonth(month);
   const useV1 = Boolean(process.env.HDPH_API_KEY?.trim());
+  if (onlyClientId && !useV1) throw new Error("Individual account checks require the existing v1 connection.");
   if (!useV1) summaryConfiguration(workspaceId);
   await settingsFor(workspaceId);
   const generationToken = randomUUID();
@@ -38,7 +40,7 @@ export async function generateMonth(workspaceId: string, month: string) {
     const reader = useV1 ? null : createSummaryReader(workspaceId);
     const [orders, clients, settings] = await Promise.all([
       reader ? reader.orders(month) : Promise.resolve([]),
-      prisma.communicationClient.findMany({ where: { workspaceMemberships: { some: { workspaceId } } }, select: { id: true, hdPhotoHubUserId: true, normalizedEmail: true, displayName: true } }),
+      prisma.communicationClient.findMany({ where: { ...(onlyClientId ? { id: onlyClientId } : {}), workspaceMemberships: { some: { workspaceId } } }, select: { id: true, hdPhotoHubUserId: true, normalizedEmail: true, displayName: true } }),
       settingsFor(workspaceId),
     ]);
     const byId = new Map(clients.map(client => [client.hdPhotoHubUserId, client]));
@@ -69,19 +71,19 @@ export async function generateMonth(workspaceId: string, month: string) {
         const key = { workspaceId, hdPhotoHubClientId: summary.clientId, reportingMonth: month };
         const existing = await tx.monthlyMediaSummary.findUnique({ where: { workspaceId_hdPhotoHubClientId_reportingMonth: key } });
         if (existing && ["SENDING", "ACCEPTED", "UNCERTAIN"].includes(existing.status)) continue;
-        const status = summary.issues.length || (summary.source === "v1-review" && summary.orderCount) ? "NEEDS_REVIEW" : summary.orderCount ? "READY" : "NO_PURCHASES";
+        const status = draftStatus(summary);
         const data = { clientId, recipientEmail: summary.email, snapshot: json(summary), contentHash: summaryHash(summary), generatedAt: new Date(), status };
         if (existing) {
-          await tx.monthlyMediaSummary.updateMany({ where: { id: existing.id, status: { in: ["READY", "NEEDS_REVIEW", "NO_PURCHASES", "FAILED", "SUPPRESSED"] } }, data });
+          await tx.monthlyMediaSummary.updateMany({ where: { id: existing.id, status: { in: ["READY", "NEEDS_REVIEW", "CHECK_FAILED", "NO_PURCHASES", "FAILED", "SUPPRESSED"] } }, data });
         } else await tx.monthlyMediaSummary.create({ data: { ...key, ...data } });
       }
       // A removed order must not leave an old unsent report ready to send.
-      await tx.monthlyMediaSummary.updateMany({
-        where: { workspaceId, reportingMonth: month, hdPhotoHubClientId: { notIn: prepared.map(p => p.summary.clientId) }, status: { in: ["READY", "NEEDS_REVIEW", "NO_PURCHASES", "FAILED", "SUPPRESSED"] } },
+      if (!onlyClientId) await tx.monthlyMediaSummary.updateMany({
+        where: { workspaceId, reportingMonth: month, hdPhotoHubClientId: { notIn: prepared.map(p => p.summary.clientId) }, status: { in: ["READY", "NEEDS_REVIEW", "CHECK_FAILED", "NO_PURCHASES", "FAILED", "SUPPRESSED"] } },
         data: { status: "NO_PURCHASES" },
       });
     }, { timeout: 30_000 });
-    return { generated: prepared.filter(p => p.summary.orderCount || p.summary.issues.length).length, checked: prepared.length, ready: prepared.filter(p => p.summary.source !== "v1-review" && !p.summary.issues.length && p.summary.orderCount).length, review: prepared.filter(p => p.summary.issues.length || (p.summary.source === "v1-review" && p.summary.orderCount)).length };
+    return generationCounts(prepared);
   } finally {
     await prisma.monthlySummarySettings.updateMany({ where: { workspaceId, generationToken }, data: { generationToken: null, generationUntil: null } });
   }

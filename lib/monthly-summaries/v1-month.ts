@@ -1,4 +1,4 @@
-import { checkExistingConnection } from "./v1-check.ts";
+import { checkExistingConnection, VerificationError } from "./v1-check.ts";
 import { buildV1Draft, PreviewValidationError } from "./v1-preview.ts";
 import { requireCompletedMonth, type Summary } from "./core.ts";
 export type DirectoryClient = { id: string; hdPhotoHubUserId: number; displayName: string; normalizedEmail: string };
@@ -30,6 +30,8 @@ export async function prepareV1Month(input: { month: string; clients: DirectoryC
         const result = await reader({ apiKey: input.apiKey, clientId: local.hdPhotoHubUserId, clientName: local.displayName, month: input.month, authorizeClient: async id => ids.has(id) });
         if (result.clientId !== local.hdPhotoHubUserId || result.month !== input.month) throw new Error("Account response did not match the requested client and month.");
         if (result.orders.length) {
+          summary.orderCount = result.orders.length;
+          summary.totalCents = result.totalCents;
           const draft = buildV1Draft(result);
           summary = { ...draft, email: local.normalizedEmail, source: "v1-review", reviewNotes: V1_REVIEW_NOTES };
           if (result.email !== local.normalizedEmail) summary.issues.push("Directory email differs from HDPhotoHub. Sync and review.");
@@ -37,7 +39,8 @@ export async function prepareV1Month(input: { month: string; clients: DirectoryC
         }
       } catch (error) {
         // A failed account remains visible; it must never be mistaken for no purchases.
-        summary.issues.push(error instanceof PreviewValidationError ? error.message : "This account could not be verified. Run its connection check and retry generation.");
+        summary.verificationFailed = !(error instanceof PreviewValidationError);
+        summary.issues.push(error instanceof PreviewValidationError || error instanceof VerificationError ? error.message : "This account could not be verified. Run its connection check and retry generation.");
       }
       prepared.push({ clientId: local.id, summary });
     }
