@@ -61,7 +61,7 @@ export async function checkExistingConnection(input: {
     try { result = await fetcher(`https://heliosrealestatemedia.hd.pics/api/v1/${endpoint}?${new URLSearchParams(params)}`, {
       method: "GET", headers: { api_key: input.apiKey, Accept: "application/json" },
       cache: "no-store", redirect: "error", signal: AbortSignal.timeout(15_000),
-    }); } catch { throw new VerificationError("HDPhotoHub request could not connect, timed out, or attempted a redirect."); }
+    }); } catch (error) { if (error instanceof VerificationError) throw error; throw new VerificationError("HDPhotoHub request could not connect, timed out, or attempted a redirect."); }
     if (!result.ok) throw new VerificationError(`HDPhotoHub read failed (${result.status}).`);
     try { return await result.json(); } catch { throw new VerificationError("HDPhotoHub returned a non-JSON response."); }
   }
@@ -127,6 +127,7 @@ export async function checkExistingConnection(input: {
     notes: ["Read-only diagnostic. No report was saved and no email was sent.", "Month candidates use the calendar date supplied by the API, including v1 month/day/year AM/PM timestamps. Timezone and month-boundary behavior still need confirmation.", "Site owner is checked separately from the purchaser. The v1 schema does not expose an explicit billed-client ID.", "Missing optional amounts are shown as not supplied, never assumed to be zero. List completeness and canceled/returned amount semantics still require review before automated generation."],
   };
   } catch (error) {
+    if (error instanceof VerificationError && error.name === "RateLimitError") throw error;
     const detail = error instanceof VerificationError ? error.message : stage === "workspace-association" ? "The client-directory database check failed." : "An API field was missing or had an unexpected format.";
     throw new VerificationError(`[${stage}] ${detail}`);
   }

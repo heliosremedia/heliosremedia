@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     const input = await request.json();
     if (input.action === "generate") {
       if (typeof input.month !== "string") return response({ error: "Select a reporting month." }, 400);
-      const result = await generateMonth(session.workspaceId, input.month);
+      const result = await generateMonth(session.workspaceId, input.month, undefined, typeof input.afterClientId === "string" ? input.afterClientId : undefined);
       await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: "MONTHLY_SUMMARIES_GENERATED", entityType: "MonthlyMediaSummary", summary: `Generated ${input.month} monthly summaries.`, metadata: result });
       return response({ ...result, message: `${result.checked} accounts checked; ${result.generated} purchase summaries; ${result.checkFailed} account checks failed; ${result.noPurchases} with no purchases. No emails were sent.` });
     }

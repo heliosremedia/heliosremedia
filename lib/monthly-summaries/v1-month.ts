@@ -1,5 +1,6 @@
 import { checkExistingConnection, VerificationError } from "./v1-check.ts";
 import { buildV1Draft, PreviewValidationError } from "./v1-preview.ts";
+import { createPacedReader, RateLimitError } from "./paced-reader.ts";
 import { requireCompletedMonth, type Summary } from "./core.ts";
 export type DirectoryClient = { id: string; hdPhotoHubUserId: number; displayName: string; normalizedEmail: string };
 export const V1_REVIEW_NOTES = [
@@ -21,13 +22,14 @@ export async function prepareV1Month(input: { month: string; clients: DirectoryC
   let next = 0;
   let expired = false;
   const reader = input.reader || checkExistingConnection;
+  const pacedFetch = createPacedReader({ deadline });
   async function worker() {
     while (next < input.clients.length && !expired) {
       if (now() > deadline) { expired = true; return; }
       const local = input.clients[next++];
       let summary: Summary = { month: input.month, clientId: local.hdPhotoHubUserId, firstName: local.displayName.split(/\s+/)[0], email: local.normalizedEmail, properties: [], totalCents: 0, orderCount: 0, issues: [], excludedOrderIds: [], source: "v1-review", reviewNotes: V1_REVIEW_NOTES };
       try {
-        const result = await reader({ apiKey: input.apiKey, clientId: local.hdPhotoHubUserId, clientName: local.displayName, month: input.month, authorizeClient: async id => ids.has(id) });
+        const result = await reader({ fetcher: pacedFetch, apiKey: input.apiKey, clientId: local.hdPhotoHubUserId, clientName: local.displayName, month: input.month, authorizeClient: async id => ids.has(id) });
         if (result.clientId !== local.hdPhotoHubUserId || result.month !== input.month) throw new Error("Account response did not match the requested client and month.");
         if (result.orders.length) {
           summary.orderCount = result.orders.length;
@@ -38,6 +40,7 @@ export async function prepareV1Month(input: { month: string; clients: DirectoryC
           if (result.accountStatus !== "active") summary.issues.push("The HDPhotoHub client account is not confirmed active.");
         }
       } catch (error) {
+        if (error instanceof RateLimitError) throw error;
         // A failed account remains visible; it must never be mistaken for no purchases.
         summary.verificationFailed = !(error instanceof PreviewValidationError);
         summary.issues.push(error instanceof PreviewValidationError || error instanceof VerificationError ? error.message : "This account could not be verified. Run its connection check and retry generation.");
@@ -45,7 +48,7 @@ export async function prepareV1Month(input: { month: string; clients: DirectoryC
       prepared.push({ clientId: local.id, summary });
     }
   }
-  await Promise.all(Array.from({ length: Math.min(4, input.clients.length) }, worker));
+  await Promise.all(Array.from({ length: Math.min(1, input.clients.length) }, worker));
   if (expired || now() > deadline || prepared.length !== input.clients.length) throw new Error("Reading the directory timed out. No partial month was saved. Retry generation.");
   const orderOwners = new Map<number, number>();
   for (const { summary } of prepared) for (const property of summary.properties) for (const orderId of property.orderIds) {

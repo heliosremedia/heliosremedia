@@ -1,5 +1,5 @@
 import "server-only";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { addressIsMarketingEligible, createPreferenceToken } from "@/lib/client-communications/preferences";
@@ -18,13 +18,14 @@ export function liveDeliveryApproved() {
   return !process.env.HDPH_API_KEY?.trim() && deliveryEnabled({ MONTHLY_SUMMARIES_LIVE_ENABLED: process.env.MONTHLY_SUMMARIES_LIVE_ENABLED, MONTHLY_SUMMARIES_DATA_APPROVED: process.env.MONTHLY_SUMMARIES_DATA_APPROVED });
 }
 const json = (value: unknown) => JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
-export const summaryHash = (summary: Summary) => createHash("sha256").update(JSON.stringify(summary)).digest("hex");
+import { summaryHash, snapshotMatches } from "./snapshot";
+export { summaryHash } from "./snapshot";
 
 export async function settingsFor(workspaceId: string) {
   return prisma.monthlySummarySettings.upsert({ where: { workspaceId }, create: { workspaceId }, update: {} });
 }
 
-export async function generateMonth(workspaceId: string, month: string, onlyClientId?: string) {
+export async function generateMonth(workspaceId: string, month: string, onlyClientId?: string, afterClientId?: string) {
   requireCompletedMonth(month);
   const useV1 = Boolean(process.env.HDPH_API_KEY?.trim());
   if (onlyClientId && !useV1) throw new Error("Individual account checks require the existing v1 connection.");
@@ -40,9 +41,11 @@ export async function generateMonth(workspaceId: string, month: string, onlyClie
     const reader = useV1 ? null : createSummaryReader(workspaceId);
     const [orders, clients, settings] = await Promise.all([
       reader ? reader.orders(month) : Promise.resolve([]),
-      prisma.communicationClient.findMany({ where: { ...(onlyClientId ? { id: onlyClientId } : {}), workspaceMemberships: { some: { workspaceId } } }, select: { id: true, hdPhotoHubUserId: true, normalizedEmail: true, displayName: true } }),
+      prisma.communicationClient.findMany({ where: { ...(onlyClientId ? { id: onlyClientId } : afterClientId ? { id: { gt: afterClientId } } : {}), workspaceMemberships: { some: { workspaceId } } }, orderBy: { id: "asc" }, ...(useV1 && !onlyClientId ? { take: 6 } : {}), select: { id: true, hdPhotoHubUserId: true, normalizedEmail: true, displayName: true } }),
       settingsFor(workspaceId),
     ]);
+    const hasMore = useV1 && !onlyClientId && clients.length > 5;
+    if (hasMore) clients.pop();
     const byId = new Map(clients.map(client => [client.hdPhotoHubUserId, client]));
     const grouped = new Map<number, typeof orders>();
     const { start, end } = requireCompletedMonth(month);
@@ -54,7 +57,7 @@ export async function generateMonth(workspaceId: string, month: string, onlyClie
       grouped.set(id, [...(grouped.get(id) || []), order]);
     }
     const exclusions = Array.isArray(settings.excludedOrderIds) ? settings.excludedOrderIds.map(positiveId) : [];
-    const prepared: { clientId: string; summary: Summary }[] = useV1 ? await prepareV1Month({ month, clients, apiKey: process.env.HDPH_API_KEY! }) : [];
+    const prepared: { clientId: string; summary: Summary }[] = useV1 && clients.length ? await prepareV1Month({ month, clients, apiKey: process.env.HDPH_API_KEY! }) : [];
     for (const [id, clientOrders] of grouped) {
       const local = byId.get(id);
       if (!local) throw new Error(`Client ${id} is not linked to this workspace. Sync the client directory and regenerate; no partial month was saved.`);
@@ -67,6 +70,11 @@ export async function generateMonth(workspaceId: string, month: string, onlyClie
     await prisma.$transaction(async tx => {
       const lock = await tx.monthlySummarySettings.findFirst({ where: { workspaceId, generationToken, generationUntil: { gt: new Date() } } });
       if (!lock) throw new Error("Generation expired. Retry; no partial month was saved.");
+      if (useV1) {
+        const others = await tx.monthlyMediaSummary.findMany({ where: {workspaceId, reportingMonth:month, clientId:{notIn:prepared.map(p=>p.clientId)}, status:{not:"NO_PURCHASES"}}, select:{snapshot:true} });
+        const existingOrders = new Set(others.flatMap(r=>(r.snapshot as unknown as Summary).properties.flatMap(p=>p.orderIds)));
+        if (prepared.some(r=>r.summary.properties.some(p=>p.orderIds.some(id=>existingOrders.has(id))))) throw new Error("An order appears under another account. Review account associations before continuing.");
+      }
       for (const { clientId, summary } of prepared) {
         const key = { workspaceId, hdPhotoHubClientId: summary.clientId, reportingMonth: month };
         const existing = await tx.monthlyMediaSummary.findUnique({ where: { workspaceId_hdPhotoHubClientId_reportingMonth: key } });
@@ -78,12 +86,12 @@ export async function generateMonth(workspaceId: string, month: string, onlyClie
         } else await tx.monthlyMediaSummary.create({ data: { ...key, ...data } });
       }
       // A removed order must not leave an old unsent report ready to send.
-      if (!onlyClientId) await tx.monthlyMediaSummary.updateMany({
+      if (!useV1 && !onlyClientId) await tx.monthlyMediaSummary.updateMany({
         where: { workspaceId, reportingMonth: month, hdPhotoHubClientId: { notIn: prepared.map(p => p.summary.clientId) }, status: { in: ["READY", "NEEDS_REVIEW", "CHECK_FAILED", "NO_PURCHASES", "FAILED", "SUPPRESSED"] } },
         data: { status: "NO_PURCHASES" },
       });
     }, { timeout: 30_000 });
-    return generationCounts(prepared);
+    return { ...generationCounts(prepared), nextCursor: hasMore ? clients.at(-1)!.id : null };
   } finally {
     await prisma.monthlySummarySettings.updateMany({ where: { workspaceId, generationToken }, data: { generationToken: null, generationUntil: null } });
   }
@@ -93,7 +101,7 @@ export async function reportFor(workspaceId: string, reportId: string) {
   const report = await prisma.monthlyMediaSummary.findFirst({ where: { id: reportId, workspaceId }, include: { client: { include: { workspaceMemberships: true, groupMemberships: { include: { group: true } } } }, attempts: { orderBy: { createdAt: "desc" }, take: 20 } } });
   if (!report || !report.client.workspaceMemberships.some(m => m.workspaceId === workspaceId)) throw new Error("Report not found in this workspace.");
   const summary = report.snapshot as unknown as Summary;
-  if (summaryHash(summary) !== report.contentHash || summary.clientId !== report.hdPhotoHubClientId || summary.month !== report.reportingMonth || summary.email !== report.recipientEmail) throw new Error("Report snapshot failed validation. Regenerate before sending.");
+  if (!snapshotMatches(summary, report.contentHash) || summary.clientId !== report.hdPhotoHubClientId || summary.month !== report.reportingMonth || summary.email !== report.recipientEmail) throw new Error("Report snapshot failed validation. Regenerate before sending.");
   return { report, summary };
 }
 

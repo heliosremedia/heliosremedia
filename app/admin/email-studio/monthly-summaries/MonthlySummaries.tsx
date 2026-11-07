@@ -28,6 +28,7 @@ export default function MonthlySummaries({ initialMonth, isOwner }: { initialMon
   const [error, setError] = useState("");
   const [mobile, setMobile] = useState(false);
   const sequence = useRef(0);
+  const generation = useRef<{month:string; cursor?:string; checked:number; generated:number; failed:number} | null>(null);
   const resendRequest = useRef<{ report: string; id: string } | null>(null);
   const testRequest = useRef<{ report: string; id: string } | null>(null);
   const refresh = useCallback(async () => {
@@ -37,7 +38,7 @@ export default function MonthlySummaries({ initialMonth, isOwner }: { initialMon
   useEffect(() => {
     let active = true;
     setSelected(""); setHtml(""); setHistory([]); setIssues([]); setReviewNotes([]); setReports([]); setError(""); setMessage("");
-    sequence.current++;
+    sequence.current++; generation.current = null;
     api(`?month=${month}`).then(result => { if (active) { setReports(result.reports); setSettings(result.settings); } }).catch(e => { if (active) setError(e.message); });
     return () => { active = false; };
   }, [month]);
@@ -54,9 +55,23 @@ export default function MonthlySummaries({ initialMonth, isOwner }: { initialMon
   async function action(payload: { action: string; [key: string]: unknown }) {
     setBusy(true); setError(""); setMessage("");
     try {
-      const result = await api("", payload);
-      if (payload.action === "generate") testRequest.current = null;
-      setMessage(result.message); await refresh();
+      if (payload.action === "generate" && settings?.reviewMode) {
+        testRequest.current = null;
+        const progress = generation.current?.month === month ? generation.current : { month, checked:0, generated:0, failed:0 };
+        generation.current = progress;
+        setMessage("Checking accounts in paced batches. Keep this tab open; the full month may take several minutes.");
+        while (true) {
+          const result = await api("", { ...payload, afterClientId:progress.cursor });
+          progress.checked += result.checked; progress.generated += result.generated; progress.failed += result.checkFailed;
+          progress.cursor = result.nextCursor || undefined;
+          setMessage(`${progress.checked} accounts checked; ${progress.generated} purchase summaries; ${progress.failed} checks failed. ${result.nextCursor ? "Continuing next batch… Keep this tab open." : "Generation finished. No emails were sent."}`);
+          await refresh();
+          if (!result.nextCursor) { generation.current = null; break; }
+        }
+      } else {
+        const result = await api("", payload);
+        setMessage(result.message); await refresh();
+      }
       if (selected) await preview(selected);
     } catch (e) { setError(e instanceof Error ? e.message : "Action failed."); }
     finally { setBusy(false); }
@@ -93,7 +108,7 @@ export default function MonthlySummaries({ initialMonth, isOwner }: { initialMon
     {isOwner && <Link href="/admin/email-studio/monthly-summaries/verify" className="inline-block rounded-xl border border-white/15 px-4 py-3 text-sm text-white/80">Verify existing HDPhotoHub connection</Link>}
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">{counts.map(([label, count]) => <div key={label} className="rounded-xl border border-white/10 p-4"><p className="text-xs text-white/45">{label}</p><p className="mt-2 text-2xl font-light text-white">{count}</p></div>)}</div>
     <p className="text-sm text-white/50">Generation checks all accounts in your synced client directory. Sync new clients first. Accounts with no purchases remain visible; failed checks are held for review.</p>
-    <div className="flex flex-wrap items-end gap-3"><label className="text-xs text-white/50">Reporting month<input aria-label="Reporting month" type="month" min="2020-01" max={initialMonth} value={month} disabled={busy} onChange={e => { if (e.target.value) setMonth(e.target.value); }} className="mt-2 block rounded-xl border border-white/15 bg-[#171717] px-3 py-2.5 text-sm text-white" /></label><button className={button} disabled={busy || !settings?.connected} onClick={() => action({ action: "generate", month })}>{busy ? "Working…" : "Generate / refresh month"}</button><button className={button} disabled={busy} onClick={() => preview("")}>View design sample</button></div>
+    <div className="flex flex-wrap items-end gap-3"><label className="text-xs text-white/50">Reporting month<input aria-label="Reporting month" type="month" min="2020-01" max={initialMonth} value={month} disabled={busy} onChange={e => { if (e.target.value) setMonth(e.target.value); }} className="mt-2 block rounded-xl border border-white/15 bg-[#171717] px-3 py-2.5 text-sm text-white" /></label><button className={button} disabled={busy || !settings?.connected} onClick={() => action({ action: "generate", month })}>{busy ? "Working…" : generation.current ? "Resume generation" : "Generate / refresh month"}</button><button className={button} disabled={busy} onClick={() => preview("")}>View design sample</button></div>
     {message && <p role="status" className="rounded-xl bg-emerald-300/10 p-4 text-sm text-emerald-100">{message}</p>}
     {error && <p role="alert" className="rounded-xl bg-red-300/10 p-4 text-sm text-red-100">{error}</p>}
     <div className="grid items-start gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
