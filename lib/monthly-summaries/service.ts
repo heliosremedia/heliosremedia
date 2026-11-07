@@ -12,6 +12,7 @@ import { renderSummaryEmail, summarySubject } from "./email";
 import { summaryPdfAttachment } from "./pdf";
 import { draftStatus, generationCounts } from "./review-status";
 import { prepareV1Month } from "./v1-month";
+import { useLegacySummaryReader, summaryClientScope } from "./reader-policy";
 import { deliveryEnabled, failureStatus } from "./delivery-policy";
 
 export function liveDeliveryApproved() {
@@ -27,8 +28,8 @@ export async function settingsFor(workspaceId: string) {
 
 export async function generateMonth(workspaceId: string, month: string, onlyClientId?: string, afterClientId?: string) {
   requireCompletedMonth(month);
-  const useV1 = Boolean(process.env.HDPH_API_KEY?.trim());
-  if (onlyClientId && !useV1) throw new Error("Individual account checks require the existing v1 connection.");
+  const useV1 = useLegacySummaryReader(process.env);
+  if (onlyClientId && !useV1) throw new Error("V3 uses a complete monthly query. Regenerate the month to retry this report.");
   if (!useV1) summaryConfiguration(workspaceId);
   await settingsFor(workspaceId);
   const generationToken = randomUUID();
@@ -41,7 +42,7 @@ export async function generateMonth(workspaceId: string, month: string, onlyClie
     const reader = useV1 ? null : createSummaryReader(workspaceId);
     const [orders, clients, settings] = await Promise.all([
       reader ? reader.orders(month) : Promise.resolve([]),
-      prisma.communicationClient.findMany({ where: { ...(onlyClientId ? { id: onlyClientId } : afterClientId ? { id: { gt: afterClientId } } : {}), workspaceMemberships: { some: { workspaceId } } }, orderBy: { id: "asc" }, ...(useV1 && !onlyClientId ? { take: 6 } : {}), select: { id: true, hdPhotoHubUserId: true, normalizedEmail: true, displayName: true } }),
+      prisma.communicationClient.findMany({ where: { ...summaryClientScope(useV1, onlyClientId, afterClientId), workspaceMemberships: { some: { workspaceId } } }, orderBy: { id: "asc" }, ...(useV1 && !onlyClientId ? { take: 6 } : {}), select: { id: true, hdPhotoHubUserId: true, normalizedEmail: true, displayName: true } }),
       settingsFor(workspaceId),
     ]);
     const hasMore = useV1 && !onlyClientId && clients.length > 5;
