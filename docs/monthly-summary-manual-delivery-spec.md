@@ -1,6 +1,6 @@
 # Monthly summary delivery and compact settings
 
-Status: specification; implementation and verification pending. Requested by Jake on November 7, 2026. This change does not enable automation or send client messages.
+Status: implemented in this branch; production rollout and end-to-end delivery verification pending. Requested by Jake on November 7, 2026. Jake subsequently authorized October as the first delivery month with held reports excluded, followed by ongoing automation. No delivery is claimed until confirmed by provider history.
 
 ## Manual delivery
 
@@ -31,3 +31,11 @@ Enabling during November can generate and send eligible October summaries on the
 - V3 works with a legacy key also present; legacy-only mode cannot enable live sending.
 - Settings collapse/expand works with keyboard and mobile layout; verification action retains role restrictions.
 - Confirm first-month behavior and daily cron timing before activation. Test with mocked delivery or Jake's internal test inbox, not real clients without explicit send instructions.
+
+## Month delivery controls
+
+Send month targets READY reports without an accepted timestamp, regardless of search filters. Resend month appears only after at least one report has an accepted timestamp and targets currently ACCEPTED reports. Both confirm the month and recipient count, send sequentially, stop on an error, and refresh persisted statuses. Keep the tab open while sending; a stopped batch requires reviewing history before another batch. Per-client send/resend remains available.
+
+## Validation
+
+56 monthly-summary tests pass, including manual delivery while automation is off, generation holds, V3 plus legacy-key coexistence and shared initial-send idempotency. TypeScript with ES2018 target passes; the repository's default typecheck has existing regex-target failures in unrelated test files. Browser and real delivery verification remain pending.
