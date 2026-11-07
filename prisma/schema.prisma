@@ -1621,6 +1621,8 @@ model Workspace {
   photoComparisonPage       PhotoComparisonPage?
   googleBusinessConnection  GoogleBusinessConnection?
   googleBusinessReviews     GoogleBusinessReview[]
+  monthlySummarySettings    MonthlySummarySettings?
+  monthlyMediaSummaries      MonthlyMediaSummary[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2432,6 +2434,7 @@ model CommunicationClient {
   resendWebhookEvents        ResendWebhookEvent[]
   workspaceMemberships       CommunicationClientWorkspace[]
   projectAgents              ProjectAgent[]
+  monthlyMediaSummaries       MonthlyMediaSummary[]
 
   @@index([displayName])
   @@index([normalizedEmail])
@@ -3549,4 +3552,54 @@ model AuditEvent {
   @@index([createdAt])
   @@index([actorId, createdAt])
   @@index([entityType, entityId])
+}
+
+// Monthly purchase summaries are separate from bulk marketing campaigns.
+model MonthlySummarySettings {
+  workspaceId       String    @id
+  workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  automationEnabled Boolean   @default(false)
+  // Approved exclusions for known test orders; never inferred from street addresses.
+  excludedOrderIds   Json      @default("[]")
+  generationToken   String?
+  generationUntil   DateTime?
+  updatedAt         DateTime  @updatedAt
+}
+
+model MonthlyMediaSummary {
+  id                String              @id @default(cuid())
+  workspaceId       String
+  workspace         Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  clientId          String
+  client            CommunicationClient @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  hdPhotoHubClientId Int
+  reportingMonth    String
+  recipientEmail    String
+  status            String              @default("READY")
+  snapshot          Json
+  contentHash       String
+  generatedAt       DateTime            @default(now())
+  acceptedAt        DateTime?
+  attempts          MonthlySummaryAttempt[]
+
+  @@unique([workspaceId, hdPhotoHubClientId, reportingMonth])
+  @@index([workspaceId, reportingMonth, status])
+}
+
+model MonthlySummaryAttempt {
+  id                String              @id @default(cuid())
+  reportId          String
+  report            MonthlyMediaSummary @relation(fields: [reportId], references: [id], onDelete: Restrict)
+  requestKey        String              @unique
+  payload           Json
+  attemptCount      Int                 @default(1)
+  kind              String
+  recipientEmail    String
+  status            String              @default("SENDING")
+  providerMessageId String?             @unique
+  error             String?
+  createdAt         DateTime            @default(now())
+  completedAt       DateTime?
+
+  @@index([reportId, createdAt])
 }

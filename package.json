@@ -7,8 +7,9 @@
     "build": "node scripts/build.mjs",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test lib/*.test.ts lib/client-communications/*.test.ts lib/newsletters/*.test.ts lib/referrals/*.test.ts lib/social/*.test.ts",
-    "auth:hash-password": "node scripts/hash-admin-password.mjs"
+    "test": "node --experimental-strip-types --test lib/*.test.ts lib/client-communications/*.test.ts lib/newsletters/*.test.ts lib/referrals/*.test.ts lib/social/*.test.ts lib/monthly-summaries/*.test.ts",
+    "auth:hash-password": "node scripts/hash-admin-password.mjs",
+    "test:monthly": "node --experimental-strip-types --test lib/monthly-summaries/*.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1089.0",
@@ -21,6 +22,7 @@
     "@prisma/client": "^7.8.0",
     "motion": "^12.42.2",
     "next": "16.2.10",
+    "pdfkit": "^0.20.2",
     "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -31,6 +33,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pdfkit": "^0.17.7",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",

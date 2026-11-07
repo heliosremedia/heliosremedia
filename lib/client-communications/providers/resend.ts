@@ -15,7 +15,7 @@ import {
   type NormalizedProviderError,
 } from "./resend-core";
 
-export type DeliverySource = "newsletter" | "campaign" | "referral" | "test";
+export type DeliverySource = "newsletter" | "campaign" | "referral" | "test" | "monthly-summary";
 
 export class EmailDeliveryError extends Error {
   constructor(
@@ -107,17 +107,18 @@ async function providerRequest<T extends {
 }>(
   operation: () => Promise<T>,
   metadata: Record<string, unknown>,
+  maxAttempts = 3,
 ): Promise<T & { error: null }> {
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     try {
       const response = await withTimeout(operation());
       if (!response.error) return response as T & { error: null };
       const normalized = normalizeResendError(response.error, response.headers);
-      if (!normalized.retryable || attempt === 2) {
+      if (!normalized.retryable || attempt === maxAttempts - 1) {
         rejectProvider(response.error, response.headers, { ...metadata, attempt: attempt + 1 });
       }
     } catch (error) {
-      if (!(error instanceof EmailDeliveryError) || !error.provider?.retryable || attempt === 2) throw error;
+      if (!(error instanceof EmailDeliveryError) || !error.provider?.retryable || attempt === maxAttempts - 1) throw error;
     }
     await new Promise((resolve) => setTimeout(resolve, 250 * 2 ** attempt));
   }
@@ -133,6 +134,9 @@ export async function sendEmail(input: {
   idempotencyKey?: string;
   from?: string | null;
   replyTo?: string | null;
+  unsubscribeUrl?: string;
+  singleAttempt?: boolean;
+  attachments?: { filename: string; content: string; contentType: string }[];
 }) {
   const config = configuredClient();
   const metadata = { source: input.source, operationId: input.operationId ?? null, recipientCount: 1 };
@@ -143,7 +147,9 @@ export async function sendEmail(input: {
     replyTo: input.replyTo?.trim() || config.replyTo || undefined,
     subject: input.subject,
     html: input.html,
-  }, input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : undefined), metadata);
+    attachments: input.attachments,
+    headers: input.unsubscribeUrl ? oneClickUnsubscribeHeaders(input.unsubscribeUrl) : undefined,
+  }, input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : undefined), metadata, input.singleAttempt ? 1 : 3);
   if (!response.data?.id) {
     rejectProvider(
       { name: "application_error", message: "Provider response did not include a message ID.", statusCode: null },

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import BulkEmailStudio from "./BulkEmailStudio";
@@ -81,6 +82,7 @@ export default async function EmailStudioPage({ searchParams }: { searchParams: 
       { label: "Confirmed delivery", value: confirmedDeliveryRate === null ? null : `${confirmedDeliveryRate}%`, detail: metrics.providerAccepted ? `${metrics.delivered} of ${metrics.providerAccepted} provider-accepted messages confirmed delivered` : "No provider-accepted messages in recent history" },
     ]}/>}
   >
+    {(["OWNER", "ADMIN"].includes(session.role)) && <Link href="/admin/email-studio/monthly-summaries" className="mb-7 block rounded-2xl border border-white/10 bg-[#111] p-5 transition hover:border-white/25"><p className="text-xs uppercase tracking-[0.16em] text-[var(--helios-orange)]">Client experience</p><h2 className="mt-2 text-xl font-light text-white">Monthly Media Summaries →</h2><p className="mt-2 text-sm text-white/45">Review each client’s monthly purchases, preview their email, and manage delivery.</p></Link>}
     <section id="analytics-health" className="mb-7 scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-5" aria-labelledby="analytics-health-title">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
         <div><p className="text-xs uppercase tracking-[0.16em] text-[var(--helios-orange)]">Analytics health</p><h2 id="analytics-health-title" className="mt-2 text-xl font-light text-white">Provider-confirmed reporting</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-white/40">Helios counts a message as delivered only after a provider delivery event. Acceptance means the provider received the request, not that the message reached the inbox.</p></div>
