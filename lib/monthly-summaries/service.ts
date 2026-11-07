@@ -13,10 +13,10 @@ import { summaryPdfAttachment } from "./pdf";
 import { draftStatus, generationCounts } from "./review-status";
 import { prepareV1Month } from "./v1-month";
 import { useLegacySummaryReader, summaryClientScope } from "./reader-policy";
-import { deliveryEnabled, failureStatus } from "./delivery-policy";
+import { liveConfigurationApproved, deliveryRequestKey, requireDeliveryWindow, failureStatus } from "./delivery-policy";
 
 export function liveDeliveryApproved() {
-  return !process.env.HDPH_API_KEY?.trim() && deliveryEnabled({ MONTHLY_SUMMARIES_LIVE_ENABLED: process.env.MONTHLY_SUMMARIES_LIVE_ENABLED, MONTHLY_SUMMARIES_DATA_APPROVED: process.env.MONTHLY_SUMMARIES_DATA_APPROVED });
+  return liveConfigurationApproved(process.env);
 }
 const json = (value: unknown) => JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 import { summaryHash, snapshotMatches } from "./snapshot";
@@ -106,7 +106,7 @@ export async function reportFor(workspaceId: string, reportId: string) {
   return { report, summary };
 }
 
-export async function sendReport(workspaceId: string, reportId: string, kind: "TEST" | "LIVE" | "RESEND", requestId: string) {
+export async function sendReport(workspaceId: string, reportId: string, kind: "TEST" | "LIVE" | "MANUAL" | "RESEND", requestId: string) {
   if (!/^[a-f0-9-]{36}$/.test(requestId)) throw new Error("Invalid delivery request ID.");
   const { report, summary } = await reportFor(workspaceId, reportId);
   if (summary.issues.length || !summary.orderCount || !(kind === "TEST" ? ["READY", "FAILED", "ACCEPTED", "NEEDS_REVIEW"] : ["READY", "FAILED", "ACCEPTED"]).includes(report.status)) throw new Error("This report is not ready to send.");
@@ -114,7 +114,7 @@ export async function sendReport(workspaceId: string, reportId: string, kind: "T
     if (summary.source === "v1-review") throw new Error("These v1 drafts are for internal review only. Client delivery is not enabled.");
     if (!liveDeliveryApproved()) throw new Error("Live delivery is locked pending data and rollout approval.");
     const settings = await settingsFor(workspaceId);
-    if (!settings.automationEnabled || (settings.generationUntil && settings.generationUntil > new Date())) throw new Error("Automation is paused or generation is still running.");
+    requireDeliveryWindow(kind, settings.automationEnabled, settings.generationUntil);
     if (kind === "LIVE" && report.generatedAt < new Date(Date.now() - 24 * 60 * 60_000)) throw new Error("Report is stale. Regenerate before sending.");
     const freshClient = await createSummaryReader(workspaceId).client(summary.clientId);
     if (String(freshClient.email).trim().toLowerCase() !== summary.email || freshClient.status !== "active") throw new Error("Client account changed. Regenerate and review before sending.");
@@ -127,7 +127,7 @@ export async function sendReport(workspaceId: string, reportId: string, kind: "T
   }
   if (kind === "RESEND" && !report.acceptedAt) throw new Error("Only a previously sent report can be resent.");
   const to = kind === "TEST" ? TEST_EMAIL : summary.email;
-  const requestKey = kind === "LIVE" ? `monthly/${report.id}/${report.contentHash}` : `monthly-${kind.toLowerCase()}/${report.id}/${requestId}`;
+  const requestKey = deliveryRequestKey(kind, report.id, report.contentHash, requestId);
   const existing = await prisma.monthlySummaryAttempt.findUnique({ where: { requestKey } });
   if (existing?.status === "ACCEPTED") return { messageId: existing.providerMessageId, repeated: true };
   if (existing && existing.status !== "FAILED") throw new Error("This delivery is in progress or uncertain. Check Resend before trying again.");
@@ -181,6 +181,6 @@ export async function retryAttempt(workspaceId: string, reportId: string, attemp
   const { report } = await reportFor(workspaceId, reportId);
   const attempt = await prisma.monthlySummaryAttempt.findFirst({ where: { id: attemptId, reportId: report.id, status: "FAILED" } });
   if (!attempt) throw new Error("Only a confirmed failed attempt can be retried. Uncertain sends require review.");
-  const kind = attempt.kind as "TEST" | "LIVE" | "RESEND";
-  return sendReport(workspaceId, reportId, kind, kind === "LIVE" ? randomUUID() : attempt.requestKey.split("/").at(-1)!);
+  const kind = attempt.kind as "TEST" | "LIVE" | "MANUAL" | "RESEND";
+  return sendReport(workspaceId, reportId, kind, (kind === "LIVE" || kind === "MANUAL") ? randomUUID() : attempt.requestKey.split("/").at(-1)!);
 }

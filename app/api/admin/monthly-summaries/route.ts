@@ -77,6 +77,12 @@ export async function POST(request: Request) {
       await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: "MONTHLY_SUMMARY_TEST", entityType: "MonthlyMediaSummary", entityId: input.reportId, summary: `Monthly summary test accepted by Resend for ${TEST_EMAIL}.`, metadata: result });
       return response({ ...result, message: `Test accepted by Resend for ${TEST_EMAIL}.` });
     }
+    if (input.action === "send") {
+      if (typeof input.reportId !== "string" || typeof input.requestId !== "string" || input.confirmSend !== true) return response({ error: "Confirm the recipient and reporting month." }, 400);
+      const result = await sendReport(session.workspaceId, input.reportId, "MANUAL", input.requestId);
+      await recordAuditEvent({ actorId: session.userId, actorEmail: session.email, action: "MONTHLY_SUMMARY_MANUAL_SEND", entityType: "MonthlyMediaSummary", entityId: input.reportId, summary: "Manual monthly summary accepted by Resend.", metadata: result });
+      return response({ ...result, message: "Delivery accepted by Resend." });
+    }
     if (input.action === "retry" || input.action === "resend") {
       if (typeof input.reportId !== "string") return response({ error: "Select a report." }, 400);
       let result;
