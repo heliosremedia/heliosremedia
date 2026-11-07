@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { checkExistingConnection } from "./v1-check.ts";
-function fixture(options: { linked?: boolean; otherBrand?: boolean; duplicate?: boolean } = {}) {
+import { checkExistingConnection, v1CalendarMonth } from "./v1-check.ts";
+function fixture(options: { linked?: boolean; otherBrand?: boolean; duplicate?: boolean; date?: string; orderBrand?: number } = {}) {
   const calls: string[] = [];
-  const orders = [100,200].map((total,i) => ({ oid: i+1, bid: 10, sid: i+100, date: '2026-10-08T12:00:00', total, taxamount: 0, returned: 0, tasks: [{ name: 'Photography', canceled: false }] }));
+  const orders = [100,200].map((total,i) => ({ oid: i+1, bid: options.orderBrand ?? 10, sid: i+100, date: options.date ?? '2026-10-08T12:00:00', total, taxamount: 0, returned: 0, tasks: [{ name: 'Photography', canceled: false }] }));
   return { calls, input: { apiKey: 'test-only', clientName: 'Alex Example', month: '2026-10', expectedTotalCents: 30000, authorizeClient: async (id: number) => id === 20 && options.linked !== false,
     fetcher: (async (url: string | URL | Request, init?: RequestInit) => {
       assert.equal(init?.method, 'GET'); assert.equal(init?.redirect, 'error');
@@ -41,4 +41,21 @@ test('unexpected database errors cannot disclose connection strings', async () =
 test('upstream transport errors are sanitized and stage-labelled', async () => {
   const f=fixture();
   await assert.rejects(checkExistingConnection({...f.input,fetcher:(async()=>{throw new Error('private-token');}) as typeof fetch}),/\[brand\] HDPhotoHub request could not connect/);
+});
+
+test('v1 date-only and space-separated orders match the same calendar month', async () => {
+  for (const date of ['2026-10-08', '2026-10-08 12:00:00', '2026-10-08T12:00:00.000Z']) {
+    const result = await checkExistingConnection(fixture({date}).input);
+    assert.equal(result.matchesHistoricalReference, true);
+  }
+});
+test('v1 parsing does not shift an explicit source date across months', () => {
+  assert.equal(v1CalendarMonth('2026-11-01T00:15:00+02:00'), '2026-11');
+  assert.equal(v1CalendarMonth('2026-10-31 23:45:00-06:00'), '2026-10');
+});
+test('invalid and ambiguous dates remain held', () => {
+  for (const date of ['2026-02-30', '2026-13-01', '2026-10-08 24:00:00', '10/08/2026', '', null]) assert.throws(() => v1CalendarMonth(date));
+});
+test('cross-brand orders report a distinct brand failure', async () => {
+  await assert.rejects(checkExistingConnection(fixture({orderBrand:99}).input), /\[order-brand-validation\]/);
 });

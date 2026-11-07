@@ -2,6 +2,20 @@ import { moneyCents, positiveId, record } from "./core.ts";
 
 export class VerificationError extends Error {}
 
+// Read the calendar month exactly as supplied; this is not a timezone conversion.
+export function v1CalendarMonth(value: unknown): string {
+  if (typeof value !== "string") throw new VerificationError("Order date is missing or is not text.");
+  const match = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,7})?)?(?:Z|[+-](\d{2}):?(\d{2}))?)?$/.exec(value.trim());
+  if (!match) {
+    const shape = value.slice(0, 40).replace(/[0-9]/g, "#").replace(/[A-Za-z]/g, "A").replace(/[^#A /:.,+\-]/g, "?");
+    throw new VerificationError(`Order date format is unsupported (shape: ${shape}). No date was inferred.`);
+  }
+  const [, year, month, day, hour, minute, second, offsetHour, offsetMinute] = match;
+  const check = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  if (check.getUTCFullYear() !== Number(year) || check.getUTCMonth() + 1 !== Number(month) || check.getUTCDate() !== Number(day) || (hour !== undefined && Number(hour) > 23) || (minute !== undefined && Number(minute) > 59) || (second !== undefined && Number(second) > 59) || (offsetHour !== undefined && Number(offsetHour) > 23) || (offsetMinute !== undefined && Number(offsetMinute) > 59)) throw new VerificationError("Order date is not a valid calendar date or time.");
+  return `${year}-${month}`;
+}
+
 // Deliberately scoped to the approved historical validation case. No mutating API calls.
 export async function checkExistingConnection(input: {
   apiKey: string;
@@ -47,8 +61,10 @@ export async function checkExistingConnection(input: {
     const id = positiveId(o.oid);
     if (seen.has(id)) throw new VerificationError("Duplicate order in the response. Review completeness before proceeding.");
     seen.add(id);
-    if (positiveId(o.bid) !== brandId || typeof o.date !== "string" || !/^\d{4}-\d{2}-\d{2}T/.test(o.date)) throw new VerificationError("Order brand or date could not be validated.");
-    return o.date.startsWith(`${input.month}-`);
+    stage = "order-brand-validation";
+    if (positiveId(o.bid) !== brandId) throw new VerificationError("An order belongs to a different brand. Verification stopped.");
+    stage = "order-date-validation";
+    return v1CalendarMonth(o.date) === input.month;
   });
   if (candidates.length > 20) throw new VerificationError("Historical test exceeds the 20-order validation limit.");
   const orders = [];
@@ -74,7 +90,7 @@ export async function checkExistingConnection(input: {
   return { client: input.clientName.trim(), month: input.month, returnedOrderCount: list.length, orders, totalCents,
     matchesHistoricalReference: orders.length > 0 && totalCents === input.expectedTotalCents,
     reviewRequired: true,
-    notes: ["Read-only diagnostic. No report was saved and no email was sent.", "Month candidates use the API date prefix. Timezone and month-boundary behavior still need confirmation.", "Site owner is checked separately from the purchaser. The v1 schema does not expose an explicit billed-client ID.", "List completeness and canceled/returned amount semantics must be verified before automated generation."],
+    notes: ["Read-only diagnostic. No report was saved and no email was sent.", "Month candidates use the calendar date supplied by the API, including date-only and space-separated timestamps. Timezone and month-boundary behavior still need confirmation.", "Site owner is checked separately from the purchaser. The v1 schema does not expose an explicit billed-client ID.", "List completeness and canceled/returned amount semantics must be verified before automated generation."],
   };
   } catch (error) {
     const detail = error instanceof VerificationError ? error.message : stage === "workspace-association" ? "The client-directory database check failed." : "An API field was missing or had an unexpected format.";
