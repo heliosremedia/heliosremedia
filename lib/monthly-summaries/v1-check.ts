@@ -1,5 +1,7 @@
 import { moneyCents, positiveId, record } from "./core.ts";
 
+export class VerificationError extends Error {}
+
 // Deliberately scoped to the approved historical validation case. No mutating API calls.
 export async function checkExistingConnection(input: {
   apiKey: string;
@@ -9,45 +11,57 @@ export async function checkExistingConnection(input: {
   authorizeClient: (clientId: number) => Promise<boolean>;
   fetcher?: typeof fetch;
 }) {
-  if (!input.apiKey.trim()) throw new Error("The existing HDPhotoHub key is not configured.");
-  if (!input.clientName.trim() || input.clientName.length > 150 || !/^20\d{2}-(0[1-9]|1[0-2])$/.test(input.month) || !Number.isSafeInteger(input.expectedTotalCents) || input.expectedTotalCents < 0) throw new Error("Invalid verification inputs.");
+  let stage = "configuration";
+  try {
+  if (!input.apiKey.trim()) throw new VerificationError("The existing HDPhotoHub key is not configured.");
+  if (!input.clientName.trim() || input.clientName.length > 150 || !/^20\d{2}-(0[1-9]|1[0-2])$/.test(input.month) || !Number.isSafeInteger(input.expectedTotalCents) || input.expectedTotalCents < 0) throw new VerificationError("Invalid verification inputs.");
   const fetcher = input.fetcher || fetch;
   async function read(endpoint: string, params: Record<string, string> = {}) {
-    if (!["brand", "users", "orders", "order", "site"].includes(endpoint)) throw new Error("Unsupported read operation.");
-    const result = await fetcher(`https://heliosrealestatemedia.hd.pics/api/v1/${endpoint}?${new URLSearchParams(params)}`, {
+    if (!["brand", "users", "orders", "order", "site"].includes(endpoint)) throw new VerificationError("Unsupported read operation.");
+    let result: Response;
+    try { result = await fetcher(`https://heliosrealestatemedia.hd.pics/api/v1/${endpoint}?${new URLSearchParams(params)}`, {
       method: "GET", headers: { api_key: input.apiKey, Accept: "application/json" },
       cache: "no-store", redirect: "error", signal: AbortSignal.timeout(15_000),
-    });
-    if (!result.ok) throw new Error(`HDPhotoHub read failed (${result.status}).`);
-    return result.json();
+    }); } catch { throw new VerificationError("HDPhotoHub request could not connect, timed out, or attempted a redirect."); }
+    if (!result.ok) throw new VerificationError(`HDPhotoHub read failed (${result.status}).`);
+    try { return await result.json(); } catch { throw new VerificationError("HDPhotoHub returned a non-JSON response."); }
   }
+  stage = "brand";
   const brand = record(await read("brand"));
   const brandId = positiveId(brand.bid);
+  stage = "client-search";
   const users = await read("users", { name: input.clientName.trim() });
-  if (!Array.isArray(users)) throw new Error("Unexpected client search response.");
+  if (!Array.isArray(users)) throw new VerificationError("Unexpected client search response.");
+  stage = "client-match";
   const matches = users.map(record).filter(c => String(c.name || `${c.firstname || ""} ${c.lastname || ""}`).trim().toLowerCase() === input.clientName.trim().toLowerCase() && c.bid === brandId && c.type === "client");
-  if (matches.length !== 1) throw new Error("An exact, unique client account could not be identified.");
+  if (matches.length !== 1) throw new VerificationError("An exact, unique client account could not be identified.");
   const clientId = positiveId(matches[0].uid);
-  if (!(await input.authorizeClient(clientId))) throw new Error("The test client is not linked to your workspace. Sync the existing client directory first.");
+  stage = "workspace-association";
+  if (!(await input.authorizeClient(clientId))) throw new VerificationError("The test client is not linked to your workspace. Sync the existing client directory first.");
+  stage = "order-list";
   const list = await read("orders", { uid: String(clientId) });
-  if (!Array.isArray(list) || list.length > 2000) throw new Error("Order list is invalid or exceeds the validation limit.");
+  if (!Array.isArray(list) || list.length > 2000) throw new VerificationError("Order list is invalid or exceeds the validation limit.");
   const seen = new Set<number>();
+  stage = "order-date-validation";
   const candidates = list.map(record).filter(o => {
     const id = positiveId(o.oid);
-    if (seen.has(id)) throw new Error("Duplicate order in the response. Review completeness before proceeding.");
+    if (seen.has(id)) throw new VerificationError("Duplicate order in the response. Review completeness before proceeding.");
     seen.add(id);
-    if (positiveId(o.bid) !== brandId || typeof o.date !== "string" || !/^\d{4}-\d{2}-\d{2}T/.test(o.date)) throw new Error("Order brand or date could not be validated.");
+    if (positiveId(o.bid) !== brandId || typeof o.date !== "string" || !/^\d{4}-\d{2}-\d{2}T/.test(o.date)) throw new VerificationError("Order brand or date could not be validated.");
     return o.date.startsWith(`${input.month}-`);
   });
-  if (candidates.length > 20) throw new Error("Historical test exceeds the 20-order validation limit.");
+  if (candidates.length > 20) throw new VerificationError("Historical test exceeds the 20-order validation limit.");
   const orders = [];
   for (const candidate of candidates) {
+    stage = "order-detail";
     const order = record(await read("order", { oid: String(candidate.oid) }));
-    if (order.oid !== candidate.oid || order.bid !== brandId || order.sid !== candidate.sid || order.date !== candidate.date) throw new Error("Order changed or ownership fields do not match.");
+    if (order.oid !== candidate.oid || order.bid !== brandId || order.sid !== candidate.sid || order.date !== candidate.date) throw new VerificationError("Order changed or ownership fields do not match.");
+    stage = "property-detail";
     const site = record(await read("site", { sid: String(positiveId(order.sid)) }));
-    if (site.sid !== order.sid || site.bid !== brandId) throw new Error("Property does not match the order brand.");
-    if (!Array.isArray(order.tasks)) throw new Error("Order services are missing.");
+    if (site.sid !== order.sid || site.bid !== brandId) throw new VerificationError("Property does not match the order brand.");
+    if (!Array.isArray(order.tasks)) throw new VerificationError("Order services are missing.");
     const tasks = order.tasks.map(record);
+    stage = "order-totals";
     orders.push({ orderId: order.oid, siteId: order.sid, date: order.date, totalCents: moneyCents(order.total),
       taxCents: moneyCents(order.taxamount), returnedCents: moneyCents(order.returned),
       address: [site.address, site.city, site.state].filter(Boolean).join(", "),
@@ -62,4 +76,8 @@ export async function checkExistingConnection(input: {
     reviewRequired: true,
     notes: ["Read-only diagnostic. No report was saved and no email was sent.", "Month candidates use the API date prefix. Timezone and month-boundary behavior still need confirmation.", "Site owner is checked separately from the purchaser. The v1 schema does not expose an explicit billed-client ID.", "List completeness and canceled/returned amount semantics must be verified before automated generation."],
   };
+  } catch (error) {
+    const detail = error instanceof VerificationError ? error.message : stage === "workspace-association" ? "The client-directory database check failed." : "An API field was missing or had an unexpected format.";
+    throw new VerificationError(`[${stage}] ${detail}`);
+  }
 }

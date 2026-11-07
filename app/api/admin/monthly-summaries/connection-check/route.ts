@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
-import { checkExistingConnection } from "@/lib/monthly-summaries/v1-check";
+import { checkExistingConnection, VerificationError } from "@/lib/monthly-summaries/v1-check";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 export async function POST(request: Request) {
@@ -17,8 +17,10 @@ export async function POST(request: Request) {
       where: { hdPhotoHubUserId: clientId, workspaceMemberships: { some: { workspaceId: session.workspaceId } } }, select: { id: true },
     })) });
     return NextResponse.json(result, { headers });
-  } catch {
+  } catch (error) {
     // Never return upstream response bodies, credentials, or account records on errors.
-    return NextResponse.json({ error: "The read-only check could not finish. Verify the existing key, client-directory association, and API response fields. No records were changed or emails sent." }, { status: 502, headers });
+    const message = error instanceof VerificationError ? error.message : "[request] The verification request could not be processed.";
+    console.warn("Monthly summary verification failed:", message);
+    return NextResponse.json({ error: `${message} No records were changed or emails sent.` }, { status: 502, headers });
   }
 }

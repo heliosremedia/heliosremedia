@@ -30,3 +30,15 @@ test('cross-brand site and duplicate orders fail closed', async () => {
 test('missing credential makes no requests', async () => {
   const f=fixture(); await assert.rejects(checkExistingConnection({...f.input,apiKey:''}),/configured/); assert.equal(f.calls.length,0);
 });
+test('authentication failure identifies the step without echoing the response body', async () => {
+  const f=fixture();
+  await assert.rejects(checkExistingConnection({...f.input,fetcher:(async()=>new Response('private upstream details',{status:401})) as typeof fetch}),/^Error: \[brand\] HDPhotoHub read failed \(401\)\.$/);
+});
+test('unexpected database errors cannot disclose connection strings', async () => {
+  const f=fixture();
+  await assert.rejects(checkExistingConnection({...f.input,authorizeClient:async()=>{throw new Error('private-database-connection');}}),/^Error: \[workspace-association\] The client-directory database check failed\.$/);
+});
+test('upstream transport errors are sanitized and stage-labelled', async () => {
+  const f=fixture();
+  await assert.rejects(checkExistingConnection({...f.input,fetcher:(async()=>{throw new Error('private-token');}) as typeof fetch}),/\[brand\] HDPhotoHub request could not connect/);
+});
