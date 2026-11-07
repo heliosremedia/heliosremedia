@@ -107,6 +107,7 @@ const videoPosterPatterns = [
 const nextConfig: NextConfig = {
   serverExternalPackages: ["pdfkit"],
   outputFileTracingIncludes: {
+    "/api/admin/monthly-summaries/internal-preview": ["./public/fonts/helios.otf", "./public/fonts/heliosbold.ttf", "./public/brand/helios-logo.png"],
     "/api/admin/monthly-summaries": ["./public/fonts/helios.otf", "./public/fonts/heliosbold.ttf", "./public/brand/helios-logo.png"],
     "/api/cron/monthly-summaries": ["./public/fonts/helios.otf", "./public/fonts/heliosbold.ttf", "./public/brand/helios-logo.png"],
   },

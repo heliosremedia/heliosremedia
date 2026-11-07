@@ -2,7 +2,7 @@ import { moneyCents, positiveId, record } from "./core.ts";
 
 export class VerificationError extends Error {}
 
-export function v1Amount(value: unknown, field: "total" | "taxamount" | "returned", optional = false): number | null {
+export function v1Amount(value: unknown, field: "total" | "taxamount" | "returned" | "clientpay", optional = false): number | null {
   if (value === undefined || value === null || (typeof value === "string" && !value.trim())) {
     if (optional) return null;
     throw new VerificationError(`Required amount field '${field}' was not supplied.`);
@@ -111,12 +111,12 @@ export async function checkExistingConnection(input: {
       missingAmounts: [taxCents === null ? "taxamount" : null, returnedCents === null ? "returned" : null].filter(Boolean),
       address: [site.address, site.city, site.state].filter(Boolean).join(", "),
       siteOwnerMatches,
-      services: tasks.map(t => ({ name: String(t.name || ""), canceled: t.canceled === true })),
+      services: tasks.map(t => ({ name: String(t.name || ""), canceled: t.canceled === true, chargeCents: v1Amount(t.clientpay, "clientpay", true) })),
       hasCanceledTasks: tasks.some(t => t.canceled === true),
     });
   }
   const totalCents = orders.reduce((sum, order) => sum + order.totalCents, 0);
-  return { client: input.clientName.trim(), month: input.month, returnedOrderCount: list.length, orders, totalCents,
+  return { clientId, firstName: String(matches[0].firstname || input.clientName.trim().split(/\s+/)[0]), client: input.clientName.trim(), month: input.month, returnedOrderCount: list.length, orders, totalCents,
     matchesHistoricalReference: orders.length > 0 && totalCents === input.expectedTotalCents,
     reviewRequired: true,
     notes: ["Read-only diagnostic. No report was saved and no email was sent.", "Month candidates use the calendar date supplied by the API, including v1 month/day/year AM/PM timestamps. Timezone and month-boundary behavior still need confirmation.", "Site owner is checked separately from the purchaser. The v1 schema does not expose an explicit billed-client ID.", "Missing optional amounts are shown as not supplied, never assumed to be zero. List completeness and canceled/returned amount semantics still require review before automated generation."],
