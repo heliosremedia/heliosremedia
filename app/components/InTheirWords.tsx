@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
-import { displayTestimonial } from "@/lib/testimonials";
+import { displayTestimonial, getTestimonialPosition, type TestimonialPosition } from "@/lib/testimonials";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -23,21 +23,6 @@ export type TestimonialCard = {
 
 export type GoogleReviewCard = { id: string; agentName: string; testimonial: string; rating: number; sourceUrl: string | null; reviewedAt: string | null };
 
-type CardPosition = "active" | "left" | "right";
-
-function getRelativePosition(
-  index: number,
-  activeIndex: number,
-  total: number,
-): CardPosition {
-  const distance = (index - activeIndex + total) % total;
-
-  if (distance === 0) return "active";
-  if (distance === 1) return "right";
-
-  return "left";
-}
-
 export default function InTheirWords({ testimonials, googleReviews, googleReviewSummary }: { testimonials: TestimonialCard[]; googleReviews: GoogleReviewCard[]; googleReviewSummary: { average: number; total: number } }) {
   const prefersReducedMotion = useReducedMotion();
   const [activeIndex, setActiveIndex] = useState(0);
@@ -56,12 +41,12 @@ export default function InTheirWords({ testimonials, googleReviews, googleReview
   }, [testimonials.length]);
 
   useEffect(() => {
-    if (prefersReducedMotion) return;
+    if (prefersReducedMotion || testimonials.length < 2) return;
 
     const interval = window.setInterval(showNext, 11000);
 
     return () => window.clearInterval(interval);
-  }, [prefersReducedMotion, showNext]);
+  }, [prefersReducedMotion, showNext, testimonials.length]);
 
   if (testimonials.length === 0) {
     return null;
@@ -134,10 +119,11 @@ export default function InTheirWords({ testimonials, googleReviews, googleReview
 
         <div className="relative mt-11 h-[35rem] sm:mt-13 sm:h-[36rem] md:h-[30.5rem] lg:h-[31.5rem]">
           {testimonials.map((testimonial, index) => {
-            const position = getRelativePosition(index, activeIndex, testimonials.length);
+            const position = getTestimonialPosition(index, activeIndex, testimonials.length);
             const isActive = position === "active";
 
-            const positionClasses: Record<CardPosition, string> = {
+            const positionClasses: Record<TestimonialPosition, string> = {
+              hidden: "hidden",
               active:
                 "left-1/2 z-30 w-[min(90%,39.5rem)] -translate-x-1/2",
               left: "left-[10%] z-10 hidden w-[25rem] lg:block",
@@ -148,10 +134,10 @@ export default function InTheirWords({ testimonials, googleReviews, googleReview
               <motion.article
                 key={testimonial.id}
                 role={isActive ? "group" : "button"}
-                tabIndex={isActive ? -1 : 0}
+                tabIndex={-1}
                 aria-hidden={!isActive}
                 onClick={() => {
-                  if (!isActive) setActiveIndex(index);
+                  if (!isActive && position !== "hidden") setActiveIndex(index);
                 }}
                 onKeyDown={(event) => {
                   if (
@@ -287,6 +273,7 @@ export default function InTheirWords({ testimonials, googleReviews, googleReview
             type="button"
             onClick={showPrevious}
             aria-label="Previous testimonial"
+            disabled={testimonials.length < 2}
             className="absolute bottom-0 left-0 z-40 flex h-12 min-w-12 items-center justify-center gap-3 rounded-full text-[0.59rem] font-medium uppercase tracking-[0.24em] text-white/55 transition-colors duration-300 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f06b24] sm:justify-start sm:text-white/32"
           >
             <span aria-hidden="true" className="text-lg">
@@ -299,6 +286,7 @@ export default function InTheirWords({ testimonials, googleReviews, googleReview
             type="button"
             onClick={showNext}
             aria-label="Next testimonial"
+            disabled={testimonials.length < 2}
             className="absolute bottom-0 right-0 z-40 flex h-12 min-w-12 items-center justify-center gap-3 rounded-full text-[0.59rem] font-medium uppercase tracking-[0.24em] text-white/55 transition-colors duration-300 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f06b24] sm:justify-end sm:text-white/32"
           >
             <span className="hidden sm:inline">Next</span>
