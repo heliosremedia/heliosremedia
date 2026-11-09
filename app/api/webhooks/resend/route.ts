@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
+import { processEventWebhook } from "@/lib/events/webhook";
 import { prisma } from "@/lib/prisma";
 import { setMarketingPreference } from "@/lib/client-communications/preferences";
 import { processPermanentBounce } from "@/lib/client-communications/bounces";
@@ -94,7 +95,7 @@ export async function POST(request: Request) {
       where: { providerEventId },
       select: { processingStatus: true },
     });
-    if (existing && existing.processingStatus !== "FAILED_RETRYABLE") {
+    if (existing && !["FAILED_RETRYABLE", "UNMATCHED_MESSAGE_ID"].includes(existing.processingStatus)) {
       return NextResponse.json({ success: true, duplicate: true });
     }
 
@@ -183,6 +184,9 @@ export async function POST(request: Request) {
       ]);
       return NextResponse.json({ success: true, matched: true });
     }
+    if (matches.length === 0 && providerMessageId && await processEventWebhook(providerEventId, providerMessageId, normalizedStatus, event.data?.to, event.data?.bounce?.type)) {
+      return NextResponse.json({ success: true, matched: true });
+    }
     if (matches.length !== 1) {
       const diagnosticEmail = diagnosticEmails(event.data?.to)[0] || null;
       const campaignId = diagnosticCampaignId(event.data?.tags);
@@ -202,7 +206,8 @@ export async function POST(request: Request) {
           processedAt: new Date(),
         },
       });
-      return NextResponse.json({ success: true, matched: false });
+      // A webhook can beat persistence of provider acceptance. Request provider redelivery.
+      return NextResponse.json({ success: !providerMessageId, matched: false }, { status: providerMessageId && !matches.length ? 503 : 200 });
     }
 
     const recipient = matches[0];

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 import Script from "next/script";
+import SiteAnalytics from "./components/SiteAnalytics";
 
 import { getCanonicalAbsoluteUrl, getCanonicalSiteUrl, getVerifiedSocialProfiles } from "@/lib/site";
 import { getSiteSettings } from "@/lib/site-settings";
@@ -85,7 +86,7 @@ export default async function RootLayout({
       <body className={`${cormorant.variable} ${inter.variable}`}>
         <SiteSettingsProvider settings={settings} locations={locations}>{children}</SiteSettingsProvider>
         <Script id="helios-structured-data" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} />
-        {analyticsId ? <><Script src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(analyticsId)}`} strategy="afterInteractive" /><Script id="google-analytics" strategy="afterInteractive">{`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${analyticsId.replace(/[^A-Za-z0-9_-]/g, "")}');`}</Script></> : null}
+        <SiteAnalytics measurementId={analyticsId} />
       </body>
     </html>
   );

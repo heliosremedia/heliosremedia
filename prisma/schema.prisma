@@ -3603,3 +3603,79 @@ model MonthlySummaryAttempt {
 
   @@index([reportId, createdAt])
 }
+
+
+model EventInvitationEvent {
+  id          String            @id @default(cuid())
+  workspaceId String
+  title       String
+  description String
+  location    String
+  startsAt    DateTime
+  endsAt      DateTime?
+  timeZone    String            @default("America/Denver")
+  status      String            @default("DRAFT")
+  mode        String            @default("INDIVIDUALS")
+  clientIds   String[]
+  groupIds    String[]
+  createdById String
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  invitations EventInvitation[]
+  deliveries  EventDelivery[]
+
+  @@index([workspaceId, createdAt])
+}
+
+model EventInvitation {
+  id             String                 @id @default(cuid())
+  eventId        String
+  event          EventInvitationEvent   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  clientId       String
+  email          String
+  displayName    String
+  tokenHash      String                 @unique
+  encryptedToken String
+  response       String                 @default("PENDING")
+  respondedAt    DateTime?
+  createdAt      DateTime               @default(now())
+  messages       EventDeliveryMessage[]
+
+  @@unique([eventId, clientId])
+  @@unique([eventId, email])
+}
+
+model EventDelivery {
+  id          String                 @id @default(cuid())
+  eventId     String
+  event       EventInvitationEvent   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  stage       String
+  scheduledAt DateTime
+  status      String                 @default("SCHEDULED")
+  createdAt   DateTime               @default(now())
+  messages    EventDeliveryMessage[]
+
+  @@unique([eventId, stage])
+  @@index([status, scheduledAt])
+}
+
+model EventDeliveryMessage {
+  id                String          @id @default(cuid())
+  deliveryId        String
+  delivery          EventDelivery   @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  invitationId      String
+  invitation        EventInvitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  status            String          @default("PENDING")
+  encryptedPayload  String?
+  firstAttemptAt    DateTime?
+  claimedAt         DateTime?
+  claimId           String?
+  attempts          Int             @default(0)
+  providerMessageId String?
+  error             String?
+  sentAt            DateTime?
+
+  @@unique([deliveryId, invitationId])
+  @@index([status, claimedAt])
+  @@index([providerMessageId])
+}

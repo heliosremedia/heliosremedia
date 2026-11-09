@@ -1,0 +1,68 @@
+import "server-only";
+import { bouncedBackSystemKey } from "@/lib/client-communications/bounce-core";
+import { prisma } from "@/lib/prisma";
+import { getAdminSession } from "@/lib/auth/session";
+import { addressIsMarketingEligible } from "@/lib/client-communications/preferences";
+import { recordAuditEvent } from "@/lib/audit";
+import { defaultSchedule, encrypt, newToken, tokenHash } from "./core";
+
+export async function eventAdmin() {
+  const session = await getAdminSession();
+  if (!session || !["OWNER","ADMIN"].includes(session.role)) throw new Error("Administrator access required.");
+  return session;
+}
+export const eventInclude = { invitations: { select: {id:true,clientId:true,email:true,displayName:true,response:true,respondedAt:true} }, deliveries: { include: { messages: {select:{id:true,status:true,providerMessageId:true,error:true,sentAt:true}} } } } as const;
+export async function getEvent(id: string, workspaceId: string) {
+  const event = await prisma.eventInvitationEvent.findFirst({where:{id,workspaceId},include:eventInclude});
+  if (!event) throw new Error("Event not found."); return event;
+}
+export async function eventOptions(workspaceId: string) {
+  const clients = await prisma.communicationClient.findMany({where:{workspaceMemberships:{some:{workspaceId}},archivedAt:null},select:{id:true,displayName:true,email:true},orderBy:{displayName:"asc"},take:5000});
+  const groups = await prisma.communicationGroup.findMany({where:{memberships:{some:{client:{workspaceMemberships:{some:{workspaceId}}}}}},select:{id:true,name:true},orderBy:{name:"asc"}});
+  return {clients,groups};
+}
+export async function auditEvent(session: Awaited<ReturnType<typeof eventAdmin>>, id: string, action: string) {
+  await recordAuditEvent({actorId:session.userId,actorEmail:session.email,action:`EVENT_${action}`,entityType:"EventInvitationEvent",entityId:id,summary:`Event invitation ${action.toLowerCase()}.`});
+}
+export async function scheduleEvent(id: string, workspaceId: string, stage: string, scheduledAt: Date) {
+  if (!Number.isFinite(+scheduledAt) || +scheduledAt < Date.now()+60000) throw new Error("Choose a delivery time at least one minute ahead.");
+  const event = await getEvent(id,workspaceId);
+  if (event.status === "CANCELLED" || scheduledAt >= event.startsAt) throw new Error("Event is cancelled or delivery is after its start.");
+  const schedule = stage === "INITIAL" ? defaultSchedule(scheduledAt,event.startsAt) : [{stage,scheduledAt}];
+  if (stage !== "INITIAL" && event.status !== "SCHEDULED") throw new Error("Schedule the initial invitation first.");
+  if (stage === "INITIAL" && event.status !== "DRAFT") throw new Error("Initial invitations have already been scheduled.");
+  if (stage !== "INITIAL") {
+    const initial = event.deliveries.find(delivery => delivery.stage === "INITIAL");
+    if (!initial || initial.status === "CANCELLED" || scheduledAt <= initial.scheduledAt) throw new Error("Follow-up and reminder delivery must be after the initial invitation.");
+  }
+  const candidates = stage === "INITIAL" ? await prisma.communicationClient.findMany({where:{workspaceMemberships:{some:{workspaceId}},emailSubscribed:true,emailStatus:"VALID",archivedAt:null,...(event.mode === "INDIVIDUALS" ? {id:{in:event.clientIds}} : {}),groupMemberships:{none:{group:{systemKey:bouncedBackSystemKey(workspaceId)}},...(event.mode === "GROUPS" ? {some:{groupId:{in:event.groupIds}}} : {})}},orderBy:{id:"asc"}}) : [];
+  const eligible = [];
+  const emails = new Set<string>();
+  for (const client of candidates) if (!emails.has(client.normalizedEmail) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(client.normalizedEmail) && await addressIsMarketingEligible(client.normalizedEmail)) { eligible.push(client); emails.add(client.normalizedEmail); }
+  if (stage === "INITIAL" && (!eligible.length || eligible.length > 1000)) throw new Error("Select between 1 and 1,000 eligible subscribed recipients.");
+  const secret = process.env.AUTH_SECRET || "";
+  const invitations = eligible.map(client => { const token = newToken(); return {eventId:id,clientId:client.id,email:client.normalizedEmail,displayName:client.displayName,tokenHash:tokenHash(token),encryptedToken:encrypt(token,secret)}; });
+  await prisma.$transaction(async tx => {
+    // Conditional update serializes scheduling against cancellation and draft edits.
+    const locked = await tx.eventInvitationEvent.updateMany({where:{id,workspaceId,status:stage === "INITIAL" ? "DRAFT" : "SCHEDULED",updatedAt:event.updatedAt},data:{status:"SCHEDULED",updatedAt:new Date()}});
+    if (!locked.count) throw new Error("Event changed. Reload before scheduling.");
+    if (invitations.length) await tx.eventInvitation.createMany({data:invitations});
+    for (const entry of schedule) {
+      const existing = await tx.eventDelivery.findUnique({where:{eventId_stage:{eventId:id,stage:entry.stage}}});
+      if (existing) {
+        if (existing.status !== "SCHEDULED" || await tx.eventDeliveryMessage.count({where:{deliveryId:existing.id}})) throw new Error("This delivery has already started or was cancelled.");
+        await tx.eventDelivery.update({where:{id:existing.id},data:{scheduledAt:entry.scheduledAt}});
+      } else await tx.eventDelivery.create({data:{eventId:id,...entry}});
+    }
+  });
+  return getEvent(id,workspaceId);
+}
+export async function cancelEvent(id: string, workspaceId: string, stage?: string) {
+  await prisma.$transaction(async tx => {
+    const locked = await tx.eventInvitationEvent.updateMany({where:{id,workspaceId},data:stage ? {updatedAt:new Date()} : {status:"CANCELLED"}});
+    if (!locked.count) throw new Error("Event not found.");
+    await tx.eventDelivery.updateMany({where:{eventId:id,...(stage ? {stage} : {}),status:"SCHEDULED"},data:{status:"CANCELLED"}});
+    await tx.eventDeliveryMessage.updateMany({where:{delivery:{eventId:id,...(stage ? {stage} : {})},status:"PENDING"},data:{status:"SKIPPED",error:"Cancelled by administrator."}});
+  });
+  return getEvent(id,workspaceId);
+}
