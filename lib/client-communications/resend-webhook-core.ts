@@ -29,3 +29,13 @@ export function diagnosticEmails(value: unknown) {
   return [...new Set(values.map((item) => typeof item === "string" ? item.trim().toLowerCase() : "")
     .filter((item) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item)))];
 }
+
+export const UNMATCHED_WEBHOOK_GRACE_MS = 10 * 60_000;
+export function unmatchedWebhookRetry(firstReceivedAt: Date, now = new Date()) {
+  const age = +now - +firstReceivedAt;
+  return Number.isFinite(age) && age >= 0 && age < UNMATCHED_WEBHOOK_GRACE_MS;
+}
+/** A proven ownership ambiguity/mismatch cannot be fixed by provider redelivery. */
+export class PermanentWebhookError extends Error {
+  constructor(message: string) { super(message); this.name = "PermanentWebhookError"; }
+}

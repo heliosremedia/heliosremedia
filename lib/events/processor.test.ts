@@ -7,6 +7,7 @@ import ts from "typescript";
 import * as crypto from "node:crypto";
 import * as core from "./core.ts";
 import * as policy from "./policy.ts";
+import * as webhookCore from "../client-communications/resend-webhook-core.ts";
 import * as bounce from "../client-communications/bounce-core.ts";
 
 const secret = "event-test-secret-".repeat(4);
@@ -43,6 +44,7 @@ function fixture(responses=["PENDING"]) {
   const hydrate=(message:any)=>({...message,invitation:invitations.find(i=>i.id===message.invitationId),delivery:{...deliveries.find(d=>d.id===message.deliveryId),event}});
   const update=(rows:any[],args:any)=>{const found=rows.filter(row=>matches(row,args.where));found.forEach(row=>patch(row,args.data));return {count:found.length};};
   const prisma:any={
+    monthlySummaryAttempt:{findUnique:async()=>null},
     eventInvitationEvent:{updateMany:async(args:any)=>update([event],args)},
     eventDelivery:{
       findMany:async(args:any)=>{const rows=clone(deliveries.filter(d=>matches(d,args.where)).map(d=>({...d,event})));dueHook?.();dueHook=undefined;return rows;},
@@ -66,7 +68,7 @@ function fixture(responses=["PENDING"]) {
     resendWebhookEvent:{update:async(args:any)=>webhookEvents.push(args.data)},
     $transaction:async(input:any)=>typeof input==="function"?input(prisma):Promise.all(input),
   };
-  const mocks={"server-only":{},"node:crypto":crypto,"@/lib/prisma":{prisma},"@/lib/client-communications/bounce-core":bounce,"@/lib/client-communications/preferences":{
+  const mocks={"@/lib/client-communications/resend-webhook-core":webhookCore,"server-only":{},"node:crypto":crypto,"@/lib/prisma":{prisma},"@/lib/client-communications/bounce-core":bounce,"@/lib/client-communications/preferences":{
     addressIsMarketingEligible:async(email:string)=>!blocked.has(email),createPreferenceToken:async()=>`unsubscribe-${++tokenCount}`,setMarketingPreference:async(input:any)=>preferences.push(input),
   },"@/lib/client-communications/providers/resend":{sendEmail:async(input:any)=>{sends.push(clone(input));if(failSend)throw new Error("timeout after possible acceptance");return {messageId:`provider-${input.idempotencyKey}`};}},"@/lib/site":{getSiteUrl:()=>"https://studio.example.com"},"./core":core,"./policy":policy,"./email":{renderEventEmail:(e:any,stage:string,token:string,unsubscribe:string)=>({subject:e.title,html:`${stage}:${token}:${unsubscribe}`})}};
   const {processEventDeliveries}=moduleUnderTest("./delivery.ts",mocks);
