@@ -8,6 +8,7 @@ import InTheirWords from "./components/InTheirWords";
 import PrimaryConversion from "./components/PrimaryConversion";
 import Footer from "./components/Footer";
 import { prisma } from "@/lib/prisma";
+import { featuredTestimonialWhere } from "@/lib/testimonials";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 import { defaultHomeCta, getCtaForSlot } from "@/lib/ctas";
 import { getSiteSettings } from "@/lib/site-settings";
@@ -46,7 +47,7 @@ export default async function Home() {
   const googleReviewDisplayMode = normalizeGoogleReviewDisplayMode(settings.googleReviewDisplayMode);
   const [testimonials, googleReviews, googleReviewAggregate, trustedLogos, homepageProjects, homepageWorkCards, homepageCta] = await Promise.all([
     prisma.testimonial.findMany({
-      where: { published: true, featured: true, sourceProvider: "MANUAL" },
+      where: featuredTestimonialWhere,
       orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
       select: {
         id: true, agentName: true, jobTitle: true, brokerage: true,
