@@ -6,6 +6,8 @@ import { setMarketingPreference } from "@/lib/client-communications/preferences"
 import { processPermanentBounce } from "@/lib/client-communications/bounces";
 import {
   diagnosticEmails,
+  unmatchedWebhookRetry,
+  PermanentWebhookError,
   normalizedResendStatus,
   safeEventDate,
 } from "@/lib/client-communications/resend-webhook-core";
@@ -93,11 +95,14 @@ export async function POST(request: Request) {
   try {
     const existing = await prisma.resendWebhookEvent.findUnique({
       where: { providerEventId },
-      select: { processingStatus: true },
+      select: { processingStatus: true, receivedAt: true },
     });
     if (existing && !["FAILED_RETRYABLE", "UNMATCHED_MESSAGE_ID"].includes(existing.processingStatus)) {
       return NextResponse.json({ success: true, duplicate: true });
     }
+
+    const firstReceivedAt = existing?.receivedAt ?? receivedAt;
+    const retryUnmatched = unmatchedWebhookRetry(firstReceivedAt, receivedAt);
 
     if (existing) {
       await prisma.resendWebhookEvent.update({
@@ -200,14 +205,15 @@ export async function POST(request: Request) {
           normalizedEmail: diagnosticEmail,
           workspaceId: diagnosticCampaign?.createdBy.workspaceId,
           processingStatus: providerMessageId
-            ? matches.length ? "UNMATCHED_AMBIGUOUS_MESSAGE_ID" : "UNMATCHED_MESSAGE_ID"
+            ? matches.length ? "UNMATCHED_AMBIGUOUS_MESSAGE_ID" : retryUnmatched ? "UNMATCHED_MESSAGE_ID" : "UNMATCHED_FINAL"
             : "UNMATCHED_MISSING_MESSAGE_ID",
           reason: "Retained for diagnostic reconciliation; recipient email and campaign tags are not used as the primary relationship.",
           processedAt: new Date(),
         },
       });
-      // A webhook can beat persistence of provider acceptance. Request provider redelivery.
-      return NextResponse.json({ success: !providerMessageId, matched: false }, { status: providerMessageId && !matches.length ? 503 : 200 });
+      // Bound acceptance-persistence retries by the immutable first receipt, not provider timestamps.
+      const retry = !!providerMessageId && !matches.length && retryUnmatched;
+      return NextResponse.json({ success: !retry, matched: false }, { status: retry ? 503 : 200 });
     }
 
     const recipient = matches[0];
@@ -274,10 +280,11 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ success: true, matched: true });
   } catch (error) {
+    const permanent = error instanceof PermanentWebhookError;
     await prisma.resendWebhookEvent.updateMany({
       where: { providerEventId },
       data: {
-        processingStatus: "FAILED_RETRYABLE",
+        processingStatus: permanent ? "REJECTED_PERMANENT" : "FAILED_RETRYABLE",
         reason: error instanceof Error ? error.name.slice(0, 120) : "UnknownError",
         processedAt: new Date(),
       },
@@ -286,6 +293,7 @@ export async function POST(request: Request) {
       providerEventId,
       error: error instanceof Error ? error.name : "UnknownError",
     });
-    return NextResponse.json({ success: false }, { status: 503 });
+    if (permanent) return NextResponse.json({ success: true, matched: false }, { status: 200 });
+    return NextResponse.json({ success: false, matched: false }, { status: 503 });
   }
 }

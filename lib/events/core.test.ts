@@ -34,7 +34,7 @@ test("GET RSVP is read-only and accepts token only via header; POST serializes a
 });
 test("event webhook uses provider message ownership before suppression and retries early events",()=>{
  const src=readFileSync(new URL("./webhook.ts",import.meta.url),"utf8");assert(src.includes('where:{providerMessageId}'));assert(src.includes('providerRecipientMatches(recipients,email)'));assert(src.includes('setMarketingPreference'));assert(src.includes('bounceType?.trim().toLowerCase() === "permanent"'));
- const route=readFileSync(new URL("../../app/api/webhooks/resend/route.ts",import.meta.url),"utf8");assert(route.includes('processEventWebhook'));assert(route.includes('["FAILED_RETRYABLE", "UNMATCHED_MESSAGE_ID"]'));assert(route.includes('providerMessageId && !matches.length ? 503 : 200'));
+ const route=readFileSync(new URL("../../app/api/webhooks/resend/route.ts",import.meta.url),"utf8");assert(route.includes('processEventWebhook'));assert(route.includes('["FAILED_RETRYABLE", "UNMATCHED_MESSAGE_ID"]'));assert(route.includes('status: retry ? 503 : 200'));
 });
 test("dependent stages cannot precede initial and wait when its delivery is unfinished",()=>{
  const service=readFileSync(new URL("./service.ts",import.meta.url),"utf8");assert(service.includes('scheduledAt <= initial.scheduledAt'));
