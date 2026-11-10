@@ -9,13 +9,16 @@ import * as core from "./core.ts";
 import * as policy from "./policy.ts";
 import * as webhookCore from "../client-communications/resend-webhook-core.ts";
 import * as bounce from "../client-communications/bounce-core.ts";
+import * as themes from "./themes.ts";
+import * as personalization from "./personalization.ts";
+import * as emailFormat from "../client-communications/email-format.ts";
 
 const secret = "event-test-secret-".repeat(4);
 function moduleUnderTest(file:string,mocks:Record<string,unknown>) {
   const source=readFileSync(new URL(file,import.meta.url),"utf8");
   const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
   const exports:Record<string,any>={};
-  vm.runInNewContext(js,{exports,require:(name:string)=>{if(!(name in mocks))throw new Error(`Unexpected dependency ${name}`);return mocks[name];},process:{env:{AUTH_SECRET:secret}},Date,JSON,console,Buffer},{filename:file});
+  vm.runInNewContext(js,{exports,require:(name:string)=>{if(!(name in mocks))throw new Error(`Unexpected dependency ${name}`);return mocks[name];},process:{env:{AUTH_SECRET:secret}},Date,JSON,console,Buffer,URL},{filename:file});
   return exports;
 }
 function matches(row:any,where:any):boolean {
@@ -34,11 +37,11 @@ function matches(row:any,where:any):boolean {
 }
 function patch(row:any,data:any){for(const [key,value] of Object.entries(data) as [string,any][]){if(value===undefined)continue;if(value && typeof value==="object" && "increment" in value)row[key]+=value.increment;else if(value && typeof value==="object" && "decrement" in value)row[key]-=value.decrement;else row[key]=value;}}
 function fixture(responses=["PENDING"]) {
-  const event:any={id:"event",workspaceId:"workspace",status:"SCHEDULED",startsAt:new Date(Date.now()+86400000),title:"Original title"};
+  const event:any={id:"event",workspaceId:"workspace",status:"SCHEDULED",startsAt:new Date(Date.now()+86400000),title:"Original title",description:"Join us",location:"Studio",timeZone:"America/Denver"};
   const deliveries:any[]=[{id:"initial",eventId:event.id,stage:"INITIAL",status:"SCHEDULED",scheduledAt:new Date(Date.now()-1000)}];
   const invitations:any[]=responses.map((response,i)=>({id:`invite${i}`,eventId:event.id,clientId:`client${i}`,email:`client${i}@example.com`,response,encryptedToken:core.encrypt(core.newToken(),secret)}));
   const clients:any[]=invitations.map(i=>({id:i.clientId,normalizedEmail:i.email,workspaceId:event.workspaceId,archivedAt:null,emailSubscribed:true,emailStatus:"VALID",bounced:false}));
-  const messages:any[]=[];const sends:any[]=[];const suppressions:any[]=[];const preferences:any[]=[];const webhookEvents:any[]=[];const memberships:any[]=[];
+  const messages:any[]=[];const sends:any[]=[];const suppressions:any[]=[];const preferences:any[]=[];const webhookEvents:any[]=[];const memberships:any[]=[];const renders:any[]=[];
   const blocked=new Set<string>();let failSend=false;let dueHook:(()=>void)|undefined;let tokenCount=0;
   const clone=(value:any)=>structuredClone(value);
   const hydrate=(message:any)=>({...message,invitation:invitations.find(i=>i.id===message.invitationId),delivery:{...deliveries.find(d=>d.id===message.deliveryId),event}});
@@ -68,12 +71,15 @@ function fixture(responses=["PENDING"]) {
     resendWebhookEvent:{update:async(args:any)=>webhookEvents.push(args.data)},
     $transaction:async(input:any)=>typeof input==="function"?input(prisma):Promise.all(input),
   };
+  const site={getSiteUrl:()=>"https://studio.example.com"};
+  const campaign=moduleUnderTest("../client-communications/email.ts",{"server-only":{},"@/lib/site":site,"@/lib/newsletters/presentation":{},"./providers/resend":{},"./email-format":emailFormat});
+  const email=moduleUnderTest("./email.ts",{"server-only":{},"@/lib/site":site,"@/lib/client-communications/email":campaign,"./themes":themes,"./personalization":personalization});
   const mocks={"@/lib/client-communications/resend-webhook-core":webhookCore,"server-only":{},"node:crypto":crypto,"@/lib/prisma":{prisma},"@/lib/client-communications/bounce-core":bounce,"@/lib/client-communications/preferences":{
     addressIsMarketingEligible:async(email:string)=>!blocked.has(email),createPreferenceToken:async()=>`unsubscribe-${++tokenCount}`,setMarketingPreference:async(input:any)=>preferences.push(input),
-  },"@/lib/client-communications/providers/resend":{sendEmail:async(input:any)=>{sends.push(clone(input));if(failSend)throw new Error("timeout after possible acceptance");return {messageId:`provider-${input.idempotencyKey}`};}},"@/lib/site":{getSiteUrl:()=>"https://studio.example.com"},"./core":core,"./policy":policy,"./email":{renderEventEmail:(e:any,stage:string,token:string,unsubscribe:string)=>({subject:e.title,html:`${stage}:${token}:${unsubscribe}:${JSON.stringify({templateKey:e.templateKey,imageUrl:e.imageUrl,emailContent:e.emailContent})}`})}};
+  },"@/lib/client-communications/providers/resend":{sendEmail:async(input:any)=>{sends.push(clone(input));if(failSend)throw new Error("timeout after possible acceptance");return {messageId:`provider-${input.idempotencyKey}`};}},"@/lib/site":site,"./core":core,"./policy":policy,"./email":{renderEventEmail:(...args:any[])=>{renders.push(clone(args));return email.renderEventEmail(...args);}}};
   const {processEventDeliveries}=moduleUnderTest("./delivery.ts",mocks);
   const {processEventWebhook}=moduleUnderTest("./webhook.ts",mocks);
-  return {event,deliveries,invitations,clients,messages,sends,suppressions,preferences,webhookEvents,memberships,blocked,processEventDeliveries,processEventWebhook,setFailSend:(v:boolean)=>{failSend=v;},setDueHook:(f:()=>void)=>{dueHook=f;},expireLease:()=>messages.forEach(m=>{m.claimedAt=new Date(Date.now()-360000);}),addStage:(stage:string)=>deliveries.push({id:stage,eventId:event.id,stage,status:"SCHEDULED",scheduledAt:new Date(Date.now()-1000)})};
+  return {event,deliveries,invitations,clients,messages,sends,renders,suppressions,preferences,webhookEvents,memberships,blocked,processEventDeliveries,processEventWebhook,setFailSend:(v:boolean)=>{failSend=v;},setDueHook:(f:()=>void)=>{dueHook=f;},expireLease:()=>messages.forEach(m=>{m.claimedAt=new Date(Date.now()-360000);}),addStage:(stage:string)=>deliveries.push({id:stage,eventId:event.id,stage,status:"SCHEDULED",scheduledAt:new Date(Date.now()-1000)})};
 }
 
 test("real processor sends initial exactly once across repeated and concurrent cron invocations",async()=>{
@@ -84,13 +90,33 @@ test("real processor stops cancelled/expired events and a schedule moved after d
 });
 test("real processor rechecks subscription, status, archival, workspace, bounce group, suppression and address",async()=>{
  const changes=[(f:any)=>{f.clients[0].emailSubscribed=false;},(f:any)=>{f.clients[0].emailStatus="BOUNCED";},(f:any)=>{f.clients[0].archivedAt=new Date();},(f:any)=>{f.clients[0].workspaceId="other";},(f:any)=>{f.clients[0].bounced=true;},(f:any)=>{f.blocked.add(f.invitations[0].email);},(f:any)=>{f.clients[0].normalizedEmail="changed@example.com";}];
- for(const change of changes){const f=fixture();change(f);await f.processEventDeliveries();assert.equal(f.sends.length,0);assert.equal(f.messages[0].status,"SKIPPED");}
+ for(const change of changes){const f=fixture();change(f);await f.processEventDeliveries();assert.equal(f.sends.length,0);assert.equal(f.renders.length,0);assert.equal(f.messages[0].status,"SKIPPED");}
 });
 test("real initial/follow-up/reminder sequence targets current RSVP responses",async()=>{
  const f=fixture(["PENDING","PENDING","PENDING"]);await f.processEventDeliveries();assert.equal(f.sends.length,3);f.invitations[1].response="YES";f.invitations[2].response="NO";f.addStage("FOLLOW_UP");await f.processEventDeliveries();assert.equal(f.sends.length,4);assert.equal(f.sends[3].to,"client0@example.com");f.invitations[0].response="NO";f.addStage("REMINDER");await f.processEventDeliveries();assert.equal(f.sends.length,5);assert.equal(f.sends[4].to,"client1@example.com");
 });
 test("real timeout retry preserves frozen payload and key, live lease blocks retry",async()=>{
  const f=fixture();f.setFailSend(true);await f.processEventDeliveries();assert.equal(f.messages[0].status,"SENDING");assert(f.messages[0].encryptedPayload);assert(f.messages[0].firstAttemptAt);await f.processEventDeliveries();assert.equal(f.sends.length,1);f.event.title="Changed after timeout";f.event.templateKey="CHRISTMAS";f.event.imageUrl="https://media.example.com/new.png";f.event.emailContent={INITIAL:{body:"Changed after send"}};f.expireLease();f.setFailSend(false);await f.processEventDeliveries();assert.equal(f.sends.length,2);assert.deepEqual(f.sends[1],f.sends[0]);assert.equal(f.messages[0].status,"SENT");
+});
+test("personalized delivery uses each eligible client's current first name then freezes retry identity",async()=>{
+ const f=fixture(["PENDING","PENDING","PENDING"]);
+ f.event.emailContent={INITIAL:{subject:"{{FIRST_NAME}}, join us",body:"Hi {{FIRST_NAME}},\n\nSee you soon, {{FIRST_NAME}}."}};
+ f.clients[0].firstName="李明";f.clients[1].firstName="<script>bad</script>";f.clients[2].firstName=" \r\n ";
+ f.setFailSend(true);await f.processEventDeliveries();
+ assert.equal(f.sends.length,3);assert.equal(f.sends[0].subject,"李明, join us");assert(f.sends[0].html.includes("Hi 李明,"));
+ assert(f.sends[1].html.includes("Hi &lt;script&gt;bad&lt;/script&gt;,"));assert(!f.sends[1].html.includes("<script>"));
+ assert.equal(f.sends[2].subject,"there, join us");assert(f.sends[2].html.includes("Hi there,"));
+ const snapshots=f.messages.map(m=>m.encryptedPayload);
+ f.clients.forEach(c=>{c.firstName="Changed after first attempt";});
+ f.event.emailContent={INITIAL:{subject:"Edited",body:"Edited"}};f.expireLease();f.setFailSend(false);await f.processEventDeliveries();
+ assert.equal(f.renders.length,3);assert.deepEqual(f.sends.slice(3),f.sends.slice(0,3));assert.deepEqual(f.messages.map(m=>m.encryptedPayload),snapshots);
+});
+test("personalization retains a pre-existing frozen payload without inserting new recipient data",async()=>{
+ const f=fixture();f.setFailSend(true);await f.processEventDeliveries();
+ const legacy={to:f.invitations[0].email,subject:"Legacy {{FIRST_NAME}}",html:"<p>Legacy {{FIRST_NAME}}</p>",unsubscribeUrl:"https://studio.example.com/unsubscribe?token=old"};
+ f.messages[0].encryptedPayload=core.encrypt(JSON.stringify(legacy),secret);f.clients[0].firstName="New name";
+ f.expireLease();f.setFailSend(false);await f.processEventDeliveries();
+ assert.equal(f.renders.length,1);assert.equal(f.sends[1].subject,legacy.subject);assert.equal(f.sends[1].html,legacy.html);
 });
 test("real timeout beyond idempotency window becomes UNCERTAIN without resending",async()=>{
  const f=fixture();f.setFailSend(true);await f.processEventDeliveries();f.expireLease();f.messages[0].firstAttemptAt=new Date(Date.now()-21*3600000);await f.processEventDeliveries();assert.equal(f.sends.length,1);assert.equal(f.messages[0].status,"UNCERTAIN");assert.equal(f.deliveries[0].status,"FAILED");

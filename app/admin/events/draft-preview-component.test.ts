@@ -16,6 +16,8 @@ function mount(form: EventEditorForm) {
   let jobs: (() => void)[] = [];
   let closed = 0, focused = 0, restored = 0, shown = 0, hidden = 0;
   const applied: string[] = [];
+  let closeVersion = 0;
+  const closedVersions: number[] = [];
   const calls: { body: any; signal: AbortSignal; resolve: (response: Response) => void }[] = [];
   class Element { focus() { restored++; } }
   const document = { activeElement: new Element(), body: { style: { overflow: "auto" } } };
@@ -48,7 +50,8 @@ function mount(form: EventEditorForm) {
   function nodes(node: any): any[] { return !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(nodes) : [node, ...nodes(node.props?.children)]; }
   function render() {
     cursor = 0; dirty = false; jobs = [];
-    tree = exports.default({ form, onClose: () => { closed++; }, onApplyStyle: (style: string) => applied.push(style) });
+    const version = closeVersion;
+    tree = exports.default({ form, onClose: () => { closed++; closedVersions.push(version); }, onApplyStyle: (style: string) => applied.push(style) });
     for (const node of nodes(tree)) if (node.props?.ref) node.props.ref.current = node.type === "dialog" ? dialog : { focus() { focused++; } };
     for (const job of jobs) job();
   }
@@ -63,7 +66,7 @@ function mount(form: EventEditorForm) {
   const text = (node: any): string => node == null ? "" : typeof node !== "object" ? String(node) : Array.isArray(node) ? node.map(text).join("") : text(node.props?.children);
   const find = (type: string, matches: (node: any) => boolean = () => true) => nodes(tree).find(node => node.type === type && matches(node));
   const button = (label: string) => find("button", node => text(node) === label);
-  return { settle, unmount, replayEffects, find, button, calls, applied, document, stats: () => ({ closed, focused, restored, shown, hidden }) };
+  return { updateCloseCallback: () => { closeVersion++; dirty = true; }, closedVersions, settle, unmount, replayEffects, find, button, calls, applied, document, stats: () => ({ closed, focused, restored, shown, hidden }) };
 }
 
 const form = { ...createEventForm(), title: "Unsaved party", description: "An evening together", startsAt: "2027-12-10T18:00", location: "The studio", venueUrl: "https://venue.example.com", emailContent: { REMINDER: { subject: "Tomorrow!", body: "See you soon" } } };
@@ -120,4 +123,56 @@ test("Strict Mode effect replay ignores queued close events from the prior dialo
   ui.calls[1].resolve(response("Strict Mode current render")); await ui.settle();
   assert.match(ui.find("iframe").props.srcDoc, /Strict Mode current render/);
   ui.unmount(); assert.equal(ui.document.body.style.overflow, "auto");
+});
+
+function previewDocument() {
+  const listeners = new Set<(event: any) => void>();
+  return {
+    addEventListener(type: string, handler: (event: any) => void, capture: boolean) { assert.equal(type, "keydown"); assert.equal(capture, true); listeners.add(handler); },
+    removeEventListener(type: string, handler: (event: any) => void, capture: boolean) { assert.equal(type, "keydown"); assert.equal(capture, true); listeners.delete(handler); },
+    get listenerCount() { return listeners.size; },
+    key(key: string) {
+      let prevented = false, stopped = false;
+      for (const listener of listeners) listener({ key, preventDefault() { prevented = true; }, stopPropagation() { stopped = true; } });
+      return { prevented, stopped };
+    },
+  };
+}
+
+test("Escape from the iframe document closes the preview, restores focus and detaches listeners", async () => {
+  const ui = mount(form); await ui.settle(); ui.calls[0].resolve(response("Ready")); await ui.settle();
+  const frame = ui.find("iframe");
+  assert.equal(frame.props.sandbox, "allow-same-origin");
+  assert.equal(frame.props.referrerPolicy, "no-referrer");
+  const inside = previewDocument();
+  frame.props.onLoad({ currentTarget: { contentDocument: inside } });
+  assert.equal(inside.listenerCount, 1);
+  ui.updateCloseCallback(); await ui.settle();
+  assert.deepEqual(inside.key("ArrowDown"), { prevented: false, stopped: false });
+  assert.equal(ui.stats().closed, 0);
+  assert.deepEqual(inside.key("Escape"), { prevented: true, stopped: true });
+  assert.equal(ui.stats().closed, 1); assert.equal(inside.listenerCount, 0);
+  assert.deepEqual(ui.closedVersions, [1]);
+  inside.key("Escape"); assert.equal(ui.stats().closed, 1);
+  assert.deepEqual(ui.applied, []);
+  ui.unmount(); assert.equal(ui.stats().restored, 1); assert.equal(ui.document.body.style.overflow, "auto");
+});
+
+test("iframe reload, style changes and unmount remove old document handlers without duplicates", async () => {
+  const ui = mount(form); await ui.settle(); ui.calls[0].resolve(response("First")); await ui.settle();
+  const first = previewDocument(), second = previewDocument(), third = previewDocument();
+  const load = ui.find("iframe").props.onLoad;
+  load({ currentTarget: { contentDocument: first } });
+  load({ currentTarget: { contentDocument: first } });
+  assert.equal(first.listenerCount, 1);
+  load({ currentTarget: { contentDocument: second } });
+  assert.equal(first.listenerCount, 0); assert.equal(second.listenerCount, 1);
+  first.key("Escape"); assert.equal(ui.stats().closed, 0);
+  ui.find("select", node => node.props.value === "CLASSIC").props.onChange({ target: { value: "CHRISTMAS" } });
+  assert.equal(second.listenerCount, 0); second.key("Escape"); assert.equal(ui.stats().closed, 0);
+  await ui.settle(); ui.calls[1].resolve(response("New style")); await ui.settle();
+  ui.find("iframe").props.onLoad({ currentTarget: { contentDocument: third } });
+  assert.equal(third.listenerCount, 1);
+  ui.unmount(); assert.equal(third.listenerCount, 0);
+  third.key("Escape"); assert.equal(ui.stats().closed, 0);
 });

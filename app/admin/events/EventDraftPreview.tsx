@@ -24,6 +24,10 @@ export default function EventDraftPreview({ form, onClose, onApplyStyle }: {
   const [loader] = useState(() => createDraftPreviewLoader());
   const styleInput = useRef<HTMLSelectElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const frameKeyboardCleanup = useRef<(() => void) | null>(null);
+  const latestOnClose = useRef(onClose);
+
+  useEffect(() => { latestOnClose.current = onClose; }, [onClose]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -34,6 +38,8 @@ export default function EventDraftPreview({ form, onClose, onApplyStyle }: {
     dialog?.showModal();
     styleInput.current?.focus();
     return () => {
+      frameKeyboardCleanup.current?.();
+      frameKeyboardCleanup.current = null;
       if (dialog?.open) dialog.close();
       document.body.style.overflow = previousOverflow;
       previousFocus?.focus();
@@ -50,10 +56,30 @@ export default function EventDraftPreview({ form, onClose, onApplyStyle }: {
     return () => { active = false; loader.cancel(); };
   }, [form, loader, retry, stage, templateKey]);
 
-  function invalidate() {
-    loader.cancel(); setResult(null); setError(""); setLoading(true);
+  function detachFrameKeyboard() {
+    frameKeyboardCleanup.current?.();
+    frameKeyboardCleanup.current = null;
   }
-  function close() { loader.cancel(); onClose(); }
+
+  function invalidate() {
+    detachFrameKeyboard(); loader.cancel(); setResult(null); setError(""); setLoading(true);
+  }
+  function close() { detachFrameKeyboard(); loader.cancel(); latestOnClose.current(); }
+  function attachFrameKeyboard(frame: HTMLIFrameElement) {
+    detachFrameKeyboard();
+    const previewDocument = frame.contentDocument;
+    if (!previewDocument) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      close();
+    };
+    // Same-origin access lets the parent handle Escape inside the preview document.
+    // Scripts remain disabled: never add allow-scripts to this iframe's sandbox.
+    previewDocument.addEventListener("keydown", onKeyDown, true);
+    frameKeyboardCleanup.current = () => previewDocument.removeEventListener("keydown", onKeyDown, true);
+  }
 
   return <dialog ref={dialogRef} aria-labelledby="event-draft-preview-title" aria-modal="true" onCancel={event => { event.preventDefault(); close(); }} onClose={event => { if (!event.currentTarget.open) close(); }}
     onMouseDown={event => {
@@ -77,10 +103,10 @@ export default function EventDraftPreview({ form, onClose, onApplyStyle }: {
         {error && <div role="alert" className="p-6 text-sm text-red-100"><p>{error}</p><p className="mt-2 text-white/50">Close the preview to edit your draft, or try again.</p><button type="button" className={`${button} mt-4`} onClick={() => { invalidate(); setRetry(value => value + 1); }}>Try again</button></div>}
         {result && <>
           <div className="bg-white/5 p-4"><p className="break-words text-sm text-white/85"><span className="text-white/45">Subject: </span>{result.subject}</p>{result.placeholders.length > 0 && <p role="status" className="mt-3 text-xs leading-5 text-amber-100">Sample content is shown for: {result.placeholders.join(", ")}. These placeholders are only for this preview and won’t be added to your draft.</p>}</div>
-          <div className="bg-black/30 p-2 sm:p-4"><iframe title={`${stages[stage]} invitation preview`} sandbox="" referrerPolicy="no-referrer" tabIndex={0} srcDoc={draftPreviewDocument(result.html)} className="mx-auto h-[60vh] min-h-80 w-full bg-white transition-[max-width]" style={{ maxWidth: width === "MOBILE" ? 375 : 760 }} /></div>
+          <div className="bg-black/30 p-2 sm:p-4"><iframe title={`${stages[stage]} invitation preview`} sandbox="allow-same-origin" referrerPolicy="no-referrer" tabIndex={0} onLoad={event => attachFrameKeyboard(event.currentTarget)} srcDoc={draftPreviewDocument(result.html)} className="mx-auto h-[60vh] min-h-80 w-full bg-white transition-[max-width]" style={{ maxWidth: width === "MOBILE" ? 375 : 760 }} /></div>
         </>}
       </div>
-      <p className="mt-3 text-xs leading-5 text-white/45">This is the email guests will receive. RSVP choices are disabled in previews. Email apps may display spacing and fonts slightly differently.</p>
+      <p className="mt-3 text-xs leading-5 text-white/45">First-name fields show Alex, a sample name. Each guest’s name is added only at delivery; missing names use “there.” RSVP choices are disabled in previews. Email apps may display spacing and fonts slightly differently.</p>
     </div>
     <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 p-5 sm:p-6"><p className="text-xs leading-5 text-white/45">Browsing styles doesn’t change your draft.</p><div className="flex flex-wrap gap-3"><button type="button" className={button} onClick={close}>Back to editing</button><button type="button" className={`${button} border-orange-400/40 bg-[var(--helios-orange)] text-black hover:brightness-110`} onClick={() => { loader.cancel(); onApplyStyle(templateKey); }}>Use this style in draft</button></div></footer>
   </dialog>;

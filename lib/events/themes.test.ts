@@ -7,6 +7,7 @@ import ts from "typescript";
 import sharp from "sharp";
 import * as crypto from "node:crypto";
 import * as themes from "./themes.ts";
+import * as personalization from "./personalization.ts";
 import * as core from "./core.ts";
 import * as images from "./images.ts";
 import * as emailFormat from "../client-communications/email-format.ts";
@@ -25,7 +26,7 @@ function load(file: string, mocks: Record<string, unknown>) {
 }
 const site = {getSiteUrl:()=>"https://studio.example.com"};
 const campaign = load("../client-communications/email.ts", {"server-only":{},"@/lib/site":site,"@/lib/newsletters/presentation":{testEmailSubject:(subject:string)=>subject},"./providers/resend":{},"./email-format":emailFormat});
-const email = load("./email.ts",{"server-only":{},"@/lib/site":site,"@/lib/client-communications/email":campaign,"./themes":themes});
+const email = load("./email.ts",{"server-only":{},"@/lib/site":site,"@/lib/client-communications/email":campaign,"./themes":themes,"./personalization":personalization});
 const next = {NextResponse:{json:(data:unknown,options?:any)=>({data,status:options?.status || 200,headers:options?.headers})}};
 const eventError = (error:unknown)=>({status:400,data:{success:false,error:error instanceof Error?error.message:"Failed"}});
 const request = (data:unknown)=>({json:async()=>data});
