@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import BulkEmailStudio from "./BulkEmailStudio";
+import EmailStudioCardOrganizer, { type EmailStudioCard } from "./EmailStudioCardOrganizer";
 import AdminSummaryCards from "@/app/admin/components/AdminSummaryCards";
 import AdminPageLayout, { AdminPageHeader } from "@/app/admin/components/AdminPageLayout";
 import { bouncedBackSystemKey } from "@/lib/client-communications/bounce-core";
@@ -73,18 +74,16 @@ export default async function EmailStudioPage({ searchParams }: { searchParams: 
   const formatHealthTime = (value: Date | null | undefined) => value
     ? value.toLocaleString("en-US", { timeZone: "America/Denver", timeZoneName: "short" })
     : "No event recorded";
-  return <AdminPageLayout
-    header={<AdminPageHeader eyebrow="Client communications" title="Bulk Email Studio" description="Create polished updates for all clients, selected groups, or individual recipients—with a test step and unsubscribe protection built in." />}
-    summary={<AdminSummaryCards items={[
-      { label: "Eligible recipients", value: eligibleClients.length, detail: "Subscribed, valid, and not suppressed" },
-      { label: "Scheduled campaigns", value: campaigns.filter(item=>item.status==="SCHEDULED").length, detail: "Awaiting delivery" },
-      { label: "Recently sent", value: campaigns.filter(item=>item.status==="SENT").length, detail: "Within recent campaign history", tone: "good" },
-      { label: "Confirmed delivery", value: confirmedDeliveryRate === null ? null : `${confirmedDeliveryRate}%`, detail: metrics.providerAccepted ? `${metrics.delivered} of ${metrics.providerAccepted} provider-accepted messages confirmed delivered` : "No provider-accepted messages in recent history" },
-    ]}/>}
-  >
-    {(["OWNER", "ADMIN"].includes(session.role)) && <Link href="/admin/email-studio/monthly-summaries" className="mb-7 block rounded-2xl border border-white/10 bg-[#111] p-5 transition hover:border-white/25"><p className="text-xs uppercase tracking-[0.16em] text-[var(--helios-orange)]">Client experience</p><h2 className="mt-2 text-xl font-light text-white">Monthly Media Summaries →</h2><p className="mt-2 text-sm text-white/45">Review each client’s monthly purchases, preview their email, and manage delivery.</p></Link>}
-    {(["OWNER", "ADMIN"].includes(session.role)) && <Link href="/admin/events" className="mb-7 block rounded-2xl border border-white/10 bg-[#111] p-5 transition hover:border-white/25"><p className="text-xs uppercase tracking-[0.16em] text-[var(--helios-orange)]">Client gatherings</p><h2 className="mt-2 text-xl font-light text-white">Event Invitations →</h2><p className="mt-2 text-sm text-white/45">Prepare invitations, track yes/no RSVPs, and schedule thoughtful follow-ups.</p></Link>}
-    <section id="analytics-health" className="mb-7 scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-5" aria-labelledby="analytics-health-title">
+  const cards: EmailStudioCard[] = [];
+  if (["OWNER", "ADMIN"].includes(session.role)) {
+    cards.push(
+      { id: "client-experience", label: "Client experience", content: <Link href="/admin/email-studio/monthly-summaries" className="block rounded-2xl border border-white/10 bg-[#111] p-5 transition hover:border-white/25"><p className="text-xs uppercase tracking-[0.16em] text-[var(--helios-orange)]">Client experience</p><h2 className="mt-2 text-xl font-light text-white">Monthly Media Summaries →</h2><p className="mt-2 text-sm text-white/45">Review each client’s monthly purchases, preview their email, and manage delivery.</p></Link> },
+      { id: "client-gatherings", label: "Client gatherings", content: <Link href="/admin/events" className="block rounded-2xl border border-white/10 bg-[#111] p-5 transition hover:border-white/25"><p className="text-xs uppercase tracking-[0.16em] text-[var(--helios-orange)]">Client gatherings</p><h2 className="mt-2 text-xl font-light text-white">Event Invitations →</h2><p className="mt-2 text-sm text-white/45">Prepare invitations, track yes/no RSVPs, and schedule thoughtful follow-ups.</p></Link> },
+    );
+  }
+  cards.push(
+    { id: "analytics-health", label: "Analytics health", content: (
+      <section id="analytics-health" className="scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-5" aria-labelledby="analytics-health-title">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
         <div><p className="text-xs uppercase tracking-[0.16em] text-[var(--helios-orange)]">Analytics health</p><h2 id="analytics-health-title" className="mt-2 text-xl font-light text-white">Provider-confirmed reporting</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-white/40">Helios counts a message as delivered only after a provider delivery event. Acceptance means the provider received the request, not that the message reached the inbox.</p></div>
         <dl className="grid grid-cols-3 gap-2 text-center">
@@ -94,7 +93,9 @@ export default async function EmailStudioPage({ searchParams }: { searchParams: 
         </dl>
       </div>
     </section>
-    <section className="mb-7 rounded-2xl border border-white/[0.08] bg-[#111] p-5" aria-labelledby="webhook-health-title">
+    ) },
+    { id: "webhook-health", label: "Webhook health", content: (
+      <section className="rounded-2xl border border-white/[0.08] bg-[#111] p-5" aria-labelledby="webhook-health-title">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div><p className="text-xs uppercase tracking-[0.16em] text-[var(--helios-orange)]">Webhook health</p><h2 id="webhook-health-title" className="mt-2 text-xl font-light text-white">Resend event ingestion</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-white/40">Delivery reporting is reconciled from recipient-level provider events. Duplicate replays are safe and never send email.</p></div>
         <div className="rounded-xl border border-white/[0.07] bg-black/20 px-4 py-3 text-right"><p className="text-[0.55rem] uppercase tracking-[0.12em] text-white/25">Unmatched events</p><p className={`mt-1 text-lg ${unmatchedWebhookCount ? "text-amber-100/70" : "text-emerald-200/75"}`}>{unmatchedWebhookCount}</p></div>
@@ -105,6 +106,18 @@ export default async function EmailStudioPage({ searchParams }: { searchParams: 
       </dl>
       <div className="mt-4"><p className="text-xs text-white/30">Recent processing failures</p>{webhookFailures.length ? <ul className="mt-2 space-y-2">{webhookFailures.map((failure) => <li key={failure.providerEventId} className="rounded-lg border border-red-300/10 bg-red-300/[0.03] px-3 py-2 text-xs text-red-100/60">{failure.eventType} · {formatHealthTime(failure.receivedAt)} · {failure.reason || "Retryable processing error"}</li>)}</ul> : <p className="mt-2 text-sm text-emerald-200/60">No recent processing failures.</p>}</div>
     </section>
+    ) },
+  );
+  return <AdminPageLayout
+    header={<AdminPageHeader eyebrow="Client communications" title="Bulk Email Studio" description="Create polished updates for all clients, selected groups, or individual recipients—with a test step and unsubscribe protection built in." />}
+    summary={<AdminSummaryCards items={[
+      { label: "Eligible recipients", value: eligibleClients.length, detail: "Subscribed, valid, and not suppressed" },
+      { label: "Scheduled campaigns", value: campaigns.filter(item=>item.status==="SCHEDULED").length, detail: "Awaiting delivery" },
+      { label: "Recently sent", value: campaigns.filter(item=>item.status==="SENT").length, detail: "Within recent campaign history", tone: "good" },
+      { label: "Confirmed delivery", value: confirmedDeliveryRate === null ? null : `${confirmedDeliveryRate}%`, detail: metrics.providerAccepted ? `${metrics.delivered} of ${metrics.providerAccepted} provider-accepted messages confirmed delivered` : "No provider-accepted messages in recent history" },
+    ]}/>}
+  >
+    <EmailStudioCardOrganizer workspaceId={session.workspaceId} userId={session.userId} cards={cards} />
     <BulkEmailStudio
       clients={eligibleClients.map((client) => ({ id: client.id, firstName: client.firstName, lastName: client.lastName, displayName: client.displayName, email: client.email, phone: client.phone, groupIds: client.groupMemberships.map((membership) => membership.groupId) }))}
       groups={groups.map((group) => ({ id: group.id, name: group.name, count: eligibleClients.filter(client => client.groupMemberships.some(membership => membership.groupId === group.id)).length }))}
