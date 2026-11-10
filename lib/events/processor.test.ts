@@ -12,6 +12,7 @@ import * as bounce from "../client-communications/bounce-core.ts";
 import * as themes from "./themes.ts";
 import * as personalization from "./personalization.ts";
 import * as emailFormat from "../client-communications/email-format.ts";
+import * as updates from "./updates-core.ts";
 
 const secret = "event-test-secret-".repeat(4);
 function moduleUnderTest(file:string,mocks:Record<string,unknown>) {
@@ -42,7 +43,7 @@ function fixture(responses=["PENDING"]) {
   const invitations:any[]=responses.map((response,i)=>({id:`invite${i}`,eventId:event.id,clientId:`client${i}`,email:`client${i}@example.com`,response,encryptedToken:core.encrypt(core.newToken(),secret)}));
   const clients:any[]=invitations.map(i=>({id:i.clientId,normalizedEmail:i.email,workspaceId:event.workspaceId,archivedAt:null,emailSubscribed:true,emailStatus:"VALID",bounced:false}));
   const messages:any[]=[];const sends:any[]=[];const suppressions:any[]=[];const preferences:any[]=[];const webhookEvents:any[]=[];const memberships:any[]=[];const renders:any[]=[];
-  const blocked=new Set<string>();let failSend=false;let dueHook:(()=>void)|undefined;let tokenCount=0;
+  const blocked=new Set<string>();let failSend=false;let dueHook:(()=>void)|undefined;let payloadHook:(()=>void)|undefined;let tokenCount=0;
   const clone=(value:any)=>structuredClone(value);
   const hydrate=(message:any)=>({...message,invitation:invitations.find(i=>i.id===message.invitationId),delivery:{...deliveries.find(d=>d.id===message.deliveryId),event}});
   const update=(rows:any[],args:any)=>{const found=rows.filter(row=>matches(row,args.where));found.forEach(row=>patch(row,args.data));return {count:found.length};};
@@ -62,7 +63,7 @@ function fixture(responses=["PENDING"]) {
       createMany:async({data}:any)=>{for(const row of data)if(!messages.some(m=>m.deliveryId===row.deliveryId && m.invitationId===row.invitationId))messages.push({...row,id:`message${messages.length}`,status:"PENDING",attempts:0,firstAttemptAt:null,claimedAt:null,encryptedPayload:null});},
       findMany:async({where,take}:any)=>clone(messages.map(hydrate).filter(m=>matches(m,where)).slice(0,take)),
       findFirst:async({where}:any)=>clone(messages.map(hydrate).find(m=>matches(m,where))||null),
-      updateMany:async(args:any)=>update(messages,args),
+      updateMany:async(args:any)=>{const result=update(messages,args);if(args.data.encryptedPayload){payloadHook?.();payloadHook=undefined;}return result;},
       count:async({where}:any)=>messages.map(hydrate).filter(m=>matches(m,where)).length,
     },
     communicationSuppression:{upsert:async(args:any)=>{suppressions.push(args.create);blocked.add(args.create.normalizedEmail);return args.create;}},
@@ -74,12 +75,13 @@ function fixture(responses=["PENDING"]) {
   const site={getSiteUrl:()=>"https://studio.example.com"};
   const campaign=moduleUnderTest("../client-communications/email.ts",{"server-only":{},"@/lib/site":site,"@/lib/newsletters/presentation":{},"./providers/resend":{},"./email-format":emailFormat});
   const email=moduleUnderTest("./email.ts",{"server-only":{},"@/lib/site":site,"@/lib/client-communications/email":campaign,"./themes":themes,"./personalization":personalization});
+  const updateEmail=moduleUnderTest("./updates-email.ts",{"server-only":{},"./email":email,"./updates-core":updates});
   const mocks={"@/lib/client-communications/resend-webhook-core":webhookCore,"server-only":{},"node:crypto":crypto,"@/lib/prisma":{prisma},"@/lib/client-communications/bounce-core":bounce,"@/lib/client-communications/preferences":{
     addressIsMarketingEligible:async(email:string)=>!blocked.has(email),createPreferenceToken:async()=>`unsubscribe-${++tokenCount}`,setMarketingPreference:async(input:any)=>preferences.push(input),
-  },"@/lib/client-communications/providers/resend":{sendEmail:async(input:any)=>{sends.push(clone(input));if(failSend)throw new Error("timeout after possible acceptance");return {messageId:`provider-${input.idempotencyKey}`};}},"@/lib/site":site,"./core":core,"./policy":policy,"./email":{renderEventEmail:(...args:any[])=>{renders.push(clone(args));return email.renderEventEmail(...args);}}};
+  },"@/lib/client-communications/providers/resend":{sendEmail:async(input:any)=>{sends.push(clone(input));if(failSend)throw new Error("timeout after possible acceptance");return {messageId:`provider-${input.idempotencyKey}`};}},"@/lib/site":site,"./core":core,"./policy":policy,"./updates-core":updates,"./updates-email":{renderEventUpdate:(...args:any[])=>{renders.push(clone(args));return updateEmail.renderEventUpdate(...args);}},"./email":{renderEventEmail:(...args:any[])=>{renders.push(clone(args));return email.renderEventEmail(...args);}}};
   const {processEventDeliveries}=moduleUnderTest("./delivery.ts",mocks);
   const {processEventWebhook}=moduleUnderTest("./webhook.ts",mocks);
-  return {event,deliveries,invitations,clients,messages,sends,renders,suppressions,preferences,webhookEvents,memberships,blocked,processEventDeliveries,processEventWebhook,setFailSend:(v:boolean)=>{failSend=v;},setDueHook:(f:()=>void)=>{dueHook=f;},expireLease:()=>messages.forEach(m=>{m.claimedAt=new Date(Date.now()-360000);}),addStage:(stage:string)=>deliveries.push({id:stage,eventId:event.id,stage,status:"SCHEDULED",scheduledAt:new Date(Date.now()-1000)})};
+  return {event,deliveries,invitations,clients,messages,sends,renders,suppressions,preferences,webhookEvents,memberships,blocked,processEventDeliveries,processEventWebhook,setFailSend:(v:boolean)=>{failSend=v;},setDueHook:(f:()=>void)=>{dueHook=f;},setPayloadHook:(f:()=>void)=>{payloadHook=f;},expireLease:()=>messages.forEach(m=>{m.claimedAt=new Date(Date.now()-360000);}),addStage:(stage:string)=>deliveries.push({id:stage,eventId:event.id,stage,status:"SCHEDULED",scheduledAt:new Date(Date.now()-1000)})};
 }
 
 test("real processor sends initial exactly once across repeated and concurrent cron invocations",async()=>{
@@ -139,4 +141,37 @@ test("real retry ceiling holds uncertain delivery without another provider call"
 
 test("real processor follows up with Maybe invitees but does not send attendance reminders",async()=>{
  const f=fixture(["MAYBE"]);await f.processEventDeliveries();assert.equal(f.sends.length,1);f.addStage("FOLLOW_UP");await f.processEventDeliveries();assert.equal(f.sends.length,2);f.addStage("REMINDER");await f.processEventDeliveries();assert.equal(f.sends.length,2);
+});
+
+function addUpdate(f: ReturnType<typeof fixture>, audience = "ALL_INVITED", id = "143ee54a-1fa2-4e22-b629-ef2861b5b0b4") {
+ const stage=updates.eventUpdateStage(id);f.addStage(stage);const delivery=f.deliveries.at(-1)!;
+ Object.assign(delivery,{updateSubject:"A new update for {{FIRST_NAME}}",updateBody:"Partners are welcome. Update your RSVP.",updateAudience:audience});return delivery;
+}
+test("extra event update reaches previously invited Yes/No/Maybe/Pending guests without changing original stages",async()=>{
+ const f=fixture(["YES","NO","MAYBE","PENDING"]);await f.processEventDeliveries();const originals=structuredClone(f.deliveries);const originalTokens=f.invitations.map(i=>i.encryptedToken);addUpdate(f);await f.processEventDeliveries();
+ assert.equal(f.sends.length,8);assert.deepEqual(f.deliveries.slice(0,1),originals);assert.deepEqual(f.invitations.map(i=>i.encryptedToken),originalTokens);
+ for(let i=0;i<4;i++){const sent=f.sends[4+i];assert.equal(sent.to,f.invitations[i].email);assert.equal(sent.subject,"A new update for there");assert(sent.html.includes("Partners are welcome"));assert(sent.html.includes(`token=${core.decrypt(originalTokens[i],secret)}`));}
+ await f.processEventDeliveries();assert.equal(f.sends.length,8);
+});
+test("event update response targeting and suppression are rechecked and invalid audiences fail closed",async()=>{
+ for(const audience of ["YES","PENDING_OR_MAYBE","unknown"]){const f=fixture(["YES","NO","MAYBE","PENDING"]);await f.processEventDeliveries();addUpdate(f,audience);f.blocked.add("client3@example.com");await f.processEventDeliveries();assert.deepEqual(f.sends.slice(4).map(s=>s.to),audience==="YES"?["client0@example.com"]:audience==="PENDING_OR_MAYBE"?["client2@example.com"]:[]);}
+ const f=fixture(["PENDING"]);await f.processEventDeliveries();addUpdate(f,"PENDING_OR_MAYBE");f.invitations[0].response="YES";await f.processEventDeliveries();assert.equal(f.sends.length,1);
+});
+test("update requires a sent initial and cancelled updates do not dispatch",async()=>{
+ const f=fixture();f.deliveries[0].status="CANCELLED";addUpdate(f);await f.processEventDeliveries();assert.equal(f.sends.length,0);assert.equal(f.messages[0].status,"SKIPPED");
+ const cancelled=fixture();await cancelled.processEventDeliveries();addUpdate(cancelled).status="CANCELLED";await cancelled.processEventDeliveries();assert.equal(cancelled.sends.length,1);
+});
+test("update retries keep frozen copy/provider keys and cannot resend after cancellation",async()=>{
+ const f=fixture();await f.processEventDeliveries();const update=addUpdate(f);f.setFailSend(true);await f.processEventDeliveries();const sent=structuredClone(f.sends[1]);update.updateSubject="Changed behind retry";update.updateBody="Changed copy";f.expireLease();f.setFailSend(false);await f.processEventDeliveries();assert.deepEqual(f.sends[2],sent);
+ const cancelled=fixture();await cancelled.processEventDeliveries();const target=addUpdate(cancelled);cancelled.setFailSend(true);await cancelled.processEventDeliveries();target.status="CANCELLED";cancelled.expireLease();cancelled.setFailSend(false);await cancelled.processEventDeliveries();assert.equal(cancelled.sends.length,2);
+});
+test("update cancellation after payload freeze is rechecked before provider dispatch",async()=>{
+ const f=fixture();await f.processEventDeliveries();const update=addUpdate(f);f.setPayloadHook(()=>{update.status="CANCELLED";});await f.processEventDeliveries();assert.equal(f.sends.length,1);assert(f.messages[1].encryptedPayload);assert.equal(f.messages[1].status,"SKIPPED");
+});
+test("malformed update content fails closed without falling back to an initial invitation",async()=>{
+ for(const value of [null,"", "x".repeat(3001)]){const f=fixture();await f.processEventDeliveries();addUpdate(f).updateBody=value;await f.processEventDeliveries();assert.equal(f.sends.length,1);assert.equal(f.messages[1].status,"FAILED");assert.equal(f.messages[1].encryptedPayload,null);}
+});
+test("update retries recheck response, address, suppression and workspace against frozen payload",async()=>{
+ const changes=[(f:ReturnType<typeof fixture>)=>{f.invitations[0].response="NO";},(f:ReturnType<typeof fixture>)=>{f.clients[0].normalizedEmail="changed@example.com";},(f:ReturnType<typeof fixture>)=>{f.blocked.add(f.invitations[0].email);},(f:ReturnType<typeof fixture>)=>{f.clients[0].workspaceId="other";}];
+ for(const change of changes){const f=fixture(["YES"]);await f.processEventDeliveries();addUpdate(f,"YES");f.setFailSend(true);await f.processEventDeliveries();change(f);f.expireLease();f.setFailSend(false);await f.processEventDeliveries();assert.equal(f.sends.length,2);assert.equal(f.messages[1].status,"SKIPPED");}
 });

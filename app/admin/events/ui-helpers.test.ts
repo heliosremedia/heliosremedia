@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createEventForm, resetEventEmailStage, setEventEmailField, eventAppearance, eventImageUploadError, selectEventImage, displayDate, localDateTime, responseCounts } from "./ui-helpers.ts";
+import { attendanceCounts, createEventForm, invitationPartySize, resetEventEmailStage, setEventEmailField, eventAppearance, eventImageUploadError, selectEventImage, displayDate, localDateTime, responseCounts } from "./ui-helpers.ts";
 import { getEventEmailCopy } from "../../../lib/events/themes.ts";
 import { zonedLocalToUtc } from "../../../lib/client-communications/scheduling.ts";
 
@@ -18,6 +18,20 @@ test("event editor round-trips the chosen timezone, independent of browser timez
 test("RSVP summary counts yes, no, maybe and pending separately", () => {
   assert.deepEqual(responseCounts([{ response: "YES" }, { response: "NO" }, { response: "YES" }, { response: "PENDING" }, { response: "MAYBE" }]), { total: 5, yes: 2, no: 1, maybe: 1, pending: 1 });
   assert.deepEqual(responseCounts(), { total: 0, yes: 0, no: 0, maybe: 0, pending: 0 });
+});
+
+test("attendance totals include each invitee exactly once and keep confirmed and tentative parties separate", () => {
+  const invitations = [{ response: "YES", additionalGuests: 2 }, { response: "YES" }, { response: "MAYBE", additionalGuests: 3 }, { response: "MAYBE", additionalGuests: 0 }, { response: "NO", additionalGuests: 8 }, { response: "PENDING", additionalGuests: 5 }];
+  assert.deepEqual(responseCounts(invitations), { total: 6, yes: 2, maybe: 2, no: 1, pending: 1 });
+  assert.deepEqual(attendanceCounts(invitations), { confirmedPeople: 4, confirmedExtraGuests: 2, tentativePeople: 5, tentativeExtraGuests: 3 });
+  assert.deepEqual(attendanceCounts(), { confirmedPeople: 0, confirmedExtraGuests: 0, tentativePeople: 0, tentativeExtraGuests: 0 });
+});
+
+test("party sizes ignore missing or invalid legacy counts and exclude declined or pending invitations", () => {
+  assert.equal(invitationPartySize({ response: "YES", additionalGuests: 99 }), 100);
+  assert.equal(invitationPartySize({ response: "MAYBE", additionalGuests: 1 }), 2);
+  for (const value of [undefined, -1, 1.5, 100, NaN, Infinity]) assert.equal(invitationPartySize({ response: "YES", additionalGuests: value }), 1);
+  for (const response of ["NO", "PENDING", "UNKNOWN"]) assert.equal(invitationPartySize({ response, additionalGuests: 2 }), 0);
 });
 
 

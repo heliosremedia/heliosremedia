@@ -9,6 +9,7 @@ import * as crypto from "node:crypto";
 import * as themes from "./themes.ts";
 import * as personalization from "./personalization.ts";
 import * as core from "./core.ts";
+import * as guestCounts from "./guest-counts.ts";
 import * as images from "./images.ts";
 import * as emailFormat from "../client-communications/email-format.ts";
 
@@ -92,9 +93,9 @@ test("raster validation checks real bytes rather than declared MIME, dimensions 
 });
 test("RSVP GET is private/read-only and only explicit POST stores MAYBE",async()=>{
   let writes=0;const event={...base,startsAt:future,timeZone:"America/Denver",templateKey:"EASTER",imageUrl,imageAlt:"Flowers",venueUrl:"https://venue.example.com",workspaceId:"secret-workspace",emailContent:{INITIAL:{subject:"private"}}};
-  const invitation={id:"invite",eventId:"event",email:"secret@example.com",response:"PENDING",event};
-  const prisma:any={eventInvitation:{findFirst:async()=>invitation,update:async()=>{writes++;}},eventInvitationEvent:{updateMany:async()=>({count:1})}};prisma.$transaction=async(fn:any)=>fn(prisma);
-  const route=load("../../app/api/events/rsvp/route.ts",{"next/server":next,"@/lib/prisma":{prisma},"@/lib/events/themes":themes,"@/lib/events/core":core});
+  const invitation={id:"invite",eventId:"event",email:"secret@example.com",response:"PENDING",additionalGuests:0,event};
+  const prisma:any={eventInvitation:{findFirst:async()=>invitation,findUnique:async()=>invitation,update:async({data}:any)=>{writes++;Object.assign(invitation,data);return {response:invitation.response,additionalGuests:invitation.additionalGuests};}},eventInvitationEvent:{updateMany:async()=>({count:1})}};prisma.$transaction=async(fn:any)=>fn(prisma);
+  const route=load("../../app/api/events/rsvp/route.ts",{"next/server":next,"@/lib/prisma":{prisma},"@/lib/events/themes":themes,"@/lib/events/core":core,"@/lib/events/guest-counts":guestCounts});
   const get=await route.GET({headers:{get:()=>`Bearer ${"a".repeat(43)}`}});assert.equal(writes,0);assert.equal(get.data.event.templateKey,"EASTER");assert.equal(get.headers["Referrer-Policy"],"no-referrer");assert(!JSON.stringify(get.data).includes("secret"));assert(!("emailContent" in get.data.event));
   const post=await route.POST(request({token:"a".repeat(43),response:"MAYBE"}));assert.equal(post.status,200);assert.equal(post.data.response,"MAYBE");assert.equal(writes,1);
 });

@@ -1,4 +1,5 @@
 import { normalizeEventTemplateKey, normalizeEventEmailContent, type EventEmailContent, type EventEmailStage, type EventTemplateKey } from "../../../lib/events/themes.ts";
+import { isAdditionalGuestCount } from "../../../lib/events/guest-counts.ts";
 
 export type EventAppearanceFields = { templateKey: EventTemplateKey; imageUrl: string; imageAlt: string };
 export type EventEditorData = { title: string; description: string; location: string; venueUrl?: string | null; emailContent?: unknown; startsAt: string | null; endsAt: string | null; timeZone: string; mode: string; clientIds?: string[]; groupIds?: string[]; selection?: { clientIds?: string[]; groupIds?: string[] }; templateKey?: unknown; imageUrl?: string | null; imageAlt?: string | null };
@@ -55,4 +56,20 @@ export function displayDate(value: string | null, timeZone: string): string {
 
 export function responseCounts(invitations: { response: string }[] = []) {
   return { total: invitations.length, yes: invitations.filter(i => i.response === "YES").length, no: invitations.filter(i => i.response === "NO").length, maybe: invitations.filter(i => i.response === "MAYBE").length, pending: invitations.filter(i => i.response === "PENDING").length };
+}
+
+type AttendanceInvitation = { response: string; additionalGuests?: number };
+
+export function invitationPartySize(invitation: AttendanceInvitation): number {
+  if (invitation.response !== "YES" && invitation.response !== "MAYBE") return 0;
+  return 1 + (isAdditionalGuestCount(invitation.additionalGuests) ? invitation.additionalGuests : 0);
+}
+
+export function attendanceCounts(invitations: AttendanceInvitation[] = []) {
+  return invitations.reduce((counts, invitation) => {
+    const size = invitationPartySize(invitation);
+    if (invitation.response === "YES") { counts.confirmedPeople += size; counts.confirmedExtraGuests += size - 1; }
+    if (invitation.response === "MAYBE") { counts.tentativePeople += size; counts.tentativeExtraGuests += size - 1; }
+    return counts;
+  }, { confirmedPeople: 0, confirmedExtraGuests: 0, tentativePeople: 0, tentativeExtraGuests: 0 });
 }

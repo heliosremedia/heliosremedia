@@ -37,7 +37,7 @@ Choose an optional image from the event media picker or upload a JPG/PNG, add a 
 - Uses existing `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, Resend sender settings and `CRON_SECRET`. `AUTH_SECRET` must be stable and at least 32 characters; rotating it makes existing encrypted invitation links/payloads unreadable.
 - `/api/cron/events` is authenticated and registered in `vercel.json`. Scheduling is explicit and new tables contain no schedules or recipients by default. Deployment alone sends nothing.
 - RSVP uses random 256-bit tokens, hashes for lookup and encrypted tokens/payloads at rest. The email link carries its token in a fragment, not a query string. The public page removes it from the address bar, excludes analytics, has noindex/no-referrer metadata and uses no-store API responses. Refreshing the cleaned page requires reopening the original email link.
-- GET requests never change RSVP status. Only explicit Yes/No POST submissions do.
+- GET requests never change RSVP status. Only explicit Yes/No/Maybe POST submissions do.
 - The outbox uses per-message claims, frozen payloads and stable provider idempotency keys. Uncertain sends are held after bounded retry/retention limits; they are not automatically resent indefinitely.
 - Resend webhook handling associates event provider IDs and honors permanent bounce/complaint suppression. Early unmatched provider IDs request redelivery rather than being permanently discarded.
 - Delivery is queued on a five-minute cron, not a promise that every recipient receives mail at the exact scheduled minute. Inspect failed/uncertain records before any manual operational retry.
@@ -45,3 +45,13 @@ Choose an optional image from the event media picker or upload a JPG/PNG, add a 
 ## Verification
 
 Run `npm test`, `node --experimental-strip-types --test app/admin/events/ui-helpers.test.ts`, scoped ESLint, Prisma validation, TypeScript and production build. Existing repository-wide tests contain unrelated baseline failures; record exact results for the release. A live staging smoke test should cover create/edit draft, preview, disabled RSVP test link, explicit scheduling, Yes→No updates, response-aware reminders, cancellation and provider webhooks using only approved test recipients. Do not create or send a real event as a deployment test.
+
+## Party size and additional updates
+
+Guests can use their existing personal invitation link to record 0–99 additional guests with Yes or Maybe. The number excludes the invited client. No resets it to zero. Existing responses remain intact with zero extra guests, and older cached clients that omit the count preserve the latest saved count. Admin totals distinguish invited-client responses from confirmed people (Yes clients plus their guests) and tentative Maybe party sizes.
+
+For an already scheduled event, Send an event update creates a separate, repeatable message. Choose all previously invited guests, Yes replies, or pending/Maybe replies; write its subject/message, preview, choose the delivery time and explicitly confirm. Only eligible recipients whose initial invitation was successfully sent can receive it. Response and subscription eligibility are checked again at delivery. Existing invitation, follow-up and reminder schedules are unchanged.
+
+Additional update content/audience/time are frozen when scheduled. An unchanged retry uses the same request ID; a cancelled update is never reactivated. Pending updates can be cancelled individually, but accepted emails cannot be recalled. Preview is read-only; the separate test button sends only to its explicitly entered test address with RSVP links disabled.
+
+Before deploying this version apply additive migrations `20261110150000_event_invitation_guest_counts` and `20261110160000_event_invitation_updates`. They add a zero-default guest count and nullable update metadata without modifying existing schedules, responses, private links or frozen message payloads.
