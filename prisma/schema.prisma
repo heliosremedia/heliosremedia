@@ -3610,6 +3610,11 @@ model EventInvitationEvent {
   workspaceId String
   title       String
   description String
+  templateKey String            @default("CLASSIC")
+  imageUrl    String?
+  imageAlt    String?
+  emailContent Json?
+  venueUrl    String?
   location    String
   startsAt    DateTime
   endsAt      DateTime?

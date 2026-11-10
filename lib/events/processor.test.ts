@@ -70,7 +70,7 @@ function fixture(responses=["PENDING"]) {
   };
   const mocks={"@/lib/client-communications/resend-webhook-core":webhookCore,"server-only":{},"node:crypto":crypto,"@/lib/prisma":{prisma},"@/lib/client-communications/bounce-core":bounce,"@/lib/client-communications/preferences":{
     addressIsMarketingEligible:async(email:string)=>!blocked.has(email),createPreferenceToken:async()=>`unsubscribe-${++tokenCount}`,setMarketingPreference:async(input:any)=>preferences.push(input),
-  },"@/lib/client-communications/providers/resend":{sendEmail:async(input:any)=>{sends.push(clone(input));if(failSend)throw new Error("timeout after possible acceptance");return {messageId:`provider-${input.idempotencyKey}`};}},"@/lib/site":{getSiteUrl:()=>"https://studio.example.com"},"./core":core,"./policy":policy,"./email":{renderEventEmail:(e:any,stage:string,token:string,unsubscribe:string)=>({subject:e.title,html:`${stage}:${token}:${unsubscribe}`})}};
+  },"@/lib/client-communications/providers/resend":{sendEmail:async(input:any)=>{sends.push(clone(input));if(failSend)throw new Error("timeout after possible acceptance");return {messageId:`provider-${input.idempotencyKey}`};}},"@/lib/site":{getSiteUrl:()=>"https://studio.example.com"},"./core":core,"./policy":policy,"./email":{renderEventEmail:(e:any,stage:string,token:string,unsubscribe:string)=>({subject:e.title,html:`${stage}:${token}:${unsubscribe}:${JSON.stringify({templateKey:e.templateKey,imageUrl:e.imageUrl,emailContent:e.emailContent})}`})}};
   const {processEventDeliveries}=moduleUnderTest("./delivery.ts",mocks);
   const {processEventWebhook}=moduleUnderTest("./webhook.ts",mocks);
   return {event,deliveries,invitations,clients,messages,sends,suppressions,preferences,webhookEvents,memberships,blocked,processEventDeliveries,processEventWebhook,setFailSend:(v:boolean)=>{failSend=v;},setDueHook:(f:()=>void)=>{dueHook=f;},expireLease:()=>messages.forEach(m=>{m.claimedAt=new Date(Date.now()-360000);}),addStage:(stage:string)=>deliveries.push({id:stage,eventId:event.id,stage,status:"SCHEDULED",scheduledAt:new Date(Date.now()-1000)})};
@@ -90,7 +90,7 @@ test("real initial/follow-up/reminder sequence targets current RSVP responses",a
  const f=fixture(["PENDING","PENDING","PENDING"]);await f.processEventDeliveries();assert.equal(f.sends.length,3);f.invitations[1].response="YES";f.invitations[2].response="NO";f.addStage("FOLLOW_UP");await f.processEventDeliveries();assert.equal(f.sends.length,4);assert.equal(f.sends[3].to,"client0@example.com");f.invitations[0].response="NO";f.addStage("REMINDER");await f.processEventDeliveries();assert.equal(f.sends.length,5);assert.equal(f.sends[4].to,"client1@example.com");
 });
 test("real timeout retry preserves frozen payload and key, live lease blocks retry",async()=>{
- const f=fixture();f.setFailSend(true);await f.processEventDeliveries();assert.equal(f.messages[0].status,"SENDING");assert(f.messages[0].encryptedPayload);assert(f.messages[0].firstAttemptAt);await f.processEventDeliveries();assert.equal(f.sends.length,1);f.event.title="Changed after timeout";f.expireLease();f.setFailSend(false);await f.processEventDeliveries();assert.equal(f.sends.length,2);assert.deepEqual(f.sends[1],f.sends[0]);assert.equal(f.messages[0].status,"SENT");
+ const f=fixture();f.setFailSend(true);await f.processEventDeliveries();assert.equal(f.messages[0].status,"SENDING");assert(f.messages[0].encryptedPayload);assert(f.messages[0].firstAttemptAt);await f.processEventDeliveries();assert.equal(f.sends.length,1);f.event.title="Changed after timeout";f.event.templateKey="CHRISTMAS";f.event.imageUrl="https://media.example.com/new.png";f.event.emailContent={INITIAL:{body:"Changed after send"}};f.expireLease();f.setFailSend(false);await f.processEventDeliveries();assert.equal(f.sends.length,2);assert.deepEqual(f.sends[1],f.sends[0]);assert.equal(f.messages[0].status,"SENT");
 });
 test("real timeout beyond idempotency window becomes UNCERTAIN without resending",async()=>{
  const f=fixture();f.setFailSend(true);await f.processEventDeliveries();f.expireLease();f.messages[0].firstAttemptAt=new Date(Date.now()-21*3600000);await f.processEventDeliveries();assert.equal(f.sends.length,1);assert.equal(f.messages[0].status,"UNCERTAIN");assert.equal(f.deliveries[0].status,"FAILED");
@@ -109,4 +109,8 @@ test("real follow-up waits safely for unfinished initial then sends after recove
 });
 test("real retry ceiling holds uncertain delivery without another provider call",async()=>{
  const f=fixture();f.setFailSend(true);await f.processEventDeliveries();f.expireLease();f.messages[0].attempts=5;await f.processEventDeliveries();assert.equal(f.sends.length,1);assert.equal(f.messages[0].status,"UNCERTAIN");
+});
+
+test("real processor follows up with Maybe invitees but does not send attendance reminders",async()=>{
+ const f=fixture(["MAYBE"]);await f.processEventDeliveries();assert.equal(f.sends.length,1);f.addStage("FOLLOW_UP");await f.processEventDeliveries();assert.equal(f.sends.length,2);f.addStage("REMINDER");await f.processEventDeliveries();assert.equal(f.sends.length,2);
 });
