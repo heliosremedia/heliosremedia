@@ -10,7 +10,7 @@ import { uploadEventImage } from "./image-upload";
 
 const button = "rounded-xl border border-white/15 px-3 py-2.5 text-sm text-white/80 transition hover:border-white/40 focus-visible:outline-2 focus-visible:outline-[var(--helios-orange)] disabled:cursor-not-allowed disabled:opacity-40";
 
-export default function EventAppearance({ value, title, disabled, onTemplateChange, onImageChange, onAltChange, onUploadingChange }: {
+export default function EventAppearance({ value, title, disabled, onTemplateChange, onImageChange, onAltChange, onUploadingChange, onPreview }: {
   value: EventAppearanceFields;
   title: string;
   disabled: boolean;
@@ -18,6 +18,7 @@ export default function EventAppearance({ value, title, disabled, onTemplateChan
   onImageChange: (image: { url: string; altText?: string | null } | null) => void;
   onAltChange: (alt: string) => void;
   onUploadingChange: (uploading: boolean) => void;
+  onPreview: () => void;
 }) {
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -55,7 +56,7 @@ export default function EventAppearance({ value, title, disabled, onTemplateChan
 
   return <fieldset className="border-t border-white/10 pt-6" disabled={disabled}>
     <legend className="pr-3 text-xs uppercase tracking-widest text-[var(--helios-orange)]">02 / Set the mood</legend>
-    <div className="mt-2 flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-xl font-light text-white">A little more occasion.</h3><p className="mt-2 max-w-xl text-sm leading-6 text-white/50">Choose a holiday look or keep it classic. Your invitation, reminders, and RSVP page will share the same style.</p></div><span className="rounded-full border border-white/10 px-3 py-1 text-[10px] uppercase tracking-widest text-white/45">Helios collection</span></div>
+    <div className="mt-2 flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-xl font-light text-white">A little more occasion.</h3><p className="mt-2 max-w-xl text-sm leading-6 text-white/50">Choose a holiday look or keep it classic. Your invitation, reminders, and RSVP page will share the same style.</p></div><button type="button" className={`${button} border-orange-300/40 text-orange-100`} disabled={uploading} onClick={onPreview}>Preview invitation</button></div>
     <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-3">
       {EVENT_THEMES.map(option => <label key={option.key} className={`relative cursor-pointer overflow-hidden rounded-xl border transition focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--helios-orange)] ${value.templateKey === option.key ? "border-white/65 ring-1 ring-white/20" : "border-white/10 hover:border-white/35"}`}>
         <input className="sr-only" type="radio" name="event-template" value={option.key} checked={value.templateKey === option.key} onChange={() => onTemplateChange(option.key)} />
@@ -83,7 +84,7 @@ export default function EventAppearance({ value, title, disabled, onTemplateChan
       {error && <p role="alert" className="mt-3 rounded-lg border border-red-200/20 bg-red-200/5 p-3 text-sm text-red-100">{error}</p>}
       {value.imageUrl && <label className="mt-4 block text-xs text-white/60">Image description for accessibility<input className="mt-2 w-full rounded-xl border border-white/15 bg-[#171717] px-3 py-3 text-sm text-white outline-none focus:border-[var(--helios-orange)]" maxLength={300} value={value.imageAlt} onChange={event => onAltChange(event.target.value)} placeholder="Describe what’s in the image" /><span className="mt-2 block text-[11px] text-white/40">Shown if an email blocks images and read by screen readers.</span></label>}
     </div>
-    <p className="mt-4 text-xs leading-5 text-white/45">Save your draft, then choose “Preview email” to review the full invitation before sending.</p>
+    <p className="mt-4 text-xs leading-5 text-white/45">Preview your invitation with any seasonal style before saving. Your current details, image, and email wording are included.</p>
     {libraryOpen && <EventImageLibrary onClose={() => setLibraryOpen(false)} onChoose={image => { onImageChange(image); setLibraryOpen(false); }} />}
   </fieldset>;
 }
