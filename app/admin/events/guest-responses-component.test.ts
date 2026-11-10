@@ -7,7 +7,7 @@ import ts from "typescript";
 import * as helpers from "./ui-helpers.ts";
 import * as themes from "../../../lib/events/themes.ts";
 
-type Invitation = { id: string; response: "YES" | "NO" | "MAYBE" | "PENDING"; displayName?: string; email?: string; client?: { id: string; displayName: string; email: string } };
+type Invitation = { id: string; response: "YES" | "NO" | "MAYBE" | "PENDING"; additionalGuests?: number; displayName?: string; email?: string; client?: { id: string; displayName: string; email: string } };
 const invitations: Invitation[] = [
   { id: "yes-client", response: "YES", client: { id: "ada", displayName: "Ada Client", email: "ada@example.test" } },
   { id: "yes-snapshot", response: "YES", displayName: "Sam Snapshot", email: "sam@example.test" },
@@ -18,8 +18,8 @@ const invitations: Invitation[] = [
 
 // Exercise the real EventStudio state, handlers and request boundary without a DOM dependency.
 // Browser-native keyboard activation and layout receive separate browser QA.
-function mount(guests: Invitation[] = invitations) {
-  const event = { id: "holiday", title: "Holiday gathering", description: "A festive evening", location: "The studio", startsAt: "2030-12-15T18:00:00Z", endsAt: null, timeZone: "UTC", status: "SCHEDULED", mode: "ALL", invitations: guests };
+function mount(guests: Invitation[] = invitations, deliveries: { id: string; stage: string; status: string; scheduledAt: string; updateSubject?: string }[] = []) {
+  const event = { id: "holiday", title: "Holiday gathering", description: "A festive evening", location: "The studio", startsAt: "2030-12-15T18:00:00Z", endsAt: null, timeZone: "UTC", status: "SCHEDULED", mode: "ALL", invitations: guests, deliveries };
   const slots: any[] = [], calls: { path: string; method: string; body: unknown }[] = [];
   let cursor = 0, dirty = true, tree: any, jobs: (() => void)[] = [];
   let deferDetail = false, pendingDetail: ((response: Response) => void) | undefined;
@@ -41,7 +41,7 @@ function mount(guests: Invitation[] = invitations) {
   const imports: any = {
     react: hooks, "react/jsx-runtime": { jsx, jsxs: jsx }, "./ui-helpers": helpers, "@/lib/events/themes": themes,
     "@/lib/client-communications/scheduling": { zonedLocalToUtc() { throw new Error("No scheduling expected"); } },
-    "./EventAppearance": {}, "./EventDraftPreview": {}, "./EventEmailCopy": {},
+    "./EventAppearance": {}, "./EventDraftPreview": {}, "./EventEmailCopy": {}, "./EventUpdateComposer": {},
   };
   const exports: any = {};
   const js = ts.transpileModule(readFileSync(new URL("./EventStudio.tsx", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
@@ -74,6 +74,8 @@ function mount(guests: Invitation[] = invitations) {
   async function expand() { if (!toggle().props["aria-expanded"]) { toggle().props.onClick(); await settle(); } }
   return {
     settle, openEvent, expand, find, button, toggle, panel, search, filter, guestRows, calls,
+    composer: () => nodes(tree).find(node => node.props?.event?.id === event.id && typeof node.props?.onEventChange === "function"),
+    text: () => text(tree),
     summary: () => text(section()),
     deferRefresh: () => { deferDetail = true; },
     completeRefresh: (nextGuests = guests) => { assert(pendingDetail); pendingDetail(Response.json({ event: { ...event, invitations: nextGuests } })); },
@@ -95,9 +97,52 @@ test("guest responses start collapsed with native keyboard semantics and visible
   await ui.expand();
   assert.equal(ui.toggle().props["aria-expanded"], true); assert.equal(ui.toggle().props["aria-label"], "Collapse guest responses");
   assert.equal(ui.panel().props.hidden, false); assert.equal(ui.guestRows().length, 166);
-  assert.match(ui.guestRows()[0], /Ada Clientada@example.testYes/);
+  assert.match(ui.guestRows()[0], /Ada Clientada@example.test\+0 guests · 1 person totalYes/);
   ui.toggle().props.onClick(); await ui.settle(); assert.equal(ui.panel().props.hidden, true);
   assert.equal(ui.calls.length, 2, "Toggling adds no requests"); ui.unmount();
+});
+
+test("headcounts stay visible while collapsed, include guests in the right party and survive filtering and refresh", async () => {
+  const guests = invitations.map(invitation => ({ ...invitation, additionalGuests: invitation.id === "yes-client" ? 2 : invitation.id === "yes-snapshot" ? 1 : invitation.id === "maybe" ? 4 : 9 }));
+  const ui = mount(guests); await ui.openEvent();
+  assert.match(ui.summary(), /Invited166Yes2Maybe1No1Awaiting reply162/);
+  assert.match(ui.summary(), /Confirmed total people5/);
+  assert.match(ui.summary(), /Confirmed extra guests3/);
+  assert.match(ui.summary(), /Tentative total people5/);
+  assert.match(ui.summary(), /Maybe responses, including 4 extra guests/);
+  await ui.expand();
+  assert.match(ui.guestRows()[0], /\+2 guests · 3 people totalYes/);
+  assert.match(ui.guestRows()[1], /\+1 guest · 2 people totalYes/);
+  assert.match(ui.guestRows()[2], /\+4 guests · 5 people total \(tentative\)Maybe/);
+  assert.doesNotMatch(ui.guestRows()[3], /guests|people total/);
+  assert.doesNotMatch(ui.guestRows()[4], /guests|people total/);
+  ui.filter().props.onChange({ target: { value: "MAYBE" } }); await ui.settle();
+  assert.equal(ui.guestRows().length, 1); assert.match(ui.summary(), /Confirmed total people5/);
+  ui.toggle().props.onClick(); await ui.settle();
+  ui.deferRefresh(); ui.button("Refresh").props.onClick(); await ui.settle();
+  ui.completeRefresh(guests.map(invitation => invitation.id === "yes-client" ? { ...invitation, additionalGuests: 5 } : invitation)); await ui.settle();
+  assert.equal(ui.toggle().props["aria-expanded"], false);
+  assert.match(ui.summary(), /Confirmed total people8/); assert.match(ui.summary(), /Confirmed extra guests6/);
+  await ui.expand(); assert.equal(ui.filter().props.value, "MAYBE"); assert.equal(ui.guestRows().length, 1);
+  assert(ui.calls.every(call => call.method === "GET")); ui.unmount();
+});
+
+test("extra update history belongs to its composer while regular deliveries retain their existing controls", async () => {
+  const deliveries = [
+    { id: "initial", stage: "INITIAL", status: "SENT", scheduledAt: "2030-11-01T18:00:00Z" },
+    { id: "update", stage: "UPDATE", status: "SCHEDULED", scheduledAt: "2030-11-02T18:00:00Z", updateSubject: "Parking details" },
+  ];
+  const ui = mount(invitations, deliveries); await ui.openEvent();
+  const composer = ui.composer(); assert(composer);
+  assert.equal(composer.props.defaultTestEmail, "review@example.test"); assert.equal(composer.props.disabled, false);
+  assert.equal(composer.props.event.deliveries.length, 2);
+  assert.match(ui.text(), /Initial invitation · Nov 1, 2030/); assert.doesNotMatch(ui.text(), /UPDATE ·/);
+  assert(ui.button("Cancel pending initial invitation"));
+  await ui.expand(); ui.filter().props.onChange({ target: { value: "YES" } }); await ui.settle();
+  composer.props.onEventChange({ ...composer.props.event, invitations: invitations.map(invitation => invitation.id === "yes-client" ? { ...invitation, additionalGuests: 2 } : invitation) }); await ui.settle();
+  assert.equal(ui.toggle().props["aria-expanded"], true); assert.equal(ui.filter().props.value, "YES");
+  assert.match(ui.summary(), /Confirmed total people4/);
+  assert.equal(ui.calls.length, 2, "Composer completion updates state without another send or automatic request"); ui.unmount();
 });
 
 test("repeated collapse and expand retain search and response filters without changing totals or data", async () => {

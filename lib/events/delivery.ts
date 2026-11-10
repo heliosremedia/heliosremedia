@@ -8,6 +8,8 @@ import { getSiteUrl } from "@/lib/site";
 import { decrypt, encrypt, stageTargets } from "./core";
 import { replayDecision, dispatchOpen } from "./policy";
 import { renderEventEmail } from "./email";
+import { eventUpdateCopy, eventUpdateTargets, isEventUpdateStage } from "./updates-core";
+import { renderEventUpdate } from "./updates-email";
 
 export async function processEventDeliveries() {
   const now = new Date();
@@ -44,7 +46,9 @@ export async function processEventDeliveries() {
         const current = await prisma.eventInvitation.findUnique({where:{id:message.invitationId},include:{event:true}});
         const activeDelivery = await prisma.eventDelivery.findUnique({where:{id:delivery.id}});
         const client = current ? await prisma.communicationClient.findFirst({where:{id:current.clientId,workspaceMemberships:{some:{workspaceId:current.event.workspaceId}},archivedAt:null,emailSubscribed:true,emailStatus:"VALID",groupMemberships:{none:{group:{systemKey:bouncedBackSystemKey(current.event.workspaceId)}}}}}) : null;
-        if (!current || current.event.status !== "SCHEDULED" || current.event.startsAt <= new Date() || activeDelivery?.status !== "SCHEDULED" || activeDelivery.scheduledAt > new Date() || !stageTargets(delivery.stage,current.response) || !client || client.normalizedEmail !== current.email || !await addressIsMarketingEligible(current.email)) { await finish("SKIPPED","Recipient no longer eligible, response changed, or event closed."); continue; }
+        const isUpdate = isEventUpdateStage(delivery.stage);
+        const targets = current && (isUpdate ? eventUpdateTargets(activeDelivery?.updateAudience,current.response) : stageTargets(delivery.stage,current.response));
+        if (!current || current.event.status !== "SCHEDULED" || current.event.startsAt <= new Date() || activeDelivery?.status !== "SCHEDULED" || activeDelivery.scheduledAt > new Date() || !targets || !client || client.normalizedEmail !== current.email || !await addressIsMarketingEligible(current.email)) { await finish("SKIPPED","Recipient no longer eligible, response changed, or event closed."); continue; }
         if (delivery.stage !== "INITIAL" && !await prisma.eventDeliveryMessage.findFirst({where:{invitationId:current.id,status:"SENT",delivery:{stage:"INITIAL"}}})) {
           const initial = await prisma.eventDelivery.findUnique({where:{eventId_stage:{eventId:current.eventId,stage:"INITIAL"}}});
           if (initial?.status === "SCHEDULED") {
@@ -56,8 +60,16 @@ export async function processEventDeliveries() {
         const secret = process.env.AUTH_SECRET || "";
         if (message.encryptedPayload) payload = JSON.parse(decrypt(message.encryptedPayload,secret));
         else {
+          let updateCopy: ReturnType<typeof eventUpdateCopy> | undefined;
+          if (isUpdate) {
+            try { updateCopy = eventUpdateCopy(activeDelivery); }
+            catch { await finish("FAILED","Invalid event update settings. No email was sent."); continue; }
+          }
           const unsubscribeToken = await createPreferenceToken({clientId:client.id});
-          payload = {to:current.email,...renderEventEmail(current.event,delivery.stage,decrypt(current.encryptedToken,secret),unsubscribeToken,{recipientFirstName:client.firstName}),unsubscribeUrl:`${getSiteUrl()}/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`};
+          const token = decrypt(current.encryptedToken,secret);
+          const context = {recipientFirstName:client.firstName};
+          const rendered = updateCopy ? renderEventUpdate(current.event,updateCopy,token,unsubscribeToken,context) : renderEventEmail(current.event,delivery.stage,token,unsubscribeToken,context);
+          payload = {to:current.email,...rendered,unsubscribeUrl:`${getSiteUrl()}/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`};
           await prisma.eventDeliveryMessage.updateMany({where:{id:message.id,claimId},data:{encryptedPayload:encrypt(JSON.stringify(payload),secret)}});
         }
         // Persist before provider call so a crash/timeout retains the same content and key.

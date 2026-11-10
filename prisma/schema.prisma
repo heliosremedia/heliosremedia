@@ -3642,6 +3642,7 @@ model EventInvitation {
   tokenHash      String                 @unique
   encryptedToken String
   response       String                 @default("PENDING")
+  additionalGuests Int                  @default(0)
   respondedAt    DateTime?
   createdAt      DateTime               @default(now())
   messages       EventDeliveryMessage[]
@@ -3655,6 +3656,9 @@ model EventDelivery {
   eventId     String
   event       EventInvitationEvent   @relation(fields: [eventId], references: [id], onDelete: Cascade)
   stage       String
+  updateSubject String?
+  updateBody    String?
+  updateAudience String?
   scheduledAt DateTime
   status      String                 @default("SCHEDULED")
   createdAt   DateTime               @default(now())
