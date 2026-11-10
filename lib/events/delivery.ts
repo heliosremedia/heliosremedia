@@ -57,7 +57,7 @@ export async function processEventDeliveries() {
         if (message.encryptedPayload) payload = JSON.parse(decrypt(message.encryptedPayload,secret));
         else {
           const unsubscribeToken = await createPreferenceToken({clientId:client.id});
-          payload = {to:current.email,...renderEventEmail(current.event,delivery.stage,decrypt(current.encryptedToken,secret),unsubscribeToken),unsubscribeUrl:`${getSiteUrl()}/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`};
+          payload = {to:current.email,...renderEventEmail(current.event,delivery.stage,decrypt(current.encryptedToken,secret),unsubscribeToken,{recipientFirstName:client.firstName}),unsubscribeUrl:`${getSiteUrl()}/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`};
           await prisma.eventDeliveryMessage.updateMany({where:{id:message.id,claimId},data:{encryptedPayload:encrypt(JSON.stringify(payload),secret)}});
         }
         // Persist before provider call so a crash/timeout retains the same content and key.

@@ -14,9 +14,19 @@ Attendance is one Yes/No/Maybe response per invited client. Maybe replies remain
 
 Each draft has separate subject and message fields for Initial invitation, Follow-up and Day-before reminder. Leaving a field blank uses its stage-specific default. Preview each stage before scheduling. Custom messages are plain text; date, location, optional venue link, RSVP choices and unsubscribe information remain included automatically. Copy is locked after scheduling and does not rewrite frozen retry payloads.
 
+## AI writing and personalization
+
+In the draft email editor, Generate all three emails sends an allowlisted set of event facts and the chosen tone to the configured OpenAI service. Guest lists, client names/IDs, RSVP data, images and existing custom email copy are never included. Keep private guest information out of the event description. Generation is metered API usage, uses `store: false`, a single bounded request and a durable five-attempt limit per administrator per ten minutes. Failed and cancelled attempts consume a slot. No prompt or generated copy is recorded in quota audit metadata. `store: false` is not a zero-retention guarantee.
+
+Suggestions stay in an editable review panel until explicitly applied. Replacing customized email copy requires confirmation. Apply only changes local editor fields; Save draft remains separate. Cancellation, source changes and late responses cannot silently replace newer work. No AI action sends or schedules emails.
+
+Use Insert first name in the subject or message to insert `{{FIRST_NAME}}`. Previews and test emails show the sample name Alex without querying guests. Delivery uses the current eligible client’s first name, falling back to “there” when blank. Names are bounded, single-line and escaped as literal text, including in Classic Markdown. Recipient values are substituted only when the frozen delivery payload is first created; retries retain their original payload.
+
 ## Event appearance
 
 Drafts support Classic, Christmas, New Year, Thanksgiving, Halloween, Easter, Summer and Celebration themes. Theme colors carry through email previews, delivered invitations and the private RSVP screen. Existing events keep the Classic theme.
+
+Preview invitation beside the seasonal choices shows current unsaved details, artwork and email copy. Compare styles and stages at desktop/mobile widths; close to keep the original draft, or Use this style in draft to apply the chosen look locally. Missing details use clearly disclosed preview-only placeholders. The preview never creates or updates an event.
 
 Choose an optional image from the event media picker or upload a JPG/PNG, add a useful image description, and preview before scheduling. Only approved first-party media URLs are accepted; arbitrary external image hosts are rejected. Removing artwork leaves the selected theme in place. Images are optional, and all essential details and RSVP actions remain text. Appearance, like other event details, is locked after scheduling; frozen delivery payloads are not rewritten.
 

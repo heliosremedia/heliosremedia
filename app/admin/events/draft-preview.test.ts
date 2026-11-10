@@ -115,9 +115,9 @@ test("editor preview is non-submitting, sandboxed and closes without saving or a
   assert.match(appearance, /type="button"[^>]+onClick=\{onPreview\}>Preview invitation/);
   assert.match(studio, /<EventDraftPreview form=\{form\} onClose=\{\(\) => setDraftPreviewOpen\(false\)\}/);
   assert.match(studio, /onApplyStyle=\{templateKey => \{ field\("templateKey", templateKey\); setDraftPreviewOpen\(false\); \}\}/);
-  assert.match(component, /<iframe[^>]+sandbox=""[^>]+referrerPolicy="no-referrer"[^>]+tabIndex=\{0\}/);
+  assert.match(component, /<iframe[^>]+sandbox="allow-same-origin"[^>]+referrerPolicy="no-referrer"[^>]+tabIndex=\{0\}/);
   assert.match(component, /width === "MOBILE" \? 375 : 760/);
-  assert.match(component, /function close\(\) \{ loader.cancel\(\); onClose\(\); \}/);
+  assert.match(component, /function close\(\) \{ detachFrameKeyboard\(\); loader.cancel\(\); latestOnClose.current\(\); \}/);
   assert.doesNotMatch(component, /<button(?![^>]*type="button")/);
   assert.doesNotMatch(component, /save\(|schedule\(|emailAction\(/);
   assert.match(component, /dialog\?\.showModal\(\)/); assert.match(component, /previousFocus\?\.focus\(\)/);

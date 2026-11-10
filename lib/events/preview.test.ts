@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
 import * as themes from "./themes.ts";
+import * as personalization from "./personalization.ts";
 import * as emailFormat from "../client-communications/email-format.ts";
 
 const mediaBase = "https://media.example.com/assets";
@@ -18,7 +19,7 @@ function load(file: string, mocks: Record<string, unknown>) {
 const preview = load("./preview.ts",{"server-only":{},"./themes":themes});
 const site = {getSiteUrl:()=>"https://studio.example.com"};
 const campaign = load("../client-communications/email.ts",{"server-only":{},"@/lib/site":site,"@/lib/newsletters/presentation":{testEmailSubject:(s:string)=>s},"./providers/resend":new Proxy({}, {get:()=>{throw new Error("Email sending is forbidden");}}),"./email-format":emailFormat});
-const email = load("./email.ts",{"server-only":{},"@/lib/site":site,"@/lib/client-communications/email":campaign,"./themes":themes});
+const email = load("./email.ts",{"server-only":{},"@/lib/site":site,"@/lib/client-communications/email":campaign,"./themes":themes,"./personalization":personalization});
 const next = {NextResponse:{json:(data:unknown,options?:any)=>({data,status:options?.status || 200,headers:options?.headers})}};
 const api = load("./api.ts",{"next/server":next});
 let imageQueries: any[] = [];
@@ -56,6 +57,49 @@ test("blank drafts disclose sample values and retain provided content",async()=>
   assert(blank.data.html.includes("Your event title"));
   const filled = await route().POST(request({...base,imageUrl:null}));
   assert(filled.data.html.includes("New description &amp; details"));
+});
+test("draft preview uses a fixed Alex sample without reading client identity",async()=>{
+  for (const templateKey of themes.EVENT_TEMPLATE_KEYS) for (const stage of ["INITIAL","FOLLOW_UP","REMINDER"]) {
+    const result = await route().POST(request({...base,templateKey,stage,recipientFirstName:"Private recipient",emailContent:{[stage]:{subject:"For {{FIRST_NAME}}",body:"Hi {{FIRST_NAME}}, see you soon, {{FIRST_NAME}}."}}}));
+    assert.equal(result.status,200);
+    assert.equal(result.data.subject,"For Alex");
+    assert(result.data.html.includes("Hi Alex, see you soon, Alex."));
+    assert(!result.data.html.includes("Private recipient"));
+  }
+});
+test("all email styles and stages escape recipient names and keep link/image fields intact",()=>{
+  for (const templateKey of themes.EVENT_TEMPLATE_KEYS) for (const stage of ["INITIAL","FOLLOW_UP","REMINDER"]) {
+    const event = {...base,startsAt:new Date(base.startsAt),templateKey,imageUrl:`${mediaBase}/{{FIRST_NAME}}.png`,imageAlt:"Photo for {{FIRST_NAME}}",venueUrl:"https://venue.example.com/{{FIRST_NAME}}",emailContent:{[stage]:{subject:"{{FIRST_NAME}}, you're invited",body:"Hi {{FIRST_NAME}},\n\nThanks, {{FIRST_NAME}}."}}};
+    for (const name of ["李明", "<script>alert('x')</script> & \"O’Connor\"", "[Click](https://untrusted.example/) **Bold**", "Anna\r\nBcc: Other\u0000"]) {
+      const result = email.renderEventEmail(event,stage,"token-{{FIRST_NAME}}","unsubscribe-{{FIRST_NAME}}",{recipientFirstName:name});
+      assert(!/<script|https:\/\/untrusted\.example\/[^<]*"/.test(result.html));
+      assert(!/[\p{Cc}\p{Zl}\p{Zp}]/u.test(result.subject));
+      assert(result.html.includes("token=token-%7B%7BFIRST_NAME%7D%7D"));
+      assert(result.html.includes("token=unsubscribe-%7B%7BFIRST_NAME%7D%7D"));
+      assert(result.html.includes("https://venue.example.com/%7B%7BFIRST_NAME%7D%7D"));
+      assert(result.html.includes(`${mediaBase}/%7B%7BFIRST_NAME%7D%7D.png`));
+      assert(result.html.includes('alt="Photo for {{FIRST_NAME}}"'));
+      if (name.includes("<script>")) assert(result.html.includes("&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt; &amp; &quot;O’Connor&quot;"));
+      if (name.includes("[Click]")) assert(result.html.includes("[Click](https://untrusted.example/) **Bold**"));
+    }
+    for (const recipientFirstName of [undefined,null,""," \n "]) {
+      assert(email.renderEventEmail(event,stage,"live-token","unsubscribe",{recipientFirstName}).html.includes("Hi there,"));
+    }
+    assert(email.renderEventEmail(event,stage,"live-token").html.includes("Hi there,"));
+    assert(email.renderEventEmail(event,stage).html.includes("Hi Alex,"));
+    assert(email.renderEventEmail(event,stage,undefined,undefined,{}).html.includes("Hi there,"));
+  }
+});
+test("Classic literal-name markers cannot collide with authored copy, links or recipient names",()=>{
+  const marker="\uE000EVENTFIRSTNAME\uE001";
+  const firstName=`${marker} **Alex** & <safe>`;
+  const event={...base,startsAt:new Date(base.startsAt),templateKey:"CLASSIC",venueUrl:`https://venue.example.com/${marker}`,emailContent:{INITIAL:{subject:"For {{FIRST_NAME}}",body:`Keep ${marker} and ${marker}\uE001.\n\nHi {{FIRST_NAME}}. Keep [venue](https://venue.example.com/{{FIRST_NAME}}).`}}};
+  const result=email.renderEventEmail(event,"INITIAL","live-token","unsubscribe",{recipientFirstName:firstName});
+  assert(result.html.includes(`Keep ${marker} and ${marker}\uE001.`));
+  assert(result.html.includes(`Hi ${marker} **Alex** &amp; &lt;safe&gt;.`));
+  assert(result.html.includes('href="https://venue.example.com/{{FIRST_NAME}}"'));
+  assert(result.html.includes(`href="https://venue.example.com/${encodeURIComponent(marker)}"`));
+  assert(!result.html.includes("<strong>Alex</strong>"));
 });
 test("authentication runs before parsing or rendering and errors are private",async()=>{
   const denied = route(async()=>{throw new Error("Administrator access required.");});

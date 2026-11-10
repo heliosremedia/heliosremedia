@@ -2,6 +2,7 @@ import "server-only";
 import { renderCampaignEmail } from "@/lib/client-communications/email";
 import { getSiteUrl } from "@/lib/site";
 import { getEventTheme, getEventEmailCopy, normalizeEventEmailContent, safeEventImageUrl, safeEventVenueUrl } from "./themes";
+import { EVENT_PREVIEW_FIRST_NAME, eventRecipientFirstName, personalizeEventCopy, personalizeEventText } from "./personalization";
 
 type EventEmailInput = {
   title: string; description: string; location: string; startsAt: Date; timeZone: string;
@@ -14,9 +15,12 @@ function escape(value: string) {
 function textBody(value: string, color: string) {
   return value.split(/\n\s*\n/).map(paragraph => `<p style="margin:0 0 20px;color:${color};font-size:16px;line-height:1.7;overflow-wrap:anywhere">${escape(paragraph).replace(/\n/g,"<br>")}</p>`).join("");
 }
-export function renderEventEmail(event: EventEmailInput, stage: string, token?: string, unsubscribeToken = "test-preview-disabled") {
+export function renderEventEmail(event: EventEmailInput, stage: string, token?: string, unsubscribeToken = "test-preview-disabled", context?: { recipientFirstName?: string | null }) {
   const theme = getEventTheme(event.templateKey);
-  const { subject, body } = getEventEmailCopy(event, stage);
+  const copy = getEventEmailCopy(event, stage);
+  // No RSVP token means a test/preview, never a client lookup. Live missing names use "there".
+  const firstName = eventRecipientFirstName(context ? context.recipientFirstName : token ? null : EVENT_PREVIEW_FIRST_NAME);
+  const { subject, body } = personalizeEventCopy(copy, firstName);
   const date = new Intl.DateTimeFormat("en-US", {dateStyle:"full",timeStyle:"short",timeZone:event.timeZone}).format(event.startsAt);
   const imageUrl = safeEventImageUrl(event.imageUrl, [process.env.R2_PUBLIC_URL]);
   const venueUrl = safeEventVenueUrl(event.venueUrl);
@@ -31,7 +35,14 @@ export function renderEventEmail(event: EventEmailInput, stage: string, token?: 
   const rsvp = `<div style="margin-top:26px"><p style="color:${theme.heading};font-weight:bold;font-size:18px;margin:0 0 10px">Will you join us?</p>${choices}</div>`;
   const venue = venueUrl ? `<p style="margin:18px 0;font-size:16px"><a href="${escape(venueUrl)}" style="color:${theme.heading};text-decoration:underline">View venue website</a></p>` : "";
   if (theme.key === "CLASSIC") {
-    let html = renderCampaignEmail({body:`${body}\n\n${details}\n\n${instructions}`,unsubscribeToken,templateKey:"SIGNATURE",imageUrl,imageAlt:imageUrl ? event.imageAlt || event.title : null});
+    // The classic formatter supports Markdown. Keep recipient text literal until that
+    // formatter has finished, then HTML-escape it so a name cannot create a link/tag.
+    let marker = "\uE000EVENTFIRSTNAME\uE001";
+    const source = JSON.stringify([event, token, unsubscribeToken, getSiteUrl(), firstName]);
+    while (source.includes(marker)) marker += "\uE001";
+    const markedBody = personalizeEventText(copy.body, marker);
+    let html = renderCampaignEmail({body:`${markedBody}\n\n${details}\n\n${instructions}`,unsubscribeToken,templateKey:"SIGNATURE",imageUrl,imageAlt:imageUrl ? event.imageAlt || event.title : null});
+    html = html.split(marker).join(escape(firstName));
     html = html.replace('</div><p style="margin:26px', `${venue}${rsvp}</div><p style="margin:26px`);
     return { subject, html };
   }
