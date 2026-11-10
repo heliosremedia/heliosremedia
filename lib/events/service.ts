@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/auth/session";
 import { addressIsMarketingEligible } from "@/lib/client-communications/preferences";
 import { recordAuditEvent } from "@/lib/audit";
+import { safeEventImageUrl } from "./themes";
 import { defaultSchedule, encrypt, newToken, tokenHash } from "./core";
 
 export async function eventAdmin() {
@@ -65,4 +66,18 @@ export async function cancelEvent(id: string, workspaceId: string, stage?: strin
     await tx.eventDeliveryMessage.updateMany({where:{delivery:{eventId:id,...(stage ? {stage} : {})},status:"PENDING"},data:{status:"SKIPPED",error:"Cancelled by administrator."}});
   });
   return getEvent(id,workspaceId);
+}
+
+/** Do not allow an administrator to attach a different workspace's private asset. */
+export async function validateEventImageSelection(imageUrl: string | null, workspaceId: string) {
+  if (!imageUrl) return;
+  const base = process.env.R2_PUBLIC_URL;
+  const safe = safeEventImageUrl(imageUrl, [base]);
+  if (!safe || !base) throw new Error("Choose a JPEG or PNG from the image library, or upload an image.");
+  const root = new URL(base).pathname.replace(/\/+$/, "");
+  const storageKey = decodeURIComponent(new URL(safe).pathname.slice(root.length + 1));
+  const workspace = workspaceId.replace(/[^a-zA-Z0-9_-]/g, "");
+  if (new RegExp(`^events/${workspace}/[a-f0-9-]{36}\\.(?:jpg|png)$`).test(storageKey)) return;
+  const media = await prisma.media.findFirst({ where: { storageKey, sourceType: "UPLOADED_IMAGE", mimeType: { in: ["image/jpeg", "image/png"] }, visibility: "VISIBLE", project: { workspaceId, status: "PUBLISHED", archivedAt: null } }, select: { id: true } });
+  if (!media) throw new Error("Choose an image from this workspace's library, or upload an image.");
 }

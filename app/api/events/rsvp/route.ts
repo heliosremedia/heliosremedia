@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { normalizeEventTemplateKey, safeEventImageUrl, safeEventVenueUrl } from "@/lib/events/themes";
 import { tokenHash, validToken } from "@/lib/events/core";
 const headers = {"Cache-Control":"no-store, private","Referrer-Policy":"no-referrer","X-Robots-Tag":"noindex, nofollow"};
 async function resolve(token:unknown) {
@@ -8,7 +9,11 @@ async function resolve(token:unknown) {
 }
 function result(invitation:NonNullable<Awaited<ReturnType<typeof resolve>>>) {
   const {title,description,location,startsAt,endsAt,timeZone} = invitation.event;
-  return {success:true,event:{title,description,location,startsAt,endsAt,timeZone},response:invitation.response};
+  const templateKey = normalizeEventTemplateKey(invitation.event.templateKey);
+  const imageUrl = safeEventImageUrl(invitation.event.imageUrl, [process.env.R2_PUBLIC_URL]);
+  const imageAlt = imageUrl ? invitation.event.imageAlt || title : null;
+  const venueUrl = safeEventVenueUrl(invitation.event.venueUrl);
+  return {success:true,event:{title,description,location,startsAt,endsAt,timeZone,templateKey,imageUrl,imageAlt,venueUrl},response:invitation.response};
 }
 export async function GET(request:Request) {
   const invitation = await resolve(request.headers.get("authorization")?.replace(/^Bearer /i,""));
@@ -17,7 +22,7 @@ export async function GET(request:Request) {
 export async function POST(request:Request) {
   try {
     const input = await request.json();
-    if (!["YES","NO"].includes(input.response)) return NextResponse.json({success:false,error:"Choose Yes or No."},{status:400,headers});
+    if (!["YES","NO","MAYBE"].includes(input.response)) return NextResponse.json({success:false,error:"Choose Yes, No, or Maybe."},{status:400,headers});
     const invitation = await resolve(input.token);
     if (!invitation) return NextResponse.json({success:false,error:"Invitation unavailable, cancelled, or expired."},{status:404,headers});
     // Lock event row so a concurrent cancellation cannot race a response write.
