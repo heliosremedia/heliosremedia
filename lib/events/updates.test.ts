@@ -8,6 +8,7 @@ import * as updates from "./updates-core.ts";
 import * as themes from "./themes.ts";
 import * as personalization from "./personalization.ts";
 import * as emailFormat from "../client-communications/email-format.ts";
+import * as preferenceRules from "../client-communications/preference-rules.ts";
 
 const requestId = "143ee54a-1fa2-4e22-b629-ef2861b5b0b4";
 const secondId = "243ee54a-1fa2-4e22-b629-ef2861b5b0b4";
@@ -69,17 +70,21 @@ test("update renderer reuses every theme and original RSVP token without mutatin
   }
 });
 
-function fixture() {
+function fixture(responses = ["YES","NO","MAYBE","PENDING"]) {
   const event = baseEvent();
   const deliveries:any[] = ["INITIAL","FOLLOW_UP","REMINDER"].map((stage,index)=>({id:`original-${index}`,eventId:event.id,stage,status:index ? "SCHEDULED" : "COMPLETED",scheduledAt:new Date(Date.now()+(index-1)*3600000),updateSubject:null,updateBody:null,updateAudience:null}));
-  const invitations:any[] = ["YES","NO","MAYBE","PENDING"].map((response,index)=>({clientId:`client${index}`,email:`client${index}@example.com`,response,sent:true}));
-  const clients = invitations.map(invitation=>({id:invitation.clientId,normalizedEmail:invitation.email,eligible:true}));
-  const blocked = new Set<string>();const messages:any[]=[];const reads:any[]=[];let lockHook: (()=>void) | undefined;
+  const invitations:any[] = responses.map((response,index)=>({eventId:event.id,workspaceId:event.workspaceId,clientId:`client${index}`,email:`client${index}@example.com`,response,sent:true}));
+  const clients = invitations.map(invitation=>({id:invitation.clientId,normalizedEmail:invitation.email,eligible:true,workspaceId:event.workspaceId,archivedAt:null as Date|null,emailSubscribed:true,emailStatus:"VALID",bounced:false}));
+  const blocked = new Set<string>();const preferences=new Map<string,string>();const suppressions:{normalizedEmail:string;releasedAt:Date|null}[]=[];
+  const messages:any[]=[];const reads:any[]=[];const readModels:string[]=[];let lockHook: (()=>void) | undefined;
+  const recordRead=(model:string,args:any)=>{reads.push(args);readModels.push(model);};
   const clone = (value:any)=>structuredClone(value);
   const getEvent = async(id:string,workspaceId:string)=>{if(id!==event.id || workspaceId!==event.workspaceId) throw new Error("Event not found.");return clone({...event,deliveries});};
   const prisma:any = {
-    eventInvitation:{findMany:async(args:any)=>{reads.push(args);return clone(invitations.filter(invitation=>invitation.sent));}},
-    communicationClient:{findMany:async(args:any)=>{reads.push(args);return clone(clients.filter(client=>client.eligible && args.where.id.in.includes(client.id)));}},
+    eventInvitation:{findMany:async(args:any)=>{recordRead("eventInvitation",args);return clone(invitations.filter(invitation=>invitation.sent && invitation.eventId===args.where.eventId && invitation.workspaceId===args.where.event.workspaceId));}},
+    communicationClient:{findMany:async(args:any)=>{recordRead("communicationClient",args);return clone(clients.filter(client=>client.eligible && args.where.id.in.includes(client.id) && client.workspaceId===args.where.workspaceMemberships.some.workspaceId && client.archivedAt===args.where.archivedAt && client.emailSubscribed===args.where.emailSubscribed && client.emailStatus===args.where.emailStatus && !client.bounced));}},
+    marketingEmailPreference:{findMany:async(args:any)=>{recordRead("marketingEmailPreference",args);return [...preferences].filter(([address])=>args.where.normalizedEmail.in.includes(address)).map(([normalizedEmail,status])=>({normalizedEmail,status}));}},
+    communicationSuppression:{findMany:async(args:any)=>{recordRead("communicationSuppression",args);return [...suppressions,...[...blocked].map(normalizedEmail=>({normalizedEmail,releasedAt:null}))].filter(suppression=>args.where.normalizedEmail.in.includes(suppression.normalizedEmail) && suppression.releasedAt===args.where.releasedAt).map(({normalizedEmail})=>({normalizedEmail}));}},
     eventInvitationEvent:{updateMany:async({where,data}:any)=>{
       lockHook?.();lockHook=undefined;
       if(where.id!==event.id || where.workspaceId!==event.workspaceId || (where.status && where.status!==event.status) || (where.updatedAt && +where.updatedAt!==+event.updatedAt) || (where.startsAt && !(event.startsAt>where.startsAt.gt))) return {count:0};
@@ -90,9 +95,9 @@ function fixture() {
   };
   let previous = Promise.resolve();
   prisma.$transaction = async(work:any)=>{const waiting=previous;let done!:()=>void;previous=new Promise<void>(resolve=>{done=resolve;});await waiting;try{return await work(prisma);}finally{done();}};
-  const service = load("./updates-service.ts",{"server-only":{},"@/lib/prisma":{prisma},"@/lib/client-communications/bounce-core":{bouncedBackSystemKey:(id:string)=>`bounce-${id}`},"@/lib/client-communications/preferences":{addressIsMarketingEligible:async(email:string)=>!blocked.has(email)},"./service":{getEvent},"./updates-core":updates});
+  const service = load("./updates-service.ts",{"server-only":{},"@/lib/prisma":{prisma},"@/lib/client-communications/bounce-core":{bouncedBackSystemKey:(id:string)=>`bounce-${id}`},"@/lib/client-communications/preference-rules":preferenceRules,"./service":{getEvent},"./updates-core":updates});
   const input = {...copy,requestId,scheduledAt:new Date(Date.now()+3600000).toISOString()};
-  return {event,deliveries,invitations,clients,blocked,messages,reads,service,input,setLockHook:(hook:()=>void)=>{lockHook=hook;}};
+  return {event,deliveries,invitations,clients,blocked,preferences,suppressions,messages,reads,readModels,prisma,service,input,setLockHook:(hook:()=>void)=>{lockHook=hook;}};
 }
 test("audience count is bounded to sent original invitations and rechecks response, address and marketing eligibility",async()=>{
   const f=fixture();assert.equal(await f.service.eventUpdateAudienceCount("event","workspace","ALL_INVITED"),4);
@@ -102,6 +107,41 @@ test("audience count is bounded to sent original invitations and rechecks respon
   assert.equal(await f.service.eventUpdateAudienceCount("event","workspace","ALL_INVITED"),0);
   assert.equal(f.reads[0].where.event.workspaceId,"workspace");assert.equal(f.reads[0].where.messages.some.status,"SENT");assert.equal(f.reads[0].where.messages.some.delivery.stage,"INITIAL");
   assert.equal(f.reads[1].where.workspaceMemberships.some.workspaceId,"workspace");assert.equal(f.reads[1].where.emailSubscribed,true);assert.equal(f.reads[1].where.emailStatus,"VALID");assert.equal(f.reads[1].where.groupMemberships.none.group.systemKey,"bounce-workspace");
+});
+test("1,000-recipient audience counts use four bounded reads instead of per-recipient eligibility queries",async()=>{
+  const f=fixture(Array.from({length:1000},()=>"PENDING"));
+  for(let index=0;index<1000;index++){
+    const email=f.invitations[index].email;
+    if(index%4===0)f.preferences.set(email,"UNSUBSCRIBED");
+    if(index%4===1)f.suppressions.push({normalizedEmail:email,releasedAt:null});
+    if(index%4===2)f.suppressions.push({normalizedEmail:email,releasedAt:new Date(0)});
+  }
+  assert.equal(await f.service.eventUpdateAudienceCount("event","workspace","ALL_INVITED"),500);
+  assert.deepEqual(f.readModels,["eventInvitation","communicationClient","marketingEmailPreference","communicationSuppression"]);
+  for(const query of f.reads.slice(2)){assert.equal(query.where.normalizedEmail.in.length,1000);assert.equal(new Set(query.where.normalizedEmail.in).size,1000);assert.equal(query.where.workspaceId,undefined);}
+  assert.equal(f.reads[3].where.releasedAt,null);
+  assert.deepEqual(Object.keys(f.reads[2].select).sort(),["normalizedEmail","status"]);assert.deepEqual(Object.keys(f.reads[3].select),["normalizedEmail"]);
+});
+test("bulk eligibility preserves every preference status, missing preferences and active versus released suppressions",async()=>{
+  const states=[undefined,"SUBSCRIBED","UNSUBSCRIBED","SUPPRESSED","PENDING_CONFIRMATION","UNKNOWN"];
+  for(const status of states)for(const suppression of ["none","active","released","released-and-active"]){
+    const f=fixture(["YES"]),email=f.invitations[0].email;
+    if(status)f.preferences.set(email,status);
+    if(suppression.includes("released"))f.suppressions.push({normalizedEmail:email,releasedAt:new Date(0)});
+    if(suppression.includes("active"))f.suppressions.push({normalizedEmail:email,releasedAt:null});
+    const expected=preferenceRules.marketingStatusAllowsSend(status) && !suppression.includes("active");
+    assert.equal(await f.service.eventUpdateAudienceCount("event","workspace","YES"),expected?1:0,`${status || "missing"} / ${suppression}`);
+  }
+});
+test("bulk eligibility retains workspace/client/sent-initial constraints and short-circuits empty audiences",async()=>{
+  const changes=[(f:ReturnType<typeof fixture>)=>{f.invitations[0].sent=false;},(f:ReturnType<typeof fixture>)=>{f.invitations[0].workspaceId="other";},(f:ReturnType<typeof fixture>)=>{f.clients[0].workspaceId="other";},(f:ReturnType<typeof fixture>)=>{f.clients[0].archivedAt=new Date();},(f:ReturnType<typeof fixture>)=>{f.clients[0].emailSubscribed=false;},(f:ReturnType<typeof fixture>)=>{f.clients[0].emailStatus="BOUNCED";},(f:ReturnType<typeof fixture>)=>{f.clients[0].bounced=true;},(f:ReturnType<typeof fixture>)=>{f.clients[0].normalizedEmail="changed@example.com";},(f:ReturnType<typeof fixture>)=>{f.invitations[0].response="NO";}];
+  for(const change of changes){const f=fixture(["YES"]);change(f);assert.equal(await f.service.eventUpdateAudienceCount("event","workspace","YES"),0);assert(f.readModels.length<=2);assert(!f.readModels.includes("marketingEmailPreference"));assert(!f.readModels.includes("communicationSuppression"));}
+  const empty=fixture([]);assert.equal(await empty.service.eventUpdateAudienceCount("event","workspace","ALL_INVITED"),0);assert.deepEqual(empty.readModels,["eventInvitation"]);
+  const scoped=fixture(["YES","NO"]);scoped.clients[1].normalizedEmail="changed@example.com";scoped.preferences.set("unrelated@example.com","UNSUBSCRIBED");await scoped.service.eventUpdateAudienceCount("event","workspace","ALL_INVITED");
+  for(const query of scoped.reads.slice(2))assert.deepEqual(Array.from(query.where.normalizedEmail.in),["client0@example.com"]);
+});
+test("bulk eligibility read failures abort counting and do not assume recipients are eligible",async()=>{
+  for(const model of ["marketingEmailPreference","communicationSuppression"]){const f=fixture();f.prisma[model].findMany=async()=>{throw new Error("Eligibility read failed");};await assert.rejects(f.service.eventUpdateAudienceCount("event","workspace","ALL_INVITED"),/Eligibility read failed/);}
 });
 test("new and repeated update schedules leave original three rows unchanged and dedupe concurrent requests",async()=>{
   const f=fixture(),original=structuredClone(f.deliveries);

@@ -1,7 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { bouncedBackSystemKey } from "@/lib/client-communications/bounce-core";
-import { addressIsMarketingEligible } from "@/lib/client-communications/preferences";
+import { marketingStatusAllowsSend } from "@/lib/client-communications/preference-rules";
 import { getEvent } from "./service";
 import { EventUpdateConflict, eventUpdateDate, eventUpdateInput, eventUpdateStage, eventUpdateTargets, isEventUpdateStage, type EventUpdateAudience, type EventUpdateCopy } from "./updates-core";
 
@@ -12,9 +12,18 @@ export async function eventUpdateAudienceCount(eventId: string, workspaceId: str
   if (!candidates.length) return 0;
   const clients = await prisma.communicationClient.findMany({where:{id:{in:candidates.map(invitation => invitation.clientId)},workspaceMemberships:{some:{workspaceId}},archivedAt:null,emailSubscribed:true,emailStatus:"VALID",groupMemberships:{none:{group:{systemKey:bouncedBackSystemKey(workspaceId)}}}},select:{id:true,normalizedEmail:true}});
   const emails = new Map(clients.map(client => [client.id,client.normalizedEmail]));
-  let count = 0;
-  for (const invitation of candidates) if (emails.get(invitation.clientId) === invitation.email && await addressIsMarketingEligible(invitation.email)) count++;
-  return count;
+  const eligibleCandidates = candidates.filter(invitation => emails.get(invitation.clientId) === invitation.email);
+  if (!eligibleCandidates.length) return 0;
+  const addresses = [...new Set(eligibleCandidates.map(invitation => invitation.email))];
+  // Preferences and suppressions are global by normalized address, exactly as in
+  // addressIsMarketingEligible. Bulk reads keep this preview/scheduling count bounded.
+  const [preferences, suppressions] = await Promise.all([
+    prisma.marketingEmailPreference.findMany({where:{normalizedEmail:{in:addresses}},select:{normalizedEmail:true,status:true}}),
+    prisma.communicationSuppression.findMany({where:{normalizedEmail:{in:addresses},releasedAt:null},select:{normalizedEmail:true}}),
+  ]);
+  const statuses = new Map(preferences.map(preference => [preference.normalizedEmail,preference.status]));
+  const suppressed = new Set(suppressions.map(suppression => suppression.normalizedEmail));
+  return eligibleCandidates.filter(invitation => !suppressed.has(invitation.email) && marketingStatusAllowsSend(statuses.get(invitation.email))).length;
 }
 
 type SavedUpdate = { status: string; scheduledAt: Date; updateSubject: string | null; updateBody: string | null; updateAudience: string | null };
