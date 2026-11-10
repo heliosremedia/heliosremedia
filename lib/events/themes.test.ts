@@ -133,3 +133,28 @@ test("gallery reads and media attachment enforce active workspace ownership",asy
   await assert.rejects(()=>service.validateEventImageSelection(`${mediaBase}/projects/id/photo.jpg`,"workspace"));
   assert.equal(mediaQuery.where.project.workspaceId,"workspace");assert.equal(mediaQuery.where.storageKey,"projects/id/photo.jpg");
 });
+
+test("default initial copy shows one visible event title across every theme",()=>{
+  for(const templateKey of themes.EVENT_TEMPLATE_KEYS) for(const emailContent of [undefined,null,{}, {INITIAL:{subject:"A special invitation",body:""}}]) {
+    const result=email.renderEventEmail({...base,startsAt:future,timeZone:"America/Denver",templateKey,emailContent},"INITIAL");
+    const visible=result.html.replace(/<head>[\s\S]*?<\/head>/,"");
+    assert.equal(visible.split("Holiday &lt;Party&gt;").length-1,1,`${templateKey}: ${JSON.stringify(emailContent)}`);
+    assert(visible.includes("Bring a friend &amp; celebrate."));
+  }
+});
+test("legacy null copy avoids duplicate themed headings in every email stage",()=>{
+  for(const templateKey of themes.EVENT_TEMPLATE_KEYS) for(const stage of core.STAGES) {
+    const result=email.renderEventEmail({...base,startsAt:future,timeZone:"America/Denver",templateKey,emailContent:null},stage);
+    const visible=result.html.replace(/<head>[\s\S]*?<\/head>/,"");
+    assert.equal(visible.split("Holiday &lt;Party&gt;").length-1,1,`${templateKey}: ${stage}`);
+  }
+});
+test("customized stage bodies retain title prefixes even when identical to generated copy",()=>{
+  for(const templateKey of themes.EVENT_TEMPLATE_KEYS) for(const stage of core.STAGES) {
+    const customBody=`${base.title}\n\n${base.description}`;
+    const result=email.renderEventEmail({...base,startsAt:future,timeZone:"America/Denver",templateKey,emailContent:{[stage]:{body:customBody}}},stage);
+    const visible=result.html.replace(/<head>[\s\S]*?<\/head>/,"");
+    assert.equal(visible.split("Holiday &lt;Party&gt;").length-1,templateKey === "CLASSIC" ? 1 : 2,`${templateKey}: ${stage}`);
+    assert(visible.includes("Bring a friend &amp; celebrate."));
+  }
+});
