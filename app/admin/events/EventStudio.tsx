@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { zonedLocalToUtc } from "@/lib/client-communications/scheduling";
 import { createEventForm, displayDate, responseCounts, selectEventImage, type EventEditorForm } from "./ui-helpers";
 import EventAppearance from "./EventAppearance";
+import EventDraftPreview from "./EventDraftPreview";
 import EventEmailCopy from "./EventEmailCopy";
 import { getEventTheme } from "@/lib/events/themes";
 
@@ -36,6 +37,7 @@ export default function EventStudio({ defaultTestEmail }: { defaultTestEmail: st
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [imageBusy, setImageBusy] = useState(false);
+  const [draftPreviewOpen, setDraftPreviewOpen] = useState(false);
   const [previewWidth, setPreviewWidth] = useState<"DESKTOP" | "MOBILE">("DESKTOP");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -60,10 +62,10 @@ export default function EventStudio({ defaultTestEmail }: { defaultTestEmail: st
     try { await work(); } catch (e) { setError(e instanceof Error ? e.message : "Something went wrong."); } finally { setBusy(false); }
   }
   async function open(id: string) {
-    await act(async () => { const data = await request(`/api/admin/events/${id}`); setSelected(data.event); setEditing(false); setPreview(null); setConfirmed(false); setSchedule(""); });
+    await act(async () => { const data = await request(`/api/admin/events/${id}`); setSelected(data.event); setEditing(false); setDraftPreviewOpen(false); setPreview(null); setConfirmed(false); setSchedule(""); });
   }
   function edit(event: Event | null) {
-    setImageBusy(false); setSelected(event); setEditing(true); setError(""); setMessage(""); setPreview(null); setConfirmed(false);
+    setDraftPreviewOpen(false); setImageBusy(false); setSelected(event); setEditing(true); setError(""); setMessage(""); setPreview(null); setConfirmed(false);
     setForm(createEventForm(event));
   }
   function field<K extends keyof Form>(key: K, value: Form[K]) { setForm(previous => ({ ...previous, [key]: value })); }
@@ -115,7 +117,8 @@ export default function EventStudio({ defaultTestEmail }: { defaultTestEmail: st
         <label className="block text-sm text-white/70">Time zone<select className={input} value={form.timeZone} onChange={e => field("timeZone", e.target.value)}>{zones.map(zone => <option key={zone}>{zone}</option>)}</select></label>
         <label className="block text-sm text-white/70">Location<input className={input} required maxLength={500} value={form.location} onChange={e => field("location", e.target.value)} placeholder="Venue and address" /></label>
         <label className="block text-sm text-white/70">Venue website · optional<input className={input} type="url" maxLength={2000} value={form.venueUrl} onChange={e => field("venueUrl", e.target.value)} placeholder="https://venue-website.com" /><span className="mt-2 block text-xs text-white/45">Give guests a link to the venue, directions, or parking details. Use an HTTPS website.</span></label>
-        <EventAppearance key={selected?.id || "new"} value={form} title={form.title} disabled={busy} onTemplateChange={value => field("templateKey", value)} onImageChange={image => setForm(previous => selectEventImage(previous, image))} onAltChange={value => field("imageAlt", value)} onUploadingChange={setImageBusy} />
+        <EventAppearance key={selected?.id || "new"} value={form} title={form.title} disabled={busy} onTemplateChange={value => field("templateKey", value)} onImageChange={image => setForm(previous => selectEventImage(previous, image))} onAltChange={value => field("imageAlt", value)} onUploadingChange={setImageBusy} onPreview={() => setDraftPreviewOpen(true)} />
+        {draftPreviewOpen && <EventDraftPreview form={form} onClose={() => setDraftPreviewOpen(false)} onApplyStyle={templateKey => { field("templateKey", templateKey); setDraftPreviewOpen(false); }} />}
         <EventEmailCopy key={`copy-${selected?.id || "new"}`} title={form.title} description={form.description} value={form.emailContent} disabled={busy} onChange={value => field("emailContent", value)} />
         <fieldset className="border-t border-white/10 pt-6"><legend className="pr-3 text-xs uppercase tracking-widest text-[var(--helios-orange)]">04 / Guest list</legend><div className="mt-3 flex flex-wrap gap-3">{[["ALL", "All eligible clients"], ["GROUPS", "Selected groups"], ["INDIVIDUALS", "Individual clients"]].map(([value, label]) => <label key={value} className="flex items-center gap-2 text-sm text-white/70"><input type="radio" name="audience" checked={form.mode === value} onChange={() => field("mode", value)} />{label}</label>)}</div><p className="mt-3 text-xs leading-5 text-white/45">Only subscribed, valid, non-suppressed email addresses are eligible. Recipients are finalized when you schedule.</p>
           {form.mode !== "ALL" && <div className="mt-4 max-h-60 space-y-2 overflow-auto rounded-xl border border-white/10 p-3">{(form.mode === "GROUPS" ? groups : clients).map(item => { const key = form.mode === "GROUPS" ? "groupIds" : "clientIds"; return <label key={item.id} className="flex items-start gap-3 rounded-lg p-2 text-sm text-white/70 hover:bg-white/5"><input type="checkbox" className="mt-1" checked={form[key].includes(item.id)} onChange={e => field(key, e.target.checked ? [...form[key], item.id] : form[key].filter(id => id !== item.id))} /><span>{"name" in item ? item.name : item.displayName || item.email}{"email" in item && <span className="block text-xs text-white/40">{item.email}</span>}</span></label>; })}{(form.mode === "GROUPS" ? groups : clients).length === 0 && <p className="text-sm text-white/45">No eligible {form.mode === "GROUPS" ? "groups" : "clients"} available.</p>}</div>}
