@@ -19,7 +19,17 @@ export async function processEventDeliveries() {
   let sent = 0; let processed = 0;
   for (const delivery of due) {
     if (!dispatchOpen({eventStatus:delivery.event.status,deliveryStatus:delivery.status,startsAt:delivery.event.startsAt,scheduledAt:delivery.scheduledAt},+now)) {
-      await prisma.eventDelivery.update({where:{id:delivery.id},data:{status:"CANCELLED"}}); continue;
+      // A due-list snapshot may predate unschedule/edit/reschedule. Never overwrite
+      // a paused or newly rescheduled delivery from that stale snapshot.
+      await prisma.$transaction(async tx => {
+        const locked = await tx.eventInvitationEvent.updateMany({where:{id:delivery.eventId},data:{updatedAt:new Date()}});
+        if (!locked.count) return;
+        const fresh = await tx.eventDelivery.findUnique({where:{id:delivery.id},include:{event:true}});
+        if (fresh?.status === "SCHEDULED" && (fresh.event.status === "CANCELLED" || fresh.event.startsAt <= new Date())) {
+          await tx.eventDelivery.updateMany({where:{id:delivery.id,status:"SCHEDULED"},data:{status:"CANCELLED"}});
+        }
+      });
+      continue;
     }
     const invitations = await prisma.eventInvitation.findMany({where:{eventId:delivery.eventId},select:{id:true}});
     const started = await prisma.$transaction(async tx => {

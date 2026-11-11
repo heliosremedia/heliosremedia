@@ -17,6 +17,6 @@ export async function POST(request:Request,ctx:{params:Promise<{eventId:string}>
       await sendTestCampaign({to,...renderEventEmail(event,input.stage),source:"test"}); await auditEvent(s,eventId,"TEST_SENT"); return NextResponse.json({success:true,message:`Test sent to ${to}. RSVP is disabled.`});
     }
     if (input.action !== "schedule") throw new Error("Choose preview, test, schedule, or cancel.");
-    const updated = await scheduleEvent(eventId,s.workspaceId,input.stage,new Date(input.scheduledAt)); await auditEvent(s,eventId,"SCHEDULED"); return NextResponse.json({success:true,event:updated,message:"Delivery schedule saved. No email was sent by this request."});
+    const updated = await scheduleEvent(eventId,s.workspaceId,input.stage,new Date(input.scheduledAt),input.deliveryTimes); await auditEvent(s,eventId,"SCHEDULED"); return NextResponse.json({success:true,event:updated,message:"Delivery schedule saved. No email was sent by this request."});
   } catch(e) { return eventError(e); }
 }

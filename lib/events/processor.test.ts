@@ -175,3 +175,11 @@ test("update retries recheck response, address, suppression and workspace agains
  const changes=[(f:ReturnType<typeof fixture>)=>{f.invitations[0].response="NO";},(f:ReturnType<typeof fixture>)=>{f.clients[0].normalizedEmail="changed@example.com";},(f:ReturnType<typeof fixture>)=>{f.blocked.add(f.invitations[0].email);},(f:ReturnType<typeof fixture>)=>{f.clients[0].workspaceId="other";}];
  for(const change of changes){const f=fixture(["YES"]);await f.processEventDeliveries();addUpdate(f,"YES");f.setFailSend(true);await f.processEventDeliveries();change(f);f.expireLease();f.setFailSend(false);await f.processEventDeliveries();assert.equal(f.sends.length,2);assert.equal(f.messages[1].status,"SKIPPED");}
 });
+test("processor due snapshots cannot create messages after pause or cancel a saved/rescheduled delivery",async()=>{
+ for(const resumed of [false,true]) {
+  const f=fixture();f.event.startsAt=new Date(0);
+  f.setDueHook(()=>{f.event.status=resumed?"SCHEDULED":"DRAFT";f.event.startsAt=new Date(Date.now()+86400000);f.deliveries[0].status=resumed?"SCHEDULED":"PAUSED";f.deliveries[0].scheduledAt=new Date(Date.now()+3600000);});
+  await f.processEventDeliveries();assert.equal(f.messages.length,0);assert.equal(f.sends.length,0);assert.equal(f.deliveries[0].status,resumed?"SCHEDULED":"PAUSED");
+ }
+ const f=fixture();f.setDueHook(()=>{f.event.status="DRAFT";f.deliveries[0].status="PAUSED";});await f.processEventDeliveries();assert.equal(f.messages.length,0);assert.equal(f.sends.length,0);assert.equal(f.deliveries[0].status,"PAUSED");
+});
