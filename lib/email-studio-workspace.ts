@@ -16,7 +16,12 @@ export const EMAIL_CAMPAIGN_FILTERS = [
 
 export type EmailCampaignFilter = typeof EMAIL_CAMPAIGN_FILTERS[number]["id"];
 
-type CampaignListItem = { subject: string; status: string };
+type CampaignListItem = {
+  subject: string;
+  status: string;
+  failedCount?: number;
+  delivery?: { failed: number };
+};
 
 /** Filtering is presentation-only: it preserves source order and campaign records. */
 export function filterEmailCampaigns<T extends CampaignListItem>(
@@ -27,6 +32,7 @@ export function filterEmailCampaigns<T extends CampaignListItem>(
     const matchesStatus = filter === "ALL"
       || (filter === "SENT" ? ["SENT", "PARTIAL"].includes(campaign.status)
         : filter === "ISSUES" ? ["FAILED", "PARTIAL"].includes(campaign.status)
+          || (campaign.failedCount ?? 0) > 0 || (campaign.delivery?.failed ?? 0) > 0
           : campaign.status === filter);
     return matchesStatus && (!search || campaign.subject.toLocaleLowerCase().includes(search));
   });

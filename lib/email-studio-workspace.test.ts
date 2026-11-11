@@ -35,6 +35,18 @@ test("campaign search combines case-insensitive subjects and status, including e
   assert.deepEqual(filterEmailCampaigns([], "ALL", "test"), []);
 });
 
+test("needs attention includes recipient failures even after provider acceptance marks a campaign sent", () => {
+  const deliveryCampaigns = [
+    { id: "delivered", subject: "Delivered", status: "SENT", failedCount: 0, delivery: { failed: 0 } },
+    { id: "bounced", subject: "Provider failure", status: "SENT", failedCount: 0, delivery: { failed: 2 } },
+    { id: "send-failed", subject: "Send failure", status: "SENT", failedCount: 1, delivery: { failed: 0 } },
+    { id: "awaiting", subject: "Awaiting confirmation", status: "SENT", failedCount: 0 },
+  ];
+  assert.deepEqual(filterEmailCampaigns(deliveryCampaigns, "ISSUES").map(({ id }) => id), ["bounced", "send-failed"]);
+  assert.deepEqual(filterEmailCampaigns(deliveryCampaigns, "ISSUES", "provider").map(({ id }) => id), ["bounced"]);
+  assert.deepEqual(filterEmailCampaigns(deliveryCampaigns, "SENT"), deliveryCampaigns);
+});
+
 test("switching views keeps the composer mounted and draft audiences initialized", () => {
   const studio = readFileSync(new URL("../app/admin/email-studio/BulkEmailStudio.tsx", import.meta.url), "utf8");
   for (const view of ["compose", "campaigns", "health"]) {
