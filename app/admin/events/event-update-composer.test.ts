@@ -61,27 +61,30 @@ function mount(initialEvent = baseEvent) {
   const exports: any = {};
   const source = ts.transpileModule(readFileSync(new URL("./EventUpdateComposer.tsx", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   vm.runInNewContext(source, {
-    exports, require: (name: string) => { assert(name in imports, `Unexpected import ${name}`); return imports[name]; },
+    exports, Error, require: (name: string) => { assert(name in imports, `Unexpected import ${name}`); return imports[name]; },
     crypto: { randomUUID: () => `00000000-0000-4000-8000-${String(++uuidCount).padStart(12, "0")}` },
     fetch: (path: string, init: RequestInit) => new Promise<Response>((resolve, reject) => {
       assert.equal(init.method, "POST"); assert.equal(init.cache, "no-store");
       calls.push({ path, body: JSON.parse(String(init.body)), resolve, reject });
     }),
   });
-  const nodes = (node: any): any[] => !node || typeof node !== "object" ? [] : Array.isArray(node) ? node.flatMap(nodes) : [node, ...nodes(node.props?.children)];
-  const text = (node: any): string => node == null ? "" : typeof node !== "object" ? String(node) : Array.isArray(node) ? node.map(text).join("") : text(node.props?.children);
+  const nodes = (node: any, includeHidden = false): any[] => !node || typeof node !== "object" || (!includeHidden && node.props?.hidden) ? [] : Array.isArray(node) ? node.flatMap(child => nodes(child, includeHidden)) : [node, ...nodes(node.props?.children, includeHidden)];
+  const text = (node: any): string => node == null || node.props?.hidden ? "" : typeof node !== "object" ? String(node) : Array.isArray(node) ? node.map(text).join("") : text(node.props?.children);
   function render() {
     cursor = 0; dirty = false; jobs = [];
     tree = exports.default({ event, defaultTestEmail: "owner@example.test", disabled, onEventChange: (next: any) => { event = next; changes.push(next); dirty = true; } });
-    for (const node of nodes(tree)) if (node.props?.ref) node.props.ref.current = node.type === "textarea" ? elements.body : elements.subject;
+    for (const node of nodes(tree, true)) if (node.props?.ref) node.props.ref.current = node.type === "textarea" ? elements.body : elements.subject;
     for (const job of jobs) job();
   }
   async function settle() { for (let count = 0; count < 8; count++) { if (dirty) render(); await new Promise(resolve => setImmediate(resolve)); } }
   const find = (type: string, match: (node: any) => boolean = () => true) => nodes(tree).find(node => node.type === type && match(node));
   const button = (label: string) => find("button", node => text(node) === label);
+  const toggle = () => find("button", node => typeof node.props["aria-expanded"] === "boolean");
+  const panel = () => nodes(tree, true).find(node => node.props?.id === toggle().props["aria-controls"]);
+  async function open() { await settle(); if (!toggle().props["aria-expanded"]) { toggle().props.onClick(); await settle(); } }
   const change = (node: any, value: string) => node.props.onChange({ target: { value } });
   async function fill() {
-    await settle(); change(find("select"), "ALL_INVITED"); await settle();
+    await open(); change(find("select"), "ALL_INVITED"); await settle();
     change(find("textarea"), "Hi {{FIRST_NAME}}, please update your party size."); await settle();
     change(find("input", node => node.props.type === "datetime-local"), "2035-12-15T13:00"); await settle();
   }
@@ -91,11 +94,11 @@ function mount(initialEvent = baseEvent) {
   }
   async function confirm() { find("input", node => node.props.type === "checkbox").props.onChange({ target: { checked: true } }); await settle(); }
   const submit = (index: number) => nodes(tree).filter(node => node.type === "form")[index].props.onSubmit({ preventDefault() {} });
-  return { settle, find, button, change, fill, preview, confirm, submit, calls, changes, allText: () => text(tree), disable: () => { disabled = true; dirty = true; }, unmount: () => { for (const slot of slots) slot?.cleanup?.(); } };
+  return { settle, open, toggle, panel, find, button, change, fill, preview, confirm, submit, calls, changes, allText: () => text(tree), mountedNodes: () => nodes(tree, true), disable: () => { disabled = true; dirty = true; }, unmount: () => { for (const slot of slots) slot?.cleanup?.(); } };
 }
 
 test("composer starts inert, requires an explicit audience, and keeps update history separate", async () => {
-  const ui = mount(); await ui.settle();
+  const ui = mount(); await ui.open();
   assert.equal(ui.calls.length, 0); assert.equal(ui.find("select").props.value, "");
   assert.equal(ui.button("Preview update").props.disabled, true);
   assert.equal(ui.button("Confirm & schedule update").props.disabled, true);
@@ -152,7 +155,7 @@ test("scheduling requires preview and confirmation, guards duplicates and preser
 });
 
 test("only pending updates can be cancelled, and keep/dismiss never mutate", async () => {
-  const ui = mount(); await ui.settle();
+  const ui = mount(); await ui.open();
   ui.button("Cancel pending update").props.onClick(); await ui.settle(); assert.equal(ui.calls.length, 0);
   ui.button("Keep update").props.onClick(); await ui.settle(); assert.equal(ui.button("Confirm cancellation"), undefined);
   ui.button("Cancel pending update").props.onClick(); await ui.settle();
@@ -167,9 +170,84 @@ test("zero audiences, cancelled events, stale unmounted responses and parent loc
   const empty = mount(); await empty.fill(); empty.button("Preview update").props.onClick(); await empty.settle();
   empty.calls[0].resolve(Response.json({ success: true, subject: "Update", html: "<p>Update</p>", audienceCount: 0 })); await empty.settle();
   assert.match(empty.allText(), /No eligible recipients/); await empty.confirm(); empty.submit(1); await empty.settle(); assert.equal(empty.calls.length, 1); empty.unmount();
-  const cancelled = mount({ ...baseEvent, status: "CANCELLED" }); await cancelled.settle();
+  const cancelled = mount({ ...baseEvent, status: "CANCELLED" }); await cancelled.open();
   assert.equal(cancelled.button("Preview update"), undefined); assert.equal(cancelled.button("Cancel pending update"), undefined); assert.match(cancelled.allText(), /Guest count note/); cancelled.unmount();
   const late = mount(); await late.fill(); await late.preview(); await late.confirm(); late.submit(1); await late.settle(); late.unmount();
   late.calls[1].resolve(Response.json({ success: true, event: baseEvent })); await late.settle(); assert.equal(late.changes.length, 0);
   const locked = mount(); await locked.fill(); locked.disable(); await locked.settle(); locked.button("Preview update").props.onClick(); locked.submit(0); await locked.settle(); assert.equal(locked.calls.length, 0); locked.unmount();
+});
+
+test("additional follow-up starts collapsed with native keyboard semantics and mounted, hidden controls", async () => {
+  const ui = mount(); await ui.settle();
+  assert.equal(ui.toggle().type, "button"); assert.equal(ui.toggle().props.type, "button");
+  assert.equal(ui.toggle().props["aria-expanded"], false); assert.equal(ui.panel().props.hidden, true);
+  assert.equal(ui.toggle().props["aria-controls"], ui.panel().props.id);
+  assert.equal(ui.toggle().props.onKeyDown, undefined, "Native Enter/Space activation is not overridden");
+  assert.equal(ui.toggle().props.tabIndex, undefined, "Native button remains keyboard-focusable");
+  assert.equal(ui.find("select"), undefined); assert.equal(ui.find("textarea"), undefined);
+  assert.equal(ui.button("Send update test only"), undefined); assert.equal(ui.button("Confirm & schedule update"), undefined);
+  assert(ui.mountedNodes().some(node => node.type === "textarea"), "Hidden fields remain mounted rather than being discarded");
+  assert.match(ui.allText(), /2 updates in history/);
+  assert.equal(ui.calls.length, 0); assert.equal(ui.changes.length, 0);
+  await ui.open();
+  assert.equal(ui.toggle().props["aria-expanded"], true); assert.equal(ui.panel().props.hidden, false); assert(ui.find("textarea"));
+  ui.toggle().props.onClick(); await ui.settle();
+  assert.equal(ui.panel().props.hidden, true); assert.equal(ui.calls.length, 0); ui.unmount();
+});
+
+test("collapse and reopen preserve the entire draft, preview, confirmation and cancellation choice without actions", async () => {
+  const ui = mount(); await ui.fill();
+  ui.change(ui.find("input", node => node.props.maxLength === 200), "My edited update subject"); await ui.settle();
+  ui.change(ui.find("input", node => node.props.type === "email"), "reviewer@example.test"); await ui.settle();
+  await ui.preview(); ui.button("Mobile").props.onClick(); await ui.settle(); await ui.confirm();
+  ui.button("Cancel pending update").props.onClick(); await ui.settle();
+  for (let count = 0; count < 3; count++) {
+    ui.toggle().props.onClick(); await ui.settle();
+    assert.equal(ui.find("textarea"), undefined); assert.equal(ui.find("iframe"), undefined);
+    assert.equal(ui.mountedNodes().find(node => node.type === "textarea").props.value, "Hi {{FIRST_NAME}}, please update your party size.");
+    await ui.open();
+    assert.equal(ui.find("select").props.value, "ALL_INVITED");
+    assert.equal(ui.find("input", node => node.props.maxLength === 200).props.value, "My edited update subject");
+    assert.equal(ui.find("textarea").props.value, "Hi {{FIRST_NAME}}, please update your party size.");
+    assert.equal(ui.find("input", node => node.props.type === "email").props.value, "reviewer@example.test");
+    assert.equal(ui.find("input", node => node.props.type === "datetime-local").props.value, "2035-12-15T13:00");
+    assert.equal(ui.find("iframe").props.style.maxWidth, 375);
+    assert.equal(ui.find("input", node => node.props.type === "checkbox").props.checked, true);
+    assert(ui.button("Confirm cancellation"));
+    assert.equal(ui.calls.length, 1); assert.equal(ui.changes.length, 0);
+  }
+  ui.unmount();
+});
+
+test("preview completes while collapsed without reopening or clearing the draft", async () => {
+  const ui = mount(); await ui.fill(); ui.button("Preview update").props.onClick(); await ui.settle();
+  ui.toggle().props.onClick(); await ui.settle();
+  assert.equal(ui.toggle().props["aria-expanded"], false); assert.match(ui.allText(), /Loading update preview/);
+  ui.calls[0].resolve(Response.json({ success: true, subject: "Ready", html: "<p>Preview</p>", audienceCount: 2 })); await ui.settle();
+  assert.equal(ui.toggle().props["aria-expanded"], false); assert.doesNotMatch(ui.allText(), /Loading update preview/);
+  await ui.open(); assert(ui.find("iframe")); assert.equal(ui.find("textarea").props.value, "Hi {{FIRST_NAME}}, please update your party size.");
+  assert.equal(ui.calls.length, 1); assert.equal(ui.changes.length, 0); ui.unmount();
+});
+
+test("errors and completion messages stay visible while collapsed and survive toggles", async () => {
+  const ui = mount(); await ui.fill(); ui.button("Preview update").props.onClick(); await ui.settle();
+  ui.toggle().props.onClick(); await ui.settle();
+  ui.calls[0].reject(new Error("Preview unavailable")); await ui.settle();
+  assert.match(ui.find("p", node => node.props.role === "alert").props.children, /Preview unavailable/);
+  await ui.open(); ui.toggle().props.onClick(); await ui.settle(); assert.match(ui.allText(), /Preview unavailable/);
+  await ui.open(); ui.submit(0); await ui.settle(); ui.toggle().props.onClick(); await ui.settle();
+  assert.match(ui.allText(), /Sending update test/);
+  ui.calls[1].resolve(Response.json({ success: true, message: "Synthetic test completed." })); await ui.settle();
+  assert.equal(ui.toggle().props["aria-expanded"], false); assert.match(ui.allText(), /Synthetic test completed/);
+  assert.equal(ui.calls.length, 2); assert.equal(ui.changes.length, 0); ui.unmount();
+});
+
+test("read-only toggling remains available under parent locks and panel IDs are event-specific", async () => {
+  const ui = mount(); await ui.settle(); ui.disable(); await ui.settle();
+  assert.equal(ui.toggle().props.disabled, undefined); await ui.open();
+  assert.equal(ui.find("fieldset").props.disabled, true); ui.toggle().props.onClick(); await ui.settle();
+  assert.equal(ui.panel().props.hidden, true); assert.equal(ui.calls.length, 0);
+  const other = mount({ ...baseEvent, id: "another-event" }); await other.settle();
+  assert.notEqual(ui.panel().props.id, other.panel().props.id);
+  ui.unmount(); other.unmount();
 });
