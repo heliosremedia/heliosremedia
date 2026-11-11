@@ -103,6 +103,11 @@ const navigation: NavigationItem[] = [
     icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="m4 7 8 6 8-6" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>,
   },
   {
+    label: "Client Feedback",
+    href: "/admin/feedback",
+    icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><path d="M4 4h16v13H9l-5 4V4Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M8 8h8M8 12h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
+  },
+  {
     label: "Newsletter Studio",
     href: "/admin/newsletter-studio",
     icon: <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><path d="M4 5h16v14H4zM7.5 8.5h9M7.5 12h5M7.5 15.5h7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>,
@@ -299,7 +304,7 @@ const navigationGroups: NavigationGroup[] = [
   {
     id: "operations",
     label: "Operations",
-    hrefs: ["/admin/production-console", "/admin/client-portals", "/admin/clients", "/admin/email-studio", "/admin/inquiries", "/admin/newsletter-studio", "/admin/projects", "/admin/portfolio-intelligence", "/admin/referral-studio", "/admin/social-studio"],
+    hrefs: ["/admin/production-console", "/admin/client-portals", "/admin/clients", "/admin/email-studio", "/admin/feedback", "/admin/inquiries", "/admin/newsletter-studio", "/admin/projects", "/admin/portfolio-intelligence", "/admin/referral-studio", "/admin/social-studio"],
   },
   {
     id: "website-content",
@@ -445,7 +450,7 @@ export default function AdminSidebar({
   } | null>(null);
   const visibleNavigation = navigation.filter(
     (item) =>
-      !["/admin/users", "/admin/newsletter-studio", "/admin/production-console"].includes(item.href) ||
+      !["/admin/users", "/admin/newsletter-studio", "/admin/production-console", "/admin/feedback"].includes(item.href) ||
       role === "OWNER" ||
       role === "ADMIN",
   );

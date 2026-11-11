@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isFeedbackSelection } from "@/lib/feedback";
 import { recordAuditEvent } from "@/lib/audit";
 import { getAdminSession } from "@/lib/auth/session";
 import { processEmailCampaign } from "@/lib/client-communications/campaign-delivery";
@@ -42,6 +43,10 @@ export async function POST(request: Request) {
   if (!session) return NextResponse.json({ success: false, error: "Owner or administrator access is required." }, { status: 403 });
   try {
     const input = await request.json() as Payload;
+    if (input.draftId) {
+      const target = await prisma.emailCampaign.findUnique({ where: { id: input.draftId }, select: { selection: true } });
+      if (target && isFeedbackSelection(target.selection)) return NextResponse.json({ success: false, error: "Manage survey reminders from Client Feedback." }, { status: 409 });
+    }
     const subject = cleanText(input.subject, 160);
     const previewText = cleanText(input.previewText, 180);
     const body = cleanText(input.body, 20_000);

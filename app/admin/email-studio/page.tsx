@@ -109,7 +109,7 @@ export default async function EmailStudioPage({ searchParams }: { searchParams: 
     ) },
   );
   return <AdminPageLayout
-    header={<AdminPageHeader eyebrow="Client communications" title="Bulk Email Studio" description="Create polished updates for all clients, selected groups, or individual recipients—with a test step and unsubscribe protection built in." />}
+    header={<AdminPageHeader eyebrow="Client communications" title="Bulk Email Studio" description="Create polished updates for all clients, selected groups, or individual recipients—with a test step and unsubscribe protection built in." actions={["OWNER", "ADMIN"].includes(session.role) ? <Link href="/admin/feedback" className="admin-btn-secondary">Client Feedback ↗</Link> : undefined} />}
     summary={<AdminSummaryCards items={[
       { label: "Eligible recipients", value: eligibleClients.length, detail: "Subscribed, valid, and not suppressed" },
       { label: "Scheduled campaigns", value: campaigns.filter(item=>item.status==="SCHEDULED").length, detail: "Awaiting delivery" },

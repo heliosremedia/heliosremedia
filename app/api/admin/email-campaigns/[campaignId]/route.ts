@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isFeedbackSelection } from "@/lib/feedback";
 import { recordAuditEvent } from "@/lib/audit";
 import { getAdminSession } from "@/lib/auth/session";
 import { processEmailCampaign } from "@/lib/client-communications/campaign-delivery";
@@ -16,11 +17,13 @@ export async function DELETE(_request: Request, context: Context) {
   const { campaignId } = await context.params;
   const draft = await prisma.emailCampaign.findFirst({
     where: { id: campaignId, status: "DRAFT", createdById: session.userId },
-    select: { id: true, subject: true },
+    select: { id: true, subject: true, selection: true },
   });
   if (!draft) {
     return NextResponse.json({ success: false, error: "This draft was not found or can no longer be deleted." }, { status: 404 });
   }
+
+  if (isFeedbackSelection(draft.selection)) return NextResponse.json({ success: false, error: "Manage survey reminders from Client Feedback." }, { status: 409 });
 
   const result = await prisma.emailCampaign.deleteMany({
     where: { id: campaignId, status: "DRAFT", createdById: session.userId },
@@ -48,6 +51,7 @@ export async function PATCH(request: Request, context: Context) {
   const { campaignId } = await context.params;
   const input = await request.json() as { action?: "reschedule" | "cancel" | "send-now" | "edit"; scheduledLocal?: string; scheduledTimeZone?: string; rowVersion?: number };
   const campaign = await prisma.emailCampaign.findUnique({ where: { id: campaignId } });
+  if (campaign && isFeedbackSelection(campaign.selection)) return NextResponse.json({ success: false, error: "Manage survey reminders from Client Feedback." }, { status: 409 });
   if (!campaign || campaign.status !== "SCHEDULED") {
     return NextResponse.json({ success: false, error: "Only scheduled campaigns can be changed." }, { status: 409 });
   }
