@@ -20,6 +20,7 @@ export default function EventUpdateComposer<TEvent extends EventUpdateEvent>({ e
   disabled?: boolean;
   onEventChange: (event: TEvent) => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState<EventUpdateDraft>(() => ({ subject: `${event.title} · Event update`.slice(0, 200), body: "", audience: "" }));
   const [schedule, setSchedule] = useState("");
   const [testEmail, setTestEmail] = useState(defaultTestEmail);
@@ -42,6 +43,8 @@ export default function EventUpdateComposer<TEvent extends EventUpdateEvent>({ e
   const canCompose = event.status === "SCHEDULED";
   const copyError = eventUpdateCopyError(draft);
   const audience = EVENT_UPDATE_AUDIENCES.find(option => option.value === draft.audience);
+  const panelId = `event-update-panel-${event.id}`;
+  const busyStatus = busy === "preview" ? "Loading update preview…" : busy === "test" ? "Sending update test…" : busy === "schedule" ? "Scheduling update…" : busy === "cancel" ? "Cancelling update…" : "";
   let scheduledAt = "", timeError = "";
   if (schedule) {
     try { scheduledAt = eventUpdateSendTime(schedule, event); }
@@ -123,9 +126,20 @@ export default function EventUpdateComposer<TEvent extends EventUpdateEvent>({ e
   }
 
   return <section className="space-y-5 rounded-2xl border border-white/10 bg-[#111] p-5 sm:p-6" aria-labelledby={`event-update-title-${event.id}`}>
-    <div><p className="text-xs uppercase tracking-widest text-[var(--helios-orange)]">Additional follow-up</p><h3 id={`event-update-title-${event.id}`} className="mt-2 text-lg text-white">Send an event update</h3><p className="mt-2 text-sm leading-6 text-white/55">Share an extra note, such as bringing a guest or updating a party size. This is separate from your initial invitation, 14-day follow-up and day-before reminder.</p></div>
+    <div>
+      <p className="text-xs uppercase tracking-widest text-[var(--helios-orange)]">Additional follow-up</p>
+      <h3 id={`event-update-title-${event.id}`} className="mt-2 text-lg text-white"><button type="button" aria-expanded={expanded} aria-controls={panelId} onClick={() => setExpanded(previous => !previous)} className="flex w-full items-center justify-between gap-3 rounded-lg text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--helios-orange)]">
+        <span>Send an event update</span>
+        <span aria-hidden="true" className="flex shrink-0 items-center gap-2 text-xs font-normal text-white/55">{expanded ? "Collapse" : "Expand"}<svg aria-hidden="true" focusable="false" viewBox="0 0 20 20" className={`h-5 w-5 text-orange-200 ${expanded ? "rotate-180" : ""}`}><path d="m5 7.5 5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
+      </button></h3>
+      <p hidden={expanded} className="mt-2 text-xs leading-5 text-white/50">Optional updates for invited guests.{history.length > 0 ? ` ${history.length} ${history.length === 1 ? "update" : "updates"} in history.` : ""}</p>
+    </div>
+    <p role="status" hidden={expanded || !busyStatus} className="text-sm text-white/60">{busyStatus}</p>
     {error && <p role="alert" className="rounded-xl border border-red-300/20 bg-red-300/5 p-3 text-sm leading-6 text-red-200">{error}</p>}
     {message && <p role="status" className="rounded-xl border border-emerald-300/20 bg-emerald-300/5 p-3 text-sm leading-6 text-emerald-200">{message}</p>}
+    {/* Keep the editor mounted so collapsing never clears an in-progress update. */}
+    <div id={panelId} hidden={!expanded} className="space-y-5">
+    <p className="text-sm leading-6 text-white/55">Share an extra note, such as bringing a guest or updating a party size. This is separate from your initial invitation, 14-day follow-up and day-before reminder.</p>
     {!canCompose ? <p className="text-sm text-white/50">{event.status === "CANCELLED" ? "This event is cancelled. No more updates can be scheduled." : "Schedule the initial invitation first. Updates go only to guests who have received it."}</p> : <>
       <fieldset disabled={locked} className="space-y-4">
         <legend className="sr-only">Additional event update content</legend>
@@ -159,5 +173,6 @@ export default function EventUpdateComposer<TEvent extends EventUpdateEvent>({ e
       {delivery.updateBody && <details className="text-xs text-white/55"><summary className="w-fit cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-[var(--helios-orange)]">View saved message</summary><p className="mt-2 whitespace-pre-wrap leading-6">{delivery.updateBody}</p></details>}
       {delivery.status === "SCHEDULED" && event.status !== "CANCELLED" && (cancelId === delivery.id ? <div className="space-y-3 border-t border-white/10 pt-3"><p className="text-sm text-white/70">Cancel this pending update? The original three emails will keep their schedules. Sent emails cannot be recalled.</p><div className="flex flex-wrap gap-2"><button type="button" className={`${button} text-red-200`} disabled={locked} onClick={() => void act("cancel", delivery.id)}>{busy === "cancel" ? "Cancelling…" : "Confirm cancellation"}</button><button type="button" className={button} disabled={locked} onClick={() => setCancelId(null)}>Keep update</button></div></div> : <button type="button" className={button} disabled={locked} onClick={() => setCancelId(delivery.id)}>Cancel pending update</button>)}
     </li>)}</ul>}</div>
+    </div>
   </section>;
 }
