@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { FEEDBACK_SURVEY, isFeedbackSelection } from "@/lib/feedback";
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import BulkEmailStudio from "./BulkEmailStudio";
@@ -13,7 +15,13 @@ export const dynamic = "force-dynamic";
 export default async function EmailStudioPage({ searchParams }: { searchParams: Promise<{ campaign?: string }> }) {
   const session = await requireAdminSession();
   const campaignId = (await searchParams).campaign;
-  const [clients, groups, campaigns, initialDraft, webhookHealth] = await Promise.all([
+  // Exclude known reminders before limiting history. A JSON-path NOT condition would
+  // also discard legacy campaign JSON where the feedbackSurveyId path is missing.
+  const feedbackCampaignIds = await prisma.emailCampaign.findMany({
+    where: { createdBy: { workspaceId: session.workspaceId }, selection: { path: ["feedbackSurveyId"], equals: FEEDBACK_SURVEY.id } },
+    select: { id: true },
+  });
+  const [clients, groups, campaignRows, initialDraft, webhookHealth] = await Promise.all([
     prisma.communicationClient.findMany({
       where: {
         emailSubscribed: true,
@@ -31,13 +39,13 @@ export default async function EmailStudioPage({ searchParams }: { searchParams: 
       select: { id: true, name: true, _count: { select: { memberships: true } } },
     }),
     prisma.emailCampaign.findMany({
-      where: { createdBy: { workspaceId: session.workspaceId } },
+      where: { createdBy: { workspaceId: session.workspaceId }, id: { notIn: feedbackCampaignIds.map(({ id }) => id) } },
       take: 25,
       orderBy: { createdAt: "desc" },
       select: { id: true, subject: true, previewText: true, body: true, templateKey: true, imageUrl: true, imageAlt: true, imageCaption: true, imageLink: true, status: true, recipientMode: true, selection: true, recipientCount: true, sentCount: true, failedCount: true, createdAt: true, sentAt: true, scheduledAt: true, scheduledTimeZone: true, rowVersion: true, createdBy: { select: { displayName: true } }, recipients: { select: { id: true, status: true, providerMessageId: true, events: { select: { eventType: true } } } } },
     }),
     campaignId ? prisma.emailCampaign.findFirst({
-      where: { id: campaignId, status: "DRAFT", createdById: session.userId },
+      where: { id: campaignId, status: "DRAFT", createdById: session.userId, createdBy: { workspaceId: session.workspaceId } },
       select: { id: true, subject: true, previewText: true, body: true, templateKey: true, imageUrl: true, imageAlt: true, imageCaption: true, imageLink: true, recipientMode: true, selection: true },
     }) : null,
     Promise.all([
@@ -62,6 +70,10 @@ export default async function EmailStudioPage({ searchParams }: { searchParams: 
       }),
     ]),
   ]);
+  if (initialDraft && isFeedbackSelection(initialDraft.selection)) redirect("/admin/feedback");
+  // A reminder created between the ID lookup and history query must never acquire
+  // the generic edit/send controls, even for this single in-flight render.
+  const campaigns = campaignRows.filter((campaign) => !isFeedbackSelection(campaign.selection));
   const eligibleClients = clients.filter(client => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(client.email));
   const metrics = communicationMetrics(campaigns.flatMap(campaign => campaign.recipients.map(recipient => ({
     ...recipient,
@@ -109,7 +121,7 @@ export default async function EmailStudioPage({ searchParams }: { searchParams: 
     ) },
   );
   return <AdminPageLayout
-    header={<AdminPageHeader eyebrow="Client communications" title="Bulk Email Studio" description="Create polished updates for all clients, selected groups, or individual recipients—with a test step and unsubscribe protection built in." />}
+    header={<AdminPageHeader eyebrow="Client communications" title="Bulk Email Studio" description="Create polished updates for all clients, selected groups, or individual recipients—with a test step and unsubscribe protection built in." actions={["OWNER", "ADMIN"].includes(session.role) ? <Link href="/admin/feedback" className="admin-btn-secondary">Client Feedback ↗</Link> : undefined} />}
     summary={<AdminSummaryCards items={[
       { label: "Eligible recipients", value: eligibleClients.length, detail: "Subscribed, valid, and not suppressed" },
       { label: "Scheduled campaigns", value: campaigns.filter(item=>item.status==="SCHEDULED").length, detail: "Awaiting delivery" },

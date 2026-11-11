@@ -1,6 +1,7 @@
 import "server-only";
 
 import { recordAuditEvent } from "@/lib/audit";
+import { feedbackEmailBody, isFeedbackSelection } from "@/lib/feedback";
 import { prisma } from "@/lib/prisma";
 import { renderCampaignEmail, sendCampaignBatch } from "./email";
 import { renderPersonalizedEmail } from "./personalization";
@@ -20,13 +21,22 @@ export async function processEmailCampaign(campaignId: string) {
     throw new Error("Campaign is not available for delivery.");
   }
 
+  const feedback = isFeedbackSelection(campaign.selection) ? campaign.selection : null;
+  const feedbackWorkspaceValid = !feedback || (typeof feedback.workspaceId === "string" && feedback.workspaceId === campaign.createdBy.workspaceId);
   let sent = campaign.recipients.filter((recipient) => recipient.status === "SENT").length;
   const pending = campaign.recipients.filter((recipient) => recipient.status !== "SENT" && recipient.status !== "SKIPPED");
   for (let index = 0; index < pending.length; index += 100) {
     const candidates = pending.slice(index, index + 100);
+    // Feedback snapshots are tenant-scoped again at dispatch.
+    const feedbackMemberIds = feedback && feedbackWorkspaceValid ? new Set((await prisma.communicationClientWorkspace.findMany({
+      where: { workspaceId: feedback.workspaceId, clientId: { in: candidates.map((recipient) => recipient.clientId) } },
+      select: { clientId: true },
+    })).map((membership) => membership.clientId)) : null;
     const eligibility = await Promise.all(candidates.map(async (recipient) => ({
       recipient,
       eligible:
+        feedbackWorkspaceValid &&
+        (!feedback || (feedbackMemberIds?.has(recipient.clientId) === true && recipient.client.normalizedEmail === recipient.email.trim().toLowerCase())) &&
         !recipient.client.archivedAt &&
         recipient.client.emailSubscribed &&
         recipient.client.emailStatus === "VALID" &&
@@ -50,7 +60,7 @@ export async function processEmailCampaign(campaignId: string) {
         const personalized = renderPersonalizedEmail({
           subject: campaign.subject,
           previewText: campaign.previewText,
-          body: campaign.body,
+          body: feedback ? feedbackEmailBody(campaign.body) : campaign.body,
           recipient: {
             firstName: recipient.firstNameSnapshot,
             lastName: recipient.lastNameSnapshot,
@@ -78,7 +88,8 @@ export async function processEmailCampaign(campaignId: string) {
       const result = await sendCampaignBatch({
         campaignId: campaign.id,
         source: "campaign",
-        revisionKey: `${campaign.rowVersion}`,
+        // Feedback content/snapshots cannot change once processing begins. Keep this attempt stable.
+        revisionKey: feedback ? `feedback-${campaign.id}` : `${campaign.rowVersion}`,
         messages,
       });
       const now = new Date();
@@ -121,8 +132,28 @@ export async function processEmailCampaign(campaignId: string) {
 
 export async function claimDueEmailCampaigns(limit = 5) {
   const staleBefore = new Date(Date.now() - 15 * 60_000);
-  await prisma.emailCampaign.updateMany({
-    where: { status: "PROCESSING", processingStartedAt: { lt: staleBefore }, recipients: { some: { status: { in: ["PENDING", "FAILED"] } } } },
+  const stale = await prisma.emailCampaign.findMany({
+    where: { status: "PROCESSING", processingStartedAt: { lt: staleBefore } },
+    select: { id: true, rowVersion: true, selection: true, recipients: { select: { status: true } } },
+  });
+  for (const campaign of stale.filter((item) => isFeedbackSelection(item.selection))) {
+    // A provider may have accepted a batch before the database recorded it. Never repeat an
+    // interrupted anonymous-survey reminder automatically, even after idempotency expires.
+    const sentCount = campaign.recipients.filter((recipient) => recipient.status === "SENT").length;
+    const failedCount = campaign.recipients.filter((recipient) => recipient.status === "FAILED").length;
+    const uncertain = campaign.recipients.some((recipient) => recipient.status === "PENDING");
+    await prisma.emailCampaign.updateMany({
+      where: { id: campaign.id, status: "PROCESSING", rowVersion: campaign.rowVersion, processingStartedAt: { lt: staleBefore } },
+      data: { status: sentCount ? (uncertain || failedCount ? "PARTIAL" : "SENT") : "FAILED", sentCount, failedCount,
+        sentAt: sentCount ? new Date() : null, rowVersion: { increment: 1 },
+        scheduleError: uncertain
+          ? "Delivery was interrupted and some outcomes may be uncertain. Automatic retry is disabled. Review delivery before creating another reminder."
+          : failedCount ? "Delivery failed for one or more recipients. Review before creating another reminder." : null },
+    });
+  }
+  const ordinaryIds = stale.filter((item) => !isFeedbackSelection(item.selection)).map((item) => item.id);
+  if (ordinaryIds.length) await prisma.emailCampaign.updateMany({
+    where: { id: { in: ordinaryIds }, status: "PROCESSING", processingStartedAt: { lt: staleBefore }, recipients: { some: { status: { in: ["PENDING", "FAILED"] } } } },
     data: { status: "SCHEDULED", processingStartedAt: null, scheduleError: "Recovered after an interrupted delivery attempt." },
   });
   const due = await prisma.emailCampaign.findMany({
