@@ -24,6 +24,7 @@ function mount(guests: Invitation[] = invitations, deliveries: { id: string; sta
   let cursor = 0, dirty = true, tree: any, jobs: (() => void)[] = [];
   let deferDetail = false, pendingDetail: ((response: Response) => void) | undefined;
   const hooks = {
+    useRef(value: any) { const index = cursor++; if (!(index in slots)) slots[index] = { current: value }; return slots[index]; },
     useState(initial: any) {
       const index = cursor++;
       if (!(index in slots)) slots[index] = typeof initial === "function" ? initial() : initial;

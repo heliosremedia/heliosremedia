@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { zonedLocalToUtc } from "@/lib/client-communications/scheduling";
 import { attendanceCounts, createEventForm, displayDate, localDateTime, invitationPartySize, responseCounts, selectEventImage, type EventEditorForm } from "./ui-helpers";
 import EventAppearance from "./EventAppearance";
@@ -39,6 +39,8 @@ export default function EventStudio({ defaultTestEmail }: { defaultTestEmail: st
   const [busy, setBusy] = useState(false);
   const [operation] = useState(() => ({ busy: false }));
   const [unscheduleConfirm, setUnscheduleConfirm] = useState(false);
+  const unscheduleDialog = useRef<HTMLDialogElement>(null);
+  const keepScheduleButton = useRef<HTMLButtonElement>(null);
   const [deliveryTimes, setDeliveryTimes] = useState<Record<string, string>>({});
   const [imageBusy, setImageBusy] = useState(false);
   const [draftPreviewOpen, setDraftPreviewOpen] = useState(false);
@@ -62,6 +64,22 @@ export default function EventStudio({ defaultTestEmail }: { defaultTestEmail: st
     request("/api/admin/events").then(data => { if (active) { setEvents(data.events); setClients(data.clients); setGroups(data.groups); } }).catch(e => { if (active) setError(e.message); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
+  useEffect(() => {
+    if (!unscheduleConfirm) return;
+    const dialog = unscheduleDialog.current;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    // The browser's top layer keeps confirmation in the viewport even inside
+    // a long, scrolled event or a transformed Studio layout.
+    dialog?.showModal();
+    keepScheduleButton.current?.focus({ preventScroll: true });
+    return () => {
+      if (dialog?.open) dialog.close();
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+    };
+  }, [unscheduleConfirm]);
   async function act(work: () => Promise<void>) {
     if (operation.busy) return;
     operation.busy = true; setBusy(true); setError(""); setMessage("");
@@ -131,8 +149,22 @@ export default function EventStudio({ defaultTestEmail }: { defaultTestEmail: st
   const standardDeliveries = (selected?.deliveries || []).filter(delivery => Object.hasOwn(stages, delivery.stage));
   const zones = Array.from(new Set(["America/Denver", "America/New_York", "America/Chicago", "America/Los_Angeles", "America/Phoenix", "Pacific/Honolulu", "UTC", form.timeZone, ...(typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : [])]));
   const invitations = (selected?.invitations || []).filter(i => (filter === "ALL" || i.response === filter) && `${i.client?.displayName || i.displayName || ""} ${i.client?.email || i.email || ""}`.toLowerCase().includes(search.toLowerCase()));
-  return <div className="space-y-6">
-    {error && <div role="alert" className="rounded-xl border border-red-300/20 bg-red-300/5 p-4 text-sm text-red-200">{error}</div>}
+  return <>
+    {unscheduleConfirm && <dialog ref={unscheduleDialog} aria-labelledby="unschedule-confirm-title" aria-describedby="unschedule-confirm-description" aria-modal="true" aria-busy={busy || imageBusy}
+      onCancel={event => { event.preventDefault(); if (!operation.busy && !imageBusy) setUnscheduleConfirm(false); }}
+      className="m-auto max-h-[calc(100dvh_-_2rem)] w-[calc(100%_-_2rem)] max-w-lg flex-col overflow-hidden rounded-2xl border border-orange-300/20 bg-[#171717] p-0 text-white shadow-2xl open:flex backdrop:bg-black/80 backdrop:backdrop-blur-sm">
+      <div tabIndex={0} className="min-h-0 overflow-y-auto p-5 focus-visible:outline-2 focus-visible:outline-[var(--helios-orange)] sm:p-6">
+        <h2 id="unschedule-confirm-title" className="text-xl font-light">Unschedule & edit?</h2>
+        <p id="unschedule-confirm-description" className="mt-3 text-sm leading-6 text-white/75">Pause all pending event emails and reopen this event for editing? Your wording, guest list, images and delivery times will be kept. Nothing resumes until you confirm the schedule again. If delivery has already started, this action will be blocked.</p>
+        {error && <p role="alert" className="mt-4 rounded-xl border border-red-300/20 bg-red-300/5 p-3 text-sm text-red-200">{error}</p>}
+      </div>
+      <div className="flex shrink-0 flex-wrap gap-3 border-t border-white/10 p-4 sm:p-5">
+        <button type="button" className={primary} disabled={busy || imageBusy} onClick={() => void unschedule()}>{busy ? "Pausing delivery…" : "Confirm unschedule & edit"}</button>
+        <button ref={keepScheduleButton} type="button" className={button} disabled={busy || imageBusy} onClick={() => { if (!operation.busy && !imageBusy) setUnscheduleConfirm(false); }}>Keep schedule</button>
+      </div>
+    </dialog>}
+    <div className="space-y-6">
+    {error && !unscheduleConfirm && <div role="alert" className="rounded-xl border border-red-300/20 bg-red-300/5 p-4 text-sm text-red-200">{error}</div>}
     {message && <div role="status" className="rounded-xl border border-emerald-300/20 bg-emerald-300/5 p-4 text-sm text-emerald-200">{message}</div>}
     <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
       <aside className={`${panel} self-start`} aria-label="Events">
@@ -156,7 +188,6 @@ export default function EventStudio({ defaultTestEmail }: { defaultTestEmail: st
         <div className="flex flex-wrap gap-3"><button className={primary} disabled={busy || imageBusy} type="submit">{busy ? "Saving…" : paused ? "Save changes" : "Save draft"}</button><button className={button} type="button" disabled={busy || imageBusy} onClick={() => setEditing(false)}>{paused ? "Discard edits & return" : "Cancel editing"}</button></div>
       </form> : selected ? <div className="space-y-6">
         <section className={panel}><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs uppercase tracking-widest text-[var(--helios-orange)]">{paused ? "Paused for editing" : selected.status}</p><h2 className="mt-2 text-2xl font-light text-white">{selected.title}</h2></div>{selected.status === "DRAFT" && <button className={button} disabled={busy || imageBusy} onClick={() => edit(selected)}>{paused ? "Edit event" : "Edit draft"}</button>}{canUnschedule && <button className={button} disabled={busy || imageBusy} onClick={() => setUnscheduleConfirm(true)}>Unschedule & edit</button>}</div><p className="mt-4 text-xs text-white/50">{getEventTheme(selected.templateKey).label}{selected.imageUrl ? " · Cover image included" : " · No cover image"}</p><p className="mt-5 whitespace-pre-wrap text-sm leading-6 text-white/60">{selected.description || "No description yet."}</p><dl className="mt-5 grid gap-4 sm:grid-cols-2"><div><dt className="text-xs text-white/40">When</dt><dd className="mt-1 text-sm text-white/80">{displayDate(selected.startsAt, selected.timeZone)}{selected.endsAt && ` – ${displayDate(selected.endsAt, selected.timeZone)}`}<span className="mt-1 block text-xs text-white/40">{selected.timeZone}</span></dd></div><div><dt className="text-xs text-white/40">Where</dt><dd className="mt-1 text-sm text-white/80">{selected.location || "Location not set"}{selected.venueUrl && <a href={selected.venueUrl} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="mt-2 block w-fit text-[var(--helios-orange)] underline underline-offset-4">Visit venue website ↗</a>}</dd></div></dl>
-          {unscheduleConfirm && <div role="region" aria-label="Confirm unschedule" className="mt-5 space-y-3 rounded-xl border border-orange-300/20 bg-orange-300/5 p-4"><p className="text-sm leading-6 text-white/75">Pause all pending event emails and reopen this event for editing? Your wording, guest list, images and delivery times will be kept. Nothing resumes until you confirm the schedule again. If delivery has already started, this action will be blocked.</p><div className="flex flex-wrap gap-3"><button className={primary} disabled={busy || imageBusy} onClick={() => void unschedule()}>{busy ? "Pausing delivery…" : "Confirm unschedule & edit"}</button><button className={button} disabled={busy || imageBusy} onClick={() => setUnscheduleConfirm(false)}>Keep schedule</button></div></div>}
           {paused && <p className="mt-5 rounded-xl border border-orange-300/20 bg-orange-300/5 p-4 text-sm leading-6 text-white/75">Delivery is paused. Edit your event above, then review all saved delivery times and confirm the schedule below. Leaving this page keeps delivery paused.</p>}
         </section>
         <section className={panel} aria-labelledby="rsvp-title">
@@ -196,5 +227,6 @@ export default function EventStudio({ defaultTestEmail }: { defaultTestEmail: st
         {selected.status !== "CANCELLED" && <div className="flex flex-wrap items-center justify-between gap-3 px-1"><p className="text-xs text-white/40">Cancelling stops future delivery. Sent emails cannot be recalled.</p><button className={`${button} text-red-200`} disabled={busy || imageBusy} onClick={() => { if (window.confirm("Cancel this event and all pending emails? Guests will not receive a cancellation email automatically.")) void act(async () => { const data = await request(`/api/admin/events/${selected.id}`, "PATCH", { action: "cancel" }); setSelected(data.event); await load(); setMessage("Event cancelled. Pending emails have been stopped."); }); }}>Cancel event</button></div>}
       </div> : <section className={`${panel} flex min-h-80 flex-col items-start justify-center`}><p className="text-xs uppercase tracking-widest text-[var(--helios-orange)]">Good company. Simply organized.</p><h2 className="mt-4 text-3xl font-light text-white">Make room for connection.</h2><p className="mt-4 max-w-lg text-sm leading-7 text-white/50">From your first invitation to the final reminder, keep every detail and every RSVP in one place. Start with a draft. Nothing sends until you confirm.</p><button className={`${primary} mt-6`} disabled={busy || imageBusy} onClick={() => edit(null)}>Create an event</button></section>}
     </div>
-  </div>;
+    </div>
+  </>;
 }
