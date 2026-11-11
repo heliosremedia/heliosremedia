@@ -23,9 +23,14 @@ const baseEvent = {
 function mount(initial: any = baseEvent) {
   let event = structuredClone(initial), dirty = true, cursor = 0, tree: any, jobs: (() => void)[] = [];
   const slots: any[] = [], calls: { path: string; method: string; body: any }[] = [];
+  const browser = { overflow: "auto", shown: 0, closed: 0, focused: "trigger" };
+  class Element { isConnected = true; focus() { browser.focused = "trigger"; } }
+  const document = { activeElement: new Element(), body: { style: { get overflow() { return browser.overflow; }, set overflow(value: string) { browser.overflow = value; } } } };
+  const dialog = { open: false, showModal() { this.open = true; browser.shown++; }, close() { this.open = false; browser.closed++; } };
   let failNext = "", deferred: (() => void) | undefined, defer = false;
   const hooks = {
     useState(value: any) { const index = cursor++; if (!(index in slots)) slots[index] = typeof value === "function" ? value() : value; return [slots[index], (next: any) => { slots[index] = typeof next === "function" ? next(slots[index]) : next; dirty = true; }]; },
+    useRef(value: any) { const index = cursor++; if (!(index in slots)) slots[index] = { current: value }; return slots[index]; },
     useCallback(callback: any) { cursor++; return callback; },
     useEffect(effect: () => any, dependencies: any[]) { const index = cursor++, old = slots[index]; if (!old || dependencies.some((value, i) => !Object.is(value, old.dependencies[i]))) jobs.push(() => { old?.cleanup?.(); slots[index] = { dependencies, cleanup: effect() }; }); },
   };
@@ -33,7 +38,7 @@ function mount(initial: any = baseEvent) {
   const imports: any = { react: hooks, "react/jsx-runtime": { jsx, jsxs: jsx }, "./ui-helpers": helpers, "@/lib/events/themes": themes, "@/lib/client-communications/scheduling": scheduling, "./EventAppearance": {}, "./EventDraftPreview": {}, "./EventEmailCopy": {}, "./EventUpdateComposer": {} };
   const exports: any = {};
   vm.runInNewContext(ts.transpileModule(readFileSync(new URL("./EventStudio.tsx", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText, {
-    exports, require: (name: string) => { assert(name in imports, name); return imports[name]; },
+    exports, document, HTMLElement: Element, require: (name: string) => { assert(name in imports, name); return imports[name]; },
     fetch: async (path: string, init: RequestInit) => {
       const body = init.body ? JSON.parse(String(init.body)) : undefined; calls.push({ path, method: init.method!, body });
       if (defer && init.method === "PATCH") await new Promise<void>(resolve => { deferred = resolve; });
@@ -55,18 +60,45 @@ function mount(initial: any = baseEvent) {
   const text = (node: any): string => node == null ? "" : typeof node !== "object" ? String(node) : Array.isArray(node) ? node.map(text).join("") : node.props?.hidden ? "" : text(node.props?.children);
   const find = (type: string, matches: (node: any) => boolean = () => true) => nodes(tree).find(node => node.type === type && matches(node));
   const button = (label: string) => find("button", node => text(node) === label);
-  async function settle() { for (let i = 0; i < 6; i++) { if (dirty) { cursor = 0; dirty = false; jobs = []; tree = exports.default({ defaultTestEmail: "qa@example.test" }); jobs.forEach(job => job()); } await new Promise(resolve => setImmediate(resolve)); } }
+  async function settle() { for (let i = 0; i < 6; i++) { if (dirty) { cursor = 0; dirty = false; jobs = []; tree = exports.default({ defaultTestEmail: "qa@example.test" }); nodes(tree).forEach(node => { if (node.props?.ref) node.props.ref.current = node.type === "dialog" ? dialog : { focus() { browser.focused = "keep"; } }; }); jobs.forEach(job => job()); } await new Promise(resolve => setImmediate(resolve)); } }
   async function open() { await settle(); find("button", node => text(node).startsWith(event.title)).props.onClick(); await settle(); }
   const field = (label: string) => nodes(find("label", node => text(node).startsWith(label))).find(node => ["input", "textarea", "select"].includes(node.type));
   const submit = (label: string) => find("form", node => text(node).includes(label)).props.onSubmit({ preventDefault() {} });
   async function pause() { button("Unschedule & edit").props.onClick(); await settle(); button("Confirm unschedule & edit").props.onClick(); await settle(); }
-  return { copy: () => nodes(tree).find(node => node.props?.aiSource && node.props?.value), open, settle, pause, button, field, submit, find, calls, text: () => text(tree), event: () => structuredClone(event), fail: (error: string) => { failNext = error; }, defer: () => { defer = true; }, resolve: () => { defer = false; deferred?.(); }, unmount: () => slots.forEach(slot => slot?.cleanup?.()) };
+  return { browser, copy: () => nodes(tree).find(node => node.props?.aiSource && node.props?.value), open, settle, pause, button, field, submit, find, calls, text: () => text(tree), event: () => structuredClone(event), fail: (error: string) => { failNext = error; }, defer: () => { defer = true; }, resolve: () => { defer = false; deferred?.(); }, unmount: () => slots.forEach(slot => slot?.cleanup?.()) };
 }
 
 test("unschedule is a separate confirmed action; keeping the schedule makes no mutation", async () => {
   const ui = mount(); await ui.open(); assert(ui.button("Unschedule & edit")); assert.equal(ui.button("Edit draft"), undefined);
   ui.button("Unschedule & edit").props.onClick(); await ui.settle(); assert.match(ui.text(), /Nothing resumes until you confirm the schedule again/);
   ui.button("Keep schedule").props.onClick(); await ui.settle(); assert.equal(ui.button("Confirm unschedule & edit"), undefined); assert(ui.calls.every(call => call.method === "GET")); ui.unmount();
+});
+
+test("confirmation opens a viewport-bounded modal and restores focus and scroll after dismissal", async () => {
+  const ui = mount(); await ui.open();
+  for (let attempt = 0; attempt < 2; attempt++) {
+    ui.button("Unschedule & edit").props.onClick(); await ui.settle();
+    const dialog = ui.find("dialog"); assert(dialog); assert.equal(dialog.props["aria-modal"], "true");
+    assert.equal(dialog.props["aria-labelledby"], "unschedule-confirm-title");
+    assert.match(dialog.props.className, /max-h-\[calc\(100dvh_-_2rem\)\]/);
+    assert.match(dialog.props.className, /open:flex/);
+    assert.equal(ui.browser.shown, attempt + 1); assert.equal(ui.browser.focused, "keep"); assert.equal(ui.browser.overflow, "hidden");
+    let prevented = false; dialog.props.onCancel({ preventDefault() { prevented = true; } }); await ui.settle();
+    assert(prevented); assert.equal(ui.find("dialog"), undefined); assert.equal(ui.browser.overflow, "auto"); assert.equal(ui.browser.focused, "trigger");
+  }
+  assert(ui.calls.every(call => call.method === "GET")); ui.unmount();
+});
+
+test("pending confirmation cannot Escape out and server errors stay inside the modal", async () => {
+  const ui = mount(); await ui.open(); ui.button("Unschedule & edit").props.onClick(); await ui.settle();
+  ui.fail("Delivery has already started."); ui.defer(); ui.button("Confirm unschedule & edit").props.onClick();
+  // Escape in the same frame must respect the synchronous operation guard.
+  ui.find("dialog").props.onCancel({ preventDefault() {} }); ui.button("Keep schedule").props.onClick(); await ui.settle(); assert(ui.find("dialog"));
+  ui.resolve(); await ui.settle(); assert(ui.find("dialog")); assert.equal(ui.find("dialog").props["aria-busy"], false);
+  const content = ui.find("dialog").props.children[0];
+  assert(content.props.children.some((node: any) => node?.props?.role === "alert"));
+  assert.equal(ui.event().status, "SCHEDULED"); assert.equal(ui.calls.filter(call => call.method === "PATCH").length, 1);
+  ui.unmount(); assert.equal(ui.browser.overflow, "auto"); assert.equal(ui.browser.focused, "trigger");
 });
 
 test("pause, edit wording and event date, save, adjust all delivery times and resume the same event", async () => {
