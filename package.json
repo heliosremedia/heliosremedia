@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "node --experimental-strip-types --test lib/*.test.ts lib/client-communications/*.test.ts lib/newsletters/*.test.ts lib/referrals/*.test.ts lib/social/*.test.ts lib/monthly-summaries/*.test.ts lib/events/*.test.ts app/admin/events/*.test.ts",
     "auth:hash-password": "node scripts/hash-admin-password.mjs",
-    "test:monthly": "node --experimental-strip-types --test lib/monthly-summaries/*.test.ts"
+    "test:monthly": "node --experimental-strip-types --test lib/monthly-summaries/*.test.ts",
+    "test:email-ui": "node scripts/verify-email-studio-render.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1089.0",
