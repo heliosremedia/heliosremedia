@@ -7,7 +7,8 @@ const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.ur
 test("Email Studio uses sticky preview and provider-confirmed delivery language", () => {
   const studio = read("app/admin/email-studio/BulkEmailStudio.tsx");
   const page = read("app/admin/email-studio/page.tsx");
-  assert.match(studio, /xl:sticky xl:top-24/);
+  assert.match(studio, /className="email-studio-preview"/);
+  assert.match(read("app/globals.css"), /\.email-studio-preview \{ position: sticky;/);
   assert.match(studio, /provider accepted/);
   assert.doesNotMatch(studio, /sentCount}\/{campaign\.recipientCount} sent/);
   assert.match(page, /communicationMetrics/);

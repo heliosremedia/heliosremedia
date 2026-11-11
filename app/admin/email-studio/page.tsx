@@ -109,16 +109,18 @@ export default async function EmailStudioPage({ searchParams }: { searchParams: 
     ) },
   );
   return <AdminPageLayout
-    header={<AdminPageHeader eyebrow="Client communications" title="Bulk Email Studio" description="Create polished updates for all clients, selected groups, or individual recipients—with a test step and unsubscribe protection built in." />}
-    summary={<AdminSummaryCards items={[
+    className="email-studio-page"
+    header={<AdminPageHeader eyebrow="Client communications" title="Email Studio" description="Create thoughtful client emails. Review, test, and send with confidence." actions={["OWNER", "ADMIN"].includes(session.role) ? <><Link href="/admin/events" className="admin-btn-secondary">Event Invitations ↗</Link><Link href="/admin/email-studio/monthly-summaries" className="admin-btn-secondary">Monthly Summaries ↗</Link></> : undefined} />}
+    summary={<AdminSummaryCards compact items={[
       { label: "Eligible recipients", value: eligibleClients.length, detail: "Subscribed, valid, and not suppressed" },
       { label: "Scheduled campaigns", value: campaigns.filter(item=>item.status==="SCHEDULED").length, detail: "Awaiting delivery" },
       { label: "Recently sent", value: campaigns.filter(item=>item.status==="SENT").length, detail: "Within recent campaign history", tone: "good" },
       { label: "Confirmed delivery", value: confirmedDeliveryRate === null ? null : `${confirmedDeliveryRate}%`, detail: metrics.providerAccepted ? `${metrics.delivered} of ${metrics.providerAccepted} provider-accepted messages confirmed delivered` : "No provider-accepted messages in recent history" },
     ]}/>}
   >
-    <EmailStudioCardOrganizer workspaceId={session.workspaceId} userId={session.userId} cards={cards} />
     <BulkEmailStudio
+      deliveryHealth={<EmailStudioCardOrganizer workspaceId={session.workspaceId} userId={session.userId} cards={cards} />}
+      healthReviewCount={webhookFailures.length + unmatchedWebhookCount}
       clients={eligibleClients.map((client) => ({ id: client.id, firstName: client.firstName, lastName: client.lastName, displayName: client.displayName, email: client.email, phone: client.phone, groupIds: client.groupMemberships.map((membership) => membership.groupId) }))}
       groups={groups.map((group) => ({ id: group.id, name: group.name, count: eligibleClients.filter(client => client.groupMemberships.some(membership => membership.groupId === group.id)).length }))}
       campaigns={campaigns.map((campaign) => {
