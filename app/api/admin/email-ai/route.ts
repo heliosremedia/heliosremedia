@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     const apiKey = process.env.OPENAI_API_KEY?.trim();
     if (!apiKey) return NextResponse.json({ success: false, error: "AI writing is not configured yet." }, { status: 503 });
     const settings = await getSiteSettings();
-    const model = process.env.OPENAI_EMAIL_MODEL?.trim() || process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-5-mini";
+    const model = process.env.OPENAI_EMAIL_MODEL?.trim() || process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-6-luna";
     const requestBody = {
         model,
         instructions: action === "format"

@@ -77,7 +77,7 @@ export async function POST(request: Request) {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: process.env.OPENAI_SOCIAL_MODEL?.trim() || process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-5-mini",
+        model: process.env.OPENAI_SOCIAL_MODEL?.trim() || process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-6-luna",
         instructions: `You are Social Studio for Helios Real Estate Media. Voice: ${settings.brandVoice}. Guardrails: ${settings.writingGuardrails}. Hashtag guidance: ${settings.hashtagGuidance || ""}. Prohibited: ${settings.prohibitedTopics || ""}`,
         input: prompt, text: { format: { type: "json_object" } },
       }),
@@ -100,11 +100,15 @@ export async function POST(request: Request) {
       additionalProperties: false,
     } as const;
     const platformProperties = Object.fromEntries(platforms.map((platform) => [platform, platformDraftSchema]));
+    const groundingModel = process.env.OPENAI_SOCIAL_GROUNDING_MODEL?.trim() || "gpt-6-luna";
     const groundingResponse = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: process.env.OPENAI_SOCIAL_GROUNDING_MODEL?.trim() || "gpt-4.1-mini",
+        model: groundingModel,
+        // Match the previous non-reasoning review within its 35-second/2,500-token budget.
+        // Do not send this parameter to arbitrary existing model overrides.
+        ...(groundingModel === "gpt-6-luna" ? { reasoning: { effort: "none" } } : {}),
         instructions: "Rewrite the generated Social Studio draft so every factual statement is supported by a non-empty supplied verified fact. Remove every unsupported property attribute, amenity, size, design detail, result, client detail, or service claim. Generic creative recommendations may remain only when they do not describe the property as fact. Never infer facts from names, images, campaign direction, or empty fields. Never expose IDs, slugs, field names, or verification metadata. Treat listingAgent as the listing agent and brokerage as the listing brokerage, never as the media creator. Return only the corrected draft in the required schema.",
         input: [
           `VERIFIED FACTS: ${JSON.stringify(facts)}`,
@@ -170,7 +174,7 @@ export async function POST(request: Request) {
             hashtags: Array.isArray(draft.hashtags) ? draft.hashtags.slice(0, 30) as Prisma.InputJsonValue : variant.hashtags || [],
             callToAction: String(draft.callToAction || variant.callToAction || ""), onScreenText: String(draft.onScreenText || variant.onScreenText || ""),
             videoConcept: String(draft.videoConcept || variant.videoConcept || ""), altText: String(draft.altText || variant.altText || ""),
-            status: "DRAFT", aiMetadata: { requestId: body.requestId, action, model: process.env.OPENAI_SOCIAL_MODEL || process.env.OPENAI_BLOG_MODEL || "gpt-5-mini", generatedAt: new Date().toISOString(), sourceCampaignId: campaign.id },
+            status: "DRAFT", aiMetadata: { requestId: body.requestId, action, model: process.env.OPENAI_SOCIAL_MODEL || process.env.OPENAI_BLOG_MODEL || "gpt-6-luna", generatedAt: new Date().toISOString(), sourceCampaignId: campaign.id },
             lastEditedById: session.userId, contentVersion: { increment: 1 },
           },
         });

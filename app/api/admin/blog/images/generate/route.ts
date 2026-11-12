@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       action: "BLOG_AI_FEATURED_IMAGE_GENERATED",
       entityType: "NewsletterImageAsset",
       entityId: asset.id,
-      summary: "Generated and stored a Blog Studio featured image with gpt-image-1.5.",
+      summary: "Generated and stored a Blog Studio featured image with the configured OpenAI image model.",
       metadata: { model: asset.model, quality: asset.quality, width: asset.width, height: asset.height },
     });
     return NextResponse.json({

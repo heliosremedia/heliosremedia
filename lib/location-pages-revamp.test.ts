@@ -30,7 +30,7 @@ test("Location Page AI uses a complete strict schema and compatible fallback", (
   assert.match(ai, /strict: true/);
   assert.match(ai, /additionalProperties: false/);
   assert.match(ai, /required: \["heroLead", "introduction", "marketTitle", "marketCopy", "ctaHeadline", "seoTitle", "seoDescription", "featureImageAlt"\]/);
-  assert.match(ai, /\[configuredModel, "gpt-5-mini"\]/);
+  assert.match(ai, /\[configuredModel, "gpt-6-luna"\]/);
   assert.match(ai, /customDirection: customDirection \|\| null/);
   assert.match(ai, /treat every requested subject as a firm creative requirement/i);
   assert.match(ai, /stable, widely known geographic, cultural, historical/i);

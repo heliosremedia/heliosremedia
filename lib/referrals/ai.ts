@@ -74,7 +74,7 @@ export async function generateReferralCampaignDraft(input: {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: process.env.OPENAI_REFERRAL_MODEL?.trim() || process.env.OPENAI_NEWSLETTER_MODEL?.trim() || "gpt-5-mini",
+      model: process.env.OPENAI_REFERRAL_MODEL?.trim() || process.env.OPENAI_NEWSLETTER_MODEL?.trim() || "gpt-6-luna",
       instructions: [
         `You are the referral campaign assistant for ${input.verifiedBusiness.businessName}.`,
         `Brand voice: ${input.verifiedBusiness.brandVoice}. Audience: ${input.verifiedBusiness.audience}.`,

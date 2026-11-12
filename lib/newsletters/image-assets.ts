@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { r2Client, r2Config } from "@/lib/r2";
 import { createNewsletterAiImageKey, getPublicAssetUrl } from "@/lib/r2-upload";
 
-export const NEWSLETTER_IMAGE_MODEL = "gpt-image-1.5";
+export const NEWSLETTER_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL?.trim() || "gpt-image-2.6-flare";
 export const NEWSLETTER_IMAGE_SIZE = "1536x1024";
 export const NEWSLETTER_IMAGE_QUALITY = "medium";
 
@@ -43,7 +43,7 @@ export function imageProviderError(status: number, payload: OpenAiImageResponse)
     return "The image prompt did not meet OpenAI safety requirements. Revise the prompt and try again.";
   }
   if (code === "model_not_found" || /model.*(access|exist|found)/i.test(message)) {
-    return "gpt-image-1.5 is unavailable to this OpenAI project. Verify model access and organization status.";
+    return "The configured image model is unavailable to this OpenAI project. Verify OPENAI_IMAGE_MODEL, model access, and organization status.";
   }
   if (status >= 500) return "OpenAI image generation is temporarily unavailable. Try again in a few minutes.";
   return "OpenAI rejected the image request. Revise the prompt or check the API project settings.";
@@ -108,7 +108,7 @@ export async function generateNewsletterImage(input: {
         publicUrl,
         prompt,
         altText,
-        attribution: "AI-generated with OpenAI gpt-image-1.5",
+        attribution: `AI-generated with OpenAI ${NEWSLETTER_IMAGE_MODEL}`,
         model: NEWSLETTER_IMAGE_MODEL,
         quality: NEWSLETTER_IMAGE_QUALITY,
         width: 1536,

@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       action: "NEWSLETTER_AI_IMAGE_GENERATED",
       entityType: "NewsletterImageAsset",
       entityId: asset.id,
-      summary: "Generated and stored a Newsletter Studio image with gpt-image-1.5.",
+      summary: "Generated and stored a Newsletter Studio image with the configured OpenAI image model.",
       metadata: { model: asset.model, quality: asset.quality, width: asset.width, height: asset.height },
     });
     return NextResponse.json({

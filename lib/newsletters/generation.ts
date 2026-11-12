@@ -176,7 +176,7 @@ export async function generateNewsletterEdition(editionId: string, actorId?: str
         where: { id: run.id },
         data: {
           status: "SUCCEEDED",
-          model: process.env.OPENAI_NEWSLETTER_MODEL?.trim() || process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-5-mini",
+          model: process.env.OPENAI_NEWSLETTER_MODEL?.trim() || process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-6-luna",
           sourceManifest: sources.map((source) => ({
             id: source.id, kind: source.kind, label: source.label,
             imageCandidates: source.imageCandidates ?? [],

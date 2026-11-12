@@ -67,7 +67,7 @@ export function readEventAIBody(request: Request) {
 export function eventAIConfiguration() {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) throw new EventAIError("config");
-  return { apiKey, model: process.env.OPENAI_EMAIL_MODEL?.trim() || process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-5-mini" };
+  return { apiKey, model: process.env.OPENAI_EMAIL_MODEL?.trim() || process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-6-luna" };
 }
 
 /** Lock the existing admin row so count + reservation is atomic across processes.
