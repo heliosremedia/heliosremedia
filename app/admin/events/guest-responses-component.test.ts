@@ -77,6 +77,7 @@ function mount(guests: Invitation[] = invitations, deliveries: { id: string; sta
     settle, openEvent, expand, find, button, toggle, panel, search, filter, guestRows, calls,
     composer: () => nodes(tree).find(node => node.props?.event?.id === event.id && typeof node.props?.onEventChange === "function"),
     text: () => text(tree),
+    sections: () => nodes(tree).filter(node => node.type === "section").map(text),
     summary: () => text(section()),
     deferRefresh: () => { deferDetail = true; },
     completeRefresh: (nextGuests = guests) => { assert(pendingDetail); pendingDetail(Response.json({ event: { ...event, invitations: nextGuests } })); },
@@ -186,4 +187,19 @@ test("empty guest lists and failed refreshes remain usable without resetting the
   assert.equal(failed.toggle().props["aria-expanded"], false); assert.equal(failed.button("Refresh").props.disabled, false);
   assert.equal(failed.find("div", node => node.props.role === "alert").props.children, "Refresh unavailable");
   await failed.expand(); assert.equal(failed.guestRows().length, 166); assert.equal(failed.calls.length, 3); failed.unmount();
+});
+
+
+test("guest responses are the first event panel, above scheduled event details and delivery controls", async () => {
+  const ui = mount(); await ui.openEvent();
+  const sections = ui.sections();
+  assert.match(sections[0], /^Guest responses/);
+  assert.match(sections[1], /^SCHEDULEDHoliday gathering/);
+  assert.match(sections[2], /^Delivery plan/);
+  await ui.expand();
+  assert.match(ui.sections()[0], /^Guest responses/);
+  ui.button("Refresh").props.onClick(); await ui.settle();
+  assert.match(ui.sections()[0], /^Guest responses/);
+  assert(ui.calls.every(call => call.method === "GET"));
+  ui.unmount();
 });
