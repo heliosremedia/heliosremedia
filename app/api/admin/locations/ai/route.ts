@@ -160,9 +160,9 @@ FIELD DIRECTION
 - SEO fields: accurate, natural, and locally relevant without keyword stuffing.
 
 Write premium, calm, human copy in the company's voice. Do not use em dashes, hype, generic destination filler, or interchangeable structure. Use blank lines between paragraphs. Observe every schema limit. The content is a reviewable draft, never a publication instruction.`;
-    const configuredModel = process.env.OPENAI_LOCATION_MODEL?.trim() || process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-5-mini";
-    const models = configuredModel === "gpt-5-mini" ? [configuredModel] : [configuredModel, "gpt-5-mini"];
-    const attemptModels = [...models, "gpt-5-mini"];
+    const configuredModel = process.env.OPENAI_LOCATION_MODEL?.trim() || process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-6-luna";
+    const models = configuredModel === "gpt-6-luna" ? [configuredModel] : [configuredModel, "gpt-6-luna"];
+    const attemptModels = [...models, "gpt-6-luna"];
     let response: Response | null = null;
     let qualityFeedback: string[] = [];
 

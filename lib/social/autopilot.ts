@@ -152,7 +152,7 @@ async function requestPlans(input: {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: process.env.OPENAI_SOCIAL_MODEL?.trim() || process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-5-mini",
+      model: process.env.OPENAI_SOCIAL_MODEL?.trim() || process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-6-luna",
       instructions: `Create a review-only weekly social plan. Use only supplied verified facts. Never invent property details, results, statistics, testimonials, trends, or claims. Voice: ${input.voice}. Guardrails: ${input.guardrails}.`,
       input: JSON.stringify({
         task: `Return exactly ${input.postsPerWeek} post concepts. Each concept needs distinct FACEBOOK and INSTAGRAM copy when those platforms are enabled.`,

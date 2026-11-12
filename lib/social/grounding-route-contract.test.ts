@@ -13,7 +13,7 @@ test("Social Studio reviews all generated copy before saving it", () => {
   assert.match(route, /name: "social_grounded_drafts"/);
   assert.match(route, /required: \["campaignBrief", "platforms", "unsupportedClaims"\]/);
   assert.match(route, /additionalProperties: false/);
-  assert.match(route, /OPENAI_SOCIAL_GROUNDING_MODEL\?\.trim\(\) \|\| "gpt-4\.1-mini"/);
+  assert.match(route, /OPENAI_SOCIAL_GROUNDING_MODEL\?\.trim\(\) \|\| "gpt-6-luna"/);
   assert.match(route, /max_output_tokens: 2500/);
   assert.match(route, /const draft = groundedDrafts\[variant\.platform\]/);
   assert.doesNotMatch(route, /const draft = drafts\[variant\.platform\]/);

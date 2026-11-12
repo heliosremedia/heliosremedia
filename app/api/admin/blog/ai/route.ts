@@ -69,7 +69,7 @@ export async function POST(request: Request) {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-5-mini",
+        model: process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-6-luna",
         instructions: instruction,
         input: `${actionPrompt[action] || actionPrompt.draft}\n\n${input}`,
         text: { format: { type: "json_object" } },

@@ -35,7 +35,7 @@ export async function generateSeriesDraft(seriesId: string) {
       "User-Agent": "helios-studio/1.0",
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-5-mini",
+      model: process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-6-luna",
       instructions: `You are the editorial partner for ${settings?.businessName || "Helios Real Estate Media"}. Draft useful, specific content for ${series.targetAudience}. Voice: ${series.brandVoice || settings?.brandVoice || "refined, intentional, knowledgeable, and human"}. ${settings?.brandWritingGuidance || ""} Never invent statistics, trends, laws, client results, testimonials, or property details. Any current or externally verifiable claim must be omitted unless it is supported by a URL in sourceLinks. Avoid generic openings, generic conclusions, keyword stuffing, and repeated phrasing.`,
       input: `Create one original article draft for this recurring series.
 Series purpose: ${series.purpose}

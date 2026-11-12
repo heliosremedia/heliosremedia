@@ -108,7 +108,7 @@ export async function generateNewsletterDraft(input: {
 
   const sourceIds = new Set(input.sources.map((source) => source.id));
   if (sourceIds.size !== input.sources.length) throw new Error("Verified source IDs must be unique.");
-  const model = process.env.OPENAI_NEWSLETTER_MODEL?.trim() || process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-5-mini";
+  const model = process.env.OPENAI_NEWSLETTER_MODEL?.trim() || process.env.OPENAI_BLOG_MODEL?.trim() || "gpt-6-luna";
   const instructions = [
     `You are the editorial assistant for ${input.brand.businessName}.`,
     `Voice: ${input.brand.voice}. Audience: ${input.brand.audience}.`,

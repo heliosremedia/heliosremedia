@@ -94,7 +94,7 @@ test("provider errors/refusal/truncation/invalid JSON are private 502 with no re
 
 test("missing configuration is 503 without quota charge; model uses email then blog then default", async () => {
   const missing = setup({ env: {} }); assert.equal((await missing.route.POST(request())).status, 503); assert.equal(missing.writes.length, 0); assert.equal(missing.calls.length, 0);
-  for (const [env, model] of [[{ OPENAI_API_KEY: "x", OPENAI_BLOG_MODEL: "blog" }, "blog"], [{ OPENAI_API_KEY: "x" }, "gpt-5-mini"]] as const) {
+  for (const [env, model] of [[{ OPENAI_API_KEY: "x", OPENAI_BLOG_MODEL: "blog" }, "blog"], [{ OPENAI_API_KEY: "x" }, "gpt-6-luna"]] as const) {
     const run = setup({ env }); await run.route.POST(request()); assert.equal(run.calls[0].json.model, model);
   }
 });
