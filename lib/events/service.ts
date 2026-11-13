@@ -12,7 +12,7 @@ export async function eventAdmin() {
   if (!session || !["OWNER","ADMIN"].includes(session.role)) throw new Error("Administrator access required.");
   return session;
 }
-export const eventInclude = { invitations: { select: {id:true,clientId:true,email:true,displayName:true,response:true,additionalGuests:true,respondedAt:true} }, deliveries: { include: { messages: {select:{id:true,invitationId:true,status:true,providerMessageId:true,error:true,sentAt:true}} } } } as const;
+export const eventInclude = { invitations: { select: {id:true,clientId:true,email:true,displayName:true,source:true,response:true,additionalGuests:true,respondedAt:true} }, deliveries: { include: { messages: {select:{id:true,invitationId:true,status:true,providerMessageId:true,error:true,sentAt:true}} } } } as const;
 export async function getEvent(id: string, workspaceId: string) {
   const event = await prisma.eventInvitationEvent.findFirst({where:{id,workspaceId},include:eventInclude});
   if (!event) throw new Error("Event not found."); return event;

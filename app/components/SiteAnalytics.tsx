@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 /** Bearer-link RSVP pages must not pass invitation URLs to analytics. */
 export default function SiteAnalytics({ measurementId }: { measurementId?: string }) {
   const pathname = usePathname();
-  if (!measurementId || pathname === "/events/rsvp" || pathname.startsWith("/events/rsvp/")) return null;
+  if (!measurementId || pathname === "/events/rsvp" || pathname.startsWith("/events/rsvp/") || pathname === "/events/invite" || pathname.startsWith("/events/invite/")) return null;
   const safeId = measurementId.replace(/[^A-Za-z0-9_-]/g, "");
   if (!safeId) return null;
   return <>

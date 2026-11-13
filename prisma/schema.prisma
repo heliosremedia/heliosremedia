@@ -3627,6 +3627,7 @@ model EventInvitationEvent {
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
   invitations EventInvitation[]
+  shareLink   EventShareLink?
   deliveries  EventDelivery[]
 
   @@index([workspaceId, createdAt])
@@ -3641,6 +3642,7 @@ model EventInvitation {
   displayName    String
   tokenHash      String                 @unique
   encryptedToken String
+  source         String                 @default("EMAIL")
   response       String                 @default("PENDING")
   additionalGuests Int                  @default(0)
   respondedAt    DateTime?
@@ -3687,4 +3689,14 @@ model EventDeliveryMessage {
   @@unique([deliveryId, invitationId])
   @@index([status, claimedAt])
   @@index([providerMessageId])
+}
+
+// Separate capability from guest RSVP credentials. Not included in admin event snapshots.
+model EventShareLink {
+  id             String @id @default(cuid())
+  eventId        String @unique
+  event          EventInvitationEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tokenHash      String @unique
+  encryptedToken String
+  createdAt      DateTime @default(now())
 }

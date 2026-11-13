@@ -37,7 +37,7 @@ export async function processEventDeliveries() {
       await prisma.eventDelivery.updateMany({where:{id:delivery.id,status:"SCHEDULED"},data:{status:"FAILED"}});
       continue; // Never expand a malformed targeted delivery into the event audience.
     }
-    const invitations = await prisma.eventInvitation.findMany({where:{eventId:delivery.eventId,...(resendId ? {id:resendId} : {})},select:{id:true}});
+    const invitations = await prisma.eventInvitation.findMany({where:{eventId:delivery.eventId,source:"EMAIL",...(resendId ? {id:resendId} : {})},select:{id:true}});
     const started = await prisma.$transaction(async tx => {
       const locked = await tx.eventInvitationEvent.updateMany({where:{id:delivery.eventId,status:"SCHEDULED",startsAt:{gt:new Date()}},data:{updatedAt:new Date()}});
       if (!locked.count) return false;
@@ -64,7 +64,7 @@ export async function processEventDeliveries() {
         const client = current ? await prisma.communicationClient.findFirst({where:{id:current.clientId,workspaceMemberships:{some:{workspaceId:current.event.workspaceId}},archivedAt:null,emailSubscribed:true,emailStatus:"VALID",groupMemberships:{none:{group:{systemKey:bouncedBackSystemKey(current.event.workspaceId)}}}}}) : null;
         const isUpdate = isEventUpdateStage(delivery.stage);
         const targets = current && (resendId ? current.id === resendId : isUpdate ? eventUpdateTargets(activeDelivery?.updateAudience,current.response) : stageTargets(delivery.stage,current.response));
-        if (!current || current.eventId !== delivery.eventId || current.event.status !== "SCHEDULED" || current.event.startsAt <= new Date() || activeDelivery?.status !== "SCHEDULED" || activeDelivery.scheduledAt > new Date() || !targets || !client || client.normalizedEmail !== current.email || !await addressIsMarketingEligible(current.email)) { await finish("SKIPPED","Recipient no longer eligible, response changed, or event closed."); continue; }
+        if (!current || current.source === "SHARED_LINK" || current.eventId !== delivery.eventId || current.event.status !== "SCHEDULED" || current.event.startsAt <= new Date() || activeDelivery?.status !== "SCHEDULED" || activeDelivery.scheduledAt > new Date() || !targets || !client || client.normalizedEmail !== current.email || !await addressIsMarketingEligible(current.email)) { await finish("SKIPPED","Recipient no longer eligible, response changed, or event closed."); continue; }
         if (delivery.stage !== "INITIAL" && !await prisma.eventDeliveryMessage.findFirst({where:{invitationId:current.id,status:"SENT",delivery:{stage:"INITIAL"}}})) {
           const initial = await prisma.eventDelivery.findUnique({where:{eventId_stage:{eventId:current.eventId,stage:"INITIAL"}}});
           if (initial?.status === "SCHEDULED") {
