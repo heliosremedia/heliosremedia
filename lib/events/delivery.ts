@@ -10,6 +10,7 @@ import { replayDecision, dispatchOpen } from "./policy";
 import { renderEventEmail } from "./email";
 import { eventUpdateCopy, eventUpdateTargets, isEventUpdateStage } from "./updates-core";
 import { renderEventUpdate } from "./updates-email";
+import { resendInvitationId } from "./resend-core";
 
 export async function processEventDeliveries() {
   const now = new Date();
@@ -31,7 +32,12 @@ export async function processEventDeliveries() {
       });
       continue;
     }
-    const invitations = await prisma.eventInvitation.findMany({where:{eventId:delivery.eventId},select:{id:true}});
+    const resendId = resendInvitationId(delivery.stage);
+    if (delivery.stage.startsWith("RESEND_") && !resendId) {
+      await prisma.eventDelivery.updateMany({where:{id:delivery.id,status:"SCHEDULED"},data:{status:"FAILED"}});
+      continue; // Never expand a malformed targeted delivery into the event audience.
+    }
+    const invitations = await prisma.eventInvitation.findMany({where:{eventId:delivery.eventId,...(resendId ? {id:resendId} : {})},select:{id:true}});
     const started = await prisma.$transaction(async tx => {
       const locked = await tx.eventInvitationEvent.updateMany({where:{id:delivery.eventId,status:"SCHEDULED",startsAt:{gt:new Date()}},data:{updatedAt:new Date()}});
       if (!locked.count) return false;
@@ -57,8 +63,8 @@ export async function processEventDeliveries() {
         const activeDelivery = await prisma.eventDelivery.findUnique({where:{id:delivery.id}});
         const client = current ? await prisma.communicationClient.findFirst({where:{id:current.clientId,workspaceMemberships:{some:{workspaceId:current.event.workspaceId}},archivedAt:null,emailSubscribed:true,emailStatus:"VALID",groupMemberships:{none:{group:{systemKey:bouncedBackSystemKey(current.event.workspaceId)}}}}}) : null;
         const isUpdate = isEventUpdateStage(delivery.stage);
-        const targets = current && (isUpdate ? eventUpdateTargets(activeDelivery?.updateAudience,current.response) : stageTargets(delivery.stage,current.response));
-        if (!current || current.event.status !== "SCHEDULED" || current.event.startsAt <= new Date() || activeDelivery?.status !== "SCHEDULED" || activeDelivery.scheduledAt > new Date() || !targets || !client || client.normalizedEmail !== current.email || !await addressIsMarketingEligible(current.email)) { await finish("SKIPPED","Recipient no longer eligible, response changed, or event closed."); continue; }
+        const targets = current && (resendId ? current.id === resendId : isUpdate ? eventUpdateTargets(activeDelivery?.updateAudience,current.response) : stageTargets(delivery.stage,current.response));
+        if (!current || current.eventId !== delivery.eventId || current.event.status !== "SCHEDULED" || current.event.startsAt <= new Date() || activeDelivery?.status !== "SCHEDULED" || activeDelivery.scheduledAt > new Date() || !targets || !client || client.normalizedEmail !== current.email || !await addressIsMarketingEligible(current.email)) { await finish("SKIPPED","Recipient no longer eligible, response changed, or event closed."); continue; }
         if (delivery.stage !== "INITIAL" && !await prisma.eventDeliveryMessage.findFirst({where:{invitationId:current.id,status:"SENT",delivery:{stage:"INITIAL"}}})) {
           const initial = await prisma.eventDelivery.findUnique({where:{eventId_stage:{eventId:current.eventId,stage:"INITIAL"}}});
           if (initial?.status === "SCHEDULED") {
@@ -78,7 +84,7 @@ export async function processEventDeliveries() {
           const unsubscribeToken = await createPreferenceToken({clientId:client.id});
           const token = decrypt(current.encryptedToken,secret);
           const context = {recipientFirstName:client.firstName};
-          const rendered = updateCopy ? renderEventUpdate(current.event,updateCopy,token,unsubscribeToken,context) : renderEventEmail(current.event,delivery.stage,token,unsubscribeToken,context);
+          const rendered = updateCopy ? renderEventUpdate(current.event,updateCopy,token,unsubscribeToken,context) : renderEventEmail(current.event,resendId ? "INITIAL" : delivery.stage,token,unsubscribeToken,context);
           payload = {to:current.email,...rendered,unsubscribeUrl:`${getSiteUrl()}/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`};
           await prisma.eventDeliveryMessage.updateMany({where:{id:message.id,claimId},data:{encryptedPayload:encrypt(JSON.stringify(payload),secret)}});
         }
