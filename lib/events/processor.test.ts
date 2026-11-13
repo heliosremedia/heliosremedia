@@ -41,7 +41,7 @@ function patch(row:any,data:any){for(const [key,value] of Object.entries(data) a
 function fixture(responses=["PENDING"]) {
   const event:any={id:"event",workspaceId:"workspace",status:"SCHEDULED",startsAt:new Date(Date.now()+86400000),title:"Original title",description:"Join us",location:"Studio",timeZone:"America/Denver"};
   const deliveries:any[]=[{id:"initial",eventId:event.id,stage:"INITIAL",status:"SCHEDULED",scheduledAt:new Date(Date.now()-1000)}];
-  const invitations:any[]=responses.map((response,i)=>({id:`invite${i}`,eventId:event.id,clientId:`client${i}`,email:`client${i}@example.com`,response,encryptedToken:core.encrypt(core.newToken(),secret)}));
+  const invitations:any[]=responses.map((response,i)=>({id:`invite${i}`,eventId:event.id,source:"EMAIL",clientId:`client${i}`,email:`client${i}@example.com`,response,encryptedToken:core.encrypt(core.newToken(),secret)}));
   const clients:any[]=invitations.map(i=>({id:i.clientId,normalizedEmail:i.email,workspaceId:event.workspaceId,archivedAt:null,emailSubscribed:true,emailStatus:"VALID",bounced:false}));
   const messages:any[]=[];const sends:any[]=[];const suppressions:any[]=[];const preferences:any[]=[];const webhookEvents:any[]=[];const memberships:any[]=[];const renders:any[]=[];
   const blocked=new Set<string>();let failSend=false;let dueHook:(()=>void)|undefined;let payloadHook:(()=>void)|undefined;let tokenCount=0;
@@ -212,4 +212,10 @@ test("resend cannot substitute for an uncertain initial delivery",async()=>{
  const f=fixture();f.setFailSend(true);await f.processEventDeliveries();
  f.addStage(resends.resendStage("invite0","12345678-1234-4234-9234-123456789abc"));await f.processEventDeliveries();
  assert.equal(f.sends.length,1);assert.equal(f.messages.at(-1).status,"PENDING");
+});
+
+test("shared-link registrants are never enrolled in event email deliveries",async()=>{
+ const f=fixture(["YES","PENDING"]);f.invitations[0].source="SHARED_LINK";
+ await f.processEventDeliveries();f.addStage("REMINDER");await f.processEventDeliveries();
+ assert.equal(f.sends.length,1);assert.equal(f.sends[0].to,"client1@example.com");assert.equal(f.messages.some(m=>m.invitationId==="invite0"),false);
 });

@@ -1,0 +1,27 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import test from "node:test";
+import assert from "node:assert/strict";
+import vm from "node:vm";
+import {readFileSync} from "node:fs";
+import ts from "typescript";
+import {webcrypto} from "node:crypto";
+function mount(file:string,imports:any={},clipboardWorks=true) {
+ const slots:any[]=[],effects:(()=>void)[]=[],calls:any[]=[],copies:string[]=[],history:any[]=[];let cursor=0,dirty=true,tree:any;
+ const hooks={useState(value:any){const i=cursor++;if(!(i in slots))slots[i]=value;return [slots[i],(v:any)=>{slots[i]=typeof v==="function"?v(slots[i]):v;dirty=true;}];},useRef(value:any){const i=cursor++;if(!(i in slots))slots[i]={current:value};return slots[i];},useEffect(fn:()=>void){const i=cursor++;if(!(i in slots)){slots[i]=true;effects.push(fn);}}};
+ const jsx=(type:any,props:any)=>({type,props}),exports:any={};
+ const modules:any={react:hooks,"react/jsx-runtime":{jsx,jsxs:jsx},...imports};
+ const window={location:{origin:"https://example.test",pathname:"/events/invite",hash:"#token="+"A".repeat(43)},history:{replaceState(...args:any[]){history.push(args);window.location.hash="";}}};
+ vm.runInNewContext(ts.transpileModule(readFileSync(new URL(file,import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText,{exports,require:(key:string)=>{assert(key in modules,key);return modules[key];},window,navigator:{clipboard:{async writeText(value:string){if(!clipboardWorks)throw new Error("denied");copies.push(value);}}},URL,URLSearchParams,AbortController,Uint8Array,btoa,crypto:webcrypto,Date,Intl,JSON,Error,fetch:(path:string,init:any)=>new Promise((resolve,reject)=>calls.push({path,init,resolve,reject}))});
+ const nodes=(n:any):any[]=>!n||typeof n!=="object"?[]:Array.isArray(n)?n.flatMap(nodes):[n,...nodes(n.props?.children)];
+ const text=(n:any):string=>n==null?"":typeof n!=="object"?String(n):Array.isArray(n)?n.map(text).join(""):text(n.props?.children);
+ async function settle(){for(let i=0;i<8;i++){if(dirty){cursor=0;dirty=false;tree=exports.default({eventId:"event"});while(effects.length)effects.shift()!();}await new Promise(r=>setImmediate(r));}}
+ return {settle,calls,copies,history,text:()=>text(tree),find:(type:string)=>nodes(tree).find(n=>n.type===type),all:()=>nodes(tree),field:(name:string)=>nodes(tree).find(n=>n.props?.name===name),button:(label:string)=>nodes(tree).find(n=>n.type==="button"&&text(n)===label),resolve:(data:any,status=200)=>calls.at(-1).resolve(Response.json(data,{status}))};
+}
+
+const helpers={MAX_ADDITIONAL_GUESTS:10,parseAdditionalGuests:(choice:string,count:string)=>choice==="NO"?0:/^\d+$/.test(count)&&+count<=10?+count:null,rsvpPartySummary:()=>"Your party"};
+const imports={"@/lib/events/themes":{getEventTheme:()=>({})},"../EventMotif":()=>null,"../rsvp/response-helpers":helpers};
+const event={title:"Test gathering",description:"Welcome",location:"Venue",startsAt:"2035-01-01T18:00:00Z",endsAt:null,timeZone:"UTC"};
+async function ready(){const ui=mount("./InviteResponse.tsx",imports);await ui.settle();assert.equal(ui.history.length,1);assert.equal(ui.calls[0].init.headers.Authorization,"Bearer "+"A".repeat(43));assert.equal(ui.calls[0].path,"/api/events/invite");ui.resolve({success:true,event});await ui.settle();ui.field("name").props.onChange({target:{value:"Ada Test"}});ui.field("email").props.onChange({target:{value:"ada@example.test"}});ui.all().find(n=>n.props?.value==="YES").props.onChange();await ui.settle();return ui;}
+test("fragment cleared, no automatic registration; repeat submission uses stable random token",async()=>{const ui=await ready();assert.equal(ui.calls.length,1);const submit=ui.find("form").props.onSubmit;submit({preventDefault(){}});submit({preventDefault(){}});await ui.settle();assert.equal(ui.calls.length,2);const body=JSON.parse(ui.calls[1].init.body);assert.match(body.registrationToken,/^[A-Za-z0-9_-]{43}$/);assert.equal(body.email,"ada@example.test");assert.equal(body.additionalGuests,0);ui.calls[1].reject(new Error("lost response"));await ui.settle();assert.equal(ui.find("fieldset").props.disabled,true);assert.ok(ui.button("Retry same RSVP"));ui.find("form").props.onSubmit({preventDefault(){}});await ui.settle();assert.equal(ui.calls[2].init.body,ui.calls[1].init.body);ui.resolve({success:true,response:"YES",additionalGuests:0,rsvpUrl:"/events/rsvp#token="+"C".repeat(43)});await ui.settle();assert.match(ui.text(),/You’re on the guest list/);assert.match(ui.find("a").props.href,/events\/rsvp#token=/);assert.equal(ui.find("form"),undefined);});
+test("existing recipient receives generic conflict without other guest information",async()=>{const ui=await ready();ui.find("form").props.onSubmit({preventDefault(){}});await ui.settle();ui.resolve({success:false,error:"private server details"},409);await ui.settle();assert.match(ui.text(),/original invitation or contact the host/);assert.doesNotMatch(ui.text(),/private server details/);assert.equal(ui.find("fieldset").props.disabled,false);});
+test("public page metadata forbids indexing and referrers; no credential persistence",()=>{const page=readFileSync(new URL("./page.tsx",import.meta.url),"utf8"),source=readFileSync(new URL("./InviteResponse.tsx",import.meta.url),"utf8");assert.match(page,/index:false,follow:false/);assert.match(page,/no-referrer/);assert.doesNotMatch(source,/localStorage|sessionStorage|document\.cookie/);});

@@ -42,7 +42,7 @@ function mount(guests: Invitation[] = invitations, deliveries: { id: string; sta
   const imports: any = {
     react: hooks, "react/jsx-runtime": { jsx, jsxs: jsx }, "./ui-helpers": helpers, "@/lib/events/themes": themes,
     "@/lib/client-communications/scheduling": { zonedLocalToUtc() { throw new Error("No scheduling expected"); } },
-    "./EventAppearance": {}, "./EventDraftPreview": {}, "./EventEmailCopy": {}, "./EventUpdateComposer": {}, "./ResendInvitation": {},
+    "./EventAppearance": {}, "./EventDraftPreview": {}, "./EventEmailCopy": {}, "./EventUpdateComposer": {}, "./CopyEventLink": { default: () => null }, "./ResendInvitation": {},
   };
   const exports: any = {};
   const js = ts.transpileModule(readFileSync(new URL("./EventStudio.tsx", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
