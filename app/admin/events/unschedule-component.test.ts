@@ -35,7 +35,7 @@ function mount(initial: any = baseEvent) {
     useEffect(effect: () => any, dependencies: any[]) { const index = cursor++, old = slots[index]; if (!old || dependencies.some((value, i) => !Object.is(value, old.dependencies[i]))) jobs.push(() => { old?.cleanup?.(); slots[index] = { dependencies, cleanup: effect() }; }); },
   };
   const jsx = (type: unknown, props: unknown) => ({ type, props });
-  const imports: any = { react: hooks, "react/jsx-runtime": { jsx, jsxs: jsx }, "./ui-helpers": helpers, "@/lib/events/themes": themes, "@/lib/client-communications/scheduling": scheduling, "./EventAppearance": {}, "./EventDraftPreview": {}, "./EventEmailCopy": {}, "./EventUpdateComposer": {} };
+  const imports: any = { react: hooks, "react/jsx-runtime": { jsx, jsxs: jsx }, "./ui-helpers": helpers, "@/lib/events/themes": themes, "@/lib/client-communications/scheduling": scheduling, "./EventAppearance": {}, "./EventDraftPreview": {}, "./EventEmailCopy": {}, "./EventUpdateComposer": {}, "./ResendInvitation": {} };
   const exports: any = {};
   vm.runInNewContext(ts.transpileModule(readFileSync(new URL("./EventStudio.tsx", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText, {
     exports, document, HTMLElement: Element, require: (name: string) => { assert(name in imports, name); return imports[name]; },

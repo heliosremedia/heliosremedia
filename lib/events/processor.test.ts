@@ -13,6 +13,7 @@ import * as themes from "./themes.ts";
 import * as personalization from "./personalization.ts";
 import * as emailFormat from "../client-communications/email-format.ts";
 import * as updates from "./updates-core.ts";
+import * as resends from "./resend-core.ts";
 
 const secret = "event-test-secret-".repeat(4);
 function moduleUnderTest(file:string,mocks:Record<string,unknown>) {
@@ -55,7 +56,7 @@ function fixture(responses=["PENDING"]) {
       findUnique:async(args:any)=>{const d=args.where.id?deliveries.find(d=>d.id===args.where.id):deliveries.find(d=>matches(d,args.where.eventId_stage));return d?clone({...d,event}):null;},
       update:async(args:any)=>update(deliveries,args),updateMany:async(args:any)=>update(deliveries,args),
     },
-    eventInvitation:{findMany:async()=>clone(invitations),findUnique:async(args:any)=>{const i=invitations.find(i=>i.id===args.where.id);return i?clone({...i,event}):null;}},
+    eventInvitation:{findMany:async(args:any)=>clone(invitations.filter(i=>matches(i,args.where))),findUnique:async(args:any)=>{const i=invitations.find(i=>i.id===args.where.id);return i?clone({...i,event}):null;}},
     communicationClient:{findFirst:async({where}:any)=>{
       const c=clients.find(c=>c.id===where.id);return c && c.workspaceId===where.workspaceMemberships.some.workspaceId && c.archivedAt===null && c.emailSubscribed && c.emailStatus==="VALID" && !c.bounced?clone(c):null;
     },updateMany:async(args:any)=>update(clients,args)},
@@ -78,7 +79,7 @@ function fixture(responses=["PENDING"]) {
   const updateEmail=moduleUnderTest("./updates-email.ts",{"server-only":{},"./email":email,"./updates-core":updates});
   const mocks={"@/lib/client-communications/resend-webhook-core":webhookCore,"server-only":{},"node:crypto":crypto,"@/lib/prisma":{prisma},"@/lib/client-communications/bounce-core":bounce,"@/lib/client-communications/preferences":{
     addressIsMarketingEligible:async(email:string)=>!blocked.has(email),createPreferenceToken:async()=>`unsubscribe-${++tokenCount}`,setMarketingPreference:async(input:any)=>preferences.push(input),
-  },"@/lib/client-communications/providers/resend":{sendEmail:async(input:any)=>{sends.push(clone(input));if(failSend)throw new Error("timeout after possible acceptance");return {messageId:`provider-${input.idempotencyKey}`};}},"@/lib/site":site,"./core":core,"./policy":policy,"./updates-core":updates,"./updates-email":{renderEventUpdate:(...args:any[])=>{renders.push(clone(args));return updateEmail.renderEventUpdate(...args);}},"./email":{renderEventEmail:(...args:any[])=>{renders.push(clone(args));return email.renderEventEmail(...args);}}};
+  },"@/lib/client-communications/providers/resend":{sendEmail:async(input:any)=>{sends.push(clone(input));if(failSend)throw new Error("timeout after possible acceptance");return {messageId:`provider-${input.idempotencyKey}`};}},"@/lib/site":site,"./core":core,"./policy":policy,"./updates-core":updates,"./resend-core":resends,"./updates-email":{renderEventUpdate:(...args:any[])=>{renders.push(clone(args));return updateEmail.renderEventUpdate(...args);}},"./email":{renderEventEmail:(...args:any[])=>{renders.push(clone(args));return email.renderEventEmail(...args);}}};
   const {processEventDeliveries}=moduleUnderTest("./delivery.ts",mocks);
   const {processEventWebhook}=moduleUnderTest("./webhook.ts",mocks);
   return {event,deliveries,invitations,clients,messages,sends,renders,suppressions,preferences,webhookEvents,memberships,blocked,processEventDeliveries,processEventWebhook,setFailSend:(v:boolean)=>{failSend=v;},setDueHook:(f:()=>void)=>{dueHook=f;},setPayloadHook:(f:()=>void)=>{payloadHook=f;},expireLease:()=>messages.forEach(m=>{m.claimedAt=new Date(Date.now()-360000);}),addStage:(stage:string)=>deliveries.push({id:stage,eventId:event.id,stage,status:"SCHEDULED",scheduledAt:new Date(Date.now()-1000)})};
@@ -182,4 +183,33 @@ test("processor due snapshots cannot create messages after pause or cancel a sav
   await f.processEventDeliveries();assert.equal(f.messages.length,0);assert.equal(f.sends.length,0);assert.equal(f.deliveries[0].status,resumed?"SCHEDULED":"PAUSED");
  }
  const f=fixture();f.setDueHook(()=>{f.event.status="DRAFT";f.deliveries[0].status="PAUSED";});await f.processEventDeliveries();assert.equal(f.messages.length,0);assert.equal(f.sends.length,0);assert.equal(f.deliveries[0].status,"PAUSED");
+});
+
+test("individual resend queues and renders only its existing guest with the original RSVP link",async()=>{
+ const f=fixture(["PENDING","YES","NO"]);await f.processEventDeliveries();
+ const originalInvitations=structuredClone(f.invitations),originalDeliveries=structuredClone(f.deliveries);
+ const stage=resends.resendStage("invite1","12345678-1234-4234-9234-123456789abc");f.addStage(stage);
+ await Promise.all([f.processEventDeliveries(),f.processEventDeliveries()]);await f.processEventDeliveries();
+ assert.equal(f.sends.length,4);assert.equal(f.sends[3].to,"client1@example.com");
+ assert.deepEqual(f.invitations,originalInvitations);assert.deepEqual(f.deliveries[0],originalDeliveries[0]);
+ assert.equal(f.messages.filter(m=>m.deliveryId===stage).length,1);assert.equal(f.messages.at(-1).invitationId,"invite1");
+ assert.equal(f.renders[3][1],"INITIAL");assert.equal(f.renders[3][2],f.renders[1][2]);
+ assert.equal(f.sends[3].subject,f.sends[1].subject);assert.notEqual(f.sends[3].idempotencyKey,f.sends[1].idempotencyKey);
+});
+test("resend timeout retries reuse a frozen payload and key without changing RSVP",async()=>{
+ const f=fixture(["NO","PENDING"]);await f.processEventDeliveries();f.addStage(resends.resendStage("invite0","12345678-1234-4234-9234-123456789abc"));f.setFailSend(true);
+ await f.processEventDeliveries();assert.equal(f.sends.length,3);f.expireLease();f.setFailSend(false);await f.processEventDeliveries();
+ assert.equal(f.sends.length,4);assert.deepEqual(f.sends[3],f.sends[2]);assert.equal(f.invitations[0].response,"NO");
+});
+test("targeted resends recheck suppression and reject foreign or malformed target delivery",async()=>{
+ const f=fixture(["PENDING","PENDING"]);await f.processEventDeliveries();
+ f.addStage(resends.resendStage("invite1","12345678-1234-4234-9234-123456789abc"));f.blocked.add(f.invitations[1].email);
+ await f.processEventDeliveries();assert.equal(f.sends.length,2);assert.equal(f.messages.at(-1).status,"SKIPPED");
+ f.addStage("RESEND_malformed");await f.processEventDeliveries();assert.equal(f.messages.length,3);assert.equal(f.deliveries.at(-1).status,"FAILED");
+ f.addStage(resends.resendStage("foreign","12345678-1234-4234-9234-123456789abc"));await f.processEventDeliveries();assert.equal(f.messages.length,3);assert.equal(f.sends.length,2);
+});
+test("resend cannot substitute for an uncertain initial delivery",async()=>{
+ const f=fixture();f.setFailSend(true);await f.processEventDeliveries();
+ f.addStage(resends.resendStage("invite0","12345678-1234-4234-9234-123456789abc"));await f.processEventDeliveries();
+ assert.equal(f.sends.length,1);assert.equal(f.messages.at(-1).status,"PENDING");
 });
