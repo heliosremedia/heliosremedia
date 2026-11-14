@@ -33,15 +33,15 @@ export default function ResendInvitation<T extends ResendEvent>({event,recipient
     } catch (error) { setError(error instanceof Error ? error.message : "The resend could not be confirmed. Please refresh."); }
     finally { pending.current = false; setBusy(false); }
   }
-  return <div className="mt-3 w-full">
-    {!confirming ? <button type="button" className={button} disabled={disabled || !!unavailable} title={unavailable || "Send another invitation only to this guest"} aria-label={`Resend invite to ${recipient.displayName || recipient.email || "guest"}`} onClick={()=>{setConfirming(true);setMessage("");}}>Resend invite</button> : <div role="group" aria-label="Confirm individual invitation resend" className="rounded-xl border border-orange-300/20 bg-orange-300/5 p-3">
+  return <div className="contents">
+    {!confirming ? <button type="button" className="col-start-2 row-start-1 self-center justify-self-end whitespace-nowrap rounded-md border border-white/15 px-2 py-1 text-[11px] leading-4 text-white/75 hover:border-white/40 focus-visible:outline-2 focus-visible:outline-[var(--helios-orange)] disabled:cursor-not-allowed disabled:opacity-40" disabled={disabled || !!unavailable} title={unavailable || "Send another invitation only to this guest"} aria-label={`Resend invite to ${recipient.displayName || recipient.email || "guest"}`} onClick={()=>{setConfirming(true);setMessage("");}}>Resend invite</button> : <div role="group" aria-label="Confirm individual invitation resend" className="col-span-3 mt-3 min-w-0 rounded-xl border border-orange-300/20 bg-orange-300/5 p-3">
       <p className="text-sm text-white/85">Resend “{event.title}” to <strong className="break-all">{recipient.email}</strong> only?</p>
       <p className="mt-2 text-xs leading-5 text-white/55">This sends another copy of the invitation on the next delivery run. Their RSVP and guest count stay unchanged. No other guest will receive it.</p>
       {unavailable && <p className="mt-2 text-xs text-amber-200">{unavailable}</p>}
       <div className="mt-3 flex flex-wrap gap-2"><button type="button" className={`${button} border-orange-300/40 text-orange-200`} disabled={disabled || busy || !!unavailable} onClick={()=>void send()}>{busy ? "Queuing…" : "Confirm resend"}</button><button type="button" className={button} disabled={busy} onClick={()=>{setConfirming(false);setError("");}}>Cancel</button></div>
     </div>}
-    {error && <p role="alert" className="mt-2 text-xs leading-5 text-red-200">{error}</p>}
-    {message && <p role="status" className="mt-2 text-xs leading-5 text-emerald-200">{message}</p>}
-    {!message && deliveryNote && <p className="mt-2 text-xs text-white/45">{deliveryNote}</p>}
+    {error && <p role="alert" className="col-span-3 mt-2 min-w-0 text-xs leading-5 text-red-200">{error}</p>}
+    {message && <p role="status" className="col-span-3 mt-2 min-w-0 text-xs leading-5 text-emerald-200">{message}</p>}
+    {!message && deliveryNote && <p className="col-span-3 mt-2 min-w-0 text-xs text-white/45">{deliveryNote}</p>}
   </div>;
 }
