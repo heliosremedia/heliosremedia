@@ -20,7 +20,7 @@ function mount() {
  const button=(label:string)=>nodes(tree).find(n=>n.type==="button"&&text(n)===label);
  function render(){cursor=0;dirty=false;tree=exports.default({event,recipient,disabled,onChange:(next:any)=>{updates.push(next);event=next;dirty=true;}});}
  async function settle(){for(let i=0;i<6;i++){if(dirty)render();await new Promise(r=>setImmediate(r));}}
- return {settle,button,calls,updates,text:()=>text(tree),event:()=>event,ids:()=>ids,setEvent:(change:any)=>{event={...event,...change};dirty=true;},disable:()=>{disabled=true;dirty=true;},success:()=>calls.at(-1)!.resolve(Response.json({success:true,event:{...event,deliveries:[...event.deliveries,{stage:core.resendStage("invite0",uuid),status:"SCHEDULED",scheduledAt:new Date().toISOString(),messages:[]}]},message:"Queued for this guest only."}))};
+ return {root:()=>tree,nodes:()=>nodes(tree),settle,button,calls,updates,text:()=>text(tree),event:()=>event,ids:()=>ids,setEvent:(change:any)=>{event={...event,...change};dirty=true;},disable:()=>{disabled=true;dirty=true;},success:()=>calls.at(-1)!.resolve(Response.json({success:true,event:{...event,deliveries:[...event.deliveries,{stage:core.resendStage("invite0",uuid),status:"SCHEDULED",scheduledAt:new Date().toISOString(),messages:[]}]},message:"Queued for this guest only."}))};
 }
 test("individual resend requires a second explicit confirmation showing address and event",async()=>{
  const ui=mount();await ui.settle();assert.equal(ui.button("Resend invite").props.disabled,false);
@@ -41,4 +41,12 @@ test("closed events, uncertain original and global operations disable resend wit
   const ui=mount();ui.setEvent(change);await ui.settle();assert.equal(ui.button("Resend invite").props.disabled,true);assert.equal(ui.calls.length,0);
  }
  const ui=mount();await ui.settle();ui.button("Resend invite").props.onClick();await ui.settle();ui.disable();await ui.settle();ui.button("Confirm resend").props.onClick();await ui.settle();assert.equal(ui.calls.length,0);
+});
+
+test("compact resend is immediately left of status and confirmation stays full width",async()=>{
+ const ui=mount();await ui.settle();assert.equal(ui.root().props.className,"contents");
+ const trigger=ui.button("Resend invite");assert.match(trigger.props.className,/col-start-2 row-start-1/);assert.match(trigger.props.className,/px-2 py-1 text-\[11px\]/);assert.match(trigger.props.className,/whitespace-nowrap/);
+ trigger.props.onClick();await ui.settle();assert.equal(ui.calls.length,0);const confirmation=ui.nodes().find((n:any)=>n.props?.role==="group");assert.match(confirmation.props.className,/col-span-3/);assert.match(ui.button("Confirm resend").props.className,/px-3 py-2/);
+ const studio=readFileSync(new URL("./EventStudio.tsx",import.meta.url),"utf8");const row=studio.slice(studio.indexOf('<ul className="mt-4 divide-y'),studio.indexOf('</ul>',studio.indexOf('<ul className="mt-4 divide-y')));
+ assert.match(row,/grid-cols-\[minmax\(0,1fr\)_auto_auto\]/);assert(row.indexOf('<ResendInvitation')<row.indexOf('col-start-3 row-start-1'));assert.match(row,/col-start-1 row-start-1 min-w-0/);
 });
