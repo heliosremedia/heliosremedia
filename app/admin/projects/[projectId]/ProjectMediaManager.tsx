@@ -788,6 +788,17 @@ export default function ProjectMediaManager({
   }, [loadMedia]);
 
   useEffect(() => {
+    const refreshImportedMedia = (event: Event) => {
+      const detail = (event as CustomEvent<{ projectId?: string }>).detail;
+      if (detail?.projectId !== projectId) return;
+      // Refetch only the collection. Keep unsaved asset drafts and other forms mounted.
+      void loadMedia();
+    };
+    window.addEventListener("helios:project-media-updated", refreshImportedMedia);
+    return () => window.removeEventListener("helios:project-media-updated", refreshImportedMedia);
+  }, [projectId, loadMedia]);
+
+  useEffect(() => {
     const savedViewMode = window.localStorage.getItem(
       "helios-project-media-view",
     );

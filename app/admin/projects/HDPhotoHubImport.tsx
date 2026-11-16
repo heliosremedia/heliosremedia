@@ -31,8 +31,9 @@ export default function HDPhotoHubImport({ targetProjectId }: { targetProjectId?
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [projectId, setProjectId] = useState("");
+  const [completed, setCompleted] = useState(false);
   async function lookup(siteId: number) {
-    setBusy(true); setError(""); setProperty(null); setProjectId(""); setSelected([]); setRights(false); setStatus("Checking HDPhotoHub…");
+    setBusy(true); setError(""); setProperty(null); setProjectId(""); setSelected([]); setRights(false); setCompleted(false); setStatus("Checking HDPhotoHub…");
     try {
       const response = await fetch(`/api/admin/projects/hdph-import?siteId=${encodeURIComponent(String(siteId))}`, { cache: "no-store" });
       const result = await response.json();
@@ -43,7 +44,8 @@ export default function HDPhotoHubImport({ targetProjectId }: { targetProjectId?
   }
   async function run() {
     if (!property || !rights || busy) return;
-    setBusy(true); setError("");
+    setBusy(true); setError(""); setCompleted(false);
+    let imported = 0, existing = 0;
     const post = async (body: object) => {
       const response = await fetch("/api/admin/projects/hdph-import", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, siteId: property.siteId, targetProjectId, rightsConfirmed: rights }) });
       const result = await response.json();
@@ -53,10 +55,12 @@ export default function HDPhotoHubImport({ targetProjectId }: { targetProjectId?
     try {
       setStatus("Creating or resuming draft…");
       const draft = await post({ action: "draft" }); setProjectId(draft.projectId);
-      for (let i = 0; i < selected.length; i++) { setStatus(`Copying photo ${i + 1} of ${selected.length}…`); await post({ action: "photo", mediaId: selected[i] }); }
+      for (let i = 0; i < selected.length; i++) { setStatus(`Copying photo ${i + 1} of ${selected.length}…`); const result = await post({ action: "photo", mediaId: selected[i] }); if (result.alreadyImported) existing++; else imported++; }
+      if (targetProjectId) window.dispatchEvent(new CustomEvent("helios:project-media-updated", { detail: { projectId: targetProjectId } }));
       router.refresh();
-      setStatus("Draft ready. Review photos, services, cover image, and property details before publishing.");
-    } catch (e) { setError(e instanceof Error ? e.message : "Import failed."); setStatus("Nothing was published. You can retry to resume, or open the draft and continue manually."); }
+      setCompleted(true);
+      setStatus(`Import complete. ${imported} photo${imported === 1 ? "" : "s"} added${existing ? `; ${existing} already in this draft (not duplicated)` : ""}. Nothing was published. Next: open Media to choose your lead image.`);
+    } catch (e) { setError(e instanceof Error ? e.message : "Import failed."); if (targetProjectId && imported) window.dispatchEvent(new CustomEvent("helios:project-media-updated", { detail: { projectId: targetProjectId } })); setStatus(`Import stopped after ${imported} new photos. Nothing was published. Retry to resume without duplicates.`); }
     finally { setBusy(false); }
   }
   return <details className="group/import rounded-2xl border border-white/10 bg-[#111]">
@@ -69,13 +73,13 @@ export default function HDPhotoHubImport({ targetProjectId }: { targetProjectId?
       {property && <>
         <p className="text-white">{property.title}<span className="ml-2 text-sm text-white/50">{[property.city,property.state].filter(Boolean).join(", ")}</span></p>
         <p className="text-xs text-white/45">Property title, location and internal property address are copied. Listing descriptions, contacts, private notes, videos, and hidden or restricted photos are not imported.</p>
-        {!!property.photos.length && <><button type="button" className="admin-btn-link" disabled={busy} onClick={() => setSelected(selected.length === property.photos.length ? [] : property.photos.map(p => p.mediaId))}>{selected.length === property.photos.length ? "Clear photo selection" : "Select all eligible photos"}</button><div className="grid max-h-60 gap-2 overflow-auto sm:grid-cols-2">{property.photos.map(photo => <label key={photo.mediaId} className="flex items-center gap-2 text-sm text-white/65"><input type="checkbox" disabled={busy} checked={selected.includes(photo.mediaId)} onChange={e => setSelected(ids => e.target.checked ? [...ids,photo.mediaId] : ids.filter(id => id !== photo.mediaId))} />{photo.name}</label>)}</div></>}
+        {!!property.photos.length && <><button type="button" className="admin-btn-link" disabled={busy} onClick={() => { setCompleted(false); setSelected(selected.length === property.photos.length ? [] : property.photos.map(p => p.mediaId)); }}>{selected.length === property.photos.length ? "Clear photo selection" : "Select all eligible photos"}</button><div className="grid max-h-60 gap-2 overflow-auto sm:grid-cols-2">{property.photos.map(photo => <label key={photo.mediaId} className="flex items-center gap-2 text-sm text-white/65"><input type="checkbox" disabled={busy} checked={selected.includes(photo.mediaId)} onChange={e => { setCompleted(false); setSelected(ids => e.target.checked ? [...ids,photo.mediaId] : ids.filter(id => id !== photo.mediaId)); }} />{photo.name}</label>)}</div></>}
         <label className="flex items-start gap-2 text-sm text-white/60"><input type="checkbox" className="mt-1" checked={rights} disabled={busy} onChange={e => setRights(e.target.checked)} />I have permission to copy this property and the selected photos into Helios Studio storage. I will review publication separately.</label>
-        <button type="button" className="admin-btn-primary" disabled={busy || !rights} onClick={run}>{busy ? "Importing…" : `${targetProjectId ? "Populate this draft" : "Create / resume draft"}${selected.length ? ` + ${selected.length} photos` : ""}`}</button>
+        <button type="button" className="admin-btn-primary" disabled={busy || !rights || completed} onClick={run}>{completed ? "Import complete" : busy ? "Importing…" : `${targetProjectId ? "Populate this draft" : "Create / resume draft"}${selected.length ? ` + ${selected.length} photos` : ""}`}</button>
       </>}
       {status && <p role="status" className="text-sm text-white/60">{status}</p>}
       {error && <p role="alert" className="text-sm text-red-200">{error}</p>}
-      {projectId && !busy && (targetProjectId ? <div className="space-y-2"><p className="text-xs text-white/50">Save any other unsaved edits first, then reload to see the imported media.</p><a href={`/admin/projects/${projectId}`} className="admin-btn-secondary">Reload draft to review imported content</a></div> : <Link href={`/admin/projects/${projectId}`} className="admin-btn-secondary">Open imported draft</Link>)}
+      {projectId && !busy && (targetProjectId ? <div className="space-y-2"><button type="button" className="admin-btn-primary" onClick={() => { const section = document.getElementById("project-media"); const toggle = section?.querySelector<HTMLButtonElement>("button[aria-expanded]"); if (toggle?.getAttribute("aria-expanded") === "false") toggle.click(); requestAnimationFrame(() => { section?.scrollIntoView({ behavior: "smooth", block: "start" }); section?.focus({ preventScroll: true }); }); }}>View imported photos in Media</button><p className="text-xs text-white/50">Your other unsaved edits stay in place. Choose a lead image, then review before publishing.</p></div> : <Link href={`/admin/projects/${projectId}`} className="admin-btn-secondary">Open imported draft</Link>)}
       {busy && <p className="text-xs text-white/40">Keep this page open until copying finishes. If interrupted, repeat this import to resume without duplicates.</p>}
     </div>
   </details>;

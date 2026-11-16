@@ -1,5 +1,7 @@
 "use client";
 
+import { formatAllProjectWriting } from "@/lib/project-writing-copy";
+
 import AdminCardHeading from "@/app/admin/components/AdminCardHeading";
 
 import { useEffect, useRef, useState } from "react";
@@ -18,6 +20,7 @@ export default function ProjectWritingAssistant({ projectId, onApply, allowApply
   const [draft, setDraft] = useState<ProjectWritingDraft | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [showCopyAllFallback, setShowCopyAllFallback] = useState(false);
   const [replaceSuggestions, setReplaceSuggestions] = useState(false);
   const [videoTarget, setVideoTarget] = useState<ProjectWritingTarget>("hosted-video");
   const [pending, setPending] = useState<ProjectWritingApplication | null>(null);
@@ -75,6 +78,17 @@ export default function ProjectWritingAssistant({ projectId, onApply, allowApply
     try { await navigator.clipboard.writeText(draft[key]); setMessage(`${projectWritingFields.find(field => field.key === key)?.label} copied.`); }
     catch { outputs.current[key]?.focus(); outputs.current[key]?.select(); setMessage("Clipboard unavailable. The text is selected so you can copy it manually."); }
   }
+  async function copyAll() {
+    if (!draft) return;
+    try {
+      await navigator.clipboard.writeText(formatAllProjectWriting(draft));
+      setShowCopyAllFallback(false);
+      setMessage("All current copy copied with section labels. Nothing was saved or applied.");
+    } catch {
+      setShowCopyAllFallback(true);
+      setMessage("Clipboard unavailable. Select and copy the combined text below.");
+    }
+  }
   function apply() {
     if (!pending) return;
     if (onApply) onApply(pending);
@@ -99,6 +113,8 @@ export default function ProjectWritingAssistant({ projectId, onApply, allowApply
         {replaceSuggestions ? <div className="rounded-xl border border-amber-200/20 p-4 text-sm text-white/70"><p>Replace the suggestions below, including your edits to them? Project and video editor fields will not change.</p><div className="mt-3 flex gap-3"><button type="button" className="admin-btn-secondary" onClick={() => setReplaceSuggestions(false)}>Keep suggestions</button><button type="button" className="admin-btn-primary" onClick={() => void generate()}>Replace suggestions</button></div></div> : null}
         {message ? <p role="status" className="text-sm text-white/65">{message}</p> : null}
         {draft ? <>
+          <div className="flex flex-wrap items-center gap-3"><button type="button" disabled={busy} onClick={() => void copyAll()} className="admin-btn-secondary">Copy All</button><span className="text-xs text-white/45">Copies all current fields, including your edits, with section labels.</span></div>
+          {showCopyAllFallback ? <label className="block text-sm text-white/70">All current copy<textarea readOnly value={formatAllProjectWriting(draft)} rows={10} className={fieldClass} onFocus={event => event.currentTarget.select()} ref={element => { if (element) { element.focus(); element.select(); } }} /><span className="mt-1 block text-xs text-white/45">Copy the selected text using your device’s copy command.</span></label> : null}
           <p className="text-xs leading-5 text-amber-100/70">Verify all details before use. Accessibility copy is based on the pasted description, not an analysis of the video. Review it against the actual footage. No thumbnails or media are generated.</p>
           {allowApply && !projectFieldsOnly ? <label className="block max-w-sm text-sm text-white/65">Apply video suggestions to
             <select value={videoTarget} onChange={event => { setVideoTarget(event.target.value as ProjectWritingTarget); setPending(null); }} className={fieldClass}><option value="hosted-video">Hosted video link form</option><option value="upload-video">Direct video upload form</option></select>
@@ -107,7 +123,7 @@ export default function ProjectWritingAssistant({ projectId, onApply, allowApply
             {projectWritingFields.map(({ key, label, max }) => <div key={key} className="rounded-xl border border-white/10 p-4">
               <label className="block text-sm text-white/75">{label}<textarea ref={element => { outputs.current[key] = element; }} value={draft[key]} maxLength={max} rows={key === "description" || key === "youtubeDescription" ? 6 : 3} onChange={event => { setDraft(current => current ? { ...current, [key]: event.target.value } : current); setPending(null); }} className={fieldClass} /></label>
               <div className="mt-3 flex flex-wrap gap-3"><button type="button" onClick={() => void copy(key)} className="admin-btn-secondary" aria-label={`Copy ${label}`}>Copy</button>
-                {allowApply && !key.startsWith("youtube") && !(projectFieldsOnly && key.startsWith("video")) ? <button type="button" disabled={busy || !draft[key].trim()} onClick={() => setPending({ projectId, field: key as ProjectWritingApplyField, value: draft[key], target: key.startsWith("video") ? videoTarget : "project" })} className="admin-btn-link" aria-label={`Apply ${label}`}>Apply to editor…</button> : null}
+                {allowApply && !key.startsWith("youtube") && !(projectFieldsOnly && key.startsWith("video")) ? <button type="button" disabled={busy || !draft[key].trim()} onClick={() => setPending({ projectId, field: key as ProjectWritingApplyField, value: draft[key], target: key.startsWith("video") ? videoTarget : "project" })} className="admin-btn-secondary" aria-label={`Apply ${label}`}>Apply to editor…</button> : null}
               </div>
               {pending?.field === key ? <div className="mt-3 rounded-lg border border-amber-200/20 p-3 text-sm text-white/70"><p>Replace the current {label.toLowerCase()} in {pending.target === "project" ? "project details" : pending.target === "hosted-video" ? "the hosted video link form" : "the direct video upload form"}? This can replace unsaved text. It will not save or publish.</p><div className="mt-3 flex flex-wrap gap-3"><button type="button" onClick={() => setPending(null)} className="admin-btn-secondary">Cancel</button><button type="button" onClick={apply} className="admin-btn-primary">Confirm replacement</button></div></div> : null}
             </div>)}
