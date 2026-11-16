@@ -53,3 +53,12 @@ export function hdphSearchPage(value: unknown, brandId: number, offset: number) 
     diagnostics: { returned: rows.length, sameBrand: sameBrand.length, delivered: delivered.length, active: active.length, addressed: addressed.length },
   };
 }
+
+
+/** Discovery includes payment-protected sites; selection/import separately enforce access. */
+export function hdphSearchPath(term: string, offset: number) {
+  const params = new URLSearchParams({ address: term, quantity: "25", offset: String(offset), sort: "created desc" });
+  params.append("deliveryLevel", "basic");
+  params.append("deliveryLevel", "full");
+  return `/sites/search?${params.toString()}`;
+}

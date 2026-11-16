@@ -23,8 +23,10 @@ test("step cards use compact green completion, discreet orange selection and gra
   assert.match(css, /\.admin-project-step:hover \{ background: #262629; \}/);
   assert.match(css, /\.admin-project-step:focus-visible/);
   assert.match(css, /min-height: 5rem/);
+  assert.match(css, /\.admin-project-step-value \{[^}]*color: #d4d4d8/);
+  assert.doesNotMatch(css, /\[aria-current="location"\][^}]*[;{]\s*color:/);
   assert.doesNotMatch(css, /\.admin-project-step\.is-complete[^}]*background:/);
-  for (const foreground of ["#6ee7b7", "#f3a271", "#f5f1ea", "#a1a1aa"]) {
+  for (const foreground of ["#6ee7b7", "#d4d4d8", "#f5f1ea", "#a1a1aa"]) {
     for (const background of ["#141414", "#262629"]) assert.ok(contrast(foreground, background) >= 4.5);
   }
 });
@@ -36,7 +38,7 @@ test("collapsed portfolio panels retain Studio eyebrow, serif title, description
   const shared=read("../app/admin/components/AdminCardHeading.tsx"), email=read("../app/admin/email-studio/page.tsx");
   assert.match(shared, /text-xs uppercase tracking-\[0.16em\]/);
   assert.match(shared, /text-xl font-light text-white/);
-  assert.match(shared, /mt-2 text-sm text-white\/45/);
+  assert.match(shared, /text-sm text-white\/45/);
   assert.match(email, /<AdminCardHeading eyebrow="Client experience"/);
   assert.match(email, /<AdminCardHeading eyebrow="Client gatherings"/);
   assert.match(panel, /border-white\/10 bg-\[#111\]/);
@@ -65,4 +67,46 @@ test("project editor section headings use the same shared typography", () => {
   assert.match(source, /<AdminCardHeading eyebrow=\{eyebrow\} title=\{title\} description=\{summary\}/);
   assert.doesNotMatch(source, /sm:text-3xl|sm:px-6/);
   assert.match(source, /aria-expanded=\{expanded\}/);
+});
+
+
+test("summary spans and Email Studio paragraph headings share explicit effective margins", () => {
+  const shared=read("../app/admin/components/AdminCardHeading.tsx");
+  assert.match(shared, /const spacing = \{ margin: 0 \}/);
+  assert.equal((shared.match(/style=\{spacing\}/g) || []).length, 6);
+  assert.doesNotMatch(shared, /mt-2|titleSpacing/);
+});
+
+
+test("HDPhotoHub search is separate from header description with an orange address label", () => {
+  const source=read("../app/admin/projects/HDPhotoHubImport.tsx");
+  const summary=source.slice(source.indexOf("<summary"), source.indexOf("</summary>"));
+  assert.match(summary, /HDPhotoHub stays unchanged/);
+  const body=source.slice(source.indexOf("</summary>"));
+  assert.doesNotMatch(body, /Manual editing is always available/);
+  assert.match(body, /text-\[var\(--helios-orange\)\]">Search Address<\/span><input/);
+});
+
+
+test("writing helper keeps introduction in header and disclosure near Generate", () => {
+  const source=read("../app/admin/projects/ProjectWritingAssistant.tsx");
+  const summary=source.slice(source.indexOf("<summary"), source.indexOf("</summary>"));
+  assert.match(summary, /Paste the agent’s description once/);
+  assert.match(summary, /nothing saves or publishes automatically/);
+  assert.match(source, /text-\[var\(--helios-orange\)\]">Agent property description/);
+  assert.ok(source.indexOf("Generate sends your description to OpenAI") > source.indexOf("<textarea"));
+  assert.ok(source.indexOf("Generate sends your description to OpenAI") < source.indexOf("onClick={() => draft ? setReplaceSuggestions"));
+});
+
+
+test("new project Location is a persistent collapsible section before identity", () => {
+  const source=read("../app/admin/projects/new/NewProjectForm.tsx");
+  const start=source.indexOf('<details className="group/location');
+  const end=source.indexOf("</details>", start);
+  assert.ok(start >= 0 && end < source.indexOf("Project identity"));
+  const section=source.slice(start,end);
+  assert.match(section, /group-open\/location:hidden/);
+  assert.match(section, /group-open\/location:inline/);
+  for (const field of ["propertyAddress", "city", "state", "locationLabel"]) assert.match(section, new RegExp(`name="${field}"`));
+  assert.doesNotMatch(section, /\brequired\b|\bdisabled=|<details[^>]*\bopen=/);
 });

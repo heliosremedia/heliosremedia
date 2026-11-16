@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import AdminCardHeading from "@/app/admin/components/AdminCardHeading";
 import ProjectWritingAssistant from "../ProjectWritingAssistant";
 import { useActionState, useId, useState } from "react";
 import { useFormStatus } from "react-dom";
@@ -93,6 +94,63 @@ export default function NewProjectForm() {
             </div>
           ) : null}
 
+          <details className="group/location rounded-2xl border border-white/10 bg-[#111]">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl p-5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--helios-orange)] [&::-webkit-details-marker]:hidden">
+              <span className="min-w-0 flex-1"><AdminCardHeading inline eyebrow="Project details" title="Location" description="Add the optional property address and public display location." /></span>
+              <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 text-xl font-light text-white/70"><span className="group-open/location:hidden">+</span><span className="hidden group-open/location:inline">−</span></span>
+            </summary>
+            <div className="grid gap-5 border-t border-white/10 p-5 sm:grid-cols-2">
+              <label className="sm:col-span-2">
+                <span className={labelClasses}>Property address (optional, internal only)</span>
+                <input name="propertyAddress" value={fields.propertyAddress} onChange={(event) => updateField("propertyAddress", event.target.value)} maxLength={300} placeholder="Street address, if useful for your team" className={inputClasses} />
+                <p className="mt-2 text-xs text-white/35">Saved with the draft, never used as the public display location.</p>
+              </label>
+              <label>
+                <span className={labelClasses}>City</span>
+
+                <input
+                  type="text"
+                  name="city"
+                  value={fields.city}
+                  onChange={(event) => updateField("city", event.target.value)}
+                  placeholder="Fort Collins"
+                  className={inputClasses}
+                />
+              </label>
+
+              <label>
+                <span className={labelClasses}>State</span>
+
+                <input
+                  type="text"
+                  name="state"
+                  value={fields.state}
+                  onChange={(event) => updateField("state", event.target.value)}
+                  placeholder="Colorado"
+                  className={inputClasses}
+                />
+              </label>
+
+              <label className="sm:col-span-2">
+                <span className={labelClasses}>Display location</span>
+
+                <input
+                  type="text"
+                  name="locationLabel"
+                  value={fields.locationLabel}
+                  onChange={(event) => updateField("locationLabel", event.target.value)}
+                  placeholder="Old Town Fort Collins, Colorado"
+                  className={inputClasses}
+                />
+
+                <p className="mt-2 text-xs leading-5 text-white/25">
+                  Optional. This replaces the city and state wherever the
+                  project location is displayed publicly.
+                </p>
+              </label>
+            </div>
+          </details>
+
           <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02]">
             <div className="border-b border-white/[0.08] px-5 py-5 sm:px-6">
               <h2 className="text-2xl font-normal text-white">
@@ -171,66 +229,7 @@ export default function NewProjectForm() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02]">
-            <div className="border-b border-white/[0.08] px-5 py-5 sm:px-6">
-              <h2 className="text-2xl font-normal text-white">Location</h2>
 
-              <p className="mt-1 text-sm leading-6 text-white/35">
-                Add the location information visitors should see.
-              </p>
-            </div>
-
-            <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-6">
-              <label className="sm:col-span-2">
-                <span className={labelClasses}>Property address (optional, internal only)</span>
-                <input name="propertyAddress" value={fields.propertyAddress} onChange={(event) => updateField("propertyAddress", event.target.value)} maxLength={300} placeholder="Street address, if useful for your team" className={inputClasses} />
-                <p className="mt-2 text-xs text-white/35">Saved with the draft, never used as the public display location.</p>
-              </label>
-              <label>
-                <span className={labelClasses}>City</span>
-
-                <input
-                  type="text"
-                  name="city"
-                  value={fields.city}
-                  onChange={(event) => updateField("city", event.target.value)}
-                  placeholder="Fort Collins"
-                  className={inputClasses}
-                />
-              </label>
-
-              <label>
-                <span className={labelClasses}>State</span>
-
-                <input
-                  type="text"
-                  name="state"
-                  value={fields.state}
-                  onChange={(event) => updateField("state", event.target.value)}
-                  placeholder="Colorado"
-                  className={inputClasses}
-                />
-              </label>
-
-              <label className="sm:col-span-2">
-                <span className={labelClasses}>Display location</span>
-
-                <input
-                  type="text"
-                  name="locationLabel"
-                  value={fields.locationLabel}
-                  onChange={(event) => updateField("locationLabel", event.target.value)}
-                  placeholder="Old Town Fort Collins, Colorado"
-                  className={inputClasses}
-                />
-
-                <p className="mt-2 text-xs leading-5 text-white/25">
-                  Optional. This replaces the city and state wherever the
-                  project location is displayed publicly.
-                </p>
-              </label>
-            </div>
-          </section>
 
           <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02]">
             <div className="border-b border-white/[0.08] px-5 py-5 sm:px-6">

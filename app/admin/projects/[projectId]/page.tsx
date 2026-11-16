@@ -175,11 +175,13 @@ export default async function ProjectEditorPage({
     return Boolean(externalMedia?.embedUrl || externalMedia?.playbackUrl);
   });
 
+  const activeSavedServiceCount = services.filter(service => service.active && project.services.some(assigned => assigned.serviceId === service.id)).length;
   const progress = getProjectProgressState({
     hasSummary: Boolean(project.shortDescription),
     hasPlayableVideo,
-    mediaCount: project._count.media,
-    serviceCount: project._count.services,
+    hasLeadMedia: Boolean(project.heroMediaId) && project.heroMedia?.visibility === "VISIBLE",
+    mediaCount: project.media.length,
+    serviceCount: activeSavedServiceCount,
     status: project.status,
   });
 
@@ -253,9 +255,9 @@ export default async function ProjectEditorPage({
 
       <AdminSectionNavigator label="Project steps" sections={[
         { href: "#project-identity", label: "Details", step: "01", detail: progress.detailsReady ? "Ready" : "Add summary", complete: progress.detailsReady },
-        { href: "#project-media", label: "Media", step: "02", detail: `${project._count.media} assets`, complete: progress.mediaReady },
-        { href: "#project-services", label: "Services & SEO", step: "03", detail: `${project._count.services} services`, complete: progress.servicesReady },
-        { href: "#project-publishing", label: "Review & Publish", step: "04", detail: formatStatus(project.status), complete: project.status === "PUBLISHED" },
+        { href: "#project-media", label: "Media", step: "02", detail: progress.mediaReady ? `${project.media.length} visible assets` : project.media.length ? "Choose lead media" : "Add visible media", complete: progress.mediaReady },
+        { href: "#project-services", label: "Services & SEO", step: "03", detail: `${activeSavedServiceCount} active services`, complete: progress.servicesReady },
+        { href: "#project-publishing", label: "Review & Publish", step: "04", detail: project.status === "PUBLISHED" && !progress.publishReady ? "Published · needs review" : formatStatus(project.status), complete: progress.publishReady },
       ]} bulkSectionIds={["project-identity", "project-credits", "project-media", "project-services", "project-publishing"]} projectEditor />
 
       {project.status === "DRAFT" ? <HDPhotoHubImport targetProjectId={project.id} /> : null}
