@@ -110,3 +110,12 @@ test("new project Location is a persistent collapsible section before identity",
   for (const field of ["propertyAddress", "city", "state", "locationLabel"]) assert.match(section, new RegExp(`name="${field}"`));
   assert.doesNotMatch(section, /\brequired\b|\bdisabled=|<details[^>]*\bopen=/);
 });
+
+
+test("completed project cards show a centered far-right circled green check", () => {
+  const nav=read("../app/admin/components/AdminSectionNavigator.tsx"), css=read("../app/globals.css");
+  assert.match(nav, /projectEditor && section.complete \? <span className="admin-project-step-check" aria-hidden="true"/);
+  assert.match(nav, /admin-project-step-check[^]*?viewBox="0 0 24 24"/);
+  assert.match(css, /\.admin-project-step-check \{[^}]*margin-left: auto;[^}]*align-self: center;[^}]*border-radius: 9999px;[^}]*color: #a7f3d0;/);
+  assert.ok(contrast("#a7f3d0", "#262629") >= 4.5);
+});
