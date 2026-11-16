@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { hdphId, hdphProperty, hdphEligiblePhoto, hdphPhotoUrl, hdphSafeImageUrl, hdphSearchPage } from "./project-hdph-import.ts";
+import { hdphId, hdphProperty, hdphEligiblePhoto, hdphPhotoUrl, hdphSafeImageUrl, hdphSearchPage, hdphSearchPath } from "./project-hdph-import.ts";
 
 test("IDs are strictly validated", () => { for (const value of [null,"",0,-1,"1/2","1e3","1?x=y",Number.MAX_SAFE_INTEGER + 1]) assert.throws(() => hdphId(value)); assert.equal(hdphId("123"),123); });
 test("property mapping cannot leak notes or contacts", () => { assert.deepEqual(hdphProperty({location:{address:"12 A",city:"Town",region:"CO"},notes:"secret",clientEmail:"private",description:"source copy"}),{title:"12 A",city:"Town",state:"CO",locationLabel:"Town, CO",propertyAddress:"12 A, Town, CO"}); });
@@ -19,4 +19,21 @@ test("search preserves legitimate page results and enforces brand boundaries", (
   assert.equal(page.sites.length,1); assert.equal(page.sites[0].title,"1597 Folsum Dr"); assert.equal(page.nextOffset,25);
   assert.equal(page.diagnostics.returned,2); assert.equal(page.diagnostics.sameBrand,1);
   assert.throws(() => hdphSearchPage({data:[],nextPage:0},2,0), /invalid search continuation/);
+});
+
+
+test("partial-address discovery does not silently hide payment-protected properties", () => {
+  for (const term of ["5581", "5581 Carmon"]) {
+    const url = new URL(hdphSearchPath(term, 25), "https://api.hd.pics");
+    assert.equal(url.searchParams.get("address"), term);
+    assert.equal(url.searchParams.has("missingKey"), false);
+    assert.deepEqual(url.searchParams.getAll("deliveryLevel"), ["basic", "full"]);
+    assert.equal(url.searchParams.get("offset"), "25");
+  }
+});
+
+
+test("site payment configuration is not a per-photo permission; explicit download denial remains denied", () => {
+  assert.equal(hdphEligiblePhoto({type:"photo",status:"visible",canDownload:true}), true);
+  assert.equal(hdphEligiblePhoto({type:"photo",status:"visible",canDownload:false}), false);
 });

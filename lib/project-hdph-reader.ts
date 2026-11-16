@@ -1,5 +1,5 @@
 import "server-only";
-import { hdphEligiblePhoto, hdphId, hdphProperty, hdphRecord, hdphSearchPage } from "./project-hdph-import";
+import { hdphEligiblePhoto, hdphId, hdphProperty, hdphRecord, hdphSearchPage, hdphSearchPath } from "./project-hdph-import";
 
 export function projectHdphReader(workspaceId: string) {
   const token = process.env.HDPH_V3_TOKEN?.trim();
@@ -16,7 +16,7 @@ export function projectHdphReader(workspaceId: string) {
     async search(query: string, offset = 0) {
       const term = query.trim();
       if (term.length < 3 || term.length > 200) throw new Error("Enter at least three characters of the property address.");
-      const page = await read(`/sites/search?address=${encodeURIComponent(term)}&deliveryLevel=basic,full&missingKey=site-mustpay&quantity=25&offset=${offset}&sort=created%20desc`);
+      const page = await read(hdphSearchPath(term, offset));
       const result = hdphSearchPage(page, brandId, offset);
       // Counts only: never log credentials, addresses, IDs, client records or media URLs.
       console.info("hdph-project-search", result.diagnostics);
@@ -26,7 +26,9 @@ export function projectHdphReader(workspaceId: string) {
     async site(id: number) {
       const site = hdphRecord((await read(`/sites/${hdphId(id)}?expand=media`)).data);
       if (Number(site.siteId) !== id || Number(site.brandId) !== brandId) throw new Error("The property does not match this workspace's HDPhotoHub brand.");
-      if ((Array.isArray(site.keyring) && site.keyring.includes("site-mustpay")) || !site.bought || !["active", "inactive", "complete"].includes(String(site.status))) throw new Error("Only delivered, non-archived properties can be imported. Use manual creation for other work.");
+      // site-mustpay configures client payment behavior, not this API caller's access.
+      // The authenticated media endpoint and per-item download restrictions govern retrieval.
+      if (!site.bought || !["active", "inactive", "complete"].includes(String(site.status))) throw new Error("Only delivered, non-archived properties can be imported. Use manual creation for other work.");
       if (!Array.isArray(site.media)) throw new Error("HDPhotoHub did not return its media inventory.");
       return { siteId: id, ...hdphProperty(site), photos: site.media.map(hdphRecord).filter(hdphEligiblePhoto).map(m => ({ mediaId: hdphId(m.mediaId), name: typeof m.name === "string" ? m.name.slice(0,300) : `Photo ${m.mediaId}` })) };
     },

@@ -36,6 +36,8 @@ export default function AdminSectionNavigator({
 }) {
   const navigatorRef = useRef<HTMLElement>(null);
   const siteSettingsAnchorRef = useRef<HTMLDivElement>(null);
+  const navigationTargetRef = useRef<string | null>(null);
+  const navigationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [activeId, setActiveId] = useState(sections[0]?.href.slice(1) ?? "");
   const [bulkStates, setBulkStates] = useState<Record<string, boolean>>({});
   const [announcement, setAnnouncement] = useState("");
@@ -84,22 +86,43 @@ export default function AdminSectionNavigator({
   }, [siteSettings]);
 
   useEffect(() => {
-    const targets = sections
-      .map(({ href }) => document.getElementById(href.slice(1)))
+    const targets = sections.map(({ href }) => document.getElementById(href.slice(1)))
       .filter((target): target is HTMLElement => Boolean(target));
     if (!targets.length) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((first, second) => first.boundingClientRect.top - second.boundingClientRect.top)[0];
-        if (visible?.target.id) setActiveId(visible.target.id);
-      },
-      { rootMargin: "-18% 0px -68% 0px", threshold: [0, 0.01] },
-    );
-    targets.forEach((target) => observer.observe(target));
-    return () => observer.disconnect();
-  }, [sections]);
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      if (navigationTargetRef.current) return;
+      // Use the same sticky clearance as click navigation, not a viewport-percent
+      // observer band that can keep the preceding section active after a click.
+      const line = siteSettings || projectEditor
+        ? 80 + (navigatorRef.current?.getBoundingClientRect().height ?? 0) + 20
+        : 116;
+      const reached = targets.filter(target => target.getBoundingClientRect().top <= line);
+      const current = reached[reached.length - 1] ?? targets[0];
+      if (current) setActiveId(current.id);
+    };
+    const schedule = () => {
+      if (navigationTargetRef.current) {
+        if (navigationTimerRef.current) clearTimeout(navigationTimerRef.current);
+        navigationTimerRef.current = setTimeout(() => {
+          navigationTargetRef.current = null;
+          update();
+        }, 200);
+      }
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    return () => {
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      cancelAnimationFrame(frame);
+      if (navigationTimerRef.current) clearTimeout(navigationTimerRef.current);
+      navigationTargetRef.current = null;
+    };
+  }, [sections, siteSettings, projectEditor]);
 
   useEffect(() => {
     if (!bulkSectionIds?.length) return;
@@ -123,6 +146,11 @@ export default function AdminSectionNavigator({
     const toggle = target.querySelector<HTMLButtonElement>("button[aria-expanded]");
     if (toggle?.getAttribute("aria-expanded") === "false") toggle.click();
     onNavigate?.(id);
+    navigationTargetRef.current = id;
+    if (navigationTimerRef.current) clearTimeout(navigationTimerRef.current);
+    // Covers clicks that do not move the viewport. Actual scroll events extend
+    // the lock until scrolling settles, preventing intermediate steps flashing.
+    navigationTimerRef.current = setTimeout(() => { navigationTargetRef.current = null; }, 1000);
     setActiveId(id);
     window.history.replaceState(null, "", `#${id}`);
     requestAnimationFrame(() => requestAnimationFrame(() => {
