@@ -1,5 +1,7 @@
 "use client";
 
+import { PROJECT_WRITING_APPLY_EVENT, isProjectWritingApplication } from "@/lib/project-writing";
+
 import { useRouter } from "next/navigation";
 import {
   useCallback,
@@ -160,11 +162,37 @@ export default function ProjectDetailsEditor({
   const router = useRouter();
   const [savedData, setSavedData] = useState(initialData);
   const [draft, setDraft] = useState(initialData);
+  const [sourceData, setSourceData] = useState(initialData);
+  // Server refreshes (including HDPhotoHub imports) must not leave stale blank
+  // values ready to overwrite imported data. Preserve any locally edited fields.
+  if (JSON.stringify(sourceData) !== JSON.stringify(initialData)) {
+    setSourceData(initialData);
+    setSavedData(initialData);
+    setDraft((current) => Object.fromEntries(
+      (Object.keys(initialData) as Array<keyof ProjectDetailsDraft>).map((key) => [
+        key, current[key] === sourceData[key] ? initialData[key] : current[key],
+      ]),
+    ) as ProjectDetailsDraft);
+  }
   const [savedAgents, setSavedAgents] = useState(initialAgents);
   const [draftAgents, setDraftAgents] = useState(initialAgents);
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    const apply = (event: Event) => {
+      const application: unknown = (event as CustomEvent).detail;
+      if (!isProjectWritingApplication(application) || application.projectId !== projectId || application.target !== "project") return;
+      if (application.field === "title" || application.field === "shortDescription" || application.field === "description") setDraft((current) => ({ ...current, [application.field]: application.value }));
+      const section = document.getElementById("project-identity");
+      const toggle = section?.querySelector<HTMLButtonElement>("button[aria-expanded]");
+      if (toggle?.getAttribute("aria-expanded") === "false") toggle.click();
+      setIsOpen(true);
+    };
+    window.addEventListener(PROJECT_WRITING_APPLY_EVENT, apply);
+    return () => window.removeEventListener(PROJECT_WRITING_APPLY_EVENT, apply);
+  }, [projectId]);
+
   const isDirty = useMemo(
     () => JSON.stringify(draft) !== JSON.stringify(savedData) || JSON.stringify(draftAgents) !== JSON.stringify(savedAgents),
     [draft, draftAgents, savedData, savedAgents],
@@ -175,7 +203,7 @@ export default function ProjectDetailsEditor({
   const storyReady = Boolean(
     savedData.shortDescription && savedData.description,
   );
-  const seoReady = Boolean(savedData.seoTitle && savedData.seoDescription);
+  const seoReady = Boolean(initialData.seoTitle && initialData.seoDescription);
 
   const updateField = useCallback(
     (field: keyof ProjectDetailsDraft, value: string) => {
@@ -233,7 +261,7 @@ export default function ProjectDetailsEditor({
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...draft, agents: draftAgents }),
+            body: JSON.stringify({ ...draft, seoTitle: undefined, seoDescription: undefined, agents: draftAgents }),
           },
         );
         const data = (await response.json()) as ProjectDetailsResponse;
@@ -667,48 +695,7 @@ export default function ProjectDetailsEditor({
                   </div>
                 </section>
 
-                <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.015]">
-                  <SectionHeading
-                    number="05"
-                    title="Search and sharing"
-                    description="Customize browser and social previews; blank fields use project defaults."
-                  />
-                  <div className="grid gap-5 p-5 sm:p-6">
-                    <Field
-                      label="SEO title"
-                      detail={`${draft.seoTitle.length}/70 characters`}
-                    >
-                      <input
-                        value={draft.seoTitle}
-                        onChange={(event) =>
-                          updateField("seoTitle", event.target.value)
-                        }
-                        maxLength={70}
-                        placeholder={`${draft.title} | Helios Real Estate Media`}
-                        className={inputClasses}
-                      />
-                    </Field>
-
-                    <Field
-                      label="SEO description"
-                      detail={`${draft.seoDescription.length}/180 characters`}
-                    >
-                      <textarea
-                        value={draft.seoDescription}
-                        onChange={(event) =>
-                          updateField("seoDescription", event.target.value)
-                        }
-                        maxLength={180}
-                        rows={3}
-                        placeholder={
-                          draft.shortDescription ||
-                          "A concise search and social description."
-                        }
-                        className={`${inputClasses} resize-y py-3`}
-                      />
-                    </Field>
-                  </div>
-                </section>
+                <p className="text-sm text-white/40">Search titles and descriptions are now under Services and SEO.</p>
               </div>
 
               <div className="sticky bottom-0 flex flex-col gap-4 border-t border-white/[0.08] bg-[#101011]/95 px-5 py-5 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:px-7">

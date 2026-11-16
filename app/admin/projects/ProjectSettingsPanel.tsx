@@ -32,9 +32,7 @@ export default function ProjectSettingsPanel({
             {busy ? "Saving…" : "Unsaved changes"}
           </span>
         ) : null}
-        <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-4 w-4 shrink-0 text-white/50 transition-transform group-open:rotate-180">
-          <path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 text-xl font-light text-white/70"><span className="group-open:hidden">+</span><span className="hidden group-open:inline">−</span></span>
       </summary>
       {/* Native details keeps children mounted, including all unsaved editor state. */}
       <div className="border-t border-white/[0.07] p-5 sm:p-6">{children}</div>

@@ -1,9 +1,13 @@
 "use client";
 
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { PROJECT_WRITING_APPLY_EVENT, isProjectWritingApplication } from "@/lib/project-writing";
+
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import * as tus from "tus-js-client";
 
 import { mediaCategoryForServiceSlug, type MediaService } from "@/lib/service-media";
+
+import { defaultVideoServiceId, videoMediaServices } from "@/lib/video-media-services";
 
 import type { ProjectMediaItem } from "./ProjectMediaManager";
 
@@ -73,14 +77,32 @@ export default function StreamVideoUploader({
   const [title, setTitle] = useState("");
   const [altText, setAltText] = useState("");
   const [caption, setCaption] = useState("");
-  const activeServices = services.filter((service) => service.active && !service.archivedAt);
-  const [serviceId, setServiceId] = useState(activeServices[0]?.id ?? "");
+  const videoCollections = videoMediaServices(services);
+  const [serviceId, setServiceId] = useState(() => defaultVideoServiceId(services));
+  const selectedService = videoCollections.find((collection) => collection.service?.id === serviceId)?.service;
   const [visibility, setVisibility] = useState<"VISIBLE" | "HIDDEN">("VISIBLE");
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState<
     "idle" | "uploading" | "saving" | "complete" | "error"
   >("idle");
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const apply = (event: Event) => {
+      const application: unknown = (event as CustomEvent).detail;
+      if (!isProjectWritingApplication(application) || application.projectId !== projectId || application.target !== "upload-video") return;
+      if (application.field === "videoTitle") setTitle(application.value);
+      if (application.field === "videoAltText") setAltText(application.value);
+      if (application.field === "videoCaption") setCaption(application.value);
+      setIsOpen(true);
+      const section = document.getElementById("project-media");
+      const toggle = section?.querySelector<HTMLButtonElement>("button[aria-expanded]");
+      if (toggle?.getAttribute("aria-expanded") === "false") toggle.click();
+      requestAnimationFrame(() => section?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    };
+    window.addEventListener(PROJECT_WRITING_APPLY_EVENT, apply);
+    return () => window.removeEventListener(PROJECT_WRITING_APPLY_EVENT, apply);
+  }, [projectId]);
 
   const isBusy = status === "uploading" || status === "saving";
   const statusLabel = useMemo(() => {
@@ -125,7 +147,7 @@ export default function StreamVideoUploader({
         caption,
         visibility,
         serviceId,
-        mediaCategory: mediaCategoryForServiceSlug(activeServices.find((service) => service.id === serviceId)?.slug ?? ""),
+        mediaCategory: mediaCategoryForServiceSlug(selectedService?.slug ?? ""),
         mimeType: selectedFile.type || "video/mp4",
         fileSize: selectedFile.size,
         width: dimensions.width,
@@ -149,6 +171,11 @@ export default function StreamVideoUploader({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    if (!selectedService) {
+      setError("Choose an available video collection before continuing.");
+      return;
+    }
 
     if (!file || !title.trim()) {
       setError("Choose a video and enter its display title.");
@@ -340,9 +367,10 @@ export default function StreamVideoUploader({
                 }
                 className="mt-2.5 min-h-12 w-full rounded-xl border border-white/10 bg-[#111] px-4 text-sm text-white/80 outline-none transition focus:border-[var(--helios-orange)]/55"
               >
-                {activeServices.map((service) => (
-                  <option key={service.id} value={service.id}>
-                    {service.name}
+                {!serviceId ? <option value="">Choose an available video collection</option> : null}
+                {videoCollections.map((collection) => (
+                  <option key={collection.slug} value={collection.service?.id ?? `unavailable-${collection.slug}`} disabled={!collection.service}>
+                    {collection.label}{collection.service ? "" : " (unavailable)"}
                   </option>
                 ))}
               </select>
@@ -416,7 +444,7 @@ export default function StreamVideoUploader({
           )}
 
           <div className="flex flex-wrap items-center gap-3">
-            <button type="submit" disabled={isBusy} className="admin-btn-primary">
+            <button type="submit" disabled={isBusy || !selectedService} className="admin-btn-primary">
               {isBusy ? "Uploading…" : "Upload to Stream"}
             </button>
             {status === "uploading" && (

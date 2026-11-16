@@ -1,9 +1,13 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { PROJECT_WRITING_APPLY_EVENT, isProjectWritingApplication } from "@/lib/project-writing";
+
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { resolveExternalMedia } from "@/lib/external-media";
 import { mediaCategoryForServiceSlug, type MediaService } from "@/lib/service-media";
+
+import { defaultVideoServiceId, videoMediaServices } from "@/lib/video-media-services";
 
 import type { ProjectMediaItem } from "./ProjectMediaManager";
 
@@ -30,14 +34,32 @@ export default function ExternalMediaForm({
   const [title, setTitle] = useState("");
   const [altText, setAltText] = useState("");
   const [caption, setCaption] = useState("");
-  const activeServices = services.filter((service) => service.active && !service.archivedAt);
-  const [serviceId, setServiceId] = useState(activeServices[0]?.id ?? "");
+  const videoCollections = videoMediaServices(services);
+  const [serviceId, setServiceId] = useState(() => defaultVideoServiceId(services));
+  const selectedService = videoCollections.find((collection) => collection.service?.id === serviceId)?.service;
   const [visibility, setVisibility] = useState<"VISIBLE" | "HIDDEN">(
     "VISIBLE",
   );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    const apply = (event: Event) => {
+      const application: unknown = (event as CustomEvent).detail;
+      if (!isProjectWritingApplication(application) || application.projectId !== projectId || application.target !== "hosted-video") return;
+      if (application.field === "videoTitle") setTitle(application.value);
+      if (application.field === "videoAltText") setAltText(application.value);
+      if (application.field === "videoCaption") setCaption(application.value);
+      setIsOpen(true);
+      const section = document.getElementById("project-media");
+      const toggle = section?.querySelector<HTMLButtonElement>("button[aria-expanded]");
+      if (toggle?.getAttribute("aria-expanded") === "false") toggle.click();
+      requestAnimationFrame(() => section?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    };
+    window.addEventListener(PROJECT_WRITING_APPLY_EVENT, apply);
+    return () => window.removeEventListener(PROJECT_WRITING_APPLY_EVENT, apply);
+  }, [projectId]);
 
   const detection = useMemo(() => {
     if (!url.trim()) {
@@ -62,6 +84,11 @@ export default function ExternalMediaForm({
     setError(null);
     setSuccess(null);
 
+    if (!selectedService) {
+      setError("Choose an available video collection before continuing.");
+      return;
+    }
+
     if (!detection.details) {
       setError(detection.error || "Enter a valid video URL.");
       return;
@@ -84,7 +111,7 @@ export default function ExternalMediaForm({
           altText,
           caption,
           serviceId,
-          mediaCategory: mediaCategoryForServiceSlug(activeServices.find((service) => service.id === serviceId)?.slug ?? ""),
+          mediaCategory: mediaCategoryForServiceSlug(selectedService?.slug ?? ""),
           visibility,
         }),
       });
@@ -222,9 +249,10 @@ export default function ExternalMediaForm({
                     onChange={(event) => setServiceId(event.target.value)}
                     className="mt-2.5 min-h-12 w-full rounded-xl border border-white/10 bg-[#111] px-4 text-sm text-white/80 outline-none transition focus:border-[var(--helios-orange)]/55 focus:ring-2 focus:ring-[var(--helios-orange)]/10"
                   >
-                    {activeServices.map((service) => (
-                      <option key={service.id} value={service.id}>
-                        {service.name}
+                    {!serviceId ? <option value="">Choose an available video collection</option> : null}
+                    {videoCollections.map((collection) => (
+                      <option key={collection.slug} value={collection.service?.id ?? `unavailable-${collection.slug}`} disabled={!collection.service}>
+                        {collection.label}{collection.service ? "" : " (unavailable)"}
                       </option>
                     ))}
                   </select>
@@ -338,6 +366,7 @@ export default function ExternalMediaForm({
               type="submit"
               disabled={
                 isSaving ||
+                !selectedService ||
                 !title.trim() ||
                 !detection.details ||
                 Boolean(detection.error)

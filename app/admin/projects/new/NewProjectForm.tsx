@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import ProjectWritingAssistant from "../ProjectWritingAssistant";
+import { useActionState, useId, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { PROJECT_TYPES } from "@/lib/project-types";
@@ -65,14 +66,22 @@ const labelClasses =
   "text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/45";
 
 export default function NewProjectForm() {
+  const writingHandoff = useId();
   const [state, formAction] = useActionState(createProject, initialState);
 
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
+  const [fields, setFields] = useState({ shortDescription: "", description: "", city: "", state: "Colorado", locationLabel: "", projectType: "Listing Media", propertyType: "", propertyAddress: "" });
+  const updateField = (field: keyof typeof fields, value: string) => setFields((current) => ({ ...current, [field]: value }));
   const [slugEdited, setSlugEdited] = useState(false);
 
   return (
     <form action={formAction}>
+      <input type="hidden" name="writingHandoff" value={writingHandoff} />
+      <div className="mb-6"><ProjectWritingAssistant handoffKey={writingHandoff} projectFieldsOnly onApply={({ field, value }) => {
+        if (field === "title") { setTitle(value); if (!slugEdited) setSlug(slugify(value)); }
+        if (field === "shortDescription" || field === "description") updateField(field, value);
+      }} /></div>
       <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_19rem]">
         <div className="space-y-6">
           {state.error ? (
@@ -107,6 +116,7 @@ export default function NewProjectForm() {
                   autoFocus
                   type="text"
                   name="title"
+                  maxLength={120}
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   placeholder="Mountain Modern in Fort Collins"
@@ -145,11 +155,18 @@ export default function NewProjectForm() {
                 <span className={labelClasses}>Short description</span>
 
                 <textarea
+                  maxLength={320}
                   name="shortDescription"
+                  value={fields.shortDescription}
+                  onChange={(event) => updateField("shortDescription", event.target.value)}
                   rows={4}
                   placeholder="A concise introduction for project cards and portfolio previews."
                   className={`${inputClasses} resize-y py-3`}
                 />
+              </label>
+              <label>
+                <span className={labelClasses}>Project narrative</span>
+                <textarea name="description" value={fields.description} onChange={(event) => updateField("description", event.target.value)} maxLength={6000} rows={6} placeholder="Optional longer story for the project page." className={`${inputClasses} resize-y py-3`} />
               </label>
             </div>
           </section>
@@ -164,12 +181,19 @@ export default function NewProjectForm() {
             </div>
 
             <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-6">
+              <label className="sm:col-span-2">
+                <span className={labelClasses}>Property address (optional, internal only)</span>
+                <input name="propertyAddress" value={fields.propertyAddress} onChange={(event) => updateField("propertyAddress", event.target.value)} maxLength={300} placeholder="Street address, if useful for your team" className={inputClasses} />
+                <p className="mt-2 text-xs text-white/35">Saved with the draft, never used as the public display location.</p>
+              </label>
               <label>
                 <span className={labelClasses}>City</span>
 
                 <input
                   type="text"
                   name="city"
+                  value={fields.city}
+                  onChange={(event) => updateField("city", event.target.value)}
                   placeholder="Fort Collins"
                   className={inputClasses}
                 />
@@ -181,7 +205,8 @@ export default function NewProjectForm() {
                 <input
                   type="text"
                   name="state"
-                  defaultValue="Colorado"
+                  value={fields.state}
+                  onChange={(event) => updateField("state", event.target.value)}
                   placeholder="Colorado"
                   className={inputClasses}
                 />
@@ -193,6 +218,8 @@ export default function NewProjectForm() {
                 <input
                   type="text"
                   name="locationLabel"
+                  value={fields.locationLabel}
+                  onChange={(event) => updateField("locationLabel", event.target.value)}
                   placeholder="Old Town Fort Collins, Colorado"
                   className={inputClasses}
                 />
@@ -223,7 +250,8 @@ export default function NewProjectForm() {
 
                 <select
                   name="projectType"
-                  defaultValue="Listing Media"
+                  value={fields.projectType}
+                  onChange={(event) => updateField("projectType", event.target.value)}
                   className={inputClasses}
                 >
                   <option value="">Select project type</option>
@@ -240,7 +268,8 @@ export default function NewProjectForm() {
 
                 <select
                   name="propertyType"
-                  defaultValue=""
+                  value={fields.propertyType}
+                  onChange={(event) => updateField("propertyType", event.target.value)}
                   className={inputClasses}
                 >
                   <option value="">Select property type</option>
@@ -275,10 +304,10 @@ export default function NewProjectForm() {
 
             <div className="mt-6 space-y-3 border-t border-white/[0.08] pt-5">
               {[
-                ["01", "Project details", true],
+                ["01", "Details", true],
                 ["02", "Media", false],
-                ["03", "Services", false],
-                ["04", "Review and publish", false],
+                ["03", "Services and SEO", false],
+                ["04", "Review and Publish", false],
               ].map(([number, label, active]) => (
                 <div key={number as string} className="flex items-center gap-3">
                   <span

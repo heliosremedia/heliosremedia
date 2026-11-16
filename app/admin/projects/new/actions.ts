@@ -3,18 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { readProjectCreateInput } from "@/lib/project-create-input";
+
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/auth/session";
 
 export type CreateProjectState = {
   error: string | null;
 };
-
-function getString(formData: FormData, field: string) {
-  const value = formData.get(field);
-
-  return typeof value === "string" ? value.trim() : "";
-}
 
 function slugify(value: string) {
   return value
@@ -53,23 +49,13 @@ export async function createProject(
   formData: FormData,
 ): Promise<CreateProjectState> {
   const session = await requireAdminSession();
-  const title = getString(formData, "title");
-  const requestedSlug = getString(formData, "slug");
-  const shortDescription = getString(
-    formData,
-    "shortDescription",
-  );
-  const city = getString(formData, "city");
-  const state = getString(formData, "state");
-  const locationLabel = getString(formData, "locationLabel");
-  const projectType = getString(formData, "projectType");
-  const propertyType = getString(formData, "propertyType");
-
-  if (!title) {
-    return {
-      error: "Enter a project title before continuing.",
-    };
+  if (!["OWNER", "ADMIN", "EDITOR"].includes(session.role)) {
+    return { error: "Editor access is required to create a project." };
   }
+  let input: ReturnType<typeof readProjectCreateInput>;
+  try { input = readProjectCreateInput(formData); }
+  catch (error) { return { error: error instanceof Error ? error.message : "Check the project details." }; }
+  const { title, slug: requestedSlug, shortDescription, description, city, state, locationLabel, projectType, propertyType, propertyAddress } = input;
 
   const slug = await createUniqueSlug(requestedSlug || title);
 
@@ -82,6 +68,8 @@ export async function createProject(
         workspaceId: session.workspaceId,
         slug,
         shortDescription: shortDescription || null,
+        description: description || null,
+        ...(propertyAddress ? { details: { create: { propertyAddress } } } : {}),
         city: city || null,
         state: state || null,
         locationLabel: locationLabel || null,
@@ -107,5 +95,7 @@ export async function createProject(
   revalidatePath("/admin");
   revalidatePath("/admin/projects");
 
-  redirect(`/admin/projects/${projectId}`);
+  const handoff = formData.get("writingHandoff");
+  const writingQuery = typeof handoff === "string" && handoff.length <= 200 ? `?writingHandoff=${encodeURIComponent(handoff)}` : "";
+  redirect(`/admin/projects/${projectId}${writingQuery}`);
 }

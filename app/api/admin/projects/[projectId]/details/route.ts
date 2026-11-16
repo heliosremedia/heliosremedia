@@ -300,8 +300,8 @@ export async function PATCH(
           locationLabel: getOptionalText(body, "locationLabel"),
           projectType: getOptionalText(body, "projectType"),
           propertyType: getOptionalText(body, "propertyType"),
-          seoTitle: getOptionalText(body, "seoTitle"),
-          seoDescription: getOptionalText(body, "seoDescription"),
+          ...(Object.hasOwn(body, "seoTitle") ? { seoTitle: getOptionalText(body, "seoTitle") } : {}),
+          ...(Object.hasOwn(body, "seoDescription") ? { seoDescription: getOptionalText(body, "seoDescription") } : {}),
         },
         select: {
           id: true,

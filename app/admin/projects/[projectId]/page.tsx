@@ -13,7 +13,9 @@ import ProjectContributors from "./ProjectContributors";
 import { requireAdminSession } from "@/lib/auth/session";
 import AdminSectionNavigator from "@/app/admin/components/AdminSectionNavigator";
 import { getProjectProgressState } from "@/lib/project-progress";
-import ProjectProgressCard from "./ProjectProgressCard";
+import ProjectSeoEditor from "./ProjectSeoEditor";
+import ProjectWritingAssistant from "../ProjectWritingAssistant";
+import HDPhotoHubImport from "../HDPhotoHubImport";
 import FilmComparisonClassifier from "./FilmComparisonClassifier";
 
 export const dynamic = "force-dynamic";
@@ -249,23 +251,18 @@ export default async function ProjectEditorPage({
         </div>
       </section>
 
-      <AdminSectionNavigator label="Project Editor sections" sections={[
-        { href: "#project-identity", label: "Project Identity" },
-        { href: "#project-credits", label: "Project Credits" },
-        { href: "#project-media", label: "Media" },
-        { href: "#project-services", label: "Services & SEO" },
-        { href: "#project-publishing", label: "Review & Publish" },
+      <AdminSectionNavigator label="Project steps" sections={[
+        { href: "#project-identity", label: "Details", step: "01", detail: progress.detailsReady ? "Ready" : "Add summary", complete: progress.detailsReady },
+        { href: "#project-media", label: "Media", step: "02", detail: `${project._count.media} assets`, complete: progress.mediaReady },
+        { href: "#project-services", label: "Services & SEO", step: "03", detail: `${project._count.services} services`, complete: progress.servicesReady },
+        { href: "#project-publishing", label: "Review & Publish", step: "04", detail: formatStatus(project.status), complete: project.status === "PUBLISHED" },
       ]} bulkSectionIds={["project-identity", "project-credits", "project-media", "project-services", "project-publishing"]} projectEditor />
 
-      <section className="grid gap-4 md:grid-cols-4">
-        <ProjectProgressCard number="01" label="Details" detail={project.shortDescription ? "Ready" : hasPlayableVideo ? "Video-led" : "Add summary"} href="#project-identity" complete={progress.detailsReady} />
-        <ProjectProgressCard number="02" label="Media" detail={`${project._count.media} ${project._count.media === 1 ? "asset" : "assets"}`} href="#project-media" complete={progress.mediaReady} />
-        <ProjectProgressCard number="03" label="Services" detail={`${project._count.services} selected`} href="#project-services" complete={progress.servicesReady} />
-        <ProjectProgressCard number="04" label="Publish" detail={project.status === "PUBLISHED" ? "Live" : project.status === "ARCHIVED" ? "Archived" : "Draft"} href="#project-publishing" complete={progress.publishReady} />
-      </section>
+      {project.status === "DRAFT" ? <HDPhotoHubImport targetProjectId={project.id} /> : null}
+      <ProjectWritingAssistant projectId={project.id} />
 
-      <ProjectEditorSection id="project-identity" eyebrow="Project identity" title="Project Identity" summary="Manage the project name, location, property details, public introduction, and search metadata.">
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <ProjectEditorSection id="project-identity" eyebrow="Step 01" title="Details" summary="Manage the project name, location, property details, public introduction, and contributor credits.">
+      <div className="space-y-6">
         <ProjectDetailsEditor
           projectId={project.id}
           statusLabel={formatStatus(project.status)}
@@ -298,42 +295,12 @@ export default async function ProjectEditorPage({
           }}
         />
 
-        <aside className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5 xl:self-start">
-          <p className="text-[0.62rem] font-semibold uppercase tracking-[0.19em] text-[var(--helios-orange)]">
-            Media status
-          </p>
-
-          <h2 className="mt-3 text-2xl font-normal text-white">
-            {project._count.media > 0 ? "Media connected" : "Add project media"}
-          </h2>
-
-          <p className="mt-3 text-sm leading-6 text-white/40">
-            {project._count.media > 0
-              ? `${project._count.media} ${
-                  project._count.media === 1 ? "asset is" : "assets are"
-                } currently connected to this project.`
-              : "Upload the project’s first assets and organize them into media collections."}
-          </p>
-
-          <div className="mt-6 rounded-xl border border-white/[0.08] bg-black/20 p-4">
-            <p className="text-xs leading-6 text-white/35">
-              Media uploads directly to Cloudflare R2 and is organized into the
-              selected project collection automatically.
-            </p>
-          </div>
-
-          <a
-            href="#project-media"
-            className="mt-5 w-full admin-btn-primary"
-          >
-            {project._count.media > 0 ? "Manage assets" : "Upload media"}
-          </a>
-        </aside>
       </div>
-      </ProjectEditorSection>
-
-      <ProjectEditorSection id="project-credits" eyebrow="Project credits" title="Project Credits" summary="Attribute the teammates and creative professionals who contributed to this project.">
-        <ProjectContributors projectId={project.id} users={contributorUsers} initial={project.contributors}/>
+      <div className="mt-6">
+        <ProjectEditorSection id="project-credits" title="Project Credits" summary="Optional: credit the teammates and creative professionals who contributed.">
+          <ProjectContributors projectId={project.id} users={contributorUsers} initial={project.contributors}/>
+        </ProjectEditorSection>
+      </div>
       </ProjectEditorSection>
 
       <ProjectEditorSection id="project-media" eyebrow="Step 02" title="Media" summary="Upload, organize, and manage every asset that appears throughout this project’s portfolio." status={<p className="text-xs text-white/25">{project._count.media} {project._count.media === 1 ? "asset" : "assets"} saved</p>}>
@@ -347,6 +314,7 @@ export default async function ProjectEditorPage({
       <div><ProjectWorkflowManager
         projectId={project.id}
         projectSlug={project.slug}
+        seoEditor={<ProjectSeoEditor projectId={project.id} initialTitle={project.seoTitle || ""} initialDescription={project.seoDescription || ""} projectTitle={project.title} projectSummary={project.shortDescription || ""} />}
         initialStatus={project.status}
         initialFeatured={project.featured}
         initialFeaturedStartedAt={project.featuredStartedAt?.toISOString() ?? null}
