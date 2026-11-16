@@ -35,3 +35,21 @@ export function hdphSafeImageUrl(value: string, extraHosts = ""): string {
   }
   return url.href;
 }
+
+/** Validate the provider envelope instead of misreporting a protocol mismatch as no properties. */
+export function hdphSearchPage(value: unknown, brandId: number, offset: number) {
+  const page = hdphRecord(value);
+  if (!Array.isArray(page.data)) throw new Error("HDPhotoHub returned an unexpected search response. No matching result can be confirmed; please retry or contact an administrator.");
+  const rows = page.data.map(hdphRecord);
+  const sameBrand = rows.filter(site => Number(site.brandId) === brandId);
+  const delivered = sameBrand.filter(site => Boolean(site.bought));
+  const active = delivered.filter(site => ["active", "inactive", "complete"].includes(String(site.status)));
+  const addressed = active.filter(site => typeof hdphRecord(site.location).address === "string" && String(hdphRecord(site.location).address).trim());
+  const next = page.nextPage == null ? null : Number(page.nextPage);
+  if (next != null && (!Number.isSafeInteger(next) || next <= offset || next > 10000000)) throw new Error("HDPhotoHub returned an invalid search continuation. Please narrow the property address.");
+  return {
+    sites: addressed.map(site => ({ siteId: hdphId(site.siteId), ...hdphProperty(site) })),
+    nextOffset: next,
+    diagnostics: { returned: rows.length, sameBrand: sameBrand.length, delivered: delivered.length, active: active.length, addressed: addressed.length },
+  };
+}

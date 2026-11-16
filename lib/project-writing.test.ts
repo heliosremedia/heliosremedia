@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { parseProjectWritingDraft, projectWritingFields, isProjectWritingApplication } from "./project-writing.ts";
+import { parseProjectWritingDraft, projectWritingFields, isProjectWritingApplication, projectWritingInstructions, projectWritingBrandFooter } from "./project-writing.ts";
 
 test("writing suggestions require all fields and respect editor limits", () => {
   const draft = Object.fromEntries(projectWritingFields.map(({ key }) => [key, "Reviewed property copy"]));
@@ -44,4 +44,34 @@ test("new draft hands off source and suggestions only in tab-local storage", () 
   assert.match(helper, /setDraft\(parseProjectWritingDraft\(payload\.draft\)\)/);
   assert.match(helper, /Nothing has been applied automatically/);
   assert.doesNotMatch(action, /sessionStorage|agentDescription|payload\.source/);
+});
+
+
+test("sample-aligned copy has distinct portfolio, video and YouTube guidance", () => {
+  assert.equal(projectWritingFields.find(field => field.key === "title")?.label, "Portfolio title");
+  assert.equal(projectWritingFields.find(field => field.key === "shortDescription")?.label, "Portfolio description");
+  for (const instruction of ["Property Tour | ", "expanded multi-paragraph description", "blank lines", "independently copyable", "Project narrative", "complementary caption"]) {
+    assert.ok(projectWritingInstructions.includes(instruction), instruction);
+  }
+  assert.ok(projectWritingInstructions.includes(projectWritingBrandFooter));
+  assert.match(projectWritingBrandFooter, /Light\. Clarity\. Vision\./);
+});
+
+test("writing guidance preserves source facts and private-address guardrail", () => {
+  assert.match(projectWritingInstructions, /Use only explicitly supplied property facts/);
+  assert.match(projectWritingInstructions, /Do not include street addresses, contact details or access codes/);
+  assert.match(projectWritingInstructions, /Never invent previously featured properties/);
+  assert.match(projectWritingInstructions, /Preserve uncertainty and qualifiers/);
+  assert.match(projectWritingInstructions, /Never claim to have seen photos or watched a video/);
+  assert.match(projectWritingInstructions, /Do not add a creative recommendation/);
+  assert.doesNotMatch(projectWritingInstructions, /31174|Shadow Mountain|Stiles Development/);
+});
+
+test("each suggestion retains an independent copy action and review-only application", () => {
+  const helper = readFileSync(new URL("../app/admin/projects/ProjectWritingAssistant.tsx", import.meta.url), "utf8");
+  assert.match(helper, /projectWritingFields\.map/);
+  assert.match(helper, /void copy\(key\)/);
+  assert.match(helper, /navigator\.clipboard\.writeText\(draft\[key\]\)/);
+  assert.match(helper, /Confirm replacement/);
+  assert.match(helper, /YouTube title, description, and tags are copy-only/);
 });

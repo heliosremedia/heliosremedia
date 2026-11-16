@@ -165,7 +165,7 @@ export default function AdminSectionNavigator({
           className="min-h-11 w-full rounded-xl border border-white/12 bg-[#18181a] px-4 text-sm text-white outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f0f10]"
         >
           {sections.map((section) => (
-            <option key={section.href} value={section.href.slice(1)}>{section.step ? `${section.step}. ` : ""}{section.label}{section.complete ? " ✓" : ""}</option>
+            <option key={section.href} value={section.href.slice(1)}>{section.step ? `${section.step}. ` : ""}{section.label}{section.complete ? " — Complete" : ""}</option>
           ))}
         </select>
       </label>
@@ -184,7 +184,7 @@ export default function AdminSectionNavigator({
                 ? `admin-project-step${section.complete ? " is-complete" : ""}`
                 : `admin-btn-secondary min-w-0 px-2.5 ${siteSettings ? "whitespace-nowrap text-[0.68rem]" : "whitespace-normal text-balance"} ${active ? "border-[var(--helios-orange)]/55 bg-[var(--helios-orange)]/[0.08] text-white" : ""}`}
             >
-              {section.step ? <span className="admin-project-step-content"><span className="admin-project-step-label">{section.label}</span><span className="admin-project-step-value" aria-hidden="true">{section.complete ? "✓" : section.step}</span><span className="admin-project-step-detail">{section.complete ? <span className="sr-only">Complete. </span> : null}{section.detail}</span></span> : section.label}
+              {section.step ? <span className="admin-project-step-content"><span className="admin-project-step-label">Step {section.step}</span><span className="admin-project-step-value">{section.label}</span><span className="admin-project-step-detail">{section.complete ? <span className="sr-only">Complete. </span> : null}{section.detail}</span></span> : section.label}
             </button>
           );
         })}

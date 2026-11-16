@@ -1,3 +1,4 @@
+import AdminCardHeading from "@/app/admin/components/AdminCardHeading";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { FEEDBACK_SURVEY, isFeedbackSelection } from "@/lib/feedback";
@@ -89,8 +90,8 @@ export default async function EmailStudioPage({ searchParams }: { searchParams: 
   const cards: EmailStudioCard[] = [];
   if (["OWNER", "ADMIN"].includes(session.role)) {
     cards.push(
-      { id: "client-experience", label: "Client experience", content: <Link href="/admin/email-studio/monthly-summaries" className="block rounded-2xl border border-white/10 bg-[#111] p-5 transition hover:border-white/25"><p className="text-xs uppercase tracking-[0.16em] text-[var(--helios-orange)]">Client experience</p><h2 className="mt-2 text-xl font-light text-white">Monthly Media Summaries →</h2><p className="mt-2 text-sm text-white/45">Review each client’s monthly purchases, preview their email, and manage delivery.</p></Link> },
-      { id: "client-gatherings", label: "Client gatherings", content: <Link href="/admin/events" className="block rounded-2xl border border-white/10 bg-[#111] p-5 transition hover:border-white/25"><p className="text-xs uppercase tracking-[0.16em] text-[var(--helios-orange)]">Client gatherings</p><h2 className="mt-2 text-xl font-light text-white">Event Invitations →</h2><p className="mt-2 text-sm text-white/45">Prepare invitations, track yes/no RSVPs, and schedule thoughtful follow-ups.</p></Link> },
+      { id: "client-experience", label: "Client experience", content: <Link href="/admin/email-studio/monthly-summaries" className="block rounded-2xl border border-white/10 bg-[#111] p-5 transition hover:border-white/25"><AdminCardHeading eyebrow="Client experience" title="Monthly Media Summaries →" description="Review each client’s monthly purchases, preview their email, and manage delivery." /></Link> },
+      { id: "client-gatherings", label: "Client gatherings", content: <Link href="/admin/events" className="block rounded-2xl border border-white/10 bg-[#111] p-5 transition hover:border-white/25"><AdminCardHeading eyebrow="Client gatherings" title="Event Invitations →" description="Prepare invitations, track yes/no RSVPs, and schedule thoughtful follow-ups." /></Link> },
     );
   }
   cards.push(

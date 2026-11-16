@@ -1,5 +1,7 @@
 "use client";
 
+import AdminCardHeading from "@/app/admin/components/AdminCardHeading";
+
 import { useEffect, useId, useRef, useState } from "react";
 
 export default function ProjectEditorSection({
@@ -36,13 +38,11 @@ export default function ProjectEditorSection({
         setExpanded(true);
         requestAnimationFrame(() => (event.target as HTMLElement).focus());
       }}
-      className="scroll-mt-44 overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02] outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)]/70"
+      className="scroll-mt-44 overflow-hidden rounded-2xl border border-white/10 bg-[#111] outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)]/70"
     >
-      <div className={`flex items-start gap-4 px-5 py-5 sm:px-6 ${expanded ? "border-b border-white/[0.08]" : ""}`}>
+      <div className={`flex items-start gap-4 p-5 ${expanded ? "border-b border-white/[0.08]" : ""}`}>
         <div className="min-w-0 flex-1 pr-1">
-          {eyebrow ? <p className="text-[0.62rem] font-semibold uppercase tracking-[0.19em] text-[var(--helios-orange)]">{eyebrow}</p> : null}
-          <h2 className={`${eyebrow ? "mt-3" : ""} text-2xl font-normal text-white sm:text-3xl`}>{title}</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-white/35">{summary}</p>
+          <AdminCardHeading eyebrow={eyebrow} title={title} description={summary} />
           {status ? <div className="mt-3">{status}</div> : null}
         </div>
         <button
@@ -56,7 +56,7 @@ export default function ProjectEditorSection({
           <span aria-hidden="true">{expanded ? "−" : "+"}</span>
         </button>
       </div>
-      <div id={bodyId} hidden={!expanded} className="p-5 sm:p-6">
+      <div id={bodyId} hidden={!expanded} className="p-5">
         {children}
       </div>
     </section>
