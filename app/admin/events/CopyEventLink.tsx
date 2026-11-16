@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
+import { verifiedEventLink } from "@/lib/events/link-policy";
 
 export default function CopyEventLink({eventId,disabled=false}:{eventId:string;disabled?:boolean}) {
   const pending = useRef(false);
@@ -14,8 +15,9 @@ export default function CopyEventLink({eventId,disabled=false}:{eventId:string;d
       const response = await fetch(`/api/admin/events/${encodeURIComponent(eventId)}/share-link`,{method:"POST",cache:"no-store",referrerPolicy:"no-referrer"});
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.error || "The invite link could not be created. Please try again.");
-      const link = new URL(data.url,window.location.origin);
-      if (![window.location.origin,"https://www.heliosrealestatemedia.com"].includes(link.origin) || link.pathname !== "/events/invite" || link.search || !/^#token=[A-Za-z0-9_-]{43}$/.test(link.hash)) throw new Error("The invite link could not be verified. Please try again.");
+      let link: URL;
+      try { link = verifiedEventLink(data.url,"/events/invite",window.location.origin); }
+      catch { throw new Error("The invite link could not be verified. Please try again."); }
       setUrl(link.href);
       try { await navigator.clipboard.writeText(link.href); setMessage("Invite link copied."); }
       catch { setMessage("Select and copy the invite link below."); }

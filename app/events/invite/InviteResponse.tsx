@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { verifiedEventLink } from "@/lib/events/link-policy";
 import { getEventTheme } from "@/lib/events/themes";
 import EventMotif from "../EventMotif";
 import { MAX_ADDITIONAL_GUESTS, parseAdditionalGuests, rsvpPartySummary, type RsvpChoice } from "../rsvp/response-helpers";
@@ -38,8 +39,7 @@ export default function InviteResponse() {
         if(response.status===400 || response.status===410 || response.status===403) {attempt.current=null;setUncertain(false);setError("Your RSVP could not be saved. Check your details or contact the host.");return;}
         throw new Error("Unconfirmed response");
       }
-      const url=new URL(data.rsvpUrl,window.location.origin);
-      if(![window.location.origin,"https://www.heliosrealestatemedia.com"].includes(url.origin) || url.pathname!=="/events/rsvp" || url.search || !/^#token=[A-Za-z0-9_-]{43}$/.test(url.hash))throw new Error("Invalid personal link");
+      const url=verifiedEventLink(data.rsvpUrl,"/events/rsvp",window.location.origin);
       setSaved({response:data.response,additionalGuests:data.additionalGuests,url:url.href});setUncertain(false);
     } catch {setUncertain(true);setError("We could not confirm whether your RSVP was saved. Retry the same RSVP below; this will not create a duplicate. Keep this page open.");}
     finally {submitting.current=false;setBusy(false);}
