@@ -2,7 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { decrypt, encrypt, newToken, tokenHash, validToken } from "./core";
 import { EventShareError, shareRegistrationInput } from "./share-core";
-import { getSiteUrl } from "@/lib/site";
+import { getCanonicalSiteUrl } from "@/lib/site";
 import { normalizeEventTemplateKey, safeEventImageUrl, safeEventVenueUrl } from "./themes";
 
 const unavailable = () => new EventShareError("Invitation unavailable, cancelled, or expired.",404);
@@ -17,7 +17,7 @@ export async function getOrCreateEventShareLink(eventId:string,workspaceId:strin
     }
     const token = decrypt(link.encryptedToken,process.env.AUTH_SECRET || "");
     if (!validToken(token) || tokenHash(token) !== link.tokenHash) throw new Error("Invalid share credential.");
-    return `${getSiteUrl()}/events/invite#token=${encodeURIComponent(token)}`;
+    return `${getCanonicalSiteUrl()}/events/invite#token=${encodeURIComponent(token)}`;
   });
 }
 async function resolveShareLink(token:unknown) {
@@ -53,5 +53,5 @@ export async function registerSharedGuest(input:Record<string,unknown>) {
     // No CRM enrollment, marketing subscription, delivery creation, or provider calls.
     return invitation;
   });
-  return {...saved,rsvpUrl:`${getSiteUrl()}/events/rsvp#token=${encodeURIComponent(personalToken)}`};
+  return {...saved,rsvpUrl:`${getCanonicalSiteUrl()}/events/rsvp#token=${encodeURIComponent(personalToken)}`};
 }

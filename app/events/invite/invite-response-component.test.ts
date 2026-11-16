@@ -5,11 +5,12 @@ import vm from "node:vm";
 import {readFileSync} from "node:fs";
 import ts from "typescript";
 import {webcrypto} from "node:crypto";
+import * as links from "../../../lib/events/link-policy.ts";
 function mount(file:string,imports:any={},clipboardWorks=true) {
  const slots:any[]=[],effects:(()=>void)[]=[],calls:any[]=[],copies:string[]=[],history:any[]=[];let cursor=0,dirty=true,tree:any;
  const hooks={useState(value:any){const i=cursor++;if(!(i in slots))slots[i]=value;return [slots[i],(v:any)=>{slots[i]=typeof v==="function"?v(slots[i]):v;dirty=true;}];},useRef(value:any){const i=cursor++;if(!(i in slots))slots[i]={current:value};return slots[i];},useEffect(fn:()=>void){const i=cursor++;if(!(i in slots)){slots[i]=true;effects.push(fn);}}};
  const jsx=(type:any,props:any)=>({type,props}),exports:any={};
- const modules:any={react:hooks,"react/jsx-runtime":{jsx,jsxs:jsx},...imports};
+ const modules:any={"@/lib/events/link-policy":links,react:hooks,"react/jsx-runtime":{jsx,jsxs:jsx},...imports};
  const window={location:{origin:"https://example.test",pathname:"/events/invite",hash:"#token="+"A".repeat(43)},history:{replaceState(...args:any[]){history.push(args);window.location.hash="";}}};
  vm.runInNewContext(ts.transpileModule(readFileSync(new URL(file,import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText,{exports,require:(key:string)=>{assert(key in modules,key);return modules[key];},window,navigator:{clipboard:{async writeText(value:string){if(!clipboardWorks)throw new Error("denied");copies.push(value);}}},URL,URLSearchParams,AbortController,Uint8Array,btoa,crypto:webcrypto,Date,Intl,JSON,Error,fetch:(path:string,init:any)=>new Promise((resolve,reject)=>calls.push({path,init,resolve,reject}))});
  const nodes=(n:any):any[]=>!n||typeof n!=="object"?[]:Array.isArray(n)?n.flatMap(nodes):[n,...nodes(n.props?.children)];
