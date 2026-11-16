@@ -180,11 +180,11 @@ export default function AdminSectionNavigator({
               type="button"
               aria-current={active ? "location" : undefined}
               onClick={() => navigate(id)}
-              className={`admin-btn-secondary min-w-0 px-2.5 ${siteSettings ? "whitespace-nowrap text-[0.68rem]" : "whitespace-normal text-balance"} ${
-                section.complete ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] !text-black" : active ? "border-[var(--helios-orange)]/55 bg-[var(--helios-orange)]/[0.08] text-white" : ""
-              }`}
+              className={projectEditor
+                ? `admin-project-step${section.complete ? " is-complete" : ""}`
+                : `admin-btn-secondary min-w-0 px-2.5 ${siteSettings ? "whitespace-nowrap text-[0.68rem]" : "whitespace-normal text-balance"} ${active ? "border-[var(--helios-orange)]/55 bg-[var(--helios-orange)]/[0.08] text-white" : ""}`}
             >
-              {section.step ? <span className="flex min-w-0 items-center gap-3 text-left"><span className="text-xs">{section.complete ? "✓" : section.step}</span><span><span className="block">{section.label}</span><span className="mt-1 block text-[0.65rem] font-normal opacity-70">{section.detail}</span></span></span> : section.label}
+              {section.step ? <span className="admin-project-step-content"><span className="admin-project-step-label">{section.label}</span><span className="admin-project-step-value" aria-hidden="true">{section.complete ? "✓" : section.step}</span><span className="admin-project-step-detail">{section.complete ? <span className="sr-only">Complete. </span> : null}{section.detail}</span></span> : section.label}
             </button>
           );
         })}

@@ -132,6 +132,44 @@
   color: #fff !important;
 }
 
+/* Project workflow cards have their own visual contract. Do not mix these with
+   admin-btn-secondary: its important background rules mask completion colors. */
+.admin-project-step {
+  display: flex;
+  min-width: 0;
+  min-height: 6.5rem;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 1rem;
+  background: #141414;
+  color: #f5f1ea;
+  font-family: var(--font-helios), Arial, Helvetica, sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+.admin-project-step-content { display: block; min-width: 0; }
+.admin-project-step-label { display: block; font-size: 0.58rem; letter-spacing: 0.16em; opacity: 0.8; }
+.admin-project-step-value { display: block; margin-top: 0.4rem; font-size: 1.65rem; font-weight: 300; line-height: 1.1; }
+.admin-project-step-detail { display: block; margin-top: 0.35rem; font-size: 0.7rem; font-weight: 400; line-height: 1.4; text-transform: none; letter-spacing: normal; opacity: 0.85; }
+.admin-project-step:hover { background: #262629; border-color: rgba(255, 255, 255, 0.4); }
+.admin-project-step[aria-current="location"] { border-color: var(--helios-orange); box-shadow: inset 0 0 0 1px var(--helios-orange); }
+.admin-project-step.is-complete { background: var(--helios-orange); border-color: var(--helios-orange); color: #171515; }
+.admin-project-step.is-complete .admin-project-step-label,
+.admin-project-step.is-complete .admin-project-step-detail { opacity: 1; }
+.admin-project-step.is-complete:hover { background: #e98045; border-color: #e98045; }
+.admin-project-step:focus-visible { outline: 2px solid #f5f1ea; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .admin-project-step { transition: none; } }
+
+
 :where(.admin-btn-link, .admin-btn-link-destructive) {
   box-sizing: border-box;
   display: inline-flex;

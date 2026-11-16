@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 export default function ProjectSettingsPanel({
   title,
   summary,
+  description,
   dirty,
   busy,
   warning,
@@ -12,6 +13,7 @@ export default function ProjectSettingsPanel({
 }: {
   title: string;
   summary: string;
+  description: string;
   dirty: boolean;
   busy: boolean;
   warning?: string;
@@ -19,12 +21,12 @@ export default function ProjectSettingsPanel({
 }) {
   return (
     <details className="group rounded-2xl border border-white/[0.08] bg-white/[0.02]">
-      <summary className="flex min-h-16 cursor-pointer list-none items-center gap-4 rounded-2xl px-5 py-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--helios-orange)] sm:px-6 [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-16 cursor-pointer list-none items-center gap-4 rounded-2xl px-5 py-5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--helios-orange)] sm:px-6 [&::-webkit-details-marker]:hidden">
         <span className="min-w-0 flex-1">
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="text-sm font-medium text-white/85">{title}</span>
-            <span className="text-xs text-white/50">{summary}</span>
-          </span>
+          <span className="eyebrow block text-[var(--helios-orange)]">Portfolio organization</span>
+          <span className="font-display mt-2 block text-2xl font-light text-white">{title}</span>
+          <span className="mt-2 block text-sm leading-6 text-white/45">{description}</span>
+          <span className="mt-1 block text-xs text-white/55">{summary}</span>
           {warning ? <span className="mt-1 block text-xs text-amber-200">{warning}</span> : null}
         </span>
         {busy || dirty ? (
