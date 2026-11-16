@@ -137,35 +137,32 @@
 .admin-project-step {
   display: flex;
   min-width: 0;
-  min-height: 6.5rem;
+  min-height: 5rem;
   align-items: center;
   justify-content: flex-start;
-  gap: 0.75rem;
-  padding: 1rem 1.25rem;
+  padding: 0.75rem 1rem;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 1rem;
   background: #141414;
   color: #f5f1ea;
   font-family: var(--font-helios), Arial, Helvetica, sans-serif;
-  font-size: 0.65rem;
-  font-weight: 600;
+  font-weight: 400;
   line-height: 1.35;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   text-align: left;
   cursor: pointer;
   transition: background-color 150ms ease, border-color 150ms ease;
 }
 .admin-project-step-content { display: block; min-width: 0; }
-.admin-project-step-label { display: block; font-size: 0.58rem; letter-spacing: 0.16em; opacity: 0.8; }
-.admin-project-step-value { display: block; margin-top: 0.4rem; font-size: 1.65rem; font-weight: 300; line-height: 1.1; }
-.admin-project-step-detail { display: block; margin-top: 0.35rem; font-size: 0.7rem; font-weight: 400; line-height: 1.4; text-transform: none; letter-spacing: normal; opacity: 0.85; }
-.admin-project-step:hover { background: #262629; border-color: rgba(255, 255, 255, 0.4); }
-.admin-project-step[aria-current="location"] { border-color: var(--helios-orange); box-shadow: inset 0 0 0 1px var(--helios-orange); }
-.admin-project-step.is-complete { background: var(--helios-orange); border-color: var(--helios-orange); color: #171515; }
-.admin-project-step.is-complete .admin-project-step-label,
-.admin-project-step.is-complete .admin-project-step-detail { opacity: 1; }
-.admin-project-step.is-complete:hover { background: #e98045; border-color: #e98045; }
+.admin-project-step-label { display: block; font-size: 0.6rem; font-weight: 400; text-transform: uppercase; letter-spacing: 0.16em; color: #a1a1aa; }
+.admin-project-step-value { display: block; margin-top: 0.25rem; font-size: 0.95rem; font-weight: 400; line-height: 1.25; }
+.admin-project-step-detail { display: block; margin-top: 0.25rem; font-size: 0.7rem; font-weight: 400; line-height: 1.4; color: #a1a1aa; }
+.admin-project-step.is-complete { border-color: rgba(110, 231, 183, 0.25); }
+.admin-project-step.is-complete .admin-project-step-value { color: #6ee7b7; }
+/* Selection and completion are separate: orange outlines the current step,
+   while green text continues to indicate completed work. No solid fills. */
+.admin-project-step[aria-current="location"] { border-color: rgba(217, 107, 43, 0.65); }
+.admin-project-step[aria-current="location"]:not(.is-complete) .admin-project-step-value { color: #f3a271; }
+.admin-project-step:hover { background: #262629; }
 .admin-project-step:focus-visible { outline: 2px solid #f5f1ea; outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { .admin-project-step { transition: none; } }
 
@@ -673,6 +670,7 @@ video {
 
   main p.text-sm:not(.eyebrow):not([class*="uppercase"]),
   main p.mobile-summary,
+  main .admin-card-description,
   main .body-base,
   main .body-lg {
     font-size: 1rem;

@@ -1,5 +1,7 @@
 "use client";
 
+import AdminCardHeading from "@/app/admin/components/AdminCardHeading";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -57,9 +59,9 @@ export default function HDPhotoHubImport({ targetProjectId }: { targetProjectId?
     } catch (e) { setError(e instanceof Error ? e.message : "Import failed."); setStatus("Nothing was published. You can retry to resume, or open the draft and continue manually."); }
     finally { setBusy(false); }
   }
-  return <details className="group/import rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-white [&::-webkit-details-marker]:hidden">Populate from HD Photo Hub (optional)<span aria-hidden="true" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/15 text-lg text-white/60"><span className="group-open/import:hidden">+</span><span className="hidden group-open/import:inline">−</span></span></summary>
-    <div className="mt-4 space-y-4">
+  return <details className="group/import rounded-2xl border border-white/10 bg-[#111]">
+    <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl p-5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--helios-orange)] [&::-webkit-details-marker]:hidden"><span className="min-w-0 flex-1"><AdminCardHeading inline eyebrow="Optional import" title="Populate from HD Photo Hub" description="Start with an existing property, or continue building manually." /></span><span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 text-xl font-light text-white/70"><span className="group-open/import:hidden">+</span><span className="hidden group-open/import:inline">−</span></span></summary>
+    <div className="space-y-4 border-t border-white/10 p-5">
       <p className="text-sm text-white/50">{targetProjectId ? "Add selected photos and fill empty location fields in this draft. Existing details are preserved." : "Copy a delivered property into a new Studio draft."} HDPhotoHub stays unchanged, and nothing is published. Manual editing is always available.</p>
       <div className="flex flex-wrap items-end gap-3"><label className="flex-1 text-sm text-white/60">Search property address<input value={query} onChange={e => { setQuery(e.target.value); setResults([]); setNextOffset(null); setProperty(null); setProjectId(""); setStatus(""); }} disabled={busy} placeholder="Start typing a street address" className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/20 px-4 text-white" /></label><button type="button" className="admin-btn-secondary" onClick={() => search()} disabled={busy || query.trim().length < 3}>Search HDPhotoHub</button></div>
       {!!results.length && <ul className="max-h-64 space-y-2 overflow-auto">{results.map(site => <li key={site.siteId}><button type="button" disabled={busy} onClick={() => lookup(site.siteId)} className="w-full rounded-xl border border-white/10 p-3 text-left text-sm text-white hover:border-orange-400">{site.title} · {[site.city,site.state].filter(Boolean).join(", ")}<span className="ml-2 text-xs text-white/40">#{site.siteId}</span></button></li>)}</ul>}

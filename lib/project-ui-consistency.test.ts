@@ -9,27 +9,60 @@ function luminance(hex: string) {
 }
 function contrast(a: string, b: string) { const values=[luminance(a),luminance(b)].sort((x,y)=>y-x); return (values[0]+.05)/(values[1]+.05); }
 
-test("step cards isolate their colors from important generic button rules", () => {
+test("step cards use compact green completion, discreet orange selection and gray hover", () => {
   const nav=read("../app/admin/components/AdminSectionNavigator.tsx"), css=read("../app/globals.css");
   assert.match(nav, /projectEditor\s*\? `admin-project-step/);
-  assert.doesNotMatch(nav, /!text-black/);
-  assert.match(css, /\.admin-project-step\.is-complete \{ background: var\(--helios-orange\); border-color: var\(--helios-orange\); color: #171515; \}/);
+  assert.doesNotMatch(nav, /!text-black|✓/);
+  assert.match(nav, /Step \{section.step\}/);
+  assert.match(nav, /className="admin-project-step-value">\{section.label\}/);
+  assert.match(nav, /sr-only">Complete/);
+  assert.match(nav, /aria-current=\{active \? "location"/);
+  assert.match(css, /\.admin-project-step\.is-complete \{ border-color: rgba\(110, 231, 183, 0.25\); \}/);
+  assert.match(css, /\.admin-project-step\.is-complete \.admin-project-step-value \{ color: #6ee7b7; \}/);
+  assert.match(css, /\.admin-project-step\[aria-current="location"\] \{ border-color: rgba\(217, 107, 43, 0.65\); \}/);
+  assert.match(css, /\.admin-project-step:hover \{ background: #262629; \}/);
   assert.match(css, /\.admin-project-step:focus-visible/);
-  assert.match(css, /\.admin-project-step-label/);
-  assert.match(css, /\.admin-project-step-value/);
-  assert.ok(contrast("#171515", "#d96b2b") >= 4.5);
-  assert.ok(contrast("#f5f1ea", "#141414") >= 4.5);
-  assert.ok(contrast("#171515", "#e98045") >= 4.5);
+  assert.match(css, /min-height: 5rem/);
+  assert.doesNotMatch(css, /\.admin-project-step\.is-complete[^}]*background:/);
+  for (const foreground of ["#6ee7b7", "#f3a271", "#f5f1ea", "#a1a1aa"]) {
+    for (const background of ["#141414", "#262629"]) assert.ok(contrast(foreground, background) >= 4.5);
+  }
 });
 
 test("collapsed portfolio panels retain Studio eyebrow, serif title, description and toggle", () => {
   const panel=read("../app/admin/projects/ProjectSettingsPanel.tsx");
-  assert.match(panel, /eyebrow block text-\[var\(--helios-orange\)\]/);
+  assert.match(panel, /<AdminCardHeading inline eyebrow="Portfolio organization" title=\{title\} description=\{description\}/);
   assert.match(panel, /Portfolio organization/);
-  assert.match(panel, /font-display mt-2 block text-2xl font-light text-white/);
+  const shared=read("../app/admin/components/AdminCardHeading.tsx"), email=read("../app/admin/email-studio/page.tsx");
+  assert.match(shared, /text-xs uppercase tracking-\[0.16em\]/);
+  assert.match(shared, /text-xl font-light text-white/);
+  assert.match(shared, /mt-2 text-sm text-white\/45/);
+  assert.match(email, /<AdminCardHeading eyebrow="Client experience"/);
+  assert.match(email, /<AdminCardHeading eyebrow="Client gatherings"/);
+  assert.match(panel, /border-white\/10 bg-\[#111\]/);
+  assert.doesNotMatch(panel, /sm:px-6|text-2xl|className="eyebrow/);
   assert.match(panel, /\{description\}/);
   assert.match(panel, /group-open:hidden/);
   assert.match(panel, /group-open:inline/);
   assert.doesNotMatch(panel, /<details[^>]*\bopen=/);
   for (const name of ["FeaturedProjectsManager", "PortfolioDiscoverySettingsManager"]) assert.match(read(`../app/admin/projects/${name}.tsx`), /<ProjectSettingsPanel[^>]+description=/);
+});
+
+
+test("optional project tools share Email Studio heading typography on new and existing drafts", () => {
+  for (const name of ["HDPhotoHubImport", "ProjectWritingAssistant"]) {
+    const source=read(`../app/admin/projects/${name}.tsx`);
+    assert.match(source, /import AdminCardHeading/);
+    assert.match(source, /<AdminCardHeading inline eyebrow=/);
+    assert.match(source, /rounded-2xl p-5 focus-visible/);
+    assert.match(source, /bg-\[#111\]/);
+  }
+});
+
+
+test("project editor section headings use the same shared typography", () => {
+  const source=read("../app/admin/projects/[projectId]/ProjectEditorSection.tsx");
+  assert.match(source, /<AdminCardHeading eyebrow=\{eyebrow\} title=\{title\} description=\{summary\}/);
+  assert.doesNotMatch(source, /sm:text-3xl|sm:px-6/);
+  assert.match(source, /aria-expanded=\{expanded\}/);
 });

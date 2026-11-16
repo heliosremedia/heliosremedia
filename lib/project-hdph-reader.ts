@@ -1,5 +1,5 @@
 import "server-only";
-import { hdphEligiblePhoto, hdphId, hdphProperty, hdphRecord } from "./project-hdph-import";
+import { hdphEligiblePhoto, hdphId, hdphProperty, hdphRecord, hdphSearchPage } from "./project-hdph-import";
 
 export function projectHdphReader(workspaceId: string) {
   const token = process.env.HDPH_V3_TOKEN?.trim();
@@ -17,11 +17,11 @@ export function projectHdphReader(workspaceId: string) {
       const term = query.trim();
       if (term.length < 3 || term.length > 200) throw new Error("Enter at least three characters of the property address.");
       const page = await read(`/sites/search?address=${encodeURIComponent(term)}&deliveryLevel=basic,full&missingKey=site-mustpay&quantity=25&offset=${offset}&sort=created%20desc`);
-      const sites = (Array.isArray(page.data) ? page.data : []).map(hdphRecord)
-        .filter(site => Number(site.brandId) === brandId && site.bought && ["active", "inactive", "complete"].includes(String(site.status)))
-        .filter(site => typeof hdphRecord(site.location).address === "string")
-        .map(site => ({ siteId: hdphId(site.siteId), ...hdphProperty(site) }));
-      return { sites, nextOffset: Number.isSafeInteger(Number(page.nextPage)) && page.nextPage != null ? Number(page.nextPage) : null };
+      const result = hdphSearchPage(page, brandId, offset);
+      // Counts only: never log credentials, addresses, IDs, client records or media URLs.
+      console.info("hdph-project-search", result.diagnostics);
+      if (result.diagnostics.returned > 0 && result.diagnostics.sameBrand === 0) throw new Error("HDPhotoHub returned properties outside this workspace's configured brand. An administrator needs to check the import connection.");
+      return { sites: result.sites, nextOffset: result.nextOffset };
     },
     async site(id: number) {
       const site = hdphRecord((await read(`/sites/${hdphId(id)}?expand=media`)).data);

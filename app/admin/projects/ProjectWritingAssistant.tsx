@@ -1,5 +1,7 @@
 "use client";
 
+import AdminCardHeading from "@/app/admin/components/AdminCardHeading";
+
 import { useEffect, useRef, useState } from "react";
 import { PROJECT_WRITING_APPLY_EVENT, PROJECT_WRITING_SOURCE_LIMIT, parseProjectWritingDraft, projectWritingFields, type ProjectWritingApplication, type ProjectWritingApplyField, type ProjectWritingDraft, type ProjectWritingTarget } from "@/lib/project-writing";
 
@@ -82,8 +84,8 @@ export default function ProjectWritingAssistant({ projectId, onApply, allowApply
   }
   const fieldClass = "mt-2 w-full rounded-xl border border-white/15 bg-black/20 px-3 py-3 text-sm text-white outline-none focus:border-[var(--helios-orange)]/70";
   return (
-    <details className="group/writing rounded-2xl border border-white/10 bg-white/[0.02]">
-      <summary className="flex list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden min-h-14 cursor-pointer px-5 py-4 text-sm text-white/80 focus-visible:outline-2 focus-visible:outline-[var(--helios-orange)]">AI writing helper <span className="ml-2 text-xs text-white/45">One description, reviewed suggestions</span><span aria-hidden="true" className="ml-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 text-xl"><span className="group-open/writing:hidden">+</span><span className="hidden group-open/writing:inline">−</span></span></summary>
+    <details className="group/writing rounded-2xl border border-white/10 bg-[#111]">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl p-5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--helios-orange)] [&::-webkit-details-marker]:hidden"><span className="min-w-0 flex-1"><AdminCardHeading inline eyebrow="Project copy" title="AI writing helper" description="One description, reviewed suggestions for your project and videos." /></span><span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 text-xl font-light text-white/70"><span className="group-open/writing:hidden">+</span><span className="hidden group-open/writing:inline">−</span></span></summary>
       <div className="space-y-5 border-t border-white/10 p-5">
         <p className="text-sm leading-6 text-white/55">Paste the agent’s description once to draft project and video copy. Generate sends this text to OpenAI. Remove private contact details, access codes, and anything you do not want shared. Suggestions never publish or save automatically.</p>
         <label className="block text-sm text-white/70">Agent property description
