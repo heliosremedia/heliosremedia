@@ -6,6 +6,9 @@ import { createPortal } from "react-dom";
 type AdminSection = {
   href: `#${string}`;
   label: string;
+  step?: string;
+  detail?: string;
+  complete?: boolean;
 };
 
 type PinnedFrame = {
@@ -162,7 +165,7 @@ export default function AdminSectionNavigator({
           className="min-h-11 w-full rounded-xl border border-white/12 bg-[#18181a] px-4 text-sm text-white outline-none focus-visible:ring-2 focus-visible:ring-[var(--helios-orange)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f0f10]"
         >
           {sections.map((section) => (
-            <option key={section.href} value={section.href.slice(1)}>{section.label}</option>
+            <option key={section.href} value={section.href.slice(1)}>{section.step ? `${section.step}. ` : ""}{section.label}{section.complete ? " ✓" : ""}</option>
           ))}
         </select>
       </label>
@@ -178,10 +181,10 @@ export default function AdminSectionNavigator({
               aria-current={active ? "location" : undefined}
               onClick={() => navigate(id)}
               className={`admin-btn-secondary min-w-0 px-2.5 ${siteSettings ? "whitespace-nowrap text-[0.68rem]" : "whitespace-normal text-balance"} ${
-                active ? "border-[var(--helios-orange)]/55 bg-[var(--helios-orange)]/[0.08] text-white" : ""
+                section.complete ? "border-[var(--helios-orange)] bg-[var(--helios-orange)] !text-black" : active ? "border-[var(--helios-orange)]/55 bg-[var(--helios-orange)]/[0.08] text-white" : ""
               }`}
             >
-              {section.label}
+              {section.step ? <span className="flex min-w-0 items-center gap-3 text-left"><span className="text-xs">{section.complete ? "✓" : section.step}</span><span><span className="block">{section.label}</span><span className="mt-1 block text-[0.65rem] font-normal opacity-70">{section.detail}</span></span></span> : section.label}
             </button>
           );
         })}

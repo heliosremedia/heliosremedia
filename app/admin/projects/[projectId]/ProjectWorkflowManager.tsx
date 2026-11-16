@@ -19,6 +19,7 @@ export type AssignableService = {
 type ProjectWorkflowManagerProps = {
   projectId: string;
   projectSlug: string;
+  seoEditor?: React.ReactNode;
   initialStatus: ProjectStatus;
   initialFeatured: boolean;
   initialFeaturedStartedAt: string | null;
@@ -71,6 +72,7 @@ function revealSection(id: string) {
 export default function ProjectWorkflowManager({
   projectId,
   projectSlug,
+  seoEditor,
   initialStatus,
   initialFeatured,
   initialFeaturedStartedAt,
@@ -407,6 +409,10 @@ export default function ProjectWorkflowManager({
             );
           })}
         </div>
+        <div className="mt-5 flex justify-end">
+          <button type="button" onClick={() => void saveServices()} disabled={isSavingServices || !serviceSelectionChanged} className="admin-btn-primary">{isSavingServices ? "Saving" : "Save services"}</button>
+        </div>
+        {seoEditor ? <div className="mt-7">{seoEditor}</div> : null}
       </ProjectEditorSection>
 
       <ProjectEditorSection id="project-publishing" eyebrow="Step 04" title="Review and Publish" summary="Validate the public project, control its website status, and decide whether it receives featured placement." status={<span

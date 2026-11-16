@@ -1572,9 +1572,9 @@ export default function ProjectMediaManager({
           <p className="text-[0.62rem] font-semibold uppercase tracking-[0.19em] text-[var(--helios-orange)]">
             Social Sharing
           </p>
-          <h3 className="mt-3 text-xl font-normal text-white">Project share preview</h3>
+          <h3 className="mt-3 text-xl font-normal text-white">Link preview image</h3>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-white/35">
-            Used when this project is shared to Facebook, LinkedIn, X, messaging apps, and other platforms.
+            The image shown in a preview card when you share this project’s link to Facebook, LinkedIn, X, messaging apps, and other platforms. This is separate from the project cover and video thumbnails.
             Automatic preview uses the project cover first, then the workspace share image, and only uses the brand monogram as an emergency fallback.
           </p>
           <div className="mt-5 grid gap-5 lg:grid-cols-[1.25fr_0.75fr]">
