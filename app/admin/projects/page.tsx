@@ -238,9 +238,10 @@ export default async function ProjectsPage({
       <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 sm:p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <form className="flex w-full max-w-xl items-center rounded-xl border border-white/[0.08] bg-black/20 px-4 focus-within:border-white/20">
-            <span className="text-white/30">⌕</span>
+            <span aria-hidden="true" className="text-white/30">⌕</span>
             <input
               type="search"
+              aria-label="Search projects by title, location, or property address"
               name="search"
               defaultValue={search}
               placeholder="Search titles, locations, or property addresses"
@@ -254,7 +255,7 @@ export default async function ProjectsPage({
             ) : null}
             <button
               type="submit"
-              className="text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-white/40 hover:text-white"
+              className="min-h-11 px-2 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-white/40 hover:text-white"
             >
               Search
             </button>
@@ -264,12 +265,13 @@ export default async function ProjectsPage({
             {statusOptions.map((option) => (
               <Link
                 key={option.value}
+                aria-current={activeStatus === option.value ? "page" : undefined}
                 href={buildProjectsUrl({
                   status: option.value,
                   search,
                   pageSize,
                 })}
-                className={`inline-flex min-h-9 shrink-0 items-center rounded-full border px-4 text-[0.6rem] font-semibold uppercase tracking-[0.15em] ${
+                className={`inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-[0.6rem] font-semibold uppercase tracking-[0.15em] ${
                   activeStatus === option.value
                     ? "border-[var(--helios-orange)]/40 bg-[var(--helios-orange)]/10 text-[var(--helios-orange-hover)]"
                     : "border-white/[0.08] text-white/40 hover:text-white"
