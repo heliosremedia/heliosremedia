@@ -2,6 +2,7 @@
 
 import AdminCardHeading from "@/app/admin/components/AdminCardHeading";
 
+import { hdphDetailConflicts, type HDPHDetailValues } from "@/lib/project-hdph-conflicts";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -23,7 +24,7 @@ function ImportPhotoTile({ siteId, photo, selected, disabled, onChange }: { site
     <span className="block truncate px-3 py-2 text-xs text-white/60" title={photo.name}>{photo.name}</span>
   </label>;
 }
-export default function HDPhotoHubImport({ targetProjectId, initialSiteId, onSelectProperty }: { targetProjectId?: string; initialSiteId?: number | null; onSelectProperty?: (property: HDPHSelectedProperty) => void }) {
+export default function HDPhotoHubImport({ targetProjectId, initialSiteId, onSelectProperty, currentDetails = {} }: { targetProjectId?: string; initialSiteId?: number | null; currentDetails?: HDPHDetailValues; onSelectProperty?: (property: HDPHSelectedProperty, replaceDetails: boolean) => void }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PropertySummary[]>([]);
@@ -46,8 +47,13 @@ export default function HDPhotoHubImport({ targetProjectId, initialSiteId, onSel
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [projectId, setProjectId] = useState("");
+  const [replacementChoice, setReplacementChoice] = useState("");
+  const conflicts = property ? hdphDetailConflicts(currentDetails, property) : [];
+  const replacementKey = property && conflicts.length ? JSON.stringify([property.siteId, currentDetails, property.title, property.city, property.state, property.locationLabel, property.propertyAddress]) : "";
+  const replaceDetails = Boolean(replacementKey && replacementChoice === replacementKey);
   const [completed, setCompleted] = useState(false);
   async function lookup(siteId: number) {
+    setReplacementChoice("");
     setBusy(true); setError(""); setProperty(null); setProjectId(""); setSelected([]); setRights(false); setCompleted(false); setStatus("Checking HDPhotoHub…");
     try {
       const response = await fetch(`/api/admin/projects/hdph-import?siteId=${encodeURIComponent(String(siteId))}`, { cache: "no-store" });
@@ -89,7 +95,10 @@ export default function HDPhotoHubImport({ targetProjectId, initialSiteId, onSel
       {property && <>
         <p className="text-white">{property.title}<span className="ml-2 text-sm text-white/50">{[property.city,property.state].filter(Boolean).join(", ")}</span></p>
         <p className="text-xs text-white/45">{onSelectProperty ? "Title, location and internal address fill the form for your review. Photos are not imported at this step." : "Only selected photos are added. Your project identity and other edits stay unchanged."} Listing descriptions, contacts, private notes, videos, and hidden or restricted photos are not imported.</p>
-        {onSelectProperty ? <button type="button" className="admin-btn-primary" disabled={busy} onClick={() => { onSelectProperty(property); setStatus("Property details filled in. Review them and create your draft, then select photos in Media. No photos have been imported."); }}>Use property details</button> : <>
+        {onSelectProperty ? <div className="space-y-4 pt-4">
+          {!!conflicts.length && <label className="flex items-start gap-2 text-sm text-white/60"><input type="checkbox" className="mt-1" checked={replaceDetails} disabled={busy} onChange={event => setReplacementChoice(event.target.checked ? replacementKey : "")} />Replace my existing title or location entries that differ from this property. Leave unchecked to keep them and fill only empty fields.</label>}
+          <button type="button" className="admin-btn-primary" disabled={busy} onClick={() => { onSelectProperty(property, replaceDetails); setReplacementChoice(""); setStatus("Property details filled in. Review them and create your draft, then select photos in Media. No photos have been imported."); }}>Use property details</button>
+        </div> : <>
         {!!property.photos.length && <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span className="text-sm text-white/65">{selected.length} of {property.photos.length} photos selected</span>
