@@ -22,6 +22,7 @@ function mount(name: string, services: unknown[]) {
   const modules: Record<string, unknown> = {
     react: hooks, "react/jsx-runtime": { jsx, jsxs: jsx },
     "tus-js-client": {},
+    "../VideoCopyButton": { default: () => null },
     "@/lib/external-media": { resolveExternalMedia: () => null },
     "@/lib/service-media": { mediaCategoryForServiceSlug: () => "CINEMATIC_FILM" },
     "@/lib/video-media-services": collections,

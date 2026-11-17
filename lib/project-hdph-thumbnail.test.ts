@@ -9,5 +9,5 @@ test("thumbnail route is authenticated, bounded and read-only", () => {
   assert.doesNotMatch(route, /PutObjectCommand|prisma\.|export async function POST/);
 });
 test("thumbnail grid retains accessible individual selection and selected state", () => {
-  for (const feature of ['type="checkbox"', 'aria-label={`Select ${photo.name}`}', 'checked={selected}', 'loading="lazy"', 'bg-emerald-500', 'Select all photos', 'Clear selection', 'Preview unavailable', 'Photos available to import']) assert.ok(ui.includes(feature), feature);
+  for (const feature of ['type="checkbox"', 'Already imported:', 'checked={selected || !!photo.alreadyImported}', 'loading="lazy"', 'bg-emerald-500', 'Select all new photos', 'Clear selection', 'Preview unavailable', 'Photos available to import']) assert.ok(ui.includes(feature), feature);
 });
