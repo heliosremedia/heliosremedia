@@ -38,3 +38,17 @@ test("arrow keys wrap, Home/End focus and activate tabs, unrelated keys do not",
 test("role restrictions omit Client Tools and keyboard navigation skips it",()=>{const ui=mount({showClientTools:false,hash:"#client-tools"});assert.equal(ui.tab("client-tools"),undefined);assert.equal(ui.panel("client-tools"),undefined);selected(ui,"email");ui.key("email","ArrowRight");selected(ui,"delivery-health");ui.key("delivery-health","ArrowRight");selected(ui,"email");});
 test("health deep links and browser hash changes activate matching panels",()=>{for(const hash of ["#analytics-health","#webhook-health","#delivery-health"]){const ui=mount({hash});selected(ui,"delivery-health");}const ui=mount({hash:"#client-tools"});selected(ui,"client-tools");ui.navigate("#analytics-health");selected(ui,"delivery-health");ui.navigate("#email-workspace");selected(ui,"email");});
 test("hashchange listener is removed on unmount",()=>{const ui=mount();assert.equal(ui.listenerCount(),1);ui.unmount();assert.equal(ui.listenerCount(),0);});
+
+
+test("selected tabs match the subtle audience-card treatment without removing keyboard focus", () => {
+  const ui = mount();
+  for (const id of ["email", "client-tools", "delivery-health"]) {
+    ui.click(id);
+    const classes = ui.tab(id).props.className.split(/\s+/);
+    for (const token of ["border", "border-[var(--helios-orange)]/50", "bg-[var(--helios-orange)]/10", "text-white", "focus-visible:outline-2"]) assert.ok(classes.includes(token), token);
+    assert.ok(!classes.includes("bg-[var(--helios-orange)]"));
+    assert.ok(!classes.includes("text-black"));
+    selected(ui, id);
+    for (const other of ["email", "client-tools", "delivery-health"].filter(other => other !== id)) assert.ok(ui.tab(other).props.className.includes("border-transparent"));
+  }
+});
