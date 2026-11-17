@@ -98,7 +98,6 @@ export default function NewProjectForm() {
           ) : null}
 
           <div className="space-y-3">
-            <p className="text-sm text-white/50">Start with an optional HDPhotoHub property, or enter everything manually below. Existing entries are kept unless you choose to replace them.</p>
               <div className="space-y-3"><HDPhotoHubImport currentDetails={{ title, city: fields.city, state: stateEdited ? fields.state : "", locationLabel: fields.locationLabel, propertyAddress: fields.propertyAddress }} onSelectProperty={(property, replaceDetails) => {
                 setHdphSiteId(property.siteId);
                 if (replaceDetails || !title.trim()) {

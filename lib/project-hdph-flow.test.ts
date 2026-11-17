@@ -87,5 +87,7 @@ test("HDPH source belongs only to ProjectDetails and matches migration", () => {
 
 test("new project avoids duplicate intro and keeps optional manual/import guidance", () => {
   assert.doesNotMatch(read("app/admin/projects/new/page.tsx"), /Start with the essential project information/);
-  assert.match(read("app/admin/projects/new/NewProjectForm.tsx"), /Start with an optional HDPhotoHub property, or enter everything manually below/);
+  const page = read("app/admin/projects/new/page.tsx");
+  assert.match(page, /<\/h1>\s*<p[^>]*>Start with an optional HDPhotoHub property, or enter everything manually below/);
+  assert.doesNotMatch(read("app/admin/projects/new/NewProjectForm.tsx"), /Start with an optional HDPhotoHub property/);
 });

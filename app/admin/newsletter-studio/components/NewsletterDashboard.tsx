@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import AdminWorkspaceTabs from "@/app/admin/components/AdminWorkspaceTabs";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { updateSeriesActive } from "./dashboard-state";
@@ -54,6 +55,8 @@ export default function NewsletterDashboard({ summary }: { summary: ReactNode })
     {message && <p role="status" className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/60">{message}</p>}
     {loading ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[1,2,3,4].map(item => <div key={item} className="h-32 animate-pulse rounded-2xl border border-white/[0.07] bg-white/[0.02]" />)}</div> :
     <>
+      <AdminWorkspaceTabs id="newsletter-studio" label="Newsletter Studio sections" tabs={[
+        { id: "editions", label: "Editions", content: <div className="space-y-7">
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(19rem,.65fr)]">
         <article className="relative overflow-hidden rounded-2xl border border-white/[0.09] bg-[#111] p-5 sm:p-7">
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--helios-orange)]/70 to-transparent" />
@@ -63,11 +66,17 @@ export default function NewsletterDashboard({ summary }: { summary: ReactNode })
         </article>
         <article className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5 sm:p-6"><p className="text-[0.58rem] font-semibold uppercase tracking-[0.2em] text-[var(--helios-orange)]">Content warnings</p>{data.nextEdition?.warnings.length ? <ul className="mt-4 space-y-3">{data.nextEdition.warnings.map(warning => <li key={warning} className="flex gap-3 text-sm leading-6 text-amber-100/70"><span aria-hidden="true">•</span>{warning}</li>)}</ul> : <div className="mt-4"><p className="text-sm leading-6 text-emerald-100/60">No outstanding warnings for the next edition.</p>{data.nextEdition && <Link href={`/admin/newsletter-studio/editions/${data.nextEdition.id}`} className="mt-4 inline-flex text-xs text-[#e7ddc8]/65">Review edition details →</Link>}</div>}</article>
       </section>
-      <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02]"><div className="flex items-center justify-between border-b border-white/[0.07] p-5 sm:px-6"><div><p className="text-[0.56rem] font-semibold uppercase tracking-[.18em] text-[var(--helios-orange)]">Series</p><h2 className="mt-2 text-2xl font-light text-white">Active Newsletter Series</h2><p className="mt-1 text-sm text-white/35">Recurring editorial plans and their next milestones.</p></div></div>
-      <div className="divide-y divide-white/[0.06]">{data.series.map(series => { const toggling = seriesBusy === series.id; return <article key={series.id} className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6"><div><div className="flex items-center gap-3"><p className="text-white/75">{series.name}</p><span className={`text-[0.52rem] uppercase tracking-[.14em] ${series.active ? "text-emerald-200/70" : "text-white/30"}`}>{series.active ? "Active" : "Paused"}</span></div><p className="mt-2 text-sm text-white/30">Next draft {date(series.nextGenerationAt)} · Send {date(series.nextSendAt)}</p></div><div className="flex gap-2"><button disabled={toggling} className="admin-btn-secondary" onClick={() => toggleSeries(series.id, series.active)}>{toggling ? (series.active ? "Pausing…" : "Resuming…") : (series.active ? "Pause" : "Resume")}</button><Link href={`/admin/newsletter-studio/series/${series.id}`} className="admin-btn-link">Edit</Link></div></article>; })}{!data.series.length && <div className="p-6"><p className="text-sm text-white/35">No recurring newsletter series are configured.</p><Link href="/admin/newsletter-studio/series/new" className="mt-4 inline-flex text-xs text-[#e7ddc8]/65">Create your first series →</Link></div>}</div></section>
       <DashboardList eyebrow="Editorial queue" title="Needs Your Review" editions={needsReview} emptyText="Nothing needs approval right now." />
       <DashboardList eyebrow="Delivery plan" title="Scheduled" editions={scheduled} emptyText="No editions are currently scheduled." />
+        </div> },
+        { id: "series", label: "Series", content: (
+      <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02]"><div className="flex items-center justify-between border-b border-white/[0.07] p-5 sm:px-6"><div><p className="text-[0.56rem] font-semibold uppercase tracking-[.18em] text-[var(--helios-orange)]">Series</p><h2 className="mt-2 text-2xl font-light text-white">Active Newsletter Series</h2><p className="mt-1 text-sm text-white/35">Recurring editorial plans and their next milestones.</p></div></div>
+      <div className="divide-y divide-white/[0.06]">{data.series.map(series => { const toggling = seriesBusy === series.id; return <article key={series.id} className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6"><div><div className="flex items-center gap-3"><p className="text-white/75">{series.name}</p><span className={`text-[0.52rem] uppercase tracking-[.14em] ${series.active ? "text-emerald-200/70" : "text-white/30"}`}>{series.active ? "Active" : "Paused"}</span></div><p className="mt-2 text-sm text-white/30">Next draft {date(series.nextGenerationAt)} · Send {date(series.nextSendAt)}</p></div><div className="flex gap-2"><button disabled={toggling} className="admin-btn-secondary" onClick={() => toggleSeries(series.id, series.active)}>{toggling ? (series.active ? "Pausing…" : "Resuming…") : (series.active ? "Pause" : "Resume")}</button><Link href={`/admin/newsletter-studio/series/${series.id}`} className="admin-btn-link">Edit</Link></div></article>; })}{!data.series.length && <div className="p-6"><p className="text-sm text-white/35">No recurring newsletter series are configured.</p><Link href="/admin/newsletter-studio/series/new" className="mt-4 inline-flex text-xs text-[#e7ddc8]/65">Create your first series →</Link></div>}</div></section>
+        ) },
+        { id: "history", label: "History", content: (
       <DashboardList eyebrow="History" title="Recent Editions" editions={data.editions.slice(0, 8)} emptyText="Generate an edition to begin the history." />
+        ) },
+      ]} />
     </>}
     </div>
   </AdminPageLayout>;
