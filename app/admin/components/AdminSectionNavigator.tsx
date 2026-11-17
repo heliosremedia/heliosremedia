@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
+import { StudioAppearanceContext } from "./StudioAppearance";
 import { createPortal } from "react-dom";
 
 type AdminSection = {
@@ -34,6 +35,7 @@ export default function AdminSectionNavigator({
   siteSettings?: boolean;
   projectEditor?: boolean;
 }) {
+  const appearance = useContext(StudioAppearanceContext);
   const navigatorRef = useRef<HTMLElement>(null);
   const siteSettingsAnchorRef = useRef<HTMLDivElement>(null);
   const navigationTargetRef = useRef<string | null>(null);
@@ -239,7 +241,7 @@ export default function AdminSectionNavigator({
         data-site-settings-navigation-anchor
         style={{ height: pinnedFrame.height }}
       >
-        {createPortal(navigator, document.body)}
+        {createPortal(<div className="admin-form-scope" data-studio-appearance={appearance}>{navigator}</div>, document.body)}
       </div>
     );
   }

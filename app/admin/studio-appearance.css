@@ -1,0 +1,40 @@
+@import "./studio-legacy-theme.css";
+
+.admin-form-scope[data-studio-appearance] {
+  --studio-appearance-surface: #18181a;
+  --studio-appearance-ink: #f5f5f5;
+  --studio-appearance-muted: #a4a4a8;
+  --studio-appearance-border: #454549;
+  --studio-appearance-active: #f08a4c;
+  color-scheme: dark;
+}
+.admin-form-scope[data-studio-appearance="day"] {
+  --studio-appearance-surface: #fff;
+  --studio-appearance-ink: #202124;
+  --studio-appearance-muted: #5c6067;
+  --studio-appearance-border: #c7c9cd;
+  --studio-appearance-active: #9a400d;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: light) {
+  .admin-form-scope[data-studio-appearance="system"] {
+    --studio-appearance-surface: #fff;
+    --studio-appearance-ink: #202124;
+    --studio-appearance-muted: #5c6067;
+    --studio-appearance-border: #c7c9cd;
+    --studio-appearance-active: #9a400d;
+    color-scheme: light;
+  }
+}
+.studio-appearance-control { margin: 0 0 1rem; min-width: 0; }
+.studio-appearance-control legend { width: 100%; margin-bottom: .5rem; color: var(--studio-appearance-muted); font-size: .75rem; text-align: center; }
+.studio-appearance-options { display: flex; padding: .25rem; border: 1px solid var(--studio-appearance-border); border-radius: .65rem; background: var(--studio-appearance-surface); }
+.studio-appearance-options label { position: relative; flex: 1; cursor: pointer; }
+.studio-appearance-options input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.studio-appearance-options span { display: flex; justify-content: center; align-items: center; min-height: 44px; border: 1px solid transparent; border-radius: .4rem; font-size: .8rem; color: var(--studio-appearance-ink); }
+.studio-appearance-options input:checked + span { color: var(--studio-appearance-active); border-color: var(--helios-orange); background: rgb(217 107 43 / .1); }
+.studio-appearance-options input:focus-visible + span { outline: 2px solid var(--studio-appearance-active); outline-offset: 2px; }
+.studio-appearance-options label:hover span { background: rgb(127 127 127 / .1); }
+
+/* Artwork and historical email previews are not app chrome. */
+.admin-form-scope [data-studio-fixed-colors] { color-scheme: dark; --foreground: #f5f1ea; }

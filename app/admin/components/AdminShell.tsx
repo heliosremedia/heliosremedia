@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 
+import { appearanceBootstrap, StudioAppearanceContext, useStudioAppearance } from "./StudioAppearance";
+import "../studio-appearance.css";
+
 import AdminSidebar from "./AdminSidebar";
 import AdminTopbar from "./AdminTopbar";
 import type { AdminSession } from "@/lib/auth/session";
@@ -17,12 +20,15 @@ export default function AdminShell({
   initialNavigationFavorites: string[];
   businessName: string;
 }>) {
+  const appearance = useStudioAppearance();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [desktopHidden, setDesktopHidden] = useState(false);
 
   return (
-    <div className="admin-form-scope min-h-screen bg-[#09090a] text-[var(--foreground)]">
+    <StudioAppearanceContext.Provider value={appearance}>
+    <div data-studio-appearance={appearance} suppressHydrationWarning className="admin-form-scope min-h-screen bg-[#09090a] text-[var(--foreground)]">
+      <script dangerouslySetInnerHTML={{ __html: appearanceBootstrap }} />
       <AdminSidebar
         isOpen={sidebarOpen}
         desktopHidden={desktopHidden}
@@ -39,5 +45,6 @@ export default function AdminShell({
         </main>
       </div>
     </div>
+    </StudioAppearanceContext.Provider>
   );
 }

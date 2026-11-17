@@ -1,0 +1,26 @@
+name: Studio appearance synthetic QA
+on:
+  pull_request:
+    paths: ['app/admin/**', 'scripts/*studio*', 'scripts/fixtures/studio-appearance.tsx', '.github/workflows/studio-appearance-qa.yml']
+permissions:
+  contents: read
+jobs:
+  appearance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm install --no-save --package-lock=false esbuild playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/verify-studio-appearance.mjs
+      - run: node scripts/verify-studio-appearance-browser.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: studio-appearance-screenshots
+          path: .studio-appearance-qa/*.png

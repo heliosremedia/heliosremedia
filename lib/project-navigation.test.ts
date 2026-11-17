@@ -12,7 +12,7 @@ test("click selection survives intermediate smooth scroll and manual scroll sele
   const listeners: Record<string, () => void> = {};
   const elements = ["details", "media", "services", "publish"].map((id,index)=>({id,top:index*500,tabIndex:0,focus(){},querySelector(){return null;},getBoundingClientRect(){return {top:this.top-scrollY};}}));
   const fakeWindow = { get scrollY(){return scrollY;}, history:{replaceState(){}}, matchMedia(){return {matches:false};}, scrollTo(){}, addEventListener(name:string,fn:()=>void){listeners[name]=fn;}, removeEventListener(){} };
-  const react = {useRef:(value:unknown)=>({current:value}),useState:(value:unknown)=>{const index=states.length;states.push(value);return [value,(next:unknown)=>{states[index]=next;}];},useEffect:(effect:()=>unknown)=>effects.push(effect)};
+  const react = {useContext:()=>"system",useRef:(value:unknown)=>({current:value}),useState:(value:unknown)=>{const index=states.length;states.push(value);return [value,(next:unknown)=>{states[index]=next;}];},useEffect:(effect:()=>unknown)=>effects.push(effect)};
   const jsx = (type:unknown,props:Record<string,unknown>)=>({type,props});
   const exports: {default?: (props:unknown)=>any} = {};
   const source=readFileSync(new URL("../app/admin/components/AdminSectionNavigator.tsx",import.meta.url),"utf8");

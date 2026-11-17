@@ -297,7 +297,7 @@ export default function ExternalMediaForm({
 
             <div className="space-y-5">
               <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-black/30">
-                <div className="relative aspect-video overflow-hidden bg-[radial-gradient(circle_at_70%_20%,rgba(217,107,43,0.18),transparent_40%),#090909]">
+                <div data-studio-fixed-colors className="relative aspect-video overflow-hidden bg-[radial-gradient(circle_at_70%_20%,rgba(217,107,43,0.18),transparent_40%),#090909]">
                   {detection.details?.thumbnailUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
