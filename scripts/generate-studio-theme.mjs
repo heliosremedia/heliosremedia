@@ -35,7 +35,7 @@ for (const full of [...classes].sort()) {
  rules.push(`${selector} { ${prop}: ${val}; }`);
 }
 const components=`
-& { --foreground: #202124; --helios-muted: #5c6067; --helios-border: #d4d5d7; --studio-surface: #fff; --studio-ink: #202124; --studio-muted: #5c6067; background: #f4f4f3; color: var(--studio-ink); color-scheme: light; }
+& { --background: #f4f4f3; --foreground: #202124; --helios-muted: #5c6067; --helios-border: #d4d5d7; --studio-surface: #fff; --studio-ink: #202124; --studio-muted: #5c6067; background: #f4f4f3; color: var(--studio-ink); color-scheme: light; }
 :where(input,textarea,select) { color-scheme: light; }
 :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),textarea,select):not([data-studio-fixed-colors], [data-studio-fixed-colors] *) { background-color: #fff; color: var(--studio-ink); }
 [class~="text-[var(--helios-orange)]"]:not([data-studio-fixed-colors], [data-studio-fixed-colors] *) { color: #a84310; }

@@ -39,11 +39,12 @@ try {
  await page.getByText('Night',{exact:true}).click();assert.equal(await surface(),'rgb(9, 9, 10)');
  await page.reload();assert.equal(await page.getByRole('radio',{name:'Night',exact:true}).isChecked(),true);
  assert.equal(await surface(),'rgb(9, 9, 10)');
- await page.screenshot({path:`${output}/night-desktop.png`,fullPage:true});
+ await page.screenshot({path:`${output}/night-desktop.png`,fullPage:true,animations:"disabled"});
  await page.getByText('Day',{exact:true}).click();assert.equal(await surface(),'rgb(244, 244, 243)');
+ assert.equal(await page.locator('main').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(244, 244, 243)');
  assert.equal(await page.getByLabel('Legacy solid black field').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
  assert.notEqual(await page.getByRole('checkbox').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
- await page.screenshot({path:`${output}/day-desktop.png`,fullPage:true});
+ await page.screenshot({path:`${output}/day-desktop.png`,fullPage:true,animations:"disabled"});
  await page.getByRole('radio',{name:'Day',exact:true}).focus();await page.keyboard.press('ArrowRight');
  assert.equal(await page.getByRole('radio',{name:'Night',exact:true}).isChecked(),true);
  await page.getByText('System',{exact:true}).click();await page.emulateMedia({colorScheme:'dark'});assert.equal(await surface(),'rgb(9, 9, 10)');
@@ -52,7 +53,7 @@ try {
  await page.waitForFunction(()=>document.querySelector('.admin-form-scope').dataset.studioAppearance==='night');await tab.close();
  await page.getByText('Day',{exact:true}).click();
  await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'Open navigation',exact:true}).click();
- await page.screenshot({path:`${output}/day-mobile.png`,fullPage:true});
+ await page.screenshot({path:`${output}/day-mobile.png`,fullPage:true,animations:"disabled"});
  assert.ok(await page.getByRole('radio',{name:'Day',exact:true}).isVisible());
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
  assert.deepEqual(errors,[]);
