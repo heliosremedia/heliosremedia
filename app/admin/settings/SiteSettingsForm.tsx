@@ -549,7 +549,7 @@ export default function SiteSettingsForm({
                 {mediaPreview === "video" ? <video src={settings.heroVideoUrl || undefined} poster={settings.heroPosterUrl || undefined} controls muted playsInline loop autoPlay className="h-full w-full object-cover" /> : <button type="button" disabled={!settings.heroVideoUrl} onClick={(event) => { previewTriggerRef.current = event.currentTarget; setMediaPreview("video"); }} className="relative h-full w-full disabled:cursor-default">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {settings.heroPosterUrl ? <img src={settings.heroPosterUrl} alt="" className="h-full w-full object-cover opacity-75" /> : <span className="flex h-full items-center justify-center text-sm text-white/25">No preview available</span>}
-                  {settings.heroVideoUrl&&<span className="absolute inset-0 flex items-center justify-center"><span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/30 bg-black/65 text-xl text-white" aria-hidden="true">▶</span><span className="sr-only">Play hero video preview</span></span>}
+                  {settings.heroVideoUrl&&<span data-studio-fixed-colors className="absolute inset-0 flex items-center justify-center"><span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/30 bg-black/65 text-xl text-white" aria-hidden="true">▶</span><span className="sr-only">Play hero video preview</span></span>}
                 </button>}
               </div>
               <p className="mt-3 truncate text-xs text-white/30" title={settings.heroVideoUrl || undefined}>

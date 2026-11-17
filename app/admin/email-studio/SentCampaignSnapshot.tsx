@@ -64,7 +64,7 @@ export default function SentCampaignSnapshot({ body, templateKey, imageUrl, imag
     </>;
   }
   return <>
-    <div className="mt-5 overflow-hidden rounded-xl border border-white/[0.09] bg-[#f3eee4] text-[#25211d]">
+    <div data-studio-fixed-colors className="mt-5 overflow-hidden rounded-xl border border-white/[0.09] bg-[#f3eee4] text-[#25211d]">
       <div className="bg-[#171716] px-6 py-5 text-xs font-semibold uppercase tracking-[.18em] text-[#f3eee4]">Helios Real Estate Media</div>
       {snapshot.blocks.map((block, index) => {
         if (block.type === "DIVIDER") return <hr key={index} className="mx-6 my-5 border-[#d6cfc3]" />;

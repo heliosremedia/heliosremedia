@@ -144,7 +144,7 @@ export default function MediaLibraryGrid({ items }: MediaLibraryGridProps) {
             <button
               type="button"
               onClick={() => setActiveMediaId(item.id)}
-              className="relative block aspect-[4/3] w-full overflow-hidden bg-[#0d0d0e] text-left"
+              data-studio-fixed-colors className="relative block aspect-[4/3] w-full overflow-hidden bg-[#0d0d0e] text-left"
               aria-label={`Preview ${item.originalFilename || item.collectionLabel}`}
             >
               {cardImageUrl ? (
@@ -264,7 +264,7 @@ export default function MediaLibraryGrid({ items }: MediaLibraryGridProps) {
       </div>
 
       {activeMedia && (
-        <div
+        <div data-studio-fixed-colors
           role="dialog"
           aria-modal="true"
           aria-label={`Preview ${activeMedia.originalFilename || activeMedia.collectionLabel}`}

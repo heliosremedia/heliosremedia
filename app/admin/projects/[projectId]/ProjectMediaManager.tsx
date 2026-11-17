@@ -241,7 +241,7 @@ function SortableMediaCard({
       <button
         type="button"
         onClick={() => onOpenPreview(item.id)}
-        className="relative block aspect-[4/3] w-full overflow-hidden bg-black text-left"
+        data-studio-fixed-colors className="relative block aspect-[4/3] w-full overflow-hidden bg-black text-left"
         aria-label={`Open ${
           item.originalFilename || `${collectionLabel} asset`
         } in fullscreen preview`}
@@ -351,7 +351,7 @@ function SortableMediaCard({
         </div>
       </button>
 
-      <button
+      <button data-studio-fixed-colors
         type="button"
         onClick={() => onToggleVisibility(item.id)}
         disabled={isAssetUpdating}
@@ -374,7 +374,7 @@ function SortableMediaCard({
         {isAssetUpdating ? "Saving" : item.visibility.toLowerCase()}
       </button>
 
-      <button
+      <button data-studio-fixed-colors
         type="button"
         onClick={(event) => {
           event.stopPropagation();
@@ -401,7 +401,7 @@ function SortableMediaCard({
         )}
       </button>
 
-      <button
+      <button data-studio-fixed-colors
         ref={setActivatorNodeRef}
         type="button"
         {...attributes}
@@ -2043,7 +2043,7 @@ export default function ProjectMediaManager({
       </div>
 
       {activeMedia && (
-        <div
+        <div data-studio-fixed-colors
           role="dialog"
           aria-modal="true"
           aria-label="Fullscreen project media preview"
@@ -2142,7 +2142,7 @@ export default function ProjectMediaManager({
 
           {activeCollectionMedia.length > 1 && (
             <>
-              <button
+              <button data-studio-fixed-colors
                 type="button"
                 onClick={showPreviousMedia}
                 className="absolute left-3 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/55 text-white/60 backdrop-blur-xl transition hover:border-white/25 hover:bg-white/[0.08] hover:text-white sm:left-6 sm:h-14 sm:w-14"
@@ -2164,7 +2164,7 @@ export default function ProjectMediaManager({
                 </svg>
               </button>
 
-              <button
+              <button data-studio-fixed-colors
                 type="button"
                 onClick={showNextMedia}
                 className="absolute right-3 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/55 text-white/60 backdrop-blur-xl transition hover:border-white/25 hover:bg-white/[0.08] hover:text-white sm:right-6 sm:h-14 sm:w-14"
@@ -2188,7 +2188,7 @@ export default function ProjectMediaManager({
             </>
           )}
 
-          <footer className="absolute inset-x-0 bottom-0 z-20 border-t border-white/[0.08] bg-black/50 px-4 py-4 backdrop-blur-xl sm:px-6">
+          <footer data-studio-fixed-colors className="absolute inset-x-0 bottom-0 z-20 border-t border-white/[0.08] bg-black/50 px-4 py-4 backdrop-blur-xl sm:px-6">
             <div className="mx-auto flex max-w-6xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-white/35">
                 <span className="font-semibold uppercase tracking-[0.13em] text-[var(--helios-orange)]">
