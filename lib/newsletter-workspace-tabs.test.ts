@@ -18,7 +18,7 @@ test("Series retains pause, resume and edit controls; History retains recent edi
 });
 test("page header, summary and operation status stay outside the tab content",()=>{
  const tabsAt=source.indexOf('<AdminWorkspaceTabs');
- for(const text of ['header={<AdminPageHeader','summary={summary}','{message && <p role="status"','{loading ?'])assert.ok(source.indexOf(text)>0&&source.indexOf(text)<tabsAt,text);
+ for(const text of ['header={<AdminPageHeader','summary={summary}','{message && <AdminStatusMessage','{loading ?'])assert.ok(source.indexOf(text)>0&&source.indexOf(text)<tabsAt,text);
  assert.equal((source.match(/<AdminWorkspaceTabs/g)||[]).length,1);
  assert.match(source,/action\("generate", \{ editionId: data.nextEdition.id \}\)/);
  assert.match(source,/action: active \? "pause-series" : "resume-series", seriesId/);

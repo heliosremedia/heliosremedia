@@ -6,7 +6,7 @@ import type { EventEditorForm } from "./ui-helpers";
 import { createDraftPreviewLoader, draftPreviewDocument, type DraftPreview } from "./draft-preview";
 
 const stages: Record<EventEmailStage, string> = { INITIAL: "Initial invitation", FOLLOW_UP: "14-day follow-up", REMINDER: "Day-before reminder" };
-const button = "rounded-xl border border-white/15 px-4 py-2.5 text-sm text-white/80 transition hover:border-white/40 focus-visible:outline-2 focus-visible:outline-[var(--helios-orange)] disabled:opacity-40";
+const button = "admin-btn-secondary";
 const input = "mt-2 w-full rounded-xl border border-white/15 bg-[#171717] px-3 py-3 text-sm text-white outline-none focus:border-[var(--helios-orange)]";
 
 export default function EventDraftPreview({ form, onClose, onApplyStyle }: {
@@ -96,7 +96,7 @@ export default function EventDraftPreview({ form, onClose, onApplyStyle }: {
       <div className="grid items-end gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto]">
         <label className="text-xs text-white/65">Seasonal style<select ref={styleInput} className={input} value={templateKey} onChange={event => { invalidate(); setTemplateKey(event.target.value as EventTemplateKey); }}>{EVENT_THEMES.map(theme => <option key={theme.key} value={theme.key}>{theme.label}</option>)}</select></label>
         <label className="text-xs text-white/65">Email to preview<select className={input} value={stage} onChange={event => { invalidate(); setStage(event.target.value as EventEmailStage); }}>{Object.entries(stages).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
-        <div className="flex gap-2" role="group" aria-label="Invitation preview width">{(["DESKTOP", "MOBILE"] as const).map(option => <button key={option} type="button" aria-pressed={width === option} className={`${button} ${width === option ? "border-orange-300/50 bg-orange-300/5 text-orange-100" : ""}`} onClick={() => setWidth(option)}>{option === "DESKTOP" ? "Desktop" : "Mobile"}</button>)}</div>
+        <div className="flex gap-2" role="group" aria-label="Invitation preview width">{(["DESKTOP", "MOBILE"] as const).map(option => <button key={option} type="button" aria-pressed={width === option} className={`${button} admin-choice`} onClick={() => setWidth(option)}>{option === "DESKTOP" ? "Desktop" : "Mobile"}</button>)}</div>
       </div>
       <div className="mt-5 overflow-hidden rounded-xl border border-white/15" aria-busy={loading}>
         {loading && <p role="status" className="flex min-h-80 items-center justify-center p-8 text-sm text-white/60">Preparing your invitation…</p>}
@@ -108,6 +108,6 @@ export default function EventDraftPreview({ form, onClose, onApplyStyle }: {
       </div>
       <p className="mt-3 text-xs leading-5 text-white/45">First-name fields show Alex, a sample name. Each guest’s name is added only at delivery; missing names use “there.” RSVP choices are disabled in previews. Email apps may display spacing and fonts slightly differently.</p>
     </div>
-    <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 p-5 sm:p-6"><p className="text-xs leading-5 text-white/45">Browsing styles doesn’t change your draft.</p><div className="flex flex-wrap gap-3"><button type="button" className={button} onClick={close}>Back to editing</button><button type="button" className={`${button} border-orange-400/40 bg-[var(--helios-orange)] text-black hover:brightness-110`} onClick={() => { loader.cancel(); onApplyStyle(templateKey); }}>Use this style in draft</button></div></footer>
+    <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 p-5 sm:p-6"><p className="text-xs leading-5 text-white/45">Browsing styles doesn’t change your draft.</p><div className="flex flex-wrap gap-3"><button type="button" className={button} onClick={close}>Back to editing</button><button type="button" className="admin-btn-primary" onClick={() => { loader.cancel(); onApplyStyle(templateKey); }}>Use this style in draft</button></div></footer>
   </dialog>;
 }

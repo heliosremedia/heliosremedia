@@ -9,8 +9,8 @@ import {
 } from "./event-update-composer";
 
 const input = "mt-2 w-full rounded-xl border border-white/15 bg-[#171717] px-3 py-3 text-sm text-white outline-none focus:border-[var(--helios-orange)] disabled:opacity-50";
-const button = "rounded-xl border border-white/15 px-4 py-2.5 text-sm text-white/80 transition hover:border-white/40 focus-visible:outline-2 focus-visible:outline-[var(--helios-orange)] disabled:cursor-not-allowed disabled:opacity-40";
-const primary = `${button} border-orange-400/40 bg-[var(--helios-orange)] text-black hover:brightness-110`;
+const button = "admin-btn-secondary";
+const primary = "admin-btn-primary";
 type Preview = { subject: string; html: string; audienceCount: number };
 
 /** Keep additional updates separate from the invitation's three-stage delivery plan. */

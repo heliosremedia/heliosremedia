@@ -8,7 +8,7 @@ import EventImageLibrary from "./EventImageLibrary";
 import { eventImageUploadError, type EventAppearanceFields } from "./ui-helpers";
 import { uploadEventImage } from "./image-upload";
 
-const button = "rounded-xl border border-white/15 px-3 py-2.5 text-sm text-white/80 transition hover:border-white/40 focus-visible:outline-2 focus-visible:outline-[var(--helios-orange)] disabled:cursor-not-allowed disabled:opacity-40";
+const button = "admin-btn-secondary";
 
 export default function EventAppearance({ value, title, disabled, onTemplateChange, onImageChange, onAltChange, onUploadingChange, onPreview }: {
   value: EventAppearanceFields;
@@ -56,7 +56,7 @@ export default function EventAppearance({ value, title, disabled, onTemplateChan
 
   return <fieldset className="border-t border-white/10 pt-6" disabled={disabled}>
     <legend className="pr-3 text-xs uppercase tracking-widest text-[var(--helios-orange)]">02 / Set the mood</legend>
-    <div className="mt-2 flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-xl font-light text-white">A little more occasion.</h3><p className="mt-2 max-w-xl text-sm leading-6 text-white/50">Choose a holiday look or keep it classic. Your invitation, reminders, and RSVP page will share the same style.</p></div><button type="button" className={`${button} border-orange-300/40 text-orange-100`} disabled={uploading} onClick={onPreview}>Preview invitation</button></div>
+    <div className="mt-2 flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-xl font-light text-white">A little more occasion.</h3><p className="mt-2 max-w-xl text-sm leading-6 text-white/50">Choose a holiday look or keep it classic. Your invitation, reminders, and RSVP page will share the same style.</p></div><button type="button" className="admin-btn-primary" disabled={uploading} onClick={onPreview}>Preview invitation</button></div>
     <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-3">
       {EVENT_THEMES.map(option => <label key={option.key} className={`relative cursor-pointer overflow-hidden rounded-xl border transition focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--helios-orange)] ${value.templateKey === option.key ? "border-white/65 ring-1 ring-white/20" : "border-white/10 hover:border-white/35"}`}>
         <input className="sr-only" type="radio" name="event-template" value={option.key} checked={value.templateKey === option.key} onChange={() => onTemplateChange(option.key)} />

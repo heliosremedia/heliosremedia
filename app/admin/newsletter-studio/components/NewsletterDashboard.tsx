@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import AdminStatusMessage from "@/app/admin/components/AdminStatusMessage";
 import AdminWorkspaceTabs from "@/app/admin/components/AdminWorkspaceTabs";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
@@ -17,17 +18,27 @@ export default function NewsletterDashboard({ summary }: { summary: ReactNode })
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [seriesBusy, setSeriesBusy] = useState<string | null>(null);
+  const [messageTone, setMessageTone] = useState<"neutral" | "success" | "error">("neutral");
   useEffect(() => { void (async () => {
     try { const response = await fetch("/api/admin/newsletters", { cache: "no-store" }); const result = await response.json(); if (response.ok && result.success) setData(result.data); }
     finally { setLoading(false); }
   })(); }, []);
   async function action(actionName: string, payload: Record<string, unknown>) {
+    setMessageTone("neutral");
     setMessage("Working…");
-    const response = await fetch("/api/admin/newsletters", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: actionName, ...payload }) });
-    const result = await response.json(); setMessage(response.ok && result.success ? result.message || "Updated." : result.error || "The request could not be completed.");
+    try {
+      const response = await fetch("/api/admin/newsletters", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: actionName, ...payload }) });
+      const result = await response.json();
+      setMessageTone(response.ok && result.success ? "success" : "error");
+      setMessage(response.ok && result.success ? result.message || "Updated." : result.error || "The request could not be completed.");
+    } catch (error) {
+      setMessageTone("error");
+      setMessage(error instanceof Error ? error.message : "The request could not be completed.");
+    }
   }
   async function toggleSeries(seriesId: string, active: boolean) {
     setSeriesBusy(seriesId);
+    setMessageTone("neutral");
     setMessage(null);
     try {
       const response = await fetch("/api/admin/newsletters", {
@@ -38,8 +49,10 @@ export default function NewsletterDashboard({ summary }: { summary: ReactNode })
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.error || "The series could not be updated.");
       setData(current => updateSeriesActive(current, seriesId, !active));
+      setMessageTone("success");
       setMessage(result.message || `Series ${active ? "paused" : "resumed"}.`);
     } catch (error) {
+      setMessageTone("error");
       setMessage(error instanceof Error ? error.message : "The series could not be updated.");
     } finally {
       setSeriesBusy(null);
@@ -52,7 +65,7 @@ export default function NewsletterDashboard({ summary }: { summary: ReactNode })
     summary={summary}
   >
     <div className="space-y-7">
-    {message && <p role="status" className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/60">{message}</p>}
+    {message && <AdminStatusMessage tone={messageTone}>{message}</AdminStatusMessage>}
     {loading ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[1,2,3,4].map(item => <div key={item} className="h-32 animate-pulse rounded-2xl border border-white/[0.07] bg-white/[0.02]" />)}</div> :
     <>
       <AdminWorkspaceTabs id="newsletter-studio" label="Newsletter Studio sections" tabs={[

@@ -33,7 +33,7 @@ export default function AdminWorkspaceTabs({ id, label, tabs }: { id: string; la
           event.preventDefault();
           setSelected(tabs[next].id);
           buttons.current[tabs[next].id]?.focus();
-        }} className={`rounded-xl border px-4 py-2.5 text-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--helios-orange)] ${active === tab.id ? "border-[var(--helios-orange)]/50 bg-[var(--helios-orange)]/10 text-white" : "border-transparent text-white/60 hover:bg-white/5 hover:text-white"}`}>{tab.label}</button>)}
+        }} className={`admin-workspace-tab rounded-xl border px-4 py-2.5 text-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--helios-orange)] ${active === tab.id ? "" : "border-transparent text-white/60 hover:bg-white/5 hover:text-white"}`}>{tab.label}</button>)}
     </div>
     {tabs.map(tab => <section key={tab.id} role="tabpanel" id={`${id}-${tab.id}`} aria-labelledby={`${id}-tab-${tab.id}`} hidden={active !== tab.id} tabIndex={0} className="min-w-0 space-y-7">{tab.content}</section>)}
   </div>;

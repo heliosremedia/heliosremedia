@@ -1,11 +1,12 @@
 import Link from "next/link";
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
 
-type AdminButtonVariant = "primary" | "secondary" | "destructive" | "ghost" | "subtle" | "link" | "linkDestructive";
+type AdminButtonVariant = "primary" | "success" | "secondary" | "destructive" | "ghost" | "subtle" | "link" | "linkDestructive";
 type AdminButtonSize = "default" | "sm" | "lg";
 
 const variantClasses: Record<AdminButtonVariant, string> = {
   primary: "admin-btn-primary",
+  success: "admin-btn-success",
   secondary: "admin-btn-secondary",
   destructive: "admin-btn-destructive",
   ghost: "admin-btn-ghost",

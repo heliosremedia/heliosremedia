@@ -6,7 +6,7 @@ import type { EventEmailContent, EventEmailStage } from "@/lib/events/themes";
 import { applyEventAIStages, createEventAIWriter, customizedEventAIStages, eventAIEditorSnapshot, validEventAIStage, type EventAIEditorSource } from "./ai-writing";
 
 const labels: Record<EventEmailStage, string> = { INITIAL: "Initial invitation", FOLLOW_UP: "14-day follow-up", REMINDER: "Day-before reminder" };
-const button = "rounded-xl border border-white/15 px-4 py-2.5 text-sm text-white/80 transition hover:border-white/40 focus-visible:outline-2 focus-visible:outline-[var(--helios-orange)] disabled:cursor-not-allowed disabled:opacity-40";
+const button = "admin-btn-secondary";
 const input = "mt-2 w-full rounded-xl border border-white/15 bg-[#171717] px-3 py-3 text-sm text-white outline-none focus:border-[var(--helios-orange)] disabled:opacity-50";
 type Review = { sourceKey: string; draft: EventAIDraft };
 
@@ -63,7 +63,7 @@ export default function EventAIWriter({ source, value, disabled, onChange }: {
     onChange(applyEventAIStages(value, review.draft, stages));
     setMessage(`${stages.length === 3 ? "All three emails" : labels[stages[0]]} applied to your editor. Choose Save draft to keep the changes. Nothing has been sent or scheduled.`);
   }
-  return <section className="mt-5 rounded-xl border border-orange-300/20 bg-orange-300/[0.03] p-4 sm:p-5" aria-label="AI email writer">
+  return <section className="mt-5 rounded-xl border border-white/10 bg-white/[0.02] p-4 sm:p-5" aria-label="AI email writer">
     <h4><button type="button" aria-expanded={expanded} aria-controls={panelId} disabled={disabled} onClick={() => setExpanded(previous => !previous)} className="flex w-full items-center justify-between gap-3 rounded-lg text-left text-base text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--helios-orange)] disabled:opacity-50">
       <span>AI email writer<span className="mt-1 block text-xs font-normal text-white/50">A little help finding the words</span></span>
       <svg aria-hidden="true" focusable="false" viewBox="0 0 20 20" className={`h-5 w-5 shrink-0 text-orange-200 ${expanded ? "rotate-180" : ""}`}><path d="m5 7.5 5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -74,7 +74,7 @@ export default function EventAIWriter({ source, value, disabled, onChange }: {
     <p className="mt-2 text-xs leading-5 text-white/45">Generate sends only the event title, description, dates, time zone, location, venue website, and tone to OpenAI. Guest lists and existing email copy are not included. Keep private guest details out of the event description.</p>
     <div className="mt-4 flex flex-wrap items-end gap-3">
       <label className="min-w-0 flex-1 text-sm text-white/70">Writing tone<select className={input} disabled={disabled} value={tone} onChange={event => { setTone(event.target.value as EventAITone); setError(""); setMessage(""); }}>{EVENT_AI_TONES.map(option => <option key={option}>{option}</option>)}</select></label>
-      <button className={`${button} border-orange-300/40 text-orange-100`} type="button" disabled={disabled || loading || !source.title.trim() || !source.description.trim()} onClick={() => void generate()} aria-describedby={errorId}>{loading ? "Writing three emails…" : review ? "Generate again" : "Generate all three emails"}</button>
+      <button className="admin-btn-primary" type="button" disabled={disabled || loading || !source.title.trim() || !source.description.trim()} onClick={() => void generate()} aria-describedby={errorId}>{loading ? "Writing three emails…" : review ? "Generate again" : "Generate all three emails"}</button>
       {loading && <button className={button} type="button" onClick={cancel}>Cancel generation</button>}
     </div>
     {(!source.title.trim() || !source.description.trim()) && <p className="mt-3 text-xs text-white/50">Add an event title and description to get started.</p>}
@@ -88,7 +88,7 @@ export default function EventAIWriter({ source, value, disabled, onChange }: {
         {!validEventAIStage(review.draft, stage) && <p className="mt-2 text-xs text-amber-100">Add a nonempty single-line subject and message before applying.</p>}
         <button className={`${button} mt-3`} type="button" disabled={disabled || loading || stale || !validEventAIStage(review.draft, stage)} onClick={() => apply([stage])}>Apply {labels[stage].toLowerCase()}</button>
       </fieldset>)}
-      <div className="flex flex-wrap gap-3"><button className={`${button} border-orange-300/40 text-orange-100`} type="button" disabled={disabled || loading || stale || EVENT_AI_STAGES.some(stage => !validEventAIStage(review.draft, stage))} onClick={() => apply(EVENT_AI_STAGES)}>Apply all three emails</button><button className={button} type="button" disabled={disabled || loading} onClick={() => { setReview(null); setMessage("Suggestions discarded. Your email copy is unchanged."); }}>Discard suggestions</button></div>
+      <div className="flex flex-wrap gap-3"><button className="admin-btn-primary" type="button" disabled={disabled || loading || stale || EVENT_AI_STAGES.some(stage => !validEventAIStage(review.draft, stage))} onClick={() => apply(EVENT_AI_STAGES)}>Apply all three emails</button><button className={button} type="button" disabled={disabled || loading} onClick={() => { setReview(null); setMessage("Suggestions discarded. Your email copy is unchanged."); }}>Discard suggestions</button></div>
     </div>}
     </div>
   </section>;

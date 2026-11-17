@@ -1,4 +1,6 @@
 "use client";
+import AdminDisclosureSummary from "@/app/admin/components/AdminDisclosureSummary";
+
 
 import { normalizeEmailTemplateKey, renderFormattedEmailBody } from "@/lib/client-communications/email-format";
 
@@ -94,7 +96,7 @@ export default function SentCampaignSnapshot({ body, templateKey, imageUrl, imag
 
 function TechnicalDetails({ payload }: { payload: string }) {
   return <details className="mt-5 rounded-xl border border-white/[0.08] bg-black/20 p-4">
-    <summary className="cursor-pointer text-xs text-white/45">Technical details</summary>
+    <AdminDisclosureSummary>Technical details</AdminDisclosureSummary>
     <pre className="mt-4 max-h-72 overflow-auto whitespace-pre-wrap break-all text-[0.68rem] leading-5 text-white/30">{payload}</pre>
   </details>;
 }

@@ -1,3 +1,4 @@
+import AdminStatusBadge from "@/app/admin/components/AdminStatusBadge";
 import type { NewsletterStatus } from "../types";
 
 const labels: Record<NewsletterStatus, string> = {
@@ -10,11 +11,11 @@ const labels: Record<NewsletterStatus, string> = {
 
 export default function StatusBadge({ status }: { status: NewsletterStatus }) {
   const tone = status === "SENT" || status === "APPROVED"
-    ? "border-emerald-300/20 bg-emerald-300/[0.07] text-emerald-200"
+    ? "success"
     : status === "NEEDS_REVIEW" || status === "MISSED_APPROVAL"
-      ? "border-amber-300/20 bg-amber-300/[0.07] text-amber-100"
+      ? "warning"
       : status.includes("FAILED") || status === "PARTIALLY_SENT"
-        ? "border-red-300/20 bg-red-300/[0.07] text-red-100"
-        : "border-white/10 bg-white/[0.04] text-white/50";
-  return <span className={`inline-flex rounded-full border px-3 py-1 text-[0.52rem] font-semibold uppercase tracking-[0.12em] ${tone}`}>{labels[status]}</span>;
+        ? "error"
+        : "neutral";
+  return <AdminStatusBadge tone={tone}>{labels[status]}</AdminStatusBadge>;
 }

@@ -13,6 +13,17 @@ import {
   AdminDragHandle,
 } from "./AdminCardControls";
 
+import AdminCardHeading from "./AdminCardHeading";
+
+const cardEyebrows: Record<DashboardCardId, string> = {
+  "action-required": "Needs attention",
+  "todays-operations": "Schedule",
+  "performance-snapshot": "Performance",
+  "recent-activity": "Latest updates",
+  "platform-health": "Connections",
+  "quick-actions": "Workspace",
+};
+
 type Card = { id: DashboardCardId; title: string; summary?: string; content: ReactNode };
 type DropTarget = { row: number; side: "before" | "after" | "beside" };
 
@@ -84,8 +95,8 @@ export default function DashboardOrganizer({ initialPreferences, cards }: {
   }
 
   return <div className="space-y-5">
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/[.08] bg-white/[.02] p-3">
-      <p role="status" aria-live="polite" className="px-2 text-xs text-white/40">{message || (organizing ? "Drag by a handle or use the row and column controls." : "Dashboard layout saved per account.")}</p>
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[.08] pb-5">
+      <p role="status" aria-live="polite" className="text-xs text-white/55">{message || (organizing ? "Drag by a handle or use the row and column controls." : "Your layout is saved to your account.")}</p>
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={() => setOrganizing(value => !value)} className={organizing ? "admin-btn-primary" : "admin-btn-secondary"}>{organizing ? "Done Organizing" : "Organize Dashboard"}</button>
         <button type="button" disabled={saving || preferences.collapsed.length === 0} onClick={() => void persist({ ...preferences, collapsed: [] }, "All dashboard cards expanded.")} className="admin-btn-secondary">Expand All</button>
@@ -97,18 +108,22 @@ export default function DashboardOrganizer({ initialPreferences, cards }: {
       {preferences.rows.map((row, rowIndex) => <div key={row.join(":")} className="relative">
         {organizing && dropTarget?.row === rowIndex && dropTarget.side === "before" ? <div className="mb-3 h-1 rounded-full bg-[var(--helios-orange)] shadow-[0_0_16px_rgba(217,107,43,.8)]" /> : null}
         <div
-          className={`grid gap-4 ${row.length === 2 ? "lg:grid-cols-2" : "grid-cols-1"}`}
+          className={`grid items-start gap-4 ${row.length === 2 ? "lg:grid-cols-2" : "grid-cols-1"}`}
           onDragOver={event => { if (!organizing) return; event.preventDefault(); setDropTarget({ row: rowIndex, side: row.length === 1 ? "beside" : "after" }); }}
           onDrop={event => { event.preventDefault(); if (dragged && dropTarget) moveToRow(dragged, dropTarget.row, dropTarget.side); setDragged(null); setDropTarget(null); }}
         >
           {row.map(id => {
             const card = byId.get(id); if (!card) return null;
             const collapsed = preferences.collapsed.includes(id);
-            return <section key={id} className={`min-w-0 overflow-hidden rounded-2xl border bg-[#111] transition ${dragged === id ? "scale-[.99] border-[var(--helios-orange)]/50 opacity-60" : dropTarget?.row === rowIndex && dropTarget.side === "beside" && row.length === 1 ? "border-[var(--helios-orange)]/60" : "border-white/[.08]"}`}>
+            const contentId = `dashboard-${id}-content`;
+            return <section key={id} aria-label={card.title} className={`min-w-0 overflow-hidden rounded-2xl border bg-[#111] transition ${dragged === id ? "scale-[.99] border-[var(--helios-orange)]/50 opacity-60" : dropTarget?.row === rowIndex && dropTarget.side === "beside" && row.length === 1 ? "border-[var(--helios-orange)]/60" : "border-white/[.08]"}`}>
               <header className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
                 <div className="min-w-0">
-                  <button ref={node => { refs.current[id] = node; }} type="button" onClick={() => toggle(id)} aria-expanded={!collapsed} className="text-left text-xl font-light text-white focus-visible:outline-2 focus-visible:outline-[var(--helios-orange)]">{card.title}</button>
-                  {collapsed && card.summary ? <p className="mt-2 truncate text-xs text-white/35">{card.summary}</p> : null}
+                  <h2>
+                    <button ref={node => { refs.current[id] = node; }} type="button" onClick={() => toggle(id)} aria-label={card.title} aria-expanded={!collapsed} aria-controls={contentId} className="block rounded-sm font-helios text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--helios-orange)]">
+                      <AdminCardHeading inline eyebrow={cardEyebrows[id]} title={card.title} description={card.summary || ""} />
+                    </button>
+                  </h2>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {organizing ? <>
@@ -118,10 +133,10 @@ export default function DashboardOrganizer({ initialPreferences, cards }: {
                     {row.length === 2 ? <button type="button" onClick={() => moveToRow(id, rowIndex, "after")} className="admin-btn-secondary">Full Width</button>
                       : <button type="button" disabled={rowIndex === 0 || preferences.rows[rowIndex - 1]?.length !== 1} onClick={() => pairWithPrevious(id)} className="admin-btn-secondary">Place Beside Above</button>}
                   </> : null}
-                  <AdminCardToggle expanded={!collapsed} label={card.title} onClick={() => toggle(id)} />
+                  <AdminCardToggle expanded={!collapsed} label={card.title} controls={contentId} onClick={() => toggle(id)} />
                 </div>
               </header>
-              <div hidden={collapsed} className="border-t border-white/[.07] p-5 sm:p-6">{card.content}</div>
+              <div id={contentId} hidden={collapsed} className="border-t border-white/[.07] p-5 sm:p-6">{card.content}</div>
             </section>;
           })}
         </div>
