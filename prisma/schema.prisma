@@ -3460,8 +3460,6 @@ model Inquiry {
   phone  String?
 
   propertyAddress String?
-  // Internal-only source selection; media is imported separately after draft creation.
-  hdphSiteId Int?
   city            String?
   state           String?
   postalCode      String?
