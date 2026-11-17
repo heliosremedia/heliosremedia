@@ -267,6 +267,7 @@ export default async function ProjectEditorPage({
       <div className="space-y-6">
         <ProjectDetailsEditor
           projectId={project.id}
+          linkedHdphSiteId={project.status === "DRAFT" ? project.details?.hdphSiteId : null}
           statusLabel={formatStatus(project.status)}
           initialAgents={project.agents.map((agent) => ({ ...agent, brokerageSnapshot: agent.brokerageSnapshot || "" }))}
           clientOptions={clientMemberships.map(({ client, brokerage }) => ({ ...client, brokerage }))}

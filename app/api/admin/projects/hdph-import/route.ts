@@ -53,12 +53,12 @@ export async function POST(request: Request) {
     if (body.targetProjectId && !existing) return reply({ error: "Target draft was not found." },404);
     if (body.action === "link") {
       if (!body.targetProjectId || !existing) return reply({ error: "Create a draft before importing photos." },400);
-      await reader.site(siteId);
+      const sourceSite = await reader.site(siteId);
       await prisma.$transaction(async tx => {
         await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${projectId} FOR UPDATE`;
-        const target = await tx.project.findFirst({ where: { id: projectId, workspaceId: session.workspaceId, status: "DRAFT" } });
+        const target = await tx.project.findFirst({ where: { id: projectId, workspaceId: session.workspaceId, status: "DRAFT" }, include: { details: true } });
         if (!target) throw new Error("This project is no longer a draft.");
-        await tx.projectDetails.upsert({ where: { projectId }, create: { projectId, hdphSiteId: siteId }, update: { hdphSiteId: siteId } });
+        await tx.projectDetails.upsert({ where: { projectId }, create: { projectId, hdphSiteId: siteId, propertyWebsiteUrl: sourceSite.propertyWebsiteUrl }, update: { hdphSiteId: siteId, ...(!target.details?.propertyWebsiteUrl && sourceSite.propertyWebsiteUrl ? { propertyWebsiteUrl: sourceSite.propertyWebsiteUrl } : {}) } });
       });
       return reply({ projectId });
     }

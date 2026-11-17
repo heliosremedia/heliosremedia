@@ -1,5 +1,6 @@
 "use client";
 
+import LinkedPropertyWebsite from "../LinkedPropertyWebsite";
 import { PROJECT_WRITING_APPLY_EVENT, isProjectWritingApplication } from "@/lib/project-writing";
 
 import { useRouter } from "next/navigation";
@@ -46,6 +47,7 @@ export type ProjectDetailsDraft = {
 
 type ProjectDetailsEditorProps = {
   projectId: string;
+  linkedHdphSiteId?: number | null;
   initialData: ProjectDetailsDraft;
   statusLabel: string;
   initialAgents: ProjectAgentDraft[];
@@ -154,6 +156,7 @@ function AgentSelector({ clients, agents, onChange, legacyName, legacyBrokerage 
 
 export default function ProjectDetailsEditor({
   projectId,
+  linkedHdphSiteId,
   initialData,
   statusLabel,
   initialAgents,
@@ -660,6 +663,7 @@ export default function ProjectDetailsEditor({
                         className={inputClasses}
                       />
                     </Field>
+                      {linkedHdphSiteId && <div className="sm:col-span-2 lg:col-span-3"><LinkedPropertyWebsite projectId={projectId} siteId={linkedHdphSiteId} hasValue={Boolean(draft.propertyWebsiteUrl.trim())} onApply={url => setDraft(current => current.propertyWebsiteUrl.trim() ? current : { ...current, propertyWebsiteUrl: url })} /></div>}
                   </div>
                 </section>
 

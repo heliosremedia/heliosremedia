@@ -15,7 +15,7 @@ test("creation uses a details-only selection and regular draft form", () => {
 test("source is persisted only after server workspace validation, without media writes", () => {
   const action = read("app/admin/projects/new/actions.ts");
   assert.ok(action.indexOf("projectHdphReader(session.workspaceId).site(hdphSiteId)") < action.indexOf("prisma.project.create"));
-  assert.match(action, /create: \{ propertyAddress: propertyAddress \|\| null, hdphSiteId \}/);
+  assert.match(action, /create: \{ propertyAddress: propertyAddress \|\| null, hdphSiteId, propertyWebsiteUrl \}/);
   assert.doesNotMatch(action, /prisma.media|PutObjectCommand/);
 });
 test("existing draft media owns importer and retains linked source", () => {

@@ -60,12 +60,14 @@ export async function createProject(
   const { title, slug: requestedSlug, shortDescription, description, city, state, locationLabel, projectType, propertyType, propertyAddress } = input;
 
   let hdphSiteId: number | null = null;
+  let propertyWebsiteUrl: string | null = null;
   try {
     const source = formData.get("hdphSiteId");
     if (source) {
       hdphSiteId = hdphId(source);
       // Never trust a browser-supplied source ID across workspaces/brands.
-      await projectHdphReader(session.workspaceId).site(hdphSiteId);
+      const sourceSite = await projectHdphReader(session.workspaceId).site(hdphSiteId);
+      propertyWebsiteUrl = sourceSite.propertyWebsiteUrl;
     }
   } catch { return { error: "The selected HDPhotoHub property could not be verified. Try again or unlink it to create manually." }; }
   const slug = await createUniqueSlug(requestedSlug || title);
@@ -80,7 +82,7 @@ export async function createProject(
         slug,
         shortDescription: shortDescription || null,
         description: description || null,
-        ...((propertyAddress || hdphSiteId) ? { details: { create: { propertyAddress: propertyAddress || null, hdphSiteId } } } : {}),
+        ...((propertyAddress || hdphSiteId) ? { details: { create: { propertyAddress: propertyAddress || null, hdphSiteId, propertyWebsiteUrl } } } : {}),
         city: city || null,
         state: state || null,
         locationLabel: locationLabel || null,

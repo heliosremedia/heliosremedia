@@ -5,7 +5,6 @@ import { FEEDBACK_SURVEY, isFeedbackSelection } from "@/lib/feedback";
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import BulkEmailStudio from "./BulkEmailStudio";
-import EmailStudioTabs from "./EmailStudioTabs";
 import EmailStudioCardOrganizer, { type EmailStudioCard } from "./EmailStudioCardOrganizer";
 import AdminSummaryCards from "@/app/admin/components/AdminSummaryCards";
 import AdminPageLayout, { AdminPageHeader } from "@/app/admin/components/AdminPageLayout";
@@ -125,18 +124,16 @@ export default async function EmailStudioPage({ searchParams }: { searchParams: 
   return <AdminPageLayout
     header={<AdminPageHeader eyebrow="Client communications" title="Bulk Email Studio" description="Create polished updates for all clients, selected groups, or individual recipients—with a test step and unsubscribe protection built in." actions={["OWNER", "ADMIN"].includes(session.role) ? <Link href="/admin/feedback" className="admin-btn-secondary">Client Feedback ↗</Link> : undefined} />}
   >
-    <EmailStudioTabs
+    <BulkEmailStudio
       showClientTools={["OWNER", "ADMIN"].includes(session.role)}
       clientTools={<EmailStudioCardOrganizer workspaceId={session.workspaceId} userId={session.userId} scope="client-tools" cards={cards.filter(card=>card.id === "client-experience" || card.id === "client-gatherings")} />}
       deliveryHealth={<EmailStudioCardOrganizer workspaceId={session.workspaceId} userId={session.userId} scope="delivery-health" cards={cards.filter(card=>card.id === "analytics-health" || card.id === "webhook-health")} />}
-    >
-    <AdminSummaryCards items={[
+      summary={<AdminSummaryCards items={[
       { label: "Eligible recipients", value: eligibleClients.length, detail: "Subscribed, valid, and not suppressed" },
       { label: "Scheduled campaigns", value: campaigns.filter(item=>item.status==="SCHEDULED").length, detail: "Awaiting delivery" },
       { label: "Recently sent", value: campaigns.filter(item=>item.status==="SENT").length, detail: "Within recent campaign history", tone: "good" },
       { label: "Confirmed delivery", value: confirmedDeliveryRate === null ? null : `${confirmedDeliveryRate}%`, detail: metrics.providerAccepted ? `${metrics.delivered} of ${metrics.providerAccepted} provider-accepted messages confirmed delivered` : "No provider-accepted messages in recent history" },
-    ]}/>
-    <BulkEmailStudio
+    ]}/>}
       clients={eligibleClients.map((client) => ({ id: client.id, firstName: client.firstName, lastName: client.lastName, displayName: client.displayName, email: client.email, phone: client.phone, groupIds: client.groupMemberships.map((membership) => membership.groupId) }))}
       groups={groups.map((group) => ({ id: group.id, name: group.name, count: eligibleClients.filter(client => client.groupMemberships.some(membership => membership.groupId === group.id)).length }))}
       campaigns={campaigns.map((campaign) => {
@@ -149,6 +146,5 @@ export default async function EmailStudioPage({ searchParams }: { searchParams: 
       defaultTestEmail={session.email}
       initialDraft={initialDraft ? { ...initialDraft, selection: initialDraft.selection as { groupIds?: string[]; clientIds?: string[] } } : null}
     />
-    </EmailStudioTabs>
   </AdminPageLayout>;
 }

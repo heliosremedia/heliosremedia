@@ -1,5 +1,7 @@
 "use client";
 
+import PhotoImportProgress, { type PhotoImportProgressValue } from "./PhotoImportProgress";
+
 import AdminCardHeading from "@/app/admin/components/AdminCardHeading";
 
 import { hdphDetailConflicts, type HDPHDetailValues } from "@/lib/project-hdph-conflicts";
@@ -32,6 +34,7 @@ export default function HDPhotoHubImport({ targetProjectId, initialSiteId, onSel
   const [results, setResults] = useState<PropertySummary[]>([]);
   const [nextOffset, setNextOffset] = useState<number | null>(null);
   async function search(offset = 0) {
+    setProgress(null);
     setBusy(true); setError(""); setProperty(null); setProjectId(""); setStatus("Searching properties…");
     try {
       const response = await fetch(`/api/admin/projects/hdph-import?query=${encodeURIComponent(query.trim())}&offset=${offset}`, { cache: "no-store" });
@@ -55,8 +58,10 @@ export default function HDPhotoHubImport({ targetProjectId, initialSiteId, onSel
   const replacementKey = property && conflicts.length ? JSON.stringify([property.siteId, currentDetails, property.title, property.city, property.state, property.locationLabel, property.propertyAddress]) : "";
   const replaceDetails = Boolean(replacementKey && replacementChoice === replacementKey);
   const [completed, setCompleted] = useState(false);
+  const [progress, setProgress] = useState<PhotoImportProgressValue | null>(null);
   async function lookup(siteId: number) {
     setReplacementChoice("");
+    setProgress(null);
     setBusy(true); setError(""); setProperty(null); setProjectId(""); setSelected([]); setRights(false); setCompleted(false); setStatus("Checking HDPhotoHub…");
     try {
       const response = await fetch(`/api/admin/projects/hdph-import?siteId=${encodeURIComponent(String(siteId))}${targetProjectId ? `&targetProjectId=${encodeURIComponent(targetProjectId)}` : ""}`, { cache: "no-store" });
@@ -68,6 +73,9 @@ export default function HDPhotoHubImport({ targetProjectId, initialSiteId, onSel
   }
   async function run() {
     if (!property || !rights || busy) return;
+    if (!selected.length) return;
+    const total = selected.length;
+    setProgress({ total, done: 0, state: "running" });
     setBusy(true); setError(""); setCompleted(false);
     let imported = 0, existing = 0;
     const post = async (body: object) => {
@@ -83,6 +91,7 @@ export default function HDPhotoHubImport({ targetProjectId, initialSiteId, onSel
       for (const mediaId of selected) {
         const result = await post({ action: "photo", mediaId });
         if (result.alreadyImported) existing++; else imported++;
+        setProgress({ total, done: imported + existing, state: "running" });
         setProperty(current => current ? { ...current, photos: current.photos.map(photo => photo.mediaId === mediaId ? { ...photo, alreadyImported: true } : photo) } : current);
         setSelected(ids => ids.filter(id => id !== mediaId));
         setStatus(`${imported + existing} of ${selected.length} photos ready…`);
@@ -90,8 +99,9 @@ export default function HDPhotoHubImport({ targetProjectId, initialSiteId, onSel
       if (targetProjectId) window.dispatchEvent(new CustomEvent("helios:project-media-updated", { detail: { projectId: targetProjectId } }));
       refreshInPlace();
       setCompleted(true);
+      setProgress({ total, done: imported + existing, state: "complete" });
       setStatus(`Import complete. ${imported} photo${imported === 1 ? "" : "s"} added${existing ? `; ${existing} already in this draft (not duplicated)` : ""}. Nothing was published. Next: open Media to choose your lead image.`);
-    } catch (e) { setError(e instanceof Error ? e.message : "Import failed."); if (targetProjectId && imported) window.dispatchEvent(new CustomEvent("helios:project-media-updated", { detail: { projectId: targetProjectId } })); if (imported) refreshInPlace(); setStatus(`Import stopped after ${imported} new photos. Nothing was published. Retry to resume without duplicates.`); }
+    } catch (e) { setProgress({ total, done: imported + existing, state: "stopped" }); setError(e instanceof Error ? e.message : "Import failed."); if (targetProjectId && imported) window.dispatchEvent(new CustomEvent("helios:project-media-updated", { detail: { projectId: targetProjectId } })); if (imported) refreshInPlace(); setStatus(`Import stopped after ${imported} new photos. Nothing was published. Retry to resume without duplicates.`); }
     finally { setBusy(false); }
   }
   return <details className="group/import rounded-2xl border border-white/10 bg-[#111]">
@@ -99,7 +109,7 @@ export default function HDPhotoHubImport({ targetProjectId, initialSiteId, onSel
     <div className="space-y-4 border-t border-white/10 p-5">
 
       {initialSiteId && !property && <button type="button" className="admin-btn-primary" disabled={busy} onClick={() => lookup(initialSiteId)}>Load photos from selected HDPhotoHub property #{initialSiteId}</button>}
-      <div className="flex flex-wrap items-end gap-3"><label className="min-w-0 flex-1"><span className="block text-xs uppercase tracking-[0.16em] text-[var(--helios-orange)]">Search Address</span><input value={query} onChange={e => { setQuery(e.target.value); setResults([]); setNextOffset(null); setProperty(null); setProjectId(""); setStatus(""); }} disabled={busy} placeholder="Start typing a street address" className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/20 px-4 text-white" /></label><button type="button" className="admin-btn-secondary" onClick={() => search()} disabled={busy || query.trim().length < 3}>Search HDPhotoHub</button></div>
+      <div className="flex flex-wrap items-end gap-3"><label className="min-w-0 flex-1"><span className="block text-xs uppercase tracking-[0.16em] text-[var(--helios-orange)]">Search Address</span><input value={query} onChange={e => { setProgress(null); setQuery(e.target.value); setResults([]); setNextOffset(null); setProperty(null); setProjectId(""); setStatus(""); }} disabled={busy} placeholder="Start typing a street address" className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/20 px-4 text-white" /></label><button type="button" className="admin-btn-secondary" onClick={() => search()} disabled={busy || query.trim().length < 3}>Search HDPhotoHub</button></div>
       {!!results.length && <ul className="max-h-64 space-y-2 overflow-auto">{results.map(site => <li key={site.siteId}><button type="button" disabled={busy} onClick={() => lookup(site.siteId)} className="w-full rounded-xl border border-white/10 p-3 text-left text-sm text-white hover:border-orange-400">{site.title} · {[site.city,site.state].filter(Boolean).join(", ")}<span className="ml-2 text-xs text-white/40">#{site.siteId}</span></button></li>)}</ul>}
       {nextOffset != null && <button type="button" disabled={busy} className="admin-btn-secondary" onClick={() => search(nextOffset)}>More properties</button>}
       {property && <>
@@ -112,16 +122,17 @@ export default function HDPhotoHubImport({ targetProjectId, initialSiteId, onSel
         {!!property.photos.length && <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span className="text-sm text-white/65">{selected.length} of {availablePhotos.length} new photos selected</span>
-            <button type="button" className="admin-btn-secondary" disabled={busy || !availablePhotos.length} onClick={() => { setCompleted(false); setSelected(selected.length === availablePhotos.length ? [] : availablePhotos.map(p => p.mediaId)); }}>{selected.length === availablePhotos.length && availablePhotos.length > 0 ? "Clear selection" : "Select all new photos"}</button>
+            <button type="button" className="admin-btn-secondary" disabled={busy || !availablePhotos.length} onClick={() => { setProgress(null); setCompleted(false); setSelected(selected.length === availablePhotos.length ? [] : availablePhotos.map(p => p.mediaId)); }}>{selected.length === availablePhotos.length && availablePhotos.length > 0 ? "Clear selection" : "Select all new photos"}</button>
           </div>
           <div className="grid max-h-[32rem] grid-cols-2 gap-3 overflow-y-auto p-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" aria-label="Photos available to import">
-            {property.photos.map(photo => <ImportPhotoTile key={`${property.siteId}:${photo.mediaId}`} siteId={property.siteId} photo={photo} selected={selected.includes(photo.mediaId)} disabled={busy} onChange={checked => { setCompleted(false); setSelected(ids => checked ? [...ids, photo.mediaId] : ids.filter(id => id !== photo.mediaId)); }} />)}
+            {property.photos.map(photo => <ImportPhotoTile key={`${property.siteId}:${photo.mediaId}`} siteId={property.siteId} photo={photo} selected={selected.includes(photo.mediaId)} disabled={busy} onChange={checked => { setProgress(null); setCompleted(false); setSelected(ids => checked ? [...ids, photo.mediaId] : ids.filter(id => id !== photo.mediaId)); }} />)}
           </div>
         </div>}
         <label className="flex items-start gap-2 text-sm text-white/60"><input type="checkbox" className="mt-1" checked={rights} disabled={busy} onChange={e => setRights(e.target.checked)} />I have permission to copy this property and the selected photos into Helios Studio storage. I will review publication separately.</label>
         <button type="button" className="admin-btn-primary" disabled={busy || !rights || completed || !selected.length} onClick={run}>{completed ? "Import complete" : busy ? "Importing…" : `Import ${selected.length} selected photo${selected.length === 1 ? "" : "s"}`}</button>
         </>}
       </>}
+      {progress && <PhotoImportProgress value={progress} />}
       {status && <p role="status" className="text-sm text-white/60">{status}</p>}
       {error && <p role="alert" className="text-sm text-red-200">{error}</p>}
       {projectId && !busy && (targetProjectId ? <div className="space-y-2"><button type="button" className="admin-btn-primary" onClick={viewImportedProjectPhotos}>View imported photos in Media</button><p className="text-xs text-white/50">Your other unsaved edits stay in place. Choose a lead image, then review before publishing.</p></div> : <Link href={`/admin/projects/${projectId}`} className="admin-btn-secondary">Open imported draft</Link>)}
