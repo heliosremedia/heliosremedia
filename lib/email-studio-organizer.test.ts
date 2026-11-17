@@ -20,16 +20,18 @@ function memoryStorage() {
 // Exercise the actual component source with a hook/handler shim, not a DOM.
 // Keyed remounts and server/client snapshot selection are simulated explicitly.
 // Native keyboard activation, browser focus/drag behavior and hydration need browser QA.
-function mount({ storage = memoryStorage(), visibleIds = ids, serverSnapshot = false }: {
+function mount({ storage = memoryStorage(), visibleIds = ids, serverSnapshot = false, scope }: {
   storage?: Pick<Storage, "getItem" | "setItem">;
   visibleIds?: CardId[];
   serverSnapshot?: boolean;
+  scope?: "client-tools" | "delivery-health";
 } = {}) {
   let slots: any[] = [], cursor = 0, jobs: (() => void)[] = [];
   let dirty = true, tree: any, mountedKey: string | undefined;
   const listeners = new Set<(event: { key: string | null }) => void>();
   const focused: CardId[] = [];
   const props = {
+    scope,
     workspaceId: "workspace",
     userId: "user",
     cards: visibleIds.map(id => ({ id, label: id, content: { type: "p", props: { children: `Content for ${id}` } } })),
@@ -96,7 +98,7 @@ function mount({ storage = memoryStorage(), visibleIds = ids, serverSnapshot = f
   function unmount() { for (const slot of slots) slot?.cleanup?.(); }
   function render() {
     const wrapper = exports.default(props);
-    assert.equal(wrapper.key, layout.emailStudioLayoutStorageKey(props.workspaceId, props.userId));
+    assert.equal(wrapper.key, layout.emailStudioLayoutStorageKey(props.workspaceId, props.userId) + (scope ? `:${scope}` : ""));
     if (mountedKey !== wrapper.key) {
       unmount(); slots = []; mountedKey = wrapper.key;
     }
@@ -243,4 +245,24 @@ test("actual organizer scopes cross-tab updates and removes listeners during acc
   storage.setItem(workspaceKey, JSON.stringify(["webhook-health"]));
   ui.storageEvent(null); assert.equal(ui.order()[0], "webhook-health");
   ui.unmount(); assert.equal(ui.listenerCount(), 0);
+});
+
+
+test("separate tab organizers inherit legacy order then save independently", () => {
+  const storage = memoryStorage(), base = layout.emailStudioLayoutStorageKey("workspace", "user");
+  const legacy = ["webhook-health", "client-gatherings", "analytics-health", "client-experience"];
+  storage.setItem(base, JSON.stringify(legacy));
+  const tools = mount({storage, scope: "client-tools", visibleIds: ["client-experience", "client-gatherings"]});
+  const health = mount({storage, scope: "delivery-health", visibleIds: ["analytics-health", "webhook-health"]});
+  assert.deepEqual(tools.order(), ["client-gatherings", "client-experience"]);
+  assert.deepEqual(health.order(), ["webhook-health", "analytics-health"]);
+  tools.click("button", "Organize cards"); tools.click("IconButton", "Move client-experience up");
+  health.click("button", "Organize cards"); health.click("IconButton", "Move analytics-health up");
+  assert.deepEqual(tools.order(), ["client-experience", "client-gatherings"]);
+  assert.deepEqual(health.order(), ["analytics-health", "webhook-health"]);
+  assert.equal(storage.getItem(base), JSON.stringify(legacy));
+  assert.notEqual(storage.getItem(`${base}:client-tools`), storage.getItem(`${base}:delivery-health`));
+  tools.unmount(); health.unmount();
+  const restored = mount({storage, scope:"client-tools", visibleIds:["client-experience", "client-gatherings"]});
+  assert.deepEqual(restored.order(), ["client-experience", "client-gatherings"]); restored.unmount();
 });

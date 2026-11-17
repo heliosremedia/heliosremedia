@@ -38,10 +38,6 @@ export default function NewProjectPage() {
           Create a portfolio project
         </h1>
 
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-white/40">
-          Start with the essential project information. Media,
-          services, and publishing controls come next.
-        </p>
       </section>
 
       <NewProjectForm />
