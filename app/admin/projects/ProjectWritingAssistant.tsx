@@ -1,5 +1,7 @@
 "use client";
 
+import { PROJECT_WRITING_REQUEST_EVENT, type WritingCopyRequest } from "@/lib/project-video-copy";
+
 import { projectWritingApplications } from "@/lib/project-writing-apply";
 
 import ProjectCopyPackageControls from "./ProjectCopyPackageControls";
@@ -26,6 +28,14 @@ export default function ProjectWritingAssistant({ projectId, onApply, allowApply
   const [replaceSuggestions, setReplaceSuggestions] = useState(false);
   const [videoTarget, setVideoTarget] = useState<ProjectWritingTarget>("project");
   const [pending, setPending] = useState<ProjectWritingApplication | null>(null);
+  useEffect(() => {
+    const respond = (event: Event) => {
+      const request = (event as CustomEvent<WritingCopyRequest>).detail;
+      if (request && projectId && request.projectId === projectId) request.draft = draft;
+    };
+    window.addEventListener(PROJECT_WRITING_REQUEST_EVENT, respond);
+    return () => window.removeEventListener(PROJECT_WRITING_REQUEST_EVENT, respond);
+  }, [projectId, draft]);
   const busyRef = useRef(false);
   const controller = useRef<AbortController | null>(null);
   const outputs = useRef<Partial<Record<keyof ProjectWritingDraft, HTMLTextAreaElement | null>>>({});

@@ -24,7 +24,15 @@ export async function GET(request: Request) {
       return reply(await projectHdphReader(session.workspaceId).search(params.get("query") || "", offset));
     }
     const siteId = hdphId(params.get("siteId"));
-    return reply(await projectHdphReader(session.workspaceId).site(siteId));
+    const targetProjectId = params.get("targetProjectId");
+    if (targetProjectId) {
+      const target = await prisma.project.findFirst({ where: { id: targetProjectId, workspaceId: session.workspaceId, status: "DRAFT" }, select: { id: true } });
+      if (!target) return reply({ error: "Target draft was not found." },404);
+    }
+    const site = await projectHdphReader(session.workspaceId).site(siteId);
+    const imported = targetProjectId ? await prisma.media.findMany({ where: { projectId: targetProjectId, externalId: { startsWith: `hdph:${siteId}:` } }, select: { externalId: true } }) : [];
+    const importedIds = new Set(imported.map(media => media.externalId));
+    return reply({ ...site, photos: site.photos.map(photo => ({ ...photo, alreadyImported: importedIds.has(`hdph:${siteId}:${photo.mediaId}`) })) });
   } catch (error) { return reply({ error: error instanceof Error ? error.message : "Property lookup failed." },400); }
 }
 

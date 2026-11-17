@@ -1,5 +1,7 @@
 "use client";
 
+import VideoCopyButton from "../VideoCopyButton";
+
 import { PROJECT_WRITING_APPLY_EVENT, isProjectWritingApplication } from "@/lib/project-writing";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -179,6 +181,11 @@ export default function ExternalMediaForm({
           onSubmit={handleSubmit}
           className="border-t border-white/[0.08] px-5 py-6 sm:px-6 sm:py-7"
         >
+          <VideoCopyButton projectId={projectId} disabled={isSaving} onApply={fields => {
+            if (fields.title.trim()) setTitle(fields.title);
+            if (fields.altText.trim()) setAltText(fields.altText);
+            if (fields.caption.trim()) setCaption(fields.caption);
+          }} />
           <div className="grid gap-7 xl:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]">
             <div className="space-y-5">
               <div className="grid gap-5 sm:grid-cols-[12rem_minmax(0,1fr)]">

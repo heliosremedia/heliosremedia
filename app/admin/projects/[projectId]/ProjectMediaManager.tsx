@@ -1671,7 +1671,7 @@ export default function ProjectMediaManager({
           {heroError ? <p className="mt-3 text-sm text-red-200/75">{heroError}</p> : null}
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]">
+        <section id="project-media-collections" tabIndex={-1} aria-label="Media collections" className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]">
           <div className="flex flex-col gap-3 border-b border-white/[0.08] px-5 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-6">
             <div>
               <p className="text-[0.62rem] font-semibold uppercase tracking-[0.19em] text-[var(--helios-orange)]">

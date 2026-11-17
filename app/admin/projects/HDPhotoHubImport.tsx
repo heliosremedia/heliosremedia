@@ -4,28 +4,30 @@ import AdminCardHeading from "@/app/admin/components/AdminCardHeading";
 
 import { hdphDetailConflicts, type HDPHDetailValues } from "@/lib/project-hdph-conflicts";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useProjectRefreshInPlace } from "./useProjectRefreshInPlace";
+import { viewImportedProjectPhotos } from "@/lib/project-import-navigation";
 import { useState } from "react";
 
 type PropertySummary = { siteId: number; title: string; city: string; state: string };
 export type HDPHSelectedProperty = PropertySummary & { propertyAddress: string; locationLabel: string };
-type Property = HDPHSelectedProperty & { photos: { mediaId: number; name: string }[] };
-function ImportPhotoTile({ siteId, photo, selected, disabled, onChange }: { siteId: number; photo: { mediaId: number; name: string }; selected: boolean; disabled: boolean; onChange: (checked: boolean) => void }) {
+type Property = HDPHSelectedProperty & { photos: { mediaId: number; name: string; alreadyImported?: boolean }[] };
+function ImportPhotoTile({ siteId, photo, selected, disabled, onChange }: { siteId: number; photo: { mediaId: number; name: string; alreadyImported?: boolean }; selected: boolean; disabled: boolean; onChange: (checked: boolean) => void }) {
   const [failed, setFailed] = useState(false);
-  return <label className={`relative min-w-0 cursor-pointer overflow-hidden rounded-xl border bg-black/20 transition focus-within:ring-2 focus-within:ring-[var(--helios-orange)] ${selected ? "border-emerald-400/70" : "border-white/15"} ${disabled ? "cursor-wait opacity-60" : "hover:border-white/40"}`}>
-    <input type="checkbox" className="peer sr-only" checked={selected} disabled={disabled} aria-label={`Select ${photo.name}`} onChange={event => onChange(event.target.checked)} />
+  return <label className={`relative min-w-0 cursor-pointer overflow-hidden rounded-xl border bg-black/20 transition focus-within:ring-2 focus-within:ring-[var(--helios-orange)] ${selected || photo.alreadyImported ? "border-emerald-400/70" : "border-white/15"} ${photo.alreadyImported ? "cursor-default opacity-70" : disabled ? "cursor-wait opacity-60" : "hover:border-white/40"}`}>
+    <input type="checkbox" className="peer sr-only" checked={selected || !!photo.alreadyImported} disabled={disabled || photo.alreadyImported} aria-label={`${photo.alreadyImported ? "Already imported:" : "Select"} ${photo.name}`} onChange={event => onChange(event.target.checked)} />
     <span className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-white/[0.025]">
-      {failed ? <span className="px-3 text-center text-xs text-white/50">Preview unavailable<br />You can still select this photo</span> :
+      {failed ? <span className="px-3 text-center text-xs text-white/50">Preview unavailable<br />{photo.alreadyImported ? "Already in this project" : "You can still select this photo"}</span> :
         // Same-origin authenticated preview. Provider credentials and rendition URLs stay server-side.
         // eslint-disable-next-line @next/next/no-img-element
         <img src={`/api/admin/projects/hdph-import/thumbnail?siteId=${siteId}&mediaId=${photo.mediaId}`} alt="" loading="lazy" decoding="async" className="h-full w-full object-contain" onError={() => setFailed(true)} />}
     </span>
-    <span aria-hidden="true" className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border text-sm font-bold shadow ${selected ? "border-emerald-300 bg-emerald-500 text-black" : "border-white/60 bg-black/50 text-transparent"}`}>✓</span>
+    <span aria-hidden="true" className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border text-sm font-bold shadow ${selected || photo.alreadyImported ? "border-emerald-300 bg-emerald-500 text-black" : "border-white/60 bg-black/50 text-transparent"}`}>✓</span>
+    {photo.alreadyImported && <span className="block px-3 pt-2 text-xs font-semibold text-emerald-300">Already imported</span>}
     <span className="block truncate px-3 py-2 text-xs text-white/60" title={photo.name}>{photo.name}</span>
   </label>;
 }
 export default function HDPhotoHubImport({ targetProjectId, initialSiteId, onSelectProperty, currentDetails = {} }: { targetProjectId?: string; initialSiteId?: number | null; currentDetails?: HDPHDetailValues; onSelectProperty?: (property: HDPHSelectedProperty, replaceDetails: boolean) => void }) {
-  const router = useRouter();
+  const refreshInPlace = useProjectRefreshInPlace();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PropertySummary[]>([]);
   const [nextOffset, setNextOffset] = useState<number | null>(null);
@@ -41,6 +43,7 @@ export default function HDPhotoHubImport({ targetProjectId, initialSiteId, onSel
     finally { setBusy(false); }
   }
   const [property, setProperty] = useState<Property | null>(null);
+  const availablePhotos = property?.photos.filter(photo => !photo.alreadyImported) ?? [];
   const [selected, setSelected] = useState<number[]>([]);
   const [rights, setRights] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -56,10 +59,10 @@ export default function HDPhotoHubImport({ targetProjectId, initialSiteId, onSel
     setReplacementChoice("");
     setBusy(true); setError(""); setProperty(null); setProjectId(""); setSelected([]); setRights(false); setCompleted(false); setStatus("Checking HDPhotoHub…");
     try {
-      const response = await fetch(`/api/admin/projects/hdph-import?siteId=${encodeURIComponent(String(siteId))}`, { cache: "no-store" });
+      const response = await fetch(`/api/admin/projects/hdph-import?siteId=${encodeURIComponent(String(siteId))}${targetProjectId ? `&targetProjectId=${encodeURIComponent(targetProjectId)}` : ""}`, { cache: "no-store" });
       const result = await response.json();
       if (!response.ok) throw Error(result.error || "Property lookup failed.");
-      setProperty(result); setStatus(onSelectProperty ? "Review this property and use its details below. Photos are selected later in Media." : `${result.photos.length} eligible photos. Select the photos to add to this draft.`);
+      setProperty(result); setStatus(onSelectProperty ? "Review this property and use its details below. Photos are selected later in Media." : `${result.photos.filter((photo: { alreadyImported?: boolean }) => !photo.alreadyImported).length} new photos available; ${result.photos.filter((photo: { alreadyImported?: boolean }) => photo.alreadyImported).length} already imported.`);
     } catch (e) { setError(e instanceof Error ? e.message : "Property lookup failed."); setStatus(""); }
     finally { setBusy(false); }
   }
@@ -76,12 +79,19 @@ export default function HDPhotoHubImport({ targetProjectId, initialSiteId, onSel
     try {
       setStatus("Preparing photo import…");
       const draft = await post({ action: "link" }); setProjectId(draft.projectId);
-      for (let i = 0; i < selected.length; i++) { setStatus(`Copying photo ${i + 1} of ${selected.length}…`); const result = await post({ action: "photo", mediaId: selected[i] }); if (result.alreadyImported) existing++; else imported++; }
+      setStatus(`Copying ${selected.length} selected photos… Keep this page open.`);
+      for (const mediaId of selected) {
+        const result = await post({ action: "photo", mediaId });
+        if (result.alreadyImported) existing++; else imported++;
+        setProperty(current => current ? { ...current, photos: current.photos.map(photo => photo.mediaId === mediaId ? { ...photo, alreadyImported: true } : photo) } : current);
+        setSelected(ids => ids.filter(id => id !== mediaId));
+        setStatus(`${imported + existing} of ${selected.length} photos ready…`);
+      }
       if (targetProjectId) window.dispatchEvent(new CustomEvent("helios:project-media-updated", { detail: { projectId: targetProjectId } }));
-      router.refresh();
+      refreshInPlace();
       setCompleted(true);
       setStatus(`Import complete. ${imported} photo${imported === 1 ? "" : "s"} added${existing ? `; ${existing} already in this draft (not duplicated)` : ""}. Nothing was published. Next: open Media to choose your lead image.`);
-    } catch (e) { setError(e instanceof Error ? e.message : "Import failed."); if (targetProjectId && imported) window.dispatchEvent(new CustomEvent("helios:project-media-updated", { detail: { projectId: targetProjectId } })); setStatus(`Import stopped after ${imported} new photos. Nothing was published. Retry to resume without duplicates.`); }
+    } catch (e) { setError(e instanceof Error ? e.message : "Import failed."); if (targetProjectId && imported) window.dispatchEvent(new CustomEvent("helios:project-media-updated", { detail: { projectId: targetProjectId } })); if (imported) refreshInPlace(); setStatus(`Import stopped after ${imported} new photos. Nothing was published. Retry to resume without duplicates.`); }
     finally { setBusy(false); }
   }
   return <details className="group/import rounded-2xl border border-white/10 bg-[#111]">
@@ -101,8 +111,8 @@ export default function HDPhotoHubImport({ targetProjectId, initialSiteId, onSel
         </div> : <>
         {!!property.photos.length && <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="text-sm text-white/65">{selected.length} of {property.photos.length} photos selected</span>
-            <button type="button" className="admin-btn-secondary" disabled={busy} onClick={() => { setCompleted(false); setSelected(selected.length === property.photos.length ? [] : property.photos.map(p => p.mediaId)); }}>{selected.length === property.photos.length ? "Clear selection" : "Select all photos"}</button>
+            <span className="text-sm text-white/65">{selected.length} of {availablePhotos.length} new photos selected</span>
+            <button type="button" className="admin-btn-secondary" disabled={busy || !availablePhotos.length} onClick={() => { setCompleted(false); setSelected(selected.length === availablePhotos.length ? [] : availablePhotos.map(p => p.mediaId)); }}>{selected.length === availablePhotos.length && availablePhotos.length > 0 ? "Clear selection" : "Select all new photos"}</button>
           </div>
           <div className="grid max-h-[32rem] grid-cols-2 gap-3 overflow-y-auto p-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" aria-label="Photos available to import">
             {property.photos.map(photo => <ImportPhotoTile key={`${property.siteId}:${photo.mediaId}`} siteId={property.siteId} photo={photo} selected={selected.includes(photo.mediaId)} disabled={busy} onChange={checked => { setCompleted(false); setSelected(ids => checked ? [...ids, photo.mediaId] : ids.filter(id => id !== photo.mediaId)); }} />)}
@@ -114,7 +124,7 @@ export default function HDPhotoHubImport({ targetProjectId, initialSiteId, onSel
       </>}
       {status && <p role="status" className="text-sm text-white/60">{status}</p>}
       {error && <p role="alert" className="text-sm text-red-200">{error}</p>}
-      {projectId && !busy && (targetProjectId ? <div className="space-y-2"><button type="button" className="admin-btn-primary" onClick={() => { const section = document.getElementById("project-media"); const toggle = section?.querySelector<HTMLButtonElement>("button[aria-expanded]"); if (toggle?.getAttribute("aria-expanded") === "false") toggle.click(); requestAnimationFrame(() => { section?.scrollIntoView({ behavior: "smooth", block: "start" }); section?.focus({ preventScroll: true }); }); }}>View imported photos in Media</button><p className="text-xs text-white/50">Your other unsaved edits stay in place. Choose a lead image, then review before publishing.</p></div> : <Link href={`/admin/projects/${projectId}`} className="admin-btn-secondary">Open imported draft</Link>)}
+      {projectId && !busy && (targetProjectId ? <div className="space-y-2"><button type="button" className="admin-btn-primary" onClick={viewImportedProjectPhotos}>View imported photos in Media</button><p className="text-xs text-white/50">Your other unsaved edits stay in place. Choose a lead image, then review before publishing.</p></div> : <Link href={`/admin/projects/${projectId}`} className="admin-btn-secondary">Open imported draft</Link>)}
       {busy && <p className="text-xs text-white/40">Keep this page open until copying finishes. If interrupted, repeat this import to resume without duplicates.</p>}
     </div>
   </details>;

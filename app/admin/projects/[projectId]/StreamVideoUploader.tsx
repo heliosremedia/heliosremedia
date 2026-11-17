@@ -1,5 +1,7 @@
 "use client";
 
+import VideoCopyButton from "../VideoCopyButton";
+
 import { PROJECT_WRITING_APPLY_EVENT, isProjectWritingApplication } from "@/lib/project-writing";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
@@ -293,6 +295,11 @@ export default function StreamVideoUploader({
           onSubmit={handleSubmit}
           className="space-y-5 border-t border-white/[0.08] px-5 py-6 sm:px-6 sm:py-7"
         >
+          <VideoCopyButton projectId={projectId} disabled={status === "uploading" || status === "saving"} onApply={fields => {
+            if (fields.title.trim()) setTitle(fields.title);
+            if (fields.altText.trim()) setAltText(fields.altText);
+            if (fields.caption.trim()) setCaption(fields.caption);
+          }} />
           <div className="grid gap-5 lg:grid-cols-2">
             <label className="block">
               <span className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-white/45">
