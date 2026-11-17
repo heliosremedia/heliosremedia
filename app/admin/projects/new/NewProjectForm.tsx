@@ -71,7 +71,6 @@ export default function NewProjectForm() {
   const writingHandoff = useId();
   const [state, formAction] = useActionState(createProject, initialState);
 
-  const [replaceDetails, setReplaceDetails] = useState(false);
   const [hdphSiteId, setHdphSiteId] = useState<number | null>(null);
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -100,8 +99,7 @@ export default function NewProjectForm() {
 
           <div className="space-y-3">
             <p className="text-sm text-white/50">Start with an optional HDPhotoHub property, or enter everything manually below. Existing entries are kept unless you choose to replace them.</p>
-            <label className="flex items-center gap-2 text-xs text-white/60"><input type="checkbox" checked={replaceDetails} onChange={event => setReplaceDetails(event.target.checked)} />Replace existing title and location fields when selecting a property</label>
-              <div className="space-y-3"><HDPhotoHubImport onSelectProperty={property => {
+              <div className="space-y-3"><HDPhotoHubImport currentDetails={{ title, city: fields.city, state: stateEdited ? fields.state : "", locationLabel: fields.locationLabel, propertyAddress: fields.propertyAddress }} onSelectProperty={(property, replaceDetails) => {
                 setHdphSiteId(property.siteId);
                 if (replaceDetails || !title.trim()) {
                   setTitle(property.title.slice(0, 120));
