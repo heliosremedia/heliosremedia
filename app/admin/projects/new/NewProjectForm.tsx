@@ -71,21 +71,22 @@ export default function NewProjectForm() {
   const writingHandoff = useId();
   const [state, formAction] = useActionState(createProject, initialState);
 
+  const [replaceDetails, setReplaceDetails] = useState(false);
   const [hdphSiteId, setHdphSiteId] = useState<number | null>(null);
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [fields, setFields] = useState({ shortDescription: "", description: "", city: "", state: "Colorado", locationLabel: "", projectType: "Listing Media", propertyType: "", propertyAddress: "" });
-  const updateField = (field: keyof typeof fields, value: string) => setFields((current) => ({ ...current, [field]: value }));
+  const [stateEdited, setStateEdited] = useState(false);
+  const updateField = (field: keyof typeof fields, value: string) => {
+    if (field === "state") setStateEdited(true);
+    setFields((current) => ({ ...current, [field]: value }));
+  };
   const [slugEdited, setSlugEdited] = useState(false);
 
   return (
     <form action={formAction}>
       <input type="hidden" name="hdphSiteId" value={hdphSiteId ?? ""} />
       <input type="hidden" name="writingHandoff" value={writingHandoff} />
-      <div className="mb-6"><ProjectWritingAssistant handoffKey={writingHandoff} projectFieldsOnly onApply={({ field, value }) => {
-        if (field === "title") { setTitle(value); if (!slugEdited) setSlug(slugify(value)); }
-        if (field === "shortDescription" || field === "description") updateField(field, value);
-      }} /></div>
       <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_19rem]">
         <div className="space-y-6">
           {state.error ? (
@@ -97,9 +98,28 @@ export default function NewProjectForm() {
             </div>
           ) : null}
 
+          <div className="space-y-3">
+            <p className="text-sm text-white/50">Start with an optional HDPhotoHub property, or enter everything manually below. Existing entries are kept unless you choose to replace them.</p>
+            <label className="flex items-center gap-2 text-xs text-white/60"><input type="checkbox" checked={replaceDetails} onChange={event => setReplaceDetails(event.target.checked)} />Replace existing title and location fields when selecting a property</label>
+              <div className="space-y-3"><HDPhotoHubImport onSelectProperty={property => {
+                setHdphSiteId(property.siteId);
+                if (replaceDetails || !title.trim()) {
+                  setTitle(property.title.slice(0, 120));
+                  if (!slugEdited) setSlug(slugify(property.title));
+                }
+                setFields(current => ({ ...current,
+                  city: replaceDetails || !current.city.trim() ? property.city : current.city,
+                  state: replaceDetails || !stateEdited || !current.state.trim() ? property.state : current.state,
+                  locationLabel: replaceDetails || !current.locationLabel.trim() ? property.locationLabel : current.locationLabel,
+                  propertyAddress: replaceDetails || !current.propertyAddress.trim() ? property.propertyAddress : current.propertyAddress,
+                }));
+              }} /></div>
+              {hdphSiteId && <p className="mt-3 text-xs text-white/60">HDPhotoHub property #{hdphSiteId} selected. Photos will be available in Media after creating your draft. <button type="button" className="underline" onClick={() => setHdphSiteId(null)}>Unlink property</button></p>}
+          </div>
+
           <details className="group/location rounded-2xl border border-white/10 bg-[#111]">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl p-5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--helios-orange)] [&::-webkit-details-marker]:hidden">
-              <span className="min-w-0 flex-1"><AdminCardHeading inline eyebrow="Project details" title="Location" description="Add the optional property address and public display location." /></span>
+              <span className="min-w-0 flex-1"><AdminCardHeading inline eyebrow="Project details" title="Location Details" description="Add the optional property address and public display location." /></span>
               <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 text-xl font-light text-white/70"><span className="group-open/location:hidden">+</span><span className="hidden group-open/location:inline">−</span></span>
             </summary>
             <div className="grid gap-5 border-t border-white/10 p-5 sm:grid-cols-2">
@@ -154,6 +174,11 @@ export default function NewProjectForm() {
             </div>
           </details>
 
+      <div className="space-y-4"><ProjectWritingAssistant handoffKey={writingHandoff} projectFieldsOnly onApply={({ field, value }) => {
+        if (field === "title") { setTitle(value); if (!slugEdited) setSlug(slugify(value)); }
+        if (field === "shortDescription" || field === "description") updateField(field, value);
+      }} /></div>
+
           <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02]">
             <div className="border-b border-white/[0.08] px-5 py-5 sm:px-6">
               <h2 className="text-2xl font-normal text-white">
@@ -163,13 +188,7 @@ export default function NewProjectForm() {
               <p className="mt-1 text-sm leading-6 text-white/35">
                 Give the project a clear title and website address.
               </p>
-              <div className="mt-4"><HDPhotoHubImport onSelectProperty={property => {
-                setHdphSiteId(property.siteId);
-                setTitle(property.title.slice(0, 120));
-                if (!slugEdited) setSlug(slugify(property.title));
-                setFields(current => ({ ...current, city: property.city, state: property.state, locationLabel: property.locationLabel, propertyAddress: property.propertyAddress }));
-              }} /></div>
-              {hdphSiteId && <p className="mt-3 text-xs text-white/60">HDPhotoHub property #{hdphSiteId} selected. Photos will be available in Media after creating your draft. <button type="button" className="underline" onClick={() => setHdphSiteId(null)}>Unlink property</button></p>}
+
             </div>
 
             <div className="grid gap-5 p-5 sm:p-6">
@@ -181,7 +200,6 @@ export default function NewProjectForm() {
 
                 <input
                   required
-                  autoFocus
                   type="text"
                   name="title"
                   maxLength={120}
