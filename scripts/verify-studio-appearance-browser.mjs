@@ -23,10 +23,10 @@ await build({...common,stdin:{contents:'import React from "react"; import {hydra
 const App=createRequire(import.meta.url)(`${output}/fixture.cjs`).default;
 const base=await postcss([tailwind()]).process(await fs.readFile('app/globals.css','utf8'),{from:'app/globals.css'});
 const appearance=await postcss([tailwind()]).process(await fs.readFile('app/admin/studio-appearance.css','utf8'),{from:'app/admin/studio-appearance.css'});
-const html=`<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>${base.css}\n${appearance.css}</style></head><body><div id="root">${renderToString(React.createElement(App))}</div><script src="/client.js"></script></body></html>`;
+const html=`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>${base.css}\n${appearance.css}</style></head><body><div id="root">${renderToString(React.createElement(App))}</div><script src="/client.js"></script></body></html>`;
 const server=createServer(async(req,res)=>{
  if(['/fonts/helios.otf','/fonts/heliosbold.ttf','/fonts/heliosbolditalic.ttf'].includes(req.url)){res.setHeader('content-type',req.url.endsWith('.otf')?'font/otf':'font/ttf');res.end(await fs.readFile('public'+req.url));return;}
- res.setHeader('content-type',req.url==='/client.js'?'text/javascript':'text/html');res.end(req.url==='/client.js'?await fs.readFile(`${output}/client.js`):html)});
+ res.setHeader('content-type',req.url==='/client.js'?'text/javascript; charset=utf-8':'text/html; charset=utf-8');res.end(req.url==='/client.js'?await fs.readFile(`${output}/client.js`):html)});
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const browser=await chromium.launch();
 try {

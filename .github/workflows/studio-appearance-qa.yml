@@ -22,5 +22,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
+          include-hidden-files: true
           name: studio-appearance-screenshots
           path: .studio-appearance-qa/*.png
