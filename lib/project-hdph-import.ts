@@ -62,3 +62,13 @@ export function hdphSearchPath(term: string, offset: number) {
   params.append("deliveryLevel", "full");
   return `/sites/search?${params.toString()}`;
 }
+
+export function hdphThumbnailUrl(media: HdphRecord): string {
+  if (!hdphEligiblePhoto(media)) throw new Error("This photo is unavailable for preview.");
+  const images = (Array.isArray(media.images) ? media.images : []).map(hdphRecord)
+    .filter(image => typeof image.url === "string" && Number(image.width) > 0)
+    .sort((a,b) => Number(a.width) - Number(b.width));
+  const selected = images.find(image => Number(image.width) >= 400) || images.at(-1);
+  if (!selected) throw new Error("This photo has no ready preview.");
+  return String(selected.url);
+}

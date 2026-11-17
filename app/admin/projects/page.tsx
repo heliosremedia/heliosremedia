@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { buildProjectsUrl } from "@/lib/project-list-navigation";
 
 import { tryResolveExternalMedia } from "@/lib/external-media";
 import { prisma } from "@/lib/prisma";
@@ -32,26 +33,6 @@ const statusOptions = [
   { label: "Archived", value: "ARCHIVED" },
 ];
 
-function buildProjectsUrl({
-  status,
-  search,
-  page,
-  pageSize,
-}: {
-  status: string;
-  search: string;
-  page?: number;
-  pageSize: number;
-}) {
-  const params = new URLSearchParams();
-
-  if (status !== "ALL") params.set("status", status);
-  if (search) params.set("search", search);
-  if (page && page > 1) params.set("page", String(page));
-  if (pageSize !== 30) params.set("pageSize", String(pageSize));
-
-  return params.size ? `/admin/projects?${params}` : "/admin/projects";
-}
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("en-US", {
@@ -235,9 +216,9 @@ export default async function ProjectsPage({
       <PortfolioDiscoverySettingsManager initialSettings={discoverySettings} projects={curationProjects.map(({ id, title }) => ({ id, label: title }))} media={curationMedia.map((item) => ({ id: item.id, label: `${item.project.title} · ${item.altText || item.originalFilename || "Untitled asset"}` }))} />
       <ThumbnailRepairButton />
 
-      <section className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 sm:p-5">
+      <section id="project-results" aria-label="Project filters and results" className="scroll-mt-24 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 sm:p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <form className="flex w-full max-w-xl items-center rounded-xl border border-white/[0.08] bg-black/20 px-4 focus-within:border-white/20">
+          <form action="/admin/projects#project-results" method="get" className="flex w-full max-w-xl items-center rounded-xl border border-white/[0.08] bg-black/20 px-4 focus-within:border-white/20">
             <span aria-hidden="true" className="text-white/30">⌕</span>
             <input
               type="search"
@@ -311,7 +292,7 @@ export default async function ProjectsPage({
         />
 
         <div className="flex flex-col gap-5 border-t border-white/[0.08] px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <form className="flex items-center gap-3">
+          <form action="/admin/projects#project-results" method="get" className="flex items-center gap-3">
             {activeStatus !== "ALL" ? (
               <input type="hidden" name="status" value={activeStatus} />
             ) : null}

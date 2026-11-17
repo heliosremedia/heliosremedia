@@ -37,3 +37,12 @@ test("site payment configuration is not a per-photo permission; explicit downloa
   assert.equal(hdphEligiblePhoto({type:"photo",status:"visible",canDownload:true}), true);
   assert.equal(hdphEligiblePhoto({type:"photo",status:"visible",canDownload:false}), false);
 });
+
+test("preview chooses smallest adequate rendition and rejects restricted media", async () => {
+  const { hdphThumbnailUrl } = await import("./project-hdph-import.ts");
+  const photo = {type:"photo",status:"visible",images:[{url:"large",width:3000},{url:"tiny",width:100},{url:"preview",width:500}]};
+  assert.equal(hdphThumbnailUrl(photo), "preview");
+  assert.throws(() => hdphThumbnailUrl({...photo,canDownload:false}));
+  assert.throws(() => hdphThumbnailUrl({...photo,status:"hidden"}));
+  assert.throws(() => hdphThumbnailUrl({type:"photo",status:"visible",original:{url:"raw"}}));
+});

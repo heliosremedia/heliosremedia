@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import AdminCardHeading from "@/app/admin/components/AdminCardHeading";
+import HDPhotoHubImport from "../HDPhotoHubImport";
 import ProjectWritingAssistant from "../ProjectWritingAssistant";
 import { useActionState, useId, useState } from "react";
 import { useFormStatus } from "react-dom";
@@ -70,6 +71,7 @@ export default function NewProjectForm() {
   const writingHandoff = useId();
   const [state, formAction] = useActionState(createProject, initialState);
 
+  const [hdphSiteId, setHdphSiteId] = useState<number | null>(null);
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [fields, setFields] = useState({ shortDescription: "", description: "", city: "", state: "Colorado", locationLabel: "", projectType: "Listing Media", propertyType: "", propertyAddress: "" });
@@ -78,6 +80,7 @@ export default function NewProjectForm() {
 
   return (
     <form action={formAction}>
+      <input type="hidden" name="hdphSiteId" value={hdphSiteId ?? ""} />
       <input type="hidden" name="writingHandoff" value={writingHandoff} />
       <div className="mb-6"><ProjectWritingAssistant handoffKey={writingHandoff} projectFieldsOnly onApply={({ field, value }) => {
         if (field === "title") { setTitle(value); if (!slugEdited) setSlug(slugify(value)); }
@@ -160,6 +163,13 @@ export default function NewProjectForm() {
               <p className="mt-1 text-sm leading-6 text-white/35">
                 Give the project a clear title and website address.
               </p>
+              <div className="mt-4"><HDPhotoHubImport onSelectProperty={property => {
+                setHdphSiteId(property.siteId);
+                setTitle(property.title.slice(0, 120));
+                if (!slugEdited) setSlug(slugify(property.title));
+                setFields(current => ({ ...current, city: property.city, state: property.state, locationLabel: property.locationLabel, propertyAddress: property.propertyAddress }));
+              }} /></div>
+              {hdphSiteId && <p className="mt-3 text-xs text-white/60">HDPhotoHub property #{hdphSiteId} selected. Photos will be available in Media after creating your draft. <button type="button" className="underline" onClick={() => setHdphSiteId(null)}>Unlink property</button></p>}
             </div>
 
             <div className="grid gap-5 p-5 sm:p-6">

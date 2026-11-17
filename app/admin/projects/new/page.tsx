@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import HDPhotoHubImport from "../HDPhotoHubImport";
+
 
 import NewProjectForm from "./NewProjectForm";
 
@@ -44,7 +44,6 @@ export default function NewProjectPage() {
         </p>
       </section>
 
-      <HDPhotoHubImport />
       <NewProjectForm />
     </div>
   );
