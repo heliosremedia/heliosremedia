@@ -57,8 +57,10 @@ function harness(rows: ReturnType<typeof row>[], race?: ReturnType<typeof row>) 
     "@/lib/auth/session": { requireAdminSession: async () => session },
     "@/lib/prisma": { prisma },
     "@/lib/feedback": feedback,
+    "./EmailStudioTabs": { default: "EmailStudioTabs" },
     "./BulkEmailStudio": { default: "BulkEmailStudio" },
     "./EmailStudioCardOrganizer": { default: "EmailStudioCardOrganizer" },
+    "@/app/admin/components/AdminCardHeading": { default: "AdminCardHeading" },
     "@/app/admin/components/AdminSummaryCards": { default: "AdminSummaryCards" },
     "@/app/admin/components/AdminPageLayout": { default: "AdminPageLayout", AdminPageHeader: "AdminPageHeader" },
     "@/lib/client-communications/bounce-core": bounce,
@@ -111,4 +113,16 @@ test("a newly inserted Feedback reminder racing the ID lookup never receives gen
   const { render } = harness([ordinary], race);
   const studio = nodes(await render()).find((node) => node.type === "BulkEmailStudio");
   assert.deepEqual(studio.props.campaigns.map((item: any) => item.id), ["ordinary"]);
+});
+
+test("Email Studio mounts the composer in the default workspace and separates tools from health", async () => {
+  const tree = await harness([]).render();
+  const tabs = nodes(tree).find(node => node.type === "EmailStudioTabs");
+  assert.equal(tabs.props.showClientTools, true);
+  assert.equal(nodes(tabs.props.children).filter(node => node.type === "BulkEmailStudio").length, 1);
+  assert.equal(nodes(tabs.props.children).filter(node => node.type === "AdminSummaryCards").length, 1);
+  assert.deepEqual(tabs.props.clientTools.props.cards.map((card: any) => card.id), ["client-experience", "client-gatherings"]);
+  assert.deepEqual(tabs.props.deliveryHealth.props.cards.map((card: any) => card.id), ["analytics-health", "webhook-health"]);
+  assert.equal(tabs.props.clientTools.props.scope, "client-tools");
+  assert.equal(tabs.props.deliveryHealth.props.scope, "delivery-health");
 });

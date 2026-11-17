@@ -5,6 +5,7 @@ import { FEEDBACK_SURVEY, isFeedbackSelection } from "@/lib/feedback";
 import { requireAdminSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import BulkEmailStudio from "./BulkEmailStudio";
+import EmailStudioTabs from "./EmailStudioTabs";
 import EmailStudioCardOrganizer, { type EmailStudioCard } from "./EmailStudioCardOrganizer";
 import AdminSummaryCards from "@/app/admin/components/AdminSummaryCards";
 import AdminPageLayout, { AdminPageHeader } from "@/app/admin/components/AdminPageLayout";
@@ -108,7 +109,7 @@ export default async function EmailStudioPage({ searchParams }: { searchParams: 
     </section>
     ) },
     { id: "webhook-health", label: "Webhook health", content: (
-      <section className="rounded-2xl border border-white/[0.08] bg-[#111] p-5" aria-labelledby="webhook-health-title">
+      <section id="webhook-health" className="scroll-mt-28 rounded-2xl border border-white/[0.08] bg-[#111] p-5" aria-labelledby="webhook-health-title">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div><p className="text-xs uppercase tracking-[0.16em] text-[var(--helios-orange)]">Webhook health</p><h2 id="webhook-health-title" className="mt-2 text-xl font-light text-white">Resend event ingestion</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-white/40">Delivery reporting is reconciled from recipient-level provider events. Duplicate replays are safe and never send email.</p></div>
         <div className="rounded-xl border border-white/[0.07] bg-black/20 px-4 py-3 text-right"><p className="text-[0.55rem] uppercase tracking-[0.12em] text-white/25">Unmatched events</p><p className={`mt-1 text-lg ${unmatchedWebhookCount ? "text-amber-100/70" : "text-emerald-200/75"}`}>{unmatchedWebhookCount}</p></div>
@@ -123,14 +124,18 @@ export default async function EmailStudioPage({ searchParams }: { searchParams: 
   );
   return <AdminPageLayout
     header={<AdminPageHeader eyebrow="Client communications" title="Bulk Email Studio" description="Create polished updates for all clients, selected groups, or individual recipients—with a test step and unsubscribe protection built in." actions={["OWNER", "ADMIN"].includes(session.role) ? <Link href="/admin/feedback" className="admin-btn-secondary">Client Feedback ↗</Link> : undefined} />}
-    summary={<AdminSummaryCards items={[
+  >
+    <EmailStudioTabs
+      showClientTools={["OWNER", "ADMIN"].includes(session.role)}
+      clientTools={<EmailStudioCardOrganizer workspaceId={session.workspaceId} userId={session.userId} scope="client-tools" cards={cards.filter(card=>card.id === "client-experience" || card.id === "client-gatherings")} />}
+      deliveryHealth={<EmailStudioCardOrganizer workspaceId={session.workspaceId} userId={session.userId} scope="delivery-health" cards={cards.filter(card=>card.id === "analytics-health" || card.id === "webhook-health")} />}
+    >
+    <AdminSummaryCards items={[
       { label: "Eligible recipients", value: eligibleClients.length, detail: "Subscribed, valid, and not suppressed" },
       { label: "Scheduled campaigns", value: campaigns.filter(item=>item.status==="SCHEDULED").length, detail: "Awaiting delivery" },
       { label: "Recently sent", value: campaigns.filter(item=>item.status==="SENT").length, detail: "Within recent campaign history", tone: "good" },
       { label: "Confirmed delivery", value: confirmedDeliveryRate === null ? null : `${confirmedDeliveryRate}%`, detail: metrics.providerAccepted ? `${metrics.delivered} of ${metrics.providerAccepted} provider-accepted messages confirmed delivered` : "No provider-accepted messages in recent history" },
-    ]}/>}
-  >
-    <EmailStudioCardOrganizer workspaceId={session.workspaceId} userId={session.userId} cards={cards} />
+    ]}/>
     <BulkEmailStudio
       clients={eligibleClients.map((client) => ({ id: client.id, firstName: client.firstName, lastName: client.lastName, displayName: client.displayName, email: client.email, phone: client.phone, groupIds: client.groupMemberships.map((membership) => membership.groupId) }))}
       groups={groups.map((group) => ({ id: group.id, name: group.name, count: eligibleClients.filter(client => client.groupMemberships.some(membership => membership.groupId === group.id)).length }))}
@@ -144,5 +149,6 @@ export default async function EmailStudioPage({ searchParams }: { searchParams: 
       defaultTestEmail={session.email}
       initialDraft={initialDraft ? { ...initialDraft, selection: initialDraft.selection as { groupIds?: string[]; clientIds?: string[] } } : null}
     />
+    </EmailStudioTabs>
   </AdminPageLayout>;
 }

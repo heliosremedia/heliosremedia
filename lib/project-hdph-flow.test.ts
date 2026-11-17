@@ -84,3 +84,8 @@ test("HDPH source belongs only to ProjectDetails and matches migration", () => {
   assert.match(details, /hdphSiteId Int\?/);
   assert.equal(read("prisma/migrations/20261117020000_project_hdph_source/migration.sql").trim(), 'ALTER TABLE "ProjectDetails" ADD COLUMN "hdphSiteId" INTEGER;');
 });
+
+test("new project avoids duplicate intro and keeps optional manual/import guidance", () => {
+  assert.doesNotMatch(read("app/admin/projects/new/page.tsx"), /Start with the essential project information/);
+  assert.match(read("app/admin/projects/new/NewProjectForm.tsx"), /Start with an optional HDPhotoHub property, or enter everything manually below/);
+});

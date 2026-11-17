@@ -13,18 +13,29 @@ import {
 export type EmailStudioCard = { id: EmailStudioCardId; label: string; content: ReactNode };
 type DropTarget = { id: EmailStudioCardId; after: boolean };
 
-export default function EmailStudioCardOrganizer({ workspaceId, userId, cards }: {
+export default function EmailStudioCardOrganizer({ workspaceId, userId, cards, scope }: {
+  scope?: "client-tools" | "delivery-health";
   workspaceId: string;
   userId: string;
   cards: EmailStudioCard[];
 }) {
-  const storageKey = emailStudioLayoutStorageKey(workspaceId, userId);
+  const legacyStorageKey = emailStudioLayoutStorageKey(workspaceId, userId);
+  const storageKey = scope ? `${legacyStorageKey}:${scope}` : legacyStorageKey;
   // Changing accounts/workspaces must also clear transient drag and status state.
-  return <EmailStudioCardList key={storageKey} storageKey={storageKey} cards={cards} />;
+  return <EmailStudioCardList key={storageKey} storageKey={storageKey} legacyStorageKey={scope ? legacyStorageKey : undefined} instanceId={scope || "all"} cards={cards} />;
 }
 
-function EmailStudioCardList({ storageKey, cards }: { storageKey: string; cards: EmailStudioCard[] }) {
-  const store = useMemo(() => createEmailStudioLayoutStore(storageKey, () => window.localStorage), [storageKey]);
+function EmailStudioCardList({ storageKey, legacyStorageKey, instanceId, cards }: { storageKey: string; legacyStorageKey?: string; instanceId: string; cards: EmailStudioCard[] }) {
+  const cardsId = `email-studio-cards-${instanceId}`;
+  const helpId = `email-studio-sort-help-${instanceId}`;
+  const store = useMemo(() => createEmailStudioLayoutStore(storageKey, () => {
+    const storage = window.localStorage;
+    return {
+      // Seed each new group with its previous relative order, without overwriting legacy preferences.
+      getItem: (key:string) => storage.getItem(key) ?? (legacyStorageKey ? storage.getItem(legacyStorageKey) : null),
+      setItem: (key:string,value:string) => storage.setItem(key,value),
+    };
+  }), [storageKey,legacyStorageKey]);
   const { order, storageAvailable } = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getServerSnapshot);
   const [organizing, setOrganizing] = useState(false);
   const [draggedId, setDraggedId] = useState<EmailStudioCardId | null>(null);
@@ -61,11 +72,11 @@ function EmailStudioCardList({ storageKey, cards }: { storageKey: string; cards:
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-3">
       <div className="px-2 text-xs text-white/45">
         <p>{storageAvailable ? "Card order is saved for your account and workspace on this browser." : "Browser storage is unavailable. Card order will last for this visit only."}</p>
-        {organizing && <p id="email-studio-sort-help" className="mt-1">Drag a handle or use the up/down buttons. With a card focused, use Alt + ↑ or ↓.</p>}
+        {organizing && <p id={helpId} className="mt-1">Drag a handle or use the up/down buttons. With a card focused, use Alt + ↑ or ↓.</p>}
         <p role="status" aria-live="polite" aria-atomic="true" className={message ? "mt-1" : "sr-only"}>{message}</p>
       </div>
       <div className="flex flex-wrap gap-2">
-        <button type="button" aria-pressed={organizing} aria-controls="email-studio-cards" onClick={() => { setOrganizing((value) => !value); clearDrag(); }} className={organizing ? "admin-btn-primary" : "admin-btn-secondary"}>{organizing ? "Done organizing" : "Organize cards"}</button>
+        <button type="button" aria-pressed={organizing} aria-controls={cardsId} onClick={() => { setOrganizing((value) => !value); clearDrag(); }} className={organizing ? "admin-btn-primary" : "admin-btn-secondary"}>{organizing ? "Done organizing" : "Organize cards"}</button>
         {organizing && <button type="button" disabled={isDefault} onClick={() => {
           const saved = store.save(defaultOrder);
           clearDrag();
@@ -73,7 +84,7 @@ function EmailStudioCardList({ storageKey, cards }: { storageKey: string; cards:
         }} className="admin-btn-secondary">Reset order</button>}
       </div>
     </div>
-    <div id="email-studio-cards" className="space-y-7">
+    <div id={cardsId} className="space-y-7">
       {visibleOrder.map((id, index) => {
         const card = cardsById.get(id)!;
         return <div
@@ -82,7 +93,7 @@ function EmailStudioCardList({ storageKey, cards }: { storageKey: string; cards:
           data-email-studio-card={id}
           role="group"
           aria-label={`${card.label}, position ${index + 1} of ${visibleOrder.length}`}
-          aria-describedby={organizing ? "email-studio-sort-help" : undefined}
+          aria-describedby={organizing ? helpId : undefined}
           tabIndex={organizing ? 0 : -1}
           onKeyDown={(event) => {
             if (!organizing || !event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
