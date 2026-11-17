@@ -114,12 +114,14 @@ export default function ProjectWritingAssistant({ projectId, onApply, allowApply
         {projectId ? <ProjectCopyPackageControls projectId={projectId} source={source} draft={draft} onRestore={value => { setSource(value.source); setDraft(value.draft); setPending(null); setPendingAll(null); }} /> : <p className="text-xs text-white/55">Create the draft first to save the full copy package privately with the project. Your suggestions carry into the new draft in this tab.</p>}
         <label className="block"><span className="block text-xs uppercase tracking-[0.16em] text-[var(--helios-orange)]">Agent property description</span>
           <textarea value={source} onChange={event => setSource(event.target.value)} disabled={busy} rows={6} maxLength={PROJECT_WRITING_SOURCE_LIMIT} className={fieldClass} />
-          <span className="mt-1 block text-xs text-white/45">{source.length.toLocaleString()} / 12,000 characters. Use at least 20 characters.</span>
+          <span className="mt-3 block text-xs leading-5 text-white/45">{source.length.toLocaleString()} / 12,000 characters. Use at least 20 characters.</span>
         </label>
+        <div className="flex flex-col gap-4 pt-1">
         <p className="text-xs leading-5 text-white/55">Generate sends your description to OpenAI. Remove private contact details, access codes, and anything you do not want shared.</p>
         <div className="flex flex-wrap items-center gap-3">
           <button type="button" disabled={busy || source.trim().length < 20} onClick={() => draft ? setReplaceSuggestions(true) : void generate()} className="admin-btn-secondary">{busy ? "Generating…" : draft ? "Generate new suggestions" : "Generate suggestions"}</button>
           {busy ? <button type="button" className="admin-btn-link" onClick={() => { controller.current?.abort(); setMessage("Generation cancelled. Existing suggestions and project fields are unchanged."); }}>Cancel</button> : null}
+        </div>
         </div>
         {replaceSuggestions ? <div className="rounded-xl border border-amber-200/20 p-4 text-sm text-white/70"><p>Replace the suggestions below, including your edits to them? Project and video editor fields will not change.</p><div className="mt-3 flex gap-3"><button type="button" className="admin-btn-secondary" onClick={() => setReplaceSuggestions(false)}>Keep suggestions</button><button type="button" className="admin-btn-primary" onClick={() => void generate()}>Replace suggestions</button></div></div> : null}
         {message ? <p role="status" className="text-sm text-white/65">{message}</p> : null}

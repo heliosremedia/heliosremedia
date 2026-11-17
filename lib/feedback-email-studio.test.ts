@@ -115,14 +115,23 @@ test("a newly inserted Feedback reminder racing the ID lookup never receives gen
   assert.deepEqual(studio.props.campaigns.map((item: any) => item.id), ["ordinary"]);
 });
 
-test("Email Studio mounts the composer in the default workspace and separates tools from health", async () => {
+test("Email Studio passes summary and role-scoped tool slots to one mounted Bulk workspace", async () => {
   const tree = await harness([]).render();
-  const tabs = nodes(tree).find(node => node.type === "EmailStudioTabs");
-  assert.equal(tabs.props.showClientTools, true);
-  assert.equal(nodes(tabs.props.children).filter(node => node.type === "BulkEmailStudio").length, 1);
-  assert.equal(nodes(tabs.props.children).filter(node => node.type === "AdminSummaryCards").length, 1);
-  assert.deepEqual(tabs.props.clientTools.props.cards.map((card: any) => card.id), ["client-experience", "client-gatherings"]);
-  assert.deepEqual(tabs.props.deliveryHealth.props.cards.map((card: any) => card.id), ["analytics-health", "webhook-health"]);
-  assert.equal(tabs.props.clientTools.props.scope, "client-tools");
-  assert.equal(tabs.props.deliveryHealth.props.scope, "delivery-health");
+  const studios = nodes(tree).filter(node => node.type === "BulkEmailStudio");
+  assert.equal(studios.length, 1);
+  const studio = studios[0];
+  assert.equal(nodes(tree).filter(node => node.type === "EmailStudioTabs").length, 0);
+  assert.equal(studio.props.showClientTools, true);
+  assert.equal(studio.props.summary.type, "AdminSummaryCards");
+  assert.ok(studio.props.summary.props.items.some((item: any) => item.label === "Recently sent"));
+  assert.deepEqual(studio.props.clientTools.props.cards.map((card: any) => card.id), ["client-experience", "client-gatherings"]);
+  assert.deepEqual(studio.props.deliveryHealth.props.cards.map((card: any) => card.id), ["analytics-health", "webhook-health"]);
+  assert.equal(studio.props.clientTools.props.scope, "client-tools");
+  assert.equal(studio.props.deliveryHealth.props.scope, "delivery-health");
+});
+
+test("summary and audience retain the margin-independent gap inside Bulk", () => {
+  const bulk = fs.readFileSync("app/admin/email-studio/BulkEmailStudio.tsx", "utf8");
+  assert.match(bulk, /<div className="flex min-w-0 flex-col gap-6">\{summary\}/);
+  assert.equal((bulk.match(/<EmailStudioTabs /g) || []).length, 1);
 });

@@ -1,4 +1,5 @@
 import "server-only";
+import { hdphPropertyWebsite } from "./project-hdph-website";
 import { hdphEligiblePhoto, hdphId, hdphProperty, hdphRecord, hdphSearchPage, hdphSearchPath } from "./project-hdph-import";
 
 export function projectHdphReader(workspaceId: string) {
@@ -30,7 +31,7 @@ export function projectHdphReader(workspaceId: string) {
       // The authenticated media endpoint and per-item download restrictions govern retrieval.
       if (!site.bought || !["active", "inactive", "complete"].includes(String(site.status))) throw new Error("Only delivered, non-archived properties can be imported. Use manual creation for other work.");
       if (!Array.isArray(site.media)) throw new Error("HDPhotoHub did not return its media inventory.");
-      return { siteId: id, ...hdphProperty(site), photos: site.media.map(hdphRecord).filter(hdphEligiblePhoto).map(m => ({ mediaId: hdphId(m.mediaId), name: typeof m.name === "string" ? m.name.slice(0,300) : `Photo ${m.mediaId}` })) };
+      return { siteId: id, ...hdphProperty(site), propertyWebsiteUrl: hdphPropertyWebsite(site), photos: site.media.map(hdphRecord).filter(hdphEligiblePhoto).map(m => ({ mediaId: hdphId(m.mediaId), name: typeof m.name === "string" ? m.name.slice(0,300) : `Photo ${m.mediaId}` })) };
     },
     async photo(siteId: number, mediaId: number) {
       const site = await this.site(siteId);
