@@ -24,10 +24,11 @@ vm.runInNewContext(appearanceBootstrap,{document:{currentScript:{parentElement}}
 assert.equal(parentElement.dataset.studioAppearance,'system');
 for(const value of ['day','night','system']){
  const html=renderToStaticMarkup(React.createElement(StudioAppearanceContext.Provider,{value},React.createElement(Control)));
- assert.equal((html.match(/type="radio"/g)||[]).length,3);
- assert.equal((html.match(/checked=""/g)||[]).length,1);
- assert.match(html,/legend>Appearance/);
- assert.ok(html.includes(`checked="" value="${value}"`)||html.includes(`value="${value}" checked=""`));
+ assert.equal((html.match(/<button/g)||[]).length,1);
+ assert.match(html,/aria-haspopup="menu"/);
+ assert.match(html,/aria-expanded="false"/);
+ assert.ok(html.includes(`aria-label="Appearance: ${value[0].toUpperCase()+value.slice(1)}"`));
+ assert.ok(!html.includes('role="menuitemradio"'));
 }
 const css=fs.readFileSync('app/admin/studio-appearance.css','utf8');
 assert.match(css,/focus-visible/);assert.match(css,/min-height: 44px/);
@@ -35,5 +36,5 @@ const legacy=fs.readFileSync('app/admin/studio-legacy-theme.css','utf8');
 assert.match(legacy,/prefers-color-scheme: light/);assert.match(legacy,/data-studio-fixed-colors/);
 const output=await postcss([tailwind()]).process(css,{from:'app/admin/studio-appearance.css'});
 assert.ok(output.css.includes('data-studio-appearance'));
-console.log('PASS: preference validation, pre-content bootstrap, blocked storage fallback, three native radios and selected state, focus/touch target contracts, scoped CSS compile.');
+console.log('PASS: preference validation, pre-content bootstrap, blocked storage fallback, compact accessible menu trigger and current preference, focus/touch target contracts, scoped CSS compile.');
 console.log('NOTE: does not replace real-browser hydration, persistence, contrast, or cross-module visual QA.');

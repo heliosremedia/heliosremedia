@@ -13,6 +13,10 @@
   @apply admin-btn border border-[#eee8dd]/70 bg-[#eee8dd] text-[#171515] shadow-[0_10px_30px_rgba(0,0,0,0.16)] hover:border-[var(--helios-orange)]/65 hover:bg-[var(--helios-orange)]/[0.12] hover:text-[#f5f1ea];
 }
 
+@utility admin-btn-success {
+  @apply admin-btn border;
+}
+
 @utility admin-btn-secondary {
   @apply admin-btn border border-white/12 bg-[#18181a] text-white/68 hover:border-white/28 hover:bg-[#202023] hover:text-white;
 }
@@ -78,6 +82,7 @@
 :where(
   .admin-btn-primary,
   .admin-btn-secondary,
+  .admin-btn-success,
   .admin-btn-destructive,
   .admin-btn-danger,
   .admin-btn-ghost,
@@ -752,3 +757,57 @@ button.film-example-selector {
   line-height: var(--public-button-line-height) !important;
   white-space: nowrap;
 }
+
+/* Studio semantic foundation. Artwork/recipient templates do not use these classes.
+   light-dark follows the appearance shell; defaults remain the Night contract. */
+.admin-form-scope {
+  --studio-success-ink: light-dark(#166534, #a7f3d0);
+  --studio-success-border: light-dark(#79b18d, #39705a);
+  --studio-success-fill: light-dark(#f0f8f2, #142820);
+  --studio-success-hover: light-dark(#e3f2e7, #1b382b);
+  --studio-error-ink: light-dark(#b42318, #fecaca);
+  --studio-error-border: light-dark(#d9948d, #803d3d);
+  --studio-error-fill: light-dark(#fff3f2, #321c1e);
+  --studio-neutral-ink: light-dark(#5c6067, #b8b8bf);
+  --studio-neutral-fill: light-dark(#f4f4f3, #18181a);
+  --studio-neutral-border: light-dark(#c7c9cd, #454549);
+}
+.admin-btn-success, .admin-status-success {
+  color: var(--studio-success-ink);
+  border-color: var(--studio-success-border);
+  background: var(--studio-success-fill);
+}
+.admin-btn-success:hover { background: var(--studio-success-hover); }
+.admin-status { border-width: 1px; border-style: solid; border-radius: .75rem; padding: 1rem; font-size: .875rem; line-height: 1.65; }
+.admin-status-error { color: var(--studio-error-ink); border-color: var(--studio-error-border); background: var(--studio-error-fill); }
+.admin-status-neutral { color: var(--studio-neutral-ink); border-color: var(--studio-neutral-border); background: var(--studio-neutral-fill); }
+
+.admin-form-scope {
+  --studio-warning-ink: light-dark(#854d0e, #fde68a);
+  --studio-warning-border: light-dark(#b99856, #756331);
+  --studio-warning-fill: light-dark(#fffbea, #292619);
+}
+.admin-status-warning { color: var(--studio-warning-ink); border-color: var(--studio-warning-border); background: var(--studio-warning-fill); }
+.admin-status-badge { display: inline-flex; align-items: center; border-width: 1px; border-style: solid; border-radius: 9999px; padding: .25rem .65rem; font-size: .65rem; font-weight: 600; line-height: 1.5; letter-spacing: .08em; text-transform: uppercase; }
+.admin-workspace-tab[aria-selected="true"] { background: var(--studio-neutral-fill); color: light-dark(#202124, #f5f1ea); border-color: var(--helios-orange); }
+
+/* Secondary disclosures share one native, state-preserving summary contract. */
+.admin-disclosure-summary { display: flex; min-height: 2.75rem; align-items: center; gap: .75rem; list-style: none; cursor: pointer; color: var(--studio-neutral-ink); font-size: .875rem; line-height: 1.5; border-radius: .5rem; }
+.admin-disclosure-summary::-webkit-details-marker { display: none; }
+.admin-disclosure-summary::marker { content: ""; }
+.admin-disclosure-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.admin-disclosure-indicator { display: inline-flex; flex-shrink: 0; width: 2.75rem; height: 2.75rem; align-items: center; justify-content: center; border: 1px solid var(--studio-neutral-border); border-radius: 9999px; font-size: 1.25rem; font-weight: 300; }
+.admin-disclosure-summary:hover { background: var(--studio-neutral-fill); }
+.admin-disclosure-summary:focus-visible { outline: 2px solid var(--helios-orange); outline-offset: 3px; }
+.admin-disclosure-minus { display: none; }
+details[open] > .admin-disclosure-summary > .admin-disclosure-indicator > .admin-disclosure-plus { display: none; }
+details[open] > .admin-disclosure-summary > .admin-disclosure-indicator > .admin-disclosure-minus { display: inline; }
+
+/* Explicitly opted-in selectable controls; never overrides success or artwork. */
+.admin-form-scope[data-studio-appearance] .admin-choice[aria-pressed="true"]:not([data-studio-fixed-colors]) { border-color: var(--helios-orange) !important; background: var(--studio-neutral-fill) !important; color: light-dark(#202124, #f5f1ea) !important; }
+
+/* Only the authenticated Studio appearance shell opts into neutral interactions.
+   Higher specificity than legacy theme rules keeps both stylesheet orders safe. */
+.admin-form-scope[data-studio-appearance] .admin-btn-primary:hover:not(:disabled) { background: light-dark(#34363a, #262629) !important; border-color: light-dark(#9a9ea5, #454549) !important; }
+.admin-form-scope[data-studio-appearance] :is(.admin-btn-icon, .admin-btn-icon-sm):hover:not(:disabled) { background: light-dark(#e8e9eb, #262629); }
+.admin-form-scope[data-studio-appearance] :is(.admin-btn-icon, .admin-btn-icon-sm):active:not(:disabled) { background: light-dark(#dadddf, #303034); }

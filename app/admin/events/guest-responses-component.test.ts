@@ -93,7 +93,10 @@ test("guest responses start collapsed with native keyboard semantics and visible
   assert.equal(ui.panel().props.hidden, true); assert.equal(ui.toggle().props["aria-controls"], ui.panel().props.id);
   assert.equal(ui.toggle().props.onKeyDown, undefined, "Native Enter/Space activation is not overridden");
   assert.equal(ui.toggle().props.tabIndex, undefined, "Disclosure remains in the native keyboard tab order");
-  assert.match(ui.toggle().props.className, /focus-visible:outline/);
+  assert.match(ui.toggle().props.className, /admin-btn-secondary/);
+  const sharedCss = readFileSync(new URL("../../globals.css", import.meta.url), "utf8");
+  assert.match(sharedCss, /@utility admin-btn-secondary\s*\{\s*@apply admin-btn/);
+  assert.match(sharedCss, /@utility admin-btn\s*\{[^}]*focus-visible:ring-2/);
   assert.match(ui.summary(), /Invited166Yes2Maybe1No1Awaiting reply162/);
   assert(ui.button("Refresh")); assert.equal(ui.search(), undefined); assert.equal(ui.filter(), undefined); assert.deepEqual(ui.guestRows(), []);
   await ui.expand();

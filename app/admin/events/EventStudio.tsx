@@ -18,8 +18,8 @@ type Delivery = { messages?: { id: string; invitationId?: string; status?: strin
 type Event = { id: string; title: string; description: string; location: string; venueUrl?: string | null; emailContent?: unknown; templateKey?: string; imageUrl?: string | null; imageAlt?: string | null; startsAt: string | null; endsAt: string | null; timeZone: string; status: string; mode: string; clientIds?: string[]; groupIds?: string[]; selection?: { clientIds?: string[]; groupIds?: string[] }; invitations?: Invitation[]; deliveries?: Delivery[] };
 type Form = EventEditorForm;
 const input = "mt-2 w-full rounded-xl border border-white/15 bg-[#171717] px-3 py-3 text-sm text-white outline-none focus:border-[var(--helios-orange)] disabled:opacity-50";
-const button = "rounded-xl border border-white/15 px-4 py-2.5 text-sm text-white/80 transition hover:border-white/40 focus-visible:outline-2 focus-visible:outline-[var(--helios-orange)] disabled:cursor-not-allowed disabled:opacity-40";
-const primary = `${button} border-orange-400/40 bg-[var(--helios-orange)] text-black hover:brightness-110`;
+const button = "admin-btn-secondary";
+const primary = "admin-btn-primary";
 const panel = "rounded-2xl border border-white/10 bg-[#111] p-5 sm:p-6";
 const stages = { INITIAL: "Initial invitation", FOLLOW_UP: "Follow-up", REMINDER: "Day-before reminder" };
 
@@ -166,8 +166,8 @@ export default function EventStudio({ defaultTestEmail }: { defaultTestEmail: st
       </div>
     </dialog>}
     <div className="space-y-6">
-    {error && !unscheduleConfirm && <div role="alert" className="rounded-xl border border-red-300/20 bg-red-300/5 p-4 text-sm text-red-200">{error}</div>}
-    {message && <div role="status" className="rounded-xl border border-emerald-300/20 bg-emerald-300/5 p-4 text-sm text-emerald-200">{message}</div>}
+    {error && !unscheduleConfirm && <div role="alert" className="admin-status admin-status-error">{error}</div>}
+    {message && <div role="status" className="admin-status admin-status-success">{message}</div>}
     <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
       <aside className={`${panel} self-start`} aria-label="Events">
         <div className="flex items-center justify-between gap-2"><h2 className="text-lg text-white">Your events</h2><button className={button} disabled={busy || imageBusy} onClick={() => edit(null)}>+ New</button></div>
