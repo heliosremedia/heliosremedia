@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import AdminWorkspaceTabs from "@/app/admin/components/AdminWorkspaceTabs";
 
 type Campaign = { id: string; internalName: string; status: string; updatedAt: string; variants: Array<{ id: string; platform: string; postType: string; status: string; scheduledAt: string | null }> };
 type SourceOption = { id: string; label: string };
@@ -9,9 +10,9 @@ type SourceOption = { id: string; label: string };
 const platforms = ["INSTAGRAM", "FACEBOOK"];
 const objectives = ["Showcase a property", "Highlight photography", "Promote cinematic video", "Share educational guidance", "Promote a blog article", "Highlight a service", "Build brand awareness", "Share a company update", "Feature a client or partner", "Custom objective"];
 
-export default function SocialDashboard({ campaigns, projects, blogs, newsletters, summary }: {
+export default function SocialDashboard({ campaigns, projects, blogs, newsletters, summary, autopilot }: {
   campaigns: Campaign[]; projects: SourceOption[]; blogs: SourceOption[]; newsletters: SourceOption[];
-  summary: Record<string, number>;
+  summary: Record<string, number>; autopilot: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -44,6 +45,8 @@ export default function SocialDashboard({ campaigns, projects, blogs, newsletter
     <section className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7" aria-label="Social workflow summary">
       {Object.entries(summary).map(([label, value]) => <div key={label} className="rounded-xl border border-white/[.08] bg-white/[.025] p-4"><p className="text-[.58rem] uppercase tracking-[.15em] text-white/30">{label.replaceAll("_", " ")}</p><p className="mt-3 font-display text-3xl font-light text-white">{value}</p></div>)}
     </section>
+    <AdminWorkspaceTabs id="social-workspace" label="Social Studio sections" tabs={[
+      { id: "campaigns", label: "Campaigns", content: <>
     <section className="rounded-2xl border border-white/[.08] bg-white/[.02] p-5 sm:p-6">
       <div className="flex items-end justify-between"><div><p className="eyebrow text-[var(--helios-orange)]">Workspace</p><h2 className="mt-2 text-2xl font-light text-white">Recent campaigns</h2></div></div>
       <div className="mt-5 divide-y divide-white/[.07]">
@@ -52,6 +55,9 @@ export default function SocialDashboard({ campaigns, projects, blogs, newsletter
       </div>
     </section>
     <section className="rounded-2xl border border-white/[.08] bg-white/[.02] p-5 sm:p-6"><p className="eyebrow text-[var(--helios-orange)]">Content cadence</p><h2 className="mt-2 text-2xl font-light text-white">Coming week</h2><p className="mt-3 text-sm leading-6 text-white/40">Cadence reflects scheduled records only. Social Studio will not declare a posting rhythm healthy until goals are configured.</p><div className="mt-5 grid grid-cols-7 gap-2">{Array.from({ length: 7 }, (_, index) => { const date = new Date(cadenceStart + index * 86400000); const count = campaigns.flatMap((item) => item.variants).filter((item) => item.scheduledAt && new Date(item.scheduledAt).toDateString() === date.toDateString()).length; return <div key={index} className="rounded-xl border border-white/[.07] p-3 text-center"><p className="text-[.55rem] uppercase text-white/25">{date.toLocaleDateString("en-US", { weekday: "short" })}</p><p className="mt-2 text-lg text-white/70">{count}</p></div>; })}</div></section>
+      </> },
+      { id: "autopilot", label: "Autopilot", hashAliases: ["autopilot-heading"], content: autopilot },
+    ]} />
     {open && <div role="dialog" aria-modal="true" aria-labelledby="new-social-title" className="fixed inset-0 z-[100] overflow-y-auto bg-black/85 p-4 backdrop-blur">
       <div className="mx-auto my-5 max-w-4xl rounded-2xl border border-white/10 bg-[#121214] p-6 sm:p-8"><div className="flex justify-between gap-4"><div><p className="eyebrow text-[var(--helios-orange)]">Social Studio</p><h2 id="new-social-title" className="mt-2 text-3xl font-light text-white">Create campaign</h2></div><button disabled={saving} onClick={() => setOpen(false)} className="admin-btn-secondary">Close</button></div>
       <div className="mt-6 grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-black/20 p-1" aria-label="Campaign creation method"><button type="button" onClick={() => setCreationMode("manual")} className={creationMode === "manual" ? "admin-btn-primary" : "admin-btn-secondary"}>Create manually</button><button type="button" onClick={() => setCreationMode("ai")} className={creationMode === "ai" ? "admin-btn-primary" : "admin-btn-secondary"}>Create with AI</button></div>

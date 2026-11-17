@@ -37,6 +37,7 @@ export default function NewProjectPage() {
         <h1 className="mt-3 text-3xl font-light tracking-[-0.03em] text-white sm:text-4xl">
           Create a portfolio project
         </h1>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-white/50">Start with an optional HDPhotoHub property, or enter everything manually below. Existing entries are kept unless you choose to replace them.</p>
 
       </section>
 
