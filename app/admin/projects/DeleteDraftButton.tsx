@@ -41,7 +41,7 @@ export default function DeleteDraftButton({ projectId, onDeleted }: { projectId:
     {!confirmation && error ? <p role="alert" className="max-w-xs text-xs text-red-200">{error}</p> : null}
     <dialog ref={dialog} onCancel={(event) => { event.preventDefault(); if (!busy) cancel(); }} aria-labelledby={`delete-draft-${projectId}`} className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-2xl border border-white/15 bg-[#151515] p-6 text-left text-white backdrop:bg-black/80">
       <h2 id={`delete-draft-${projectId}`} className="text-xl">Delete draft?</h2>
-      <p className="mt-3 text-sm leading-6 text-white/70">Permanently delete “{confirmation?.title}” and its project details, media records, credits, and preview links. This cannot be undone. Original Cloudflare files are not deleted.</p>
+      <p className="mt-3 text-sm leading-6 text-white/70">Permanently delete “{confirmation?.title}” and its project details, saved AI copy package, media records, credits, and preview links. This cannot be undone. Original Cloudflare files are not deleted.</p>
       <p className="mt-2 text-xs text-white/50">{confirmation?.mediaCount ?? 0} media records will be removed from this project. Published projects cannot be deleted here.</p>
       <label className="mt-5 block text-sm">Type the exact project title to confirm<input autoFocus value={typedTitle} onChange={(event) => setTypedTitle(event.target.value)} disabled={busy} className="mt-2 min-h-11 w-full rounded-lg border border-white/20 bg-black/30 px-3" /></label>
       {error ? <p role="alert" className="mt-3 text-sm text-red-200">{error}</p> : null}

@@ -102,6 +102,7 @@ export default async function ProjectEditorPage({
             lotSize: true,
             neighborhood: true,
             propertyAddress: true,
+            hdphSiteId: true,
             propertyWebsiteUrl: true,
           },
         },
@@ -260,8 +261,7 @@ export default async function ProjectEditorPage({
         { href: "#project-publishing", label: "Review & Publish", step: "04", detail: project.status === "PUBLISHED" && !progress.publishReady ? "Published · needs review" : formatStatus(project.status), complete: progress.publishReady },
       ]} bulkSectionIds={["project-identity", "project-credits", "project-media", "project-services", "project-publishing"]} projectEditor />
 
-      {project.status === "DRAFT" ? <HDPhotoHubImport targetProjectId={project.id} /> : null}
-      <ProjectWritingAssistant projectId={project.id} />
+      <ProjectWritingAssistant projectId={project.id} key={project.id} />
 
       <ProjectEditorSection id="project-identity" eyebrow="Step 01" title="Details" summary="Manage the project name, location, property details, public introduction, and contributor credits.">
       <div className="space-y-6">
@@ -306,6 +306,7 @@ export default async function ProjectEditorPage({
       </ProjectEditorSection>
 
       <ProjectEditorSection id="project-media" eyebrow="Step 02" title="Media" summary="Upload, organize, and manage every asset that appears throughout this project’s portfolio." status={<p className="text-xs text-white/25">{project._count.media} {project._count.media === 1 ? "asset" : "assets"} saved</p>}>
+          {project.status === "DRAFT" ? <div className="mb-6"><HDPhotoHubImport targetProjectId={project.id} initialSiteId={project.details?.hdphSiteId} /></div> : null}
           <ProjectMediaManager projectId={project.id} services={services} />
           <FilmComparisonClassifier
             projectId={project.id}

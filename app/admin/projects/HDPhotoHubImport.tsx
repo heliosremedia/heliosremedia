@@ -7,8 +7,23 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 type PropertySummary = { siteId: number; title: string; city: string; state: string };
-type Property = PropertySummary & { photos: { mediaId: number; name: string }[] };
-export default function HDPhotoHubImport({ targetProjectId }: { targetProjectId?: string }) {
+export type HDPHSelectedProperty = PropertySummary & { propertyAddress: string; locationLabel: string };
+type Property = HDPHSelectedProperty & { photos: { mediaId: number; name: string }[] };
+function ImportPhotoTile({ siteId, photo, selected, disabled, onChange }: { siteId: number; photo: { mediaId: number; name: string }; selected: boolean; disabled: boolean; onChange: (checked: boolean) => void }) {
+  const [failed, setFailed] = useState(false);
+  return <label className={`relative min-w-0 cursor-pointer overflow-hidden rounded-xl border bg-black/20 transition focus-within:ring-2 focus-within:ring-[var(--helios-orange)] ${selected ? "border-emerald-400/70" : "border-white/15"} ${disabled ? "cursor-wait opacity-60" : "hover:border-white/40"}`}>
+    <input type="checkbox" className="peer sr-only" checked={selected} disabled={disabled} aria-label={`Select ${photo.name}`} onChange={event => onChange(event.target.checked)} />
+    <span className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-white/[0.025]">
+      {failed ? <span className="px-3 text-center text-xs text-white/50">Preview unavailable<br />You can still select this photo</span> :
+        // Same-origin authenticated preview. Provider credentials and rendition URLs stay server-side.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={`/api/admin/projects/hdph-import/thumbnail?siteId=${siteId}&mediaId=${photo.mediaId}`} alt="" loading="lazy" decoding="async" className="h-full w-full object-contain" onError={() => setFailed(true)} />}
+    </span>
+    <span aria-hidden="true" className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border text-sm font-bold shadow ${selected ? "border-emerald-300 bg-emerald-500 text-black" : "border-white/60 bg-black/50 text-transparent"}`}>✓</span>
+    <span className="block truncate px-3 py-2 text-xs text-white/60" title={photo.name}>{photo.name}</span>
+  </label>;
+}
+export default function HDPhotoHubImport({ targetProjectId, initialSiteId, onSelectProperty }: { targetProjectId?: string; initialSiteId?: number | null; onSelectProperty?: (property: HDPHSelectedProperty) => void }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PropertySummary[]>([]);
@@ -38,7 +53,7 @@ export default function HDPhotoHubImport({ targetProjectId }: { targetProjectId?
       const response = await fetch(`/api/admin/projects/hdph-import?siteId=${encodeURIComponent(String(siteId))}`, { cache: "no-store" });
       const result = await response.json();
       if (!response.ok) throw Error(result.error || "Property lookup failed.");
-      setProperty(result); setStatus(`${result.photos.length} eligible photos. Choose what to copy, or import property details only.`);
+      setProperty(result); setStatus(onSelectProperty ? "Review this property and use its details below. Photos are selected later in Media." : `${result.photos.length} eligible photos. Select the photos to add to this draft.`);
     } catch (e) { setError(e instanceof Error ? e.message : "Property lookup failed."); setStatus(""); }
     finally { setBusy(false); }
   }
@@ -53,8 +68,8 @@ export default function HDPhotoHubImport({ targetProjectId }: { targetProjectId?
       return result;
     };
     try {
-      setStatus("Creating or resuming draft…");
-      const draft = await post({ action: "draft" }); setProjectId(draft.projectId);
+      setStatus("Preparing photo import…");
+      const draft = await post({ action: "link" }); setProjectId(draft.projectId);
       for (let i = 0; i < selected.length; i++) { setStatus(`Copying photo ${i + 1} of ${selected.length}…`); const result = await post({ action: "photo", mediaId: selected[i] }); if (result.alreadyImported) existing++; else imported++; }
       if (targetProjectId) window.dispatchEvent(new CustomEvent("helios:project-media-updated", { detail: { projectId: targetProjectId } }));
       router.refresh();
@@ -64,18 +79,29 @@ export default function HDPhotoHubImport({ targetProjectId }: { targetProjectId?
     finally { setBusy(false); }
   }
   return <details className="group/import rounded-2xl border border-white/10 bg-[#111]">
-    <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl p-5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--helios-orange)] [&::-webkit-details-marker]:hidden"><span className="min-w-0 flex-1"><AdminCardHeading inline eyebrow="Optional import" title="Populate from HD Photo Hub" description={`${targetProjectId ? "Add selected photos and fill empty location fields. Existing details are preserved." : "Copy a delivered property into a new Studio draft."} HDPhotoHub stays unchanged, and nothing is published. Manual editing is always available.`} /></span><span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 text-xl font-light text-white/70"><span className="group-open/import:hidden">+</span><span className="hidden group-open/import:inline">−</span></span></summary>
+    <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl p-5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--helios-orange)] [&::-webkit-details-marker]:hidden"><span className="min-w-0 flex-1"><AdminCardHeading inline eyebrow="Optional import" title="Populate from HD Photo Hub" description={`${targetProjectId ? "Import selected photos from your linked property. Existing project details are preserved." : "Choose a delivered property to fill the project identity and location. Photos come later in Media."} HDPhotoHub stays unchanged, and nothing is published. Manual editing is always available.`} /></span><span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 text-xl font-light text-white/70"><span className="group-open/import:hidden">+</span><span className="hidden group-open/import:inline">−</span></span></summary>
     <div className="space-y-4 border-t border-white/10 p-5">
 
+      {initialSiteId && !property && <button type="button" className="admin-btn-primary" disabled={busy} onClick={() => lookup(initialSiteId)}>Load photos from selected HDPhotoHub property #{initialSiteId}</button>}
       <div className="flex flex-wrap items-end gap-3"><label className="min-w-0 flex-1"><span className="block text-xs uppercase tracking-[0.16em] text-[var(--helios-orange)]">Search Address</span><input value={query} onChange={e => { setQuery(e.target.value); setResults([]); setNextOffset(null); setProperty(null); setProjectId(""); setStatus(""); }} disabled={busy} placeholder="Start typing a street address" className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-black/20 px-4 text-white" /></label><button type="button" className="admin-btn-secondary" onClick={() => search()} disabled={busy || query.trim().length < 3}>Search HDPhotoHub</button></div>
       {!!results.length && <ul className="max-h-64 space-y-2 overflow-auto">{results.map(site => <li key={site.siteId}><button type="button" disabled={busy} onClick={() => lookup(site.siteId)} className="w-full rounded-xl border border-white/10 p-3 text-left text-sm text-white hover:border-orange-400">{site.title} · {[site.city,site.state].filter(Boolean).join(", ")}<span className="ml-2 text-xs text-white/40">#{site.siteId}</span></button></li>)}</ul>}
       {nextOffset != null && <button type="button" disabled={busy} className="admin-btn-secondary" onClick={() => search(nextOffset)}>More properties</button>}
       {property && <>
         <p className="text-white">{property.title}<span className="ml-2 text-sm text-white/50">{[property.city,property.state].filter(Boolean).join(", ")}</span></p>
-        <p className="text-xs text-white/45">Property title, location and internal property address are copied. Listing descriptions, contacts, private notes, videos, and hidden or restricted photos are not imported.</p>
-        {!!property.photos.length && <><button type="button" className="admin-btn-link" disabled={busy} onClick={() => { setCompleted(false); setSelected(selected.length === property.photos.length ? [] : property.photos.map(p => p.mediaId)); }}>{selected.length === property.photos.length ? "Clear photo selection" : "Select all eligible photos"}</button><div className="grid max-h-60 gap-2 overflow-auto sm:grid-cols-2">{property.photos.map(photo => <label key={photo.mediaId} className="flex items-center gap-2 text-sm text-white/65"><input type="checkbox" disabled={busy} checked={selected.includes(photo.mediaId)} onChange={e => { setCompleted(false); setSelected(ids => e.target.checked ? [...ids,photo.mediaId] : ids.filter(id => id !== photo.mediaId)); }} />{photo.name}</label>)}</div></>}
+        <p className="text-xs text-white/45">{onSelectProperty ? "Title, location and internal address fill the form for your review. Photos are not imported at this step." : "Only selected photos are added. Your project identity and other edits stay unchanged."} Listing descriptions, contacts, private notes, videos, and hidden or restricted photos are not imported.</p>
+        {onSelectProperty ? <button type="button" className="admin-btn-primary" disabled={busy} onClick={() => { onSelectProperty(property); setStatus("Property details filled in. Review them and create your draft, then select photos in Media. No photos have been imported."); }}>Use property details</button> : <>
+        {!!property.photos.length && <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="text-sm text-white/65">{selected.length} of {property.photos.length} photos selected</span>
+            <button type="button" className="admin-btn-secondary" disabled={busy} onClick={() => { setCompleted(false); setSelected(selected.length === property.photos.length ? [] : property.photos.map(p => p.mediaId)); }}>{selected.length === property.photos.length ? "Clear selection" : "Select all photos"}</button>
+          </div>
+          <div className="grid max-h-[32rem] grid-cols-2 gap-3 overflow-y-auto p-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" aria-label="Photos available to import">
+            {property.photos.map(photo => <ImportPhotoTile key={`${property.siteId}:${photo.mediaId}`} siteId={property.siteId} photo={photo} selected={selected.includes(photo.mediaId)} disabled={busy} onChange={checked => { setCompleted(false); setSelected(ids => checked ? [...ids, photo.mediaId] : ids.filter(id => id !== photo.mediaId)); }} />)}
+          </div>
+        </div>}
         <label className="flex items-start gap-2 text-sm text-white/60"><input type="checkbox" className="mt-1" checked={rights} disabled={busy} onChange={e => setRights(e.target.checked)} />I have permission to copy this property and the selected photos into Helios Studio storage. I will review publication separately.</label>
-        <button type="button" className="admin-btn-primary" disabled={busy || !rights || completed} onClick={run}>{completed ? "Import complete" : busy ? "Importing…" : `${targetProjectId ? "Populate this draft" : "Create / resume draft"}${selected.length ? ` + ${selected.length} photos` : ""}`}</button>
+        <button type="button" className="admin-btn-primary" disabled={busy || !rights || completed || !selected.length} onClick={run}>{completed ? "Import complete" : busy ? "Importing…" : `Import ${selected.length} selected photo${selected.length === 1 ? "" : "s"}`}</button>
+        </>}
       </>}
       {status && <p role="status" className="text-sm text-white/60">{status}</p>}
       {error && <p role="alert" className="text-sm text-red-200">{error}</p>}

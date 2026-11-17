@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 
 import { readProjectCreateInput } from "@/lib/project-create-input";
 
+import { hdphId } from "@/lib/project-hdph-import";
+import { projectHdphReader } from "@/lib/project-hdph-reader";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/auth/session";
 
@@ -57,6 +59,15 @@ export async function createProject(
   catch (error) { return { error: error instanceof Error ? error.message : "Check the project details." }; }
   const { title, slug: requestedSlug, shortDescription, description, city, state, locationLabel, projectType, propertyType, propertyAddress } = input;
 
+  let hdphSiteId: number | null = null;
+  try {
+    const source = formData.get("hdphSiteId");
+    if (source) {
+      hdphSiteId = hdphId(source);
+      // Never trust a browser-supplied source ID across workspaces/brands.
+      await projectHdphReader(session.workspaceId).site(hdphSiteId);
+    }
+  } catch { return { error: "The selected HDPhotoHub property could not be verified. Try again or unlink it to create manually." }; }
   const slug = await createUniqueSlug(requestedSlug || title);
 
   let projectId: string;
@@ -69,7 +80,7 @@ export async function createProject(
         slug,
         shortDescription: shortDescription || null,
         description: description || null,
-        ...(propertyAddress ? { details: { create: { propertyAddress } } } : {}),
+        ...((propertyAddress || hdphSiteId) ? { details: { create: { propertyAddress: propertyAddress || null, hdphSiteId } } } : {}),
         city: city || null,
         state: state || null,
         locationLabel: locationLabel || null,

@@ -38,30 +38,21 @@ export async function POST(request: Request) {
     if (body.rightsConfirmed !== true) return reply({ error: "Confirm you have permission to copy these photos into Studio." },400);
     const siteId = hdphId(body.siteId), reader = projectHdphReader(session.workspaceId);
     if (body.targetProjectId != null && (typeof body.targetProjectId !== "string" || !body.targetProjectId.length || body.targetProjectId.length > 200)) return reply({ error: "Invalid target draft." },400);
-    const projectId = body.targetProjectId || `hdph_${digest(`${session.workspaceId}:${siteId}`)}`;
+    if (!body.targetProjectId) return reply({ error: "Create a draft before importing photos." },400);
+    const projectId = body.targetProjectId;
     const existing = await prisma.project.findUnique({ where: { id: projectId }, select: { id: true, status: true, workspaceId: true } });
     if (existing && (existing.workspaceId !== session.workspaceId || existing.status !== "DRAFT")) return reply({ error: "This property already has a non-draft Studio project. Open it manually; import will not change it." },409);
     if (body.targetProjectId && !existing) return reply({ error: "Target draft was not found." },404);
-    if (body.action === "draft") {
-      const site = await reader.site(siteId);
-      if (body.targetProjectId) {
-        await prisma.$transaction(async tx => {
-          await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${projectId} FOR UPDATE`;
-          const target = await tx.project.findFirst({ where: { id: projectId, workspaceId: session.workspaceId, status: "DRAFT" }, include: { details: true } });
-          if (!target) throw new Error("This project is no longer a draft.");
-          // Fill only empty fields. Never replace an existing title, address, or edited location.
-          await tx.project.update({ where: { id: projectId }, data: {
-            ...(!target.city ? { city: site.city || null } : {}),
-            ...(!target.state ? { state: site.state || null } : {}),
-            ...(!target.locationLabel ? { locationLabel: site.locationLabel || null } : {}),
-            details: { upsert: { create: { propertyAddress: site.propertyAddress }, update: !target.details?.propertyAddress ? { propertyAddress: site.propertyAddress } : {} } },
-          } });
-        });
-        return reply({ projectId });
-      }
-      // Empty update makes repeated clicks/retries resume without replacing any edited fields.
-      const project = await prisma.project.upsert({ where: { id: projectId }, update: {}, create: { id: projectId, workspaceId: session.workspaceId, title: site.title, slug: `hdph-${siteId}-${digest(session.workspaceId).slice(0,8)}`, city: site.city || null, state: site.state || null, locationLabel: site.locationLabel || null, status: "DRAFT", details: { create: { propertyAddress: site.propertyAddress } } }, select: { id: true } });
-      return reply({ projectId: project.id });
+    if (body.action === "link") {
+      if (!body.targetProjectId || !existing) return reply({ error: "Create a draft before importing photos." },400);
+      await reader.site(siteId);
+      await prisma.$transaction(async tx => {
+        await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${projectId} FOR UPDATE`;
+        const target = await tx.project.findFirst({ where: { id: projectId, workspaceId: session.workspaceId, status: "DRAFT" } });
+        if (!target) throw new Error("This project is no longer a draft.");
+        await tx.projectDetails.upsert({ where: { projectId }, create: { projectId, hdphSiteId: siteId }, update: { hdphSiteId: siteId } });
+      });
+      return reply({ projectId });
     }
     if (body.action !== "photo" || !existing) return reply({ error: "Create the import draft first." },400);
     const mediaId = hdphId(body.mediaId), id = `hdph_${digest(`${projectId}:${siteId}:${mediaId}`)}`;

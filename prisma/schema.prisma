@@ -646,6 +646,7 @@ model Project {
   socialImageMedia Media? @relation("ProjectSocialImageMedia", fields: [socialImageMediaId], references: [id], onDelete: SetNull)
 
   media                  Media[]                      @relation("ProjectMedia")
+  copyPackage            ProjectCopyPackage?
   details                ProjectDetails?
   services               ProjectService[]
   tags                   ProjectTag[]
@@ -733,6 +734,8 @@ model ProjectDetails {
 
   // Internal-only lookup value. Never rendered on public project pages.
   propertyAddress String?
+  // Internal-only source selection; media is imported separately after draft creation.
+  hdphSiteId Int?
 
   propertyWebsiteUrl String?
 
@@ -1608,6 +1611,7 @@ model Workspace {
   siteSettings              SiteSettings?
   projectContributors       ProjectContributor[]
   portfolioAnalyticsEvents  PortfolioAnalyticsEvent[]
+  projectCopyPackages       ProjectCopyPackage[]
   projects                  Project[]
   projectAgents             ProjectAgent[]
   communicationClients      CommunicationClientWorkspace[]
@@ -3456,6 +3460,8 @@ model Inquiry {
   phone  String?
 
   propertyAddress String?
+  // Internal-only source selection; media is imported separately after draft creation.
+  hdphSiteId Int?
   city            String?
   state           String?
   postalCode      String?
@@ -3699,4 +3705,19 @@ model EventShareLink {
   tokenHash      String @unique
   encryptedToken String
   createdAt      DateTime @default(now())
+}
+
+// Private Studio working copy. Never selected by public portfolio queries.
+model ProjectCopyPackage {
+  projectId String @id
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  sourceDescription String
+  copy Json
+  revision Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workspaceId])
 }
