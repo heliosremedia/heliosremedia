@@ -23,7 +23,7 @@ export default function EmailStudioTabs({children,clientTools,deliveryHealth,sho
         const target = event.key === "ArrowRight" ? (index+1)%tabs.length : event.key === "ArrowLeft" ? (index+tabs.length-1)%tabs.length : event.key === "Home" ? 0 : event.key === "End" ? tabs.length-1 : -1;
         if (target<0) return;
         event.preventDefault();setActive(tabs[target].id);buttons.current[tabs[target].id]?.focus();
-      }} className={`rounded-xl px-4 py-2.5 text-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--helios-orange)] ${active===tab.id ? "bg-[var(--helios-orange)] text-black" : "text-white/60 hover:bg-white/5 hover:text-white"}`}>{tab.label}</button>)}
+      }} className={`rounded-xl border px-4 py-2.5 text-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--helios-orange)] ${active===tab.id ? "border-[var(--helios-orange)]/50 bg-[var(--helios-orange)]/10 text-white" : "border-transparent text-white/60 hover:bg-white/5 hover:text-white"}`}>{tab.label}</button>)}
     </div>
     {/* Keep the composer mounted: switching sections must never clear an unsaved draft. */}
     <section role="tabpanel" id="email-studio-panel-email" aria-labelledby="email-studio-tab-email" hidden={active!=="email"} tabIndex={0} className="min-w-0 space-y-6">{children}</section>
