@@ -64,6 +64,8 @@ try {
  await page.keyboard.press('Escape');assert.equal(await page.getByRole('menu').count(),0);
  assert.equal(await trigger(page).evaluate(el=>el===document.activeElement),true);
  await trigger(page).click();await page.keyboard.press('Tab');assert.equal(await page.getByRole('menu').count(),0);
+ await trigger(page).click();await page.keyboard.press('Shift+Tab');assert.equal(await page.getByRole('menu').count(),0);
+ assert.equal(await trigger(page).evaluate(el=>el===document.activeElement),true);
  await trigger(page).click();await page.locator('main').click({position:{x:300,y:20}});
  assert.equal(await page.getByRole('menu').count(),0);
  await choose(page,'System');await page.emulateMedia({colorScheme:'dark'});assert.equal(await surface(),'rgb(9, 9, 10)');

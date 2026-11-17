@@ -110,7 +110,10 @@ export default function StudioAppearanceControl() {
         }}>
         <AppearanceIcon value={appearance} />
       </button>
-      {open ? <div id={menuId} role="menu" aria-label="Appearance" className="studio-appearance-menu" onKeyDown={onMenuKeyDown}>
+      {open ? <div id={menuId} role="menu" aria-label="Appearance" className="studio-appearance-menu" onKeyDown={onMenuKeyDown}
+        onBlur={event => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+        }}>
         <p className="studio-appearance-menu-label" aria-hidden="true">Appearance</p>
         {appearances.map((value, index) => <button key={value} ref={node => { optionRefs.current[index] = node; }}
           type="button" role="menuitemradio" aria-checked={appearance === value} tabIndex={-1}
