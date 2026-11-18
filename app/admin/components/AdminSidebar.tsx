@@ -1,6 +1,5 @@
 "use client";
 
-import StudioAppearanceControl from "./StudioAppearance";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -737,7 +736,6 @@ export default function AdminSidebar({
         </nav>
 
         <div className="border-t border-white/[0.08] p-4">
-          <StudioAppearanceControl />
           <Link
             href="/"
             target="_blank"

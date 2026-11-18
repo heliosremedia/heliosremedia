@@ -101,7 +101,7 @@ export default function StudioAppearanceControl() {
     <div ref={rootRef} className="studio-appearance-control" onBlur={event => {
       if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
     }}>
-      <button ref={triggerRef} type="button" className="studio-appearance-trigger"
+      <button ref={triggerRef} type="button" className="admin-btn-icon studio-appearance-trigger"
         aria-label={`Appearance: ${labels[appearance]}`} title={`Appearance: ${labels[appearance]}`}
         aria-haspopup="menu" aria-expanded={open} aria-controls={menuId}
         onClick={() => setOpen(value => !value)}

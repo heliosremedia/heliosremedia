@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { AdminSession } from "@/lib/auth/session";
 import LogoutButton from "./LogoutButton";
+import StudioAppearanceControl from "./StudioAppearance";
 
 type AdminTopbarProps = {
   onMenuOpen: () => void;
@@ -19,7 +20,7 @@ export default function AdminTopbar({
 }: AdminTopbarProps) {
   return (
     <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-white/[0.08] bg-[#09090a]/90 px-5 backdrop-blur-xl sm:px-8 lg:px-10">
-      <div className="flex items-center gap-4">
+      <div className="flex min-w-0 items-center gap-3 sm:gap-4">
         <button
           type="button"
           aria-label={desktopHidden ? "Show sidebar" : "Hide sidebar"}
@@ -54,7 +55,7 @@ export default function AdminTopbar({
           </svg>
         </button>
 
-        <div>
+        <div className="hidden min-w-0 sm:block">
           <p className="text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-white/30">
             {businessName || "Your business"}
           </p>
@@ -65,8 +66,9 @@ export default function AdminTopbar({
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         <div className="hidden text-right md:block"><p className="text-xs text-white/60">{session.displayName}</p><p className="mt-0.5 text-[0.48rem] uppercase tracking-[0.14em] text-white/25">{session.role}</p></div>
+        <StudioAppearanceControl />
         <LogoutButton />
         <Link
           href="/admin/projects/new"
