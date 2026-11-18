@@ -110,6 +110,42 @@ try {
  await page.getByRole('button',{name:'Open navigation',exact:true}).click();
  assert.equal(await page.locator('aside').getByRole('button',{name:/^Appearance:/}).count(),0);
  assert.deepEqual(errors,[]);
+ // Projects tabs retain unsaved real editor state without any writes.
+ await page.setViewportSize({width:1440,height:1000});
+ await page.goto(url);
+ const projectsTab=page.getByRole('tab',{name:'Projects',exact:true});
+ const organizationTab=page.getByRole('tab',{name:'Portfolio Organization',exact:true});
+ assert.equal(await projectsTab.getAttribute('aria-selected'),'true');
+ assert.equal(await page.getByRole('button',{name:'Save Gallery Settings',exact:true}).isVisible(),false);
+ await page.getByLabel('Search fixture projects').fill('Unsubmitted search');
+ let writes=0;
+ await page.route('**/api/admin/**',route=>{writes++;return route.abort();});
+ await organizationTab.click();
+ await page.locator('summary').filter({hasText:'Portfolio Discovery'}).click();
+ await page.getByLabel('Photography button label').fill('Unsaved gallery label');
+ await page.locator('summary').filter({hasText:'Featured Projects'}).click();
+ await page.getByRole('button',{name:'Remove QA Villa from featured projects',exact:true}).click();
+ await projectsTab.click();
+ assert.equal(await page.getByLabel('Search fixture projects').inputValue(),'Unsubmitted search');
+ await organizationTab.click();
+ assert.equal(await page.getByLabel('Photography button label').inputValue(),'Unsaved gallery label');
+ assert.equal(await page.getByRole('button',{name:'Remove QA Villa from featured projects',exact:true}).count(),0);
+ assert.equal(writes,0);
+ await organizationTab.focus();await page.keyboard.press('Home');
+ assert.equal(await projectsTab.getAttribute('aria-selected'),'true');
+ await page.keyboard.press('End');assert.equal(await organizationTab.getAttribute('aria-selected'),'true');
+ for(const width of [320,390,1440]) {
+   await page.setViewportSize({width,height:1000});
+   for(const control of [projectsTab,organizationTab]){const box=await control.boundingBox();assert.ok(box.x>=0&&box.x+box.width<=width);}
+ }
+ await page.setViewportSize({width:1440,height:1000});
+ await page.screenshot({path:`${output}/portfolio-organization-desktop.png`,fullPage:true,animations:'disabled'});
+ await page.goto(url+'#project-results');
+ assert.equal(await projectsTab.getAttribute('aria-selected'),'true');
+ assert.equal(await page.locator('#project-results').isVisible(),true);
+ await page.goto(url+'#projects-workspace-organization');
+ await page.waitForFunction(()=>document.getElementById('projects-workspace-tab-organization')?.getAttribute('aria-selected')==='true');
+ console.log('PASS: Projects/Organization tabs, real editor draft preservation, search preservation, no tab writes, keyboard, anchors, responsive tab bounds.');
  // Bootstrap must also preserve stored Night before hydration can execute.
  const noHydration=await context.newPage();await noHydration.route('**/client.js',r=>r.abort());
  await noHydration.addInitScript(()=>localStorage.setItem('helios-studio-appearance','night'));
