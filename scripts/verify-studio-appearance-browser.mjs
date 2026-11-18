@@ -44,6 +44,16 @@ try {
  assert.equal(await surface(),'rgb(9, 9, 10)');
  await page.screenshot({path:`${output}/night-desktop.png`,fullPage:true,animations:"disabled"});
  await choose(page,'Day');assert.equal(await surface(),'rgb(244, 244, 243)');
+ // Appearance and sign-out share every pointer-state treatment in the header.
+ const iconStyle=locator=>locator.evaluate(el=>{const s=getComputedStyle(el);return [s.backgroundColor,s.borderColor,s.color,s.borderRadius,s.width,s.height]});
+ for(const mode of ['Day','Night']) {
+   await choose(page,mode);
+   await trigger(page).hover();await page.waitForTimeout(250);const appearanceHover=await iconStyle(trigger(page));
+   await page.getByRole('button',{name:'Sign out',exact:true}).hover();await page.waitForTimeout(250);
+   assert.deepEqual(await iconStyle(page.getByRole('button',{name:'Sign out',exact:true})),appearanceHover);
+ }
+ await choose(page,'Day');
+
  assert.equal(await page.locator('main').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(244, 244, 243)');
  assert.equal(await page.getByLabel('Legacy solid black field').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
  assert.notEqual(await page.getByRole('checkbox').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
@@ -73,7 +83,8 @@ try {
  const tab=await context.newPage();await tab.goto(url);await choose(tab,'Night');
  await page.waitForFunction(()=>document.querySelector('.admin-form-scope').dataset.studioAppearance==='night');await tab.close();
  await choose(page,'Day');
- await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'Open navigation',exact:true}).click();
+ await page.setViewportSize({width:390,height:844});
+ assert.equal(await page.locator('header').getByRole('button',{name:/^Appearance:/}).count(),1);
  await page.screenshot({path:`${output}/day-mobile.png`,fullPage:true,animations:"disabled"});
  assert.ok(await trigger(page).isVisible());
  await trigger(page).click();
@@ -84,6 +95,20 @@ try {
  await page.screenshot({path:`${output}/appearance-menu-mobile.png`,fullPage:true,animations:'disabled'});
  await option(page,'Night').click();assert.equal(await surface(),'rgb(9, 9, 10)');
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ // Header remains unclipped at narrow phone widths; the menu opens below it.
+ for (const width of [320,375,768,1440]) {
+   await page.setViewportSize({width,height:844});
+   await trigger(page).click();
+   const menu=await page.getByRole('menu').boundingBox();
+   const button=await trigger(page).boundingBox();
+   assert.ok(menu.x>=0 && menu.x+menu.width<=width && menu.y>=button.y+button.height);
+   assert.ok(button.width>=44 && button.height>=44);
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+   await page.keyboard.press('Escape');
+ }
+ await page.setViewportSize({width:390,height:844});
+ await page.getByRole('button',{name:'Open navigation',exact:true}).click();
+ assert.equal(await page.locator('aside').getByRole('button',{name:/^Appearance:/}).count(),0);
  assert.deepEqual(errors,[]);
  // Bootstrap must also preserve stored Night before hydration can execute.
  const noHydration=await context.newPage();await noHydration.route('**/client.js',r=>r.abort());

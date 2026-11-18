@@ -38,3 +38,9 @@ const output=await postcss([tailwind()]).process(css,{from:'app/admin/studio-app
 assert.ok(output.css.includes('data-studio-appearance'));
 console.log('PASS: preference validation, pre-content bootstrap, blocked storage fallback, compact accessible menu trigger and current preference, focus/touch target contracts, scoped CSS compile.');
 console.log('NOTE: does not replace real-browser hydration, persistence, contrast, or cross-module visual QA.');
+
+const topbar=fs.readFileSync("app/admin/components/AdminTopbar.tsx","utf8");
+const sidebar=fs.readFileSync("app/admin/components/AdminSidebar.tsx","utf8");
+assert.match(topbar, /<StudioAppearanceControl \/>\s*<LogoutButton \/>/);
+assert.ok(!sidebar.includes("StudioAppearanceControl"));
+assert.match(css, /top: calc\(100% \+ \.5rem\); right: 0/);

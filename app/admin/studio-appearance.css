@@ -26,12 +26,12 @@
     color-scheme: light;
   }
 }
-.studio-appearance-control { position: relative; width: max-content; margin: 0 0 .5rem; }
-.studio-appearance-trigger { display: inline-flex; align-items: center; justify-content: center; width: 44px; min-height: 44px; border: 1px solid var(--studio-appearance-border); border-radius: 50%; background: transparent; color: var(--studio-appearance-muted); cursor: pointer; }
+.studio-appearance-control { position: relative; width: max-content; flex-shrink: 0; }
+/* Trigger deliberately inherits the adjacent sign-out button’s shared icon treatment. */
+.studio-appearance-trigger { cursor: pointer; }
 .studio-appearance-trigger svg, .studio-appearance-menu svg { width: 18px; height: 18px; flex-shrink: 0; }
-.studio-appearance-trigger:hover, .studio-appearance-trigger[aria-expanded="true"] { background: var(--studio-appearance-surface); color: var(--studio-appearance-ink); }
-.studio-appearance-trigger:focus-visible, .studio-appearance-menu button:focus-visible { outline: 2px solid var(--studio-appearance-active); outline-offset: 2px; }
-.studio-appearance-menu { position: absolute; z-index: 80; bottom: calc(100% + .5rem); left: 0; width: min(13rem, calc(100vw - 2rem)); padding: .5rem; border: 1px solid var(--studio-appearance-border); border-radius: .85rem; background: var(--studio-appearance-surface); color: var(--studio-appearance-ink); box-shadow: 0 12px 36px rgb(0 0 0 / .18); }
+.studio-appearance-menu button:focus-visible { outline: 2px solid var(--studio-appearance-active); outline-offset: 2px; }
+.studio-appearance-menu { position: absolute; z-index: 80; top: calc(100% + .5rem); right: 0; width: min(13rem, calc(100vw - 2rem)); padding: .5rem; border: 1px solid var(--studio-appearance-border); border-radius: .85rem; background: var(--studio-appearance-surface); color: var(--studio-appearance-ink); box-shadow: 0 12px 36px rgb(0 0 0 / .18); }
 .studio-appearance-menu-label { margin: 0; padding: .25rem .5rem .5rem; color: var(--studio-appearance-muted); font-size: .65rem; line-height: 1.5; letter-spacing: .12em; text-transform: uppercase; }
 .studio-appearance-menu button { display: flex; align-items: center; gap: .75rem; width: 100%; min-height: 44px; padding: .5rem .65rem; border: 1px solid transparent; border-radius: .5rem; background: transparent; color: var(--studio-appearance-ink); font-size: .875rem; text-align: left; cursor: pointer; }
 .studio-appearance-menu button:hover, .studio-appearance-menu button:focus-visible { background: rgb(127 127 127 / .1); }
@@ -40,3 +40,8 @@
 
 /* Artwork and historical email previews are not app chrome. */
 .admin-form-scope [data-studio-fixed-colors] { color-scheme: dark; --foreground: #f5f1ea; }
+
+/* On phones the account actions fill the right side; open toward the trailing controls. */
+@media (max-width: 639px) {
+  .studio-appearance-menu { position: fixed; top: calc(100% + .5rem); left: auto; right: 1rem; }
+}
