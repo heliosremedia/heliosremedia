@@ -43,5 +43,5 @@
 
 /* On phones the account actions fill the right side; open toward the trailing controls. */
 @media (max-width: 639px) {
-  .studio-appearance-menu { left: 0; right: auto; }
+  .studio-appearance-menu { position: fixed; top: calc(100% + .5rem); left: auto; right: 1rem; }
 }
