@@ -30,10 +30,10 @@ test("Each editor tracks its saved snapshot and retains its explicit save contro
   }
 });
 
-test("Featured stays first and the project search/filter controls are accessible", () => {
+test("Featured stays first within Organization and project search/filter controls remain accessible", () => {
   const page = read("../app/admin/projects/page.tsx");
   assert.ok(page.indexOf("<FeaturedProjectsManager") < page.indexOf("<PortfolioDiscoverySettingsManager"));
-  assert.ok(page.indexOf("<PortfolioDiscoverySettingsManager") < page.indexOf("<ProjectListManager"));
+  assert.ok(page.indexOf("<ProjectListManager") < page.indexOf('label: "Portfolio Organization"'));
   assert.match(page, /aria-label="Search projects by title, location, or property address"/);
   assert.match(page, /aria-current=\{activeStatus === option.value/);
 });

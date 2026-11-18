@@ -1,3 +1,6 @@
+import AdminWorkspaceTabs from "../../app/admin/components/AdminWorkspaceTabs";
+import FeaturedProjectsManager from "../../app/admin/projects/FeaturedProjectsManager";
+import PortfolioDiscoverySettingsManager from "../../app/admin/projects/PortfolioDiscoverySettingsManager";
 import AdminShell from "../../app/admin/components/AdminShell";
 export default function Preview() {
  return <AdminShell session={{role:'OWNER',email:'qa@example.com',displayName:'Preview',userId:'preview',sessionVersion:0,workspaceId:'preview',exp:0} as never} initialNavigationFavorites={[]} businessName="Helios Real Estate Media">
@@ -11,5 +14,12 @@ export default function Preview() {
  <input aria-label="Legacy solid black field" className="bg-black p-2 text-white" placeholder="Legacy field" />
  <div className="mt-6 text-sm text-emerald-200">Verified successfully</div><div className="mt-2 text-sm text-red-300">Action required</div>
  </section>
+ <AdminWorkspaceTabs id="projects-workspace" label="Projects workspace sections" tabs={[
+   {id:"projects",label:"Projects",hashAliases:["project-results"],content:<section id="project-results"><label>Search fixture projects<input aria-label="Search fixture projects" /></label><p>Project list fixture</p></section>},
+   {id:"organization",label:"Portfolio Organization",content:<>
+     <FeaturedProjectsManager initialFeatured={[{id:"qa-project",title:"QA Villa",slug:"qa-villa"}]} candidates={[{id:"qa-project",title:"QA Villa",slug:"qa-villa"}]} overLimitCount={1} />
+     <PortfolioDiscoverySettingsManager initialSettings={{photoEnabled:true,filmEnabled:true,photoButtonLabel:"Browse All Photography",filmButtonLabel:"Watch All Films",photoOrderingMode:"ROTATING_MIX",filmOrderingMode:"ROTATING_MIX",initialItemCount:24,excludedProjectIds:[],excludedMediaIds:[]}} projects={[]} media={[]} />
+   </>},
+ ]} />
  </AdminShell>
 }

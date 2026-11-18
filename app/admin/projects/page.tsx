@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getPublicAssetUrl } from "@/lib/r2-upload";
 
 import ProjectListManager from "./ProjectListManager";
+import AdminWorkspaceTabs from "@/app/admin/components/AdminWorkspaceTabs";
 import AdminSummaryCards from "@/app/admin/components/AdminSummaryCards";
 import AdminPageLayout, { AdminPageHeader } from "@/app/admin/components/AdminPageLayout";
 import ThumbnailRepairButton from "./ThumbnailRepairButton";
@@ -211,9 +212,8 @@ export default async function ProjectsPage({
         { label: "Archived", value: countFor("ARCHIVED"), detail: "Retained privately" },
       ]}/>}
     >
-      <div className="space-y-7">
-      <FeaturedProjectsManager initialFeatured={activeFeatured.map(({ id, title, slug }) => ({ id, title, slug }))} candidates={featuredOptions} overLimitCount={activeFeatured.length} />
-      <PortfolioDiscoverySettingsManager initialSettings={discoverySettings} projects={curationProjects.map(({ id, title }) => ({ id, label: title }))} media={curationMedia.map((item) => ({ id: item.id, label: `${item.project.title} · ${item.altText || item.originalFilename || "Untitled asset"}` }))} />
+      <AdminWorkspaceTabs id="projects-workspace" label="Projects workspace sections" tabs={[
+        { id: "projects", label: "Projects", hashAliases: ["project-results"], content: <>
       <ThumbnailRepairButton />
 
       <section id="project-results" aria-label="Project filters and results" className="scroll-mt-24 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 sm:p-5">
@@ -373,7 +373,12 @@ export default async function ProjectsPage({
           ) : null}
         </div>
       </section>
-      </div>
+        </> },
+        { id: "organization", label: "Portfolio Organization", content: <>
+      <FeaturedProjectsManager initialFeatured={activeFeatured.map(({ id, title, slug }) => ({ id, title, slug }))} candidates={featuredOptions} overLimitCount={activeFeatured.length} />
+      <PortfolioDiscoverySettingsManager initialSettings={discoverySettings} projects={curationProjects.map(({ id, title }) => ({ id, label: title }))} media={curationMedia.map((item) => ({ id: item.id, label: `${item.project.title} · ${item.altText || item.originalFilename || "Untitled asset"}` }))} />
+        </> },
+      ]} />
     </AdminPageLayout>
   );
 }
