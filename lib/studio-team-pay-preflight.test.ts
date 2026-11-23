@@ -117,6 +117,7 @@ test("activation-aware default never requests a prior or a not-yet-available wee
 });
 
 const sinkEnv = {VERCEL_ENV:"production",TEAM_PAY_SINK_CHECK_ENABLED:"true",TEAM_PAY_WRITES_ENABLED:"false",TEAM_PAY_EMAILS_ENABLED:"false"};
+const senderAddress = "uploader-mail@example.test";
 const sink = (entries: Array<[string,string]> = [["confirmSink","yes"]], origin = STUDIO_ORIGIN, host = STUDIO_ORIGIN) =>
   new Request(host+check,{method:"POST",headers:{origin},body:new URLSearchParams(entries)});
 
@@ -127,14 +128,14 @@ test("synthetic test is explicit owner-only same-origin POST; GET cannot reach a
     if(q.action==="preflight"){probes++;return {checks};}
     assert.deepEqual(q,{action:"mail-sink-check"});
     posts++;
-    return {sinkAccepted:true};
+    return {sinkAccepted:true,senderAddress};
   };
   const enabled = {readActor:async()=>owner,bridge:b,sinkCheckEnabled:true};
   const preview = await handleStudioPayPreflight(request(),enabled);
   const html=await preview.text();
   assert.match(html,/Run synthetic test/);
   assert.match(html,/does not send email to staff, owners, or customers/);
-  assert.doesNotMatch(html,/example-owner|example-admin|delivered@/);
+  assert.doesNotMatch(html,/example-owner|example-admin|delivered@|uploader-mail@/);
   assert.equal(posts,0);assert.equal(probes,1);
   const blocked = async (r:Request, actor:Actor|null, enabled=true) =>
     handleStudioPayPreflight(r,{readActor:async()=>actor,bridge:noBridge,sinkCheckEnabled:enabled});
@@ -148,11 +149,15 @@ test("synthetic test is explicit owner-only same-origin POST; GET cannot reach a
   assert.equal((await blocked(sink(undefined,STUDIO_ORIGIN,"https://alternate.example.test"),owner)).status,403);
   const accepted=await handleStudioPayPreflight(sink(),enabled);
   assert.equal(accepted.status,200);
-  assert.match(await accepted.text(),/accepted the synthetic test request\. No team or customer email was sent/);
+  const acceptedHtml = await accepted.text();
+  assert.match(acceptedHtml,/accepted the synthetic test request\. No team or customer email was sent/);
+  assert.match(acceptedHtml,/Verified From mailbox: <strong>uploader-mail@example\.test<\/strong>/);
+  assert.doesNotMatch(acceptedHtml,/delivered@|example-owner|example-admin/);
+  assert.match(accepted.headers.get("Cache-Control") ?? "",/private, no-store/);
   assert.equal(posts,1);
   const rejected=await handleStudioPayPreflight(sink(),{...enabled,bridge:async()=>({sinkAccepted:false})});
   assert.equal(rejected.status,503);
-  assert.doesNotMatch(await rejected.text(),/accepted the synthetic/);
+  assert.doesNotMatch(await rejected.text(),/accepted the synthetic|Verified From mailbox|uploader-mail@/);
 });
 
 test("sink transport requires Production, the dedicated flag and both writes/email off",async()=>{
@@ -166,13 +171,27 @@ test("sink transport requires Production, the dedicated flag and both writes/ema
     const noSink=createStudioPayBridge({env,secret:"b".repeat(43),fetcher:async()=>assert.fail("sink must not reach Uploader")});
     await assert.rejects(()=>noSink(owner,{action:"mail-sink-check"}),e=>e instanceof TeamPayBridgeError&&e.status===503);
   }
+  const results = [
+    {sinkAccepted:true,senderAddress},
+    {sinkAccepted:false},
+    {sinkAccepted:true,senderAddress,recipient:"do-not-echo"},
+    {sinkAccepted:true},
+    {sinkAccepted:false,senderAddress},
+    {sinkAccepted:true,senderAddress:"Helios <user@example.test>"},
+    {sinkAccepted:true,senderAddress:"UPLOADER-MAIL@example.test"},
+    {sinkAccepted:true,senderAddress:senderAddress+"\n"},
+    {sinkAccepted:true,senderAddress:[senderAddress]},
+  ];
   const b=createStudioPayBridge({env:sinkEnv,secret:"b".repeat(43),fetcher:async(_url,init)=>{
     calls++;
     assert.deepEqual(JSON.parse(String(init?.body)),{action:"mail-sink-check",actorId:owner.userId,actorRole:"OWNER",email:owner.email});
-    return Response.json(calls===1 ? {sinkAccepted:true} : {sinkAccepted:true,recipient:"do-not-echo"});
+    return Response.json(results[calls-1]);
   }});
   await assert.rejects(()=>b(admin,{action:"mail-sink-check"}),e=>e instanceof TeamPayBridgeError&&e.status===403);
   assert.equal(calls,0);
-  assert.deepEqual(await b(owner,{action:"mail-sink-check"}),{sinkAccepted:true});
-  await assert.rejects(()=>b(owner,{action:"mail-sink-check"}),e=>e instanceof TeamPayBridgeError&&e.status===503);
+  assert.deepEqual(await b(owner,{action:"mail-sink-check"}),{sinkAccepted:true,senderAddress});
+  assert.deepEqual(await b(owner,{action:"mail-sink-check"}),{sinkAccepted:false});
+  for(const _ of results.slice(2)) {
+    await assert.rejects(()=>b(owner,{action:"mail-sink-check"}),e=>e instanceof TeamPayBridgeError&&e.status===503);
+  }
 });

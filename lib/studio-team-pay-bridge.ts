@@ -26,12 +26,26 @@ const preflightCountBounds = {
 } as const;
 const preflightCounts = Object.keys(preflightCountBounds) as Array<keyof typeof preflightCountBounds>;
 export type PayPreflightChecks = Record<typeof preflightBooleans[number], boolean> & Record<typeof preflightCounts[number], number | null>;
-export type WorkResponse = ReviewQueue | { week: Week | null } | { source: PaySource } | { checks: PayPreflightChecks } | { sinkAccepted: boolean };
+export type SinkResult = { sinkAccepted: false } | { sinkAccepted: true; senderAddress: string };
+export type WorkResponse = ReviewQueue | { week: Week | null } | { source: PaySource } | { checks: PayPreflightChecks } | SinkResult;
 export type Bridge = (actor: Actor, request: WorkRequest) => Promise<WorkResponse>;
 
 export function studioPaySinkCheckEnabled(env: NodeJS.ProcessEnv) {
   return env.VERCEL_ENV === "production" && env.TEAM_PAY_SINK_CHECK_ENABLED === "true" &&
     env.TEAM_PAY_WRITES_ENABLED !== "true" && env.TEAM_PAY_EMAILS_ENABLED !== "true";
+}
+
+export function parsePaySinkResult(value: unknown): SinkResult | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const raw = value as Record<string, unknown>;
+  if (!Object.hasOwn(raw, "sinkAccepted")) return null;
+  const count = Object.keys(raw).length;
+  if (raw.sinkAccepted === false && count === 1) return {sinkAccepted:false};
+  if (raw.sinkAccepted !== true || count !== 2 || !Object.hasOwn(raw, "senderAddress")) return null;
+  const sender = raw.senderAddress;
+  if (typeof sender !== "string" || sender.length > 254 || sender !== sender.trim().toLowerCase() ||
+      !/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,63}$/.test(sender)) return null;
+  return {sinkAccepted:true,senderAddress:sender};
 }
 
 export function parsePayPreflightChecks(value: unknown): PayPreflightChecks | null {
@@ -98,9 +112,9 @@ export function createStudioPayBridge({
       const value = await response.json();
       if (!value || typeof value !== "object") throw Error();
       if (request.action === "mail-sink-check") {
-        if (Array.isArray(value) || Object.keys(value).length !== 1 || !Object.hasOwn(value, "sinkAccepted") ||
-            typeof value.sinkAccepted !== "boolean") throw Error();
-        return {sinkAccepted:value.sinkAccepted};
+        const result = parsePaySinkResult(value);
+        if (!result) throw Error();
+        return result;
       }
       if (request.action === "preflight") {
         if (Array.isArray(value) || Object.keys(value).length !== 1 || !Object.hasOwn(value, "checks")) throw Error();

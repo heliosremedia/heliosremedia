@@ -1,4 +1,4 @@
-import { canReadPay, parsePayPreflightChecks, TeamPayBridgeError, type Actor, type Bridge, type PayKind, type PayLine, type ReviewQueue, type Week, type PaySource, type PayPreflightChecks } from "./studio-team-pay-bridge.ts";
+import { canReadPay, parsePayPreflightChecks, parsePaySinkResult, TeamPayBridgeError, type Actor, type Bridge, type PayKind, type PayLine, type ReviewQueue, type Week, type PaySource, type PayPreflightChecks } from "./studio-team-pay-bridge.ts";
 
 const PATH = "/admin/team-pay";
 const PREFLIGHT_PATH = PATH + "/preflight";
@@ -288,9 +288,9 @@ export async function handleStudioPayPreflight(request: Request, {
       if ([...form].length !== 1 || form.get("confirmSink") !== "yes") {
         return page(title,"<p>Confirm the synthetic email test in Studio.</p>"+back,422);
       }
-      const outcome = await bridge(actor,{action:"mail-sink-check"});
-      if ("sinkAccepted" in outcome && outcome.sinkAccepted === true) {
-        return page(title,'<p class="notice" role="status">Resend accepted the synthetic test request. No team or customer email was sent. Acceptance does not confirm real delivery.</p>'+back);
+      const outcome = parsePaySinkResult(await bridge(actor,{action:"mail-sink-check"}));
+      if (outcome?.sinkAccepted === true) {
+        return page(title,`<div class="notice" role="status"><p>Resend accepted the synthetic test request. No team or customer email was sent. Acceptance does not confirm real delivery.</p><p>Verified From mailbox: <strong>${esc(outcome.senderAddress)}</strong></p></div>`+back);
       }
       return page(title,'<p class="notice" role="status">Resend did not confirm the synthetic test request.</p>'+back,503);
     }
