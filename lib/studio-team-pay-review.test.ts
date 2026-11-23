@@ -31,6 +31,7 @@ test("admin sees exact protected submission without authority to submit a forged
   const opts = {readActor:async()=>admin,bridge,clock};
   const r = await handleStudioPay(get(target+"&revision=3"),opts);
   const html = await r.text();
+  assert.equal(r.headers.get("Referrer-Policy"),"no-referrer");
   assert.match(html,/Awaiting owner approval/);
   assert.match(html,/\$150\.00/);
   assert.match(html,/&lt;x&gt; Completed service/);
@@ -47,6 +48,7 @@ test("owner sees stale notice and stale writer never appears successful",async()
   }) as Bridge};
   const staleLink = await handleStudioPay(get(target+"&revision=2"),opts);
   const html = await staleLink.text();
+  assert.equal(staleLink.headers.get("Referrer-Policy"),"no-referrer");
   assert.match(html,/no longer current/);
   assert.doesNotMatch(html,/Approve signed revision|Completed service/);
   const stalePost = await handleStudioPay(form("review",{confirmApproval:"yes",expectedRevision:"2"}),opts);
@@ -64,11 +66,30 @@ test("owner posts confirmation only after close and only from Studio origin",asy
   assert.equal(current.status,422);
   const foreign=await handleStudioPay(form("review",{confirmApproval:"yes"},"https://another.heliosrealestatemedia.com"),opts);
   assert.equal(foreign.status,403);
+  assert.equal((await handleStudioPay(form("review",{confirmApproval:"yes"},"null"),opts)).status,403);
+  assert.equal((await handleStudioPay(new Request(STUDIO_ORIGIN+"/admin/team-pay",{method:"POST",body:new URLSearchParams({confirmApproval:"yes"})}),opts)).status,403);
   assert.equal(writes.length,0);
   const approved=await handleStudioPay(form("review",{confirmApproval:"yes"}),opts);
   assert.equal(approved.status,303);
   assert.match(approved.headers.get("location")!,/saved=approved/);
   assert.deepEqual(writes,[{action:"review",memberId,weekStart,expectedRevision:3,decision:"approve"}]);
+});
+
+test("only form-bearing pay-review pages permit the browser to preserve same-origin POST Origin",async()=>{
+  const opts = {readActor:async()=>owner,clock,writesEnabled:true,bridge};
+  const verify = async (label: RegExp, fixture = opts) => {
+    const r=await handleStudioPay(get(),fixture);
+    assert.equal(r.headers.get("Referrer-Policy"),"same-origin");
+    assert.match(r.headers.get("Content-Security-Policy")??"",/form-action 'self'/);
+    assert.match(await r.text(),label);
+  };
+  await verify(/Approve signed revision/);
+  await verify(/Save weekly draft/,{...opts,bridge:async(a,q)=>q.action==='get'?{week:{...existing,status:'draft'}}:bridge(a,q)});
+  const list=await handleStudioPay(get(`/admin/team-pay?week=${weekStart}`),opts);
+  assert.equal(list.headers.get("Referrer-Policy"),"no-referrer");
+  assert.doesNotMatch(await list.text(),/<form/);
+  const readOnly=await handleStudioPay(get(),{...opts,writesEnabled:false});
+  assert.equal(readOnly.headers.get("Referrer-Policy"),"no-referrer");
 });
 
 test("owner can save a specialty review hold, not release it or attribute duplicate/future lines",async()=>{
