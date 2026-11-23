@@ -132,6 +132,8 @@ test("synthetic test is explicit owner-only same-origin POST; GET cannot reach a
   };
   const enabled = {readActor:async()=>owner,bridge:b,sinkCheckEnabled:true};
   const preview = await handleStudioPayPreflight(request(),enabled);
+  assert.equal(preview.headers.get("Referrer-Policy"),"same-origin");
+  assert.match(preview.headers.get("Content-Security-Policy") ?? "", /form-action 'self'; frame-ancestors 'none'/);
   const html=await preview.text();
   assert.match(html,/Run synthetic test/);
   assert.match(html,/does not send email to staff, owners, or customers/);
@@ -146,6 +148,8 @@ test("synthetic test is explicit owner-only same-origin POST; GET cannot reach a
   assert.equal((await blocked(sink([["confirmSink","yes"],["recipient","customer@example.test"]]),owner)).status,422);
   assert.equal((await blocked(sink([["confirmSink","yes"],["confirmSink","yes"]]),owner)).status,422);
   assert.equal((await blocked(sink(undefined,"https://other.example.test"),owner)).status,403);
+  assert.equal((await blocked(sink(undefined,"null"),owner)).status,403);
+  assert.equal((await blocked(new Request(STUDIO_ORIGIN+check,{method:"POST",body:new URLSearchParams({confirmSink:"yes"})}),owner)).status,403);
   assert.equal((await blocked(sink(undefined,STUDIO_ORIGIN,"https://alternate.example.test"),owner)).status,403);
   const accepted=await handleStudioPayPreflight(sink(),enabled);
   assert.equal(accepted.status,200);
@@ -154,6 +158,10 @@ test("synthetic test is explicit owner-only same-origin POST; GET cannot reach a
   assert.match(acceptedHtml,/Verified From mailbox: <strong>uploader-mail@example\.test<\/strong>/);
   assert.doesNotMatch(acceptedHtml,/delivered@|example-owner|example-admin/);
   assert.match(accepted.headers.get("Cache-Control") ?? "",/private, no-store/);
+  assert.equal(accepted.headers.get("Referrer-Policy"),"no-referrer");
+  const readOnly=await handleStudioPayPreflight(request(),{...enabled,sinkCheckEnabled:false});
+  assert.equal(readOnly.headers.get("Referrer-Policy"),"no-referrer");
+  assert.doesNotMatch(await readOnly.text(),/<form/);
   assert.equal(posts,1);
   const rejected=await handleStudioPayPreflight(sink(),{...enabled,bridge:async()=>({sinkAccepted:false})});
   assert.equal(rejected.status,503);
