@@ -10,6 +10,8 @@ export type WorkRequest =
   | { action: "list"; weekStart: string }
   | { action: "preflight" }
   | { action: "mail-sink-check" }
+  | { action: "photographer-preview-members" }
+  | { action: "photographer-preview"; memberId: string; section: "week" | "pay"; weekStart?: string }
   | ({ action: "get" | "sources" } & WorkTarget)
   | ({ action: "save"; expectedRevision: number; lines: PayLine[]; ready: boolean; noWork: boolean; reconciled: boolean } & WorkTarget)
   | ({ action: "review"; expectedRevision: number; decision: "approve" } & WorkTarget);
@@ -27,7 +29,8 @@ const preflightCountBounds = {
 const preflightCounts = Object.keys(preflightCountBounds) as Array<keyof typeof preflightCountBounds>;
 export type PayPreflightChecks = Record<typeof preflightBooleans[number], boolean> & Record<typeof preflightCounts[number], number | null>;
 export type SinkResult = { sinkAccepted: false } | { sinkAccepted: true; senderAddress: string };
-export type WorkResponse = ReviewQueue | { week: Week | null } | { source: PaySource } | { checks: PayPreflightChecks } | SinkResult;
+export type PhotographerPreview = { memberId: string; section: "week" | "pay"; weekStart: string | null; html: string };
+export type WorkResponse = { photographers: ReviewQueue["enrolled"] } | { preview: PhotographerPreview } | ReviewQueue | { week: Week | null } | { source: PaySource } | { checks: PayPreflightChecks } | SinkResult;
 export type Bridge = (actor: Actor, request: WorkRequest) => Promise<WorkResponse>;
 
 export function studioPaySinkCheckEnabled(env: NodeJS.ProcessEnv) {
@@ -83,7 +86,8 @@ export function createStudioPayBridge({
   return async (actor, request) => {
     const writes = request.action === "save" || request.action === "review";
     const fixedScope = request.action === "preflight" || request.action === "mail-sink-check";
-    if (!canReadPay(actor) || ((writes || fixedScope) && actor.role !== "OWNER")) {
+    const preview = request.action === "photographer-preview" || request.action === "photographer-preview-members";
+    if (!canReadPay(actor) || ((writes || fixedScope || preview) && actor.role !== "OWNER")) {
       throw new TeamPayBridgeError(403);
     }
     if (writes && env.TEAM_PAY_WRITES_ENABLED !== "true") throw new TeamPayBridgeError(503);
@@ -121,6 +125,28 @@ export function createStudioPayBridge({
         const checks = parsePayPreflightChecks(value.checks);
         if (!checks) throw Error();
         return { checks };
+      }
+      if (request.action === "photographer-preview-members") {
+        if (Object.keys(value).join() !== "photographers" || !Array.isArray(value.photographers) || value.photographers.length > 20)
+          throw Error();
+        const seen = new Set<string>();
+        for (const p of value.photographers) {
+          if (!p || Object.keys(p).sort().join() !== "id,name" || typeof p.id !== "string" || !/^[a-zA-Z0-9_-]{1,100}$/.test(p.id) ||
+              typeof p.name !== "string" || !p.name.trim() || p.name.length > 160 || /[\u0000-\u001f\u007f]/.test(p.name) || seen.has(p.id)) throw Error();
+          seen.add(p.id);
+        }
+        return { photographers: value.photographers };
+      }
+      if (request.action === "photographer-preview") {
+        const v = value.preview;
+        if (Object.keys(value).join() !== "preview" || !v || Object.keys(v).sort().join() !== "html,memberId,section,weekStart" ||
+            v.memberId !== request.memberId || v.section !== request.section ||
+            (request.weekStart !== undefined && v.weekStart !== request.weekStart) ||
+            (request.section === "week" ? v.weekStart !== null : !(v.weekStart === null || typeof v.weekStart === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v.weekStart))) ||
+            typeof v.html !== "string" || Buffer.byteLength(v.html) > 300_000 ||
+            !v.html.startsWith('<!doctype html><html lang="en" data-brand="helios" data-appearance-surface="studio">') ||
+            /<(?:form|iframe|object|embed|base)\b/i.test(v.html)) throw Error();
+        return { preview: v };
       }
       if (request.action === "list") {
         if (!Array.isArray(value.enrolled) || !Array.isArray(value.weeks) || value.enrolled.length > 20 || value.weeks.length > 20) throw Error();

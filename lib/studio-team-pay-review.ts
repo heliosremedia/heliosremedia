@@ -3,6 +3,7 @@ import { canReadPay, parsePayPreflightChecks, parsePaySinkResult, TeamPayBridgeE
 
 const PATH = "/admin/team-pay";
 const PREFLIGHT_PATH = PATH + "/preflight";
+const PHOTOGRAPHER_PREVIEW_PATH = PATH + "/photographer-preview";
 export const STUDIO_ORIGIN = "https://www.heliosrealestatemedia.com";
 const bounds = 96_000;
 const MAX_ROWS = 40;
@@ -50,16 +51,16 @@ const studioCss = `@font-face{font-family:Helios;src:url(/fonts/helios.otf) form
 *{box-sizing:border-box}body{margin:0;background:var(--wash);color:var(--ink);font:1rem/1.55 Helios,Arial,sans-serif}a{color:var(--accent)}a:hover{text-decoration:none}a:focus-visible,input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .skip{position:fixed;top:.5rem;left:.5rem;z-index:10;transform:translateY(-150%);background:var(--paper);padding:.65rem}.skip:focus{transform:none}
 .studio-shell{display:grid;grid-template-columns:minmax(13rem,16rem) minmax(0,1fr);min-height:100vh}.studio-workspace{min-width:0}.studio-rail{position:sticky;top:0;height:100dvh;overflow-y:auto;padding:1.6rem 1.2rem;background:var(--rail);color:#f5f1ea}.studio-mark{text-decoration:none;color:#f5f1ea;font:1.6rem/1.05 Georgia,serif;letter-spacing:.14em;display:inline-block}.studio-mark span{font:700 .6rem/1.4 Helios,Arial,sans-serif;display:block;letter-spacing:.24em;color:#c8c1b8;margin-top:.4rem}.rail-label{font-size:.66rem;text-transform:uppercase;letter-spacing:.16em;color:#b8b2aa;margin:2rem .6rem .45rem}.studio-rail nav{display:grid;gap:.2rem}.studio-rail nav a{display:flex;align-items:center;min-height:44px;text-decoration:none;color:#c8c1b8;padding:.4rem .75rem;border-radius:.4rem}.studio-rail nav a:hover{background:#ffffff0a;color:#f5f1ea}.studio-rail nav a[aria-current="page"]{background:#ffffff12;box-shadow:inset 2px 0 var(--warm);color:#f5f1ea}.studio-rail nav a:focus-visible,.studio-mark:focus-visible{outline-color:#f4a16f}
-.studio-top{position:sticky;top:0;z-index:4;min-height:80px;border-bottom:1px solid var(--line);background:var(--wash);padding:.65rem clamp(1rem,4vw,2.5rem);display:flex;align-items:center;justify-content:space-between;gap:.85rem}.studio-context{min-width:0}.studio-context strong{display:block;font-size:.67rem;line-height:1.3;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}.studio-context span{display:block;margin-top:.2rem;font-size:.87rem}.studio-actions{display:flex;flex:none;align-items:center;gap:.65rem}
+.studio-top{position:sticky;top:0;z-index:4;min-height:80px;border-bottom:1px solid var(--line);background:var(--wash);padding:.65rem clamp(1rem,4vw,2.5rem);display:flex;align-items:center;justify-content:space-between;gap:.85rem}.studio-context{min-width:0}.studio-context strong{display:block;font-size:.67rem;line-height:1.3;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}.studio-context span{display:block;margin-top:.2rem;font-size:.87rem}.studio-actions{display:flex;flex:none;align-items:center;gap:.65rem}.studio-actions .studio-escape{width:auto;border-radius:999px;padding-inline:.65rem;gap:.3rem;font-size:.8rem}.studio-escape svg{width:14px;height:14px}.photographer-entry{margin:0 0 1.05rem}.photographer-entry a{border-color:var(--control-border);color:var(--accent)}
 main{width:min(74rem,100%);margin:auto;padding:clamp(1rem,4vw,3.25rem);min-width:0}h1,h2,p{margin:0}h1,h2{font-family:Georgia,"Times New Roman",serif;font-weight:400;line-height:1.11}h1{font-size:clamp(2.35rem,4.9vw,4rem);margin:.28rem 0 .55rem;letter-spacing:-.035em}h2{font-size:clamp(1.42rem,2.8vw,1.95rem);margin:0 0 .55rem}.eyebrow{font-size:.73rem;letter-spacing:.13em;text-transform:uppercase;color:var(--accent);font-weight:700}.review-heading{margin-bottom:1.5rem}.period,.muted{color:var(--muted)}.period{font-size:.92rem}.card{background:var(--paper);border:1px solid var(--line);border-radius:.75rem;padding:clamp(.9rem,3vw,1.45rem);margin:1rem 0;min-width:0}.card p+p{margin-top:.75rem}.card>p+form,.card>ul+form{margin-top:.8rem}.card>p:first-of-type+h2{margin-top:.65rem}
 .actions{display:flex;gap:.5rem;flex-wrap:wrap;margin:.75rem 0 0}.actions a,button.primary{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:.45rem .8rem;border-radius:.55rem;border:1px solid var(--control-border);background:var(--paper);color:var(--ink);text-decoration:none;font-weight:700;font-size:.84rem;cursor:pointer}.actions a:hover,button.primary:hover{border-color:var(--warm);background:var(--hover);color:var(--ink)}button.primary{background:var(--primary);color:var(--primary-ink);border-color:var(--primary)}
 ul{padding-left:1.25rem}.rows{list-style:none;padding:0;margin:.6rem 0}.rows>li{padding:.8rem 0;border-bottom:1px solid var(--line)}.rows>li:last-child{border-bottom:0}.row-title{display:flex;justify-content:space-between;gap:.65rem;align-items:baseline;min-width:0;flex-wrap:wrap}.row-title a{font-weight:700;text-decoration:none}.row-title a:hover{text-decoration:underline}.row-title h2{margin:0}.badge{background:var(--soft);color:var(--accent);padding:.25rem .65rem;border-radius:999px;font-size:.82rem;white-space:normal}.notice{margin:.6rem 0;border-left:3px solid var(--warm);border-radius:.35rem;padding:.55rem .75rem;background:var(--soft);font-size:.91rem}.correction{white-space:pre-wrap;overflow-wrap:anywhere}.line-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(11.9rem,100%),1fr));gap:.65rem;margin-top:.75rem}label{display:block}input:not([type=checkbox]),select{display:block;margin-top:3px;width:100%;font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--control-border);padding:.5rem;border-radius:.4rem;min-height:44px}input[type=checkbox]{accent-color:var(--accent)}details{margin:.6rem 0;padding:.55rem .75rem;border:1px solid var(--line);border-radius:.55rem}summary{cursor:pointer}.checks label{margin:.65rem 0}[aria-current]{font-weight:700}
 @media(max-width:760px){.studio-shell{display:block}.studio-rail{position:static;height:auto;overflow:visible;padding:.65rem 1rem}.studio-mark{font-size:1.1rem}.studio-mark span{display:inline;margin-left:.5rem}.rail-label{display:none}.studio-rail nav{display:flex;flex-wrap:wrap;margin-top:.4rem}.studio-rail nav a{padding-inline:.55rem;font-size:.84rem}.studio-top{min-height:58px;position:relative}.studio-top .studio-context strong{letter-spacing:.1em}.studio-actions{gap:.4rem}.pay-review{padding-top:1.35rem}}
 `;
-const studioBack = '<a class="pay-icon-link" href="/admin" aria-label="Back to Studio" title="Back to Studio"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 12H4m6-6-6 6 6 6"/></svg></a>';
-function page(title: string, content: string, status = 200, head = false, ownForm = false) {
-  const nav = '<nav aria-label="Studio workspace"><a href="/admin">Dashboard</a><a href="/admin/production-console">Uploader</a><a href="/admin/team-pay" aria-current="page">Team Pay Review</a></nav>';
-  return new Response(head ? null : `<!doctype html><html lang="en" data-appearance-surface="studio"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#0f0f10"><title>${esc(title)} | Helios Studio</title><script>${appearanceScript}</script><style>${studioCss}${appearanceCss}</style></head><body><a class="skip" href="#main">Skip to content</a><div class="studio-shell"><aside class="studio-rail"><a class="studio-mark" href="/admin">HELIOS<span>STUDIO</span></a><p class="rail-label">Workspace</p>${nav}</aside><div class="studio-workspace"><header class="studio-top"><div class="studio-context"><strong>Helios Real Estate Media</strong><span>Studio workspace</span></div><div class="studio-actions">${appearanceControl}${studioBack}</div></header><main id="main" tabindex="-1" class="pay-review"><header class="review-heading"><p class="eyebrow">Helios Team Portal</p><h1>${esc(title)}</h1><p class="muted">Review photographer visits and manage weekly sign-off.</p></header>${content}</main></div></div></body></html>`, {
+const studioBack = '<a class="pay-icon-link studio-escape" href="/admin" aria-label="Back to Studio" title="Back to Studio"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 12H4m6-6-6 6 6 6"/></svg><span>Studio</span></a>';
+export function renderStudioPayPage(title: string, content: string, status = 200, head = false, ownForm = false) {
+  const nav = '<nav aria-label="Studio destinations"><a href="/admin/team-pay" aria-current="page">Team Pay Review</a><a href="/admin/production-console">Uploader</a></nav>';
+  return new Response(head ? null : `<!doctype html><html lang="en" data-appearance-surface="studio"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#0f0f10"><title>${esc(title)} | Helios Studio</title><script>${appearanceScript}</script><style>${studioCss}${appearanceCss}</style></head><body><a class="skip" href="#main">Skip to content</a><div class="studio-shell"><aside class="studio-rail"><div class="studio-mark">HELIOS<span>STUDIO</span></div><p class="rail-label">Workspace</p>${nav}</aside><div class="studio-workspace"><header class="studio-top"><div class="studio-context"><strong>Helios Real Estate Media</strong><span>Studio workspace</span></div><div class="studio-actions">${appearanceControl}${studioBack}</div></header><main id="main" tabindex="-1" class="pay-review"><header class="review-heading"><p class="eyebrow">Helios Team Portal</p><h1>${esc(title)}</h1><p class="muted">Review photographer visits and manage weekly sign-off.</p></header>${content}</main></div></div></body></html>`, {
     status, headers: {...headers, ...(ownForm ? {"Referrer-Policy":"same-origin"} : {}), "Content-Type": "text/html; charset=utf-8" },
   });
 }
@@ -173,7 +174,7 @@ function statusView(status: number, week: string, id?: string, ownerPreflight = 
     status === 404 ? ["Review not found", "This photographer or week is not available."] :
     status === 403 ? ["Access denied", "This action requires authorized Helios Studio access."] :
     ["Pay Review unavailable", "The Team Pay service did not confirm the request. Check the current revision before trying again."];
-  return page(title, `<section class="card"><p>${esc(message)}</p><a href="${esc(link(week,id))}">Back to Pay Review</a>${ownerPreflight}</section>`, status);
+  return renderStudioPayPage(title, `<section class="card"><p>${esc(message)}</p><a href="${esc(link(week,id))}">Back to Pay Review</a>${ownerPreflight}</section>`, status);
 }
 
 export async function handleStudioPay(request: Request, {
@@ -196,13 +197,14 @@ export async function handleStudioPay(request: Request, {
     const actor = await readActor();
     if (!actor) return request.method === "GET" || request.method === "HEAD" ? redirect("/login?"+new URLSearchParams({next:todayPath})) : statusView(403,week);
     if (!canReadPay(actor)) return statusView(403,week);
+    const photographerView = actor.role === "OWNER" ? `<nav class="actions photographer-entry" aria-label="Photographer perspective"><a href="${PHOTOGRAPHER_PREVIEW_PATH}">View as photographer</a></nav>` : "";
     const canWrite = writesEnabled === true && actor.role === "OWNER";
     const shadow = writesEnabled === true ? "" : '<p class="notice" role="status">Read-only rollout check. Saving, approval and release actions are disabled.</p>';
     preflight = actor.role === "OWNER" ? `<p><a href="${PREFLIGHT_PATH}">Check rollout readiness</a></p>` : "";
-    if (request.method === "HEAD") return page("Team Pay Review","",200,true);
+    if (request.method === "HEAD") return renderStudioPayPage("Team Pay Review","",200,true);
     if (request.method === "POST") {
       if (actor.role !== "OWNER" || request.headers.get("origin") !== STUDIO_ORIGIN) return statusView(403,week);
-      if (!canWrite) return page("Team Pay Review is read-only",shadow+preflight,503);
+      if (!canWrite) return renderStudioPayPage("Team Pay Review is read-only",shadow+preflight,503);
       const form = await formData(request);
       const target = form.get("memberId");
       const start = form.get("weekStart");
@@ -226,11 +228,11 @@ export async function handleStudioPay(request: Request, {
     }
     if (request.method !== "GET") return new Response(null,{status:405, headers:{...headers,Allow:"GET, HEAD, POST"}});
     if ((rawWeek !== null && rawWeek !== week) || (id !== null && !idOk) || (revision !== null && (!idOk || !revisionId(revision) || Number(revision) === 0))) return statusView(422,week,idOk);
-    if (activation && activation > current) return page("Team Pay Review",`<section class="card"><p>My Pay opens the week of ${esc(dateLabel(activation))}. This view is read-only until then.</p></section>`+preflight);
+    if (activation && activation > current) return renderStudioPayPage("Team Pay Review",photographerView+`<section class="card"><p>My Pay opens the week of ${esc(dateLabel(activation))}. This view is read-only until then.</p></section>`+preflight);
     const queue = await bridge(actor,{action:"list",weekStart:week});
     if (!("enrolled" in queue)) return statusView(503,week,idOk,preflight);
-    const nav = shadow+(writesEnabled ? "" : preflight)+`<p class="period">Week of ${esc(dateLabel(week))} to ${esc(dateLabel(addDays(week,6)))} · Mountain Time</p><nav class="actions" aria-label="Pay review weeks">${!activation || week > activation ? `<a href="${esc(link(addDays(week,-7)))}">Earlier week</a>` : ""}${week < current ? `<a href="${esc(link(addDays(week,7)))}">Later week</a>` : ""}${idOk ? `<a href="${esc(link(week))}">All photographers</a>` : ""}</nav>`;
-    if (!idOk) return page("Team Pay Review",nav+listView(queue,week));
+    const nav = photographerView+shadow+(writesEnabled ? "" : preflight)+`<p class="period">Week of ${esc(dateLabel(week))} to ${esc(dateLabel(addDays(week,6)))} · Mountain Time</p><nav class="actions" aria-label="Pay review weeks">${!activation || week > activation ? `<a href="${esc(link(addDays(week,-7)))}">Earlier week</a>` : ""}${week < current ? `<a href="${esc(link(addDays(week,7)))}">Later week</a>` : ""}${idOk ? `<a href="${esc(link(week))}">All photographers</a>` : ""}</nav>`;
+    if (!idOk) return renderStudioPayPage("Team Pay Review",nav+listView(queue,week));
     const owner = queue.enrolled.find(m=>m?.id===idOk);
     if (!owner) return statusView(404,week);
     const detail = await bridge(actor,{action:"get",memberId:idOk,weekStart:week});
@@ -249,7 +251,7 @@ export async function handleStudioPay(request: Request, {
     const saved = url.searchParams.get("saved");
     const notice = saved==="approved" && w?.status==="approved" ? "This signed revision is approved. No payment was issued." : saved==="draft" && w?.status==="draft" ? "Draft saved. No payment was issued." : "";
     const detailHtml = detailView(w,owner.name,week,canWrite,idOk,url.searchParams.get("expanded")==="1",revision===null ? undefined : Number(revision),notice,source);
-    return page("Team Pay Review",nav+detailHtml,200,false,canWrite && detailHtml.includes(`<form method="post" action="${PATH}">`));
+    return renderStudioPayPage("Team Pay Review",nav+detailHtml,200,false,canWrite && detailHtml.includes(`<form method="post" action="${PATH}">`));
   } catch (error) { return statusView(error instanceof TeamPayBridgeError ? error.status : 503,week,idOk,preflight); }
 }
 
@@ -280,36 +282,36 @@ export async function handleStudioPayPreflight(request: Request, {
 }: {readActor:()=>Promise<Actor|null>;bridge:Bridge;sinkCheckEnabled?:boolean}) {
   const title = "Team Pay rollout readiness";
   const url = new URL(request.url);
-  if (url.pathname !== PREFLIGHT_PATH) return page("Not found","",404);
+  if (url.pathname !== PREFLIGHT_PATH) return renderStudioPayPage("Not found","",404);
   if (!["GET","HEAD","POST"].includes(request.method)) return new Response(null,{status:405,headers:{...headers,Allow:"GET, HEAD, POST"}});
-  if (url.search) return page(title,"<p>This check does not accept filters.</p>",400,request.method==="HEAD");
+  if (url.search) return renderStudioPayPage(title,"<p>This check does not accept filters.</p>",400,request.method==="HEAD");
   const post = request.method === "POST";
   const canonical = url.origin === STUDIO_ORIGIN;
   const back = `<p><a href="${PREFLIGHT_PATH}">Back to rollout readiness</a></p>`;
   if (post && (!canonical || request.headers.get("origin") !== STUDIO_ORIGIN)) {
-    return page("Access denied","<p>Launch the test from Helios Studio.</p>",403);
+    return renderStudioPayPage("Access denied","<p>Launch the test from Helios Studio.</p>",403);
   }
   try {
     const actor = await readActor();
-    if (!actor) return post ? page("Access denied",back,403) : redirect("/login?"+new URLSearchParams({next:PREFLIGHT_PATH}));
-    if (!canReadPay(actor) || actor.role !== "OWNER") return page("Access denied","<p>Only the designated Studio owner can run this check.</p>",403,request.method==="HEAD");
-    if (request.method === "HEAD") return page(title,"",200,true);
+    if (!actor) return post ? renderStudioPayPage("Access denied",back,403) : redirect("/login?"+new URLSearchParams({next:PREFLIGHT_PATH}));
+    if (!canReadPay(actor) || actor.role !== "OWNER") return renderStudioPayPage("Access denied","<p>Only the designated Studio owner can run this check.</p>",403,request.method==="HEAD");
+    if (request.method === "HEAD") return renderStudioPayPage(title,"",200,true);
     if (post) {
-      if (sinkCheckEnabled !== true) return page(title,"<p>The synthetic email test is off.</p>"+back,503);
+      if (sinkCheckEnabled !== true) return renderStudioPayPage(title,"<p>The synthetic email test is off.</p>"+back,503);
       let form: URLSearchParams;
       try {
         form=await formData(request,64);
       } catch {
-        return page(title,"<p>Confirm the synthetic email test in Studio.</p>"+back,422);
+        return renderStudioPayPage(title,"<p>Confirm the synthetic email test in Studio.</p>"+back,422);
       }
       if ([...form].length !== 1 || form.get("confirmSink") !== "yes") {
-        return page(title,"<p>Confirm the synthetic email test in Studio.</p>"+back,422);
+        return renderStudioPayPage(title,"<p>Confirm the synthetic email test in Studio.</p>"+back,422);
       }
       const outcome = parsePaySinkResult(await bridge(actor,{action:"mail-sink-check"}));
       if (outcome?.sinkAccepted === true) {
-        return page(title,`<div class="notice" role="status"><p>Resend accepted the synthetic test request. No team or customer email was sent. Acceptance does not confirm real delivery.</p><p>Verified From mailbox: <strong>${esc(outcome.senderAddress)}</strong></p></div>`+back);
+        return renderStudioPayPage(title,`<div class="notice" role="status"><p>Resend accepted the synthetic test request. No team or customer email was sent. Acceptance does not confirm real delivery.</p><p>Verified From mailbox: <strong>${esc(outcome.senderAddress)}</strong></p></div>`+back);
       }
-      return page(title,'<p class="notice" role="status">Resend did not confirm the synthetic test request.</p>'+back,503);
+      return renderStudioPayPage(title,'<p class="notice" role="status">Resend did not confirm the synthetic test request.</p>'+back,503);
     }
     const response = await bridge(actor,{action:"preflight"});
     const checks = "checks" in response ? parsePayPreflightChecks(response.checks) : null;
@@ -318,9 +320,9 @@ export async function handleStudioPayPreflight(request: Request, {
     const sink = showSink ? `<section class="card"><h2>Synthetic email test</h2><p>This calls a fixed Resend test address. It includes no personnel or pay data and does not send email to staff, owners, or customers.</p><form method="post" action="${PREFLIGHT_PATH}"><p><label><input name="confirmSink" value="yes" type="checkbox" required> I want to run the synthetic email test.</label></p><button class="primary">Run synthetic test</button></form></section>` : "";
     // A native form using no-referrer serializes its POST Origin as null. Keep the
     // canonical Origin check intact and send no referrer cross-origin.
-    return page(title,`<p><a href="${PATH}">Back to Pay Review</a></p><section class="card"><p>Loading this page reads status only. It does not change pay records or send mail.</p>${preflightRows(checks)}<p class="muted">The historical benchmark is November 16–22, 2026. A sender match does not confirm delivery.</p></section>`+sink,200,false,showSink);
+    return renderStudioPayPage(title,`<p><a href="${PATH}">Back to Pay Review</a></p><section class="card"><p>Loading this page reads status only. It does not change pay records or send mail.</p>${preflightRows(checks)}<p class="muted">The historical benchmark is November 16–22, 2026. A sender match does not confirm delivery.</p></section>`+sink,200,false,showSink);
   } catch {
-    return post ? page(title,'<p class="notice" role="status">The Team Pay service did not confirm the synthetic test request.</p>'+back,503) :
-      page(title,`<p class="notice" role="status">The Team Pay service did not verify rollout readiness. This is not an empty or completed check.</p><p><a href="${PATH}">Back to Pay Review</a></p>`,503,request.method==="HEAD");
+    return post ? renderStudioPayPage(title,'<p class="notice" role="status">The Team Pay service did not confirm the synthetic test request.</p>'+back,503) :
+      renderStudioPayPage(title,`<p class="notice" role="status">The Team Pay service did not verify rollout readiness. This is not an empty or completed check.</p><p><a href="${PATH}">Back to Pay Review</a></p>`,503,request.method==="HEAD");
   }
 }
