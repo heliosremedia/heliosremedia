@@ -584,6 +584,24 @@ enum WorkspaceUserState {
   DEACTIVATED
 }
 
+/// Workspace-private email-only contact attached to an existing Studio TeamMember profile.
+model PhotoVaContact {
+  workspaceId  String
+  teamMemberId String
+  email        String
+  enabled      Boolean @default(false)
+  updatedById  String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  workspace  Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  teamMember TeamMember @relation(fields: [teamMemberId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, teamMemberId])
+  @@index([workspaceId, enabled])
+  @@index([teamMemberId])
+}
+
 model TeamMember {
   id String @id @default(cuid())
 
@@ -603,6 +621,8 @@ model TeamMember {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  photoVaContacts PhotoVaContact[]
 
   @@index([visible, displayOrder])
   @@index([category, displayOrder])
@@ -1599,6 +1619,7 @@ model Workspace {
   slug String @unique
 
   users                     AdminUser[]
+  photoVaContacts           PhotoVaContact[]
   socialCampaigns           SocialCampaign[]
   socialSeries              SocialSeries[]
   socialGeneratedAssets     SocialGeneratedAsset[]

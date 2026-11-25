@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { canManagePhotoVaContacts } from "@/lib/studio-photo-va-settings";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/auth/session";
 import UserManager from "./UserManager";
@@ -29,6 +31,8 @@ export default async function UsersPage() {
       <p className="eyebrow text-[var(--helios-orange)]">Access control</p>
       <h1 className="mt-3 text-3xl font-light tracking-[-0.03em] text-white sm:text-4xl">Accounts & users</h1>
       <p className="mt-3 max-w-2xl text-sm leading-6 text-white/40">Manage your profile, invite teammates, assign the minimum access they need, and deactivate accounts while preserving the audit trail.</p>
+      {canManagePhotoVaContacts(session, process.env.PHOTO_VA_WORKSPACE_ID) &&
+        <Link href="/admin/photo-va-contacts" className="admin-btn-secondary mt-5 inline-flex">Photo VA contacts</Link>}
     </section>
     <ProfileManager initialProfile={profile}/>
     {canManageWorkspace&&<UserManager initialUsers={users.map(item => ({ ...item, lastLoginAt: item.lastLoginAt?.toISOString() || null, createdAt: item.createdAt.toISOString() }))} invitations={invitations.map(item => ({ ...item, expiresAt: item.expiresAt.toISOString(), createdAt: item.createdAt.toISOString() }))} currentUserId={session.userId} currentRole={session.role}/>}
